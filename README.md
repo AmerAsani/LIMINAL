@@ -5,7 +5,9 @@ LIMINAL 🟨🚪 – ein vibecoded Backrooms-Erkundungsspiel, das komplett im Te
 
 # LIMINAL V1
 -Added Core Engine
+
 -Fully rendert in the CMD Terminal
+
 -Core game
 
 # LIMINAL V2
