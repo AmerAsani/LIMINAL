@@ -110,4 +110,18 @@ With V5, I decided to rewrite the entire game in **C++** and build my own render
 
 From a simple terminal experiment to a custom C++ game engine.
 
-**This is LIMINAL V5.** 🟨🚪
+**This is LIMINAL V5, Done with Opus 5.5 Ultracode** 🟨🚪
+
+**Photos:**
+
+<img width="1280" height="720" alt="image" src="https://github.com/user-attachments/assets/7ebd8269-a8c6-4494-910d-01c45929833e" />
+
+<img width="1280" height="720" alt="image" src="https://github.com/user-attachments/assets/d8a26f14-0d9b-4a21-b5e1-5d009923790b" />
+
+<img width="1280" height="720" alt="image" src="https://github.com/user-attachments/assets/d9c81ddd-e7e6-4dd3-84ee-536294332f7e" />
+
+<img width="1280" height="720" alt="image" src="https://github.com/user-attachments/assets/0cb8ff9e-7d24-480b-b829-ffc714aeaceb" />
+
+<img width="1280" height="720" alt="image" src="https://github.com/user-attachments/assets/b358c8d6-7611-474a-9f7a-1ea2302ad7fb" />
+
+
