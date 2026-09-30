@@ -48,3 +48,9 @@ When The Sanity decreases to 0% you will take damage and Die after 15 Seconds
 -Fixed some Renderbugs
 
 -Added Load Game
+
+# BIG UPDATE !!
+
+-LIMINAL runs  now fully on its own Renderer !
+
+-The graphics got a huge remake, inclusive UI
