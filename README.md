@@ -2,7 +2,7 @@
 
 **LIMINAL** is a Backrooms-style first-person exploration game set in an endless procedurally generated world.
 
-Explore office corridors, concrete halls, underground tunnels, giant empty rooms, and narrow maintenance passages. Manage your **Health, Energy, and Sanity**, search for rare supplies, and try to survive the endless world.
+Explore office corridors, concrete halls, underground tunnels, giant empty rooms, and narrow maintenance passages. Manage your **Health and Sanity**, search for rare supplies, and try to survive the endless world.
 
 LIMINAL started as my very first game project in **Python** and evolved into a completely custom **C++ game with its own renderer and engine**.
 
@@ -280,32 +280,138 @@ LIMINAL.exe --seed N --name X --difficulty hard
 
 V5 is the biggest technical change in LIMINAL so far.
 
-The entire game was **rewritten from Python to C++**.
+The entire game was **rewritten from Python to C++20** and now runs on its own engine with a **Direct3D 11 renderer** instead of the terminal.
 
-This means V5 is no longer based on the old Python runtime or rendering system.
+The world itself stayed the same: world generation was ported **bit-for-bit** from V4, so the same seed creates exactly the same rooms. **V4 and V3 saves can be continued in V5.**
 
-### V5 includes:
+### Graphics
 
-* Complete rewrite from **Python to C++**
-* Completely new **C++ codebase**
-* Fully custom **renderer**
-* Custom **game engine**
-* Completely remade graphics
-* Completely redesigned UI
-* Improved rendering performance
-* Improved stability
-* New rendering architecture
-* No Python installation required
+* Deferred renderer with physically based materials (**PBR**)
+* Tiled lighting with hundreds of lamps at once; every lamp is a real area light
+* **Soft shadows for every lamp**: no light leaks through walls, stairs cast correct shadows
+* Ambient occlusion (SSAO), reflections on glossy floors (SSR) and volumetric light glow in the haze
+* Bloom, automatic exposure, AgX tone mapping, film grain, vignette and chromatic aberration
+* Temporal anti-aliasing (TAA)
+* Procedural PBR textures up to **2048 × 2048** (wallpaper, carpet, tiles, concrete, bricks, panels, metal grates)
+* The old terminal look is still there: press `V` to switch between **Modern, Terminal, ASCII and Monochrome**
+* Quality presets **Low / Medium / High / Ultra**, plus every option individually adjustable
 
-The old Python-based terminal renderer has been completely replaced.
+### Performance
 
-**LIMINAL V5 is now a native C++ game with its own engine and renderer.**
+* About **2.3 ms per frame (~440 FPS)** at 1920 × 1080 with all effects enabled (RTX 3070)
+* World streaming runs on multiple CPU cores
+* No Python runtime anymore; a native, statically linked executable
+
+### New Content
+
+* **New level: Level 1 — "Das Tiefgeschoss"**: basement corridors, concrete cellars and a technical floor. Darker, narrower, with more sunken rooms and fewer items. Choose the level under *New Game*.
+* Dripping water echoes through the basement rooms
+* Levels, zones, room types, lighting styles, items, difficulties, key bindings and entities are defined in JSON files under `data/`, so **new levels can be added without changing the engine**
+
+### Sound
+
+* All sounds are generated procedurally: humming fluorescent lights, vending machines, footsteps for each floor type, heartbeat and ambience for each zone
+* Positional stereo sound with low latency (WASAPI)
+
+### Controls & Comfort
+
+* **Gamepad support** (XInput)
+* Freely rebindable keys (`data/input.json`)
+* The game pauses automatically when you switch windows (`Alt + Tab`)
+* Built-in help (`H` / `F1`)
+
+### Saves
+
+* Multiple save slots with preview images
+* Crash-safe saving (temporary file + `.bak` backup)
+* V4 and V3 saves appear in the list and can be continued; the old files are never changed
+
+### Launcher
+
+`LIMINAL.exe` checks your PC before the game starts:
+
+* Windows version
+* Direct3D 11 graphics support (software mode as a fallback)
+* Microsoft C runtime
+* Completeness of the game folder
+
+If something is missing, it explains what to do and, where possible, offers the **official Microsoft installer**. It only downloads from Microsoft, verifies the digital signature and installs nothing without asking you first.
+
+If the game ever crashes, a crash report is saved to `%LOCALAPPDATA%\LIMINAL\crash`.
+
+---
+
+## Latest Fixes
+
+* Menus opened with `ESC`, `Tab` or `H` no longer close again immediately
+* Fixed flickering, blocky artifacts on ceilings and walls in very large halls
+* Softer, more even lighting in tall halls (no harsh bright spots on the walls)
+* No leftover geometry or shadows from the previous world after loading a save
+* `Alt + Enter` now stays in sync with the fullscreen setting
+* `ESC` in the main menu no longer quits instantly; press it twice to exit
+* Player names with accented letters (ä, é, ç, ñ, ł …) are displayed correctly
+* Two games started within the same second no longer overwrite each other's save
+* The gamepad `Start` button now also closes the pause menu
+
+---
+
+## Controls
+
+| Input | Action |
+|---|---|
+| `W A S D` | Move |
+| Mouse / Arrow keys | Look around |
+| `Shift` | Sprint |
+| `+` / `-` | Walking speed |
+| `E` | Pick up item |
+| `F` | Use selected item |
+| `1–9` / Mouse wheel | Select hotbar slot |
+| `Tab` | Inventory |
+| `M` | Map |
+| `ESC` | Menu (settings, help, save) |
+| `H` / `F1` | Help |
+| `F3` / `I` | Debug overlay |
+| `V` | Display mode (Modern / Terminal / ASCII / Monochrome) |
+| `L` | Performance mode |
+| `B` | Head bobbing |
+| `P` / `F12` | Screenshot |
+| `Alt + Enter` | Fullscreen / window |
+
+---
+
+## Requirements
+
+* Windows 10 or 11 (64-bit)
+* Graphics card with Direct3D 11 and an up-to-date driver
+* No Python, no extra DLLs, no installation: unzip and run `LIMINAL.exe`
+
+---
+
+## Command Line Options (V5)
+
+Start a new game directly with a seed, name, difficulty and level:
+
+```bash
+LIMINAL.exe --seed 4242 --name X --difficulty hard --level level1
+```
+
+| Option | Effect |
+|---|---|
+| `--windowed --size 1600x900` | Window mode and size |
+| `--mode terminal` / `ascii` / `mono` | Start in a retro display mode |
+| `--warp` | Software rendering (without a graphics card) |
+| `--benchmark 3000` | Automatic camera run, result written to the log |
+
+`--new` is no longer needed in V5: the main menu has *New Game*.
 
 ---
 
 # ⚠️ Antivirus / Security Warnings
 
-Because LIMINAL V5 is a **native C++ application** and the executable is currently **not digitally signed with a code-signing certificate**, some antivirus software or Windows security features may show warnings or potentially flag the `.exe`.
+Because LIMINAL V5 is a **native C++ application** and the executables are currently **not digitally signed with a code-signing certificate**, some antivirus software or Windows security features may show warnings or potentially flag the `.exe`.
+
+* **Windows SmartScreen** may show "Windows protected your PC". Click **More info → Run anyway**.
+* **Smart App Control** (Windows 11) blocks unsigned programs completely while it is turned on.
 
 This can happen with smaller or independently developed native applications, especially when they are unsigned.
 
@@ -315,17 +421,31 @@ The complete source code can be inspected at any time, allowing anyone to review
 
 You can also compile the game yourself from the source code instead of using the provided executable.
 
-**Don't blindly trust the executable — inspect the source code and verify it yourself.** 👍
+**Don't blindly trust the executable. Inspect the source code and verify it yourself.** 👍
+
+## Build It Yourself
+
+No Visual Studio required. The build script downloads a portable toolchain (llvm-mingw / Clang, CMake, Ninja) into the project folder; nothing is installed on your system.
+
+```bash
+powershell -ExecutionPolicy Bypass -File tools\build.ps1
+```
+
+To create the ready-to-play release folder and ZIP:
+
+```bash
+powershell -ExecutionPolicy Bypass -File tools\package.ps1
+```
 
 ---
 
 # From V1 to V5
 
-**V1** — Core engine and first terminal renderer
-**V2** — Menu, minimap, mouse controls and bug fixes
-**V3** — Camera system, projections, items, inventory, Health, Sanity and saving
-**V4** — Main menu, difficulty system, multiple saves, fullscreen and improved save management
-**V5** — Complete rewrite in C++, custom engine, custom renderer and completely remade graphics
+**V1**: Core engine and first terminal renderer
+**V2**: Menu, minimap, mouse controls and bug fixes
+**V3**: Camera system, projections, items, inventory, Health, Sanity and saving
+**V4**: Main menu, difficulty system, multiple saves, fullscreen and improved save management
+**V5**: Complete rewrite in C++20, custom engine, Direct3D 11 renderer with PBR graphics, a new level, procedural sound and gamepad support
 
 From a small Python experiment in the terminal...
 
@@ -342,5 +462,3 @@ From a small Python experiment in the terminal...
 <img width="1280" height="720" alt="image" src="https://github.com/user-attachments/assets/0cb8ff9e-7d24-480b-b829-ffc714aeaceb" />
 
 <img width="1280" height="720" alt="image" src="https://github.com/user-attachments/assets/b358c8d6-7611-474a-9f7a-1ea2302ad7fb" />
-
-
