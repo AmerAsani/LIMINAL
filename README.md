@@ -1,5 +1,5 @@
 # LIMINAL
-LIMINAL 🟨🚪 – ein vibecoded Backrooms-Erkundungsspiel, das komplett im Terminal läuft. Unendliche prozedurale Räume, 3D-Grafik aus Unicode-Blöcken, Mandelwasser gegen den Wahnsinn und null Engine – nur Python. Mein erstes eigenes Spiel!
+LIMINAL 🟨🚪 – a vibecoded Backrooms-style exploration game that runs entirely in the terminal. Endless procedural rooms, 3D graphics made from Unicode blocks, almond water to ward off madness, and no game engine—just Python. My very first game!
 
 # Version and Changes
 
