@@ -1,56 +1,113 @@
-# LIMINAL
-LIMINAL 🟨🚪 – a vibecoded Backrooms-style exploration game that runs entirely in the terminal. Endless procedural rooms, 3D graphics made from Unicode blocks, almond water to ward off madness, and no game engine—just Python. My very first game!
+# LIMINAL 🟨🚪
 
-# Version and Changes
+**LIMINAL** is a vibecoded Backrooms-style exploration game focused on procedural generation, atmospheric exploration, survival mechanics, and liminal environments.
 
-# LIMINAL V1
--Added Core Engine
+Explore endless procedurally generated rooms, manage your health, energy and sanity, find Almond Water, and try to survive whatever is waiting in the endless halls.
 
--Fully rendert in the CMD Terminal
+What started as a small **Python terminal game** has evolved into a fully custom **C++ game with its own renderer**.
 
--Core game
+**My very first game!** 🎮
 
-# LIMINAL V2
--Added a Menu ingame
+---
 
--Added a Minimap
+# Version History
 
--Fixed some small render Bugs
+## LIMINAL V1
 
--Removed inputs Q,E and Replaced them with Mouse Inputs
+* Added the core engine
+* Fully rendered directly in the CMD terminal
+* Added the core gameplay
 
+---
 
-# LIMINAL V3
+## LIMINAL V2
 
--Added Energiebar, Gives 20% Speed and 20% Sanity
+* Added an in-game menu
+* Added a minimap
+* Fixed several small rendering bugs
+* Removed `Q` and `E` inputs and replaced them with mouse controls
 
--Added Almondwater, Gives 30% Sanity
+---
 
--Added Inventory
+## LIMINAL V3
 
--Added Sanity
+* Added an Energy Bar
 
--Added Health
+  * Provides **+20% movement speed**
+  * Provides **+20% sanity**
+* Added Almond Water
 
--Added Diffrent Food-Rooms
+  * Restores **30% sanity**
+* Added an inventory system
+* Added a sanity system
+* Added a health system
+* Added different food rooms
+* Added smooth lighting
 
--Added Smooth Light (Yes in the Terminal)
+**Yes, smooth lighting in the terminal.** 😎
 
-When The Sanity decreases to 0% you will take damage and Die after 15 Seconds
+### Sanity System
 
+When your sanity reaches **0%**, you start taking damage.
 
-# LIMINAL V4
+If you don't recover your sanity, you will die after approximately **15 seconds**.
 
--Added Main Menu
+---
 
--Added Save Game option
+## LIMINAL V4
 
--Fixed some Renderbugs
+* Added a main menu
+* Added save game functionality
+* Added load game functionality
+* Fixed several rendering bugs
 
--Added Load Game
+---
 
-# BIG UPDATE !!
+# BIG UPDATE — LIMINAL V5 🚨
 
--LIMINAL runs  now fully on its own Renderer !
+## LIMINAL has been completely rewritten in C++!
 
--The graphics got a huge remake, inclusive UI
+V5 is a massive technical overhaul of the entire game.
+
+* Completely rewritten from **Python to C++**
+* Added a **fully custom renderer**
+* Completely remade the graphics
+* Completely redesigned the UI
+* Improved rendering performance
+* Improved overall stability
+* Removed the old Python-based rendering system
+* The game now runs on its own custom **C++ engine and renderer**
+
+This is no longer the old Python terminal project.
+
+**LIMINAL V5 is now a completely new C++ version of the game.** 🟨🚪
+
+---
+
+## ⚠️ Antivirus / False Positives
+
+Because LIMINAL V5 is now a **native C++ application**, some antivirus programs may occasionally flag the executable or show a warning.
+
+I currently **do not have a code-signing certificate / signed executable**, which can cause security software to be more suspicious of the program.
+
+This does **not** mean that the game contains a virus.
+
+LIMINAL is **fully open source**, meaning the complete source code can be inspected and reviewed at any time.
+
+If you are unsure about the executable, you can always examine the source code yourself and compile the game from source.
+
+**Don't blindly trust the executable — verify it yourself.** 👍
+
+---
+
+# 🛠️ From Python to C++
+
+LIMINAL started as a small Python project running entirely in the terminal.
+
+Over time, the project grew far beyond what I originally expected.
+
+With V5, I decided to rewrite the entire game in **C++** and build my own rendering system from the ground up.
+
+From a simple terminal experiment to a custom C++ game engine.
+
+**This is LIMINAL V5.** 🟨🚪
