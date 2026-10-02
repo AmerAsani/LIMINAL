@@ -63,8 +63,6 @@ Available projection modes:
 
 The image proportions can also be adjusted to compensate for the character height of the terminal.
 
----
-
 ## Items
 
 Added two rare items:
@@ -96,8 +94,6 @@ When you get close to a supply room containing items, a message appears:
 
 Collected items remain permanently removed, even after loading a save.
 
----
-
 ## Inventory
 
 Added a Minecraft-style inventory system.
@@ -113,8 +109,6 @@ Added a Minecraft-style inventory system.
 * Opened with `Tab`
 
 Items of the same type can be stacked.
-
----
 
 ## Health & Sanity
 
@@ -132,8 +126,6 @@ Loading the previous save restores:
 
 * **Full Health**
 * At least **30% Sanity**
-
----
 
 ## Autosave
 
@@ -180,8 +172,6 @@ Added a complete main menu:
 
 While the menu is open, the game world slowly rotates in the background.
 
----
-
 ## New Game
 
 When creating a new game, you can enter a name and choose a difficulty.
@@ -206,8 +196,6 @@ When creating a new game, you can enter a name and choose a difficulty.
 
 Health regeneration also depends on the selected difficulty.
 
----
-
 ## Continue Game
 
 The Continue Game menu displays all available save files with:
@@ -225,8 +213,6 @@ Press `Delete` twice to remove a save.
 
 Existing **V3 save files** can automatically appear in the save list.
 
----
-
 ## Pause Menu
 
 Press `ESC` to open the pause menu.
@@ -239,8 +225,6 @@ Added:
 
 Autosave continues to use the same save file.
 
----
-
 ## Fullscreen
 
 When the game starts, the console window can automatically:
@@ -249,8 +233,6 @@ When the game starts, the console window can automatically:
 * Enter fullscreen mode similar to `Alt + Enter`
 
 Both options can be disabled under **Graphics & Display**.
-
----
 
 ## Command Line Options
 
