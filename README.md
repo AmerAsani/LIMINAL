@@ -321,8 +321,6 @@ If something is missing, it explains what to do and, where possible, offers the 
 
 If the game ever crashes, a crash report is saved to `%LOCALAPPDATA%\LIMINAL\crash`.
 
----
-
 ## V5 Fixes
 
 * Menus opened with `ESC`, `Tab` or `H` no longer close again immediately
