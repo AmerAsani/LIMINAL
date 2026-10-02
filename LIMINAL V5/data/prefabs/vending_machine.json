@@ -1,0 +1,9 @@
+// Rot leuchtender Automat in Versorgungsraeumen. Die Geometrie stammt aus der
+// Weltgenerierung; das Prefab ergaenzt das Brummen.
+{
+  "name": "vending_machine",
+  "components": {
+    "transform": {},
+    "audio_emitter": { "sound": "vending_hum", "volume": 0.6, "radius": 10 }
+  }
+}

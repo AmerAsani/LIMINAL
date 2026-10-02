@@ -1,0 +1,146 @@
+// LIMINAL - Level 1: Das Tiefgeschoss.
+//
+// Beispiel fuer ein neues Level, das nur aus Daten besteht: dieselbe Engine,
+// andere Zonen, Raumtypen und Stimmung. Unterirdische Tunnel, Technik und
+// Beton, dunkler, enger, mit mehr abgesenkten Raeumen und selteneren Items.
+{
+  "id": "level1",
+  "name": "Level 1",
+  "title": "Das Tiefgeschoss",
+  "generator": "sectors",
+  "next_level": "level2",  // V7: wohin die Notausgaenge fuehren
+  // V7: Notizen, Batterien und Notausgaenge (Wahrscheinlichkeit je Raum; Notausgaenge erst weit vom Start)
+  "finds": { "note": 0.06, "battery": 0.045, "battery_dark": 0.35, "exit_start": 110, "exit_range": 550, "exit_max": 0.04 },
+  "sector_size": 96,
+
+  "rarity": { "distance": 450.0, "max_extra": 2.0 },
+  "zone_field": { "scale": 150.0, "sharpness": 9.0, "origin_radius": 90.0 },
+
+  "zones": [
+    { "key": "tunnel", "name": "Kellergänge",
+      "wall": [0.42, 0.39, 0.31], "floor": [0.30, 0.29, 0.25], "ceil": [0.33, 0.32, 0.28],
+      "trim": [0.28, 0.24, 0.19], "lamp": [0.96, 0.88, 0.62], "fog": [0.010, 0.012, 0.009],
+      "fog_density": 0.08, "ambient": 0.10, "light_style": "wall",
+      "wall_pattern": "bricks", "floor_pattern": "slabs", "ceil_pattern": "plain",
+      "min_leaf": 3, "max_leaf": 13, "big_chance": 0.05, "corridor_chance": 0.62,
+      "corridor_width": [2, 3], "wall_thickness": [2, 3], "loop_chance": 0.3,
+      "h_room": [2.6, 3.2], "h_corridor": [2.3, 2.7], "h_big": [4.5, 7.0], "door_height": 2.1,
+      "sunken": 0.8, "sunken_depth": 2.4, "origin_bias": 0.6 },
+
+    { "key": "industrial", "name": "Betonkeller",
+      "wall": [0.50, 0.51, 0.53], "floor": [0.36, 0.36, 0.38], "ceil": [0.30, 0.30, 0.33],
+      "trim": [0.60, 0.46, 0.16], "lamp": [1.00, 0.70, 0.38], "fog": [0.04, 0.045, 0.055],
+      "fog_density": 0.055, "ambient": 0.20, "light_style": "pools",
+      "wall_pattern": "concrete", "floor_pattern": "slabs", "ceil_pattern": "plain",
+      "min_leaf": 4, "max_leaf": 20, "big_chance": 0.12, "corridor_chance": 0.35,
+      "corridor_width": [3, 5], "wall_thickness": [1, 2], "loop_chance": 0.24,
+      "h_room": [3.0, 4.2], "h_corridor": [3.0, 4.0], "h_big": [7.0, 12.0], "door_height": 2.3 },
+
+    { "key": "maint", "name": "Technikgeschoss",
+      "wall": [0.34, 0.40, 0.35], "floor": [0.25, 0.25, 0.25], "ceil": [0.21, 0.22, 0.21],
+      "trim": [0.70, 0.55, 0.12], "lamp": [1.00, 0.34, 0.18], "fog": [0.03, 0.007, 0.005],
+      "fog_density": 0.09, "ambient": 0.12, "light_style": "emergency",
+      "wall_pattern": "panels", "floor_pattern": "grate", "ceil_pattern": "plain",
+      "min_leaf": 3, "max_leaf": 9, "big_chance": 0.02, "corridor_chance": 0.64,
+      "corridor_width": [2, 3], "wall_thickness": [1, 1], "loop_chance": 0.22,
+      "h_room": [2.1, 2.4], "h_corridor": [2.0, 2.2], "h_big": [3.2, 4.2], "door_height": 1.95,
+      "door_clearance": 2.0, "wide_doors": false }
+  ],
+
+  // center_fallback: Raeume, in die das Lampenraster nichts setzt, bekommen eine Deckenlampe in der Mitte
+  "light_styles": {
+    "panels":      { "extra": 0.35, "intensity": 0.55, "center_fallback": true },
+    "pools":       { "extra": 0.22, "intensity": 1.00, "center_fallback": true },
+    "wall":        { "extra": 0.20, "intensity": 0.85, "center_fallback": true },
+    "emergency":   { "extra": 0.14, "intensity": 0.80, "center_fallback": true },
+    "void":        { "extra": 0.05, "intensity": 1.40, "ambient": 0.07, "dark_fog": true },
+    "dark":        { "extra": 0.05, "intensity": 1.20, "ambient": 0.03, "dark_fog": true }
+  },
+  "dark_fog": [0.008, 0.009, 0.012],
+
+  // affinity: Gewicht je Zone (Kellergaenge, Betonkeller, Technikgeschoss)
+  "room_types": [
+    { "key": "kellerraum", "label": "Kellerraum", "category": "normal", "short": [3, 9], "long": [3, 14],
+      "affinity": [1.0, 0.6, 0.5] },
+    { "key": "betonraum", "label": "Betonraum", "category": "normal", "short": [2, 999],
+      "affinity": [0.4, 1.4, 0.4], "features": ["beams"] },
+    { "key": "lager", "label": "Kellerlager", "category": "normal", "short": [8, 30], "long": [9, 60],
+      "affinity": [0.3, 1.0, 0.2], "features": ["shelves"], "biggish": true },
+    { "key": "versorgung", "label": "Versorgungsraum", "category": "normal", "short": [3, 6], "long": [4, 9],
+      "affinity": [0.22, 0.2, 0.2], "features": ["counter"], "ambient_mul": 1.15, "supply": true },
+    { "key": "gewoelbe", "label": "Gewölbekeller", "category": "normal", "short": [4, 12],
+      "affinity": [1.8, 0.2, 0.1], "features": ["vault", "pillars"] },
+    { "key": "technikraum", "label": "Technikraum", "category": "normal", "short": [3, 12], "long": [3, 16],
+      "affinity": [0.2, 0.6, 1.8], "features": ["machines", "pipes"] },
+
+    { "key": "korridor", "label": "Kellergang", "category": "corridor", "affinity": [1.0, 0.5, 0.4] },
+    { "key": "tunnel", "label": "Tunnel", "category": "corridor", "short": [2, 5],
+      "affinity": [1.6, 0.2, 0.2], "features": ["vault"] },
+    { "key": "wartungsgang", "label": "Wartungstunnel", "category": "corridor", "short": [1, 3],
+      "affinity": [0.2, 0.2, 1.6], "features": ["pipes"] },
+    { "key": "endlos", "label": "Endloser Gang", "category": "corridor", "affinity": [1, 1, 1],
+      "extra_doors": 0.85, "multi_doors": true, "light": "wall" },
+
+    { "key": "industriehalle", "label": "Kellerhalle", "category": "large", "short": [12, 999],
+      "affinity": [0.3, 1.6, 0.3], "features": ["beams", "crates"] },
+    { "key": "versenkte_halle", "label": "Abgesenkte Halle", "category": "large", "short": [12, 999],
+      "affinity": [0.8, 0.8, 0.3], "features": ["pillars_sparse"], "sunken": [1.0, 1.2, 2.4] },
+
+    { "key": "treppenhaus", "label": "Treppenschacht", "category": "unusual", "short": [8, 40], "long": [10, 60],
+      "affinity": [1.0, 1.0, 0.6], "height": [9.0, 15.0], "sunken": [1.0, 3.2, 6.0], "stair_step": 0.4,
+      "light": "wall", "biggish": true },
+    { "key": "tuerenraum", "label": "Raum der Türen", "category": "unusual", "short": [4, 14], "long": [5, 22],
+      "affinity": [0.8, 0.6, 0.6], "extra_doors": 1.0, "multi_doors": true },
+
+    { "key": "leere", "label": "Die Leere", "category": "rare", "short": [14, 999],
+      "affinity": [1, 1, 0.5], "height": [18.0, 30.0], "features": ["giant_pillars"], "light": "void",
+      "fog_mul": 0.55, "biggish": true },
+    { "key": "dunkelraum", "label": "Dunkelkammer", "category": "rare", "short": [5, 40],
+      "affinity": [1, 1, 1], "light": "dark" }
+  ],
+
+  "corridor_types": ["korridor", "tunnel", "wartungsgang"],
+  "endless_type": "endlos",
+  "default_corridor_type": "korridor",
+  "fallback_type": "betonraum",
+  "supply_fallback_type": "kellerraum",
+  "spawn_preferred_types": ["korridor", "kellerraum"],
+
+  "supply_items": [
+    { "item": "almond", "weight": 0.6 },
+    { "item": "energy", "weight": 0.4 }
+  ],
+
+  // Zusaetzliche Entities (Prefabs aus data/prefabs) in der Mitte passender Raeume.
+  // room_types leer oder weggelassen = alle Raumtypen; chance je Raum; height ueber dem Boden.
+  "entities": [
+    { "prefab": "water_drip", "room_types": ["gewoelbe", "tunnel", "kellerraum", "versenkte_halle"],
+      "chance": 0.35, "height": 2.2 }
+  ],
+
+  "ambience": "tunnel",
+
+  // V6-Aufbau (nur neue Spiele): das Tiefgeschoss bleibt dunkler und enger als Level 0,
+  // bekommt aber breitere Gaenge, groessere Keller und gelegentliche Kellerpassagen.
+  "layout_v6": {
+    "structure": {
+      "passage_chance": 0.5, "passage_width": [5, 7], "passage_types": ["kellerpassage"],
+      "open_join": 0.6, "open_large": 0.45, "endless_mul": 1.4
+    },
+    "zones": {
+      "tunnel":     { "min_leaf": 4, "max_leaf": 19, "big_chance": 0.1, "corridor_width": [3, 4],
+                      "loop_chance": 0.34, "h_room": [2.8, 3.6], "h_corridor": [2.6, 3.1] },
+      "industrial": { "min_leaf": 5, "max_leaf": 26, "big_chance": 0.2, "corridor_width": [4, 6],
+                      "loop_chance": 0.3, "h_room": [3.2, 4.8], "h_corridor": [3.4, 5.0], "h_big": [8.0, 14.0] },
+      "maint":      { "min_leaf": 4, "max_leaf": 11, "big_chance": 0.04, "loop_chance": 0.26 }
+    },
+    "room_types": {
+      "kellerraum": { "short": [3, 12], "long": [3, 17] },
+      "versorgung": { "short": [3, 9], "long": [4, 13], "affinity": [0.33, 0.3, 0.3] }
+    },
+    "add_room_types": [
+      { "key": "kellerpassage", "label": "Kellerpassage", "category": "corridor", "short": [4, 999],
+        "affinity": [1, 1, 1], "height": [3.8, 6.0], "features": ["pillars_sparse"], "fog_mul": 1.2 }
+    ]
+  }
+}

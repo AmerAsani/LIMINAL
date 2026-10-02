@@ -1,0 +1,32 @@
+// Items. Neue Items: Eintrag hinzufuegen und in einem Level unter "supply_items"
+// (oder spaeter in Prefabs) verwenden. "model" verweist auf ein Netz im Renderer,
+// "icon" auf ein Symbol. Wirkungen: sanity (Prozentpunkte), speed (Anteil) fuer
+// speed_time Sekunden, health (Prozentpunkte).
+{
+  "items": [
+    {
+      "key": "energy",
+      "name": "Energy Bar",
+      "description": "+20 % Geschwindigkeit (60 s) und +20 % Sanity",
+      "sanity": 20.0,
+      "speed": 0.20,
+      "speed_time": 60.0,
+      "model": "energy",
+      "icon": "energy",
+      "scale": 1.0,
+      "use_sound": "eat",
+      "max_stack": 16
+    },
+    {
+      "key": "almond",
+      "name": "Mandelwasser",
+      "description": "+35 % Sanity",
+      "sanity": 35.0,
+      "model": "almond",
+      "icon": "almond",
+      "scale": 1.0,
+      "use_sound": "drink",
+      "max_stack": 16
+    }
+  ]
+}

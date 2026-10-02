@@ -1,0 +1,142 @@
+// LIMINAL - Level 2: Das Hotel (V7).
+//
+// Ein Hotel ohne Gaeste: endlose Flure mit Teppich und Wandleuchten, Zimmer ohne Klinken,
+// Ballsaele und Lobbys, dahinter ein Personalbereich mit Waescherei und Lagern. Warmes,
+// gedaempftes Licht statt Neon - und irgendwo spielt leise Fahrstuhlmusik.
+// Erreichbar nur ueber einen Notausgang aus Level 1; seine Notausgaenge fuehren zurueck nach Level 0.
+{
+  "id": "level2",
+  "name": "Level 2",
+  "title": "Das Hotel",
+  "generator": "sectors",
+  "sector_size": 96,
+  "next_level": "level0",
+
+  "rarity": { "distance": 500.0, "max_extra": 1.8 },
+  "zone_field": { "scale": 170.0, "sharpness": 10.0, "origin_radius": 110.0 },
+
+  "zones": [
+    { "key": "hotel", "name": "Hotelflure",
+      "wall": [0.70, 0.56, 0.42], "floor": [0.46, 0.15, 0.12], "ceil": [0.80, 0.76, 0.66],
+      "trim": [0.30, 0.18, 0.10], "lamp": [1.00, 0.80, 0.55], "fog": [0.10, 0.06, 0.03],
+      "fog_density": 0.045, "ambient": 0.36, "light_style": "wall",
+      "wall_pattern": "wallpaper", "floor_pattern": "carpet", "ceil_pattern": "plain",
+      "min_leaf": 4, "max_leaf": 12, "big_chance": 0.05, "corridor_chance": 0.7,
+      "corridor_width": [2, 3], "wall_thickness": [1, 1], "loop_chance": 0.25,
+      "h_room": [2.6, 2.9], "h_corridor": [2.5, 2.7], "h_big": [5.0, 8.0], "door_height": 2.2,
+      "origin_bias": 0.7, "baseboard": true },
+
+    { "key": "saal", "name": "Säle und Lobby",
+      "wall": [0.78, 0.70, 0.56], "floor": [0.78, 0.74, 0.68], "ceil": [0.86, 0.82, 0.74],
+      "trim": [0.34, 0.24, 0.14], "lamp": [1.00, 0.86, 0.64], "fog": [0.12, 0.09, 0.05],
+      "fog_density": 0.032, "ambient": 0.42, "light_style": "pools",
+      "wall_pattern": "plain", "floor_pattern": "bigtiles", "ceil_pattern": "plain",
+      "min_leaf": 7, "max_leaf": 34, "big_chance": 0.45, "corridor_chance": 0.3,
+      "corridor_width": [4, 6], "wall_thickness": [1, 2], "loop_chance": 0.35,
+      "h_room": [3.6, 5.0], "h_corridor": [3.8, 5.0], "h_big": [7.0, 12.0], "door_height": 2.6,
+      "baseboard": true },
+
+    { "key": "personal", "name": "Personalbereich",
+      "wall": [0.62, 0.64, 0.60], "floor": [0.70, 0.70, 0.66], "ceil": [0.55, 0.55, 0.52],
+      "trim": [0.40, 0.42, 0.40], "lamp": [0.92, 0.96, 1.00], "fog": [0.05, 0.05, 0.05],
+      "fog_density": 0.05, "ambient": 0.3, "light_style": "panels",
+      "wall_pattern": "blocks", "floor_pattern": "tiles", "ceil_pattern": "plain",
+      "min_leaf": 3, "max_leaf": 10, "big_chance": 0.04, "corridor_chance": 0.6,
+      "corridor_width": [2, 3], "wall_thickness": [1, 1], "loop_chance": 0.22,
+      "h_room": [2.4, 2.8], "h_corridor": [2.3, 2.6], "h_big": [3.6, 5.0], "door_height": 2.1,
+      "weight_offset": -0.04, "wide_doors": false }
+  ],
+
+  // hum: Klang der Leuchten (0 still, 1 Leuchtstoffroehre, 2 Industrie, 3 Notlicht, 4 Leuchtkasten).
+  // Die Wandleuchten und Kronleuchter des Hotels sind Gluehlampen und summen nicht.
+  "light_styles": {
+    "wall":      { "extra": 0.25, "intensity": 0.80, "center_fallback": true, "hum": 0 },
+    "pools":     { "extra": 0.30, "intensity": 1.00, "center_fallback": true, "hum": 0 },
+    "panels":    { "extra": 0.35, "intensity": 0.55, "center_fallback": true },
+    "emergency": { "extra": 0.14, "intensity": 0.80, "center_fallback": true },
+    "void":      { "extra": 0.05, "intensity": 1.40, "ambient": 0.07, "dark_fog": true, "hum": 0 },
+    "dark":      { "extra": 0.05, "intensity": 1.20, "ambient": 0.03, "dark_fog": true, "hum": 0 }
+  },
+  "dark_fog": [0.010, 0.008, 0.006],
+
+  // affinity: Gewicht je Zone (Hotelflure, Saele, Personal)
+  "room_types": [
+    { "key": "hotelzimmer", "label": "Hotelzimmer", "category": "normal", "short": [3, 6], "long": [4, 9],
+      "affinity": [1.6, 0.2, 0.3] },
+    { "key": "suite", "label": "Suite", "category": "normal", "short": [6, 11], "long": [7, 15],
+      "affinity": [0.6, 0.5, 0.0], "light": "pools" },
+    { "key": "versorgung", "label": "Minibar", "category": "normal", "short": [3, 8], "long": [4, 12],
+      "affinity": [0.1, 0.1, 0.12], "features": ["counter"], "ambient_mul": 1.15, "supply": true },
+    { "key": "waescherei", "label": "Wäscherei", "category": "normal", "short": [4, 12], "long": [5, 16],
+      "affinity": [0.0, 0.0, 1.4], "features": ["machines", "pipes"] },
+    { "key": "lager", "label": "Wäschelager", "category": "normal", "short": [6, 20], "long": [7, 30],
+      "affinity": [0.0, 0.2, 1.0], "features": ["shelves"], "biggish": true },
+
+    { "key": "hotelflur", "label": "Hotelflur", "category": "corridor", "affinity": [1.4, 0.3, 0.3] },
+    { "key": "personalgang", "label": "Personalgang", "category": "corridor", "short": [1, 3],
+      "affinity": [0.1, 0.1, 1.4], "features": ["pipes"] },
+    { "key": "galerie", "label": "Galerie", "category": "corridor", "short": [4, 999],
+      "affinity": [0.3, 1.2, 0.0], "features": ["colonnade"] },
+    { "key": "endlos", "label": "Endloser Hotelflur", "category": "corridor", "affinity": [1, 1, 1],
+      "extra_doors": 0.95, "multi_doors": true, "light": "wall" },
+
+    { "key": "ballsaal", "label": "Ballsaal", "category": "large", "short": [12, 999],
+      "affinity": [0.3, 1.6, 0.0], "height": [7.0, 11.0], "features": ["pillars_sparse"] },
+    { "key": "lobby", "label": "Lobby", "category": "large", "short": [12, 999],
+      "affinity": [0.4, 1.2, 0.0], "height": [6.0, 9.0], "features": ["thick_pillars"] },
+    { "key": "speisesaal", "label": "Speisesaal", "category": "large", "short": [10, 999],
+      "affinity": [0.3, 1.0, 0.1], "height": [4.0, 6.0], "features": ["pillars"] },
+
+    { "key": "treppenhaus", "label": "Treppenhaus", "category": "unusual", "short": [8, 40], "long": [10, 60],
+      "affinity": [1.0, 0.8, 0.6], "height": [9.0, 14.0], "sunken": [1.0, 3.2, 6.0], "stair_step": 0.4,
+      "light": "wall", "biggish": true },
+    { "key": "tuerenraum", "label": "Flur der Zimmer", "category": "unusual", "short": [4, 12], "long": [6, 24],
+      "affinity": [1.4, 0.4, 0.2], "extra_doors": 1.0, "multi_doors": true },
+    { "key": "hoher_raum", "label": "Zu hohes Zimmer", "category": "unusual", "short": [3, 8], "long": [3, 12],
+      "affinity": [0.6, 0.3, 0.3], "height": [12.0, 20.0] },
+
+    { "key": "leere", "label": "Die Leere", "category": "rare", "short": [14, 999],
+      "affinity": [1, 1.4, 0.5], "height": [20.0, 32.0], "features": ["giant_pillars"], "light": "void",
+      "fog_mul": 0.55, "biggish": true },
+    { "key": "dunkelraum", "label": "Dunkles Zimmer", "category": "rare", "short": [4, 30],
+      "affinity": [1, 1, 1], "light": "dark" }
+  ],
+
+  "corridor_types": ["hotelflur", "personalgang", "galerie"],
+  "endless_type": "endlos",
+  "default_corridor_type": "hotelflur",
+  "fallback_type": "hotelzimmer",
+  "supply_fallback_type": "hotelzimmer",
+  "spawn_preferred_types": ["hotelflur", "hotelzimmer"],
+
+  "supply_items": [
+    { "item": "almond", "weight": 0.6 },
+    { "item": "energy", "weight": 0.4 }
+  ],
+
+  // V7: Fundstuecke und Notausgaenge (fuehren zurueck nach Level 0)
+  "finds": { "note": 0.06, "battery": 0.04, "battery_dark": 0.35, "exit_start": 100, "exit_range": 500, "exit_max": 0.04 },
+
+  "ambience": "hotel",
+
+  // weitlaeufiger V6-Aufbau (wie bei Level 0 und 1 die Grundlage neuer Spiele): breitere Flure,
+  // groessere Zimmer und Saele, Galerien als Passagen, Flure gehen offen ineinander ueber
+  "layout_v6": {
+    "structure": {
+      "passage_chance": 0.45, "passage_width": [5, 7], "passage_types": ["galerie"],
+      "open_join": 0.6, "open_large": 0.6, "endless_mul": 2.0
+    },
+    "zones": {
+      "hotel":    { "min_leaf": 5, "max_leaf": 19, "big_chance": 0.1, "corridor_width": [3, 4],
+                    "loop_chance": 0.32, "h_room": [2.7, 3.2], "h_corridor": [2.6, 3.0] },
+      "saal":     { "min_leaf": 9, "max_leaf": 40, "big_chance": 0.55, "corridor_width": [5, 7],
+                    "loop_chance": 0.38, "h_big": [8.0, 14.0] },
+      "personal": { "min_leaf": 4, "max_leaf": 13, "big_chance": 0.06, "loop_chance": 0.26 }
+    },
+    "room_types": {
+      "hotelzimmer": { "short": [3, 10], "long": [4, 14] },
+      "suite":       { "short": [7, 14], "long": [8, 20] },
+      "versorgung":  { "short": [3, 10], "long": [4, 14], "affinity": [0.3, 0.3, 0.34] }
+    }
+  }
+}

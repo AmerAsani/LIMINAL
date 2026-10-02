@@ -1,0 +1,11 @@
+// Ein Item, das in der Welt liegt (auf den Theken der Versorgungsraeume).
+// Art und Modell werden beim Erzeugen aus data/items.json eingesetzt.
+{
+  "name": "item_pickup",
+  "components": {
+    "transform": {},
+    "mesh": { "draw_distance": 40 },
+    "pickup": {},
+    "interactable": { "prompt": "aufnehmen", "range": 2.1, "cone": 42 }
+  }
+}

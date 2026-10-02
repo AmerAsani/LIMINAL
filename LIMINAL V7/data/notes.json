@@ -1,0 +1,44 @@
+// V7: Notizen anderer Wanderer. Sie liegen selten auf dem Boden (Haeufigkeit je Level unter
+// "finds" -> "note"). "levels": nur in diesen Leveln (fehlt = ueberall). "title": Eintrag im
+// Notizbuch. Neue Notizen einfach anhaengen - die Auswahl je Fundort ist stabil, solange die
+// Reihenfolge der vorhandenen gleich bleibt.
+{
+  "notes": [
+    { "title": "Tag 1", "text": "Ich bin durch eine Tür gegangen, die es nicht hätte geben dürfen. Hinter mir ist jetzt nur Wand. Wer das liest: Du bist nicht der Erste. Und vermutlich nicht der Letzte." },
+    { "title": "Das Summen", "text": "Folge dem Summen der Automaten. Wo einer steht, gibt es manchmal etwas zu trinken. Das Mandelwasser hilft. Frag nicht, warum." },
+    { "title": "Grünes Licht", "text": "Es gibt Ausgänge. Grüne Schilder, NOTAUSGANG. Aber nie in der Nähe des Anfangs. Man muss sich weit entfernen, bevor das Gebäude einen gehen lässt." },
+    { "title": "Zählen", "text": "Ich habe die Deckenplatten gezählt. 4.112 in diesem Flur. Als ich zurückging, waren es 4.113." },
+    { "title": "Batterien", "text": "Spar die Taschenlampe. In den dunklen Räumen liegen manchmal Batterien, als hätte sie jemand für uns hingelegt. Das macht mir mehr Angst als die Dunkelheit." },
+    { "title": "Nicht umdrehen", "text": "Wenn du Schritte hinter dir hörst, die genau in deinem Takt gehen: nicht umdrehen. Weitergehen. Sie hören auf, wenn du nicht hinsiehst." },
+    { "title": "Die Stille", "text": "Das Schlimmste ist nicht das Summen. Das Schlimmste ist, wenn es aufhört." },
+    { "title": "M.", "text": "M. sagt, die Gänge verändern sich, wenn niemand hinsieht. Ich habe M. seit drei Tagen nicht mehr gesehen. Vielleicht hat M. aufgehört hinzusehen." },
+    { "title": "Teppich", "text": "Der Teppich ist feucht. Nicht nass. Feucht. Immer an denselben Stellen. Ich glaube nicht, dass es Wasser ist." },
+    { "title": "Karte", "text": "Ich habe versucht, eine Karte zu zeichnen. Sie stimmt. Das ist das Problem: Sie stimmt, und ich finde trotzdem nicht zurück." },
+    { "title": "Mandelwasser", "text": "Es schmeckt nach nichts und nach Kindheit. Nach einem Schluck hört das Flüstern für eine Weile auf." },
+    { "title": "Am Ende des Gangs", "text": "Am Ende des Gangs stand jemand. Groß. Dünn. Ganz still. Als ich näher kam, war da nur die Wand. Ich bin seitdem nicht mehr so weit gegangen." },
+    { "title": "Liste", "text": "Was hilft:\n– essen, trinken\n– die Lampe aus, wenn es hell genug ist\n– nicht zu lange in leeren Hallen stehen\n– nicht rennen, wenn man nicht muss" },
+    { "title": "Aufzug", "text": "Irgendwo spielt Musik. Leise, wie aus einem Aufzug, der nie ankommt. Ich bin ihr zwei Stunden gefolgt. Sie war immer genau eine Wand entfernt." },
+    { "title": "Ohne Titel", "text": "WO SIND DIE FENSTER" },
+    { "title": "Die Leere", "text": "Es gibt Räume, deren Decke man nicht sieht. Die Säulen dort sind breiter als Häuser. Wenn du einen findest: Geh am Rand entlang. Nicht in die Mitte." },
+    { "title": "Uhrzeit", "text": "Meine Uhr ist um 3:33 stehen geblieben. Seitdem ist es immer 3:33. Ich weiß nicht, ob die Uhr kaputt ist oder die Zeit." },
+    { "title": "Für A.", "text": "A., falls du das findest: Ich bin nach Norden gegangen. Ich glaube, es war Norden. Hier ist alles Norden." },
+    { "title": "Atmen", "text": "Wenn die Luft knapp wird und die Beine schwer: stehen bleiben, an die Wand lehnen, zählen. Bis zwanzig. Die Gänge laufen nicht weg. Leider." },
+    { "title": "Geräusche", "text": "Manchmal fällt irgendwo eine schwere Tür ins Schloss. Weit weg. Es gibt hier keine schweren Türen. Ich habe nachgesehen." },
+    { "title": "Notiz an mich", "text": "Wenn du anfängst, Dinge zu sehen, die nicht da sind: trink etwas. Iss etwas. Das hier ist nicht echt. Das hier ist nicht echt. Das hier ist nicht echt." },
+    { "title": "Der Plan", "text": "Plan: geradeaus. Immer geradeaus. Irgendwann muss es aufhören.\n\nDarunter, in anderer Schrift: es hört nicht auf" },
+    { "title": "Automaten", "text": "Die Automaten nehmen kein Geld. Ich habe es versucht. Sie zeigen trotzdem 0,00 €. Als hätten wir schon bezahlt." },
+    { "title": "Notausgang", "text": "Ich habe einen gefunden. NOTAUSGANG. Die Tür war kalt. Dahinter ist nicht draußen. Dahinter ist nur woanders. Aber woanders ist besser als hier. Glaube ich.", "levels": ["level0", "level2"] },
+    { "title": "Keller", "text": "Unten ist es feucht und das Licht ist gelber. Die Rohre klopfen, als würde jemand von der anderen Seite antworten.", "levels": ["level1"] },
+    { "title": "Tropfen", "text": "Tropf. Tropf. Tropf. Ich habe angefangen, im Takt zu gehen. Ich weiß nicht, wann ich angefangen habe.", "levels": ["level1"] },
+    { "title": "Technik", "text": "Rote Notbeleuchtung bedeutet nicht Gefahr. Rote Notbeleuchtung bedeutet nur, dass niemand sie je ausgeschaltet hat.", "levels": ["level1"] },
+    { "title": "Tiefer", "text": "Jemand hat an die Wand geschrieben: TIEFER IST NÄHER. Näher woran, steht da nicht.", "levels": ["level1"] },
+    { "title": "Rezeption", "text": "Ein Hotel. Teppich bis zum Horizont. An der Rezeption liegt ein Gästebuch. Der letzte Eintrag ist mein Name, in meiner Schrift. Ich war noch nie hier.", "levels": ["level2"] },
+    { "title": "Zimmer 314", "text": "Alle Türen haben Nummern, aber keine Klinken. Hinter Zimmer 314 läuft ein Fernseher. Nur Rauschen. Ich habe stundenlang zugehört.", "levels": ["level2"] },
+    { "title": "Ballsaal", "text": "Im Ballsaal sind die Stühle hochgestellt, als hätte die Feier gerade erst aufgehört. Es riecht nach kaltem Rauch. Niemand ist hier. Niemand war je hier.", "levels": ["level2"] },
+    { "title": "Musik", "text": "Die Musik im Hotel ist dieselbe wie in den Büros, nur langsamer. Als hätte jemand das Band zu oft abgespielt.", "levels": ["level2"] },
+    { "title": "Zurück?", "text": "Ein Notausgang im Hotel führt zurück zu den gelben Fluren. Ich bin sicher, dass es derselbe Flur ist, in dem ich angefangen habe. Ich bin nicht sicher, ob ich derselbe bin.", "levels": ["level2"] },
+    { "title": "Strichliste", "text": "IIII IIII IIII IIII IIII IIII IIII IIII IIII IIII IIII II\n\nTage? Türen? Ich weiß es nicht mehr." },
+    { "title": "Gute Nachricht", "text": "Gute Nachricht: Ich habe aufgehört, Angst zu haben. Schlechte Nachricht: Ich habe aufgehört, Angst zu haben." },
+    { "title": "An wen auch immer", "text": "Du bist nicht verrückt. Das Gebäude ist es. Bleib in Bewegung, iss, wenn du kannst, und wenn das Licht grün wird: geh hindurch." }
+  ]
+}

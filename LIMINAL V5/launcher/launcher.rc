@@ -1,0 +1,32 @@
+#include <windows.h>
+
+1 ICON "../assets/liminal.ico"
+CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "launcher.manifest"
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION 5,0,0,0
+PRODUCTVERSION 5,0,0,0
+FILEFLAGSMASK 0x3fL
+FILEFLAGS 0x0L
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_APP
+FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040704b0"
+        BEGIN
+            VALUE "CompanyName", "LIMINAL"
+            VALUE "FileDescription", "LIMINAL - Starter"
+            VALUE "FileVersion", "5.0.0.0"
+            VALUE "InternalName", "LIMINAL"
+            VALUE "OriginalFilename", "LIMINAL.exe"
+            VALUE "ProductName", "LIMINAL"
+            VALUE "ProductVersion", "5.0.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x407, 1200
+    END
+END

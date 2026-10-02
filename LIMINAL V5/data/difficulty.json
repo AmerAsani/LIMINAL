@@ -1,0 +1,14 @@
+// Schwierigkeitsgrade (wie V4). drain: Sanity-Verlust in Prozentpunkten pro Minute,
+// death: Sekunden bei 0 % Sanity bis zum Tod, regen: Health-Erholung pro Sekunde,
+// items: Wahrscheinlichkeiten (kein Item, hoechstens ein Item) je Versorgungsraum.
+{
+  "default": "medium",
+  "levels": [
+    { "key": "easy",   "label": "Easy",   "drain": 10.0, "death": 25.0, "regen": 6.0, "items": [0.10, 0.55],
+      "description": "Sanity −10 %/min, 25 s bis zum Tod, deutlich mehr Items" },
+    { "key": "medium", "label": "Medium", "drain": 15.0, "death": 15.0, "regen": 4.0, "items": [0.28, 0.80],
+      "description": "Sanity −15 %/min, 15 s bis zum Tod, normale Item-Menge" },
+    { "key": "hard",   "label": "Hard",   "drain": 22.0, "death": 10.0, "regen": 2.0, "items": [0.50, 0.92],
+      "description": "Sanity −22 %/min, 10 s bis zum Tod, wenige Items" }
+  ]
+}

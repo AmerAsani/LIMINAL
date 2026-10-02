@@ -1,0 +1,11 @@
+// Getraenke- und Snackautomat in Versorgungsraeumen. Die Kachel (Kollision, Schatten) stammt aus
+// der Weltgenerierung; das Prefab ergaenzt das Modell (V6: Gehaeuse, Bedienfeld, Glasfront mit
+// Faechern) und das Brummen des Kuehlkompressors.
+{
+  "name": "vending_machine",
+  "components": {
+    "transform": {},
+    "mesh": { "model": "vending", "draw_distance": 70 },
+    "audio_emitter": { "sound": "vending_hum", "volume": 0.6, "radius": 10 }
+  }
+}

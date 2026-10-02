@@ -1,0 +1,5 @@
+# Build-Ausgaben und lokale Werkzeuge (werden von tools\*.ps1 erzeugt)
+/build/
+/Release/
+/.toolchain/
+*.dmp

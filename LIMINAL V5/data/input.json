@@ -1,0 +1,23 @@
+// Tastenbelegung. Tasten: A-Z, 0-9, F1-F12, Shift, Ctrl, Alt, Space, Enter, Esc, Tab,
+// Backspace, Delete, Up, Down, Left, Right, Plus, Minus, Num0-Num9, Mouse1-Mouse5,
+// WheelUp, WheelDown. Gamepad-Knoepfe (XInput): A, B, X, Y, LB, RB, Back, Start,
+// LStick, RStick, DUp, DDown, DLeft, DRight, LT, RT.
+// Fehlt eine Aktion, gilt die Standardbelegung (wie in V4).
+{
+  "bindings": {
+    "move_forward": { "keys": ["W"] },
+    "move_back":    { "keys": ["S"] },
+    "move_left":    { "keys": ["A"] },
+    "move_right":   { "keys": ["D"] },
+    "sprint":       { "keys": ["Shift"], "pad": "LStick" },
+    "interact":     { "keys": ["E"], "pad": "A" },
+    "use_item":     { "keys": ["F"], "pad": "X" },
+    "inventory":    { "keys": ["Tab"], "pad": "Y" },
+    "pause":        { "keys": ["Esc"], "pad": "Start" },
+    "map":          { "keys": ["M"], "pad": "Back" },
+    "debug":        { "keys": ["F3", "I"] },
+    "screenshot":   { "keys": ["P", "F12"] },
+    "toggle_bob":   { "keys": ["B"] },
+    "help":         { "keys": ["H", "F1"] }
+  }
+}

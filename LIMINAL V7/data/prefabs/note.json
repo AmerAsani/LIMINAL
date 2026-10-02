@@ -1,0 +1,10 @@
+// V7: Notizzettel eines anderen Wanderers. Liegt auf dem Boden; mit E lesen (landet im Notizbuch).
+{
+  "name": "note",
+  "components": {
+    "transform": {},
+    "mesh": { "model": "note", "draw_distance": 30 },
+    "interactable": { "prompt": "Notiz lesen", "range": 2.0, "cone": 45 },
+    "note": {}
+  }
+}

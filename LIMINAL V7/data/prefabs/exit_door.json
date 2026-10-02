@@ -1,0 +1,12 @@
+// V7: Notausgang. Steht in einer Wand, das gruene Schild leuchtet in den Raum und brummt leise.
+// Mit E oeffnen: Es geht auf die naechste Ebene ("next_level" der Leveldatei).
+{
+  "name": "exit_door",
+  "components": {
+    "transform": {},
+    "mesh": { "model": "exit_door", "draw_distance": 90 },
+    "interactable": { "prompt": "Notausgang öffnen", "range": 2.2, "cone": 55 },
+    "audio_emitter": { "sound": "lamp_emg_1", "volume": 0.35, "radius": 9 },
+    "exit": {}
+  }
+}
