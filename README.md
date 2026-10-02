@@ -15,7 +15,7 @@ Ready to play, no installation: download a ZIP, unzip it and start `LIMINAL.exe`
 | **V7 (latest)** | [`downloads/LIMINAL_V7.zip`](downloads/LIMINAL_V7.zip) |
 | V6 | [`downloads/LIMINAL_V6.zip`](downloads/LIMINAL_V6.zip) |
 | V5 | [`downloads/LIMINAL_V5.zip`](downloads/LIMINAL_V5.zip) |
-| V1–V4 (Python / terminal) | `LIMINAL V1.zip` … `LIMINAL V4.zip` |
+| V1–V4 (Python / terminal) | source folders `LIMINAL V1` … `LIMINAL V4` |
 
 The source code of every version is in the folders `LIMINAL V1` … `LIMINAL V7`. To build V5–V7 yourself, see [Build It Yourself](#build-it-yourself).
 
