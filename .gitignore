@@ -1,0 +1,6 @@
+# Verknuepfungen enthalten lokale Pfade
+*.lnk
+# Volle Projektordner inkl. Toolchain (~250 MB je ZIP) bleiben lokal; Spieler-ZIPs liegen in downloads/
+/LIMINAL V5.zip
+/LIMINAL V6.zip
+/LIMINAL V7.zip

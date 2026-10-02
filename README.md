@@ -2,9 +2,22 @@
 
 **LIMINAL** is a Backrooms-style first-person exploration game set in an endless procedurally generated world.
 
-Explore office corridors, concrete halls, underground tunnels, endless yhotel hallways, giant empty rooms, and narrow maintenance passages. Manage your **Health and Sanity**, search for rare supplies, read the notes other wanderers left behind, and find the **emergency exits** that lead somewhere else. Just don't trust everything you see when your Sanity runs low.
+Explore office corridors, concrete halls, underground tunnels, endless hotel hallways, giant empty rooms, and narrow maintenance passages. Manage your **Health and Sanity**, search for rare supplies, read the notes other wanderers left behind, and find the **emergency exits** that lead somewhere else. Just don't trust everything you see when your Sanity runs low.
 
 LIMINAL started as my very first game project in **Python** and evolved into a completely custom **C++ game with its own renderer and engine**.
+
+## ⬇️ Download
+
+Ready to play, no installation: download a ZIP, unzip it and start `LIMINAL.exe`.
+
+| Version | Download |
+|---|---|
+| **V7 (latest)** | [`downloads/LIMINAL_V7.zip`](downloads/LIMINAL_V7.zip) |
+| V6 | [`downloads/LIMINAL_V6.zip`](downloads/LIMINAL_V6.zip) |
+| V5 | [`downloads/LIMINAL_V5.zip`](downloads/LIMINAL_V5.zip) |
+| V1–V4 (Python / terminal) | `LIMINAL V1.zip` … `LIMINAL V4.zip` |
+
+The source code of every version is in the folders `LIMINAL V1` … `LIMINAL V7`. To build V5–V7 yourself, see [Build It Yourself](#build-it-yourself).
 
 ---
 
