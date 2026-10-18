@@ -1,0 +1,42 @@
+// V6: Texturen des Automaten (Gehaeuse-Atlas und Faecher hinter dem Glas).
+#pragma once
+
+namespace lim::gfx {
+
+struct VendSample {
+    float r = 0.5f, g = 0.5f, b = 0.5f;
+    float h = 0.0f;      // Hoehe (m) -> Normalen; im Innenraum: > 0 = Produkt (deckend)
+    float rough = 0.5f;
+    float ao = 1.0f;
+    float metal = 0.0f;
+};
+
+// Gehaeuse: Lack, Bedienfeld, Tasten, Anzeige, Muenzschlitz, Klappe, Leuchtschild, Gebrauchsspuren
+VendSample vendingBody(float u, float v, float px);
+// Faecher: Flaschen, Dosen, Snacks mit Spiralen, Preisleisten (Maske ueber die Hoehe)
+VendSample vendingInterior(float u, float v, float px);
+// 5x7-Pixelschrift: Deckung an (x, y) fuer Text ab (x0, y0) mit Zeichenhoehe ch (gleiche Einheit)
+float pixelText(float x, float y, float x0, float y0, float ch, const char* s);
+float pixelTextWidth(float ch, const char* s);
+
+// V7 (texture_v7.cpp): Batterie, Notizzettel, Notausgang
+VendSample batteryTexture(float u, float v, float px);
+VendSample noteTexture(float u, float v, float px);
+VendSample exitTexture(float u, float v, float px);
+// V8: Etagenanzeige der Aufzuege - Atlas 4 x 4 Felder, Feld i = elevatorLabel(i)
+VendSample elevatorTexture(float u, float v, float px);
+const char* elevatorLabel(int cell);
+constexpr int kElevatorLabels = 13;  // "0", "-1" .. "-9", Pfeil ab, Pfeil auf, "--"
+// V9 (texture_v9.cpp): Sicherungskasten und Sicherung
+VendSample fuseTexture(float u, float v, float px);
+// V10 (texture_v10.cpp): Figuren
+VendSample skinTexture(float u, float v, float px);
+VendSample woolTexture(float u, float v, float px);
+VendSample cottonTexture(float u, float v, float px);
+VendSample worstedTexture(float u, float v, float px);
+VendSample denimTexture(float u, float v, float px);
+VendSample leatherTexture(float u, float v, float px);
+VendSample hairTexture(float u, float v, float px);
+VendSample figDetailTexture(float u, float v, float px);
+
+}  // namespace lim::gfx

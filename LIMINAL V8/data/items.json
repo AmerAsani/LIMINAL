@@ -1,0 +1,59 @@
+// Items. Neue Items: Eintrag hinzufuegen und in einem Level unter "supply_items"
+// (oder spaeter in Prefabs) verwenden. "model" verweist auf ein Netz im Renderer,
+// "icon" auf ein Symbol. Wirkungen: sanity (Prozentpunkte), speed (Anteil) fuer
+// speed_time Sekunden, health (Prozentpunkte).
+//
+// V6 - Seltenheit ("spawn"): Die Item-Auswahl der Level ("supply_items") bleibt
+// V4-kompatibel; danach bleibt ein Item nur mit der Wahrscheinlichkeit "keep"
+// erhalten. Sonst wird es mit "replace_chance" durch "replace" ersetzt oder der
+// Platz bleibt leer. Deterministisch je Seed - Item-IDs und Spielstaende bleiben
+// gueltig. "rare": seltener Fund (Schimmer auf der Theke, eigener Klang, Hinweis).
+//
+// Balance Energy Bar (gemessen mit tests\supply_balance_test, Medium):
+//   V5: 55 % aller Items, +20 % Sanity  ->  V6: rund 17 % aller Items, +30 % Sanity
+//   Sanity je Versorgungsraum bleibt etwa gleich, weil ein Teil der weggefallenen
+//   Riegel als Mandelwasser (+35 %) erscheint.
+{
+  "items": [
+    {
+      "key": "energy",
+      "name": "Energy Bar",
+      "description": "Selten! +30 % Sanity, +30 % Tempo (75 s), Ausdauer voll und Sprinten kostet nur halb so viel",
+      "sanity": 30.0,
+      "speed": 0.30,
+      "speed_time": 75.0,
+      "stamina": 100.0,
+      "model": "energy",
+      "icon": "energy",
+      "scale": 1.0,
+      "use_sound": "eat",
+      "max_stack": 16,
+      "rare": true,
+      "spawn": { "keep": 0.30, "replace": "almond", "replace_chance": 0.45 }
+    },
+    {
+      "key": "almond",
+      "name": "Mandelwasser",
+      "description": "+35 % Sanity",
+      "sanity": 35.0,
+      "model": "almond",
+      "icon": "almond",
+      "scale": 1.0,
+      "use_sound": "drink",
+      "max_stack": 16,
+      "hold_offset": 0.11
+    },
+    {
+      "key": "battery",
+      "name": "Batterie",
+      "description": "Für die Taschenlampe: +50 % Ladung",
+      "battery": 50.0,
+      "model": "battery",
+      "icon": "battery",
+      "scale": 1.0,
+      "use_sound": "battery",
+      "max_stack": 8,
+      "hold_offset": 0.03
+    }
+  ]
+}

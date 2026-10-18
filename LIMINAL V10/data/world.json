@@ -1,0 +1,89 @@
+// LIMINAL V8 - die zusammenhaengende Welt.
+//
+// Es gibt keine getrennten Level mehr, sondern EINE Welt, in der alle Ebenen liegen. Jeder Lauf
+// beginnt in den Bueros (Level 0). Wer weitergeht, kommt irgendwann tiefer: ins Tiefgeschoss
+// (Level 1), dahinter ins Hotel (Level 2) - und noch weiter draussen beginnt alles von vorn,
+// aber nie ganz gleich.
+//
+// Die Ebenen bilden Schichten um den Start. Ihre Grenzen sind keine Kreise: ein grossraeumiges
+// Feld verbiegt sie zu Buchten und Zungen, ein zweites schiebt Ausbuchtungen und Inseln hinein
+// (ein Stueck Hotel mitten im Keller, ein vergessener Bueroflur hinter dem Ballsaal). An den
+// Nahtstellen mischen sich die Zonen beider Ebenen; dort entstehen die Uebergangsraeume unten.
+//
+// Die Ebenen selbst (Zonen, Raumtypen, Licht, Vorraete, Fundstuecke) kommen unveraendert aus
+// data/levels/*.json (mit ihrem V6-Aufbau). Alte Spielstaende einzelner Level laden weiter ihre
+// eigene, getrennte Welt.
+{
+  "id": "welt",
+  "name": "LIMINAL",
+  "title": "Die Welt",
+
+  "regions": [
+    { "level": "level0", "name": "Level 0", "title": "Die Innenräume" },
+    { "level": "level1", "name": "Level 1", "title": "Das Tiefgeschoss" },
+    { "level": "level2", "name": "Level 2", "title": "Das Hotel" }
+  ],
+
+  // Schichten von innen nach aussen (die Folge wiederholt sich endlos).
+  //   first: Radius der Bueros um den Start, width: Breite jeder weiteren Schicht (m)
+  //   warp / warp_scale: wie weit (m) und wie grossraeumig das Feld verwirbelt wird - daraus
+  //                      werden Zungen, Buchten und abgeschnuerte Inseln
+  //   island / island_scale: feinere Taschen, die vor- oder zurueckspringen (m)
+  //   calm: so weit um den Start bleibt es ruhig (m), seam: Breite der Nahtstellen (Anteil)
+  //   bias: wie klar sich die Ebene einer Schicht gegen die Zonen der anderen durchsetzt
+  "strata": {
+    "order": ["level0", "level1", "level2"],
+    "first": 380, "width": 520,
+    "warp": 250, "warp_scale": 460,
+    "island": 160, "island_scale": 200,
+    "calm": 170, "seam": 0.2, "bias": 1.6
+  },
+
+  // Aufzuege: seltene Kerne in groesseren Raeumen (chance je Raum, erst ab "start" m vom Start).
+  // Sie fahren eine Schicht tiefer - und merken sich den Weg zurueck.
+  "elevators": { "chance": 0.016, "start": 220 },
+
+  // V9: Sicherungskaesten - tief im Inneren jeder Ebene (depth: Anteil der Schicht, nicht an den
+  // Nahtstellen). Jeder gibt die Sicherung seiner Ebene. Mit allen dreien faehrt ein Aufzug hinaus.
+  "fuses": { "chance": 0.012, "depth": [0.22, 0.85], "items": ["fuse_office", "fuse_cellar", "fuse_hotel"] },
+
+  "zone_field": { "scale": 185.0, "sharpness": 10.5, "origin_radius": 140.0 },
+  "rarity": { "distance": 900.0, "max_extra": 1.8 },
+
+  // Uebergangsraeume: erscheinen fast nur an den Nahtstellen zweier Ebenen ("seam": wie haeufig
+  // dort). Gewichte je Zone als "ebene/zone". Material und Licht mischen sich aus beiden Seiten.
+  "connectors": [
+    // Bueros -> Tiefgeschoss: Lastenflure mit Rohren und Abgaenge, die nach unten fuehren
+    { "key": "lastenflur", "label": "Lastenflur", "category": "corridor", "short": [2, 4],
+      "features": ["pipes"], "seam": 3.0,
+      "affinity": { "level0/office": 0.6, "level0/industrial": 1.0, "level0/maint": 1.0, "level0/tunnel": 0.8,
+                    "level1/tunnel": 1.0, "level1/industrial": 1.0, "level1/maint": 1.0 } },
+    { "key": "abgang", "label": "Abgang", "category": "normal", "short": [5, 22], "long": [6, 40],
+      "height": [8.0, 12.0], "sunken": [1.0, 3.0, 6.0], "stair_step": 0.4, "light": "wall", "biggish": true,
+      "seam": 5.0,
+      "affinity": { "level0/office": 0.8, "level0/industrial": 1.0, "level0/tunnel": 1.0, "level0/maint": 0.6,
+                    "level1/tunnel": 1.0, "level1/industrial": 1.0, "level1/maint": 0.6 } },
+    { "key": "schleuse", "label": "Schleuse", "category": "normal", "short": [3, 5], "long": [3, 7],
+      "extra_doors": 0.0, "ambient_mul": 0.7, "seam": 2.5,
+      "affinity": { "level0/office": 1.0, "level0/maint": 1.0, "level1/tunnel": 1.0, "level1/maint": 1.0,
+                    "level2/personal": 1.0, "level2/hotel": 0.7 } },
+
+    // Tiefgeschoss -> Hotel: Personaltreppen und Wirtschaftsgaenge
+    { "key": "personaltreppe", "label": "Personaltreppe", "category": "normal", "short": [6, 18], "long": [8, 30],
+      "height": [7.0, 11.0], "sunken": [1.0, 2.4, 4.8], "stair_step": 0.35, "light": "emergency", "biggish": true,
+      "seam": 1.6,
+      "affinity": { "level1/tunnel": 1.0, "level1/maint": 1.0, "level1/industrial": 0.6,
+                    "level2/personal": 1.0, "level2/hotel": 0.5 } },
+    { "key": "wirtschaftsgang", "label": "Wirtschaftsgang", "category": "corridor", "short": [2, 3],
+      "features": ["pipes"], "seam": 3.0,
+      "affinity": { "level1/maint": 1.0, "level1/tunnel": 0.8, "level2/personal": 1.0, "level2/hotel": 0.4 } },
+
+    // Hotel -> Bueros (aeussere Schichten): Dienstflure und Konferenzbereiche
+    { "key": "dienstflur", "label": "Dienstflur", "category": "corridor", "short": [2, 4], "seam": 3.0,
+      "affinity": { "level2/hotel": 1.0, "level2/saal": 0.6, "level2/personal": 0.8,
+                    "level0/office": 1.0, "level0/halls": 0.6 } },
+    { "key": "konferenz", "label": "Konferenzbereich", "category": "normal", "short": [6, 16], "long": [8, 24],
+      "features": ["pillars_sparse"], "light": "pools", "seam": 2.5,
+      "affinity": { "level2/saal": 1.0, "level2/hotel": 0.8, "level0/office": 1.0, "level0/halls": 1.0 } }
+  ]
+}

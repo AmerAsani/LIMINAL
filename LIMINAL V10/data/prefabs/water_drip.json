@@ -1,0 +1,10 @@
+// Tropfendes Wasser: nur ein Klang an einer Position, ohne Modell.
+// Beispiel fuer ein Entity, das allein ueber Daten ins Spiel kommt:
+// level1.json verteilt es unter "entities" auf Kellerraeume.
+{
+  "name": "water_drip",
+  "components": {
+    "transform": {},
+    "audio_emitter": { "sound": "drip", "volume": 0.8, "radius": 9 }
+  }
+}

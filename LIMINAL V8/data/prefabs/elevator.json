@@ -1,0 +1,12 @@
+// V8: Aufzug. Steht als Kern an einer Wand (Raumdaten), dieses Objekt traegt Tuer, Kabine,
+// Anzeige und Ruftaster. Mit E rufen, einsteigen, in der Kabine E: er faehrt eine Schicht tiefer -
+// und spaeter auf demselben Weg zurueck. Den Rest (Tuer, Fahrt, Ziel) steuert die Sitzung.
+{
+  "name": "elevator",
+  "components": {
+    "transform": {},
+    "interactable": { "prompt": "Aufzug rufen", "range": 2.8, "cone": 70 },
+    "audio_emitter": { "sound": "lamp_ind_0", "volume": 0.10, "radius": 7 },
+    "elevator": {}
+  }
+}

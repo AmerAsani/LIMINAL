@@ -12,12 +12,15 @@ Ready to play, no installation: download a ZIP, unzip it and start `LIMINAL.exe`
 
 | Version | Download |
 |---|---|
-| **V7 (latest)** | [`downloads/LIMINAL_V7.zip`](downloads/LIMINAL_V7.zip) |
+| **V10 (latest)** | [`downloads/LIMINAL_V10.zip`](downloads/LIMINAL_V10.zip) |
+| V9 | [`downloads/LIMINAL_V9.zip`](downloads/LIMINAL_V9.zip) |
+| V8 | [`downloads/LIMINAL_V8.zip`](downloads/LIMINAL_V8.zip) |
+| V7 | [`downloads/LIMINAL_V7.zip`](downloads/LIMINAL_V7.zip) |
 | V6 | [`downloads/LIMINAL_V6.zip`](downloads/LIMINAL_V6.zip) |
 | V5 | [`downloads/LIMINAL_V5.zip`](downloads/LIMINAL_V5.zip) |
 | V1–V4 (Python / terminal) | source folders `LIMINAL V1` … `LIMINAL V4` |
 
-The source code of every version is in the folders `LIMINAL V1` … `LIMINAL V7`. To build V5–V7 yourself, see [Build It Yourself](#build-it-yourself).
+The source code of every version is in the folders `LIMINAL V1` … `LIMINAL V10`. To build V5–V10 yourself, see [Build It Yourself](#build-it-yourself).
 
 ---
 
@@ -484,6 +487,85 @@ The run log is saved and travels with you to the next level.
 
 ---
 
+# LIMINAL V8 — One Connected World 🌍
+
+V8 turns the separate levels into **one continuous world**.
+
+* **No more level menu:** every run starts in the offices (Level 0)
+* **Deeper by walking further:** the farther you go from the start, the deeper you get. Without any loading screen you reach the basement (Level 1), then the hotel (Level 2), and even farther out the sequence starts again
+* **Blurred borders:** zones of two levels mix where they meet. Freight corridors, stairs that only lead down, airlocks, staff stairwells and service corridors lead from one level to the next, and sometimes a piece of one level sits in the middle of the other
+* **Elevators:** rare elevators go one layer deeper with no cut or fade, and they bring you back the same way
+* **Quiet discovery:** you only notice which level you have entered after a while. Somewhere far behind you, a heavy door falls shut
+* Saves from V4–V7 keep loading their old, separate (bit-identical) worlds
+
+---
+
+# LIMINAL V9 — The Way Out 🔌
+
+V9 gives the world a **goal**.
+
+* **Fuse boxes:** deep inside every layer, far from the transitions, humming fuse boxes hang on the walls with flickering orange lights. You hear them before you see them.
+* **Three fuses, one elevator:** take one fuse from each layer (offices, basement, hotel) and insert all three into an elevator. It rides farther than ever before, into the light, followed by an ending screen with your run log.
+* **Hints instead of a tutorial:** the most important notes are found first, a quiet intro, and a goal display in the pause menu. The map marks fuse boxes you have seen.
+* The V9 package starts the game directly (`LIMINAL.exe`). The old launcher is gone, because Windows Smart App Control blocked it.
+
+---
+
+# LIMINAL V10 — Entities from the Backrooms Wikis 👁️
+
+V10 populates the world with **entities from the Backrooms wikis**. Which entity lives where, what it looks like and how it behaves follows the community descriptions on the [Backrooms Wiki (Wikidot)](https://backrooms-wiki.wikidot.com/entities) (main source) and the [Backrooms Wiki (Fandom)](https://backrooms.fandom.com/wiki/Entity_List) (comparison). Sources, contradictions and the chosen interpretation are documented in [`LIMINAL V10/docs/ENTITAETEN.md`](LIMINAL%20V10/docs/ENTITAETEN.md).
+
+| Area | Corresponds to | Entities |
+|---|---|---|
+| **The offices** | Level 0 "The Lobby" | no confirmed entities, only the **Gestalt**: unconfirmed dark figures at the end of corridors |
+| **The basement** | Level 1 | **Smiler** in the dark and during power cuts (Level 1's "flickering"), **Hound** |
+| **The hotel** | Level 5 "Terror Hotel" | **Deathmoths** with nests on the doors of dark rooms, rarely a **Hound** |
+
+* **Smiler** (Entity 3): in the dark you only see glowing white eyes and a long smile full of sharp teeth; the body is a shapeless black mass. Keep eye contact and it does not move. Look away and it comes closer through the dark, never into the light. Run, and it attacks. When the lights come back on, it fades.
+* **Hound** (Entity 8): once human, now on all fours. Bony limbs, webbed hands, long black hair over its head, face and back, white eyes and a huge mouth with rows of teeth. It hears you running and sees your flashlight. It growls and stalks, and eye contact intimidates it for a while. Turn your back or run, and it barks and charges.
+* **Deathmoths** (Entity 4): moths with a 45 cm wingspan and jagged, grey, hairy wings. They sit still on the walls and ceiling of dark hotel rooms behind a fleshy, resinous nest that overgrows the door frame. Light or getting too close sends the swarm up to circle your lamp, and with the light on they sting. Turn it off and they return to the nest.
+* **Gestalt** (Level 0): a dark, shapeless outline far away at the end of a corridor. It never changes while you look at it. Look away, and it is gone.
+* **Fair, not cheap:** no entity appears in front of you or right next to you, and every attack is announced by growling, barking, a deep drone or fluttering. The way out is the one the wikis describe: keep eye contact, back off slowly, turn your light off. "Only moves when you don't look" applies only where it fits: the Smiler and the Gestalt.
+* **Built in code:** everything is procedural, with no imported assets. Models are made from signed distance fields in three levels of detail, with their own skeletons and animation: a limping quadruped gait and gallop, hair with inertia, flight with two pairs of wings, landing on walls and ceilings, and a body of drifting smoke. Material textures reach up to **4096 px** on Ultra with streaming, and all sounds are synthesized.
+* **Your own body** is now a person (hoodie, jeans), or the stick figure again if you prefer.
+* Settings → Graphics & Display: **Entities** (All / No attacks / Off), figure detail, body style.
+
+---
+
+## Controls (V10)
+
+| Input | Action |
+|---|---|
+| `W A S D` | Move |
+| Mouse / Arrow keys | Look around |
+| `Shift` | Sprint (uses stamina) |
+| `Space` | Jump |
+| `+` / `-` | Walking speed |
+| `E` | Pick up item, read note, open emergency exit, call / ride an elevator, take a fuse |
+| `T` | Flashlight on / off |
+| `F` | Use selected item |
+| `Q` / `Ctrl + Q` | Drop selected item / whole stack |
+| `1–9` / Mouse wheel | Select hotbar slot |
+| `Tab` | Inventory |
+| `M` | Big map (the minimap is always visible) |
+| `F5` | First person / shoulder camera |
+| `ESC` | Menu (notebook, run log, settings, help, save) |
+| `H` / `F1` | Help (describes every entity and how to survive it) |
+| `F3` / `I` | Debug overlay |
+| `V` | Display mode (Modern / Terminal / ASCII / Monochrome) |
+| `L` | Performance mode |
+| `B` | Head bobbing |
+| `P` / `F12` | Screenshot |
+| `Alt + Enter` | Fullscreen / window |
+
+The gamepad layout is the same as in V7 (see below). All keys can be changed in `data/input.json`.
+
+---
+
+## Credits
+
+The entities in V10 are LIMINAL's own implementation of community descriptions from the **Backrooms Wiki** on Wikidot ([backrooms-wiki.wikidot.com](https://backrooms-wiki.wikidot.com), CC BY-SA 3.0) and the **Backrooms Wiki** on Fandom ([backrooms.fandom.com](https://backrooms.fandom.com), CC BY-SA). No text, images or models from the wikis are used. LIMINAL is not an official project of these wikis.
+
 ## Controls (V7)
 
 | Input | Action |
@@ -593,7 +675,7 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
 
 ---
 
-# From V1 to V7
+# From V1 to V10
 
 **V1**: Core engine and first terminal renderer
 **V2**: Menu, minimap, mouse controls and bug fixes
@@ -602,12 +684,17 @@ powershell -ExecutionPolicy Bypass -File tools\package.ps1
 **V5**: Complete rewrite in C++20, custom engine, Direct3D 11 renderer with PBR graphics, a new level, procedural sound and gamepad support
 **V6**: A bigger, more open world, spatial sound, a new graphics generation that adapts to your PC, a stick-figure body, an exploration minimap, jumping and stamina
 **V7**: Flashlight, emergency exits between levels, Level 2 "Das Hotel", notes and a notebook, hallucinations and a run log
+**V8**: One connected world instead of separate levels, blurred borders, elevators and quiet discovery
+**V9**: A goal: three fuses, one elevator, the way out, and an ending
+**V10**: Entities from the Backrooms wikis (Smiler, Hound, Deathmoths, the Gestalt), each in the area where it belongs, plus a human body
 
 From a small Python experiment in the terminal...
 
 **to a fully custom C++ game.**
 
 🟨🚪 **Welcome to LIMINAL.**
+
+![LIMINAL V10: Smiler, Hound, Deathmoths and their nest, the Gestalt](LIMINAL%20V10/docs/v10_uebersicht.png)
 
 <img width="1280" height="720" alt="image" src="https://github.com/user-attachments/assets/7ebd8269-a8c6-4494-910d-01c45929833e" />
 
