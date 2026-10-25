@@ -37,6 +37,7 @@ struct MatDesc {
     Look look = Look::Paint;
     float r = 0.6f, g = 0.6f, b = 0.6f;
     float glow = 0.0f;  // > 0: leuchtet (Staerke relativ)
+    std::string tex;    // V12: Textur aus data/textures (Name), leer = nach Look
 };
 
 struct Part {
@@ -52,6 +53,8 @@ struct Model {
 // Modell nach Name und Variante (nullptr: unbekannt). Varianten ausserhalb des Bereichs werden
 // auf den Bereich abgebildet.
 const Model* model(const std::string& name, int variant = 0);
+// V12: Modell aus einer Datei (props/glb_import) anmelden; ueberdeckt ein gleichnamiges Code-Modell
+void registerModel(const std::string& name, Model m);
 int variants(const std::string& name);
 // alle Namen (Pruefung der Karten)
 std::vector<std::string> modelNames();

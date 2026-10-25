@@ -40,3 +40,13 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
 - Seiten mit „outdated“ oder „in rewrite“ wurden gemieden, wo es gleichwertige stabile gab (6, 7, 15, 21, 33, 34, 54).
 - Reise: 0 → 1 → 2 → 3 → 5. Von 5 aus Abzweige nach 5.3 und 188, jeweils mit Rückweg. Dann ein Metro-Wagen nach 903, von dort nach 37 und 36. Die Gate-Tür in 36 ist das Ende.
 - Nicht belegte Verbindungen nutzen den belegten Mechanismus des Metro-Wagens und sind als eigene Ergänzung markiert.
+
+## E-005 Pipeline umgesetzt (26.10.2026)
+- **Texturen:**
+  - `tools/textures/fetch_ambientcg.py` lädt die Auswahl (`selection.json`, 2K-JPG) über die offizielle API, jede Datei in einen eigenen Ordner, mit SHA-256 im Lock (`ambientcg_lock.json`).
+  - `process.py` macht daraus kachelbare 1024-px-Texturen in `data/textures/` (Albedo JPG, DirectX-Normalen PNG, AO/Rauheit/Metall/Höhe PNG) und `textures.json` mit der realen Größe aus den ambientCG-Maßen.
+  - Im Spiel belegen sie bis zu 48 eigene Ebenen (`L_IMP0` …). Zonen und Raumtypen wählen sie mit `wall_tex`, `floor_tex`, `ceil_tex`; Modellteile mit `tex=` im Materialnamen.
+- **Modelle:** Blender-Skripte unter `tools/blender/` (`common.py` mit Materialkonvention, `build_models.py` baut alle oder einzelne Modelle) schreiben `data/models/<name>.glb`.
+  - Das Spiel liest sie mit einem eigenen glTF-Leser (`props/glb_import`) und meldet sie unter dem Dateinamen als Ausstattung an.
+  - Ein gleichnamiges Code-Modell wird dabei überdeckt.
+- **Koordinaten:** Das Spiel ist linkshändig (x vorn, y rechts, z oben), Blender und glTF sind rechtshändig. Der Leser spiegelt y und dreht den Umlaufsinn, damit ein Modell im Spiel so aussieht wie in Blender. Abgesichert durch `gameplay_test` (Abschnitt „Modelle aus Blender“).

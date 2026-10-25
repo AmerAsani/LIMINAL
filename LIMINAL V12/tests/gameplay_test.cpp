@@ -31,6 +31,7 @@
 #include "gameplay/prefabs.hpp"
 #include "gameplay/session.hpp"
 #include "gameplay/sound_field.hpp"
+#include "props/glb_import.hpp"
 #include "gameplay/stats.hpp"
 #include "gameplay/visible.hpp"
 #include "world/map_def.hpp"
@@ -1860,6 +1861,48 @@ static void testV11SoundField() {
     }
 }
 
+// V12: Modell-Pipeline (Blender -> .glb -> Spiel). Das Pruefmodell (tools/blender/models/models_test.py) hat einen
+// Betonsockel 1 x 1 x 0,5 m, einen roten Pfeil nach +x (vorn) und einen Leuchtwuerfel in Blender bei +y (links).
+// Im Spiel (x vorn, y rechts) muss der Wuerfel links liegen (y < 0), der Pfeil vorn, die Dreiecke nach aussen.
+static void testV12Glb(const char* dataDir) {
+    std::printf("V12: Modelle aus Blender (.glb)\n");
+    props::Model m;
+    std::string err;
+    const bool ok = props::loadGlb(std::string(dataDir) + "/models/pipeline_test.glb", m, err);
+    check(ok, "pipeline_test.glb lesbar" + (ok ? std::string() : " (" + err + ")"));
+    if (!ok) return;
+    check(m.parts.size() == 3, std::format("drei Teile (Materialien), sind {}", m.parts.size()));
+    const props::Part *glow = nullptr, *red = nullptr, *base = nullptr;
+    for (const auto& p : m.parts) {
+        if (p.mat.glow > 0.0f) glow = &p;
+        else if (p.mat.tex == "concrete_cast") base = &p;
+        else red = &p;
+    }
+    check(glow && red && base, "Materialnamen gelesen (glow, tex=concrete_cast, Farbe)");
+    if (!glow || !red || !base) return;
+    auto centre = [](const props::Mesh& me) {
+        vec3 c{0, 0, 0};
+        for (const auto& v : me.v) c = c + v.p;
+        return c * (1.0f / (float)me.v.size());
+    };
+    check(centre(glow->mesh).y < -0.2f, "Blender links (+y) ist im Spiel links (y < 0)");
+    check(centre(red->mesh).x > 0.2f && centre(red->mesh).z > 0.5f, "Pfeil vorn (+x) auf dem Sockel");
+    check(std::fabs(base->mesh.bounds().hi.z - 0.5f) < 0.01f && std::fabs(base->mesh.bounds().lo.x + 0.5f) < 0.01f,
+          "Massstab in Metern (Sockel 0,5 m hoch, 1 m breit)");
+    check(red->mat.r > 0.7f && red->mat.g < 0.3f, "Grundfarbe zurueck in sRGB");
+    // Dreiecke nach aussen: Flaechennormale aus dem Umlaufsinn zeigt wie die Vertexnormale
+    int agree = 0, total = 0;
+    const auto& me = base->mesh;
+    for (size_t t = 0; t + 2 < me.i.size(); t += 3) {
+        const vec3 a = me.v[me.i[t]].p, b2 = me.v[me.i[t + 1]].p, c = me.v[me.i[t + 2]].p;
+        const vec3 fn = cross(b2 - a, c - a);
+        if (length(fn) < 1e-8f) continue;
+        ++total;
+        if (dot(fn, me.v[me.i[t]].n + me.v[me.i[t + 1]].n + me.v[me.i[t + 2]].n) > 0.0f) ++agree;
+    }
+    check(total > 0 && agree == total, std::format("Umlaufsinn passt zu den Normalen ({} von {})", agree, total));
+}
+
 int main(int argc, char** argv) {
     if (argc < 2) {
         std::printf("Aufruf: gameplay_test <data-Ordner>\n");
@@ -1894,6 +1937,7 @@ int main(int argc, char** argv) {
     testV11Placement();         // V11: Halt der Ausstattung
     testV11FlashGrip();         // V11: Taschenlampe im Griff
     testV11SoundField();        // V11: Schallausbreitung
+    testV12Glb(argv[1]);        // V12: Modelle aus Blender
     std::printf("%s: %d Pruefungen, %d Fehler\n", gFails ? "FEHLGESCHLAGEN" : "OK", gChecks, gFails);
     return gFails ? 1 : 0;
 }

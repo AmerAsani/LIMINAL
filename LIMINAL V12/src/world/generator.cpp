@@ -994,7 +994,11 @@ void Generator::addProp(Sector& sec, const props::Model* m, float x, float y, fl
     p.x = x, p.y = y, p.z = z, p.yaw = yaw, p.sx = sx, p.sy = sy, p.sz = sz;
     for (const props::Part& part : m->parts) {
         const props::MatDesc& d = part.mat;
-        p.mats.push_back(bank_.get({d.r, d.g, d.b}, PlanePattern::None, WallPattern::Plain, d.glow > 0.0f, {}, 0.72, surfaceOf(d.look)));
+        // V12: Teile aus Blender koennen eine Textur aus data/textures waehlen (Ebene je Richtung gleich)
+        const int tl = d.tex.empty() ? -1 : importedLayer(d.tex);
+        const u8 l = tl < 0 ? (u8)255 : (u8)tl;
+        p.mats.push_back(bank_.get({d.r, d.g, d.b}, PlanePattern::None, WallPattern::Plain, d.glow > 0.0f, {}, 0.72, surfaceOf(d.look),
+                                   {l, l, l}));
         p.glow.push_back(d.glow);
     }
     if (const Room* r = sec.roomAt((i64)std::floor(x), (i64)std::floor(y))) {

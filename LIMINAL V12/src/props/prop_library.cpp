@@ -1368,7 +1368,27 @@ const std::map<std::string, Entry>& registry() {
 
 }  // namespace
 
+// V12: Modelle aus Dateien (eine Variante je Datei)
+std::mutex& importedMutex() {
+    static std::mutex m;
+    return m;
+}
+std::map<std::string, std::unique_ptr<Model>>& imported() {
+    static std::map<std::string, std::unique_ptr<Model>> m;
+    return m;
+}
+
+void registerModel(const std::string& name, Model m) {
+    std::lock_guard lock(importedMutex());
+    imported()[name] = std::make_unique<Model>(std::move(m));
+}
+
 const Model* model(const std::string& name, int variant) {
+    {
+        std::lock_guard lock(importedMutex());
+        auto im = imported().find(name);
+        if (im != imported().end()) return im->second.get();
+    }
     static std::mutex mutex;
     static std::map<std::pair<std::string, int>, std::unique_ptr<Model>> cache;
     const auto& reg = registry();
@@ -1382,6 +1402,10 @@ const Model* model(const std::string& name, int variant) {
 }
 
 int variants(const std::string& name) {
+    {
+        std::lock_guard lock(importedMutex());
+        if (imported().count(name)) return 1;
+    }
     auto it = registry().find(name);
     return it == registry().end() ? 0 : it->second.variants;
 }
@@ -1389,6 +1413,9 @@ int variants(const std::string& name) {
 std::vector<std::string> modelNames() {
     std::vector<std::string> n;
     for (const auto& [k, e] : registry()) n.push_back(k);
+    std::lock_guard lock(importedMutex());
+    for (const auto& [k, e] : imported())
+        if (!registry().count(k)) n.push_back(k);
     return n;
 }
 
