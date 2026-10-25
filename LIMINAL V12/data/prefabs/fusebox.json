@@ -1,0 +1,12 @@
+// V9: Sicherungskasten. Haengt an einer Wand tief im Inneren einer Ebene, brummt und flackert
+// orange. Mit E die Sicherung herausnehmen (eine je Ebene - mit allen dreien faehrt ein Aufzug hinaus).
+{
+  "name": "fusebox",
+  "components": {
+    "transform": {},
+    "mesh": { "model": "fusebox", "draw_distance": 60 },
+    "interactable": { "prompt": "Sicherung herausnehmen", "range": 2.2, "cone": 55 },
+    "audio_emitter": { "sound": "fuse_buzz", "volume": 0.5, "radius": 22 },
+    "fusebox": {}
+  }
+}

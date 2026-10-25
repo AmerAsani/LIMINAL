@@ -1,0 +1,23 @@
+// V11: Verzeichnis der erzeugten Klaenge. Jede Gruppe (Spieler, Welt, Kreaturen, Ebenen) traegt ihre
+// Klaenge mit Name und Rechenvorschrift ein; synthesizeAll() rechnet sie parallel.
+#pragma once
+
+#include <functional>
+#include <string>
+#include <vector>
+
+#include "audio/audio.hpp"
+
+namespace lim::audio {
+
+struct SoundDef {
+    std::string name;
+    std::function<Sound()> make;
+};
+
+void addPlayerSounds(std::vector<SoundDef>& d, int rate);    // synth_player.cpp: Schritte, Koerper, Gegenstaende, Oberflaeche
+void addWorldSounds(std::vector<SoundDef>& d, int rate);     // synth_world.cpp: Leuchten, Elektrik, Wasser, Rohre, Tueren
+void addCreatureSounds(std::vector<SoundDef>& d, int rate);  // synth_creatures.cpp: Kreaturen, Halluzinationen
+void addLevelSounds(std::vector<SoundDef>& d, int rate);     // synth_levels.cpp: Klangbetten, ferne Ereignisse, Musik
+
+}  // namespace lim::audio
