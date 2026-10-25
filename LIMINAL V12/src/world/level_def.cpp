@@ -72,6 +72,9 @@ StyleOverride parseStyle(const Json& j) {
     if (j.has("wall_pattern")) s.wallPattern = j["wall_pattern"].asString();
     if (j.has("floor_pattern")) s.floorPattern = j["floor_pattern"].asString();
     if (j.has("ceil_pattern")) s.ceilPattern = j["ceil_pattern"].asString();
+    if (j.has("wall_tex")) s.wallTex = j["wall_tex"].asString();  // V12
+    if (j.has("floor_tex")) s.floorTex = j["floor_tex"].asString();
+    if (j.has("ceil_tex")) s.ceilTex = j["ceil_tex"].asString();
     return s;
 }
 
@@ -244,6 +247,9 @@ std::optional<LevelDef> LevelDef::fromJson(const Json& jIn, std::string* error, 
         d.hBig = drange(z["h_big"], {4.0, 6.0});
         d.doorHeight = z["door_height"].asNumber(2.2);
         d.fixture = z["fixture"].asString("panel");  // V11
+        d.wallTex = z["wall_tex"].asString("");     // V12
+        d.floorTex = z["floor_tex"].asString("");
+        d.ceilTex = z["ceil_tex"].asString("");
         d.sunken = z["sunken"].asNumber(0.0);
         d.sunkenDepth = z["sunken_depth"].asNumber(2.4);
         d.originBias = z["origin_bias"].asNumber(0.0);

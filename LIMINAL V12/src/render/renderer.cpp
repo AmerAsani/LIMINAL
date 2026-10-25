@@ -1,4 +1,5 @@
 #include "render/renderer.hpp"
+#include "world/imported_textures.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -72,16 +73,20 @@ bool Renderer::init(plat::Window& window, JobSystem& jobs, const RenderSettings&
     frameCb_ = gpu_.createConstant(sizeof(FrameConstants));
     passCb_ = gpu_.createConstant(sizeof(PassConstants));
     objectCb_ = gpu_.createConstant(sizeof(ObjectConstants));
-    layerCb_ = gpu_.createConstant(sizeof(vec4) * 64);  // V10: 64 Ebenen
+    layerCb_ = gpu_.createConstant(sizeof(vec4) * kLayerSlots);  // V12: 96 Ebenen
     bones_ = gpu_.createStructured(sizeof(vec4), kBoneRows, true, false);
     capsules_ = gpu_.createStructured(sizeof(vec4), kCapsuleRows, true, false);
     float one[2] = {0.0f, 0.0f};
     exposure_ = gpu_.createStructured(sizeof(float), 2, false, true, one);
 
     // Ebenen-Konstanten (Massstab, Normalstaerke, Rauheit)
-    vec4 layers[64]{};
+    vec4 layers[kLayerSlots]{};
     for (int i = 0; i < L_COUNT; ++i) layers[i] = {kLayers[i].meters, kLayers[i].normalStrength, kLayers[i].roughBias, 0};
-    static_assert(L_COUNT <= kEntLayerSlot && kEntLayerSlot + EL_COUNT <= kMicroLayerSlot && kMicroLayerSlot + ML_COUNT <= 64);
+    for (size_t i = 0; i < world::importedTextures().size(); ++i) {  // V12: aus data/textures/textures.json
+        const auto& it = world::importedTextures()[i];
+        layers[L_IMP0 + i] = {it.meters, it.normalStrength, it.roughBias, 0};
+    }
+    static_assert(L_COUNT <= kEntLayerSlot && kEntLayerSlot + EL_COUNT <= kMicroLayerSlot && kMicroLayerSlot + ML_COUNT <= kLayerSlots);
     for (int i = 0; i < EL_COUNT; ++i) layers[kEntLayerSlot + i] = {kEntLayers[i].meters, kEntLayers[i].normalStrength, 0, 0};
     for (int i = 0; i < ML_COUNT; ++i) layers[kMicroLayerSlot + i] = {kMicroLayers[i].meters, kMicroLayers[i].normalStrength, 0, 0};
     gpu_.update(layerCb_, layers, sizeof(layers));

@@ -40,9 +40,9 @@ static double quant(double v) { return pyRound(clamp(v, 0.0, 1.0) * 48.0) / 48.0
 MaterialBank::MaterialBank() { items_.resize(kCapacity); }
 
 u16 MaterialBank::get(std::array<double, 3> rgb, PlanePattern plane, WallPattern wall, bool emissive,
-                      std::vector<Band> bands, double seamDark, Surface surface) {
+                      std::vector<Band> bands, double seamDark, Surface surface, std::array<u8, 3> layer) {
     rgb = {quant(rgb[0]), quant(rgb[1]), quant(rgb[2])};
-    Key key{rgb, (u8)plane, (u8)wall, emissive, bands, seamDark, (u8)surface};
+    Key key{rgb, (u8)plane, (u8)wall, emissive, bands, seamDark, (u8)surface, layer};
     std::lock_guard lock(mutex_);
     auto it = index_.find(key);
     if (it != index_.end()) return it->second;
@@ -59,7 +59,7 @@ u16 MaterialBank::get(std::array<double, 3> rgb, PlanePattern plane, WallPattern
         double bestD = 1e30;
         for (std::size_t i = 0; i < kCapacity; ++i) {
             const Material& m = *items_[i];
-            if (m.plane != plane || m.wall != wall || m.emissive != emissive || m.surface != surface) continue;
+            if (m.plane != plane || m.wall != wall || m.emissive != emissive || m.surface != surface || m.layer != layer) continue;
             double d = (m.rgb[0] - rgb[0]) * (m.rgb[0] - rgb[0]) + (m.rgb[1] - rgb[1]) * (m.rgb[1] - rgb[1]) +
                        (m.rgb[2] - rgb[2]) * (m.rgb[2] - rgb[2]) + (m.bands.size() != bands.size() ? 0.5 : 0.0);
             if (d < bestD) bestD = d, best = (u16)i;
@@ -76,6 +76,7 @@ u16 MaterialBank::get(std::array<double, 3> rgb, PlanePattern plane, WallPattern
     m->surface = surface;
     m->bands = std::move(bands);
     m->seamDark = seamDark;
+    m->layer = layer;
     items_[id] = std::move(m);
     index_.emplace(std::move(key), (u16)id);
     count_.store(id + 1, std::memory_order_release);

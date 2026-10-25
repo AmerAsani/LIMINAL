@@ -34,7 +34,9 @@ enum TexLayer : u8 {
     L_ROADPAINT,                          // abgefahrene Fahrbahnfarbe
     L_RUBBER,                             // Gummi (Reifen)
     L_PLANKS,                             // Dielenboden (Dachboden, Hotel)
-    L_COUNT
+    // V12: Texturen aus Bilddateien (world/imported_textures.hpp), 48 Ebenen
+    L_IMP0,
+    L_COUNT = L_IMP0 + 48
 };
 
 struct LayerDesc {

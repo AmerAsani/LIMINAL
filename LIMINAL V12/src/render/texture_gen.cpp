@@ -7,7 +7,9 @@
 
 #include "core/jobs.hpp"
 #include "core/log.hpp"
+#include "platform/image_io.hpp"
 #include "render/noise.hpp"
+#include "world/imported_textures.hpp"
 
 namespace lim::gfx {
 
@@ -38,7 +40,57 @@ const LayerDesc kLayers[L_COUNT] = {
     // V11: Ausstattung (Atlas: 1 Kachel = Atlas; sonst Meter je Kachel)
     {"signs", 1.0f, 0.6f, 0.0f, 0.0f},   {"painted", 1.2f, 1.0f, 0.0f, 0.5f}, {"roadpaint", 2.0f, 1.0f, 0.0f, 0.6f},
     {"rubber", 0.4f, 1.0f, 0.0f, 0.2f},   {"planks", 2.4f, 1.0f, 0.0f, 0.5f},
+    // V12: Texturen aus Bilddateien - Massstab und Staerken kommen aus data/textures/textures.json
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
+    {"imported", 2.0f, 1.0f, 0.0f, 0.25f},
 };
+static_assert(L_IMP0 == world::kImportedLayerBase && L_COUNT - L_IMP0 == world::kImportedLayerCount);
 
 namespace {
 
@@ -676,6 +728,39 @@ size_t TextureSet::mipOffset(int layer, int mip, int bpp) const {
     return off;
 }
 
+// V12: RGBA8-Bild kachelbar auf size x size bringen (ganzzahlig verkleinern: Mittelwert; sonst bilinear, umlaufend)
+std::vector<u8> resampleWrap(const std::vector<u8>& src, int w, int h, int size) {
+    if (w == size && h == size) return src;
+    std::vector<u8> out((size_t)size * size * 4);
+    if (w >= size && h >= size && w % size == 0 && h % size == 0) {
+        const int fx = w / size, fy = h / size;
+        for (int y = 0; y < size; ++y)
+            for (int x = 0; x < size; ++x)
+                for (int c = 0; c < 4; ++c) {
+                    int sum = 0;
+                    for (int j = 0; j < fy; ++j)
+                        for (int i = 0; i < fx; ++i) sum += src[((size_t)(y * fy + j) * w + (size_t)(x * fx + i)) * 4 + c];
+                    out[((size_t)y * size + x) * 4 + c] = (u8)(sum / (fx * fy));
+                }
+        return out;
+    }
+    for (int y = 0; y < size; ++y)
+        for (int x = 0; x < size; ++x) {
+            const float u = ((float)x + 0.5f) * (float)w / (float)size - 0.5f, v = ((float)y + 0.5f) * (float)h / (float)size - 0.5f;
+            const int x0 = (int)std::floor(u), y0 = (int)std::floor(v);
+            const float fu = u - (float)x0, fv = v - (float)y0;
+            auto at = [&](int xx, int yy, int c) {
+                return (float)src[((size_t)(((yy % h) + h) % h) * w + (size_t)(((xx % w) + w) % w)) * 4 + c];
+            };
+            for (int c = 0; c < 4; ++c) {
+                const float t = at(x0, y0, c) * (1 - fu) * (1 - fv) + at(x0 + 1, y0, c) * fu * (1 - fv) +
+                                at(x0, y0 + 1, c) * (1 - fu) * fv + at(x0 + 1, y0 + 1, c) * fu * fv;
+                out[((size_t)y * size + x) * 4 + c] = (u8)std::clamp(t + 0.5f, 0.0f, 255.0f);
+            }
+        }
+    return out;
+}
+
 TextureSet generateTextures(int size, JobSystem& jobs) {
     TextureSet ts;
     ts.size = size;
@@ -689,8 +774,36 @@ TextureSet generateTextures(int size, JobSystem& jobs) {
     // Rauheit/AO/Metall landen direkt als Bytes in Mip 0, die Hoehe bleibt fuer die Normalen.
     const int blocksPerLayer = 8;
     std::vector<std::vector<float>> height(L_COUNT, std::vector<float>((size_t)size * size));
+    // V12: Ebenen aus Bilddateien - eingelesen, kachelbar auf die Zielgroesse gebracht; die Normalen kommen aus
+    // der Normalenkarte (DirectX-Format wie die aus Hoehen gerechneten), nicht aus der Hoehe
+    const auto& imported = world::importedTextures();
+    std::vector<std::vector<float>> impNormal(L_COUNT);
+    jobs.parallelFor((int)imported.size(), [&](int i) {
+        const world::ImportedTexture& it = imported[(size_t)i];
+        const int layer = L_IMP0 + i;
+        std::vector<u8> a, n, o;
+        int aw = 0, ah = 0, nw = 0, nh = 0, ow = 0, oh = 0;
+        if (!loadPng(it.dir + "/albedo.jpg", a, aw, ah) || !loadPng(it.dir + "/normal.png", n, nw, nh) ||
+            !loadPng(it.dir + "/orm.png", o, ow, oh)) {
+            log::warn("Textur {} ({}) nicht lesbar - grau", it.name, it.dir);
+            return;
+        }
+        a = resampleWrap(a, aw, ah, size), n = resampleWrap(n, nw, nh, size), o = resampleWrap(o, ow, oh, size);
+        u8* da = ts.albedo.data() + ts.mipOffset(layer, 0, 4);
+        u8* dor = ts.orm.data() + ts.mipOffset(layer, 0, 4);
+        std::copy(a.begin(), a.end(), da);
+        std::copy(o.begin(), o.end(), dor);
+        auto& nv = impNormal[(size_t)layer];
+        nv.resize((size_t)size * size * 3);
+        for (size_t p = 0; p < (size_t)size * size; ++p) {
+            float x = n[p * 4] / 127.5f - 1.0f, y = n[p * 4 + 1] / 127.5f - 1.0f, z = n[p * 4 + 2] / 127.5f - 1.0f;
+            const float l = std::max(1e-4f, std::sqrt(x * x + y * y + z * z));
+            nv[p * 3] = x / l, nv[p * 3 + 1] = y / l, nv[p * 3 + 2] = z / l;
+        }
+    });
     jobs.parallelFor(L_COUNT * blocksPerLayer, [&](int job) {
         int layer = job / blocksPerLayer, blk = job % blocksPerLayer;
+        if (!impNormal[(size_t)layer].empty()) return;  // V12: aus der Bilddatei
         int y0 = size * blk / blocksPerLayer, y1 = size * (blk + 1) / blocksPerLayer;
         float px = 1.0f / (float)size;
         u8* a = ts.albedo.data() + ts.mipOffset(layer, 0, 4);
@@ -722,12 +835,16 @@ TextureSet generateTextures(int size, JobSystem& jobs) {
         for (int y = 0; y < size; ++y)
             for (int x = 0; x < size; ++x) {
                 size_t i = (size_t)y * size + x;
-                auto hAt = [&](int xx, int yy) { return hh[(size_t)((yy + size) % size) * size + (size_t)((xx + size) % size)]; };
-                float dx = (hAt(x + 1, y) - hAt(x - 1, y)) / (2.0f * texel);
-                float dy = (hAt(x, y + 1) - hAt(x, y - 1)) / (2.0f * texel);
-                float nx = -dx, ny = -dy, nz = 1.0f;
-                float l = std::sqrt(nx * nx + ny * ny + nz * nz);
-                N[i * 3] = nx / l, N[i * 3 + 1] = ny / l, N[i * 3 + 2] = nz / l;
+                if (!impNormal[(size_t)layer].empty()) {  // V12: Normalenkarte
+                    for (int c = 0; c < 3; ++c) N[i * 3 + c] = impNormal[(size_t)layer][i * 3 + c];
+                } else {
+                    auto hAt = [&](int xx, int yy) { return hh[(size_t)((yy + size) % size) * size + (size_t)((xx + size) % size)]; };
+                    float dx = (hAt(x + 1, y) - hAt(x - 1, y)) / (2.0f * texel);
+                    float dy = (hAt(x, y + 1) - hAt(x, y - 1)) / (2.0f * texel);
+                    float nx = -dx, ny = -dy, nz = 1.0f;
+                    float l = std::sqrt(nx * nx + ny * ny + nz * nz);
+                    N[i * 3] = nx / l, N[i * 3 + 1] = ny / l, N[i * 3 + 2] = nz / l;
+                }
                 for (int c = 0; c < 3; ++c) A[i * 4 + c] = srgbToLinear(a0[i * 4 + c] / 255.0f);
                 A[i * 4 + 3] = 1.0f;
                 for (int c = 0; c < 4; ++c) O[i * 4 + c] = o0[i * 4 + c] / 255.0f;

@@ -1,0 +1,457 @@
+// LIMINAL V12 - erzeugt von tools/textures/process.py; Quellen und Lizenz in LICENSES.md
+{
+ "textures": [
+  {
+   "name": "wallpaper_threshold",
+   "dir": "wallpaper_threshold",
+   "source": "Wallpaper001A",
+   "meters": 2.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "0"
+   ]
+  },
+  {
+   "name": "wallpaper_threshold_mold",
+   "dir": "wallpaper_threshold_mold",
+   "source": "Wallpaper002C",
+   "meters": 2.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "0"
+   ]
+  },
+  {
+   "name": "carpet_threshold",
+   "dir": "carpet_threshold",
+   "source": "Fabric028",
+   "meters": 2.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "0"
+   ]
+  },
+  {
+   "name": "ceiling_office",
+   "dir": "ceiling_office",
+   "source": "OfficeCeiling001",
+   "meters": 3.85,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "0"
+   ]
+  },
+  {
+   "name": "carpet_red",
+   "dir": "carpet_red",
+   "source": "Carpet013",
+   "meters": 2.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "0"
+   ]
+  },
+  {
+   "name": "concrete_wall_smooth",
+   "dir": "concrete_wall_smooth",
+   "source": "Concrete046",
+   "meters": 2.4,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "1",
+    "188"
+   ]
+  },
+  {
+   "name": "concrete_wall_old",
+   "dir": "concrete_wall_old",
+   "source": "Concrete036",
+   "meters": 2.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "name": "concrete_floor",
+   "dir": "concrete_floor",
+   "source": "Concrete047A",
+   "meters": 2.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "1"
+   ]
+  },
+  {
+   "name": "concrete_cast",
+   "dir": "concrete_cast",
+   "source": "Concrete028",
+   "meters": 2.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "1"
+   ]
+  },
+  {
+   "name": "bricks_dirty_brown",
+   "dir": "bricks_dirty_brown",
+   "source": "Bricks097",
+   "meters": 2.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "2"
+   ]
+  },
+  {
+   "name": "concrete_chalky",
+   "dir": "concrete_chalky",
+   "source": "Concrete012",
+   "meters": 2.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "2"
+   ]
+  },
+  {
+   "name": "metal_rusty_iron",
+   "dir": "metal_rusty_iron",
+   "source": "Metal041B",
+   "meters": 2.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "2",
+    "3"
+   ]
+  },
+  {
+   "name": "painted_metal_white",
+   "dir": "painted_metal_white",
+   "source": "PaintedMetal012",
+   "meters": 2.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "2",
+    "3"
+   ]
+  },
+  {
+   "name": "painted_metal_grey",
+   "dir": "painted_metal_grey",
+   "source": "PaintedMetal014",
+   "meters": 2.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "2"
+   ]
+  },
+  {
+   "name": "bricks_dark_grey",
+   "dir": "bricks_dark_grey",
+   "source": "Bricks089",
+   "meters": 2.2,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "3"
+   ]
+  },
+  {
+   "name": "bricks_brown_old",
+   "dir": "bricks_brown_old",
+   "source": "Bricks094",
+   "meters": 1.8,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "3"
+   ]
+  },
+  {
+   "name": "bricks_red_factory",
+   "dir": "bricks_red_factory",
+   "source": "Bricks085",
+   "meters": 2.4,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "3"
+   ]
+  },
+  {
+   "name": "concrete_rough",
+   "dir": "concrete_rough",
+   "source": "Concrete037",
+   "meters": 2.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "3"
+   ]
+  },
+  {
+   "name": "wood_walnut_floor",
+   "dir": "wood_walnut_floor",
+   "source": "WoodFloor046",
+   "meters": 1.3,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "5",
+    "5.3"
+   ]
+  },
+  {
+   "name": "marble_white",
+   "dir": "marble_white",
+   "source": "Marble021",
+   "meters": 2.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "5"
+   ]
+  },
+  {
+   "name": "marble_beige",
+   "dir": "marble_beige",
+   "source": "Marble014",
+   "meters": 2.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "5.3"
+   ]
+  },
+  {
+   "name": "carpet_red_pattern",
+   "dir": "carpet_red_pattern",
+   "source": "Fabric026",
+   "meters": 2.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "5"
+   ]
+  },
+  {
+   "name": "leather_red",
+   "dir": "leather_red",
+   "source": "Leather011",
+   "meters": 2.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "5"
+   ]
+  },
+  {
+   "name": "travertine",
+   "dir": "travertine",
+   "source": "Travertine009",
+   "meters": 1.2,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "5.3"
+   ]
+  },
+  {
+   "name": "wood_herringbone_dark",
+   "dir": "wood_herringbone_dark",
+   "source": "WoodFloor014",
+   "meters": 2.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "5.3"
+   ]
+  },
+  {
+   "name": "concrete_white",
+   "dir": "concrete_white",
+   "source": "Concrete034",
+   "meters": 1.1,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "188"
+   ]
+  },
+  {
+   "name": "moss",
+   "dir": "moss",
+   "source": "Moss002",
+   "meters": 2.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "188"
+   ]
+  },
+  {
+   "name": "wood_birch",
+   "dir": "wood_birch",
+   "source": "WoodFloor066A",
+   "meters": 2.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "188"
+   ]
+  },
+  {
+   "name": "paving_grey",
+   "dir": "paving_grey",
+   "source": "PavingStones144",
+   "meters": 2.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "188"
+   ]
+  },
+  {
+   "name": "paving_dark_blocks",
+   "dir": "paving_dark_blocks",
+   "source": "PavingStones127",
+   "meters": 3.5,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "903"
+   ]
+  },
+  {
+   "name": "tiles_white",
+   "dir": "tiles_white",
+   "source": "Tiles107",
+   "meters": 1.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "37",
+    "903"
+   ]
+  },
+  {
+   "name": "tiles_white_bath",
+   "dir": "tiles_white_bath",
+   "source": "Tiles036",
+   "meters": 2.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "37"
+   ]
+  },
+  {
+   "name": "paint_stripes_yellow",
+   "dir": "paint_stripes_yellow",
+   "source": "PaintedMetal016",
+   "meters": 2.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "903"
+   ]
+  },
+  {
+   "name": "carpet_blue_dark",
+   "dir": "carpet_blue_dark",
+   "source": "Carpet012",
+   "meters": 2.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "36"
+   ]
+  },
+  {
+   "name": "terrazzo_antique",
+   "dir": "terrazzo_antique",
+   "source": "Terrazzo004",
+   "meters": 2.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "36"
+   ]
+  },
+  {
+   "name": "metal_aluminum",
+   "dir": "metal_aluminum",
+   "source": "Metal050A",
+   "meters": 2.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "36",
+    "903"
+   ]
+  },
+  {
+   "name": "plaster_white",
+   "dir": "plaster_white",
+   "source": "Plaster002",
+   "meters": 2.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "36",
+    "188"
+   ]
+  }
+ ]
+}

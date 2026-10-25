@@ -18,10 +18,11 @@
 
   "zones": [
     { "key": "vorzimmer", "name": "Vorzimmer",
-      "wall": [0.84, 0.78, 0.52], "floor": [0.54, 0.47, 0.30], "ceil": [0.82, 0.80, 0.70],
+      "wall": [0.86, 0.76, 0.42], "floor": [0.92, 0.86, 0.74], "ceil": [0.90, 0.88, 0.80],
       "trim": [0.42, 0.30, 0.18], "lamp": [1.00, 0.97, 0.84], "fog": [0.16, 0.145, 0.08],
       "fog_density": 0.045, "ambient": 0.30, "light_style": "panels",
-      "wall_pattern": "wallpaper", "floor_pattern": "carpet", "ceil_pattern": "tiles", "baseboard": true, "door_height": 2.2 },
+      "wall_pattern": "wallpaper", "floor_pattern": "carpet", "ceil_pattern": "tiles", "baseboard": true, "door_height": 2.2,
+      "wall_tex": "wallpaper_threshold", "floor_tex": "carpet_threshold", "ceil_tex": "ceiling_office" },
     { "key": "saeulen", "name": "Säulenfeld",
       "wall": [0.82, 0.77, 0.53], "floor": [0.52, 0.46, 0.31], "ceil": [0.80, 0.78, 0.70],
       "trim": [0.40, 0.30, 0.18], "lamp": [1.00, 0.97, 0.86], "fog": [0.15, 0.14, 0.08],

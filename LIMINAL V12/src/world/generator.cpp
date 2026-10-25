@@ -1,4 +1,5 @@
 #include "world/generator.hpp"
+#include "world/imported_textures.hpp"
 
 #include <algorithm>
 #include <cstdlib>
@@ -865,6 +866,14 @@ void Generator::style(Room& room) const {
     if (so.wallPattern) wallPat = wallPatternFromName(*so.wallPattern);
     if (so.floorPattern) floorPat = planePatternFromName(*so.floorPattern);
     if (so.ceilPattern) ceilPat = planePatternFromName(*so.ceilPattern);
+    // V12: Texturen aus Bilddateien (Zone, Raumtyp ueberschreibt); unbekannte Namen fallen auf das Muster zurueck
+    auto texOf = [](const std::string& name) -> u8 {
+        const int l = name.empty() ? -1 : importedLayer(name);
+        return l < 0 ? (u8)255 : (u8)l;
+    };
+    u8 wallTex = texOf(so.wallTex ? *so.wallTex : z.wallTex);
+    u8 floorTex = texOf(so.floorTex ? *so.floorTex : z.floorTex);
+    u8 ceilTex = texOf(so.ceilTex ? *so.ceilTex : z.ceilTex);
 
     std::vector<Band> bands;
     u16 trimId = bank.get(trim, PlanePattern::None, WallPattern::Plain, false, {}, 0.72, Surface::Trim);
@@ -876,12 +885,13 @@ void Generator::style(Room& room) const {
     room.lampColor = lamp;
     room.wallColor = wall;
     double sd = wallPat == WallPattern::Wallpaper ? 0.86 : 0.72;
-    room.wmat = bank.get(wall, PlanePattern::None, wallPat, false, bands, sd);
+    room.wmat = bank.get(wall, PlanePattern::None, wallPat, false, bands, sd, Surface::Default, {255, 255, wallTex});
     std::vector<Band> lampBands = bands;
     lampBands.push_back({1.75, 2.05, lampId});
-    room.walllampmat = bank.get(wall, PlanePattern::None, wallPat, false, lampBands, sd);
-    room.fmat = bank.get(floor, floorPat, WallPattern::Plain, false, {}, floorPat == PlanePattern::Checker ? 0.3 : 0.72);
-    room.cmat = bank.get(ceil, ceilPat);
+    room.walllampmat = bank.get(wall, PlanePattern::None, wallPat, false, lampBands, sd, Surface::Default, {255, 255, wallTex});
+    room.fmat = bank.get(floor, floorPat, WallPattern::Plain, false, {}, floorPat == PlanePattern::Checker ? 0.3 : 0.72,
+                         Surface::Default, {floorTex, floorTex, floorTex});
+    room.cmat = bank.get(ceil, ceilPat, WallPattern::Plain, false, {}, 0.72, Surface::Default, {ceilTex, ceilTex, ceilTex});
     Rgb stair{floor[0] * 0.95, floor[1] * 0.95, floor[2] * 0.95};
     room.stairmat = bank.get({stair[0] * 0.8, stair[1] * 0.8, stair[2] * 0.8}, PlanePattern::None, WallPattern::Plain);
     room.stairtop = bank.get(stair, PlanePattern::None);

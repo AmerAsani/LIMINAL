@@ -62,6 +62,8 @@ struct Material {
     Surface surface = Surface::Default;
     std::vector<Band> bands;
     double seamDark = 0.72;
+    // V12: Textur-Ebene aus Bilddateien je Richtung (oben = Boden, unten = Decke, Wand); 255 = nach Muster
+    std::array<u8, 3> layer{255, 255, 255};
 };
 
 class MaterialBank {
@@ -72,12 +74,12 @@ public:
     MaterialBank();
     u16 get(std::array<double, 3> rgb, PlanePattern plane = PlanePattern::None, WallPattern wall = WallPattern::Plain,
             bool emissive = false, std::vector<Band> bands = {}, double seamDark = 0.72,
-            Surface surface = Surface::Default);
+            Surface surface = Surface::Default, std::array<u8, 3> layer = {255, 255, 255});
     const Material& operator[](u16 id) const { return *items_[id]; }
     std::size_t size() const { return count_.load(std::memory_order_acquire); }
 
 private:
-    using Key = std::tuple<std::array<double, 3>, u8, u8, bool, std::vector<Band>, double, u8>;
+    using Key = std::tuple<std::array<double, 3>, u8, u8, bool, std::vector<Band>, double, u8, std::array<u8, 3>>;
     std::mutex mutex_;
     std::map<Key, u16> index_;
     std::vector<std::unique_ptr<Material>> items_;  // feste Kapazitaet -> Zeiger bleiben gueltig

@@ -1,4 +1,5 @@
 #include "render/world_renderer.hpp"
+#include "world/imported_textures.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -101,10 +102,16 @@ GpuMaterial toGpuMaterial(const world::Material& m) {
         if (m.surface == Surface::Default) all(L_DIFFUSER);
         g.emissive = m.surface == Surface::Vending ? 3.2f : 11.0f;
     }
+    // V12: Texturen aus Bilddateien ueberschreiben das Muster je Richtung
+    if (m.layer[0] != 255) up = m.layer[0];
+    if (m.layer[1] != 255) down = m.layer[1];
+    if (m.layer[2] != 255) wall = m.layer[2];
     g.layers = up | (down << 8) | (wall << 16);
     if (m.surface == Surface::PropSign || m.surface == Surface::PropStencil) g.layers |= kMatFlagAtlas;
     if (m.surface == Surface::PropStencil) g.layers |= kMatFlagCutout;
     g.variation = kLayers[wall].variation;
+    if (wall >= L_IMP0 && wall < (u32)L_COUNT && (size_t)(wall - L_IMP0) < world::importedTextures().size())
+        g.variation = world::importedTextures()[wall - L_IMP0].variation;
     return g;
 }
 

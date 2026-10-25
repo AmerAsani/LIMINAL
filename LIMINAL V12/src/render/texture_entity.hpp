@@ -39,7 +39,8 @@ struct EntLayerDesc {
 extern const EntLayerDesc kEntLayers[EL_COUNT];
 extern const EntLayerDesc kMicroLayers[ML_COUNT];
 // Plaetze der Ebenen-Konstanten (gLayer im Shader) hinter den Weltebenen
-constexpr int kEntLayerSlot = 48, kMicroLayerSlot = 56;  // V11: Weltebenen bis 47
+constexpr int kEntLayerSlot = 96, kMicroLayerSlot = 104;  // V12: Weltebenen bis 90 (48 aus Bilddateien)
+constexpr int kLayerSlots = 112;
 
 struct EntityTextures {
     int size = 0, mips = 0;

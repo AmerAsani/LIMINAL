@@ -1,0 +1,559 @@
+{
+ "assets": {
+  "Wallpaper001A": {
+   "url": "https://ambientcg.com/get?file=Wallpaper001A_2K-JPG.zip",
+   "file": "Wallpaper001A_2K-JPG.zip",
+   "size": 20346947,
+   "sha256": "23d7add92ef4d3498ec1fb08ad1a0af71f93d9118f8e23e35c9ea88f1dfb8cb4",
+   "displayName": "Wallpaper 001 A",
+   "releaseDate": "2022-12-18 16:00:00",
+   "dimensionsCm": [
+    0,
+    0
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "Wallpaper002C": {
+   "url": "https://ambientcg.com/get?file=Wallpaper002C_2K-JPG.zip",
+   "file": "Wallpaper002C_2K-JPG.zip",
+   "size": 21203147,
+   "sha256": "767a4cc16bef4945a267f85d57340944fd54a2ab5160837699c2860662ace752",
+   "displayName": "Wallpaper 002 C",
+   "releaseDate": "2022-12-18 16:00:00",
+   "dimensionsCm": [
+    0,
+    0
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "Fabric028": {
+   "url": "https://ambientcg.com/get?file=Fabric028_2K-JPG.zip",
+   "file": "Fabric028_2K-JPG.zip",
+   "size": 29506092,
+   "sha256": "be3c5a8a3431548a7321fdd0cd2ce2b2aebb888a5a85e593310d2fde37392f53",
+   "displayName": "Fabric 028",
+   "releaseDate": "2019-04-20 00:00:00",
+   "dimensionsCm": [
+    0,
+    0
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "OfficeCeiling001": {
+   "url": "https://ambientcg.com/get?file=OfficeCeiling001_2K-JPG.zip",
+   "file": "OfficeCeiling001_2K-JPG.zip",
+   "size": 26204610,
+   "sha256": "c28085beb79758a5364a72a0b2e3270836eaaf73fc7ed60b7f1f1212eb5c2653",
+   "displayName": "Office Ceiling 001",
+   "releaseDate": "2021-03-07 00:00:00",
+   "dimensionsCm": [
+    385,
+    385
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "Carpet013": {
+   "url": "https://ambientcg.com/get?file=Carpet013_2K-JPG.zip",
+   "file": "Carpet013_2K-JPG.zip",
+   "size": 36588800,
+   "sha256": "cad4ba11196571bac5585b33e1b471c63558b4501145e32c4935d7dfebdda63c",
+   "displayName": "Carpet 013",
+   "releaseDate": "2019-08-05 00:00:00",
+   "dimensionsCm": [
+    0,
+    0
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "Concrete046": {
+   "url": "https://ambientcg.com/get?file=Concrete046_2K-JPG.zip",
+   "file": "Concrete046_2K-JPG.zip",
+   "size": 23194538,
+   "sha256": "597e009cb504219e85671ec06a375cd0cf030142749bb414990cc3dece477dde",
+   "displayName": "Concrete 046",
+   "releaseDate": "2024-04-25 12:00:00",
+   "dimensionsCm": [
+    240,
+    240
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "Concrete036": {
+   "url": "https://ambientcg.com/get?file=Concrete036_2K-JPG.zip",
+   "file": "Concrete036_2K-JPG.zip",
+   "size": 24706957,
+   "sha256": "231c1f965748db7ad9541f168393c638ba0e935feb3441f5c0edfb1d9cb12d8b",
+   "displayName": "Concrete 036",
+   "releaseDate": "2021-05-16 00:00:00",
+   "dimensionsCm": [
+    0,
+    0
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "Concrete047A": {
+   "url": "https://ambientcg.com/get?file=Concrete047A_2K-JPG.zip",
+   "file": "Concrete047A_2K-JPG.zip",
+   "size": 32918448,
+   "sha256": "70a9be4b8107d641cbcb9ca3e10b09592c5f95fb8effb4305b1fe2990fac71cc",
+   "displayName": "Concrete 047 A",
+   "releaseDate": "2025-10-09 13:00:00",
+   "dimensionsCm": [
+    0,
+    0
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "Concrete028": {
+   "url": "https://ambientcg.com/get?file=Concrete028_2K-JPG.zip",
+   "file": "Concrete028_2K-JPG.zip",
+   "size": 29433896,
+   "sha256": "90618c341fa6dc77901f831fec425bfe558fed426e99e2f070a2a5b1854c1c82",
+   "displayName": "Concrete 028",
+   "releaseDate": "2020-10-04 00:00:00",
+   "dimensionsCm": [
+    0,
+    0
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "Bricks097": {
+   "url": "https://ambientcg.com/get?file=Bricks097_2K-JPG.zip",
+   "file": "Bricks097_2K-JPG.zip",
+   "size": 15930202,
+   "sha256": "0c4ea4f9ba8373ba9a6f12b0f92a2b1859686e8c670f44616b38be095f65b71f",
+   "displayName": "Bricks 097",
+   "releaseDate": "2024-11-22 12:00:00",
+   "dimensionsCm": [
+    0,
+    0
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "Concrete012": {
+   "url": "https://ambientcg.com/get?file=Concrete012_2K-JPG.zip",
+   "file": "Concrete012_2K-JPG.zip",
+   "size": 27251536,
+   "sha256": "449936d94c113f4b6b52ca32dbcd595d5f2766f358d9dcaa9d1f9c8f049f4011",
+   "displayName": "Concrete 012",
+   "releaseDate": "2018-10-28 00:00:00",
+   "dimensionsCm": [
+    0,
+    0
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "Metal041B": {
+   "url": "https://ambientcg.com/get?file=Metal041B_2K-JPG.zip",
+   "file": "Metal041B_2K-JPG.zip",
+   "size": 24013330,
+   "sha256": "5930fb7ed48e2e0ba4bd3749b689d966d0c7dc09a833e0f434a74d2acc92b024",
+   "displayName": "Metal 041 B",
+   "releaseDate": "2022-11-28 16:00:00",
+   "dimensionsCm": [
+    0,
+    0
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "PaintedMetal012": {
+   "url": "https://ambientcg.com/get?file=PaintedMetal012_2K-JPG.zip",
+   "file": "PaintedMetal012_2K-JPG.zip",
+   "size": 28305458,
+   "sha256": "e52b3753c4739e225d14dd5ec8d8875d2c6c28bbffad372764c18d83210c9761",
+   "displayName": "Painted Metal 012",
+   "releaseDate": "2020-05-24 00:00:00",
+   "dimensionsCm": [
+    0,
+    0
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "PaintedMetal014": {
+   "url": "https://ambientcg.com/get?file=PaintedMetal014_2K-JPG.zip",
+   "file": "PaintedMetal014_2K-JPG.zip",
+   "size": 33407510,
+   "sha256": "ee4f38cdbb54c344294736ae9e1a09a59d1f6bd8da74f10603518d2cf45eec49",
+   "displayName": "Painted Metal 014",
+   "releaseDate": "2020-05-24 00:00:00",
+   "dimensionsCm": [
+    0,
+    0
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "Bricks089": {
+   "url": "https://ambientcg.com/get?file=Bricks089_2K-JPG.zip",
+   "file": "Bricks089_2K-JPG.zip",
+   "size": 16445459,
+   "sha256": "acc430a760c4dbc678a269f3de7656d20017ab2f426160bb4ebfcaf568bc4536",
+   "displayName": "Bricks 089",
+   "releaseDate": "2023-11-17 14:00:00",
+   "dimensionsCm": [
+    220,
+    110
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "Bricks094": {
+   "url": "https://ambientcg.com/get?file=Bricks094_2K-JPG.zip",
+   "file": "Bricks094_2K-JPG.zip",
+   "size": 15864093,
+   "sha256": "51be701039d6d2bd609744fb1d715b8c6df2fe2f42db167d20c840b47f5a954b",
+   "displayName": "Bricks 094",
+   "releaseDate": "2024-06-05 00:00:00",
+   "dimensionsCm": [
+    180,
+    90
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "Bricks085": {
+   "url": "https://ambientcg.com/get?file=Bricks085_2K-JPG.zip",
+   "file": "Bricks085_2K-JPG.zip",
+   "size": 14737060,
+   "sha256": "d27fbc435e459e29d74e5fe61b210addee2031ba57125dbb05ff51b7d3b179e4",
+   "displayName": "Bricks 085",
+   "releaseDate": "2023-05-25 09:00:00",
+   "dimensionsCm": [
+    240,
+    120
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "Concrete037": {
+   "url": "https://ambientcg.com/get?file=Concrete037_2K-JPG.zip",
+   "file": "Concrete037_2K-JPG.zip",
+   "size": 36025227,
+   "sha256": "4f4fe9e6609f691f57ad470a1206eb37233ad58abc71e27e4df0f1f9b107d8ee",
+   "displayName": "Concrete 037",
+   "releaseDate": "2021-09-12 00:00:00",
+   "dimensionsCm": [
+    0,
+    0
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "WoodFloor046": {
+   "url": "https://ambientcg.com/get?file=WoodFloor046_2K-JPG.zip",
+   "file": "WoodFloor046_2K-JPG.zip",
+   "size": 20533379,
+   "sha256": "88ee442801931355615fef1fe127416aa242ff09fbd0ebe9e9a64a815b1b7460",
+   "displayName": "Wood Floor 046",
+   "releaseDate": "2021-07-18 00:00:00",
+   "dimensionsCm": [
+    130,
+    130
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "Marble021": {
+   "url": "https://ambientcg.com/get?file=Marble021_2K-JPG.zip",
+   "file": "Marble021_2K-JPG.zip",
+   "size": 11433854,
+   "sha256": "13a661f0d2ade59d43f97f92f5e9a56f06ebafb68d3671daaba2b4adb320ff41",
+   "displayName": "Marble 021",
+   "releaseDate": "2021-06-20 00:00:00",
+   "dimensionsCm": [
+    0,
+    0
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "Marble014": {
+   "url": "https://ambientcg.com/get?file=Marble014_2K-JPG.zip",
+   "file": "Marble014_2K-JPG.zip",
+   "size": 14837586,
+   "sha256": "b03213a1f09aa92a299a3f181c3bf889193514fb10e2c68bea68615603cea5ce",
+   "displayName": "Marble 014",
+   "releaseDate": "2020-01-26 00:00:00",
+   "dimensionsCm": [
+    0,
+    0
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "Fabric026": {
+   "url": "https://ambientcg.com/get?file=Fabric026_2K-JPG.zip",
+   "file": "Fabric026_2K-JPG.zip",
+   "size": 27483409,
+   "sha256": "d25e9cdd1727d0343375f46bf6307d2c06fe35f4eae7697f73c4c724bf5950d4",
+   "displayName": "Fabric 026",
+   "releaseDate": "2019-04-18 00:00:00",
+   "dimensionsCm": [
+    0,
+    0
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "Leather011": {
+   "url": "https://ambientcg.com/get?file=Leather011_2K-JPG.zip",
+   "file": "Leather011_2K-JPG.zip",
+   "size": 18612864,
+   "sha256": "c61346f350d1a862475dcbc4b2d31dc46113f6bce9f56eeff159beef07378641",
+   "displayName": "Leather 011",
+   "releaseDate": "2019-01-20 00:00:00",
+   "dimensionsCm": [
+    0,
+    0
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "Travertine009": {
+   "url": "https://ambientcg.com/get?file=Travertine009_2K-JPG.zip",
+   "file": "Travertine009_2K-JPG.zip",
+   "size": 9116254,
+   "sha256": "927ca19b99e32ed65be9ae1e4c572a6c4809dc41a8b6026c76338a0359b16959",
+   "displayName": "Travertine 009",
+   "releaseDate": "2023-12-20 12:00:00",
+   "dimensionsCm": [
+    120,
+    120
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "WoodFloor014": {
+   "url": "https://ambientcg.com/get?file=WoodFloor014_2K-JPG.zip",
+   "file": "WoodFloor014_2K-JPG.zip",
+   "size": 20242628,
+   "sha256": "a5c2c6ccef30d5e0cb5afeaf048937e656d1fa607481d7bedee0b2c462b16f5b",
+   "displayName": "Wood Floor 014",
+   "releaseDate": "2018-09-26 00:00:00",
+   "dimensionsCm": [
+    0,
+    0
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "Concrete034": {
+   "url": "https://ambientcg.com/get?file=Concrete034_2K-JPG.zip",
+   "file": "Concrete034_2K-JPG.zip",
+   "size": 10598720,
+   "sha256": "fafd7cd3aee2b703abbb12b7810ef565ab76ac7ea3b1ea9a73b088e423e670b3",
+   "displayName": "Concrete 034",
+   "releaseDate": "2020-11-01 00:00:00",
+   "dimensionsCm": [
+    110,
+    55
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "Moss002": {
+   "url": "https://ambientcg.com/get?file=Moss002_2K-JPG.zip",
+   "file": "Moss002_2K-JPG.zip",
+   "size": 39615085,
+   "sha256": "03fe8868a5b5618b30037fcece05fff9ea736a61227d9566291a9d4b3a2bb047",
+   "displayName": "Moss 002",
+   "releaseDate": "2020-09-13 00:00:00",
+   "dimensionsCm": [
+    0,
+    0
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "WoodFloor066A": {
+   "url": "https://ambientcg.com/get?file=WoodFloor066A_2K-JPG.zip",
+   "file": "WoodFloor066A_2K-JPG.zip",
+   "size": 25007516,
+   "sha256": "5c20b58e4b878ac4b8def9e60ff68b7139633e090ddf44fd041e38cbc9f2ea07",
+   "displayName": "Wood Floor 066 A",
+   "releaseDate": "2025-08-30 13:00:00",
+   "dimensionsCm": [
+    0,
+    0
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "PavingStones144": {
+   "url": "https://ambientcg.com/get?file=PavingStones144_2K-JPG.zip",
+   "file": "PavingStones144_2K-JPG.zip",
+   "size": 30400211,
+   "sha256": "fcbff7e4336e99ace09da2460f4d24eeba5059461106000de4c3f712dbd575fc",
+   "displayName": "Paving Stones 144",
+   "releaseDate": "2024-10-28 08:00:00",
+   "dimensionsCm": [
+    0,
+    0
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "PavingStones127": {
+   "url": "https://ambientcg.com/get?file=PavingStones127_2K-JPG.zip",
+   "file": "PavingStones127_2K-JPG.zip",
+   "size": 31873164,
+   "sha256": "b62840e6d57f4435c720c66ac827c10503609146eb1234133f3da41e2aef7d65",
+   "displayName": "Paving Stones 127",
+   "releaseDate": "2022-12-06 12:00:00",
+   "dimensionsCm": [
+    350,
+    350
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "Tiles107": {
+   "url": "https://ambientcg.com/get?file=Tiles107_2K-JPG.zip",
+   "file": "Tiles107_2K-JPG.zip",
+   "size": 6705310,
+   "sha256": "fa76887bb33af0972154700126d1f86d01eaed518341ce7411616c1d1202ac55",
+   "displayName": "Tiles 107",
+   "releaseDate": "2021-05-23 00:00:00",
+   "dimensionsCm": [
+    100,
+    100
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "Tiles036": {
+   "url": "https://ambientcg.com/get?file=Tiles036_2K-JPG.zip",
+   "file": "Tiles036_2K-JPG.zip",
+   "size": 14365292,
+   "sha256": "548005dc451d0b52026a3b8811c4cfe9db6cd1d40f4d31abbe37d6256c0a9229",
+   "displayName": "Tiles 036",
+   "releaseDate": "2019-03-09 00:00:00",
+   "dimensionsCm": [
+    0,
+    0
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "PaintedMetal016": {
+   "url": "https://ambientcg.com/get?file=PaintedMetal016_2K-JPG.zip",
+   "file": "PaintedMetal016_2K-JPG.zip",
+   "size": 36313127,
+   "sha256": "df345892071638ecf2b046e30e156447361fb3f71d9d7b846116af92bedd93d4",
+   "displayName": "Painted Metal 016",
+   "releaseDate": "2020-05-24 00:00:00",
+   "dimensionsCm": [
+    0,
+    0
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "Carpet012": {
+   "url": "https://ambientcg.com/get?file=Carpet012_2K-JPG.zip",
+   "file": "Carpet012_2K-JPG.zip",
+   "size": 36592838,
+   "sha256": "476528d0deb91b38608e7d2ef51991ba89b5c976e0ae726d655588728f5852c8",
+   "displayName": "Carpet 012",
+   "releaseDate": "2019-08-04 00:00:00",
+   "dimensionsCm": [
+    0,
+    0
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "Terrazzo004": {
+   "url": "https://ambientcg.com/get?file=Terrazzo004_2K-JPG.zip",
+   "file": "Terrazzo004_2K-JPG.zip",
+   "size": 21701193,
+   "sha256": "b781734c13baa51e7b57b5534aecbbb03202ac66c2c41c67168af40d1be08847",
+   "displayName": "Terrazzo 004",
+   "releaseDate": "2019-05-15 00:00:00",
+   "dimensionsCm": [
+    0,
+    0
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "Metal050A": {
+   "url": "https://ambientcg.com/get?file=Metal050A_2K-JPG.zip",
+   "file": "Metal050A_2K-JPG.zip",
+   "size": 6840408,
+   "sha256": "c4d0ac0d0c87ae964f5740b24ff39bf708e3f1df56fe3bde873b53fd2f6f7bb2",
+   "displayName": "Metal 050 A",
+   "releaseDate": "2024-08-10 12:00:00",
+   "dimensionsCm": [
+    0,
+    0
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  },
+  "Plaster002": {
+   "url": "https://ambientcg.com/get?file=Plaster002_2K-JPG.zip",
+   "file": "Plaster002_2K-JPG.zip",
+   "size": 25963880,
+   "sha256": "c364e72a39ea894c6455cdb2c6b584f9b94f90cd48286578427acd1be0cd489f",
+   "displayName": "Plaster 002",
+   "releaseDate": "2019-07-03 00:00:00",
+   "dimensionsCm": [
+    0,
+    0
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-25"
+  }
+ }
+}

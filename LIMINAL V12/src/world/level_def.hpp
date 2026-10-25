@@ -71,12 +71,15 @@ struct ZoneDef {
     // V11: Bauform der Deckenleuchten des Rasters: "panel" (Rasterleuchte im Deckenfeld, Buero), "tube"
     // (aufgesetzte Leuchtstoffroehre, Versorgungsgaenge), "hanging" (Roehre an zwei Draehten, Umspannwerk)
     std::string fixture = "panel";
+    // V12: Texturen aus Bilddateien (Namen aus data/textures/textures.json); leer = nach Muster
+    std::string wallTex, floorTex, ceilTex;
     int region = 0;                           // V8: Ebene (Region) dieser Zone in der zusammenhaengenden Welt
 };
 
 struct StyleOverride {
     std::optional<Rgb> wall, floor, ceil, lamp, fog;
     std::optional<std::string> wallPattern, floorPattern, ceilPattern;
+    std::optional<std::string> wallTex, floorTex, ceilTex;  // V12
 };
 
 struct RoomTypeDef {

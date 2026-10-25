@@ -1,4 +1,5 @@
 #include "gameplay/content.hpp"
+#include "world/imported_textures.hpp"
 
 #include <algorithm>
 
@@ -10,6 +11,7 @@ namespace lim::game {
 
 bool Content::load(const std::string& dir, std::string& error, const std::string& sub) {
     const std::string levelRoot = sub.empty() ? dir : paths::join(dir, sub);
+    if (!world::loadImportedTextures(dir, error)) return false;  // V12: Texturen aus Bilddateien
     auto items = loadJsonFile(paths::join(dir, "items.json"));
     if (!items) {
         error = "data/items.json fehlt oder ist fehlerhaft.";
