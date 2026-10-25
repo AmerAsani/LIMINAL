@@ -34,5 +34,9 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
 - **Menschliche Grundform** (Hand, menschenähnliche Wesen): MakeHuman-Assets, CC0 laut FAQ von MakeHuman („The asset license is CC0“, abgerufen 25.10.2026). Nur Basismodell und Ziele, keine Fremd-Assets von Dritten.
 - Erzeugte Modelle liegen als `.glb` unter `data/models/`. Die Blender-Skripte, die sie bauen, liegen unter `tools/blender/` und sind reproduzierbar.
 
-## E-004 Levelauswahl
-Folgt in `LEVELAUSWAHL.md`. Quelle ausschließlich backrooms-wiki.wikidot.com, Einzelseiten vollständig gelesen.
+## E-004 Levelauswahl (25./26.10.2026)
+- 21 Kandidatenseiten vollständig gelesen (`LEVELAUSWAHL.md`).
+- Gewählt: **0, 1, 2, 3, 5, 5.3, 188, 903, 37, 36**. Ersatz in dieser Reihenfolge: 6.1, 141, 115, 7.
+- Seiten mit „outdated“ oder „in rewrite“ wurden gemieden, wo es gleichwertige stabile gab (6, 7, 15, 21, 33, 34, 54).
+- Reise: 0 → 1 → 2 → 3 → 5. Von 5 aus Abzweige nach 5.3 und 188, jeweils mit Rückweg. Dann ein Metro-Wagen nach 903, von dort nach 37 und 36. Die Gate-Tür in 36 ist das Ende.
+- Nicht belegte Verbindungen nutzen den belegten Mechanismus des Metro-Wagens und sind als eigene Ergänzung markiert.
