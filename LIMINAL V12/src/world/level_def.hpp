@@ -73,6 +73,11 @@ struct ZoneDef {
     std::string fixture = "panel";
     // V12: Texturen aus Bilddateien (Namen aus data/textures/textures.json); leer = nach Muster
     std::string wallTex, floorTex, ceilTex;
+    // V12: Feuchtigkeitsrand ueber dem Sockel (von, bis in m, Abdunklung 0..1; bis <= von: keiner)
+    double dampLo = 0.0, dampHi = 0.0, dampFactor = 0.82;
+    // V12: Winkelprofil unter der Decke (Hoehe in m, Farbe); 0 = keins
+    double ceilTrim = 0.0;
+    Rgb ceilTrimColor{0.9, 0.9, 0.88};
     int region = 0;                           // V8: Ebene (Region) dieser Zone in der zusammenhaengenden Welt
 };
 

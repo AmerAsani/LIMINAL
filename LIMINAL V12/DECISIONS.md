@@ -50,3 +50,18 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
   - Das Spiel liest sie mit einem eigenen glTF-Leser (`props/glb_import`) und meldet sie unter dem Dateinamen als Ausstattung an.
   - Ein gleichnamiges Code-Modell wird dabei überdeckt.
 - **Koordinaten:** Das Spiel ist linkshändig (x vorn, y rechts, z oben), Blender und glTF sind rechtshändig. Der Leser spiegelt y und dreht den Umlaufsinn, damit ein Modell im Spiel so aussieht wie in Blender. Abgesichert durch `gameplay_test` (Abschnitt „Modelle aus Blender“).
+
+## E-006 Level 0 (26.10.2026)
+- **Quelle:** Wikidot „Level 0“, Revision 50 (`LEVELSPEC_0.md`), Bild in `LOOK_0.md`. Vier Runden Qualitätsschleife (`docs/screens/level0/`).
+- **Wände:** Raufaser (Wallpaper001A, CC0) in stumpfem Senfgelb statt eines Chevron-Musters. Begründung: Die Seite nennt nur eine kränklich gelbe Tapete (siehe `LEVELSPEC_0.md`), kein Muster. Ein Muster wäre eine fremde Deutung.
+- **Langer Flur:** ein Zickzack über drei Spuren statt einer geraden Röhre. So sieht man nie weiter als einen Abschnitt, und der Flur wirkt nicht wie aus einem anderen Spiel.
+- **Säulenfeld:** raumhohe, tapezierte Blöcke im 4-m-Raster, versetzt, einige fehlen, einige doppelt breit. Das Wiki nennt Stützen im Gitter, die durch das Verschieben ungleichmäßig wurden.
+- **Rasterdecke:** 0,6-m-Raster mit 0,6 × 1,2-m-Leuchten aus Blender (Prismen, Rahmen); etwa jede neunte ist tot, etwa jeder zwölfte Raum flackert. Dazu Luftauslässe und ein Winkelprofil an der Wand.
+- **Feuchtigkeitsrand:** ein bündiger Verlauf in acht Stufen statt vorstehender Bänder. Neue Bandarten im Generator: 0 = Leiste, 1 = Anstrich, 2 = Deckenleiste.
+- **Dunkelzone:** Boden 25 cm tiefer, knöcheltief Flüssigkeit, keine Leuchten und kein Summen (Wiki). Die Taschenlampe ist dort die einzige Lichtquelle.
+- **Klang:**
+  - Das Summen aller Leuchten schwillt in Abständen von 70–180 s für etwa 6 s auf das 2,4-Fache an (`hum_surge`, Wiki: das Summen schwillt manchmal an).
+  - Flüstern und ferne Stimmen sowie Kratzen hinter den Wänden sind belegt.
+  - Klopfen und Türen entfallen: Level 0 hat laut Wiki keine Türen.
+- **Funde:** Mandelwasser (Wiki) und selten Batterien. Die Batterien sind eine eigene Ergänzung, weil die Dunkelzonen ohne Licht nicht begehbar wären. Energieriegel entfallen in Level 0.
+- **Noch offen:** Die dunkle Gestalt bekommt ihr Modell in der Phase Wesen; Hand und Lampe folgen in der Phase Viewmodel. Beides wird für Level 0 danach erneut aufgenommen.

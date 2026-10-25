@@ -284,9 +284,9 @@ void App::scriptStep() {
             }
         } else if (cmd == "audioinfo") {  // V11 (Tests): Zustand der Klanglandschaft ins Protokoll
             const audio::Acoustics& ac = soundscape_.acoustics();
-            log::info("Audio: Leuchten {} Betten {} Stellen {} | Raum t60 {:.2f} wet {:.2f} early {:.2f} Masse {:.0f}x{:.0f}x{:.1f} Hoerer {:.1f},{:.1f},{:.1f}",
-                      soundscape_.activeLamps(), soundscape_.activeBeds(), soundscape_.activeSpots(), ac.t60, ac.wet, ac.early, ac.roomW,
-                      ac.roomD, ac.roomH, ac.lx, ac.ly, ac.lz);
+            log::info("Audio: Leuchten {} Betten {} Stellen {} Brummen x{:.2f} | Raum t60 {:.2f} wet {:.2f} early {:.2f} Masse {:.0f}x{:.0f}x{:.1f} Hoerer {:.1f},{:.1f},{:.1f}",
+                      soundscape_.activeLamps(), soundscape_.activeBeds(), soundscape_.activeSpots(), soundscape_.humSurge(), ac.t60, ac.wet,
+                      ac.early, ac.roomW, ac.roomD, ac.roomH, ac.lx, ac.ly, ac.lz);
         } else if (cmd == "perf") {  // V10 (Tests): Zeiten und Dreiecke dieses Bildes ins Protokoll
             const auto& rs = renderer_->stats();
             log::info("Skript: perf Spiel {:.2f} ms, Grafik {:.2f} ms, {} Dreiecke, {} Netze | {}", simMs_, renderMs_, rs.triangles, rs.meshes,

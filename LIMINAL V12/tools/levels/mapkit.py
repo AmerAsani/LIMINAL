@@ -56,7 +56,10 @@ class Room:
 WALL_MOUNT = {'outlet', 'vent_grille', 'painting', 'power_box', 'wall_sconce', 'gauge', 'window', 'speaker',
               'exit_sign', 'locker_shutter', 'steel_door', 'hotel_door', 'damaged_door'}
 DOOR_MODELS = {'steel_door', 'hotel_door', 'damaged_door'}
-CEILING_MOUNT = {'batten', 'highbay', 'chandelier', 'safety_light', 'ceiling_vent'}
+CEILING_MOUNT = {'batten', 'highbay', 'chandelier', 'safety_light', 'ceiling_vent',
+                 'troffer', 'troffer_off', 'troffer_red', 'ceiling_diffuser'}  # V12: Blender-Modelle
+# V12: Modelle, die in einem Durchbruch stehen (Bogen mit Laibung): Mitte muss in einer Tuer/Oeffnung liegen
+IN_OPENING = {'arch2', 'arch3', 'arch4'}
 FLOOR_MOUNT = {'chair', 'rack', 'bed', 'barrel', 'cart', 'pump', 'wardrobe', 'trunk', 'water_cooler', 'armchair', 'sofa',
                'side_table', 'game_table', 'boiler', 'statue', 'transformer', 'fence_panel', 'rubble', 'barrier', 'camp',
                'desk_crt', 'switch_cabinet', 'bookcase', 'coffee_table', 'desk', 'shelf_unit', 'cabinet'}
@@ -150,6 +153,17 @@ class Map:
             l += [round(c, 3) for c in color]
         self.rooms[ri].lights.append(l)
 
+    @staticmethod
+    def pillar_at(R, tx, ty):
+        """V12: Stuetze des Rasters an der Kachel? Wie world/room.cpp (FeatKind::Pillars, Rand 1)."""
+        sp, spy, th, px, py = (list(R.kw['pillars']) + [0, 0, 0, 0, 0])[:5]
+        spy = spy or sp
+        lx, ly = tx - R.x0, ty - R.y0
+        if not (1 <= lx < R.w - 1 and 1 <= ly < R.h - 1):
+            return False
+        ox, oy = (px - R.x0) % sp, (py - R.y0) % spy
+        return lx >= ox and ly >= oy and (lx - ox) % sp < th and (ly - oy) % spy < th
+
     # --- Bloecke --------------------------------------------------------------------------------
     def block(self, ri, x0, y0, x1, y1, h, hidden=True):
         """Block auf dem Raumboden (Weltkoordinaten, ganze Kacheln). hidden: unsichtbar, ein Modell der
@@ -160,11 +174,13 @@ class Map:
 
     def blocked(self, x, y):
         """In einem unbetretbaren Block: unsichtbar (Wagen, Regal) oder eine Grube; sichtbare Podeste,
-        Beckenraender und Stufen sind begehbarer Boden."""
+        Beckenraender und Stufen sind begehbarer Boden. V12: auch in einer Stuetze des Rasters (kw pillars)."""
         for r in self.rooms:
             for b in r.blocks:
                 if b[0] <= x < b[2] and b[1] <= y < b[3] and (b[5] == 1 or b[4] < 0):
                     return True
+            if 'pillars' in r.kw and r.x0 <= x < r.x1 and r.y0 <= y < r.y1 and self.pillar_at(r, math.floor(x), math.floor(y)):
+                return True
         return False
 
     # --- Wandflaechen (V11) ----------------------------------------------------------------------
@@ -353,6 +369,9 @@ class Map:
                     errs.append(f'{where}: haengt in einer Tuer/Oeffnung (kein Sturz dahinter)')
                 elif self.at(fx, fy) < 0 and not self.in_door(math.floor(fx), math.floor(fy)):
                     errs.append(f'{where}: steckt in der Wand (davor kein Raum)')
+            elif md in IN_OPENING:
+                if not self.in_door(math.floor(x), math.floor(y)):
+                    errs.append(f'{where}: steht nicht in einem Durchbruch')
             elif md in FLOOR_MOUNT or md in CEILING_MOUNT:
                 ri = self.at(x, y)
                 if ri < 0:

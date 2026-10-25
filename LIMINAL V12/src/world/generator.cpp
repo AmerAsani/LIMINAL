@@ -880,6 +880,23 @@ void Generator::style(Room& room) const {
     room.baseboard = z.baseboard;
     if (z.baseboard) bands.push_back({0.0, 0.12, trimId});
     if (z.bandHi > z.bandLo) bands.push_back({z.bandLo, z.bandHi, trimId});  // V11: lackiertes Wandband
+    if (z.dampHi > z.dampLo) {
+        // V12: Feuchtigkeitsrand - die Wand zieht Wasser aus dem Teppich. Buendig in acht Stufen, die nach oben
+        // ausklingen (unten dunkel, oben kaum noch), damit er wie ein Rand wirkt und nicht wie ein Anstrich
+        const double wsd = wallPat == WallPattern::Wallpaper ? 0.86 : 0.72;
+        const int steps = 8;
+        for (int k = 0; k < steps; ++k) {
+            const double t = (double)k / steps, f = z.dampFactor + (1.0 - z.dampFactor) * t * t;
+            const double a = z.dampLo + (z.dampHi - z.dampLo) * t, e = z.dampLo + (z.dampHi - z.dampLo) * (t + 1.0 / steps);
+            u16 d = bank.get({wall[0] * f, wall[1] * f, wall[2] * f}, PlanePattern::None, wallPat, false, {}, wsd, Surface::Default,
+                             {255, 255, wallTex});
+            bands.push_back({a, e, d, 1});
+        }
+    }
+    if (z.ceilTrim > 0.0) {  // V12: Winkelprofil der Rasterdecke an der Wand
+        u16 ct = bank.get(z.ceilTrimColor, PlanePattern::None, WallPattern::Plain, false, {}, 0.72, Surface::Trim);
+        bands.push_back({-z.ceilTrim, 0.0, ct, 2});
+    }
     u16 lampId = bank.get(lamp, PlanePattern::None, WallPattern::Plain, true);
     room.lampmat = lampId;
     room.lampColor = lamp;

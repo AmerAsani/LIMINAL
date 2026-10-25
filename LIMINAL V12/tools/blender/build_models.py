@@ -10,7 +10,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import common  # noqa: E402
 
-MODULES = ['models_test']
+MODULES = ['models_test', 'models_l0']
 
 
 def main():

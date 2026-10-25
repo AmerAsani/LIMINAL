@@ -3,3 +3,6 @@
 /Release/
 /.toolchain/
 *.dmp
+# Python-Zwischenstaende (Blender- und Level-Werkzeuge)
+__pycache__/
+*.pyc

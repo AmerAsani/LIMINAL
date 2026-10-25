@@ -99,6 +99,7 @@ void Soundscape::reset(audio::AudioSystem& audio) {
     acousticRoom_ = nullptr;
     scanTimer_ = 0.0;
     bedDuck_ = bedDuckNow_ = 0.0f;
+    surge_ = false, surgeT_ = -1.0, surgeNow_ = 1.0f;
 }
 
 int Soundscape::activeBeds() const {
@@ -136,6 +137,13 @@ void Soundscape::configure(const world::LevelDef& L, audio::AudioSystem& audio) 
         ev.next = rng_.uniform(0.3, 1.0) * rng_.uniform(ev.every0, ev.every1);
         events_.push_back(std::move(ev));
     }
+    if (const Json* hs = a.find("hum_surge"); hs && hs->isObject()) {
+        surge_ = true;
+        range2((*hs)["every"], surgeEvery0_, surgeEvery1_, 60.0f, 160.0f);
+        surgeGain_ = (float)(*hs)["gain"].asNumber(2.0);
+        surgeLen_ = std::max(2.0f, (float)(*hs)["len"].asNumber(5.0));
+        surgeNext_ = rng_.uniform(0.25, 0.6) * rng_.uniform(surgeEvery0_, surgeEvery1_);
+    }
     if (const Json* sp = a.find("spots"); sp && sp->isObject())
         for (const auto& [k, v] : sp->members()) {
             SpotKind s;
@@ -151,6 +159,25 @@ void Soundscape::update(double dt, double time, audio::AudioSystem& audio, world
                         vec3 listener, double sanity, bool active) {
     if (configured_ != &world.level()) configure(world.level(), audio), field_.invalidate();
     field_.update(world, listener, dt);  // V11: Wegefeld fuer Tueren und Ecken
+    if (surge_ && active) {
+        // V12: Anschwellen - schnell hoch (0.8 s), halten, langsam ab (1.6 s); waehrend einer Begegnung nicht
+        if (surgeT_ < 0.0) {
+            surgeNext_ -= dt;
+            if (surgeNext_ <= 0.0 && !quiet_) surgeT_ = 0.0;
+        } else {
+            surgeT_ += dt;
+            if (surgeT_ >= surgeLen_) surgeT_ = -1.0, surgeNext_ = rng_.uniform(surgeEvery0_, surgeEvery1_);
+        }
+        float env = 0.0f;
+        if (surgeT_ >= 0.0) {
+            const float t = (float)surgeT_;
+            env = std::min({1.0f, t / 0.8f, (surgeLen_ - t) / 1.6f});
+            env = env * env * (3.0f - 2.0f * env);
+        }
+        surgeNow_ = 1.0f + (surgeGain_ - 1.0f) * env;
+    } else {
+        surgeNow_ = 1.0f;
+    }
     updateLamps(dt, time, audio, world, listener);
     updateAcoustics(dt, world, room, listener, audio);
     if (levelAudio_) {
@@ -241,7 +268,7 @@ void Soundscape::updateLamps(double dt, double time, audio::AudioSystem& audio, 
         }
         lamp.lastFlicker = f;
         if (lamp.voice >= 0) {
-            audio.setLoopVolume(lamp.voice, k.volume * lamp.level * (0.55f + 0.45f * f) * (1.0f - dark));
+            audio.setLoopVolume(lamp.voice, k.volume * lamp.level * (0.55f + 0.45f * f) * (1.0f - dark) * surgeNow_);
             audio.setLoopSpatial(lamp.voice, {lamp.pos, k.radius, lamp.occ});
         }
         ++it;

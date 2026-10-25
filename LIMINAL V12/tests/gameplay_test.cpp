@@ -1632,8 +1632,10 @@ namespace placement {
 enum class Mount { Wall, Floor, Ceiling, Any };
 static Mount mountOf(const std::string& m) {
     static const char* wall[] = {"outlet", "vent_grille", "painting", "power_box", "wall_sconce", "gauge", "window", "hotel_door",
-                                 "damaged_door", "steel_door", "locker_shutter", "speaker", "exit_sign", "pillar_label"};
-    static const char* ceil[] = {"batten", "highbay", "chandelier", "safety_light", "ceiling_vent"};
+                                 "damaged_door", "steel_door", "locker_shutter", "speaker", "exit_sign", "pillar_label",
+                                 "arch2", "arch3", "arch4"};  // V12: Boegen - nur im Durchbruch gueltig (TF_DOOR)
+    static const char* ceil[] = {"batten", "highbay", "chandelier", "safety_light", "ceiling_vent",
+                                 "troffer", "troffer_off", "troffer_red", "ceiling_diffuser"};  // V12
     static const char* floor[] = {"chair", "rack", "bed", "barrel", "cart", "pump", "wardrobe", "trunk", "water_cooler", "armchair", "sofa",
                                   "side_table", "game_table", "boiler", "statue", "transformer", "fence_panel", "rubble", "barrier", "camp",
                                   "desk_crt", "crate", "pallet", "switch_cabinet", "stall_line", "arrow", "floor_glow", "car"};
@@ -1672,7 +1674,8 @@ static void testV11Placement() {
             const double cx = std::cos(o.yaw), sy = std::sin(o.yaw);
             const world::Tile& here = w.tile(ifloor(o.x), ifloor(o.y));
             std::string why;
-            const bool isDoor = o.model == "steel_door" || o.model == "hotel_door" || o.model == "damaged_door";
+            const bool isDoor = o.model == "steel_door" || o.model == "hotel_door" || o.model == "damaged_door" ||
+                                o.model.rfind("arch", 0) == 0;  // V12: Boegen stehen im Durchbruch
             if (o.model == "pillar_label") {  // Ursprung in der Stuetze: die Kachel muss fest sein
                 if (!here.solid()) why = "keine Stuetze";
             } else if (isDoor && (here.flags & world::TF_DOOR)) {

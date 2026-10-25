@@ -195,13 +195,15 @@ void emitWall(Mesher& m, const Tile& t, bool planeX, float c, float s0, float s1
     struct Seg {
         float a, b;
         u16 mat;
-        bool trim;
+        bool trim;  // vorstehend (sonst buendig, V12)
     };
     std::vector<Seg> bands;
     for (const Band& b : mat.bands) {
         if (m.bank[b.mat].emissive) continue;
-        float a = std::max(z0, rf + (float)b.z0), e = std::min(z1, rf + (float)b.z1);
-        if (e > a + 1e-4f) bands.push_back({a, e, b.mat, true});
+        // V12: kind 2 haengt an der Decke (Winkelprofil), kind 1 ist buendig (Anstrich)
+        const float base = b.kind == 2 ? z1 : rf;
+        float a = std::max(z0, base + (float)b.z0), e = std::min(z1, base + (float)b.z1);
+        if (e > a + 1e-4f) bands.push_back({a, e, b.mat, b.kind != 1});
     }
     std::sort(bands.begin(), bands.end(), [](const Seg& x, const Seg& y) { return x.a < y.a; });
     float cur = z0;
@@ -215,6 +217,10 @@ void emitWall(Mesher& m, const Tile& t, bool planeX, float c, float s0, float s1
     float sign = (axis == NX_POS || axis == NY_POS) ? 1.0f : -1.0f;
     float cf = c + sign * out;
     for (const Seg& b : bands) {
+        if (!b.trim) {  // V12: buendiger Anstrich - nur die Flaeche, keine Kanten
+            m.vertical(planeX, c, s0 - kEps, s1 + kEps, b.a - kEps, b.b + kEps, axis, b.mat);
+            continue;
+        }
         m.vertical(planeX, cf, s0, s1, b.a, b.b, axis, b.mat);
         float lo = std::min(c, cf), hi = std::max(c, cf);
         if (planeX) {

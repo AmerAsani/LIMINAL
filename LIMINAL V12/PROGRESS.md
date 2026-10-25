@@ -10,11 +10,20 @@ Wiedereinstieg: diese Datei zuerst lesen, dann `DECISIONS.md`.
 - [x] Schritt 1: Levelauswahl (`LEVELAUSWAHL.md`). Gewählt: 0, 1, 2, 3, 5, 5.3, 188, 903, 37, 36. Commit `3b58e34`.
 - [x] Pipeline Texturen: 37 CC0-Sets (ambientCG), Lock mit Prüfsummen, 48 Ebenen im Spiel, `wall_tex`/`floor_tex`/`ceil_tex`. Commit `a595e4e`.
 - [x] Pipeline Modelle: Blender → `.glb` → eigener Leser, Spiegelung y, Test (357/0).
+- [x] Level 0 (Umgebung, Licht, Funde, Klang):
+  - `LEVELSPEC_0.md`, `LOOK_0.md`.
+  - Neue Karte: 326 Räume, Zickzack-Flur, Säulenfeld, Bögen, Lochfeld, Dunkelzone mit Wasser, rote Räume, Naht zu Level 1.
+  - Neun Blender-Modelle: Rasterleuchte an, aus und rot, Luftauslass, Bögen 2/3/4 m, Steckdose, Lüftungsgitter.
+  - Klang: `hum_surge`, Flüstern, Kratzen, Tropfen; im Spiel gemessen ×2,40.
+  - Vier QA-Runden, Bilder in `docs/screens/level0/`.
+  - Platzierung: 1035 Objekte, 0 ohne Halt.
+  - Wesen und Hand fehlen noch (siehe unten).
 
 ## Als Nächstes
-1. Skinning für Modelle aus Blender (Kreaturen, Hand) – erst, wenn das erste Wesen gebaut wird.
-3. Querschnitt: Viewmodel (gestellte Hand mit Lampe), Oberfläche bei mehreren Auflösungen.
-4. Level der Reihe nach: Spec → Look → Bau → Platzierung → Items → Entities → Audio → Qualitätsschleife → Commit.
+1. Querschnitt: Viewmodel (gestellte Hand mit Lampe aus Blender), danach Level 0 erneut aufnehmen (idle, Gehen, Laufen, Drehen).
+2. Wesen-Pipeline (gestellte oder gerigte Modelle aus Blender); zuerst die dunkle Gestalt von Level 0.
+3. Level der Reihe nach (1, 2, 3, 5, 5.3, 188, 903, 37, 36): Spec → Look → Bau → Platzierung → Items → Wesen → Klang → Qualitätsschleife → Commit.
+4. Oberfläche neu, geprüft bei mehreren Auflösungen.
 
 ## Bekannte Fehler / offen
 - Einmalig hing in V11 ein Testlauf beim Start (Protokoll endete nach dem Laden der Level). In vier Wiederholungen nicht wieder aufgetreten. Ursache unbekannt; beobachten.

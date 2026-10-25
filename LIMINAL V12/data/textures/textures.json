@@ -6,9 +6,9 @@
    "dir": "wallpaper_threshold",
    "source": "Wallpaper001A",
    "meters": 2.0,
-   "normal_strength": 1.0,
+   "normal_strength": 2.2,
    "rough_bias": 0.0,
-   "variation": 0.25,
+   "variation": 0.55,
    "levels": [
     "0"
    ]
@@ -41,7 +41,7 @@
    "name": "ceiling_office",
    "dir": "ceiling_office",
    "source": "OfficeCeiling001",
-   "meters": 3.85,
+   "meters": 3.6,
    "normal_strength": 1.0,
    "rough_bias": 0.0,
    "variation": 0.25,
@@ -56,7 +56,7 @@
    "meters": 2.0,
    "normal_strength": 1.0,
    "rough_bias": 0.0,
-   "variation": 0.25,
+   "variation": 0.5,
    "levels": [
     "0"
    ]

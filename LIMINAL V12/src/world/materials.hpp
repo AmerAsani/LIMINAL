@@ -47,10 +47,13 @@ enum class Surface : u8 {
 };
 
 struct Band {
-    double z0, z1;  // relativ zum Boden
+    double z0, z1;  // relativ zum Boden (kind 2: relativ zur Decke, negativ)
     u16 mat;
-    bool operator<(const Band& o) const { return std::tie(z0, z1, mat) < std::tie(o.z0, o.z1, o.mat); }
-    bool operator==(const Band& o) const { return z0 == o.z0 && z1 == o.z1 && mat == o.mat; }
+    // V12: 0 = vorstehende Leiste (Sockel), 1 = buendiger Anstrich (Feuchtigkeitsrand), 2 = Leiste unter der Decke
+    // (Winkelprofil der Rasterdecke)
+    u8 kind = 0;
+    bool operator<(const Band& o) const { return std::tie(z0, z1, mat, kind) < std::tie(o.z0, o.z1, o.mat, o.kind); }
+    bool operator==(const Band& o) const { return z0 == o.z0 && z1 == o.z1 && mat == o.mat && kind == o.kind; }
 };
 
 struct Material {

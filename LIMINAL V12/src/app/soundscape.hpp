@@ -15,6 +15,8 @@
 //               Stellen der Ausstattung ("where": puddle, car ...)
 //   spots       Dauerklaenge an Stellen der Ausstattung (Rohre, Schaltkasten, Glut im Bodenloch)
 //   acoustics   Nachhall je Raumtyp; die Fruehreflexionen folgen den Raummassen und dem Hoerer
+//   hum_surge   V12: das Brummen aller Leuchten schwillt in zufaelligen Abstaenden an und klingt wieder ab
+//               ({"every": [s, s], "gain": Faktor, "len": s})
 #pragma once
 
 #include <string>
@@ -56,6 +58,8 @@ public:
     void setQuiet(bool q) { quiet_ = q; }
     int activeBeds() const;
     int activeSpots() const { return (int)spotLoops_.size(); }
+    // V12: aktueller Faktor des Anschwellens (1 = ruhig)
+    float humSurge() const { return surgeNow_; }
 
 private:
     struct Lamp {
@@ -125,6 +129,11 @@ private:
     float bedDuck_ = 0.0f, bedDuckNow_ = 0.0f;
     game::SoundField field_;  // V11: Schallausbreitung vom Ohr aus
     bool quiet_ = false;
+    // V12: Anschwellen des Brummens
+    bool surge_ = false;
+    float surgeEvery0_ = 60.0f, surgeEvery1_ = 160.0f, surgeGain_ = 2.0f, surgeLen_ = 5.0f;
+    double surgeNext_ = 0.0, surgeT_ = -1.0;
+    float surgeNow_ = 1.0f;
 };
 
 }  // namespace lim::app

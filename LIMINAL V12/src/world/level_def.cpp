@@ -250,6 +250,16 @@ std::optional<LevelDef> LevelDef::fromJson(const Json& jIn, std::string* error, 
         d.wallTex = z["wall_tex"].asString("");     // V12
         d.floorTex = z["floor_tex"].asString("");
         d.ceilTex = z["ceil_tex"].asString("");
+        if (z.has("ceiling_trim")) {  // V12: [Hoehe, r, g, b]
+            const auto& a = z["ceiling_trim"].items();
+            if (!a.empty()) d.ceilTrim = a[0].asNumber(0.0);
+            if (a.size() >= 4) d.ceilTrimColor = {a[1].asNumber(0.9), a[2].asNumber(0.9), a[3].asNumber(0.88)};
+        }
+        if (z.has("damp_band")) {  // V12: [von, bis, Abdunklung]
+            const auto& a = z["damp_band"].items();
+            if (a.size() >= 2) d.dampLo = a[0].asNumber(0.0), d.dampHi = a[1].asNumber(0.0);
+            if (a.size() >= 3) d.dampFactor = a[2].asNumber(0.82);
+        }
         d.sunken = z["sunken"].asNumber(0.0);
         d.sunkenDepth = z["sunken_depth"].asNumber(2.4);
         d.originBias = z["origin_bias"].asNumber(0.0);

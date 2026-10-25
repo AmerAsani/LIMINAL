@@ -1,11 +1,11 @@
 {
   "_comment": "V12: CC0-Texturen von ambientCG (docs.ambientcg.com/license). name = Name im Spiel (data/textures/<name>), id = ambientCG-Asset. Auswahl nach LOOK_<Nr>.md; tint/meters optional.",
   "textures": [
-    { "name": "wallpaper_threshold",      "id": "Wallpaper001A",  "levels": ["0"] },
+    { "name": "wallpaper_threshold",      "id": "Wallpaper001A",  "levels": ["0"], "normal_strength": 2.2, "variation": 0.55 },
     { "name": "wallpaper_threshold_mold", "id": "Wallpaper002C",  "levels": ["0"] },
     { "name": "carpet_threshold",         "id": "Fabric028",      "levels": ["0"] },
-    { "name": "ceiling_office",           "id": "OfficeCeiling001", "levels": ["0"] },
-    { "name": "carpet_red",               "id": "Carpet013",      "levels": ["0"] },
+    { "name": "ceiling_office",           "id": "OfficeCeiling001", "levels": ["0"], "meters": 3.6 },
+    { "name": "carpet_red",               "id": "Carpet013",      "levels": ["0"], "variation": 0.5 },
     { "name": "concrete_wall_smooth",     "id": "Concrete046",    "levels": ["1", "188"] },
     { "name": "concrete_wall_old",        "id": "Concrete036",    "levels": ["1", "2"] },
     { "name": "concrete_floor",           "id": "Concrete047A",   "levels": ["1"] },
