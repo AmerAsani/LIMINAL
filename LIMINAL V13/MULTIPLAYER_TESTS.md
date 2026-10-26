@@ -95,7 +95,7 @@ Der Netzstörer ist ein UDP-Proxy im Test. Er stellt Laufzeit, Schwankung, Verlu
 | Reise | Host + 2 Gäste wechseln als Gruppe durch alle zehn Ebenen (12 Wechsel, Sackgassen zuletzt): gleiche Ebene, gleicher Seed, gleiche Vorräte, beisammen am Anker, verbunden | 50/50 |
 | Wiederverbinden, Kick, Bann | Verbindung verloren → mit Token zurück: gleiche Spielernummer, Inventar zurück; entfernen; sperren → erneuter Versuch abgewiesen | bestanden |
 | Fuzzing über den Netzweg (`--only netfuzz`, 300 s) | Ein Angreifer mit gültigem Schlüssel schickt über 768 Verbindungen 8 134 veränderte und zufällige Nachrichten an den echten Host (Transport, Handshake, Spielprotokoll); daneben spielt ein ehrlicher Gast | **OK: 2/2** – kein Absturz, der ehrliche Gast bleibt verbunden; Host: 54 Nachrichten abgelehnt, 307 gedrosselt, von 20 969 Eingaben 1 226 verworfen (Zeitbudget), von 505 Absichten 326 abgelehnt, 6 Trennungen |
-| **Summe (alle Teile)** | | **OK: 169 Prüfungen, 0 Fehler** (`--quick`, Protokoll v3; dazu Koop-Stand 5/5 und Netz-Fuzzing 2/2) |
+| **Summe (alle Teile)** | | **OK: 169 Prüfungen, 0 Fehler** (`--quick` und vollständig, Protokoll v3; dazu Koop-Stand 5/5 und Netz-Fuzzing 2/2) |
 
 #### Langlauf (`--long`)
 
@@ -116,6 +116,7 @@ Vier Spieler (Host und drei Bots) über den Netzstörer (Internet-Profil), Zufal
 | Lampen beider Spieler im dunklen Zimmer (eigenes Spotlicht je Mitspieler) | bestanden (`koop_dunkel_lampen_host_gast.jpg`) |
 | Namen über den Mitspielern, Statuszeile und Spielerliste (Beta) | bestanden |
 | Beenden beider Prozesse | Exit 0 (vorher Absturz, B-009) |
+| Bildzeiten (V13.2, `coop_perf.ps1`): Level 1, 1280 × 720, Qualität 2, Echtzeit, Lampe an, je 10 Messungen (Befehl `perf`); Host und Gast als zwei Prozesse auf **einem** Rechner (teilen sich CPU und Grafikkarte) | Spiellogik je Bild: Einzelspieler 0,03–0,50 ms, Koop-Host 0,04–0,07 ms (mit Gast-Figur, Prüfschicht, Momentaufnahmen), Gast 0,02–0,08 ms. Bild: alle drei auf 60 Hz (16,0–16,6 ms je Bild einschließlich Warten auf die Bildwiederholung); der verdeckte Host zeichnete währenddessen kaum (0,3 ms). Die reine Grafikzeit ohne das Warten ist hier nicht getrennt gemessen. |
 
 ### 5.4 Sanitizer
 

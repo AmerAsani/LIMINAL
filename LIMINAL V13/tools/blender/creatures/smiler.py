@@ -147,6 +147,15 @@ def build(J, bones):
         d -= 0.007 * back * sdf.fbm(Q, 11, 2, seed=8)
         # feine Hautfalten um Augen und Mundwinkel
         d -= 0.0007 * (sdf.ridged(Q, 90, 2, seed=6) - 0.6)
+        # V13.2 (Modellier-Analyse): im Licht las sich der Kopf als glatte Kugel - Oberstirn und Schaedeldecke uneben,
+        # porig und runzlig wie Haut, die nie Licht gesehen hat; nur Augen- und Mundpartie bleiben glatter
+        face = np.clip(1.0 - np.abs(Q[:, 2] - 1.82) / 0.13, 0.0, 1.0) * np.clip((Q[:, 0] - 0.06) / 0.08, 0.0, 1.0)
+        rough = 1.0 - 0.75 * face
+        d -= rough * (0.0035 * sdf.fbm(Q, 9, 2, seed=11) + 0.0011 * (sdf.ridged(Q * np.array([1.0, 1.0, 2.2]), 34, 2, seed=12) - 0.55))
+        # unruhiger Umriss: Beulen der Schaedeldecke und an den Seiten (nicht vorn im Gesicht)
+        crown = np.clip((Q[:, 2] - 1.86) / 0.10, 0.0, 1.0) + np.clip((np.abs(Q[:, 1]) - 0.17) / 0.08, 0.0, 1.0)
+        d -= np.clip(crown, 0.0, 1.0) * (1.0 - face) * 0.014 * np.clip(sdf.fbm(Q, 6, 2, seed=14) + 0.35, 0.0, 1.0)
+        d -= rough * 0.0006 * np.clip((sdf.worley(Q, 120, seed=13)[0] - 0.0) * -4.0 + 1.0, 0.0, 1.0)  # Poren
         return d
 
     def body_disp(Q):

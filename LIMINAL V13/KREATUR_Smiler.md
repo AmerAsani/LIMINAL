@@ -77,3 +77,5 @@ Bilder: `docs/screens/creatures/smiler/` (vorher: `docs/screens/creatures/vorher
 **Bleibt offen:**
 - Im hellen Licht ist der Kopf von hinten noch recht rund.
 - Aus manchen Winkeln liest sich eine Rauchzunge kurz als erhobene Hand. Im Dunkeln, wo der Smiler lebt, ist das nicht zu sehen.
+
+**V13.2 (Modellier-Analyse):** Im hellen Raum las sich der Kopf als glatte, glänzende Kugel. Schädeldecke und Seiten sind jetzt uneben, porig und runzlig; Augen- und Mundpartie bleiben glatter. Vorher/Nachher aus 1 m: `docs/screens/analyse_v13_2/smiler_vorher_nachher_nah.jpg`. Im Dunkeln (wo er im Spiel erscheint) bleiben nur Augen und Lächeln zu sehen.
