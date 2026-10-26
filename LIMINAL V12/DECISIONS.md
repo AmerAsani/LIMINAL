@@ -84,3 +84,16 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
   - Die Hand ist ein gestelltes Modell ohne eigene Fingeranimation.
   - Die rechte Hand und der übrige Körper bleiben die prozedurale Figur aus V10/V11.
   - Im Strichmännchen-Modus gibt es keine Hand, wie bisher.
+
+## E-008 Wesen: V11-Modelle bleiben, Zuordnung streng nach Wiki (26.10.2026)
+- **Geprüft:** Aufnahmen der V11-Wesen in Level 0 (Gestalt, Smiler, Hound, Deathmoth samt Nest, Clump).
+  - Die Wesen sind prozedural modelliert, haben ein eigenes Skelett und eine Haut-Textur. Sie sind animiert und schon in Spielmechanik, Klang und Jumpscare eingebunden.
+  - Gestalt, Smiler und Hound tragen das, was das Wiki über sie sagt (Silhouette; Augen und Zähne im Dunkeln; menschenähnlich auf allen vieren).
+- **Entscheidung:** Der Ersatz durch Blender-Modelle mit Skinning ist zurückgestellt.
+  - Nötig wären ein Skin-Leser für glTF, eine Abbildung auf die Wesen-Skelette und neue Animationen.
+  - Der Gewinn je Aufwand ist geringer als bei den neun noch offenen Leveln.
+  - Wird es nachgeholt, dann zuerst für den Hound (die schwächste Silhouette).
+- **Regel je Level:** Nur Wesen, die die Wiki-Seite des Levels nennt. Die Regie (`presence`) wird je Level darauf beschränkt.
+  - Level 0: nur die dunkle Gestalt; sie greift nie an.
+  - Nicht als Modell vorhandene Wesen (Facelings in 903, Fensterwesen in 188) bekommen eigene, einfache Lösungen. Was davon fehlt, steht ehrlich im Bericht.
+- **Level 0:** Gestalt-Aufnahmen in `docs/screens/level0/13–15`.
