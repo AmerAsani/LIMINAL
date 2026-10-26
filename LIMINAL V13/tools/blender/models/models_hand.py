@@ -220,9 +220,9 @@ def build_cage():
                 y *= 0.97
             red = 0.0
             tendon = 0.0008 * f if (j % 2 and i >= 1) else 0.0  # Strecksehnen zu den Knoecheln
-            top[i, j] = cg.v(Vector((x, y, zt(i, j) + tendon)), palm_weights(x, y), (red, 0.0))
+            top[i, j] = cg.v(Vector((x, y, zt(i, j) + tendon)), palm_weights(x, y), (red, 0.07))
             dark = 0.10 if (i in (2, 3) and 2 <= j <= 6) else 0.0  # Handlinien angedeutet
-            bot[i, j] = cg.v(Vector((x, y, zb(i, j))), palm_weights(x, y), (0.12, dark))
+            bot[i, j] = cg.v(Vector((x, y, zb(i, j))), palm_weights(x, y), (0.24, dark + 0.04))
         xr, xu = xdist[0] * f, xdist[8] * f
         yr = (ywr[0] + (ydist[0] - ywr[0]) * f) - 0.0040 - 0.0040 * math.sin(math.pi * min(1.0, f / 0.7))
         yu = (ywr[8] + (ydist[8] - ywr[8]) * f) + 0.0040 + 0.0030 * math.sin(math.pi * min(1.0, f / 0.8))
@@ -258,7 +258,7 @@ def build_cage():
         # (Ruecken der Schwimmhaut); auf der Beugeseite beginnt der Finger erst an der Fingerfalte (~2 cm vor dem
         # Grundgelenk) - so sitzen die Finger nicht wie angesteckt am Handteller
         if j % 2:
-            top5[j] = cg.v(Vector((cx - 0.0060, y, cz + hd + 0.0030)), wts(0.90, 0.10), (0.24, 0.0))
+            top5[j] = cg.v(Vector((cx - 0.0060, y, cz + hd + 0.0030)), wts(0.90, 0.10), (0.46, 0.06))
         else:
             dx = 0.010 if shared else 0.004
             top5[j] = cg.v(Vector((cx + dx, y, cz + hd - 0.0010)), wts(0.60, 0.40), (0.05, 0.10 if shared else 0.0))
@@ -334,27 +334,27 @@ def build_cage():
             (0.010, 0.026, 0.028, 0.99, 0.99, 0.0008, 0.0008, (0.14, 0.0), (0.10, 0.30)),
             (L1 * 0.55, L1 * 0.58, L1 * 0.60, 0.93, 0.95, 0.0, 0.0, None, None),
             (L1 - 0.0050, L1 - 0.0045, L1 - 0.0040, 0.97, 0.98, 0.0, 0.0, None, None),
-            (L1, L1, L1, 1.00, 1.00, 0.0018, 0.0015, (0.30, 0.0), (0.10, 0.45)),
+            (L1, L1, L1, 1.00, 1.00, 0.0018, 0.0015, (0.46, 0.07), (0.18, 0.50)),
             (L1 + 0.0045, L1 + 0.0045, L1 + 0.0045, 0.97, 0.97, 0.0, 0.0, None, None),
             (L1 + L2 * 0.5, L1 + L2 * 0.5, L1 + L2 * 0.5, 0.91, 0.90, 0.0, 0.0, None, None),
             (L1 + L2 - 0.0035, L1 + L2 - 0.0035, L1 + L2 - 0.0035, 0.90, 0.87, 0.0, 0.0, None, None),
-            (L1 + L2, L1 + L2, L1 + L2, 0.91, 0.85, 0.0012, 0.0012, (0.24, 0.0), (0.10, 0.40)),
-            (L1 + L2 + 0.0040, L1 + L2 + 0.0040, L1 + L2 + 0.0040, 0.88, 0.82, 0.0, 0.0, None, (0.25, 0.0)),
-            (L1 + L2 + L3 * 0.55, L1 + L2 + L3 * 0.55, L1 + L2 + L3 * 0.55, 0.86, 0.76, 0.0, 0.0, None, (0.32, 0.0)),
-            (L1 + L2 + L3 * 0.86, L1 + L2 + L3 * 0.86, L1 + L2 + L3 * 0.86, 0.72, 0.58, 0.0, 0.0, None, (0.38, 0.0)),
+            (L1 + L2, L1 + L2, L1 + L2, 0.91, 0.85, 0.0012, 0.0012, (0.40, 0.06), (0.18, 0.45)),
+            (L1 + L2 + 0.0040, L1 + L2 + 0.0040, L1 + L2 + 0.0040, 0.88, 0.82, 0.0, 0.0, None, (0.36, 0.0)),
+            (L1 + L2 + L3 * 0.55, L1 + L2 + L3 * 0.55, L1 + L2 + L3 * 0.55, 0.86, 0.76, 0.0, 0.0, None, (0.48, 0.0)),
+            (L1 + L2 + L3 * 0.86, L1 + L2 + L3 * 0.86, L1 + L2 + L3 * 0.86, 0.72, 0.58, 0.0, 0.0, None, (0.54, 0.0)),
         ]
         prev = base
         rings = []
         for (td, ts, tp, sw, st, bump, crease, dt, pt) in rings_t:
             w_, hd, hp = dims(sw, st)
             c = m + u * ts
-            r = _ring(cg, c, s, Z, w_, hd, hp, P8_F, weights_for(td, ts, tp), (0.06, 0.0), dorsal_bump=bump,
+            r = _ring(cg, c, s, Z, w_, hd, hp, P8_F, weights_for(td, ts, tp), (0.10, 0.03), dorsal_bump=bump,
                       palmar_crease=crease, dorsal_tint=dt, palmar_tint=pt,
                       shift=lambda a_, b_, td=td, ts=ts, tp=tp: u * (t_of(td, ts, tp, b_) - ts))
             cg.bridge(prev, r)
             rings.append(r)
             prev = r
-        tip = cg.v(m + u * J[3] + Z * (-tk * 0.12), {n + '_3': 1.0}, (0.40, 0.0))
+        tip = cg.v(m + u * J[3] + Z * (-tk * 0.12), {n + '_3': 1.0}, (0.55, 0.0))
         cg.cap8(prev, tip)
         # Nagel: die beiden oberen Flaechenstreifen (Punkte 0-1-2) zwischen den letzten drei Ringen
         for ra, rb in ((rings[-3], rings[-2]), (rings[-2], rings[-1])):
@@ -404,26 +404,26 @@ def build_cage():
     th_rings = [
         (0.030, 1.18, 1.25, 0.0, 0.0, None, None),
         (tl[1] - 0.0045, 1.02, 1.02, 0.0, 0.0, None, None),
-        (tl[1], 1.03, 1.03, 0.0018, 0.0012, (0.26, 0.0), (0.10, 0.35)),
+        (tl[1], 1.03, 1.03, 0.0018, 0.0012, (0.42, 0.06), (0.18, 0.40)),
         (tl[1] + 0.0050, 0.98, 0.98, 0.0, 0.0, None, None),
         (tl[1] + TH_LEN[1] * 0.55, 0.94, 0.92, 0.0, 0.0, None, None),
         (tl[2] - 0.0035, 0.93, 0.88, 0.0, 0.0, None, None),
-        (tl[2], 0.94, 0.86, 0.0012, 0.0012, (0.22, 0.0), (0.10, 0.40)),
-        (tl[2] + 0.0045, 0.92, 0.84, 0.0, 0.0, None, (0.25, 0.0)),
-        (tl[2] + TH_LEN[2] * 0.55, 0.90, 0.78, 0.0, 0.0, None, (0.32, 0.0)),
-        (tl[2] + TH_LEN[2] * 0.86, 0.74, 0.58, 0.0, 0.0, None, (0.38, 0.0)),
+        (tl[2], 0.94, 0.86, 0.0012, 0.0012, (0.38, 0.06), (0.18, 0.45)),
+        (tl[2] + 0.0045, 0.92, 0.84, 0.0, 0.0, None, (0.36, 0.0)),
+        (tl[2] + TH_LEN[2] * 0.55, 0.90, 0.78, 0.0, 0.0, None, (0.48, 0.0)),
+        (tl[2] + TH_LEN[2] * 0.86, 0.74, 0.58, 0.0, 0.0, None, (0.54, 0.0)),
     ]
     prev = patch
     rings = []
     for (t, sw, st, bump, crease, dt, pt) in th_rings:
         c, u, s, h = th_frame(t)
-        r = _ring(cg, c, s, h, TW * 0.5 * sw, TT * 0.42 * st, TT * 0.58 * st, P8_T, th_wt(t), (0.06, 0.0),
+        r = _ring(cg, c, s, h, TW * 0.5 * sw, TT * 0.42 * st, TT * 0.58 * st, P8_T, th_wt(t), (0.10, 0.03),
                   dorsal_bump=bump, palmar_crease=crease, dorsal_tint=dt, palmar_tint=pt)
         cg.bridge(prev, r)
         rings.append(r)
         prev = r
     c, u, s, h = th_frame(sum(TH_LEN))
-    tip = cg.v(c - h * (TT * 0.12), {'th_2': 1.0}, (0.40, 0.0))
+    tip = cg.v(c - h * (TT * 0.12), {'th_2': 1.0}, (0.55, 0.0))
     cg.cap8(prev, tip)
     for a, b in ((rings[-3], rings[-2]), (rings[-2], rings[-1])):
         for i0 in (4, 5):  # Rueckenpunkte der Daumenreihenfolge: 4, 5, 6
@@ -436,7 +436,8 @@ def build_cage():
     wr = [top[0, j] for j in range(9)] + [midU[0]] + [bot[0, j] for j in range(8, -1, -1)] + [midR[0]]
     prev = wr
     # nur so weit, wie das Buendchen des Aermels deckt; schlanker als der Aermel
-    for (x, sc, fa) in ((-0.012, 1.00, 0.8), (-0.026, 0.98, 1.0), (-0.040, 0.96, 1.0)):
+    # V13 Runde 4: der Aermel liegt jetzt als enger Bund am Handgelenk - der Ansatz reicht nur 2,5 cm hinein
+    for (x, sc, fa) in ((-0.010, 0.97, 0.8), (-0.018, 0.93, 1.0), (-0.025, 0.90, 1.0)):
         r = []
         for v in wr:
             p = v.co.copy()
@@ -444,7 +445,7 @@ def build_cage():
             r.append(cg.v(q, {'forearm': fa, 'hand': 1 - fa}))
         cg.bridge(prev, r)
         prev = r
-    end = cg.v(Vector((-0.043, 0.0, 0.001)), {'forearm': 1.0})
+    end = cg.v(Vector((-0.028, 0.0, 0.001)), {'forearm': 1.0})
     for i in range(len(prev)):
         cg.bm.faces.new((prev[i], prev[(i + 1) % len(prev)], end))
     return cg
@@ -818,7 +819,7 @@ def build_final(log):
     _transform_all(ob, arm, M)
     switch_x = float(t[pad] - t0)
     log.append(f'SCHALTER unter der Daumenkuppe bei x = {switch_x * 1000:.1f} mm, {switch_ang:.1f} Grad von oben (Lampenrahmen)')
-    # Druck auf den Schalter: die Kuppe (Punkte des Endglieds bis 3 mm ueber ihrem tiefsten Punkt) soll 1,8 mm tiefer
+    # Druck auf den Schalter: die Kuppe (Punkte des Endglieds bis 3 mm ueber ihrem tiefsten Punkt) soll 2,5 mm tiefer
     # liegen. Den Daumen druckt vor allem die Mittelhand zum Schaft (Anziehen, etwas Drehen), Grund- und Endgelenk
     # duerfen nachgeben; moeglichst kleine Winkel
     rig = Rig(arm, ob)
@@ -830,14 +831,14 @@ def build_final(log):
     d0 = float(axis_dist(p0, ax_c, ax_a)[0].min())
     best = None
     for ab in np.arange(0.0, 4.01, 0.25):
-        for tw in np.arange(-4.0, 6.01, 1.0):
+        for tw in np.arange(-4.0, 9.01, 1.0):
             for d1 in np.arange(-4.0, 6.01, 2.0):
                 for d2 in np.arange(0.0, 12.1, 3.0):
                     S = G.chain(rig, ['th_0', 'th_1', 'th_2'], [flex(0.0, ab, tw), flex(d1), flex(d2)])
                     P = G.skin_sel(rig, S, pad)
                     dd = float(axis_dist(P, ax_c, ax_a)[0].min())
                     slide = float(np.abs((P - p0)[:, 0]).mean())  # die Kuppe soll nicht entlang der Lampe rutschen
-                    err = (dd - (d0 - 0.0018)) ** 2 * 1e6 + (slide / 0.002) ** 2 + 0.01 * (4 * ab * ab + tw * tw + d1 * d1 + 0.5 * d2 * d2) / 100.0
+                    err = (dd - (d0 - 0.0025)) ** 2 * 1e6 + (slide / 0.002) ** 2 + 0.01 * (4 * ab * ab + tw * tw + d1 * d1 + 0.5 * d2 * d2) / 100.0
                     if best is None or err < best[0]:
                         best = (err, ab, tw, d1, d2, dd - d0)
     _, ab, tw, d1, d2, dz = best

@@ -124,3 +124,61 @@ Die Hilfsskripte liegen außerhalb des Projekts (Scratchpad); die Befehle stehen
 - Aus dem Auge liegen Daumen oben und Finger unten am Schaft, beim Gehen, Laufen und Drehen.
 - Gesenkt ist die Hand außer Sicht.
 - Beim Heben bleibt das Licht aus, bis der Daumen gedrückt hat.
+
+### Runde 3 – Material, Daumendruck, Übergänge (`v13_runde3/`)
+
+| Befund | Korrektur |
+|---|---|
+| Nahaufnahmen der Debug-Kamera waren gerastert durchsichtig. Ursache: Das Ausblenden mitbewegter Teile nahe der Kamera (gegen riesige Schultern im Bild) – kein Modellfehler. | Bei aktiver Debug-Kamera ausgeschaltet (`gWave.w`). |
+| Haut gleichförmig rosa, Rötung kaum sichtbar (Albedo-Ansicht `08/09_albedo_vorher`) | Knöchel und Kuppen deutlich röter, Handrücken leicht dunkler, Handfläche röter, Beugefalten dunkler (Tönung je Punkt) |
+| Daumendruck kaum zu sehen (1,7 mm) | 2,5 mm (Daumen-Mittelhand dreht 5°, Endgelenk 3°) |
+
+**Geprüft:**
+- Schulteransicht: Ausgeschaltet hängt die Lampe in der Hand an der Hüfte; beim Einschalten hebt der Arm sie.
+- Dunkler Raum: Nur der Kegel leuchtet, die Hand ist Silhouette.
+- Blick steil nach unten und oben: Lampe und Kegel folgen.
+
+Hautporen und feine Linien sind in der Hauttextur (0,7 mm Poren, 10 cm je Kachel). Aus 40 cm sind sie kaum zu sehen, wie in echt. Knöchelfalten wurden bewusst nicht modelliert: Über der Faust ist die Haut gespannt.
+
+### Runde 4 – Ärmel und Abschluss (`v13_runde4/`)
+
+**Befund:** Das Ärmelende des Körpers war im Bild gezackt. Der Ärmel ist ein abgeschnittenes Distanzfeld, auf 1 cm vernetzt und auf 27 % reduziert.
+
+**Erster Versuch – verworfen:** ein zweiteiliger Ärmel mit feinem Unterarmstück. In Ruhe stimmten die Maße (Radius 5,9 cm, 45–96 % des Unterarms), in der Pose wichen die beiden Stücke voneinander ab.
+
+**Lösung:**
+- Der weite Ärmel läuft 5 cm vor dem Handgelenk in einen engen Strickbund aus; es gibt keine Schnittkante mehr. Die Hand kommt aus dem gerundeten Ende des Bundes.
+- Der Ansatz der Hand aus Blender ist auf 2,5 cm gekürzt.
+
+**Stand am Ende:**
+
+| Zustand | Ergebnis | Bild |
+|---|---|---|
+| Ruhe, Gehen, Laufen, Drehen | Daumen oben auf dem Schaft, Finger unten geschlossen, Lampe im Blick | 01–04 |
+| Aus | gesenkt außer Sicht | 05 |
+| Heben, an | Licht erst nach dem Daumendruck | 06–07 |
+| Debug-Kamera | Hand von allen Seiten geschlossen; kein Eindringen in die Lampe sichtbar; Bündchen sauber | 08–14 |
+| Material | Haut mit Rötung und Durchscheinen | 15–16 |
+| Schulteransicht | aus/an | 17–18 |
+| Dunkel | nur der Kegel leuchtet | 19 |
+| Wand | Lampe zieht zurück und kippt | 20–21 |
+| Blick | unten/oben | 22–23 |
+
+Tests: gameplay 357/0, darunter neue Prüfungen:
+- Skelett mit mindestens 21 Gelenken;
+- Posen `grip` und `press`;
+- Geometrie aus dem Skelett = Werte des Baus (< 2 mm);
+- `grip` = Ruhepose;
+- `press` bewegt nur den Daumen;
+- Unterarm passt zum Modell (< 12°).
+
+### Offene Punkte (Hand)
+
+- **Ellbogen des Ärmels** (`24_ellbogen_fehler_aermel.jpg`):
+  - Bei stark gebeugtem Arm reißt die Kapuzenjacke am Ellbogen auf (lineares Skinning der Körperfigur). Das ist kein Fehler der Hand.
+  - In der Ego-Ansicht nicht im Bild, in der Schulteransicht von der Seite sichtbar.
+  - Eingetragen in `BUGLISTE.md` (Teil 5).
+- **Rechte Hand:**
+  - Die rechte Hand des Körpers (Gesten: Greifen, Essen, Trinken) ist weiter die prozedurale Hand mit einem Fingerknochen.
+  - Der Auftrag betrifft die Hand an der Lampe; die rechte Hand mit demselben Modell (gespiegelt, Posen Greifen/Halten) ist ein möglicher nächster Schritt.
+- **Unterarm:** Beim Blick steil nach unten weicht der Unterarm des Körpers bis 11,5° vom Unterarm des Handmodells ab (Arm-IK, Test < 12°). Das Bündchen deckt das.

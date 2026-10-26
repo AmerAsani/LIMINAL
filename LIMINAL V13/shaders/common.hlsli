@@ -25,7 +25,7 @@ cbuffer FrameCB : register(b0)
     float4 gPost3;               // x Darstellungsmodus, y Ausgabe-Breite, z Ausgabe-Hoehe, w Bloom-Staerke
     float4 gTaa;                 // x Verlauf verwerfen (1), y Mischfaktor, z Nachschaerfen, w Zeitschritt (s)
     float4 gDebug;               // x Debug-Ansicht (0 aus), y AO auf Direktlicht, zw frei
-    float4 gWave;                // V11: Welle des Stromausfalls: xy Ursprung, z Front (m, < 0 keine)
+    float4 gWave;                // V11: Welle des Stromausfalls: xy Ursprung, z Front (m, < 0 keine); V13: w = 1 Debug-Kamera (kein Ausblenden nah)
 };
 
 // Konstanten einzelner Nachbearbeitungsschritte

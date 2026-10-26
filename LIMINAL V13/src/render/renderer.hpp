@@ -99,6 +99,7 @@ struct ExtraLight {
 };
 
 struct SceneParams {
+    bool noNearFade = false;  // V13 (Debug-Kamera): mitbewegte Teile nahe der Kamera nicht ausblenden
     vec3 fogColor{0.1f, 0.1f, 0.1f};  // sRGB-Anzeigefarbe wie in V4
     float fogDensity = 0.05f;
     float viewDistance = 60.0f;

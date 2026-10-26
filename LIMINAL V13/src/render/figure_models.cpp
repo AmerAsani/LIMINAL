@@ -1,5 +1,7 @@
 #include "render/figure_models.hpp"
 
+#include "core/log.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <format>
@@ -578,7 +580,15 @@ Shape topShape(const Ctx& c, float g, float sleeveT, float hemZ, float collarUp)
         vec3 S = c.SJ(J_SHOULDER_L, sd), E = c.SJ(J_ELBOW_L, sd), W = c.SJ(J_WRIST_L, sd);
         vec3 ad = normalize(E - S);
         s.cone(S + ad * 0.025f, E, c.b.upperArmR * 0.95f + g * 0.75f, c.b.upperArmR * 0.82f + g, 0.03f);
-        if (sleeveT > 1.0f) s.cone(E, W + normalize(W - E) * 0.01f, c.b.forearmR * 1.05f + g, c.b.wristR * 1.2f + g, 0.025f);
+        if (sleeveT > 2.0f) {
+            // V13: der weite Aermel endet 5 cm vor dem Handgelenk und laeuft in ein enges Buendchen aus (Strickbund) -
+            // keine Schnittkante; die Hand kommt aus dem gerundeten Ende des Bundes
+            const vec3 d = normalize(W - E), C0 = W - d * 0.05f;
+            s.cone(E, C0, c.b.forearmR * 1.05f + g, c.b.wristR * 1.2f + g + 0.004f, 0.025f);
+            s.cone(C0, W + d * 0.004f, c.b.wristR * 1.2f + g + 0.004f, c.b.wristR + 0.0065f, 0.022f);
+        } else if (sleeveT > 1.0f) {
+            s.cone(E, W + normalize(W - E) * 0.01f, c.b.forearmR * 1.05f + g, c.b.wristR * 1.2f + g, 0.025f);
+        }
     }
     const vec3 neck = c.J(J_NECK), U = c.U;
     const float collarZ = neck.z + collarUp;
@@ -591,6 +601,7 @@ Shape topShape(const Ctx& c, float g, float sleeveT, float hemZ, float collarUp)
         vec3 S = c.SJ(J_SHOULDER_L, sd), E = c.SJ(J_ELBOW_L, sd), W = c.SJ(J_WRIST_L, sd);
         vec3 o, n;
         if (sleeveT <= 1.0f) o = lerp(S, E, sleeveT), n = normalize(E - S);
+        else if (sleeveT > 2.0f) o = W + normalize(W - E) * 0.5f, n = normalize(W - E);  // V13: kein Schnitt (Buendchen)
         else o = lerp(E, W, sleeveT - 1.0f), n = normalize(W - E);
         cuts.push_back({o, n});
     }
@@ -626,12 +637,27 @@ void buildPlayer(Assembly& as) {
             parts.push_back(meshPart(c, h, 0.02f, FM_SKIN_PLAYER, kHeadBones | bit(B_NECK) | kHandBones | kArmBones, 0.3f));
         }
         shortHair(as, lod, 13);
-        // Kapuzenjacke: lange Aermel mit Buendchen, Kapuze im Nacken
-        Shape hoodie = topShape(c, 0.022f, 1.96f, c.J(J_PELVIS).z - 0.02f, 0.02f);
+        // Kapuzenjacke: lange Aermel mit Buendchen, Kapuze im Nacken. V13: der Aermel endet nicht mit einem Schnitt,
+        // sondern laeuft in einen engen Strickbund aus; im Bund ist der Stoff gespannt (keine Knitter). Rippen waeren
+        // feiner als das Netz (1 cm) - die Stofftextur traegt sie
+        Shape hoodie = topShape(c, 0.022f, 2.1f, c.J(J_PELVIS).z - 0.02f, 0.02f);
         hoodie.ellipsoid(c.J(J_NECK) - c.F * (c.b.neckR + 0.035f) + c.U * 0.0f, {0.05f, 0.11f, 0.075f}, 0.05f);
-        hoodie.displace = [](vec3 p) {
-            return 0.0042f * sculpt::fbm3(vec3{p.x * 20.0f, p.y * 20.0f, p.z * 12.0f}, 3, 101) + 0.001f * sculpt::fbm3(p * 70.0f, 2, 103);
-        };
+        {
+            vec3 Wr[2], Dr[2];
+            for (int sd = 0; sd < 2; ++sd) {
+                const vec3 E = c.SJ(J_ELBOW_L, sd), W = c.SJ(J_WRIST_L, sd);
+                Wr[sd] = W, Dr[sd] = normalize(W - E);
+            }
+            hoodie.displace = [Wr, Dr](vec3 p) {
+                float v = 0.0042f * sculpt::fbm3(vec3{p.x * 20.0f, p.y * 20.0f, p.z * 12.0f}, 3, 101) + 0.001f * sculpt::fbm3(p * 70.0f, 2, 103);
+                for (int sd = 0; sd < 2; ++sd) {
+                    const float along = dot(p - Wr[sd], Dr[sd]);
+                    if (along > -0.045f && along < 0.03f && length(p - Wr[sd]) < 0.09f)
+                        v *= 1.0f - 0.85f * std::clamp((along + 0.045f) / 0.012f, 0.0f, 1.0f);
+                }
+                return v;
+            };
+        }
         parts.push_back(meshPart(c, hoodie, kBodyH[lod], FM_HOODIE, kTorsoBones | kArmBones, 0.4f));
         trousers(as, lod, FM_JEANS, 0.014f, c.LJ(J_ANKLE_L, 0).z + 0.045f, 0.0f, false, 107);
         shoes(as, lod, FM_SNEAKER, 0.004f, true);

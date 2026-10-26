@@ -505,7 +505,7 @@ void Renderer::renderScene(const CameraState& cam, const SceneParams& p, const s
     const bool bo = p.blackoutSeed >= 0 && p.blackoutAmount > 0.001f;
     f.debug = {(float)settings_.debugView, settings_.ssao ? settings_.aoDirect : 0.0f, settings_.volumetric,
                bo ? (float)(p.blackoutSeed + 1) + std::clamp(p.blackoutAmount, 0.0f, 1.0f) * 0.9f : 0.0f};
-    f.wave = {p.blackoutOrigin.x, p.blackoutOrigin.y, bo ? p.blackoutFront : -1.0f, 0.0f};
+    f.wave = {p.blackoutOrigin.x, p.blackoutOrigin.y, bo ? p.blackoutFront : -1.0f, p.noNearFade ? 1.0f : 0.0f};
     world_.setBlackout(bo ? p.blackoutSeed : -1, p.blackoutAmount, p.blackoutOrigin, p.blackoutFront);
     // V10: Knochen und Schattenkapseln der Figuren
     if (p.bones && !p.bones->empty())

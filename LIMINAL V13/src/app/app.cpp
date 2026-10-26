@@ -1408,6 +1408,7 @@ void App::renderWorld(double dt, bool clean) {
             sp.redEdge = 1.0f;
             if (scareCut_) sp.menuDim = std::max(sp.menuDim, 0.97f);
         }
+        sp.noNearFade = playing && vmCam_.on;  // V13
         sp.resetHistory = resetHistory_;
         resetHistory_ = false;
         visible_.clear();

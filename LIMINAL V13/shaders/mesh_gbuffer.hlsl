@@ -296,7 +296,7 @@ GBufferOut PSMain(VSOut i, bool front : SV_IsFrontFace)
 {
     // V6: eigener Koerper - Teile direkt vor der Kamera (Schultern, Hals) weich ausblenden
     // (gerastertes Ausblenden, das TAA glaettet), sonst fuellen sie riesig das Bild
-    if (gAttached > 0.5)
+    if (gAttached > 0.5 && gWave.w < 0.5)
     {
         float dc = length(i.wpos - gCameraPos.xyz);
         float fade = saturate((dc - 0.10) / 0.07);
