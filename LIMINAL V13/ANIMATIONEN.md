@@ -111,3 +111,13 @@ Die Gestalt verändert sich nie, solange man sie ansieht (Level 0: unbestätigte
 | 1 | Alle Zustände unterscheidbar (Ausschnitte `moth_r1_detail`) | Zucken am Licht; Flügel im Sturz nach hinten |
 | 2 | Licht: hoher, schneller Schlag; Stich wie ein Wespenstoß | Gesamtprüfung |
 | 3 | Sieben Zustände eindeutig, keine Durchdringung von Flügeln und Leib. Abgenommen. | – |
+
+## Nest (V13.2)
+
+| Zustand | Bewegung | Wiki-Bezug |
+|---|---|---|
+| Ruhe | Säcke im Kragen und im Flur atmen (etwa 4,8 s), der Schleier schwingt langsam an der Angel, die Wucherung pulsiert leicht, das Gelege zuckt ab und zu (Larven) | „semi-organisch“, Larven in den Wänden (Entity 4) |
+| Lampe auf dem Nest | Atem und Schwingen schneller (etwa 2,1 s), größerer Ausschlag | helles Licht zieht die Motten an |
+| Alarm (Schwarm fliegt) | wie im Licht, bleibt unruhig, bis der Schwarm zurück ist | – |
+
+Weit weg (über 30 m) bleibt die Pose stehen. Prüfung über `figstate light`/`alert` an der Vorführung und im Spiel (`hiveat`). Bilder der Form: `docs/screens/nest/`.

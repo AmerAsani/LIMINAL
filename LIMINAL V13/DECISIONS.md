@@ -359,3 +359,13 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
 - **Entscheidung:** Ruhepose der Spielerfigur mit 54 Grad abgespreizten Armen; Dual-Quaternion-Skinning für Menschen im Shader (Bit 31 des Knochenversatzes; Wesen bleiben beim linearen Mischen, weil ihre Rahmen strecken können); eigene Lampenhaltung, sobald der Körper von außen gesehen wird (Schulteransicht; Mitspieler im Mehrspieler). Die Umrechnung Körper → Skelett ist jetzt eine eigene Funktion (`playerJointPose`), die Tests und Mitspieler nutzen.
 - **Verworfen:** eine Gewichtsregel für die Ärmel (verschob die Faltung an die Schulternaht) und Korrektur-Blendshapes (das Netz entsteht prozedural; ein Blendshape müsste bei jeder Formänderung neu erzeugt werden – Dual Quaternions lösen das Umklappen ohne zusätzliche Daten).
 - **Nachweis:** `BUGLISTE.md` Abschnitt „B-001: Nachweis“, Test in `gameplay_test`.
+
+## E-029 Mottennest: Ergebnis des Neuentwurfs (26.10.2026)
+- **Ergebnis:** Nach fünf Kritikrunden im Spiel (feste Kameras, mit und ohne Lampe) bleibt das Nest. Alle Teile stammen aus der Entity-4-Seite: Wucherung über der Tür, Schichten, Säulen aus Resten, Eier, Knochen.
+- **Verworfen:**
+  - eine gespannte Haut über der Öffnung (las sich als Leinwand, mit Fetzen als Zahnreihe);
+  - herabhängende Einzellappen (Reißzähne);
+  - kleine runde Löcher (Gesicht).
+- **Gewählt:** ein zerrissener Schleier aus Fasern und Harz mit durchhängenden Fäden, eine geschichtete Kante im Zimmer, eine asymmetrische Wucherung im Flur und Eier halb in der Kruste.
+- **Material:** `ent_nestflesh` nutzt die Nesttextur (Fasern, Adern, Harz), rotbraun getönt und matt. Harzflächen sind seltener und dunkler; Eier bekommen ein eigenes mattes Cremegelb (`ent_nestegg`).
+- **Bewegung:** Das Nest ist jetzt ein Wesen mit neun Knochen; Licht und Alarm machen es unruhig (ANIMATIONEN.md).

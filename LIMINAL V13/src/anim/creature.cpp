@@ -317,13 +317,26 @@ CreatureSkeleton makeGestalt() {
 CreatureSkeleton makeNest() {
     using namespace ns;
     Builder k(Entity::Nest, JCOUNT, BCOUNT);
+    // V13.2: +X ins dunkle Zimmer, Laibung x -1..0, Flurwand x = -1 (presence.cpp spawnHive)
+    const float H = 2.15f;
     k.j(ROOT, {0, 0, 0});
     k.j(TOP, {0, 0, 2.2f});
+    k.j(MEMB_T, {-0.18f, 0, 2.08f}), k.j(MEMB_B, {-0.18f, 0, 0.95f});
+    k.j(LIP_A, {-1.0f, 0, H + 0.15f}), k.j(LIP_B, {-1.12f, 0, H + 0.15f});
+    k.j(SAC0_A, {0.74f, 0.95f, 1.45f}), k.j(SAC0_B, {0.88f, 0.95f, 1.45f});
+    k.j(SAC1_A, {0.67f, -1.0f, 1.05f}), k.j(SAC1_B, {0.81f, -1.0f, 1.05f});
+    k.j(SAC2_A, {0.85f, 0.2f, H + 0.5f}), k.j(SAC2_B, {0.99f, 0.2f, H + 0.5f});
+    k.j(SAC3_A, {-1.1f, 0.05f, H + 0.18f}), k.j(SAC3_B, {-1.24f, 0.05f, H + 0.18f});
+    k.j(EGG_A, {-0.5f, 0.38f, 1.2f}), k.j(EGG_B, {-0.5f, 0.28f, 1.2f});
     k.b(B_ROOT, ROOT, ROOT, -1, 0.0f, {1, 0, 0}, false);
     k.b(B_BODY, ROOT, TOP, B_ROOT, 0.6f, {1, 0, 0}, false);
+    k.b(B_MEMB, MEMB_T, MEMB_B, B_BODY, 0.0f, {1, 0, 0}, false);
+    k.b(B_LIP, LIP_A, LIP_B, B_BODY, 0.0f, {0, 0, 1}, false);
+    for (int s = 0; s < 4; ++s) k.b(B_SAC0 + s, SAC0_A + 2 * s, SAC0_B + 2 * s, B_BODY, 0.0f, {0, 0, 1}, false);
+    k.b(B_EGGS, EGG_A, EGG_B, B_BODY, 0.0f, {0, 0, 1}, false);
     k.s.height = 2.2f;
     k.s.reach = 1.5f;
-    k.s.center = {0.05f, 0, 1.1f};
+    k.s.center = {0.0f, 0, 1.3f};
     return k.s;
 }
 

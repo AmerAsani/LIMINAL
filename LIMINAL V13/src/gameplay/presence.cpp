@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <array>
 #include <cstdint>
 
 #include "core/log.hpp"
@@ -89,6 +90,17 @@ struct Presence::Agent {
     // V11: toedlicher Zugriff - Richtung vom Auge zur Kreatur, Kopf relativ zum Koerper (vorn, links, oben)
     vec3 killDir{1, 0, 0}, killHead{0, 0, 1.7f};
     float stareLimit = 7.0f;
+    // V13.2 Koop: Kennung im Netz, Ziel (Spieler), Puppe beim Gast (Proben des Hosts zum Nachfuehren)
+    u16 netId = 0;
+    int target = 0;
+    bool puppet = false, netLit = false;
+    struct Sample {
+        double t = 0.0;
+        vec3 p;
+        float yaw = 0.0f;
+    };
+    std::array<Sample, 8> samples{};
+    int nSamples = 0;
 
     void initBody(vec3 p, float y, unsigned seed) {
         pos = p, yaw = y;
@@ -172,6 +184,11 @@ bool Presence::seenRole(Role r) const {
         if (a->role == r && !a->showcase) return a->role == Role::Smiler ? a->contact : a->sight.level > 0.25f;
     return false;
 }
+bool Presence::seenRoleBy(Role r, int target) const {
+    for (const auto& a : agents_)
+        if (a->role == r && !a->showcase && a->target == target && (a->role == Role::Smiler ? a->contact : a->sight.level > 0.25f)) return true;
+    return false;
+}
 float Presence::yawOf(Role r) const {
     for (const auto& a : agents_)
         if (a->role == r && !a->showcase) return a->yaw;
@@ -229,9 +246,9 @@ int Presence::swarm(vec3& center) const {
 // --- Orte finden -------------------------------------------------------------------------------
 // Versteckter Platz auf dem Weg lo..hi (Kosten) vom Spieler, ausserhalb seines Blicks
 bool Presence::hiddenSpawn(const Context& c, int lo, int hi, bool behind, vec3& out) {
-    if (!playerField_.valid()) return false;
+    if (!fld().valid()) return false;
     std::vector<std::pair<i64, i64>> cand;
-    playerField_.ring(lo, hi, cand);
+    fld().ring(lo, hi, cand);
     if (cand.empty()) return false;
     const vec3 fl = nrmF(flat(c.view.look), {1, 0, 0});
     for (int pass = 0; pass < 2; ++pass)
@@ -257,7 +274,7 @@ bool Presence::hiddenSpawn(const Context& c, int lo, int hi, bool behind, vec3& 
 // Spieler; away: moeglichst vom Spieler weg (von a aus gesehen)
 bool Presence::pickGoal(const Context& c, Agent& a, int lo, int hi, bool away) {
     std::vector<std::pair<i64, i64>> cand;
-    playerField_.ring(lo, hi, cand);
+    fld().ring(lo, hi, cand);
     const vec3 awayDir = nrmF(flat(a.pos - c.view.eye), {1, 0, 0});
     for (int tries = 0; tries < 50 && !cand.empty(); ++tries) {
         auto [x, y] = cand[(size_t)rng_.randint(0, (i64)cand.size() - 1)];
@@ -277,12 +294,12 @@ bool Presence::pickGoal(const Context& c, Agent& a, int lo, int hi, bool away) {
 
 // --- Auftritte ---------------------------------------------------------------------------------
 void Presence::spawnSmiler(const Context& c, std::vector<Event>& out, double dist, bool blackout) {
-    if (!playerField_.valid()) return;
+    if (!fld().valid()) return;
     std::vector<std::pair<i64, i64>> cand;
     // F1 (ENTITY_BEHAVIOR.md): nie naeher als 15 m Weg (Kosten etwa 8,5 je m)
     const int lo = dist > 0.0 ? (int)(std::max(dist, 15.0) * 8.5) : (blackout ? 130 : 130),
               hi = dist > 0.0 ? (int)(std::max(dist, 15.0) * 12.0) : (blackout ? 230 : 210);
-    playerField_.ring(lo, hi, cand);
+    fld().ring(lo, hi, cand);
     const vec3 eye = c.view.eye;
     float bestScore = 1e9f;
     vec3 best;
@@ -338,9 +355,11 @@ void Presence::spawnHound(const Context& c, std::vector<Event>& out, double dist
 
 // Deathmoth-Nest an der Tuer eines dunklen Zimmers, Motten auf Wand und Decke dahinter
 bool Presence::spawnHive(const Context& c, double dist) {
-    if (!playerField_.valid() || hive_.active) return false;
+    if (!fld().valid() || hive_.active) return false;
     std::vector<std::pair<i64, i64>> cand;
-    playerField_.ring(dist > 0.0 ? (int)(dist * 8.0) : 110, dist > 0.0 ? (int)(dist * 13.0) : 330, cand);
+    const bool exact = hiveDoorX_ >= 0;  // V13.2: genau diese Tuer (Skript)
+    if (exact) cand.push_back({hiveDoorX_, hiveDoorY_}), hiveDoorX_ = hiveDoorY_ = -1;
+    else fld().ring(dist > 0.0 ? (int)(dist * 8.0) : 110, dist > 0.0 ? (int)(dist * 13.0) : 330, cand);
     const vec3 eye = c.view.eye;
     // alle Tueren auf dem Ring, in zufaelliger Reihenfolge
     std::vector<std::pair<i64, i64>> doors;
@@ -373,17 +392,17 @@ bool Presence::spawnHive(const Context& c, double dist) {
             const world::Tile* f = c.world->tileIfLoaded(fx, fy);
             if (f && f->open() && f->room) minLight = std::min(minLight, (double)f->light), minAvg = std::min(minAvg, f->room->avgLight);
             // dunkles Zimmer: der Raum ist dunkel (die Kachel an der Tuer bekommt noch Licht vom Flur ab)
-            if (!f || !f->open() || !f->room || f->light > 0.35f || f->clearance() < 2.6f || f->room->avgLight > 0.2) {
+            if (!f || !f->open() || !f->room || (f->light > 0.35f && !exact) || f->clearance() < 2.6f || f->room->avgLight > (exact ? 0.3 : 0.2)) {
                 ++nDark;
                 continue;
             }
             root.z = f->floor;
-            if (hdist(root, eye) < 8.0f) {
+            if (hdist(root, eye) < 8.0f && !exact) {
                 ++nNear;
                 continue;
             }
             const vec3 front = root + dirYaw(yaw) * 0.2f + vec3{0, 0, 1.2f};
-            if (dot(nrmF(front - eye, {1, 0, 0}), c.view.look) > 0.45f && clearSight(*c.world, eye, front)) continue;  // nicht vor deinen Augen
+            if (!exact && dot(nrmF(front - eye, {1, 0, 0}), c.view.look) > 0.45f && clearSight(*c.world, eye, front)) continue;  // nicht vor deinen Augen
             // Ruheplaetze: Waende und Decke des dunklen Zimmers nahe der Tuer
             struct Spot {
                 vec3 p, n, f;
@@ -458,16 +477,16 @@ bool Presence::spawnHive(const Context& c, double dist) {
             return true;
         }
     }
-    if (dist > 0.0 || forced_ >= 0)
+    if (dist > 0.0 || forced_ >= 0 || exact)
         log::info("Praesenz: kein Nest - {} Tueren im Umkreis ({} falsche Art, {} Seiten nicht dunkel, {} zu nah, {} ohne Platz; dunkelste Seite {:.2f} / Raum {:.2f})",
                   doors.size(), nKind, nDark, nNear, nSpots, minLight, minAvg);
     return false;
 }
 
 void Presence::spawnGestalt(const Context& c, std::vector<Event>& out, double dist) {
-    if (!playerField_.valid()) return;
+    if (!fld().valid()) return;
     std::vector<std::pair<i64, i64>> cand;
-    playerField_.ring(dist > 0.0 ? (int)(dist * 9.0) : 150, dist > 0.0 ? (int)(dist * 12.0) : 290, cand);
+    fld().ring(dist > 0.0 ? (int)(dist * 9.0) : 150, dist > 0.0 ? (int)(dist * 12.0) : 290, cand);
     const vec3 eye = c.view.eye;
     float bestScore = 1e9f;
     vec3 best;
@@ -722,12 +741,12 @@ void Presence::thinkSmiler(Agent& a, double dt, const Context& c, std::vector<Ev
     }
     // naeher - nur durch das Dunkel: am Rand des Lichts bleibt er stehen
     double tx, ty;
-    if (!playerField_.next(a.pos.x, a.pos.y, tx, ty)) return;
+    if (!fld().next(a.pos.x, a.pos.y, tx, ty)) return;
     const world::Tile* nt = c.world->tileIfLoaded(ifloor(tx), ifloor(ty));
     const bool nextDark = darkTile(c, nt, (float)tx, (float)ty) || hdist(vec3{(float)tx, (float)ty, 0.0f}, eye) < 1.2f;
     if (!nextDark && a.stage < 3) return;
     const double speed = a.stage >= 3 ? 4.2 : 1.25;
-    walkTo(a, playerField_, speed, dt, c);
+    walkTo(a, fld(), speed, dt, c);
     // ein tiefes, kaum hoerbares Droehnen, wenn er ungesehen naeher kommt (eigene Ergaenzung)
     a.timer -= dt;
     if (d < 9.0f && a.timer <= 0.0) {
@@ -752,7 +771,7 @@ void Presence::thinkHound(Agent& a, double dt, const Context& c, std::vector<Eve
     const bool playerLit = c.view.flashOn || litPoint(c.view, *c.world, eye - vec3{0, 0, 0.6f});
     const float seeRange = c.view.flashOn ? 32.0f : (playerLit ? 22.0f : 7.0f);  // das Licht zieht ihn an (Fandom)
     const bool sees = los && d < seeRange && (facing > 0.15f || d < 5.0f);
-    const int here = playerField_.at(ifloor(a.pos.x), ifloor(a.pos.y));
+    const int here = fld().at(ifloor(a.pos.x), ifloor(a.pos.y));
     const float pathD = here >= 0 ? (float)here / 10.0f : 1e9f;
     const bool hears = (c.player->sprinting && pathD < 30.0f) || (pathD < 7.0f && c.player->gait > 0.3f);
     // Blickkontakt: man sieht ihn an - im Licht oder seine weissen Augen im Dunkeln
@@ -851,12 +870,12 @@ void Presence::thinkHound(Agent& a, double dt, const Context& c, std::vector<Eve
                     }
                     a.yaw += wrapA(std::atan2(toP.y, toP.x) - a.yaw) * (float)std::min(1.0, dt * 4.0);
                 } else if (d > 3.2f) {
-                    walkTo(a, playerField_, 0.45, dt, c);  // der Blick wirkt nicht mehr - er kommt wieder
+                    walkTo(a, fld(), 0.45, dt, c);  // der Blick wirkt nicht mehr - er kommt wieder
                 }
             } else {
                 a.stareT = std::max(0.0, a.stareT - dt * 0.3);
                 a.timer += dt;
-                if (d > 4.0f) walkTo(a, playerField_, 0.8, dt, c);
+                if (d > 4.0f) walkTo(a, fld(), 0.8, dt, c);
                 else a.yaw += wrapA(std::atan2(toP.y, toP.x) - a.yaw) * (float)std::min(1.0, dt * 4.0);
                 // den Ruecken zugekehrt: Bellen, dann der Angriff
                 if (a.timer > 1.4 && d < 9.0f && a.cool <= 0.0) {
@@ -898,7 +917,7 @@ void Presence::thinkHound(Agent& a, double dt, const Context& c, std::vector<Eve
                 pickGoal(c, a, 230, 380, true);
                 break;
             }
-            if (!walkTo(a, playerField_, speed, dt, c) || a.stateT > 6.0) setState(2), a.cool = 3.0;
+            if (!walkTo(a, fld(), speed, dt, c) || a.stateT > 6.0) setState(2), a.cool = 3.0;
             if (d < 6.0f && a.stateT > 0.5) {
                 a.timer2 -= dt;
                 if (a.timer2 <= 0.0) out.push_back({Event::Breath, Role::Hound, head}), a.timer2 = 0.7;
@@ -980,7 +999,7 @@ void Presence::thinkMoth(Agent& a, double dt, const Context& c, std::vector<Even
         default: {
             a.fly = 1.0f;
             vec3 tgt = hive_.hasTarget ? hive_.target : hive_.nest + vec3{0, 0, 1.6f};
-            tgt = steer(tgt, hive_.hasTarget && c.view.flashOn ? playerField_ : hive_.home);
+            tgt = steer(tgt, hive_.hasTarget && c.view.flashOn ? fld() : hive_.home);
             if (a.state == 3) {  // stoesst zu
                 a.reach = 1.0f;
                 tgt = eye - vec3{0, 0, 0.25f};
@@ -1134,7 +1153,7 @@ void Presence::think(Agent& a, double dt, const Context& c, std::vector<Event>& 
 // leise gehen 3,3 m - unter dem Schacht oder nah am Buendel); geworfene Dinge am Ort des Aufpralls
 bool Presence::clumpHears(const Agent& a, const Context& c, vec3& where, float& loud) const {
     loud = 0.0f;
-    const int here = playerField_.at(ifloor(a.pos.x), ifloor(a.pos.y));
+    const int here = fld().at(ifloor(a.pos.x), ifloor(a.pos.y));
     const float pathD = here >= 0 ? (float)here / 10.0f : 1e9f;
     if (c.noise > 0.01 && pathD < (float)c.noise * 22.0f) {
         where = {(float)c.player->x, (float)c.player->y, (float)c.player->z};
@@ -1148,13 +1167,13 @@ bool Presence::clumpHears(const Agent& a, const Context& c, vec3& where, float& 
 
 // ein Deckenschacht in Hoerweite, aber nicht zu nah und nicht im Blick (F1): 14 - 60 m Weg
 bool Presence::spawnClump(const Context& c, std::vector<Event>& out, bool forced) {
-    if (!c.lairs || c.lairs->empty() || !playerField_.valid()) return false;
+    if (!c.lairs || c.lairs->empty() || !fld().valid()) return false;
     const vec3 eye = c.view.eye;
     int best = -1;
     float bestScore = 1e9f;
     for (size_t i = 0; i < c.lairs->size(); ++i) {
         const vec3 L = (*c.lairs)[i];
-        const int here = playerField_.at(ifloor(L.x), ifloor(L.y));
+        const int here = fld().at(ifloor(L.x), ifloor(L.y));
         if (here < 0) continue;
         const float pathD = (float)here / 10.0f;
         if (!forced && (pathD < 14.0f || pathD > 60.0f)) continue;
@@ -1325,27 +1344,9 @@ void Presence::thinkClump(Agent& a, double dt, const Context& c, std::vector<Eve
 
 
 // --- Ablauf ------------------------------------------------------------------------------------
-void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
-    time_ += dt;
-    if (!c.world || !c.player) return;
+void Presence::regie(double dt, const Context& c, std::vector<Event>& out) {
     const Player& p = *c.player;
-    if (c.mode <= 0 || c.suspended) {
-        bool any = false;
-        for (auto& a : agents_) any = any || !a->showcase;
-        if (any) {
-            std::erase_if(agents_, [](const auto& a) { return !a->showcase && a->state != 10; });  // V11: der Toetende bleibt
-            hive_ = Hive{};
-            pendingSmiler_ = -1.0;
-            if (c.suspended) setGrace(45.0);
-        }
-    }
-    // Wegefeld vom Spieler
-    fieldT_ -= dt;
     const i64 pcx = ifloor(p.x), pcy = ifloor(p.y);
-    if (fieldT_ <= 0.0 || pcx != playerField_.cx() || pcy != playerField_.cy()) {
-        playerField_.build(*c.world, pcx, pcy);
-        fieldT_ = 0.4;
-    }
     // --- Regie ---------------------------------------------------------------------------------
     if (c.mode > 0 && !c.suspended) {
         const bool threat = has(Role::Smiler) || has(Role::Hound);
@@ -1376,6 +1377,10 @@ void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
             }
             else if (!hive_.active && !spawnHive(c, fd > 0.0 ? fd : 0.0) && fd <= 0.0)
                 log::info("Praesenz: erzwungenes Nest nicht moeglich");
+        }
+        if (hiveDoorX_ >= 0 && !hive_.active) {  // V13.2 (Skript): Nest an dieser Tuer
+            const int hx = hiveDoorX_, hy = hiveDoorY_;
+            if (!spawnHive(c, 0.0)) log::warn("Praesenz: kein Nest an der Tuer ({}, {})", hx, hy);
         }
         if (forceEncounter_ && c.canBlackout && c.room && !threat && pendingSmiler_ < 0.0) {  // V11 (Skript)
             out.push_back({Event::Blackout, Role::Smiler, c.view.eye, (float)rng_.uniform(c.blackoutLen0, c.blackoutLen1)});
@@ -1457,17 +1462,210 @@ void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
         }
         std::erase_if(agents_, [&](const auto& a) {
             if (a->role != Role::Clump || a->showcase || a->state != 0) return false;
-            const int here = playerField_.at(ifloor(a->pos.x), ifloor(a->pos.y));
+            const int here = fld().at(ifloor(a->pos.x), ifloor(a->pos.y));
             return here < 0 || here > 900;
         });
     }
-    updateHive(dt, c, out);
+}
+
+void Presence::animate(Agent& a, double dt, const Context& c, std::vector<Event>& out) {
+    if (a.frozen) return;
+    if (a.role == Role::Nest) {  // V13.2: Saecke atmen, der Schleier schwingt, das Gelege zuckt; Licht und Alarm machen es unruhig
+        if (!a.puppet && !a.showcase) {
+            a.light = inBeam(c.view, *c.world, a.pos + vec3{0, 0, 1.4f}, 12.0f) ? 1.0f : 0.0f;
+            a.alert = hive_.alarmed ? 1.0f : 0.0f;
+        }
+        if (hdist(a.pos, c.view.eye) > 30.0f && a.rig.posed()) return;  // weit weg: Pose bleibt
+        anim::CreatureAnimator::Input in;
+        in.pos = a.pos, in.yaw = a.yaw, in.light = a.light, in.alert = a.alert;
+        a.cre.update(dt, in);
+        a.rig.setCreaturePose(a.cre.pose());
+        return;
+    }
+    // Motten am Ruheplatz und weit weg: Pose bleibt (sie sitzen still)
+    if (a.role == Role::Moth && a.state == 0 && a.stateT > 2.0 && !a.showcase) return;
+    const bool audible = a.role == Role::Hound || a.role == Role::Smiler || a.role == Role::Clump;
+    if (a.human) {
+        anim::Animator::Input in;
+        in.pos = a.pos;
+        in.yaw = a.yaw;
+        in.look = a.look;
+        in.lookAt = a.lookAt;
+        a.anim.update(dt, in);
+        a.rig.setPose(a.anim.pose());
+        return;
+    }
+    anim::CreatureAnimator::Input in;
+    in.pos = a.pos;
+    in.yaw = a.yaw;
+    in.look = a.look;
+    in.lookAt = a.lookAt;
+    in.tilt = a.tilt;
+    in.lean = a.lean;
+    in.reach = a.reach;
+    in.reachAt = (a.puppet ? a.lookAt : c.view.eye) - vec3{0, 0, 0.35f};
+    in.jaw = a.jaw;
+    in.alert = a.alert;
+    in.crouch = a.crouch;
+    in.growl = a.growl;
+    in.up = a.up;
+    in.fwd = a.fwd;
+    in.fly = a.fly;
+    in.shiver = a.shiver;
+    in.hang = a.hang;
+    in.bait = a.bait;
+    in.light = a.light, in.perceive = a.perceive, in.perceiveAt = a.perceiveAt;
+    in.lightFrom = a.showcase && a.light > 0.0f && length(a.lightFrom) < 1e-3f ? c.view.eye : a.lightFrom;
+    if (const world::Tile* t = c.world->tileIfLoaded(ifloor(a.pos.x), ifloor(a.pos.y))) in.clearance = t->clearance();
+    a.cre.update(dt, in);
+    a.rig.setCreaturePose(a.cre.pose());
+    if (audible && a.cre.stepped()) out.push_back({Event::Step, a.role, a.cre.stepPos(), a.cre.stepWeight() * (a.cre.running() ? 1.4f : 0.8f)});
+}
+
+void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
+    time_ += dt;
+    if (!c.world || !c.player) return;
+    const Player& p = *c.player;
+    if (c.puppet) {  // V13.2 Koop (Gast): nur nachfuehren und bewegen
+        for (auto& ap : agents_) {
+            Agent& a = *ap;
+            a.age += dt;
+            a.stateT += dt;
+            if (a.puppet) puppetStep(a, c);
+            a.sight = perceive(c.view, *c.world, a.feet(), a.height());
+            if (a.role == Role::Smiler) {
+                const double ph = time_ * 1.35 + 0.4 * std::sin(time_ * 0.31);
+                a.rig.setGlow(a.glow * (0.74f + 0.26f * (float)(0.5 + 0.5 * std::sin(ph))) * (1.0f + 0.5f * a.light));
+            }
+            animate(a, dt, c, out);
+        }
+        return;
+    }
+    if (c.mode <= 0 || c.suspended) {
+        bool any = false;
+        for (auto& a : agents_) any = any || !a->showcase;
+        if (any) {
+            std::erase_if(agents_, [](const auto& a) { return !a->showcase && a->state != 10; });  // V11: der Toetende bleibt
+            hive_ = Hive{};
+            pendingSmiler_ = -1.0;
+            if (c.suspended) setGrace(45.0);
+        }
+    }
+    // Wegefeld vom Spieler
+    fieldT_ -= dt;
+    const i64 pcx = ifloor(p.x), pcy = ifloor(p.y);
+    if (fieldT_ <= 0.0 || pcx != playerField_.cx() || pcy != playerField_.cy()) {
+        playerField_.build(*c.world, pcx, pcy);
+        fieldT_ = 0.4;
+    }
+    // V13.2 Koop: Wegefelder der anderen Spieler (wie das eigene: neu bei jeder Kachel, sonst alle 0,4 s)
+    std::erase_if(otherFields_, [&](const OtherField& f) {
+        if (!c.others) return true;
+        for (const Other& o : *c.others)
+            if (o.id == f.id) return false;
+        return true;
+    });
+    if (c.others)
+        for (const Other& o : *c.others) {
+            OtherField* f = nullptr;
+            for (OtherField& q : otherFields_) f = q.id == o.id ? &q : f;
+            if (!f) f = &otherFields_.emplace_back(), f->id = o.id;
+            f->t -= dt;
+            const i64 ox = ifloor(o.player->x), oy = ifloor(o.player->y);
+            if (f->t <= 0.0 || ox != f->field.cx() || oy != f->field.cy() || !f->field.valid()) {
+                f->field.build(*c.world, ox, oy);
+                f->t = 0.4;
+            }
+        }
+    // Ziele: dieser Spieler (falls er lebt) und die anderen
+    struct Tgt {
+        int id;
+        const Player* p;
+        const Viewer* v;
+        double noise;
+        const NavField* f;
+        const world::Room* room;
+        bool canBlackout;
+    };
+    std::vector<Tgt> tgts;
+    if (c.selfAlive) tgts.push_back({c.selfId, c.player, &c.view, c.noise, &playerField_, c.room, c.canBlackout});
+    if (c.others)
+        for (const Other& o : *c.others) tgts.push_back({o.id, o.player, &o.view, o.noise, &fieldOf(o.id), o.room, o.canBlackout});
+    auto ctxFor = [&](const Tgt& t) {
+        Context x = c;
+        x.player = t.p, x.view = *t.v, x.noise = t.noise, x.room = t.room, x.canBlackout = t.canBlackout;
+        x.others = nullptr;
+        return x;
+    };
+    const bool multi = c.others && !c.others->empty();
+    // --- Regie: reihum um einen der Spieler (alle 30 s ein anderer) ---------------------------
+    if (!tgts.empty()) {
+        focusT_ -= dt;
+        if (focus_ < 0 || focus_ >= (int)tgts.size() || focusT_ <= 0.0) focus_ = multi ? (int)rng_.randint(0, (i64)tgts.size() - 1) : 0, focusT_ = 30.0;
+        const Tgt& F = tgts[(size_t)focus_];
+        curField_ = F.f;
+        const size_t before = agents_.size();
+        if (multi || !c.selfAlive) regie(dt, ctxFor(F), out);
+        else regie(dt, c, out);
+        // niemand erscheint im Blickfeld irgendeines Spielers (das Nest und seine Motten sitzen im Dunkeln hinter Tueren)
+        for (size_t i = before; i < agents_.size();) {
+            Agent& a = *agents_[i];
+            bool visible = false;
+            if (multi && a.role != Role::Nest && a.role != Role::Moth)
+                for (const Tgt& t : tgts) visible = visible || perceive(*t.v, *c.world, a.feet(), a.height()).level > 0.2f;
+            if (visible) {
+                log::info("Praesenz: {} verworfen - ein Mitspieler saehe es erscheinen", roleName(a.role));
+                remove(i);
+            } else {
+                a.target = F.id;
+                ++i;
+            }
+        }
+        curField_ = &playerField_;
+    }
+    for (auto& ap : agents_)
+        if (!ap->netId && !ap->showcase) {
+            ap->netId = nextNetId_++;
+            if (!nextNetId_) nextNetId_ = 1;
+        }
+    // Nest: um den Spieler, der ihm am naechsten ist
+    if (!tgts.empty()) {
+        size_t best = 0;
+        for (size_t i = 1; i < tgts.size(); ++i)
+            if (hdist(tgts[i].v->eye, hive_.nest) < hdist(tgts[best].v->eye, hive_.nest)) best = i;
+        curField_ = tgts[best].f;
+        if (multi || !c.selfAlive) updateHive(dt, ctxFor(tgts[best]), out);
+        else updateHive(dt, c, out);
+        curField_ = &playerField_;
+    }
     // --- Entities ------------------------------------------------------------------------------
     for (auto& ap : agents_) {
         Agent& a = *ap;
         a.age += dt;
         const float H = a.height();
-        a.sight = perceive(c.view, *c.world, a.feet(), H);
+        // Ziel: der naechste lebende Spieler (bleibt beim bisherigen, solange es nicht deutlich naehere gibt)
+        const Tgt* T = nullptr;
+        if (!tgts.empty()) {
+            const Tgt* best = &tgts[0];
+            const Tgt* cur = nullptr;
+            for (const Tgt& t : tgts) {
+                if (hdist(t.v->eye, a.pos) < hdist(best->v->eye, a.pos)) best = &t;
+                if (t.id == a.target) cur = &t;
+            }
+            T = cur && hdist(cur->v->eye, a.pos) < hdist(best->v->eye, a.pos) * 1.25f + 0.5f ? cur : best;
+        }
+        if (!T) {  // niemand lebt: die Wesen halten inne
+            animate(a, dt, c, out);
+            continue;
+        }
+        a.target = T->id;
+        const Context ct = multi || !c.selfAlive ? ctxFor(*T) : c;
+        curField_ = T->f;
+        a.sight = perceive(ct.view, *c.world, a.feet(), H);
+        // gesehen: vom Ziel; die Gestalt erstarrt, sobald irgendein Spieler sie sieht
+        bool seenAny = false;
+        if (multi)
+            for (const Tgt& t : tgts) seenAny = seenAny || (t.v == T->v ? a.sight.level : perceive(*t.v, *c.world, a.feet(), H).level) > 0.25f;
         const bool seen = a.role == Role::Smiler ? a.contact : a.sight.level > 0.25f;
         if (seen) {
             a.seenT += dt;
@@ -1476,69 +1674,31 @@ void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
                 (a.role == Role::Smiler || a.sight.level > 0.35f)) {
                 a.sighted = true;
                 ++encounters;
-                out.push_back({Event::FirstSight, a.role, a.pos + vec3{0, 0, H * 0.9f}});
+                out.push_back({Event::FirstSight, a.role, a.pos + vec3{0, 0, H * 0.9f}, 1.0f, T->id});
             }
             a.wasSeen = true;
         } else {
             a.unseenT += dt;
             a.seenT = 0.0;
         }
-        think(a, dt, c, out);
+        const size_t e0 = out.size();
+        think(a, dt, ct, out);
+        for (size_t i = e0; i < out.size(); ++i) out[i].target = T->id;
+        curField_ = &playerField_;
         // V11: das Leuchten pulsiert wie Atem (langsam, nicht ganz gleichmaessig)
         if (a.role == Role::Smiler) {
             const double ph = time_ * 1.35 + 0.4 * std::sin(time_ * 0.31);
             // V13.2: im Lichtkegel werfen die Augen das Licht zurueck (Entity-3-Seite: "reflect light") - heller
             a.rig.setGlow(a.glow * (0.74f + 0.26f * (float)(0.5 + 0.5 * std::sin(ph))) * (1.0f + 0.5f * a.light));
         }
-        // die Gestalt veraendert sich nicht, solange man sie sieht
-        a.frozen = a.role == Role::Gestalt && seen && !a.showcase;  // V13.2: die Vorfuehrung bewegt sich (Bildfolgen)
+        // die Gestalt veraendert sich nicht, solange man sie sieht (V13.2 Koop: irgendein Spieler)
+        a.frozen = a.role == Role::Gestalt && (seen || seenAny) && !a.showcase;  // V13.2: die Vorfuehrung bewegt sich (Bildfolgen)
         if (a.showcase && a.walkShow) {  // Vorfuehrung: im Kreis (3 m Radius)
             const float speed = (float)a.speed, w = speed / 3.0f;
             a.yaw += (float)dt * w;
             a.pos += vec3{std::cos(a.yaw), std::sin(a.yaw), 0.0f} * (float)(dt * speed);
         }
-        if (a.frozen || a.role == Role::Nest) {
-            if (a.role == Role::Nest && !a.rig.posed()) a.rig.setCreaturePose(a.cre.pose());
-            continue;
-        }
-        // Motten am Ruheplatz und weit weg: Pose bleibt (sie sitzen still)
-        if (a.role == Role::Moth && a.state == 0 && a.stateT > 2.0 && !a.showcase) continue;
-        const bool audible = a.role == Role::Hound || a.role == Role::Smiler || a.role == Role::Clump;
-        if (a.human) {
-            anim::Animator::Input in;
-            in.pos = a.pos;
-            in.yaw = a.yaw;
-            in.look = a.look;
-            in.lookAt = a.lookAt;
-            a.anim.update(dt, in);
-            a.rig.setPose(a.anim.pose());
-            continue;
-        }
-        anim::CreatureAnimator::Input in;
-        in.pos = a.pos;
-        in.yaw = a.yaw;
-        in.look = a.look;
-        in.lookAt = a.lookAt;
-        in.tilt = a.tilt;
-        in.lean = a.lean;
-        in.reach = a.reach;
-        in.reachAt = c.view.eye - vec3{0, 0, 0.35f};
-        in.jaw = a.jaw;
-        in.alert = a.alert;
-        in.crouch = a.crouch;
-        in.growl = a.growl;
-        in.up = a.up;
-        in.fwd = a.fwd;
-        in.fly = a.fly;
-        in.shiver = a.shiver;
-        in.hang = a.hang;
-        in.bait = a.bait;
-        in.light = a.light, in.perceive = a.perceive, in.perceiveAt = a.perceiveAt;
-        in.lightFrom = a.showcase && a.light > 0.0f && length(a.lightFrom) < 1e-3f ? c.view.eye : a.lightFrom;
-        if (const world::Tile* t = c.world->tileIfLoaded(ifloor(a.pos.x), ifloor(a.pos.y))) in.clearance = t->clearance();
-        a.cre.update(dt, in);
-        a.rig.setCreaturePose(a.cre.pose());
-        if (audible && a.cre.stepped()) out.push_back({Event::Step, a.role, a.cre.stepPos(), a.cre.stepWeight() * (a.cre.running() ? 1.4f : 0.8f)});
+        animate(a, dt, ct, out);
     }
     // Abgaenge
     for (size_t i = 0; i < agents_.size();) {
@@ -1554,8 +1714,129 @@ void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
     }
 }
 
+// --- V13.2 Koop -----------------------------------------------------------------------------------
+const NavField& Presence::fieldOf(int id) const {
+    for (const OtherField& f : otherFields_)
+        if (f.id == id) return f.field;
+    return playerField_;
+}
+
+void Presence::netStates(std::vector<NetState>& out, vec3 near, size_t max) const {
+    std::vector<const Agent*> list;
+    for (const auto& a : agents_)
+        if (!a->showcase && a->netId) list.push_back(a.get());
+    std::sort(list.begin(), list.end(), [&](const Agent* a, const Agent* b) { return length(a->pos - near) < length(b->pos - near); });
+    if (list.size() > max) list.resize(max);
+    for (const Agent* a : list) {
+        NetState n;
+        n.netId = a->netId;
+        n.role = (int)a->role;
+        n.pos = a->pos;
+        n.yaw = a->yaw;
+        n.state = std::clamp(a->state, 0, 15);
+        n.target = a->target;
+        n.look = a->look;
+        n.lit = a->light > 0.5f;
+        n.frozen = a->frozen;
+        n.jaw = a->jaw, n.alert = a->alert, n.crouch = a->crouch, n.growl = a->growl, n.reach = a->reach, n.fly = a->fly;
+        n.shiver = a->shiver, n.hang = a->hang, n.bait = a->bait, n.light = a->light, n.perceive = a->perceive, n.glow = a->glow;
+        n.tilt = a->tilt, n.lean = a->lean;
+        n.up = a->up, n.fwd = length(a->fwd) > 0.1f ? a->fwd : dirYaw(a->yaw);
+        out.push_back(n);
+    }
+}
+
+void Presence::netApply(const std::vector<NetState>& in, double stamp) {
+    // fort, was der Host nicht mehr meldet (ausser Vorfuehrungen)
+    std::erase_if(agents_, [&](const auto& a) {
+        if (!a->puppet) return false;
+        for (const NetState& n : in)
+            if (n.netId == a->netId) return false;
+        return true;
+    });
+    for (const NetState& n : in) {
+        Agent* a = nullptr;
+        for (auto& q : agents_)
+            if (q->puppet && q->netId == n.netId) a = q.get();
+        const Role role = (Role)std::clamp(n.role, 0, 5);
+        if (a && a->role != role) {  // Kennung neu vergeben: neu anlegen
+            std::erase_if(agents_, [&](const auto& q) { return q.get() == a; });
+            a = nullptr;
+        }
+        if (!a) {
+            auto na = std::make_unique<Agent>();
+            na->role = role;
+            na->ent = role == Role::Hound     ? Entity::Hound
+                      : role == Role::Moth    ? Entity::Moth
+                      : role == Role::Gestalt ? Entity::Gestalt
+                      : role == Role::Nest    ? Entity::Nest
+                      : role == Role::Clump   ? Entity::Clump
+                                              : Entity::Smiler;
+            na->puppet = true;
+            na->netId = n.netId;
+            na->noShadow = role == Role::Nest || role == Role::Moth || role == Role::Gestalt || role == Role::Clump;
+            na->up = n.up, na->fwd = n.fwd;
+            na->initBody(n.pos, n.yaw, 0x9E37u + n.netId);
+            if (role == Role::Moth) {  // gleich fertig an Wand oder Decke (wie beim Host)
+                anim::CreatureAnimator::Input ci;
+                ci.pos = n.pos, ci.yaw = n.yaw, ci.up = n.up, ci.fwd = n.fwd;
+                for (int it = 0; it < 30; ++it) na->cre.update(0.1, ci);
+                na->rig.setCreaturePose(na->cre.pose());
+            }
+            a = na.get();
+            agents_.push_back(std::move(na));
+        }
+        // Probe merken (aelteste faellt heraus)
+        if (a->nSamples == (int)a->samples.size()) {
+            for (size_t i = 1; i < a->samples.size(); ++i) a->samples[i - 1] = a->samples[i];
+            --a->nSamples;
+        }
+        a->samples[(size_t)a->nSamples++] = {stamp, n.pos, n.yaw};
+        if (n.state != a->state) a->stateT = 0.0;
+        a->state = n.state;
+        a->target = n.target;
+        a->look = n.look;
+        a->netLit = n.lit;
+        a->frozen = n.frozen;
+        a->jaw = n.jaw, a->alert = n.alert, a->crouch = n.crouch, a->growl = n.growl, a->reach = n.reach, a->fly = n.fly;
+        a->shiver = n.shiver, a->hang = n.hang, a->bait = n.bait, a->light = n.light, a->perceive = n.perceive, a->glow = n.glow;
+        a->tilt = n.tilt, a->lean = n.lean;
+        a->up = n.up, a->fwd = n.fwd;
+        if (a->role == Role::Hound) a->rig.setGlow(1.0f);
+    }
+}
+
+// Puppe: 100 ms in der Vergangenheit zwischen zwei Proben des Hosts; Blick und Licht zum Spieler, auf den sie sich richtet
+void Presence::puppetStep(Agent& a, const Context& c) {
+    if (a.nSamples > 0) {
+        const double t = time_ - 0.1;
+        const Agent::Sample* s0 = &a.samples[0];
+        const Agent::Sample* s1 = s0;
+        for (int i = 0; i < a.nSamples; ++i) {
+            if (a.samples[(size_t)i].t <= t) s0 = &a.samples[(size_t)i];
+            if (a.samples[(size_t)i].t >= t) {
+                s1 = &a.samples[(size_t)i];
+                break;
+            }
+            s1 = &a.samples[(size_t)i];
+        }
+        const double span = s1->t - s0->t;
+        const float k = span > 1e-4 ? (float)std::clamp((t - s0->t) / span, 0.0, 1.0) : 1.0f;
+        a.pos = s0->p + (s1->p - s0->p) * k;
+        a.yaw = s0->yaw + wrapA(s1->yaw - s0->yaw) * k;
+    }
+    // wohin es sieht: das Auge des Ziels (dieser Rechner oder ein Mitspieler)
+    vec3 eye = c.view.eye, flash = c.view.flashPos;
+    if (a.target != c.selfId && c.others)
+        for (const Other& o : *c.others)
+            if (o.id == a.target) eye = o.view.eye, flash = o.view.flashOn ? o.view.flashPos : o.view.eye;
+    a.lookAt = eye;
+    a.perceiveAt = eye;
+    a.lightFrom = flash;
+}
+
 void Presence::collect(std::vector<VisibleMesh>& out, std::vector<mat4>& palette, vec3 eye, int detail) {
-    for (auto& a : agents_) a->rig.collect(out, palette, eye, detail, !(a->frozen || a->role == Role::Nest), false, false, a->material);
+    for (auto& a : agents_) a->rig.collect(out, palette, eye, detail, !a->frozen, false, false, a->material);
 }
 
 void Presence::shadows(std::vector<ShadowCaster>& out) const {

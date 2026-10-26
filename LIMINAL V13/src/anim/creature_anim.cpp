@@ -185,7 +185,7 @@ void CreatureAnimator::update(double dtIn, const Input& in) {
         }
         case Entity::Gestalt: updateGestalt(dt, in); break;
         case Entity::Clump: updateClump(dt, in); break;
-        default: updateNest(); break;
+        default: updateNest(dt, in); break;
     }
     last_ = in;
     chainInit_ = true;
@@ -1055,11 +1055,49 @@ void CreatureAnimator::updateGestalt(float dt, const Input& in) {
 }
 
 // --- Nest ------------------------------------------------------------------------------------
-void CreatureAnimator::updateNest() {
+// V13.2: das Nest lebt - die Saecke heben und senken sich wie Atem (je eigene Phase), die Haut ueber der Oeffnung
+// schwingt an ihrer Angel und woelbt sich mit dem Atem, die Wucherung im Flur pulsiert, das Gelege zuckt. Im Licht
+// und wenn der Schwarm unruhig ist (alert) atmet es schneller und tiefer.
+void CreatureAnimator::updateNest(float dt, const Input& in) {
+    using namespace ns;
     const auto& B = sk_->bind;
+    auto& J = pose_.j;
     const vec3 F = dirYaw(yaw_), Lw{-F.y, F.x, 0.0f}, U{0, 0, 1};
     const M3 Mb{F, Lw, U};
-    for (size_t k = 0; k < B.size(); ++k) pose_.j[k] = pos_ + Mb * B[k];
+    spring(light_, lightV_, in.light, 1.5f, dt);
+    spring(perc_, percV_, in.alert, 1.0f, dt);
+    const float agit = std::clamp(std::max(light_, perc_), 0.0f, 1.0f);
+    swayPh_ += dt * (1.3f + 1.6f * agit);  // Atemphase (~4,8 s, unruhig ~2,1 s)
+    const float amp = 0.012f + 0.016f * agit;
+    for (size_t k = 0; k < B.size(); ++k) J[k] = pos_ + Mb * B[k];
+    // Saecke: entlang ihrer Achse nach aussen und zurueck
+    for (int s = 0; s < 4; ++s) {
+        const int a = SAC0_A + 2 * s, b = a + 1;
+        const vec3 ax = normalize(B[b] - B[a]);
+        const float br = std::sin(swayPh_ + 1.7f * (float)s) * (s == 3 ? 0.7f : 1.0f);
+        const vec3 off = Mb * (ax * (amp * br));
+        J[a] = J[a] + off, J[b] = J[b] + off;
+    }
+    // Haut: schwingt an der Angel (um die Querachse), woelbt sich mit dem Atem zum Flur
+    {
+        const float swing = 0.035f * std::sin(time_ * 0.8f) + 0.02f * std::sin(time_ * 1.9f + 1.0f) + 0.05f * agit * std::sin(time_ * 3.1f);
+        const vec3 d = B[MEMB_B] - B[MEMB_T];
+        const vec3 r{d.x * std::cos(swing) - d.z * std::sin(swing), d.y, d.x * std::sin(swing) + d.z * std::cos(swing)};
+        J[MEMB_B] = J[MEMB_T] + Mb * (r + vec3{-amp * 0.8f * std::sin(swayPh_ + 0.6f), 0, 0});
+    }
+    // Wucherung im Flur: pulsiert leicht
+    {
+        const vec3 off = Mb * vec3{-0.006f * (1.0f + agit) * std::sin(swayPh_ * 1.3f + 2.0f), 0, 0};
+        J[LIP_A] = J[LIP_A] + off, J[LIP_B] = J[LIP_B] + off;
+    }
+    // Gelege: zuckt ab und zu (Larven regen sich)
+    {
+        twitchT_ -= dt;
+        if (twitchT_ <= 0.0f) twitchT_ = 1.5f + 3.0f * rnd(), sniffV_ = 1.0f;
+        sniffV_ = std::max(0.0f, sniffV_ - dt * 3.0f);
+        const vec3 off = Mb * vec3{0.0f, 0.004f * sniffV_ * std::sin(time_ * 40.0f), 0.003f * sniffV_ * std::sin(time_ * 33.0f)};
+        J[EGG_A] = J[EGG_A] + off, J[EGG_B] = J[EGG_B] + off;
+    }
     for (size_t b = 0; b < sk_->bones.size(); ++b) pose_.up[b] = Mb * sk_->bindUp[b];
     pose_.up[ns::B_ROOT] = F;
 }

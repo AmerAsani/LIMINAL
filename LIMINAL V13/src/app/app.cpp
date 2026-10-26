@@ -309,6 +309,9 @@ void App::scriptStep() {
             vec3 at{(float)(pl.x + std::cos(pl.angle) * dist), (float)(pl.y + std::sin(pl.angle) * dist), 0.0f};
             at.z = session_->world().tile(ifloor(at.x), ifloor(at.y)).floor;
             session_->presence().showcase(kind, at, (float)(pl.angle + kPi + turn), (float)(walk > 0.0 && walk < 1.01 ? 1.2 : walk));
+        } else if (cmd == "hiveat" && session_) {  // V13.2 (Tests): hiveat <x> <y> - Mottennest an dieser Tuerkachel
+            int hx = -1, hy = -1;
+            if (std::sscanf(arg.c_str(), "%d %d", &hx, &hy) == 2) session_->presence().forceHiveAt(hx, hy);
         } else if (cmd == "figstate" && session_) {  // V13.2 (Tests): figstate <feld> <wert> - Eingabe der Vorfuehrung
             char key[32] = {};
             float val = 0.0f;

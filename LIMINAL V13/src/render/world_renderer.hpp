@@ -38,6 +38,8 @@ enum FixedMaterial : u32 {
     FM_ENT_DARKSKIN,             // V13: dunkle, feuchte Haut (Kopf des Smilers)
     FM_ENT_SILHOUETTE,           // V13: Gestalt - Rauchrand ohne das Ausduennen um das Smiler-Gesicht
     FM_ENT_RESIN,                // V13: Nest - nasses, bernsteinfarbenes Harz (Tropfen, Faeden)
+    FM_ENT_NESTFLESH,            // V13.2: Nest - nasse, dunkel rotbraune Wucherung (statt des rosa Kerns des Buendels)
+    FM_ENT_NESTEGG,              // V13.2: Nest - Eier, matt cremegelb (nicht das glaenzende Weiss der Zaehne)
     FM_FIG_END,
 };
 static_assert(FM_FIG_END <= kFixedMaterials);

@@ -48,7 +48,8 @@ PREVIEW_RGB = {'ent_skin': (0.55, 0.47, 0.40), 'ent_hair': (0.03, 0.03, 0.03), '
                'ent_motheye': (0.05, 0.05, 0.05), 'ent_nest': (0.45, 0.25, 0.15), 'ent_horn': (0.4, 0.35, 0.3),
                'clump_a': (0.75, 0.58, 0.50), 'clump_b': (0.55, 0.40, 0.32), 'clump_c': (0.36, 0.25, 0.20),
                'clump_core': (0.55, 0.35, 0.40), 'ent_darkskin': (0.06, 0.05, 0.05),
-               'ent_silhouette': (0.03, 0.03, 0.03), 'ent_resin': (0.7, 0.42, 0.12)}
+               'ent_silhouette': (0.03, 0.03, 0.03), 'ent_resin': (0.7, 0.42, 0.12), 'ent_nestflesh': (0.30, 0.13, 0.10),
+               'ent_nestegg': (0.70, 0.62, 0.42)}
 
 
 def build_group(g, nb):
@@ -236,12 +237,15 @@ def main():
         lw[k] = max(lw.get(k, 0.0), g.get('lod_weight', 1.0))
     tri_of = lambda o: sum(len(p.vertices) - 2 for p in o.data.polygons) * lw.get(o.name, 1.0)
     total = sum(tri_of(o) for o in objs)
+    # V13.2: jede Stufe aus der vorigen (vorher jede aus dem vollen Netz - beim Nest ueber 4 Mio. Dreiecke je Stufe)
+    prev_copies = None
     for lod, budget in enumerate(mod.LODS):
         copies = []
         tri = 0
-        for o in objs:
-            c = o.copy()
-            c.data = o.data.copy()
+        for i, o in enumerate(objs):
+            src = prev_copies[i] if prev_copies else o
+            c = src.copy()
+            c.data = src.data.copy()
             bpy.context.scene.collection.objects.link(c)
             share = tri_of(o) / total
             tri += decimate(c, max(64, int(budget * share)))
@@ -250,8 +254,12 @@ def main():
         path = os.path.join(OUT, f'{model}_l{lod}.glb')
         export(path, copies + [arm])
         log(f'{model}_l{lod}: {tri} Dreiecke -> {path}')
-        for c in copies:
-            bpy.data.objects.remove(c, do_unlink=True)
+        if prev_copies:
+            for c in prev_copies:
+                bpy.data.objects.remove(c, do_unlink=True)
+        prev_copies = copies
+    for c in prev_copies or []:
+        bpy.data.objects.remove(c, do_unlink=True)
 
 
 if __name__ == '__main__':

@@ -81,7 +81,7 @@ private:
     void updateHound(float dt, const Input& in);
     void updateMoth(float dt, const Input& in);
     void updateGestalt(float dt, const Input& in);
-    void updateNest();
+    void updateNest(float dt, const Input& in);  // V13.2: atmet, Haut schwingt, Gelege zuckt
     void updateClump(float dt, const Input& in);  // V11
     // Gangzyklus fuer n Beine; rest: Ruhepunkte (Welt) dieses Bildes
     void stepLegs(float dt, int n, const float* offs, float duty, float S, const vec3* rest, float standDur, const float* weight);

@@ -98,3 +98,27 @@ Bilder: `docs/screens/creatures/moth/` und `docs/screens/creatures/nest/` (vorhe
 
 **Bleibt offen:** Die Schichtung der Pfosten bleibt deutlich gleichmäßiger als gewachsene Masse. In der Ebene (an einer Tür zwischen Wänden) fällt das weniger auf als frei stehend in der Vorführung.
 
+
+### Nest – Neuentwurf V13.2 (DECISIONS E-026, E-029)
+
+Grundlage ist die Entity-4-Seite (Revision 6): Nester in vorhandener Architektur, Schichten aus verdautem Material, Pflanzenfasern und Harz, Säulen aus Resten, Eier in Säulen, Larven in den Wänden, Knochen rund um den Stock, „fleischige Wucherungen über Türen“ als Warnzeichen. Aufbau (`tools/blender/creatures/nest.py`):
+- **Flur:** Wucherung quillt aus der oberen Ecke über den Sturz, läuft zur anderen Seite dünner aus. Flache Abläufe an den Pfosten, gewundene Adern auf der Wand, ein unregelmäßiger Krustenrand am Rahmen.
+- **Laibung:** zusammenhängende Kruste, oben dicker. Eier in zwei versetzten Reihen halb in der Kruste, Harztropfen vom Sturz.
+- **Schleier:** zerrissene Lage aus Fasern und Harz über der Öffnung, mit einem Einriss von unten. Darunter hängen Fäden mit Harzperlen zwischen den Seiten durch, einige gerissen.
+- **Zimmer:** Kragen aus Lagen bis 0,9 m tief, oben fleischig mit atmenden Säcken. Zwei Säulen aus Resten mit herausragenden Knochen und Metall, Puppen in der Masse, Knochen vor der Tür.
+- **Knochen und Animation:** neun Knochen (`ns` in `anim/creature.hpp`). Säcke atmen, der Schleier schwingt an der Angel, die Wucherung pulsiert, das Gelege zuckt; im Lampenlicht und bei Alarm schneller (`CreatureAnimator::updateNest`).
+
+Bilder: `docs/screens/nest/` (vorher `v0_nest_sheet.jpg`; je Runde `nN_nest_sheet.jpg` mit festen Kameras nah, mittel, fern, schräg, innen dunkel, jeweils mit und ohne Lampe; Ausschnitte `nN_ml_crop` = Flur mit Lampe, `nN_il_crop` = Zimmer mit Lampe).
+
+| Runde | Befund | Änderung |
+|---|---|---|
+| 0 (vorher, V13) | Vom Flur ohne Lampe unsichtbar, die Wucherung sitzt nur im Zimmer; rosa Kern, Bläschen | Neuentwurf nach Entity 4 |
+| 1 | Vom Flur zu sehen. Rosa Wolke über dem Sturz, spitze Kegel wie Zähne (Maul), gekachelte Haut, rosa gestreifter Kragen | eigenes Material `ent_nestflesh`, erdige Textur, stumpfe Lappen, glatte Haut |
+| 2 | Erdiger, keine Wolke mehr. Zahnreihe am unteren Hautrand (von innen ein Gebiss), Haut überstrahlt im Licht, Wucherung als symmetrische Schokoladenwolke, Abläufe als Kartoffelkette, Eier als freie Perlenschnüre | Haut durch Schleier aus Fasern ersetzt, Wulst asymmetrisch, Abläufe als flache Ströme, Eier in die Kruste, Adern flach und gewunden |
+| 3 | Flur ohne Zähne, Fäden sichtbar. Von innen hängende Lappen wie Reißzähne, zwei Löcher im Schleier wie Augen, Laibungskruste ragt als Würste in den Flur, Krustenflecken wie Scheiben, Wulst wie ein Arm | eine Falte statt Lappen, nur ein Einriss, Kruste bleibt in der Laibung, Krustenrand am Rahmen, Textur des Nests auch für die Wucherung |
+| 4 | Keine Zähne, kein Gesicht, Eier eingebettet. Von innen eine glatte Rolle wie eine Lippe, unter dem Sturz zwei helle Brotwülste, Wucherung glänzt | Falte in zwei versetzte, ungleiche Lagen; Wülste kleiner und eingebunden; matter |
+| 5 | Unregelmäßige Kanten, keine Lippe, keine Wülste. Fäden mit Harzperlen und Gelege lesen sich als Nest. Abgenommen. | – |
+
+**Bleibt offen:**
+- Die Wucherung im Flur bleibt eine glatte, schwere Masse; eine feinere Schichtung bräuchte mehr Dreiecke, als die Detailstufe 0 (46 000) hergibt.
+- Die Fernansicht (`fern`) zeigt das Nest nicht. Es liegt dort außerhalb des Bildes; die Schrägansicht aus etwa 5 m ersetzt sie.

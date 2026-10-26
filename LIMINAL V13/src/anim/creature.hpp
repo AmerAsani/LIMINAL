@@ -213,8 +213,12 @@ vec3 shoulder(int a);  // Schulter in der Ruhepose (Modellraum)
 // Nest: starr. Ortsrahmen: Ursprung in der Tuermitte am Boden, auf der Wandflaeche des Raums mit
 // dem Nest; x zeigt in diesen Raum, y entlang der Wand. Die Oeffnung ist 1 m breit.
 namespace ns {
-enum J : std::uint8_t { ROOT, TOP, JCOUNT };
-enum B : std::uint8_t { B_ROOT, B_BODY, BCOUNT };
+// V13.2: Neuentwurf (tools/blender/creatures/nest.py) - Haut an der Angel am Sturz, Wucherung im Flur, vier atmende
+// Saecke, Gelege. Je Knochen zwei Gelenke (a -> b); die Saecke zeigen mit b nach aussen.
+enum J : std::uint8_t {
+    ROOT, TOP, MEMB_T, MEMB_B, LIP_A, LIP_B, SAC0_A, SAC0_B, SAC1_A, SAC1_B, SAC2_A, SAC2_B, SAC3_A, SAC3_B, EGG_A, EGG_B, JCOUNT
+};
+enum B : std::uint8_t { B_ROOT, B_BODY, B_MEMB, B_LIP, B_SAC0, B_SAC1, B_SAC2, B_SAC3, B_EGGS, BCOUNT };
 constexpr float kOpenW = 1.0f;
 }  // namespace ns
 

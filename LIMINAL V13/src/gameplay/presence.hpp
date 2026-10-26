@@ -77,6 +77,17 @@ public:
         Role role = Role::Smiler;
         vec3 pos;
         float strength = 1.0f;
+        int target = 0;  // V13.2 Koop: Spieler, den es betrifft (Context::selfId: dieser Rechner)
+    };
+
+    // V13.2 Koop: ein weiterer Spieler (Host: vom Host bewegte Figur eines Gasts; Gast: Mitspieler fuer Blick und Licht)
+    struct Other {
+        int id = 0;  // 0..3
+        const Player* player = nullptr;
+        Viewer view;
+        double noise = 0.0;
+        const world::Room* room = nullptr;
+        bool canBlackout = false;
     };
 
     struct Context {
@@ -103,7 +114,34 @@ public:
         const std::vector<vec3>* lairs = nullptr;
         // V11: Abstand und Dauer der Stromausfaelle (Level-JSON "audio.blackout")
         double blackoutEvery0 = 200.0, blackoutEvery1 = 340.0, blackoutLen0 = 20.0, blackoutLen1 = 32.0;
+        // V13.2 Koop (Host): weitere Spieler. Jedes Wesen richtet sich nach dem naechsten lebenden Spieler (dessen
+        // Sicht, Laerm und Weg); die Regie verteilt Auftritte reihum; niemand erscheint im Blickfeld irgendeines
+        // Spielers. selfId/selfAlive: der Spieler dieses Rechners (tot: nur die anderen sind Ziel)
+        const std::vector<Other>* others = nullptr;
+        int selfId = 0;
+        bool selfAlive = true;
+        // V13.2 Koop (Gast): keine KI - die Wesen kommen vom Host (netApply), hier nur ihre Bewegung
+        bool puppet = false;
     };
+
+    // V13.2 Koop: Zustand eines Wesens fuer die Momentaufnahme (Host) und die Puppe beim Gast
+    struct NetState {
+        u16 netId = 0;
+        int role = 0;
+        vec3 pos;
+        float yaw = 0.0f;
+        int state = 0;
+        int target = -1;
+        bool look = false, lit = false, frozen = false;
+        float jaw = 0, alert = 0, crouch = 0, growl = 0, reach = 0, fly = 0, shiver = 0, hang = 0, bait = 0, light = 0, perceive = 0, glow = 0;
+        float tilt = 0, lean = 0;
+        vec3 up{0, 0, 1}, fwd{1, 0, 0};
+    };
+    // Host: die Wesen, nach Abstand zu near sortiert, hoechstens max (ohne Vorfuehrungen)
+    void netStates(std::vector<NetState>& out, vec3 near, size_t max) const;
+    // Gast: Puppen anlegen, nachfuehren (Zeitstempel auf der Uhr dieser Praesenz, netTime) und entfernen
+    void netApply(const std::vector<NetState>& in, double stamp);
+    double netTime() const { return time_; }
 
     Presence();
     ~Presence();
@@ -124,6 +162,7 @@ public:
     vec3 posOf(Role r) const;
     float distOf(Role r) const;
     bool seenRole(Role r) const;
+    bool seenRoleBy(Role r, int target) const;  // V13.2 Koop: von diesem Spieler gesehen (er ist das Ziel)
     int stateOf(Role r) const;      // Zustand der ersten Entity dieser Rolle (Tests)
     int stageOf(Role r) const;      // V11: Stufe (Smiler: 1 ruhig, 2 Ankuendigung, 3 Zugriff) - Tests
     bool killerHead(vec3& out) const;  // V11: Kopf der Entity, die gerade toetet (Kamera des Schrecks)
@@ -135,6 +174,8 @@ public:
     // Tests und Skripte: Entity erscheinen lassen (dist > 0: etwa so weit entfernt), unabhaengig vom Bereich
     void force(Role r, double dist = 0.0);
     void forceBlackout() { forceBlackout_ = true; }
+    // V13.2 (Skript, Bilder): das Nest genau an dieser Tuer (Kachel x, y) - ohne Abstands- und Sichtpruefung
+    void forceHiveAt(int x, int y) { hiveDoorX_ = x, hiveDoorY_ = y; }
     // V11 (Skript): die Begegnung von Level 1 - Stromausfall als Welle, danach im Dunkeln das Laecheln
     void forceEncounter() { forceEncounter_ = true; }
     // Vorfuehrung: Entity steht an pos (walkSpeed > 0: geht/fliegt mit diesem Tempo im Kreis).
@@ -157,6 +198,22 @@ private:
         bool hasTarget = false;
         NavField home;  // Weg zurueck in das Zimmer hinter dem Nest
     };
+    // V13.2 Koop
+    void regie(double dt, const Context& c, std::vector<Event>& out);
+    void animate(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    void puppetStep(Agent& a, const Context& c);
+    const NavField& fld() const { return *curField_; }
+    const NavField* curField_ = &playerField_;
+    struct OtherField {
+        int id = 0;
+        NavField field;
+        double t = 0.0;
+    };
+    std::vector<OtherField> otherFields_;
+    const NavField& fieldOf(int id) const;
+    int focus_ = -1;
+    double focusT_ = 0.0;
+    u16 nextNetId_ = 1;
     void spawnSmiler(const Context& c, std::vector<Event>& out, double dist, bool blackout);
     void spawnHound(const Context& c, std::vector<Event>& out, double dist);
     bool spawnHive(const Context& c, double dist);
@@ -190,6 +247,7 @@ private:
     int threatsSeen_ = 0, gestaltRepeat_ = 0;
     int forced_ = -1;              // erzwungene Rolle (Tests, Skripte)
     bool forceBlackout_ = false, forceEncounter_ = false;
+    int hiveDoorX_ = -1, hiveDoorY_ = -1;  // V13.2
     double forcedDist_ = 0.0;
     Hive hive_;
 };

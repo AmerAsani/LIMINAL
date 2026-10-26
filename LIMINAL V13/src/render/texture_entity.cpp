@@ -267,18 +267,21 @@ Tex nest(float u, float v) {
     const float wu = u + 0.03f * N(u, v, 6, 6, 103), wv = v + 0.03f * N(u, v, 6, 6, 104);
     const float vein = std::min(1.0f, std::pow(1.0f - std::fabs(N(wu, wv, 12, 12, 105)), 10.0f) +
                                           0.6f * std::pow(1.0f - std::fabs(N(wu, wv, 30, 30, 106)), 14.0f));
-    const float resin = sm(-0.05f, 0.3f, fbm(u, v, 5, 5, 4, 107) + 0.2f * N(u, v, 24, 24, 108));
+    const float resin = sm(0.2f, 0.45f, fbm(u, v, 5, 5, 4, 107) + 0.2f * N(u, v, 24, 24, 108));  // Runde 3: seltener
     const Cell fb = worley(u, v, 60, 109);
     const float bits = (r01(fb.id) > 0.72f ? 1.0f : 0.0f) * (1.0f - sm(0.08f, 0.3f, fb.d1)) * (0.6f + 0.4f * N(u, v, 400, 400, 110));
-    // Fleisch: blass graurosa bis dunkel blutrot, darin violette Adern; Harz in Lachen (dunkles Bernstein)
-    C3 col = mixc({0.46f, 0.31f, 0.31f}, {0.27f, 0.13f, 0.14f}, sm(-0.4f, 0.5f, flesh));
-    col = mixc(col, {0.40f, 0.36f, 0.35f}, sm(0.35f, 0.7f, macro * 0.5f + 0.5f) * 0.35f);
-    col = mixc(col, {0.2f, 0.08f, 0.12f}, vein * 0.45f);
-    col = mixc(col, {0.33f, 0.19f, 0.06f}, resin * 0.55f);  // Harz: dunkles Bernstein
-    col = mixc(col, {0.45f, 0.42f, 0.36f}, bits * 0.5f);
+    // V13.2 (Entity 4: verdautes Material, Pflanzenfasern, Harz): erdig - Braun bis dunkles Umbra, graue Flecken,
+    // helle Faserstraehnen, wenige dunkelrote Adern, Harz in glaenzenden Bernsteinlachen, helle Knochensplitter
+    const float fiber = std::pow(std::max(0.0f, N(wu, wv, 90, 7, 111)), 3.0f) * sm(-0.2f, 0.4f, fbm(u, v, 6, 6, 3, 112));
+    C3 col = mixc({0.33f, 0.26f, 0.19f}, {0.15f, 0.11f, 0.08f}, sm(-0.4f, 0.5f, flesh));
+    col = mixc(col, {0.31f, 0.27f, 0.21f}, sm(0.35f, 0.7f, macro * 0.5f + 0.5f) * 0.25f);
+    col = mixc(col, {0.46f, 0.39f, 0.27f}, fiber * 0.55f);
+    col = mixc(col, {0.22f, 0.07f, 0.06f}, vein * 0.35f);
+    col = mixc(col, {0.32f, 0.17f, 0.05f}, resin * 0.6f);  // Harz: dunkler Bernstein
+    col = mixc(col, {0.56f, 0.51f, 0.42f}, bits * 0.55f);
     col = mulc(col, 0.85f + 0.25f * (macro * 0.5f + 0.5f));
-    const float h = 0.0006f * flesh + 0.0002f * vein - 0.0002f * resin + 0.0002f * bits;
-    return make(col, h, 0.6f - 0.5f * resin + 0.15f * bits, 1.0f - 0.25f * vein);
+    const float h = 0.0006f * flesh + 0.0002f * vein - 0.0002f * resin + 0.0002f * bits + 0.00015f * fiber;
+    return make(col, h, 0.7f - 0.55f * resin + 0.1f * bits, 1.0f - 0.25f * vein);
 }
 
 Tex layerSample(int layer, float u, float v) {

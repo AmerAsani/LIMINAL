@@ -210,6 +210,9 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     materialData_[FM_ENT_FUR] = GpuMaterial{{1, 1, 1}, 0, ent(EL_FUR, ML_FIBER), 1.0f, 0, 0.1f};
     materialData_[FM_ENT_MOTHEYE] = GpuMaterial{{0.12f, 0.12f, 0.12f}, 0, ent(EL_CHITIN, ML_PORES), 0.45f, 0, 0.0f};
     materialData_[FM_ENT_NEST] = GpuMaterial{{1, 1, 1}, 0, ent(EL_NEST, ML_PORES), 1.0f, 0, 0.15f};
+    // Runde 4: Textur des Nests (Fasern, Adern, Harz) statt glatter Haut, rotbraun getoent, matter
+    materialData_[FM_ENT_NESTFLESH] = GpuMaterial{{1.05f, 0.62f, 0.55f}, 0, ent(EL_NEST, ML_PORES) | kMatFlagSkin, 0.74f, 0, 0.15f};
+    materialData_[FM_ENT_NESTEGG] = GpuMaterial{{0.74f, 0.66f, 0.46f}, 0, ent(EL_TOOTH, ML_PORES), 0.55f, 0, 0.1f};
     writeMaterials(gpu);
     lights_ = gpu.createStructured(sizeof(GpuLight), 2048, true, false);
     return height_.valid() && ambient_.valid() && lights_.valid();
