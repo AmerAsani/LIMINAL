@@ -50,6 +50,9 @@ lim_module(render lim_world lim_platform lim_anim d3d11 dxgi gdi32)
 lim_module(audio lim_core ole32 ksuser avrt)
 lim_module(gameplay lim_world lim_physics lim_ecs lim_platform lim_anim)
 lim_module(ui lim_gameplay lim_render lim_input)
+# V13: Pruefschicht eines moeglichen Mehrspielerprotokolls - ohne Netzwerk und vom Spiel NICHT gebunden
+# (MULTIPLAYER_ENTSCHEIDUNG.md); nur net_protocol_test nutzt sie
+lim_module(net lim_core)
 
 # ------------------------------------------------------------------------------------
 # Shader (HLSL -> Bytecode .cso beim Build; das Spiel braucht keinen Compiler)
@@ -146,6 +149,11 @@ add_executable(sound_export tests/sound_export.cpp)
 target_link_libraries(sound_export PRIVATE lim_audio)
 target_link_options(sound_export PRIVATE -municode)
 set_target_properties(sound_export PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
+
+# V13: Mehrspielerprotokoll - Regeln, Gegentests, Fuzzing, Rate und Zeitlimits (MULTIPLAYER_TESTS.md)
+add_executable(net_protocol_test tests/net_protocol_test.cpp)
+target_link_libraries(net_protocol_test PRIVATE lim_net)
+set_target_properties(net_protocol_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
 
 # V6: raeumliche Struktur (Raumdichte, Raumgroessen, Sichtachsen) alter gegen neuer Aufbau
 add_executable(layout_stats tests/layout_stats.cpp)
