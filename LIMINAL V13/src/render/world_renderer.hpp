@@ -16,7 +16,7 @@ struct ExtraLight;  // V7, renderer.hpp
 
 // Die ersten GPU-Materialien sind fest vergeben (Items, Requisiten);
 // Weltmaterialien folgen dahinter.
-constexpr u32 kFixedMaterials = 80;  // V9: 16 -> 32 (Sicherungen ...), V10: 64 (Figuren), V13.2: 80 (neue Wesen)
+constexpr u32 kFixedMaterials = 160;  // V9: 16 -> 32 (Sicherungen ...), V10: 64 (Figuren), V13.2: 80, V13.3: 160 (weitere Wesen)
 enum FixedMaterial : u32 {
     FM_ITEM_ENERGY = 0, FM_ITEM_ALMOND = 1, FM_BODY = 2, FM_BODY_FACE = 3,
     FM_VEND_BODY = 4, FM_VEND_GLOW = 5, FM_VEND_GLASS = 6,  // V6: Automat
