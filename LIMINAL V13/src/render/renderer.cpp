@@ -82,10 +82,15 @@ bool Renderer::init(plat::Window& window, JobSystem& jobs, const RenderSettings&
 
     // Ebenen-Konstanten (Massstab, Normalstaerke, Rauheit)
     vec4 layers[kLayerSlots]{};
-    for (int i = 0; i < L_COUNT; ++i) layers[i] = {kLayers[i].meters, kLayers[i].normalStrength, kLayers[i].roughBias, 0};
+    // V13: w = Kachelbruch (gbuffer.hlsli) - nur fuer eigene Ebenen ohne Raster
+    auto stochastic = [](int i) {
+        return i == L_PLASTER || i == L_CARPET || i == L_CONCRETE || i == L_FABRIC || i == L_METAL || i == L_PAINTED;
+    };
+    for (int i = 0; i < L_COUNT; ++i)
+        layers[i] = {kLayers[i].meters, kLayers[i].normalStrength, kLayers[i].roughBias, stochastic(i) ? 1.0f : 0.0f};
     for (size_t i = 0; i < world::importedTextures().size(); ++i) {  // V12: aus data/textures/textures.json
         const auto& it = world::importedTextures()[i];
-        layers[L_IMP0 + i] = {it.meters, it.normalStrength, it.roughBias, 0};
+        layers[L_IMP0 + i] = {it.meters, it.normalStrength, it.roughBias, it.antitile};
     }
     static_assert(L_COUNT <= kEntLayerSlot && kEntLayerSlot + EL_COUNT <= kMicroLayerSlot && kMicroLayerSlot + ML_COUNT <= kLayerSlots);
     for (int i = 0; i < EL_COUNT; ++i) layers[kEntLayerSlot + i] = {kEntLayers[i].meters, kEntLayers[i].normalStrength, 0, 0};

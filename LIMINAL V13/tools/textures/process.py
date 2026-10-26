@@ -56,7 +56,8 @@ def main():
             generate.GENERATORS[t['generator']](dst, SIZE)
             manifest.append({'name': name, 'dir': name, 'source': 'eigen:' + t['generator'], 'meters': t.get('meters', 1.0),
                              'normal_strength': t.get('normal_strength', 1.0), 'rough_bias': t.get('rough_bias', 0.0),
-                             'variation': t.get('variation', 0.25), 'levels': t.get('levels', [])})
+                             'variation': t.get('variation', 0.25), 'antitile': t.get('antitile', 0),
+                         'levels': t.get('levels', [])})
             print('ok', name, 'eigen', t['generator'], flush=True)
             continue
         color = find(xdir, aid, 'Color')
@@ -78,7 +79,8 @@ def main():
         meters = t.get('meters') or (dim[0] / 100.0 if dim and dim[0] else 2.0)
         manifest.append({'name': name, 'dir': name, 'source': aid, 'meters': round(meters, 3),
                          'normal_strength': t.get('normal_strength', 1.0), 'rough_bias': t.get('rough_bias', 0.0),
-                         'variation': t.get('variation', 0.25), 'levels': t.get('levels', [])})
+                         'variation': t.get('variation', 0.25), 'antitile': t.get('antitile', 0),
+                         'levels': t.get('levels', [])})
         print('ok', name, aid, meters, 'm', flush=True)
     with open(os.path.join(OUT, 'textures.json'), 'w', encoding='utf-8') as f:
         f.write('// LIMINAL V12 - erzeugt von tools/textures/process.py; Quellen und Lizenz in LICENSES.md\n')

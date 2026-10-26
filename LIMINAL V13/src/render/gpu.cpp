@@ -86,6 +86,7 @@ bool Gpu::init(HWND hwnd, int width, int height, bool forceWarp, std::string& er
     info_.deviceId = ad.DeviceId;
     // integriert: kaum eigener Grafikspeicher (Intel/AMD-APU teilen sich den Arbeitsspeicher)
     info_.integrated = !info_.warp && ad.DedicatedVideoMemory < (u64)768 * 1024 * 1024;
+    adapter->QueryInterface(__uuidof(IDXGIAdapter3), (void**)adapter3_.put());
     log::info("Grafik: {} ({} MB eigener, {} MB geteilter Speicher{})", info_.adapter, ad.DedicatedVideoMemory >> 20,
               ad.SharedSystemMemory >> 20, info_.integrated ? ", integriert" : "");
     Com<IDXGIFactory2> factory;
@@ -433,6 +434,16 @@ void Gpu::update(const Buffer& b, const void* data, u32 size) {
         std::memcpy(m.pData, data, std::min(size, b.size));
         ctx_->Unmap(b.buf.get(), 0);
     }
+}
+
+bool Gpu::videoMemory(u64& usage, u64& budget) const {
+    usage = budget = 0;
+    if (!adapter3_) return false;
+    DXGI_QUERY_VIDEO_MEMORY_INFO mi{};
+    if (FAILED(adapter3_->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &mi))) return false;
+    usage = mi.CurrentUsage;
+    budget = mi.Budget;
+    return true;
 }
 
 }  // namespace lim::gfx

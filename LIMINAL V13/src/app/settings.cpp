@@ -231,7 +231,7 @@ void Settings::migrateFromV4(const Json& j) {
 
 bool Settings::load() {
     applyQualityPreset(quality);
-    if (auto j = loadJsonFile(path())) {
+    if (auto j = loadJsonFile(path(), true)) {  // erster Start: noch keine Einstellungen (normal)
         // V6: Dateien von vor der Automatik behalten ihre gewaehlte Qualitaet
         if (!j->has("auto_quality")) autoQuality = false;
         fromJson(*j);
@@ -239,48 +239,48 @@ bool Settings::load() {
     }
     // Erster Start von V12: Einstellungen aus V11 uebernehmen (nur lesen), sonst V10 ... V3/V4
     // V13: Einstellungen aus V12 uebernehmen (nur lesen)
-    if (auto j = loadJsonFile(paths::join(paths::userDataDir(), "settings_v12.json"))) {
+    if (auto j = loadJsonFile(paths::join(paths::userDataDir(), "settings_v12.json"), true)) {
         fromJson(*j);
         log::info("Einstellungen aus V12 uebernommen");
         return false;
     }
-    if (auto j = loadJsonFile(paths::join(paths::userDataDir(), "settings_v11.json"))) {
+    if (auto j = loadJsonFile(paths::join(paths::userDataDir(), "settings_v11.json"), true)) {
         fromJson(*j);
         log::info("Einstellungen aus V11 uebernommen");
         return false;
     }
-    if (auto j = loadJsonFile(paths::join(paths::userDataDir(), "settings_v10.json"))) {
+    if (auto j = loadJsonFile(paths::join(paths::userDataDir(), "settings_v10.json"), true)) {
         fromJson(*j);
         log::info("Einstellungen aus V10 uebernommen");
         return false;
     }
-    if (auto j = loadJsonFile(paths::join(paths::userDataDir(), "settings_v9.json"))) {
+    if (auto j = loadJsonFile(paths::join(paths::userDataDir(), "settings_v9.json"), true)) {
         fromJson(*j);
         log::info("Einstellungen aus V9 uebernommen");
         return false;
     }
-    if (auto j = loadJsonFile(paths::join(paths::userDataDir(), "settings_v8.json"))) {
+    if (auto j = loadJsonFile(paths::join(paths::userDataDir(), "settings_v8.json"), true)) {
         fromJson(*j);
         log::info("Einstellungen aus V8 uebernommen");
         return false;
     }
-    if (auto j = loadJsonFile(paths::join(paths::userDataDir(), "settings_v7.json"))) {
+    if (auto j = loadJsonFile(paths::join(paths::userDataDir(), "settings_v7.json"), true)) {
         fromJson(*j);
         log::info("Einstellungen aus V7 uebernommen");
         return false;
     }
-    if (auto j = loadJsonFile(paths::join(paths::userDataDir(), "settings_v6.json"))) {
+    if (auto j = loadJsonFile(paths::join(paths::userDataDir(), "settings_v6.json"), true)) {
         if (!j->has("auto_quality")) autoQuality = false;
         fromJson(*j);
         log::info("Einstellungen aus V6 uebernommen");
         return false;
     }
-    if (auto j = loadJsonFile(paths::join(paths::userDataDir(), "settings_v5.json"))) {
+    if (auto j = loadJsonFile(paths::join(paths::userDataDir(), "settings_v5.json"), true)) {
         fromJson(*j);
         log::info("Einstellungen aus V5 uebernommen");
         return false;
     }
-    if (auto j = loadJsonFile(paths::join(paths::userDataDir(), "settings_v3.json"))) migrateFromV4(*j);
+    if (auto j = loadJsonFile(paths::join(paths::userDataDir(), "settings_v3.json"), true)) migrateFromV4(*j);
     return false;
 }
 

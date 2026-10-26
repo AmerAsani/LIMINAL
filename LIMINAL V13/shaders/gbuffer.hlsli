@@ -45,9 +45,32 @@ GBufferOut shadeSurface(GpuMaterial m, uint layer, float2 uvMeters, float2 uvGra
     float4 li = gLayer[layer];
     float2 uv = uvMeters / li.x;
     float2 gx = ddx(uvGradMeters) / li.x, gy = ddy(uvGradMeters) / li.x;
-    float4 alb = gAlbedoTex.SampleGrad(gAniso, float3(uv, layer), gx, gy);
-    float2 nxy = gNormalTex.SampleGrad(gAniso, float3(uv, layer), gx, gy).xy * 2.0 - 1.0;
-    float4 orm = gOrmTex.SampleGrad(gAniso, float3(uv, layer), gx, gy);
+    // V13: Kachelbruch (nach I. Quilez, "texture repetition", Variante 3). Ein grossflaechiger Index waehlt je Stelle
+    // einen von acht Versaetzen der Textur; zwischen zwei benachbarten wird weich ueberblendet (gesteuert vom
+    // Helligkeitsunterschied, damit kein Brei entsteht). Nur fuer Ebenen ohne Raster (gLayer.w = 1: Teppich, Beton,
+    // Putz ...); Ziegel, Fliesen, Deckenplatten und Tapetenmuster behalten ihr Raster (gLayer.w = 0, ein Abruf).
+    float4 alb, orm;
+    float2 nxy;
+    [branch] if (li.w > 0.5)
+    {
+        const float k = gMacroTex.SampleLevel(gLinearWrap, uv * 0.093 + float2(0.37, 0.11), 0).g * 8.0;
+        const float ia = floor(k), f = k - ia;
+        const float2 oa = frac(sin(float2(3.0, 7.0) * ia) * 43.17), ob = frac(sin(float2(3.0, 7.0) * (ia + 1.0)) * 43.17);
+        const float4 a1 = gAlbedoTex.SampleGrad(gAniso, float3(uv + oa, layer), gx, gy);
+        const float4 a2 = gAlbedoTex.SampleGrad(gAniso, float3(uv + ob, layer), gx, gy);
+        const float b = smoothstep(0.2, 0.8, f - 0.1 * dot(a1.rgb - a2.rgb, float3(1.0, 1.0, 1.0)));
+        const float2 n1 = gNormalTex.SampleGrad(gAniso, float3(uv + oa, layer), gx, gy).xy;
+        const float2 n2 = gNormalTex.SampleGrad(gAniso, float3(uv + ob, layer), gx, gy).xy;
+        alb = lerp(a1, a2, b);
+        nxy = lerp(n1, n2, b) * 2.0 - 1.0;
+        orm = lerp(gOrmTex.SampleGrad(gAniso, float3(uv + oa, layer), gx, gy), gOrmTex.SampleGrad(gAniso, float3(uv + ob, layer), gx, gy), b);
+    }
+    else
+    {
+        alb = gAlbedoTex.SampleGrad(gAniso, float3(uv, layer), gx, gy);
+        nxy = gNormalTex.SampleGrad(gAniso, float3(uv, layer), gx, gy).xy * 2.0 - 1.0;
+        orm = gOrmTex.SampleGrad(gAniso, float3(uv, layer), gx, gy);
+    }
     nxy *= li.y;
     float3 nt = float3(nxy, sqrt(saturate(1.0 - dot(nxy, nxy))));
     float3 n = normalize(T * nt.x + B * nt.y + N * nt.z);

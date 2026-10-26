@@ -1,47 +1,346 @@
 {
-  "_comment": "V12: CC0-Texturen von ambientCG (docs.ambientcg.com/license). name = Name im Spiel (data/textures/<name>), id = ambientCG-Asset. Auswahl nach LOOK_<Nr>.md; tint/meters optional.",
-  "textures": [
-    { "name": "wallpaper_threshold",      "id": "Wallpaper001A",  "levels": ["0"], "normal_strength": 2.2, "variation": 0.55 },
-    { "name": "wallpaper_threshold_mold", "id": "Wallpaper002C",  "levels": ["0"] },
-    { "name": "carpet_threshold",         "id": "Fabric028",      "levels": ["0"] },
-    { "name": "ceiling_office",           "id": "OfficeCeiling001", "levels": ["0"], "meters": 3.6 },
-    { "name": "carpet_red",               "id": "Carpet013",      "levels": ["0"], "variation": 0.5 },
-    { "name": "concrete_wall_smooth",     "id": "Concrete046",    "levels": ["1", "188"] },
-    { "name": "concrete_wall_old",        "id": "Concrete036",    "levels": ["1", "2"] },
-    { "name": "concrete_floor",           "id": "Concrete047A",   "levels": ["1"] },
-    { "name": "concrete_cast",            "id": "Concrete028",    "levels": ["1"] },
-    { "name": "bricks_dirty_brown",       "id": "Bricks097",      "levels": ["2"] },
-    { "name": "concrete_chalky",          "id": "Concrete012",    "levels": ["2"] },
-    { "name": "metal_rusty_iron",         "id": "Metal041B",      "levels": ["2", "3"] },
-    { "name": "painted_metal_white",      "id": "PaintedMetal012", "levels": ["2", "3"] },
-    { "name": "painted_metal_grey",       "id": "PaintedMetal014", "levels": ["2"] },
-    { "name": "bricks_dark_grey",         "id": "Bricks089",      "levels": ["3"] },
-    { "name": "bricks_white_old",         "id": "Bricks038",      "levels": ["3"] },
-    { "name": "bricks_grey_black",        "id": "Bricks056",      "levels": ["3", "2"] },
-    { "name": "wallpaper_damask_red",     "id": "EIGEN-damask",   "levels": ["5"], "generator": "damask", "meters": 0.7, "normal_strength": 1.5, "variation": 0.2 },
-    { "name": "books_spines",             "id": "EIGEN-books",    "levels": ["5.3"], "generator": "books", "meters": 0.75, "normal_strength": 1.0, "variation": 0.05 },
-    { "name": "tuff_stone",               "id": "EIGEN-tuff",     "levels": ["5.3"], "generator": "tuff", "meters": 1.2, "normal_strength": 1.2, "variation": 0.15 },
-    { "name": "bricks_brown_old",         "id": "Bricks094",      "levels": ["3"] },
-    { "name": "bricks_red_factory",       "id": "Bricks085",      "levels": ["3"] },
-    { "name": "concrete_rough",           "id": "Concrete037",    "levels": ["3"] },
-    { "name": "wood_walnut_floor",        "id": "WoodFloor046",   "levels": ["5", "5.3"] },
-    { "name": "marble_white",             "id": "Marble021",      "levels": ["5"] },
-    { "name": "marble_beige",             "id": "Marble014",      "levels": ["5.3"] },
-    { "name": "carpet_red_pattern",       "id": "Fabric026",      "levels": ["5"] },
-    { "name": "leather_red",              "id": "Leather011",     "levels": ["5"] },
-    { "name": "travertine",               "id": "Travertine009",  "levels": ["5.3"] },
-    { "name": "wood_herringbone_dark",    "id": "WoodFloor014",   "levels": ["5.3"] },
-    { "name": "concrete_white",           "id": "Concrete034",    "levels": ["188"] },
-    { "name": "moss",                     "id": "Moss002",        "levels": ["188"] },
-    { "name": "wood_birch",               "id": "WoodFloor066A",  "levels": ["188"] },
-    { "name": "paving_grey",              "id": "PavingStones144", "levels": ["188"] },
-    { "name": "paving_dark_blocks",       "id": "PavingStones127", "levels": ["903"] },
-    { "name": "tiles_white",              "id": "Tiles107",       "levels": ["37", "903"] },
-    { "name": "tiles_white_bath",         "id": "Tiles036",       "levels": ["37"] },
-    { "name": "paint_stripes_yellow",     "id": "PaintedMetal016", "levels": ["903"] },
-    { "name": "carpet_blue_dark",         "id": "Carpet012",      "levels": ["36"] },
-    { "name": "terrazzo_antique",         "id": "Terrazzo004",    "levels": ["36"] },
-    { "name": "metal_aluminum",           "id": "Metal050A",      "levels": ["36", "903"] },
-    { "name": "plaster_white",            "id": "Plaster002",     "levels": ["36", "188"] }
-  ]
+ "_comment": "V12: CC0-Texturen von ambientCG (docs.ambientcg.com/license). name = Name im Spiel (data/textures/<name>), id = ambientCG-Asset. Auswahl nach LOOK_<Nr>.md; tint/meters optional.",
+ "textures": [
+  {
+   "name": "wallpaper_threshold",
+   "id": "Wallpaper001A",
+   "levels": [
+    "0"
+   ],
+   "normal_strength": 2.2,
+   "variation": 0.55
+  },
+  {
+   "name": "wallpaper_threshold_mold",
+   "id": "Wallpaper002C",
+   "levels": [
+    "0"
+   ]
+  },
+  {
+   "name": "carpet_threshold",
+   "id": "Fabric028",
+   "levels": [
+    "0"
+   ],
+   "antitile": 1
+  },
+  {
+   "name": "ceiling_office",
+   "id": "OfficeCeiling001",
+   "levels": [
+    "0"
+   ],
+   "meters": 3.6
+  },
+  {
+   "name": "carpet_red",
+   "id": "Carpet013",
+   "levels": [
+    "0"
+   ],
+   "variation": 0.5,
+   "antitile": 1
+  },
+  {
+   "name": "concrete_wall_smooth",
+   "id": "Concrete046",
+   "levels": [
+    "1",
+    "188"
+   ],
+   "antitile": 1
+  },
+  {
+   "name": "concrete_wall_old",
+   "id": "Concrete036",
+   "levels": [
+    "1",
+    "2"
+   ],
+   "antitile": 1
+  },
+  {
+   "name": "concrete_floor",
+   "id": "Concrete047A",
+   "levels": [
+    "1"
+   ],
+   "antitile": 1
+  },
+  {
+   "name": "concrete_cast",
+   "id": "Concrete028",
+   "levels": [
+    "1"
+   ],
+   "antitile": 1
+  },
+  {
+   "name": "bricks_dirty_brown",
+   "id": "Bricks097",
+   "levels": [
+    "2"
+   ]
+  },
+  {
+   "name": "concrete_chalky",
+   "id": "Concrete012",
+   "levels": [
+    "2"
+   ],
+   "antitile": 1
+  },
+  {
+   "name": "metal_rusty_iron",
+   "id": "Metal041B",
+   "levels": [
+    "2",
+    "3"
+   ],
+   "antitile": 1
+  },
+  {
+   "name": "painted_metal_white",
+   "id": "PaintedMetal012",
+   "levels": [
+    "2",
+    "3"
+   ],
+   "antitile": 1
+  },
+  {
+   "name": "painted_metal_grey",
+   "id": "PaintedMetal014",
+   "levels": [
+    "2"
+   ],
+   "antitile": 1
+  },
+  {
+   "name": "bricks_dark_grey",
+   "id": "Bricks089",
+   "levels": [
+    "3"
+   ]
+  },
+  {
+   "name": "bricks_white_old",
+   "id": "Bricks038",
+   "levels": [
+    "3"
+   ]
+  },
+  {
+   "name": "bricks_grey_black",
+   "id": "Bricks056",
+   "levels": [
+    "3",
+    "2"
+   ]
+  },
+  {
+   "name": "wallpaper_damask_red",
+   "id": "EIGEN-damask",
+   "levels": [
+    "5"
+   ],
+   "generator": "damask",
+   "meters": 0.7,
+   "normal_strength": 1.5,
+   "variation": 0.2
+  },
+  {
+   "name": "books_spines",
+   "id": "EIGEN-books",
+   "levels": [
+    "5.3"
+   ],
+   "generator": "books",
+   "meters": 0.75,
+   "normal_strength": 1.0,
+   "variation": 0.05
+  },
+  {
+   "name": "tuff_stone",
+   "id": "EIGEN-tuff",
+   "levels": [
+    "5.3"
+   ],
+   "generator": "tuff",
+   "meters": 1.2,
+   "normal_strength": 1.2,
+   "variation": 0.15,
+   "antitile": 1
+  },
+  {
+   "name": "bricks_brown_old",
+   "id": "Bricks094",
+   "levels": [
+    "3"
+   ]
+  },
+  {
+   "name": "bricks_red_factory",
+   "id": "Bricks085",
+   "levels": [
+    "3"
+   ]
+  },
+  {
+   "name": "concrete_rough",
+   "id": "Concrete037",
+   "levels": [
+    "3"
+   ],
+   "antitile": 1
+  },
+  {
+   "name": "wood_walnut_floor",
+   "id": "WoodFloor046",
+   "levels": [
+    "5",
+    "5.3"
+   ]
+  },
+  {
+   "name": "marble_white",
+   "id": "Marble021",
+   "levels": [
+    "5"
+   ],
+   "antitile": 1
+  },
+  {
+   "name": "marble_beige",
+   "id": "Marble014",
+   "levels": [
+    "5.3"
+   ],
+   "antitile": 1
+  },
+  {
+   "name": "carpet_red_pattern",
+   "id": "Fabric026",
+   "levels": [
+    "5"
+   ]
+  },
+  {
+   "name": "leather_red",
+   "id": "Leather011",
+   "levels": [
+    "5"
+   ],
+   "antitile": 1
+  },
+  {
+   "name": "travertine",
+   "id": "Travertine009",
+   "levels": [
+    "5.3"
+   ],
+   "antitile": 1
+  },
+  {
+   "name": "wood_herringbone_dark",
+   "id": "WoodFloor014",
+   "levels": [
+    "5.3"
+   ]
+  },
+  {
+   "name": "concrete_white",
+   "id": "Concrete034",
+   "levels": [
+    "188"
+   ],
+   "antitile": 1
+  },
+  {
+   "name": "moss",
+   "id": "Moss002",
+   "levels": [
+    "188"
+   ],
+   "antitile": 1
+  },
+  {
+   "name": "wood_birch",
+   "id": "WoodFloor066A",
+   "levels": [
+    "188"
+   ]
+  },
+  {
+   "name": "paving_grey",
+   "id": "PavingStones144",
+   "levels": [
+    "188"
+   ]
+  },
+  {
+   "name": "paving_dark_blocks",
+   "id": "PavingStones127",
+   "levels": [
+    "903"
+   ]
+  },
+  {
+   "name": "tiles_white",
+   "id": "Tiles107",
+   "levels": [
+    "37",
+    "903"
+   ]
+  },
+  {
+   "name": "tiles_white_bath",
+   "id": "Tiles036",
+   "levels": [
+    "37"
+   ]
+  },
+  {
+   "name": "paint_stripes_yellow",
+   "id": "PaintedMetal016",
+   "levels": [
+    "903"
+   ]
+  },
+  {
+   "name": "carpet_blue_dark",
+   "id": "Carpet012",
+   "levels": [
+    "36"
+   ],
+   "antitile": 1
+  },
+  {
+   "name": "terrazzo_antique",
+   "id": "Terrazzo004",
+   "levels": [
+    "36"
+   ],
+   "antitile": 1
+  },
+  {
+   "name": "metal_aluminum",
+   "id": "Metal050A",
+   "levels": [
+    "36",
+    "903"
+   ],
+   "antitile": 1
+  },
+  {
+   "name": "plaster_white",
+   "id": "Plaster002",
+   "levels": [
+    "36",
+    "188"
+   ],
+   "antitile": 1
+  }
+ ]
 }

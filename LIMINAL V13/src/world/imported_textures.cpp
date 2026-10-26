@@ -36,6 +36,7 @@ bool loadImportedTextures(const std::string& dataDir, std::string& err) {
         it.normalStrength = (float)t["normal_strength"].asNumber(1.0);
         it.roughBias = (float)t["rough_bias"].asNumber(0.0);
         it.variation = (float)t["variation"].asNumber(0.25);
+        it.antitile = t["antitile"].asNumber(0.0) > 0.5 ? 1.0f : 0.0f;
         if (it.name.empty() || it.meters <= 0.0f) {
             err = "textures.json: Eintrag ohne Namen oder Groesse";
             return false;

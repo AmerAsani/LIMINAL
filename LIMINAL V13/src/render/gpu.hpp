@@ -13,6 +13,7 @@
 
 #include <d3d11.h>
 #include <dxgi1_2.h>
+#include <dxgi1_4.h>  // V13: IDXGIAdapter3 (Grafikspeicher abfragen)
 
 namespace lim::gfx {
 
@@ -75,6 +76,8 @@ public:
     int width() const { return width_; }
     int height() const { return height_; }
     const GpuInfo& info() const { return info_; }
+    // V13: belegter Grafikspeicher dieses Prozesses und Budget (DXGI 1.4); false, wenn das System es nicht meldet
+    bool videoMemory(u64& usage, u64& budget) const;
 
     // --- Ressourcen --------------------------------------------------------------------
     Texture createTexture(int w, int h, DXGI_FORMAT fmt, u32 flags, int mips = 1, int layers = 1,
@@ -121,6 +124,7 @@ private:
     Com<ID3D11DepthStencilState> dsGreater_, dsGreaterRead_, dsNone_;
     Com<ID3D11BlendState> bsOpaque_, bsPremul_, bsAdd_;
     GpuInfo info_;
+    Com<IDXGIAdapter3> adapter3_;
     HWND hwnd_ = nullptr;
     int width_ = 0, height_ = 0;
     bool flipModel_ = false;

@@ -1,4 +1,4 @@
-// LIMINAL V12 - erzeugt von tools/textures/process.py; Quellen und Lizenz in LICENSES.md
+// LIMINAL V12/V13 - erzeugt von tools/textures/process.py; Quellen und Lizenz in LICENSES.md
 {
  "textures": [
   {
@@ -11,7 +11,8 @@
    "variation": 0.55,
    "levels": [
     "0"
-   ]
+   ],
+   "antitile": 0
   },
   {
    "name": "wallpaper_threshold_mold",
@@ -23,7 +24,8 @@
    "variation": 0.25,
    "levels": [
     "0"
-   ]
+   ],
+   "antitile": 0
   },
   {
    "name": "carpet_threshold",
@@ -35,7 +37,8 @@
    "variation": 0.25,
    "levels": [
     "0"
-   ]
+   ],
+   "antitile": 1
   },
   {
    "name": "ceiling_office",
@@ -47,7 +50,8 @@
    "variation": 0.25,
    "levels": [
     "0"
-   ]
+   ],
+   "antitile": 0
   },
   {
    "name": "carpet_red",
@@ -59,7 +63,8 @@
    "variation": 0.5,
    "levels": [
     "0"
-   ]
+   ],
+   "antitile": 1
   },
   {
    "name": "concrete_wall_smooth",
@@ -72,7 +77,8 @@
    "levels": [
     "1",
     "188"
-   ]
+   ],
+   "antitile": 1
   },
   {
    "name": "concrete_wall_old",
@@ -85,7 +91,8 @@
    "levels": [
     "1",
     "2"
-   ]
+   ],
+   "antitile": 1
   },
   {
    "name": "concrete_floor",
@@ -97,7 +104,8 @@
    "variation": 0.25,
    "levels": [
     "1"
-   ]
+   ],
+   "antitile": 1
   },
   {
    "name": "concrete_cast",
@@ -109,7 +117,8 @@
    "variation": 0.25,
    "levels": [
     "1"
-   ]
+   ],
+   "antitile": 1
   },
   {
    "name": "bricks_dirty_brown",
@@ -121,7 +130,8 @@
    "variation": 0.25,
    "levels": [
     "2"
-   ]
+   ],
+   "antitile": 0
   },
   {
    "name": "concrete_chalky",
@@ -133,7 +143,8 @@
    "variation": 0.25,
    "levels": [
     "2"
-   ]
+   ],
+   "antitile": 1
   },
   {
    "name": "metal_rusty_iron",
@@ -146,7 +157,8 @@
    "levels": [
     "2",
     "3"
-   ]
+   ],
+   "antitile": 1
   },
   {
    "name": "painted_metal_white",
@@ -159,7 +171,8 @@
    "levels": [
     "2",
     "3"
-   ]
+   ],
+   "antitile": 1
   },
   {
    "name": "painted_metal_grey",
@@ -171,7 +184,8 @@
    "variation": 0.25,
    "levels": [
     "2"
-   ]
+   ],
+   "antitile": 1
   },
   {
    "name": "bricks_dark_grey",
@@ -183,7 +197,8 @@
    "variation": 0.25,
    "levels": [
     "3"
-   ]
+   ],
+   "antitile": 0
   },
   {
    "name": "bricks_white_old",
@@ -195,7 +210,8 @@
    "variation": 0.25,
    "levels": [
     "3"
-   ]
+   ],
+   "antitile": 0
   },
   {
    "name": "bricks_grey_black",
@@ -208,7 +224,8 @@
    "levels": [
     "3",
     "2"
-   ]
+   ],
+   "antitile": 0
   },
   {
    "name": "wallpaper_damask_red",
@@ -220,7 +237,8 @@
    "variation": 0.2,
    "levels": [
     "5"
-   ]
+   ],
+   "antitile": 0
   },
   {
    "name": "books_spines",
@@ -232,7 +250,8 @@
    "variation": 0.05,
    "levels": [
     "5.3"
-   ]
+   ],
+   "antitile": 0
   },
   {
    "name": "tuff_stone",
@@ -244,7 +263,8 @@
    "variation": 0.15,
    "levels": [
     "5.3"
-   ]
+   ],
+   "antitile": 1
   },
   {
    "name": "bricks_brown_old",
@@ -256,7 +276,8 @@
    "variation": 0.25,
    "levels": [
     "3"
-   ]
+   ],
+   "antitile": 0
   },
   {
    "name": "bricks_red_factory",
@@ -268,7 +289,8 @@
    "variation": 0.25,
    "levels": [
     "3"
-   ]
+   ],
+   "antitile": 0
   },
   {
    "name": "concrete_rough",
@@ -280,7 +302,8 @@
    "variation": 0.25,
    "levels": [
     "3"
-   ]
+   ],
+   "antitile": 1
   },
   {
    "name": "wood_walnut_floor",
@@ -293,7 +316,8 @@
    "levels": [
     "5",
     "5.3"
-   ]
+   ],
+   "antitile": 0
   },
   {
    "name": "marble_white",
@@ -305,7 +329,8 @@
    "variation": 0.25,
    "levels": [
     "5"
-   ]
+   ],
+   "antitile": 1
   },
   {
    "name": "marble_beige",
@@ -317,7 +342,8 @@
    "variation": 0.25,
    "levels": [
     "5.3"
-   ]
+   ],
+   "antitile": 1
   },
   {
    "name": "carpet_red_pattern",
@@ -329,7 +355,8 @@
    "variation": 0.25,
    "levels": [
     "5"
-   ]
+   ],
+   "antitile": 0
   },
   {
    "name": "leather_red",
@@ -341,7 +368,8 @@
    "variation": 0.25,
    "levels": [
     "5"
-   ]
+   ],
+   "antitile": 1
   },
   {
    "name": "travertine",
@@ -353,7 +381,8 @@
    "variation": 0.25,
    "levels": [
     "5.3"
-   ]
+   ],
+   "antitile": 1
   },
   {
    "name": "wood_herringbone_dark",
@@ -365,7 +394,8 @@
    "variation": 0.25,
    "levels": [
     "5.3"
-   ]
+   ],
+   "antitile": 0
   },
   {
    "name": "concrete_white",
@@ -377,7 +407,8 @@
    "variation": 0.25,
    "levels": [
     "188"
-   ]
+   ],
+   "antitile": 1
   },
   {
    "name": "moss",
@@ -389,7 +420,8 @@
    "variation": 0.25,
    "levels": [
     "188"
-   ]
+   ],
+   "antitile": 1
   },
   {
    "name": "wood_birch",
@@ -401,7 +433,8 @@
    "variation": 0.25,
    "levels": [
     "188"
-   ]
+   ],
+   "antitile": 0
   },
   {
    "name": "paving_grey",
@@ -413,7 +446,8 @@
    "variation": 0.25,
    "levels": [
     "188"
-   ]
+   ],
+   "antitile": 0
   },
   {
    "name": "paving_dark_blocks",
@@ -425,7 +459,8 @@
    "variation": 0.25,
    "levels": [
     "903"
-   ]
+   ],
+   "antitile": 0
   },
   {
    "name": "tiles_white",
@@ -438,7 +473,8 @@
    "levels": [
     "37",
     "903"
-   ]
+   ],
+   "antitile": 0
   },
   {
    "name": "tiles_white_bath",
@@ -450,7 +486,8 @@
    "variation": 0.25,
    "levels": [
     "37"
-   ]
+   ],
+   "antitile": 0
   },
   {
    "name": "paint_stripes_yellow",
@@ -462,7 +499,8 @@
    "variation": 0.25,
    "levels": [
     "903"
-   ]
+   ],
+   "antitile": 0
   },
   {
    "name": "carpet_blue_dark",
@@ -474,7 +512,8 @@
    "variation": 0.25,
    "levels": [
     "36"
-   ]
+   ],
+   "antitile": 1
   },
   {
    "name": "terrazzo_antique",
@@ -486,7 +525,8 @@
    "variation": 0.25,
    "levels": [
     "36"
-   ]
+   ],
+   "antitile": 1
   },
   {
    "name": "metal_aluminum",
@@ -499,7 +539,8 @@
    "levels": [
     "36",
     "903"
-   ]
+   ],
+   "antitile": 1
   },
   {
    "name": "plaster_white",
@@ -512,7 +553,8 @@
    "levels": [
     "36",
     "188"
-   ]
+   ],
+   "antitile": 1
   }
  ]
 }

@@ -373,7 +373,8 @@ std::optional<Json> Json::parse(std::string_view text, std::string* error) {
     return out;
 }
 
-std::optional<Json> loadJsonFile(const std::string& path) {
+std::optional<Json> loadJsonFile(const std::string& path, bool optional) {
+    if (optional && !paths::exists(path)) return std::nullopt;
     auto text = paths::readFile(path);
     // V6: kurz gesperrte Dateien (Virenscanner, Pruefung einer neuen EXE, gerade kopiert) nicht
     // als "fehlt" werten - bis zu ~1,5 s erneut versuchen, solange die Datei existiert

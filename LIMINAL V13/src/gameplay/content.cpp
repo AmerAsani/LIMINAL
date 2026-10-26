@@ -96,7 +96,7 @@ bool Content::load(const std::string& dir, std::string& error, const std::string
         return false;
     }
     // V8: die zusammenhaengende Welt (alle Ebenen in einer Welt)
-    if (auto wj = loadJsonFile(paths::join(levelRoot, "world.json"))) {
+    if (auto wj = loadJsonFile(paths::join(levelRoot, "world.json"), true)) {  // V12: fehlt absichtlich (feste Karten)
         std::vector<const world::LevelDef*> defs;
         for (const auto& l : levels_) defs.push_back(l.def.get());
         std::string err;

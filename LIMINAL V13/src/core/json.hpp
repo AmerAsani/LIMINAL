@@ -70,6 +70,7 @@ private:
 };
 
 // Laedt eine JSON-Datei; bei Fehlern Protokolleintrag und nullopt.
-std::optional<Json> loadJsonFile(const std::string& path);
+// optional = true: fehlt die Datei, ist das normal (keine Warnung im Protokoll) - V13
+std::optional<Json> loadJsonFile(const std::string& path, bool optional = false);
 
 }  // namespace lim

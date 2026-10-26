@@ -154,6 +154,7 @@ public:
     void applySettings(const RenderSettings& s);
     const RenderSettings& settings() const { return settings_; }
     const GpuInfo& gpuInfo() const { return gpu_.info(); }
+    bool videoMemory(u64& usage, u64& budget) const { return gpu_.videoMemory(usage, budget); }  // V13
     // V6: dynamische Aufloesung - Faktor auf die interne Aufloesung (0.5 .. 1), wird nicht gespeichert
     void setDynamicScale(float s);
     float dynamicScale() const { return dynScale_; }

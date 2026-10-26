@@ -320,6 +320,12 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
 - **Smiler ohne Arme:** Die angedeuteten Arme der ersten Fassung lasen sich im Licht als Strichmännchen-Arme. Die Seite nennt sie nur als unbestätigtes Gerücht; der Körper bleibt deshalb eine formlose Masse.
 - **Neues Formteil `tube`:** Strecke mit ellipsenförmigem Querschnitt. Ketten aus einzelnen Ellipsoiden ergaben an Lippen und Maulspalt eine Perlenschnur.
 
+## E-022 Texturen: Kachelbruch statt neuer Bildquellen (26.10.2026)
+- **Befund:** `TEXTUR_AUDIT.md`. Die 40 PBR-Sätze (37 × ambientCG CC0, 3 eigene) treffen die Identität jeder Ebene; das sichtbarste Problem sind Wiederholungen großer Flecken und Streifen auf Beton, Teppich und Putz in großen Räumen.
+- **Entscheidung:** Kein Austausch der Sätze (kein Gewinn an Identität, mehr Lizenzpflege), sondern Kachelbruch im Shader nach I. Quilez (Variante 3: acht Versätze, weich überblendet), nur für Texturen ohne Raster (`"antitile": 1` in `data/textures/textures.json`). Ziegel, Fliesen, Deckenplatten, Pflaster, Dielen, Tapeten und Buchrücken bleiben unberührt.
+- **Abwägung:** Variante 3 braucht einen zusätzlichen Abruf je Kanal und keine neue Textur; die Sechseck-Variante (Heitz/Neyret) mischt besser, kostet aber drei Abrufe je Kanal und eine Vorverarbeitung jeder Textur. Leistung und Speicher: `TEXTUR_AUDIT.md` Abschnitt 4.
+- **Messung neu:** Der Befehl `perf` meldet den belegten Grafikspeicher (DXGI 1.4) und den Arbeitsspeicher des Prozesses.
+
 ## E-023 Starter: nur von Microsoft signierte Pakete ausführen (26.10.2026)
 - **Befund:** Der Starter (`LIMINAL.exe`) lädt auf alten Windows-Versionen ohne Universal C Runtime – nach Rückfrage – das Visual-C++-Paket von aka.ms und führt es mit Administratorrechten aus. Geprüft wurde nur, ob die Datei *irgendeine* gültige Signatur trägt.
 - **Entscheidung:** Der Unterzeichner muss „Microsoft Corporation“ sein; die Zertifikatskette wird auf Widerruf geprüft. Schlägt das fehl, wird die Datei gelöscht und der Spieler auf den manuellen Download verwiesen.

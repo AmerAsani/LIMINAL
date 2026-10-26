@@ -15,6 +15,7 @@
 #include "world/room.hpp"
 
 #include <windows.h>
+#include <psapi.h>  // V13: Arbeitsspeicher im Befehl perf (K32GetProcessMemoryInfo, kernel32)
 
 namespace lim {
 
@@ -331,8 +332,14 @@ void App::scriptStep() {
                       ac.early, ac.roomW, ac.roomD, ac.roomH, ac.lx, ac.ly, ac.lz);
         } else if (cmd == "perf") {  // V10 (Tests): Zeiten und Dreiecke dieses Bildes ins Protokoll
             const auto& rs = renderer_->stats();
-            log::info("Skript: perf Spiel {:.2f} ms, Grafik {:.2f} ms, {} Dreiecke, {} Netze | {}", simMs_, renderMs_, rs.triangles, rs.meshes,
-                      renderer_->gpuTimer().summary());
+            u64 vramUse = 0, vramBudget = 0;  // V13: belegter Grafikspeicher (DXGI 1.4) und Arbeitsspeicher des Prozesses
+            renderer_->videoMemory(vramUse, vramBudget);
+            PROCESS_MEMORY_COUNTERS pmc{};
+            pmc.cb = sizeof(pmc);
+            K32GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc));
+            log::info("Skript: perf Spiel {:.2f} ms, Grafik {:.2f} ms, {} Dreiecke, {} Netze, VRAM {} MB von {} MB, RAM {} MB (Spitze {} MB) | {}",
+                      simMs_, renderMs_, rs.triangles, rs.meshes, vramUse >> 20, vramBudget >> 20, (u64)pmc.WorkingSetSize >> 20,
+                      (u64)pmc.PeakWorkingSetSize >> 20, renderer_->gpuTimer().summary());
         } else if (cmd == "give" && session_) {  // V9: Item ins Inventar (Tests)
             session_->inventory().add(arg);
         } else if (cmd == "health" && session_) {  // V9: Health setzen (Tests)
