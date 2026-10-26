@@ -143,7 +143,11 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
         GpuMaterial{{1, 0.96f, 0.9f}, 2.4f, L_VENDING | (L_VENDING << 8) | (L_VENDING << 16) | kMatFlagInteriorGlass, 1.0f, 0, 0.0f};
     // V7: Taschenlampe, Fundstuecke, Notausgang, Gestalt
     auto all = [](u32 l) { return l | (l << 8) | (l << 16); };
-    materialData_[FM_FLASH_BODY] = GpuMaterial{{0.045f, 0.045f, 0.05f}, 0, all(L_METAL), 0.85f, 0, 0.0f};
+    // V12: eloxiertes Aluminium - dunkel mit seidigem Glanz (Lampe aus Blender, data/models/vm_flashlight.glb)
+    materialData_[FM_FLASH_BODY] = GpuMaterial{{0.035f, 0.035f, 0.04f}, 0, all(L_METAL), 0.5f, 0.6f, 0.15f};
+    materialData_[FM_FLASH_BEZEL] = GpuMaterial{{0.62f, 0.62f, 0.60f}, 0, all(L_METAL), 0.32f, 1.0f, 0.1f};
+    materialData_[FM_FLASH_RUBBER] = GpuMaterial{{0.03f, 0.03f, 0.03f}, 0, all(L_PLASTER), 0.95f, 0, 0.1f};
+    materialData_[FM_FLASH_GLASS] = GpuMaterial{{0.20f, 0.21f, 0.22f}, 0, all(L_DIFFUSER), 0.08f, 0.8f, 0.0f};
     materialData_[FM_FLASH_LENS] = GpuMaterial{{1.0f, 0.94f, 0.82f}, 7.0f, all(L_DIFFUSER), 1.0f, 0, 0.0f};
     materialData_[FM_ITEM_BATTERY] = GpuMaterial{{1, 1, 1}, 0, all(L_ITEM_BATTERY), 1.0f, 0, 0.0f};
     materialData_[FM_ITEM_NOTE] = GpuMaterial{{1, 1, 1}, 0, all(L_ITEM_NOTE), 1.0f, 0, 0.0f};
@@ -159,6 +163,7 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     // V10: Figuren - Haut, Stoff und Haar triplanar (Toenung x helle Textur), Augen und Ausweis mit UV
     auto tri = [&](u32 l) { return all(l) | kMatFlagTriplanar; };
     materialData_[FM_SKIN_PLAYER] = GpuMaterial{{0.95f, 0.86f, 0.8f}, 0, tri(L_SKIN), 1.0f, 0, 0.3f};
+    materialData_[FM_NAIL] = GpuMaterial{{1.0f, 0.86f, 0.82f}, 0, tri(L_SKIN), 0.45f, 0, 0.1f};  // V12
     materialData_[FM_EYE] = GpuMaterial{{0.8f, 0.78f, 0.76f}, 0, all(L_FIGDETAIL), 1.0f, 0, 0.0f};
     materialData_[FM_HAIR_SHORT] = GpuMaterial{{0.2f, 0.16f, 0.13f}, 0, tri(L_HAIR), 1.0f, 0, 0.2f};
     materialData_[FM_HOODIE] = GpuMaterial{{0.15f, 0.18f, 0.15f}, 0, tri(L_WOOL), 1.0f, 0, 0.35f};

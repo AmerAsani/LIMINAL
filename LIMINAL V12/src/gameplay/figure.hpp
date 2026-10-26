@@ -38,6 +38,9 @@ public:
     vec3 center() const;
     bool posed() const { return posed_; }
     void setGlow(float g) { glow_ = g; }  // Leuchten (Augen und Zaehne des Smilers, Augen des Hounds)
+    // V12: Hand einer Skelettseite ausblenden (-1 keine): Hand, Finger und Daumen schrumpfen ins Handgelenk -
+    // dort sitzt dann die Hand aus Blender (Viewmodel)
+    void hideHand(int side) { hiddenHand_ = side; }
 
 private:
     bool creature_ = false;
@@ -49,6 +52,7 @@ private:
     anim::CreaturePose cpose_;
     vec3 origin_;
     float height_ = 1.8f, reach_ = 1.2f, glow_ = 0.0f;
+    int hiddenHand_ = -1;  // V12
     std::string model_[anim::kFigureLods], fpModel_;
     int meshId_[anim::kFigureLods] = {-2, -2, -2};
     int fpId_ = -2;

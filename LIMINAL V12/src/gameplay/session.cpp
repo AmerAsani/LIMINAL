@@ -8,6 +8,7 @@
 #include "anim/figures.hpp"
 #include "core/log.hpp"
 #include "core/rng.hpp"
+#include "props/prop_library.hpp"
 #include "world/map_def.hpp"
 #include "world/room.hpp"
 #include "world/sector.hpp"
@@ -1604,6 +1605,12 @@ void GameSession::applyBodyStyle() {
     body_.update(0.0, player_);
 }
 
+// V12: gibt es die Hand aus Blender (data/models/vm_hand_l.glb)?
+bool GameSession::vmHandModel() {
+    static const bool has = props::model("vm_hand_l") != nullptr;
+    return has;
+}
+
 // V10: realistischer Koerper - die Gelenke des Koerpers (Body) auf das Skelett der Spielerfigur
 void GameSession::collectBody(std::vector<VisibleMesh>& out, bool firstPerson) {
     if (!realisticBody || bodyStyle_ != 1) {
@@ -1678,6 +1685,10 @@ void GameSession::collectBody(std::vector<VisibleMesh>& out, bool firstPerson) {
         placeFoot(jp, b, i, ff);
     }
     playerRig_.setPose(jp);
+    // V12: haelt die Hand die Lampe, kommt die Hand aus Blender (Body::collectProps); die des Skeletts (Seite 1 =
+    // linke Hand des Koerpers) schrumpft ins Handgelenk
+    body_.setViewmodelHand(vmHandModel());
+    playerRig_.hideHand(body_.viewmodelHand() && body_.flashlightHeld() ? 1 : -1);
     playerRig_.collect(out, palette_, body_.eye(), figureDetail, false, true, firstPerson);
     body_.collectProps(out);
 }

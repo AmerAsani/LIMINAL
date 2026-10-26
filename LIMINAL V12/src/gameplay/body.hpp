@@ -89,6 +89,14 @@ public:
     void setProportions(const BodyProportions& p) { pr_ = p, initialized_ = false; }
     const BodyProportions& proportions() const { return pr_; }
     void collectProps(std::vector<VisibleMesh>& out);
+    // V12: Hand im Faustgriff aus Blender zur Lampe zeichnen (nur realistischer Koerper; das Skelett blendet
+    // seine eigene linke Hand dann aus)
+    void setViewmodelHand(bool on) { vmHand_ = on; }
+    bool viewmodelHand() const { return vmHand_ && pr_.gripOut > 0.0f; }
+    // V12 (Tests): Winkel zwischen Unterarm des Skeletts und Unterarm des Handmodells (rad), Gleiten der Hand
+    // entlang der Lampenachse (m)
+    float vmForearmError() const { return vmForearmErr_; }
+    float vmSlide() const { return vmSlide_; }
     bool holdsItem() const { return showHeld_; }
     // V7: "Der Andere" - gleiche Figur, aber gestreckt, ohne Gesicht, nicht an die Kamera gebunden
     void setGhost() {
@@ -138,6 +146,10 @@ private:
     float eyeRoom_ = 9.0f;
     std::string mFlash_ = "flashlight", mFlashLit_ = "flashlight_on";
     int idFlash_ = -2, idFlashLit_ = -2;
+    bool vmHand_ = false;  // V12
+    float vmSlide_ = 0.0f, vmForearmErr_ = 0.0f;
+    std::string mHand_ = "vm_hand_l";
+    int idHand_ = -2;
     bool ghost_ = false;
     BodyProportions pr_;
 };

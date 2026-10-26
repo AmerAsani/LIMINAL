@@ -33,6 +33,7 @@ enum FixedMaterial : u32 {
     FM_ENT_WING, FM_ENT_CHITIN, FM_ENT_FUR, FM_ENT_MOTHEYE, FM_ENT_NEST,
     FM_ENT_GLOW_EYE, FM_ENT_GLOW_DIM,  // V11: Smiler - kalte Augen, matter leuchtende Zaehne
     FM_ENT_CLUMP_A, FM_ENT_CLUMP_B, FM_ENT_CLUMP_C, FM_ENT_CLUMP_CORE,  // V11: Buendel - Hauttoene, Kern
+    FM_FLASH_BEZEL, FM_FLASH_RUBBER, FM_FLASH_GLASS, FM_NAIL,  // V12: Viewmodel (Lampe aus Blender, Fingernaegel)
     FM_FIG_END,
 };
 static_assert(FM_FIG_END <= kFixedMaterials);

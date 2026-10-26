@@ -65,3 +65,22 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
   - Klopfen und Türen entfallen: Level 0 hat laut Wiki keine Türen.
 - **Funde:** Mandelwasser (Wiki) und selten Batterien. Die Batterien sind eine eigene Ergänzung, weil die Dunkelzonen ohne Licht nicht begehbar wären. Energieriegel entfallen in Level 0.
 - **Noch offen:** Die dunkle Gestalt bekommt ihr Modell in der Phase Wesen; Hand und Lampe folgen in der Phase Viewmodel. Beides wird für Level 0 danach erneut aufgenommen.
+
+## E-007 Viewmodel: Hand und Taschenlampe aus Blender (26.10.2026)
+- **Vorher (V11):** Die Hand war Teil der prozeduralen Spielerfigur: ein Fingerglied für alle Finger, klumpig, die Lampe ein glatter Zylinder. Bild: `docs/screens/viewmodel/00_vorher_v11.jpg`.
+- **Jetzt:** eigene Modelle, kein fremdes Asset (`tools/blender/models/models_vm.py`).
+  - **Lampe:** Drehkörper mit Endkappe, Gummiring, gerillter Griffzone, Gummischalter, Hals, Kopf mit Kühlrillen, Metallring und Glas. Maße und Lichtpunkt wie in V7, damit Halt und Lichtquelle gleich bleiben.
+  - **Hand:** aus Ellipsoiden und Röhren nach Handmaßen gebaut, durch ein Voxel-Remesh vereinigt und geglättet, mit Nägeln.
+- **Griff:** Kraftgriff. Die Lampe liegt schräg in der Hohlhand (56° zur Handachse), der Daumen oben am Schaft, das Glas tritt an der Daumenseite aus.
+  - Ein kleiner Löser sucht die Fingerwinkel so, dass die Finger am Schaft anliegen.
+  - Das Handgelenk ist um 33° zur Elle abgespreizt und um 15° gestreckt. Dadurch steht der Unterarm 27° zur Lampe und kommt von außen links.
+  - Begründung: Mit dem Daumen oben und einem Unterarm in Lampenrichtung wäre die Lampe anatomisch nicht nach vorn zu halten. Der Griff muss also von der Seite kommen.
+- **Einbau:** Hand und Lampe sind ein starres Teil im Rahmen der Lampe.
+  - Die IK des Arms zielt auf das Handgelenk des Modells. Der Ellbogen zeigt dorthin, wohin der Unterarm des Modells führt.
+  - Die Hand gleitet bis 8 cm entlang der Lampenachse, bis der Oberarm den Ellbogen erreicht. Rollen um die Achse hilft nicht, weil die Schulter fast auf ihr liegt.
+  - Abweichung Unterarm zu Modell im Test höchstens 3,5°. Die Hand des Skeletts schrumpft ins Handgelenk.
+- **Nebenbefund:** Die Handgelenk-Kapsel der prozeduralen Figur reichte 5,6 cm in den Unterarm und schwenkte bei erhobenem Arm durch den Ärmel. Das war schon in V11 sichtbar. Sie ist jetzt 1,5 cm lang, denn das Bündchen endet 1 cm vor dem Handgelenk.
+- **Grenzen:**
+  - Die Hand ist ein gestelltes Modell ohne eigene Fingeranimation.
+  - Die rechte Hand und der übrige Körper bleiben die prozedurale Figur aus V10/V11.
+  - Im Strichmännchen-Modus gibt es keine Hand, wie bisher.

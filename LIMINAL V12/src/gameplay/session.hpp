@@ -348,6 +348,7 @@ private:
     FigureRig playerRig_;
     int bodyStyle_ = -1;  // angewendete Koerperart (0 Strichmaennchen, 1 realistisch)
     void applyBodyStyle();
+    static bool vmHandModel();  // V12: Hand aus Blender vorhanden
     std::string deathCause_;
     std::vector<KnownFuse> knownFuses_;
     double fuseScan_ = 0.0;

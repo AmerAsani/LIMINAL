@@ -5,6 +5,8 @@
 #include <cmath>
 #include <string>
 
+#include "core/log.hpp"
+#include "props/prop_library.hpp"
 #include "render/texture_vending.hpp"
 #include "render/vending_layout.hpp"
 #include "render/world_renderer.hpp"
@@ -44,6 +46,46 @@ void MeshLibrary::init(Gpu& gpu) {
     addGroup(gpu, "fusebox", {{fb.body, FM_FUSEBOX}, {fb.fuse, FM_ITEM_FUSE}, {fb.lamp, FM_FUSE_GLOW}});
     addGroup(gpu, "fusebox_empty", {{fe.body, FM_FUSEBOX}, {fe.lamp, FM_FUSEBOX}});
     add(gpu, "fuse", makeFuseItem(), FM_ITEM_FUSE);
+    addViewmodel(gpu);
+}
+
+// --- V12: Viewmodel aus Blender ------------------------------------------------------------------
+void MeshLibrary::addViewmodel(Gpu& gpu) {
+    static const std::pair<const char*, u32> kFm[] = {
+        {"flash_body", FM_FLASH_BODY},     {"flash_lens", FM_FLASH_LENS}, {"flash_bezel", FM_FLASH_BEZEL},
+        {"flash_rubber", FM_FLASH_RUBBER}, {"flash_glass", FM_FLASH_GLASS}, {"skin_player", FM_SKIN_PLAYER},
+        {"nail", FM_NAIL},                 {"hoodie", FM_HOODIE}};
+    auto load = [&](const char* name, const char* alias) {
+        const props::Model* m = props::model(name);
+        if (!m || m->parts.empty()) return;
+        std::vector<std::pair<MeshData, u32>> parts;
+        for (const props::Part& p : m->parts) {
+            if (p.mesh.v.size() > 65535) {
+                log::warn("Viewmodel {}: Teil mit {} Punkten (hoechstens 65535) - uebersprungen", name, p.mesh.v.size());
+                continue;
+            }
+            u32 mat = FM_FLASH_BODY;
+            bool known = false;
+            for (const auto& [k, v] : kFm)
+                if (p.mat.fm == k) mat = v, known = true;
+            if (!known) log::warn("Viewmodel {}: unbekanntes Material fm='{}'", name, p.mat.fm);
+            MeshData d;
+            d.vertices.reserve(p.mesh.v.size());
+            for (const props::Vtx& v : p.mesh.v) {
+                const vec3 a = std::fabs(v.n.z) < 0.9f ? vec3{0, 0, 1} : vec3{1, 0, 0};
+                d.vertices.push_back({v.p, v.n, vec4(normalize(cross(a, v.n)), 1.0f), v.uv});
+            }
+            d.indices.assign(p.mesh.i.begin(), p.mesh.i.end());
+            parts.emplace_back(std::move(d), mat);
+        }
+        if (parts.empty()) return;
+        const int id = addGroup(gpu, name, parts);
+        if (alias) byName_[alias] = id;
+        log::info("Viewmodel: {} ({} Teile){}", name, parts.size(), alias ? std::string(" ersetzt ") + alias : std::string());
+    };
+    load("vm_flashlight", "flashlight");
+    load("vm_flashlight_on", "flashlight_on");
+    load("vm_hand_l", nullptr);
 }
 
 // --- V6: Automat -----------------------------------------------------------------------------------

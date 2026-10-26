@@ -17,13 +17,16 @@ Wiedereinstieg: diese Datei zuerst lesen, dann `DECISIONS.md`.
   - Klang: `hum_surge`, Flüstern, Kratzen, Tropfen; im Spiel gemessen ×2,40.
   - Vier QA-Runden, Bilder in `docs/screens/level0/`.
   - Platzierung: 1035 Objekte, 0 ohne Halt.
-  - Wesen und Hand fehlen noch (siehe unten).
+  - Wesen fehlen noch (siehe unten).
+- [x] Viewmodel: Hand im Kraftgriff und Taschenlampe als eigene Blender-Modelle (`DECISIONS.md` E-007).
+  - Arm-IK passt zum Handmodell (Test 365/0).
+  - Kein Durchstoßen am Ärmel und an der Wand (35 cm geprüft).
+  - Bilder: Ruhe, Gehen, Laufen, Drehen, Blick unten/oben, Wand, Dunkel in `docs/screens/viewmodel/`.
 
 ## Als Nächstes
-1. Querschnitt: Viewmodel (gestellte Hand mit Lampe aus Blender), danach Level 0 erneut aufnehmen (idle, Gehen, Laufen, Drehen).
-2. Wesen-Pipeline (gestellte oder gerigte Modelle aus Blender); zuerst die dunkle Gestalt von Level 0.
-3. Level der Reihe nach (1, 2, 3, 5, 5.3, 188, 903, 37, 36): Spec → Look → Bau → Platzierung → Items → Wesen → Klang → Qualitätsschleife → Commit.
-4. Oberfläche neu, geprüft bei mehreren Auflösungen.
+1. Wesen-Pipeline (gestellte oder gerigte Modelle aus Blender); zuerst die dunkle Gestalt von Level 0.
+2. Level der Reihe nach (1, 2, 3, 5, 5.3, 188, 903, 37, 36): Spec → Look → Bau → Platzierung → Items → Wesen → Klang → Qualitätsschleife → Commit.
+3. Oberfläche neu, geprüft bei mehreren Auflösungen.
 
 ## Bekannte Fehler / offen
 - Einmalig hing in V11 ein Testlauf beim Start (Protokoll endete nach dem Laden der Level). In vier Wiederholungen nicht wieder aufgetreten. Ursache unbekannt; beobachten.

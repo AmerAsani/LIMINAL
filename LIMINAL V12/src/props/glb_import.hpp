@@ -7,6 +7,8 @@
 // Materialnamen aus Blender steuern das Aussehen: Woerter "look=<art>", "tex=<name>", "glow=<staerke>",
 // getrennt durch Leerzeichen oder Semikolon. <art> wie props::Look (paint, metal, wood, concrete, glass,
 // glow ...), <name> eine Textur aus data/textures/textures.json. Die Farbe kommt aus baseColorFactor.
+// V12: "fm=<name>" markiert Teile des Viewmodels (Hand, Taschenlampe) - sie bekommen ein festes Material des
+// Renderers (render/meshes.cpp), look/tex zaehlen dann nicht.
 #pragma once
 
 #include <string>

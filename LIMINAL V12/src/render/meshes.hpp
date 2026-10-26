@@ -40,6 +40,9 @@ public:
     int addGroup(Gpu& gpu, const std::string& name, const std::vector<std::pair<MeshData, u32>>& parts);
     // V10: Figur aus Teilen mit Skinning (render/figure_models.hpp)
     int addSkinned(Gpu& gpu, const std::string& name, const std::vector<SkinPart>& parts);
+    // V12: Viewmodel aus Blender (props-Modelle vm_*, Materialien ueber fm=). Die Lampe ersetzt die aus Code
+    // ("flashlight", "flashlight_on"); fehlt eine Datei, bleibt das alte Modell.
+    void addViewmodel(Gpu& gpu);
 
 private:
     std::vector<GpuMesh> meshes_;

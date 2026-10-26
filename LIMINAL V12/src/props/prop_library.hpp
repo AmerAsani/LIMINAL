@@ -38,6 +38,7 @@ struct MatDesc {
     float r = 0.6f, g = 0.6f, b = 0.6f;
     float glow = 0.0f;  // > 0: leuchtet (Staerke relativ)
     std::string tex;    // V12: Textur aus data/textures (Name), leer = nach Look
+    std::string fm;     // V12: festes Material des Renderers (Viewmodel: Hand, Taschenlampe), leer = keins
 };
 
 struct Part {

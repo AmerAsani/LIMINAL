@@ -90,6 +90,19 @@ void FigureRig::collect(std::vector<VisibleMesh>& out, std::vector<mat4>& palett
         m.c[3] = vec4(m.c[3].xyz() - origin_, 1.0f);
         palette.push_back(m);
     }
+    if (hiddenHand_ >= 0 && !creature_) {
+        // V12: Hand, Finger und Daumen folgen starr dem Unterarm (sonst schwenkt das hintere Ende der Handgelenk-
+        // Kapsel bei abgeknickter Hand durch den Aermel) und schrumpfen auf 2 % ums Handgelenk (nicht 0 - die
+        // Normalen bleiben gueltig)
+        const vec3 w = pose_.j[anim::sideJoint(anim::J_WRIST_L, hiddenHand_)] - origin_;
+        const mat4 fore = palette[off + (size_t)anim::sideBone(anim::B_FARM_L, hiddenHand_)];
+        for (anim::Bone bn : {anim::B_HAND_L, anim::B_FING_L, anim::B_THUMB_L}) {
+            mat4& m = palette[off + (size_t)anim::sideBone(bn, hiddenHand_)];
+            m = fore;
+            for (int c = 0; c < 3; ++c) m.c[c] = m.c[c] * 0.02f;
+            m.c[3] = vec4(m.c[3].xyz() * 0.02f + w * 0.98f, 1.0f);
+        }
+    }
     VisibleMesh v;
     if (firstPerson && !creature_) {
         v.model = &fpModel_;

@@ -20,6 +20,7 @@
 #include <string>
 
 #include "anim/creature.hpp"
+#include "anim/figures.hpp"
 #include "core/jobs.hpp"
 #include "gameplay/body.hpp"
 #include "gameplay/components.hpp"
@@ -1785,6 +1786,68 @@ static void testV11FlashGrip() {
     check(!b.flashlightHeld(), "ausgeschaltet: Hand sinkt");
 }
 
+// V12: Viewmodel - Hand und Lampe aus Blender. Die Modelle tragen feste Materialien (fm=); mit den Massen des
+// realistischen Koerpers fuehrt der Unterarm des Handmodells zum Ellbogen des Skeletts (Aermel und Handgelenk
+// passen), der Kegel folgt dem Blick, das Glas liegt vor der Hand und bleibt bei jeder Neigung im Bild.
+static void testV12Viewmodel(const std::string& dataDir) {
+    std::printf("V12: Viewmodel (Hand und Lampe aus Blender)\n");
+    for (const char* n : {"vm_flashlight", "vm_flashlight_on", "vm_hand_l"}) {
+        props::Model m;
+        std::string err;
+        const bool ok = props::loadGlb(dataDir + "/models/" + n + ".glb", m, err);
+        bool fm = ok && !m.parts.empty();
+        for (const auto& p : m.parts) fm = fm && !p.mat.fm.empty() && p.mesh.v.size() <= 65535;
+        check(fm, std::format("{}: geladen, alle Teile mit festem Material und <= 65535 Punkten {}", n, err));
+    }
+    // Masse wie GameSession::applyBodyStyle
+    const anim::Build& bb = anim::figureBuild(anim::Figure::Player);
+    const float hs = bb.headScale * (0.6f + 0.4f * bb.height / 1.78f);
+    game::BodyProportions pr;
+    pr.thigh = bb.thigh, pr.shin = bb.shin, pr.ankle = bb.ankle;
+    pr.hip = bb.ankle + (bb.thigh + bb.shin) * 0.975f;
+    pr.eyeUp = 0.154f * hs, pr.eyeFwd = 0.1f * hs;
+    pr.spine = (float)game::Player::kEye - pr.hip - pr.eyeUp;
+    pr.neck = 0.11f * hs, pr.headR = 0.1f * hs;
+    pr.upperArm = bb.upperArm, pr.forearm = bb.forearm;
+    pr.hipW = bb.hipW * 0.5f, pr.shoulderW = bb.shoulderW * 0.5f;
+    pr.footW = bb.hipW * 0.5f + 0.02f * bb.height;
+    pr.gripFwd = 0.03f, pr.gripOut = 0.03f;
+    FnWorld flat;
+    flat.fn = [](i64, i64, float& f, float& c) { f = 0, c = 4.0f; };
+    game::Player p(0.5, 0.5, 0.0, 0.0);
+    game::Body b;
+    b.setProportions(pr);
+    b.setFlashlight(true, true);
+    b.setViewmodelHand(true);
+    auto run = [&](int n, game::PlayerControl c) {
+        for (int i = 0; i < n; ++i) {
+            p.update(1.0 / 60.0, c, flat);
+            b.update(1.0 / 60.0, p);
+        }
+    };
+    float worstArm = 0.0f, worstAim = 0.0f, worstScreen = 0.0f;
+    for (float pitch : {-0.7f, -0.3f, 0.0f, 0.3f, 0.7f}) {
+        p.pitch = pitch;
+        run(90, {});
+        worstArm = std::max(worstArm, b.vmForearmError());
+        const float cp = std::cos(pitch), sp = std::sin(pitch);
+        const vec3 look = normalize(vec3{(float)std::cos(p.angle), (float)std::sin(p.angle), 0.0f} * cp + vec3{0, 0, 1} * sp);
+        worstAim = std::max(worstAim, std::acos(std::clamp(dot(b.flashlightDir(), look), -1.0f, 1.0f)));
+        // Griffmitte im Bild: Winkel zur Blickrichtung kleiner als das halbe senkrechte Sichtfeld (31 Grad)
+        const vec3 g = normalize(b.flashlightPos() - b.flashlightDir() * 0.19f - b.eye());
+        worstScreen = std::max(worstScreen, std::acos(std::clamp(dot(g, look), -1.0f, 1.0f)));
+        const auto& ps = b.pose();
+        std::printf("  Neigung %+.1f: Unterarm %.1f Grad, Gleiten %.0f mm, Faust %.1f Grad vom Blick, Schulter-Handgelenk %.3f m\n", pitch,
+                    b.vmForearmError() * 57.3f, b.vmSlide() * 1000.0f, std::acos(std::clamp(dot(g, look), -1.0f, 1.0f)) * 57.3f,
+                    dist(ps.shoulder[0], ps.hand[0]));
+    }
+    check(b.viewmodelHand(), "Hand aus Blender aktiv (realistischer Koerper)");
+    check(worstArm < 0.21f, std::format("Unterarm passt zum Handmodell (groesste Abweichung {:.1f} Grad)", worstArm * 57.3f));
+    check(worstAim < 0.09f, std::format("Kegel folgt dem Blick ({:.1f} Grad)", worstAim * 57.3f));
+    check(worstScreen < 0.54f, std::format("Faust bleibt im Bild ({:.1f} Grad vom Blick)", worstScreen * 57.3f));
+    check(b.vmSlide() >= -0.081f && b.vmSlide() <= 0.031f, std::format("Hand gleitet hoechstens 8 cm ({:.3f} m)", b.vmSlide()));
+}
+
 // V11: Schallausbreitung - eine Quelle hinter einer Wand, neben der eine Tuer liegt, kommt durch die Tuer: aus
 // ihrer Richtung, mit Umweg, heller als durch die Wand. Ohne Weg bleibt sie dumpf; in freier Sicht unveraendert.
 static void testV11SoundField() {
@@ -1939,6 +2002,7 @@ int main(int argc, char** argv) {
     testV11Supplies();          // V11: Vorraete
     testV11Placement();         // V11: Halt der Ausstattung
     testV11FlashGrip();         // V11: Taschenlampe im Griff
+    testV12Viewmodel(argv[1]);  // V12: Hand und Lampe aus Blender
     testV11SoundField();        // V11: Schallausbreitung
     testV12Glb(argv[1]);        // V12: Modelle aus Blender
     std::printf("%s: %d Pruefungen, %d Fehler\n", gFails ? "FEHLGESCHLAGEN" : "OK", gChecks, gFails);

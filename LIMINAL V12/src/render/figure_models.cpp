@@ -219,7 +219,9 @@ void hands(Shape& s, const Ctx& c, int lod, int onlySide = -1) {
         const float pl = length(K - W), hw = b.handW, ws = hw / 0.042f;
         const float thin = b.thin;
         // Handgelenk und Mittelhand
-        s.capsule(W - d * 0.03f, W + d * 0.012f, b.wristR, 0.02f);
+        // V12: nur 1,5 cm in den Unterarm (das Buendchen endet 1 cm vor dem Handgelenk) - laenger schwenkte das
+        // Kapselende bei erhobenem Arm durch den Aermel
+        s.capsule(W - d * 0.015f, W + d * 0.012f, b.wristR, 0.02f);
         s.box(W + d * (pl * 0.55f), d, side, {pl * 0.5f, hw * 0.98f, 0.0125f * ws}, 0.009f, 0.018f);
         vec3 fd = normalize(T - K);
         float fl = length(T - K);

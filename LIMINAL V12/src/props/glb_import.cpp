@@ -48,6 +48,7 @@ void parseMaterialName(const std::string& name, MatDesc& d) {
             if (k == "look") d.look = lookFromName(v);
             else if (k == "tex") d.tex = v;
             else if (k == "glow") d.glow = (float)std::atof(v.c_str());
+            else if (k == "fm") d.fm = v;
         }
         tok.clear();
     };
