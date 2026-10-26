@@ -8,3 +8,15 @@
 /LIMINAL V2.zip
 /LIMINAL V3.zip
 /LIMINAL V4.zip
+# V13 (Sicherung auf GitHub): Build-Ausgaben, Werkzeuge, Zwischenstaende und Protokolle nie hochladen
+**/build/
+**/Release/
+**/.toolchain/
+__pycache__/
+*.pyc
+*.dmp
+*.log
+*.tmp
+*.bak
+# lokale Einfrier-Manifeste (Pfade und Pruefsummen dieses Rechners)
+/Sicherungen/
