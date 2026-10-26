@@ -195,7 +195,124 @@ def damask(dst, size=1024, base=(98, 22, 18), gold=(168, 132, 66)):
     Image.fromarray((np.clip(orm, 0, 1) * 255).astype(np.uint8), 'RGBA').save(os.path.join(dst, 'orm.png'), optimize=True)
 
 
-GENERATORS = {'damask': damask}
+def _periodic_noise(size, sigma, rng):
+    """Kachelbares Rauschen: weisses Rauschen, im Frequenzraum gaussgefiltert (periodisch), auf -0.5..0.5."""
+    w = rng.normal(0.0, 1.0, (size, size)).astype(np.float32)
+    f = np.fft.fftfreq(size).astype(np.float32)
+    g = np.exp(-(f[:, None] ** 2 + f[None, :] ** 2) * (2 * math.pi * sigma) ** 2 / 2)
+    n = np.real(np.fft.ifft2(np.fft.fft2(w) * g)).astype(np.float32)
+    n -= n.min()
+    n /= max(1e-6, n.max())
+    return n - 0.5
+
+
+def _save_set(dst, alb, h, rough, metal, k=6.0, ao=None):
+    os.makedirs(dst, exist_ok=True)
+    Image.fromarray((np.clip(alb, 0, 1) * 255).astype(np.uint8)).save(os.path.join(dst, 'albedo.jpg'), quality=93)
+    gx = (np.roll(h, -1, 1) - np.roll(h, 1, 1)) * 0.5
+    gy = (np.roll(h, -1, 0) - np.roll(h, 1, 0)) * 0.5
+    nx, ny, nz = -gx * k, gy * k, np.ones_like(h)
+    ln = np.sqrt(nx * nx + ny * ny + nz * nz)
+    nrm = np.stack([nx / ln, ny / ln, nz / ln], -1) * 0.5 + 0.5
+    Image.fromarray((nrm * 255).astype(np.uint8)).save(os.path.join(dst, 'normal.png'), optimize=True)
+    if ao is None:
+        ao = np.ones_like(h)
+    orm = np.stack([ao, rough, metal, np.clip(h, 0, 1)], -1)
+    Image.fromarray((np.clip(orm, 0, 1) * 255).astype(np.uint8), 'RGBA').save(os.path.join(dst, 'orm.png'), optimize=True)
+
+
+def books(dst, size=1024):
+    """Buchruecken in zwei Reihen je Kachel (Kachel 0,75 m -> Reihe 0,375 m = Fachhoehe der Regale): Leder in
+    Rot, Braun, Gruen, Blau, Schwarz, Ocker; Goldbaender und Schild auf dem Ruecken, runde Ruecken, dunkle Luecke
+    ueber den Buechern. Die Unterkante jeder Bildhaelfte ist der Fachboden (Projektion v = -z)."""
+    rng = np.random.default_rng(53)
+    H = size // 2
+    alb = np.zeros((size, size, 3), np.float32)
+    h = np.zeros((size, size), np.float32)
+    rough = np.full((size, size), 0.75, np.float32)
+    metal = np.zeros((size, size), np.float32)
+    back = np.array([0.05, 0.035, 0.025], np.float32)
+    alb[:] = back
+    pal = [(0.36, 0.08, 0.06), (0.30, 0.17, 0.09), (0.12, 0.22, 0.13), (0.10, 0.13, 0.24), (0.07, 0.06, 0.05),
+           (0.48, 0.34, 0.16), (0.42, 0.28, 0.20), (0.22, 0.10, 0.12), (0.55, 0.47, 0.36)]
+    gold = np.array([0.72, 0.56, 0.26], np.float32)
+    grain = _periodic_noise(size, 1.2, rng)
+    for row in range(2):
+        bottom = (row + 1) * H  # Bildzeile des Fachbodens
+        x = 0
+        while x < size - 20:
+            w = int(rng.uniform(0.022, 0.055) / 0.75 * size)
+            if x + w > size - 6:
+                break
+            bh = int(rng.uniform(0.2, 0.33) / 0.75 * size)
+            if rng.random() < 0.08:  # Luecke im Regal
+                x += int(rng.uniform(0.02, 0.06) / 0.75 * size)
+                continue
+            c = np.array(pal[rng.integers(len(pal))], np.float32) * rng.uniform(0.75, 1.2)
+            top = bottom - bh
+            xs = np.arange(w, dtype=np.float32)
+            prof = np.sin(np.pi * (xs + 0.5) / w) ** 0.5  # runder Ruecken
+            shade = 0.55 + 0.45 * prof
+            alb[top:bottom, x:x + w] = c[None, None, :] * shade[None, :, None]
+            h[top:bottom, x:x + w] = 0.5 + 0.4 * prof[None, :]
+            rough[top:bottom, x:x + w] = 0.62
+            # Goldbaender oben und unten, Schild
+            nb = rng.integers(1, 4)
+            for k in range(nb):
+                for (y0, y1) in ((top + int(bh * (0.08 + 0.05 * k)), top + int(bh * (0.08 + 0.05 * k)) + 3),
+                                 (bottom - int(bh * (0.08 + 0.05 * k)) - 3, bottom - int(bh * (0.08 + 0.05 * k)))):
+                    alb[y0:y1, x + 1:x + w - 1] = gold * shade[1:w - 1, None]
+                    metal[y0:y1, x + 1:x + w - 1] = 0.6
+                    rough[y0:y1, x + 1:x + w - 1] = 0.35
+                    h[y0:y1, x + 1:x + w - 1] += 0.05
+            if rng.random() < 0.6 and w > 14:
+                y0 = top + int(bh * 0.22)
+                y1 = y0 + int(bh * rng.uniform(0.08, 0.14))
+                lab = np.array(pal[rng.integers(len(pal))], np.float32) * 0.6 if rng.random() < 0.5 else gold * 0.9
+                alb[y0:y1, x + 3:x + w - 3] = lab * shade[3:w - 3, None]
+                if lab is not None and lab[0] > 0.5:
+                    metal[y0:y1, x + 3:x + w - 3] = 0.5
+            # Schatten zwischen den Buechern
+            alb[top:bottom, x:x + 1] *= 0.4
+            alb[top:bottom, x + w - 1:x + w] *= 0.5
+            x += w
+        # Schatten unter dem darueberliegenden Fachboden (oben in der Reihe dunkler)
+        yy = np.arange(H, dtype=np.float32)
+        fall = 0.55 + 0.45 * np.clip(yy / (H * 0.25), 0, 1)
+        alb[row * H:(row + 1) * H] *= fall[:, None, None]
+    alb *= (1.0 + grain[..., None] * 0.25)
+    _save_set(dst, alb, h, rough, metal, k=5.0)
+
+
+def tuff(dst, size=1024):
+    """Tuffstein: porig, gelblich-grau, fleckig, mit kleinen dunklen Poren und feinem Korn (kachelbar)."""
+    rng = np.random.default_rng(31)
+    big = _periodic_noise(size, 40.0, rng)
+    mid = _periodic_noise(size, 10.0, rng)
+    fine = _periodic_noise(size, 1.5, rng)
+    base = np.array([0.62, 0.58, 0.49], np.float32)
+    alb = base[None, None, :] * (1.0 + big[..., None] * 0.35 + mid[..., None] * 0.18 + fine[..., None] * 0.12)
+    alb[..., 2] *= (1.0 - big * 0.15)  # gelblicher in den hellen Flecken
+    h = 0.5 + big * 0.2 + mid * 0.15 + fine * 0.1
+    pores = np.zeros((size, size), np.float32)
+    img = Image.new('L', (size, size), 0)
+    d = ImageDraw.Draw(img)
+    for _ in range(1400):
+        x, y = rng.uniform(0, size), rng.uniform(0, size)
+        r = rng.uniform(0.8, 3.6) * (1.0 if rng.random() > 0.06 else 2.0)
+        e = rng.uniform(0.6, 1.0)
+        for ox in (-size, 0, size):
+            for oy in (-size, 0, size):
+                d.ellipse([x + ox - r, y + oy - r * e, x + ox + r, y + oy + r * e], fill=255)
+    pores = np.asarray(img.filter(ImageFilter.GaussianBlur(0.8)), dtype=np.float32) / 255.0
+    alb *= (1.0 - 0.32 * pores)[..., None]
+    h -= pores * 0.3
+    rough = np.full((size, size), 0.92, np.float32)
+    metal = np.zeros((size, size), np.float32)
+    _save_set(dst, alb, h, rough, metal, k=7.0, ao=1.0 - 0.4 * pores)
+
+
+GENERATORS = {'damask': damask, 'books': books, 'tuff': tuff}
 
 if __name__ == '__main__':
     GENERATORS[sys.argv[1]](sys.argv[2])

@@ -1,0 +1,119 @@
+// LIMINAL V12 - Level 5.3: "Promethei Bibliotheca" (LEVELSPEC_5.3.md, LOOK_5.3.md; Wikidot Level 5.3, Revision 40).
+//
+// Bibliothek hinter einem alten Gang des Hotels: grosse Halle mit drei Geschossen Regalen und Galerien, Tuffsaeulen,
+// Kandelaber, eiserne Kronleuchter; Gaenge zwischen Regalen in alle Richtungen, aeltere Gaenge mit Wappen an der Decke,
+// Holztreppen zu hoeheren Geschossen, Gitter vor einer Leere. Der Library Mind laesst Buecher fallen und nimmt
+// Erinnerungen (langsamer Verlust an Verstand). Ausgang: alte Holztuer in einer Sackgasse, zurueck nach Level 5.
+// Karte data/maps/level5_3.json aus tools/levels/level5_3.py. Keine Wesen.
+{
+  "id": "level5_3",
+  "name": "Level 5.3",
+  "title": "Promethei Bibliotheca",
+  "display_title": "Promethei Bibliotheca",
+  "generator": "map",
+  "map": "level5_3",
+  "presence_region": 0,
+  "presence": { "hound": false, "smiler": false, "gestalt": false, "blackout": false },
+  "next_level": "level5",
+  "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0 },
+
+  "zones": [
+    { "key": "flur_alt", "name": "Eingangsgang",
+      "wall": [0.70, 0.64, 0.60], "floor": [0.76, 0.70, 0.66], "ceil": [0.74, 0.70, 0.62],
+      "trim": [0.26, 0.16, 0.10], "lamp": [1.00, 0.78, 0.52], "fog": [0.020, 0.015, 0.011],
+      "fog_density": 0.04, "ambient": 0.03, "light_style": "authored",
+      "wall_pattern": "wallpaper", "floor_pattern": "carpet", "ceil_pattern": "none", "door_height": 2.15,
+      "wall_tex": "wallpaper_damask_red", "floor_tex": "carpet_red_pattern", "ceil_tex": "plaster_white" },
+    { "key": "halle", "name": "Grosse Halle",
+      "wall": [0.86, 0.84, 0.80], "floor": [0.80, 0.74, 0.68], "ceil": [0.74, 0.68, 0.58],
+      "trim": [0.22, 0.20, 0.19], "lamp": [1.00, 0.80, 0.56], "fog": [0.028, 0.022, 0.016],
+      "fog_density": 0.025, "ambient": 0.07, "light_style": "authored",
+      "wall_pattern": "plain", "floor_pattern": "planks", "ceil_pattern": "none", "door_height": 2.6,
+      "wall_tex": "marble_white", "floor_tex": "wood_herringbone_dark", "ceil_tex": "plaster_white" },
+    { "key": "obergeschoss", "name": "Obergeschoss",
+      "wall": [0.86, 0.84, 0.80], "floor": [0.80, 0.74, 0.68], "ceil": [0.74, 0.68, 0.58],
+      "trim": [0.22, 0.20, 0.19], "lamp": [1.00, 0.80, 0.56], "fog": [0.024, 0.019, 0.014],
+      "fog_density": 0.03, "ambient": 0.06, "light_style": "authored",
+      "wall_pattern": "plain", "floor_pattern": "planks", "ceil_pattern": "none", "door_height": 2.6,
+      "wall_tex": "marble_white", "floor_tex": "wood_herringbone_dark", "ceil_tex": "plaster_white" },
+    { "key": "gang", "name": "Gang",
+      "wall": [0.84, 0.80, 0.74], "floor": [0.80, 0.74, 0.68], "ceil": [0.70, 0.64, 0.54],
+      "trim": [0.22, 0.20, 0.19], "lamp": [1.00, 0.78, 0.52], "fog": [0.022, 0.017, 0.012],
+      "fog_density": 0.035, "ambient": 0.06, "light_style": "authored",
+      "wall_pattern": "plain", "floor_pattern": "planks", "ceil_pattern": "none", "door_height": 2.6,
+      "wall_tex": "marble_beige", "floor_tex": "wood_herringbone_dark", "ceil_tex": "plaster_white" },
+    { "key": "gang_alt", "name": "Alter Gang",
+      "wall": [0.72, 0.68, 0.62], "floor": [0.70, 0.64, 0.58], "ceil": [0.60, 0.55, 0.47],
+      "trim": [0.20, 0.18, 0.17], "lamp": [1.00, 0.76, 0.50], "fog": [0.016, 0.012, 0.009],
+      "fog_density": 0.045, "ambient": 0.055, "light_style": "authored",
+      "wall_pattern": "plain", "floor_pattern": "planks", "ceil_pattern": "none", "door_height": 2.6,
+      "wall_tex": "marble_beige", "floor_tex": "wood_walnut_floor", "ceil_tex": "plaster_white" },
+    { "key": "alt", "name": "Alte Gaenge",
+      "wall": [0.66, 0.62, 0.56], "floor": [0.66, 0.60, 0.54], "ceil": [0.56, 0.51, 0.43],
+      "trim": [0.20, 0.18, 0.17], "lamp": [1.00, 0.76, 0.50], "fog": [0.014, 0.011, 0.008],
+      "fog_density": 0.05, "ambient": 0.045, "light_style": "authored",
+      "wall_pattern": "plain", "floor_pattern": "planks", "ceil_pattern": "none", "door_height": 2.6,
+      "wall_tex": "marble_beige", "floor_tex": "wood_walnut_floor", "ceil_tex": "plaster_white" },
+    { "key": "leere", "name": "Leere",
+      "wall": [0.02, 0.02, 0.02], "floor": [0.02, 0.02, 0.02], "ceil": [0.02, 0.02, 0.02],
+      "trim": [0.02, 0.02, 0.02], "lamp": [1.0, 1.0, 1.0], "fog": [0.0, 0.0, 0.0],
+      "fog_density": 0.35, "ambient": 0.0, "light_style": "dark",
+      "wall_pattern": "plain", "floor_pattern": "none", "ceil_pattern": "none", "door_height": 2.6 }
+  ],
+
+  "light_styles": {
+    "authored": { "extra": 0.2, "intensity": 0.75, "hum": 0 },
+    "dark":     { "extra": 0.0, "intensity": 0.0, "ambient": 0.0, "dark_fog": true }
+  },
+  "dark_fog": [0.0, 0.0, 0.0],
+
+  // Wiki: nach ein bis zwei Stunden beginnt die Bibliothek, Erinnerungen zu nehmen (Kopfschmerz) - langsamer Verlust
+  "room_types": [
+    { "key": "eingang", "label": "Eingangsgang", "category": "corridor" },
+    { "key": "halle", "label": "Grosse Halle", "category": "large", "sanity_drain": 0.04 },
+    { "key": "podest", "label": "Obergeschoss", "category": "normal", "sanity_drain": 0.04 },
+    { "key": "gang", "label": "Gang", "category": "corridor", "sanity_drain": 0.04 },
+    { "key": "gang_alt", "label": "Alter Gang", "category": "corridor", "sanity_drain": 0.05 },
+    { "key": "treppe", "label": "Treppe", "category": "corridor", "sanity_drain": 0.04 },
+    { "key": "vorraum", "label": "Vorraum", "category": "normal" },
+    { "key": "leere", "label": "Leere", "category": "normal", "sanity_drain": 0.3 }
+  ],
+  "corridor_types": ["gang"],
+  "endless_type": "gang",
+  "default_corridor_type": "gang",
+  "fallback_type": "gang",
+  "supply_fallback_type": "gang",
+  "spawn_preferred_types": ["eingang"],
+  "supply_items": [ { "item": "almond", "weight": 0.6 }, { "item": "energy", "weight": 0.2 }, { "item": "battery", "weight": 0.2 } ],
+
+  "spawn_rules": {
+    "item":    { "count": [6, 9], "spacing": 14, "table": { "almond": 0.6, "energy": 0.2, "battery": 0.2 }, "first_within": 60 },
+    "note":    { "count": [2, 3], "spacing": 25 },
+    "crate":   { "count": [0, 0] },
+    "deco":    { "chance": 0.7 },
+    "fusebox": { "count": [0, 0] }
+  },
+
+  // Klang: beinahe still (das Wiki beschreibt keine Geraeusche); der Library Mind laesst Buecher fallen; Holz knarrt
+  "audio": {
+    "beds": [
+      { "sound": "bed_l53_room", "gain": 0.8, "not": ["eingang", "vorraum"] },
+      { "sound": "bed_l5_room", "gain": 0.8, "only": ["eingang", "vorraum"] }
+    ],
+    "spots": {},
+    "events": [
+      { "sound": "book_fall", "every": [35, 95], "dist": [6, 22], "height": [0.4, 3.0], "gain": 0.55,
+        "only": ["halle", "podest", "gang", "gang_alt", "treppe"] },
+      { "sound": "wood_creak", "every": [25, 70], "dist": [4, 14], "height": [0.0, 3.0], "gain": 0.4 }
+    ],
+    "acoustics": {
+      "halle":    { "t60": 1.6, "t60_low": 1.8, "t60_high": 0.7, "size": 1.9, "wet": 0.2, "early": 0.5, "absorption": 0.2 },
+      "podest":   { "t60": 0.9, "t60_low": 1.0, "t60_high": 0.4, "size": 1.0, "wet": 0.14, "early": 0.6, "absorption": 0.35 },
+      "gang":     { "t60": 0.6, "t60_low": 0.7, "t60_high": 0.3, "size": 0.7, "wet": 0.1, "early": 0.7, "absorption": 0.45 },
+      "gang_alt": { "t60": 0.6, "t60_low": 0.7, "t60_high": 0.3, "size": 0.7, "wet": 0.1, "early": 0.7, "absorption": 0.45 },
+      "treppe":   { "t60": 0.8, "t60_low": 0.9, "t60_high": 0.4, "size": 0.8, "wet": 0.12, "early": 0.7, "absorption": 0.35 },
+      "eingang":  { "t60": 0.9, "t60_low": 1.0, "t60_high": 0.4, "size": 0.9, "wet": 0.14, "early": 0.7, "absorption": 0.25 },
+      "default":  { "t60": 0.8, "t60_low": 0.9, "t60_high": 0.4, "size": 0.8, "wet": 0.14, "early": 0.7, "absorption": 0.3 }
+    }
+  }
+}

@@ -352,6 +352,27 @@ Sound woodCreak(int rate, int v) {
     return b.sound();
 }
 
+// V12 Level 5.3: herabfallende Buecher (Wiki: der Library Mind laesst Buecher fallen) - zwei bis vier dumpfe
+// Schlaege kurz nacheinander, Holz und Papier, leicht entfernt
+Sound bookFall(int rate, int v) {
+    Rand r(9600u + (unsigned)v);
+    Buf b(3.0f, rate);
+    float t = 0.0f;
+    const int n = 2 + v;
+    for (int k = 0; k < n; ++k) {
+        ImpactSpec sp;
+        sp.modes = modesWood(r.range(140.0f, 260.0f), 0.12f, r);
+        sp.contact = r.range(0.006f, 0.012f);
+        sp.noise = 0.7f, sp.noiseHz = r.range(700.0f, 1400.0f), sp.noiseQ = 0.6f, sp.noiseT60 = 0.06f;
+        b.add(impact(sp, k == 0 ? 1.0f : r.range(0.4f, 0.8f), 0.6f, rate, r), t);
+        t += r.range(0.08f, 0.35f);
+    }
+    filter(b, Biquad::LP, 3500.0f, 0.7f);
+    trim(b);
+    normalize(b, level::kEvent - 4.0f);
+    return b.sound();
+}
+
 // --- ferne Ereignisse -----------------------------------------------------------------------------------
 Sound distant(int rate, int kind, int v) {
     Rand r(9500u + (unsigned)kind * 11u + (unsigned)v);
@@ -483,6 +504,9 @@ void addLevelSounds(std::vector<SoundDef>& d, int rate) {
     d.push_back({"bed_l19_glow", [] { return bed(glowCrackle(29.0f, 9790u), 29.0f, level::kBed + 1.0f); }});
     d.push_back({"bed_l19_wind", [] { return bed(windRoof(37.0f, 9791u), 37.0f, level::kBed - 4.0f); }});
     for (int v = 0; v < 4; ++v) d.push_back({std::format("wood_creak_{}", v), [=] { return woodCreak(rate, v); }});
+    // Level 5.3 – Bibliothek: sehr still, weiter Raum; Buecher fallen
+    d.push_back({"bed_l53_room", [] { return bed(roomTone(31.0f, 260.0f, 35.0f, 9830u, 0.08f), 31.0f, level::kBed - 7.0f); }});
+    for (int v = 0; v < 3; ++v) d.push_back({std::format("book_fall_{}", v), [=] { return bookFall(rate, v); }});
     // Level 37 – Becken: ruhige Luft (das Wasser kommt aus pool_loop)
     d.push_back({"bed_l37_air", [] { return bed(roomTone(31.0f, 1200.0f, 80.0f, 9800u, 0.1f), 31.0f, level::kBed - 6.0f); }});
     // Stimmen in den Zonen von Level 3 (Halluzination)

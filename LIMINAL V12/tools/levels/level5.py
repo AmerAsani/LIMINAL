@@ -73,6 +73,7 @@ m.transition('l5_903', 'door', 'level903', 165.0, 33.0, math.pi / 2, rect=[163, 
 to53 = m.room(40, 2, 43, 25, 'flur', 'flur_alt', 0.0, FLUR_H, circuit=C_FLUR, label='Gang zu 5.3')
 m.opening(to53, west_n, width=3)
 m.transition('l5_53', 'seam', 'level5_3', 41.5, 3.5, -math.pi / 2, rect=[40, 2, 43, 5])
+m.transition('l53_l5', 'door', '', 41.5, 8.0, math.pi / 2)  # Rueckkehr durch die alte Holztuer der Bibliothek (Wiki: zum Eingang)
 
 # --- Fenster nach Level 188 (Wiki 188: Fenster in Innen-Leveln fuehren hinein) ------------------------------------
 fen = m.room(121, 112, 128, 121, 'fensternische', 'flur', 0.0, FLUR_H, circuit=C_FLUR)

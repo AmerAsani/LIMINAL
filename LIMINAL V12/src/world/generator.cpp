@@ -910,8 +910,10 @@ void Generator::style(Room& room) const {
                          Surface::Default, {floorTex, floorTex, floorTex});
     room.cmat = bank.get(ceil, ceilPat, WallPattern::Plain, false, {}, 0.72, Surface::Default, {ceilTex, ceilTex, ceilTex});
     Rgb stair{floor[0] * 0.95, floor[1] * 0.95, floor[2] * 0.95};
-    room.stairmat = bank.get({stair[0] * 0.8, stair[1] * 0.8, stair[2] * 0.8}, PlanePattern::None, WallPattern::Plain);
-    room.stairtop = bank.get(stair, PlanePattern::None);
+    // V12: Stufen tragen die Textur des Bodens (Holztreppen in Level 5.3 sind aus Holz, nicht aus glattem Grau)
+    room.stairmat = bank.get({stair[0] * 0.8, stair[1] * 0.8, stair[2] * 0.8}, PlanePattern::None, WallPattern::Plain, false, {}, 0.72,
+                             Surface::Default, {floorTex, floorTex, floorTex});
+    room.stairtop = bank.get(stair, PlanePattern::None, WallPattern::Plain, false, {}, 0.72, Surface::Default, {floorTex, floorTex, floorTex});
     room.mPart = bank.get({0.42, 0.45, 0.54}, PlanePattern::None, WallPattern::Plain, false, {}, 0.72, Surface::Partition);
     room.mPartTop = bank.get({0.32, 0.34, 0.40}, PlanePattern::None, WallPattern::Plain, false, {}, 0.72, Surface::Partition);
     room.mShelf = bank.get({0.26, 0.34, 0.56}, PlanePattern::None, WallPattern::Blocks, false, {}, 0.72, Surface::Shelf);

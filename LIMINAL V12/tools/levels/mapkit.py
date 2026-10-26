@@ -58,20 +58,22 @@ WALL_MOUNT = {'outlet', 'vent_grille', 'painting', 'power_box', 'wall_sconce', '
               'painting_a', 'painting_b', 'painting_c', 'painting_d', 'painting_e', 'painting_f', 'painting_lean_a', 'painting_lean_b', 'painting_lean_c', 'exit_sign_green',  # V12 L1
               'junction_box', 'violet_lamp', 'door_steel_white', 'door_steel_grey', 'door_steel_cream', 'door_window', 'door_plywood', 'door_wood_old', 'door_oversize',  # V12 L2
               'window_brick', 'painting_angel', 'painting_angel_scribbled', 'sign_warning', 'canvas_wall',  # V12 L3
-              'wainscot', 'hotel_door_a', 'hotel_door_b', 'hotel_door_c', 'hotel_door_d', 'hotel_door_e', 'hotel_door_f', 'placard_beverly', 'candle_sconce', 'painting_portrait', 'window_bright', 'cornice'}  # V12 L5
+              'wainscot', 'hotel_door_a', 'hotel_door_b', 'hotel_door_c', 'hotel_door_d', 'hotel_door_e', 'hotel_door_f', 'placard_beverly', 'candle_sconce', 'painting_portrait', 'window_bright', 'cornice',  # V12 L5
+              'library_wall', 'library_wall_lamp', 'library_wall_upper', 'bookcase_end', 'bookcase_aisle', 'bookcase_aisle_b', 'painting_renaissance_a', 'painting_renaissance_b', 'inscription_bibliotheca', 'wallpaper_peel'}  # V12 L5.3
 DOOR_MODELS = {'steel_door', 'hotel_door', 'damaged_door'}
 CEILING_MOUNT = {'batten', 'highbay', 'chandelier', 'safety_light', 'ceiling_vent',
                  'troffer', 'troffer_off', 'troffer_red', 'ceiling_diffuser', 'hanging_bulb',  # V12: Blender-Modelle
-                 'tube_white', 'tube_orange', 'tube_dead', 'chandelier_grand', 'lantern_green'}
+                 'tube_white', 'tube_orange', 'tube_dead', 'chandelier_grand', 'lantern_green', 'chandelier_iron', 'ceiling_arms'}
 # V12: Modelle, die in einem Durchbruch stehen (Bogen mit Laibung): Mitte muss in einer Tuer/Oeffnung liegen
-IN_OPENING = {'arch2', 'arch3', 'arch4', 'arch_tall3', 'arch_tall4', 'swing_door1', 'swing_door2', 'door_level3', 'elevator_door', 'elevator_cage'}
+IN_OPENING = {'arch2', 'arch3', 'arch4', 'arch_tall3', 'arch_tall4', 'swing_door1', 'swing_door2', 'door_level3', 'elevator_door', 'elevator_cage', 'door_old_open'}
 FLOOR_MOUNT = {'chair', 'rack', 'bed', 'barrel', 'cart', 'pump', 'wardrobe', 'trunk', 'water_cooler', 'armchair', 'sofa',
                'side_table', 'game_table', 'boiler', 'statue', 'transformer', 'fence_panel', 'rubble', 'barrier', 'camp',
                'desk_crt', 'switch_cabinet', 'bookcase', 'coffee_table', 'desk', 'shelf_unit', 'cabinet',
                'crate_a', 'crate_b', 'crate_c', 'debris_a', 'debris_b', 'hospital_bed', 'work_table', 'column_round',  # V12 L1
                'mach_cabinet', 'mach_pump', 'mach_tank', 'pipe_riser', 'pipe_bundle_a', 'pipe_bundle_b', 'trolley_flatbed', 'toolbox', 'stepladder', 'cable_reel', 'folding_chair', 'hopper_wagon', 'rail_track', 'chamfer_26', 'chamfer_32',  # V12 L2
                'generator', 'conveyor', 'sludge_pool', 'skull', 'train_bogie', 'greek_torso', 'angel_statue', 'canvas_drape_a', 'canvas_drape_b', 'grate_stair', 'pipe_black', 'column_greek',  # V12 L3
-               'mahjong_table', 'gramophone', 'furnace', 'metro_car_end', 'hotel_bed', 'boiler_tank'}  # V12 L5
+               'mahjong_table', 'gramophone', 'furnace', 'metro_car_end', 'hotel_bed', 'boiler_tank',  # V12 L5
+               'column_tuff', 'candelabrum', 'books_fallen'}  # V12 L5.3
 
 
 class Map:
@@ -238,6 +240,15 @@ class Map:
             return None
         return d.get('top', 2.2 if d['kind'] == 'door' else 2.5)
 
+    def block_wall(self, x, y, z):
+        """V12: Steht bei (x, y) ein Block, der bis mindestens 0,3 m ueber z reicht? Dann traegt er Wandteile
+        (frei stehende Regale: Block mit Regalen auf beiden Seiten)."""
+        ri = self.at(x, y)
+        if ri < 0:
+            return False
+        R = self.rooms[ri]
+        return any(b[0] <= x < b[2] and b[1] <= y < b[3] and R.floor + b[4] >= z + 0.3 for b in R.blocks)
+
     def wall_ok(self, x, y, yaw, rel_z=1.0):
         """Steht hinter (x, y) - Blick yaw - feste Wand? Kein Nachbarraum; vor einer Tuer nur ueber ihrem Sturz
         (Oeffnungen haben keinen)."""
@@ -372,7 +383,7 @@ class Map:
                 own = self.at(fx, fy)
                 rel = z - (self.rooms[own].floor if own >= 0 else 0.0)
                 top = self.lintel(d) if d else None
-                if self.at(bx, by) >= 0:
+                if self.at(bx, by) >= 0 and not self.block_wall(bx, by, z):
                     errs.append(f'{where}: hinter dem Wandteil ist Raum, keine Wand')
                 elif d and (top is None or rel <= top + 0.08):
                     errs.append(f'{where}: haengt in einer Tuer/Oeffnung (kein Sturz dahinter)')

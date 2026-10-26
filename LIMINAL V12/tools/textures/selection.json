@@ -19,6 +19,8 @@
     { "name": "bricks_white_old",         "id": "Bricks038",      "levels": ["3"] },
     { "name": "bricks_grey_black",        "id": "Bricks056",      "levels": ["3", "2"] },
     { "name": "wallpaper_damask_red",     "id": "EIGEN-damask",   "levels": ["5"], "generator": "damask", "meters": 0.7, "normal_strength": 1.5, "variation": 0.2 },
+    { "name": "books_spines",             "id": "EIGEN-books",    "levels": ["5.3"], "generator": "books", "meters": 0.75, "normal_strength": 1.0, "variation": 0.05 },
+    { "name": "tuff_stone",               "id": "EIGEN-tuff",     "levels": ["5.3"], "generator": "tuff", "meters": 1.2, "normal_strength": 1.2, "variation": 0.15 },
     { "name": "bricks_brown_old",         "id": "Bricks094",      "levels": ["3"] },
     { "name": "bricks_red_factory",       "id": "Bricks085",      "levels": ["3"] },
     { "name": "concrete_rough",           "id": "Concrete037",    "levels": ["3"] },

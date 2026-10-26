@@ -163,3 +163,26 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
   - V4-Referenz (worldgen 29 658) unverändert grün, weil alte Leuchten höchstens 8 m reichen.
 - **Wesen:** Deathmoths mit Nestern an den Türen dunkler Zimmer (Wiki: häufigste Wesen, zentraler Stock), selten Hounds in den Gängen.
 - **Offen:** Bewohner und Gruppen (Homely Hotel, Originals, Housekeeping), Tippen auf die Schulter, sich selbst öffnende Türen – nicht umgesetzt (`LEVELSPEC_5.md` Abschnitt 3).
+
+## E-013 Level 5.3 (26.10.2026)
+- **Quelle:** Wikidot „Level 5.3“, Revision 40 (`LEVELSPEC_5.3.md`), Bild in `LOOK_5.3.md`. Vier QA-Runden (`docs/screens/level5_3/`).
+- **Aufbau:**
+  - Ein alter Hotelgang mit abgelöster Tapete führt durch eine sehr alte Tür in die große Halle: drei Geschosse Regale mit Galerien, Tuffsäulen, Kandelaber, eiserne Kronleuchter, Wappen an der Decke.
+  - Von dort gehen Gänge zwischen Regalen in alle Richtungen ab: Westflügel älter und dunkler, Ostflügel neuer.
+  - Eine Holztreppe führt ins Obergeschoss (+3 m) mit frei stehenden Regalen und weiteren Gängen.
+  - Ein Treppengang führt zu alten Gängen (+6 m) mit Wappen an der Decke.
+  - Ein weißes Eisengitter steht vor einer Leere.
+  - Eine Sackgasse endet an der alten Holztür zurück nach Level 5 (Anker `l53_l5` im Gang zu 5.3).
+- **Stockwerke:** Das Wiki nennt sieben. Die Engine hat je Kachel einen Boden; begehbar sind drei Höhen, die Halle zeigt drei Geschosse Regale. Technische Grenze, in `LEVELSPEC_5.3.md` Abschnitt 3 benannt.
+- **Library Mind:** ohne Gestalt (Wiki: kein Körper, keine Sprache).
+  - Buchfall-Geräusche im Raum (`book_fall`, neu in `synth_levels.cpp`).
+  - Heruntergefallene Bücher am Boden.
+  - Langsamer Verlust an Verstand in allen Bibliotheksräumen (Wiki: Erinnerungen werden nach ein bis zwei Stunden genommen).
+- **Texturen:** Buchrücken und Tuffstein gibt es nicht als CC0-Set mit der nötigen Ausrichtung. Beide eigen, prozedural (`generate.py`).
+  - Die Buchreihen sind 0,375 m hoch. Deshalb liegen Fachböden und Raumböden der Bibliothek auf Vielfachen davon.
+- **Engine:** Treppenstufen tragen jetzt die Textur des Bodens (vorher glatte, helle Farbe). V4-Referenz unverändert grün.
+- **Werkzeug:** `mapkit.validate` erkennt hohe Blöcke als tragende Wand für Wandteile (frei stehende Regale). Der C++-Test prüft das ohnehin an der echten Kachelwelt.
+- **Fehler gefunden und behoben:**
+  - Runde 1: Die Regalwände der Halle lagen im Dunkeln. Neu: Kerzen an den Handläufen und Kandelaber vor den Regalen.
+  - Grüne Sicherungslaternen färbten dunkle Gänge grün; ihr Licht ist jetzt schwach und fast weiß.
+  - Regale auf den Treppenstufen und frei stehende Regale in der Freihaltezone vor Türen fielen in der Platzierungsprüfung auf und wurden verlegt.

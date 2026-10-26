@@ -51,15 +51,23 @@ Wiedereinstieg: diese Datei zuerst lesen, dann `DECISIONS.md`.
   - Funde nur auf Beistelltischen (9 von 9). Vier QA-Runden, Bilder in `docs/screens/level5/`.
   - Platzierung: 2253 Objekte, 0 ohne Halt. Engine: Lichtsuche nach Radius. Entscheidung E-012.
 
+- [x] Level 5.3 „Promethei Bibliotheca“:
+  - `LEVELSPEC_5.3.md`, `LOOK_5.3.md`.
+  - Eingangsgang, große Halle mit drei Geschossen Regalen, zwei Flügel mit Gängen, Obergeschoss, alte Gänge, Leere hinter Gittern, Ausgang zurück nach Level 5.
+  - Eigene Texturen Buchrücken und Tuffstein; 16 Blender-Modelle; Buchfall-Klang.
+  - Funde auf Regalböden (6 von 6). Vier QA-Runden, Bilder in `docs/screens/level5_3/`.
+  - Platzierung: 1480 Objekte, 0 ohne Halt. Entscheidung E-013.
+  - Notizen für Level 5 und 5.3 ergänzt.
+
 ## Als Nächstes
 1. Wesen-Pipeline (gestellte oder gerigte Modelle aus Blender); zuerst die dunkle Gestalt von Level 0.
 2. Level der Reihe nach (1, 2, 3, 5, 5.3, 188, 903, 37, 36): Spec → Look → Bau → Platzierung → Items → Wesen → Klang → Qualitätsschleife → Commit.
 3. Oberfläche neu, geprüft bei mehreren Auflösungen.
 
 ## Bekannte Fehler / offen
-- **Reiseprüfung rot (gameplay_test, 5 Fehler):**
-  - Level 5 zeigt auf 5.3, 188 und 903, die noch nicht gebaut sind.
+- **Reiseprüfung rot (gameplay_test, 4 Fehler):**
+  - Level 5 zeigt auf 188 und 903, die noch nicht gebaut sind.
   - Level 7 zeigt auf das entfernte Level 6.
   - Die Prüfung „9 Ausgänge, 1 Ende“ erwartet das Ende noch in Level 37 statt am Tor von Level 36.
-  - Wird mit 5.3, 188, 903, 37 und 36 behoben.
+  - Wird mit 188, 903, 37 und 36 behoben.
 - Einmalig hing in V11 ein Testlauf beim Start (Protokoll endete nach dem Laden der Level). In vier Wiederholungen nicht wieder aufgetreten. Ursache unbekannt; beobachten.
