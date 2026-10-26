@@ -13,11 +13,11 @@ from mathutils import kdtree
 import models.models_hand as H
 
 RB = H.RB
-BETA = 42.0                 # Lampe zur Handlaengsachse (Grad); der Kopf zeigt zur Daumenseite
-GRIP_C = (0.056, 0.003)     # die Achse laeuft unter diesem Punkt der Handflaeche
-CUP = {'f2_mc': 5.0, 'f3_mc': 12.0}   # Querwoelbung: Ring- und Kleinfinger-Mittelhand beugen sich mit
-ABD = {'f0': 3.0, 'f1': 0.0, 'f2': -3.0, 'f3': -7.0}  # Finger im Griff fast parallel (Spreizung der Ruhe weg)
-WRIST_ULNAR, WRIST_EXT = 34.0, 14.0   # Haltung des Handgelenks (Grad)
+BETA = 52.0                 # Lampe zur Handlaengsachse (Grad); der Kopf zeigt zur Daumenseite
+GRIP_C = (0.054, 0.006)     # die Achse laeuft unter diesem Punkt der Handflaeche
+CUP = {'f2_mc': 8.0, 'f3_mc': 18.0}   # Querwoelbung: Ring- und Kleinfinger-Mittelhand beugen sich mit
+ABD = {'f0': 1.5, 'f1': 0.0, 'f2': -1.0, 'f3': -3.0}  # Finger im Griff fast parallel (Spreizung der Ruhe weg)
+WRIST_ULNAR, WRIST_EXT = 33.0, 14.0   # Haltung des Handgelenks (Grad)
 PALM_C = (0.050, 0.004)     # Mitte der Handflaeche: ihr Fusspunkt auf der Achse ist der Ursprung der Lampe
 THUMB_AHEAD = 0.055         # Daumenkuppe so weit vor der Griffmitte (m, entlang der Achse)
 COMPRESS = 0.0012           # so weit darf Haut am Schaft nachgeben (m)
@@ -114,6 +114,7 @@ def solve_fingers(rig, c, a, S_cup, log):
     psel = np.where(palm > 0.8)[0]
     palm_surf = surface(skin_sel(rig, S_cup, psel), rotated_normals(rig, S_cup, psel))
     rot, surfs = {}, []
+    prev_ang = None  # Grund- und Mittelgelenk des Nachbarfingers (Sehnenverbindungen koppeln die Finger)
     for k, (n, mcp, deg, lens, wd, th) in enumerate(H.FING):
         names = [n + '_mc', f'{n}_1', f'{n}_2', f'{n}_3']
         bi = [rig.idx[x] for x in names[1:]]
@@ -123,6 +124,8 @@ def solve_fingers(rig, c, a, S_cup, log):
         dom = np.argmax(rig.W[sel][:, bi], axis=1)
         palmar = rig.N[sel][:, 2] < -0.35
         tipsel = sel[dom >= 1]
+        # gegen den Nachbarfinger nur die Glieder pruefen (am Ansatz teilen sich beide die Schwimmhaut)
+        segsel = sel[rig.W[sel][:, bi].max(1) > 0.85]
         cup = CUP.get(n + '_mc', 0.0)
 
         def quats(a1, a2, f3):
@@ -139,6 +142,8 @@ def solve_fingers(rig, c, a, S_cup, log):
                 if m.any():
                     gap = float(d[m].min()) - RB
                     cost += wseg * 1e6 * max(gap, 0.0) ** 2
+            if prev_ang is not None:
+                cost += (max(0.0, abs(a1 - prev_ang[0]) - 12.0) / 6.0) ** 2 + (max(0.0, abs(a2 - prev_ang[1]) - 15.0) / 8.0) ** 2
             return cost, S
 
         cands = []
@@ -155,17 +160,19 @@ def solve_fingers(rig, c, a, S_cup, log):
                         fine.append((evaluate(a1 + d1, a2 + d2, f)[0], a1 + d1, a2 + d2, f))
         fine.sort()
         best = None
-        for (cost, a1, a2, f3) in fine[:25]:
+        for (cost, a1, a2, f3) in fine[:25] + cands[:40]:
             S = evaluate(a1, a2, f3)[1]
-            extra = inside_penalty(palm_surf, skin_sel(rig, S, tipsel))
-            if surfs:
-                extra += inside_penalty(surfs[-1], skin_sel(rig, S, sel), margin=0.0)
+            ex_p = inside_penalty(palm_surf, skin_sel(rig, S, tipsel))
+            ex_n = inside_penalty(surfs[-1], skin_sel(rig, S, segsel), margin=0.0) if surfs else 0.0
+            extra = ex_p + ex_n
             if best is None or cost + extra < best[0]:
-                best = (cost + extra, a1, a2, f3, cost, extra)
-        _, a1, a2, f3, c0, ex = best
+                best = (cost + extra, a1, a2, f3, cost, extra, ex_p, ex_n)
+        _, a1, a2, f3, c0, ex, ex_p, ex_n = best
         for x, q in zip(names, quats(a1, a2, f3)):
             rot[x] = q
-        log.append(f'FINGER {n}: Grund {a1:.1f}, Mittel {a2:.1f}, End {a2 * f3:.1f} Grad; Kosten {c0:.3f} + {ex:.3f}')
+        log.append(f'FINGER {n}: Grund {a1:.1f}, Mittel {a2:.1f}, End {a2 * f3:.1f} Grad; Kosten {c0:.3f}, '
+                   f'in Handflaeche {ex_p:.3f}, im Nachbarfinger {ex_n:.3f}')
+        prev_ang = (a1, a2)
         S = chain(rig, names, [rot[x] for x in names])
         surfs.append(surface(skin_sel(rig, S, sel_all), rotated_normals(rig, S, sel_all)))
     return rot, surfs
@@ -180,6 +187,10 @@ def solve_thumb(rig, c, a, surfs, log, t0, seed=7):
     B = H.bone_layout()
     nail = np.array([list(B[names[d]][2]) for d in dom])
     palmar = np.einsum('ij,ij->i', rig.N[sel], nail) < -0.35
+    # Kuppe: Beugeseite der vorderen Haelfte des Endglieds (dort liegt sie auf dem Schalter)
+    h2, t2 = np.array(B['th_2'][0]), np.array(B['th_2'][1])
+    along = ((rig.V[sel] - h2) @ (t2 - h2)) / float((t2 - h2) @ (t2 - h2))
+    padm = (dom == 2) & palmar & (along > 0.45)
     rng = np.random.default_rng(seed)
     y_rest = rig.rest[rig.idx['th_2']][:3, 1]
 
@@ -192,16 +203,15 @@ def solve_thumb(rig, c, a, surfs, log, t0, seed=7):
         d, t = H.axis_dist(P, c, a)
         pen = np.maximum(0.0, (RB - COMPRESS) - d)
         cost = 4e6 * float(np.sum(pen ** 2))
-        for seg, wseg, want in ((2, 1.0, SWITCH_GAP), (1, 0.35, 0.0)):
-            m = (dom == seg) & palmar
-            gap = float(d[m].min()) - RB
-            cost += wseg * 1e6 * max(gap - want, 0.0) ** 2
+        gap = float(d[padm].min()) - RB
+        cost += 1e6 * (gap - SWITCH_GAP) ** 2  # Kuppe liegt auf (nicht darueber, nicht darin)
+        m = (dom == 1) & palmar
+        cost += 0.35 * 1e6 * max(float(d[m].min()) - RB, 0.0) ** 2
         y2 = S['th_2'][:3, :3] @ y_rest
         cost += 1.0 * (1.0 - float(np.dot(y2 / np.linalg.norm(y2), a)))
-        m = (dom == 2) & palmar
-        k = np.argmin(d[m])
-        cost += ((float(t[m][k]) - t0 - THUMB_AHEAD) / 0.006) ** 2
-        cost += 1e-4 * (x[1] ** 2 + x[2] ** 2) + 2e-4 * max(0.0, x[4] - 40.0) ** 2
+        k = np.argmin(d[padm])
+        cost += ((float(t[padm][k]) - t0 - THUMB_AHEAD) / 0.006) ** 2
+        cost += 1e-4 * (x[1] ** 2 + x[2] ** 2) + 1.5e-3 * (x[4] - 12.0) ** 2  # Endgelenk leicht gebeugt
         return cost, S, P
 
     lo = np.array([-20.0, -45.0, -70.0, -5.0, -15.0])

@@ -80,4 +80,47 @@ Laut Protokoll lädt das Spiel genau dieses Netz (2 Teile, 19 262 Dreiecke).
 
 ## 5. Kritikrunden
 
-(werden fortgeschrieben)
+Ansichten je Runde: aus dem Auge (Ruhe, Gehen, Laufen, Drehen, aus, Heben, an) und mit der Debug-Kamera `vmcam` (oben, rechts, links, unten, nah); dazu Blender-Ansichten des Modells.
+Die Hilfsskripte liegen außerhalb des Projekts (Scratchpad); die Befehle stehen in `PROGRESS.md`.
+
+### Runde 1 – neue Methode im Spiel (`v13_runde1/`)
+
+**Gebaut:**
+- Käfig mit Subdivision und Skelett mit 21 Knochen.
+- Griff-Löser: Achse unter der Hohlhand, Finger im Raster, Daumen per Zufallssuche.
+- Glb mit Skin und den Posen `grip` und `press`.
+- Engine:
+  - liest Skin und Posen;
+  - zeichnet die Hand über den Skinning-Pfad;
+  - Handgelenk, Unterarm und Handfläche kommen aus dem Skelett (Gelenk `elbow` als Markierung).
+
+**Befund und Korrektur:**
+
+| Befund | Korrektur |
+|---|---|
+| Der Unterarmansatz stand groß neben dem Ärmel. Ursache: Das glb war vor der Markierung gebaut, die Engine fiel auf die Werte von V12 zurück. | Neu gebaut; der Test vergleicht jetzt die Geometrie aus dem Skelett mit den Werten des Baus (Abweichung < 2 mm). |
+| Erster Lampenwinkel (58°) verlangte einen Ellbogen über dem Handgelenk. | Lampenwinkel und Handgelenk neu (siehe E-020). |
+| Ein Unterarm „von links unten“ erzwang eine Handfläche nach oben. | Drehung um die Lampe nach der Handfläche (zur Körpermitte) statt nach dem Unterarm. |
+| Blasse Hautfetzen am Bündchen: Teile der Skeletthand ragten heraus. Nachweis mit `vmdebug 1` (Hand ausgeblendet), siehe `05_ohne_hand_kein_rest.jpg`. | Netzvariante der Spielerfigur ohne die linke Hand (`_nh1`), dazu eine kleine Schnittkugel am Handgelenk. |
+
+**Schaltfolge neu:**
+- Die Lampe bleibt immer in der Hand.
+- Einschalten: Der Arm hebt sie, der Daumen drückt, erst dann Licht und Klick.
+- Ausschalten: Der Daumen drückt, das Licht geht aus, danach sinkt der Arm.
+
+### Runde 2 – Form (`v13_runde2/`)
+
+| Befund | Ursache | Korrektur |
+|---|---|---|
+| Finger wirkten angesteckt und dünn | Schwimmhäute saßen am Knöchel | Beugeseite und Seiten der Fingeransätze 2 cm weiter vorn, Ringe schräg (Rücken näher am Knöchel) |
+| Keine Knöchel in der Faust | Alle Punkte eines Rings folgten demselben Knochen | Gewichte je Gelenkseite: Rücken bleibt beim Knochen davor (Knöchel = dessen Kopf), Beugeseite folgt dem Glied danach |
+| Kralle mit Graten zwischen den Fingern | Grundgelenke von 27° bis 97°: Die Achse lief direkt unter dem Zeigefinger-Knöchel | Lampe steiler (52°); Ring- und Kleinfinger-Mittelhand beugen stärker (8°/18°); Nachbarfinger gekoppelt (Sehnenverbindungen); Corrective Smooth nach dem Skinning; Finger, die sich berühren, legen sich flach aneinander |
+| Nägel zur Hälfte auf der Seite | Falsche Flächenstreifen gewählt | Die beiden oberen Streifen |
+| Daumen lag nur am Gelenk auf, Druck ging ins Leere | Kuppe nicht als Ziel; Beugen hebt sie hier vom Schaft | Ziel ist die Beugeseite der vorderen Hälfte des Endglieds; Druck über Anziehen/Drehen der Daumen-Mittelhand (1,7 mm) |
+| Schalter nicht unter dem Daumen | – | Lage aus dem Bau der Hand (`vm_grip.json`), flacher (1,2 mm) |
+| Treppenkante am Bündchen (erst ohne die alte Hand sichtbar) | Scharfer Ebenenschnitt im Distanzfeld | Schnitt mit weichem Maximum gerundet (8 mm) |
+
+**Ergebnis:**
+- Aus dem Auge liegen Daumen oben und Finger unten am Schaft, beim Gehen, Laufen und Drehen.
+- Gesenkt ist die Hand außer Sicht.
+- Beim Heben bleibt das Licht aus, bis der Daumen gedrückt hat.

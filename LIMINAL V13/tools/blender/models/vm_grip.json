@@ -1,32 +1,33 @@
 {
  "switch_x": 0.0602,
- "switch_deg": -43.4,
+ "switch_deg": -36.1,
  "kvm": {
   "wrist": [
-   -0.0345,
-   -0.0336,
-   0.0397
+   -0.0276,
+   -0.0334,
+   0.0462
   ],
   "forearm": [
-   0.9571,
-   0.258,
-   -0.1317
+   0.9144,
+   0.2581,
+   -0.312
   ],
   "hand_dir": [
-   0.7882,
+   0.6694,
    -0.0054,
-   -0.6154
+   -0.7429
   ],
   "palm": [
-   0.1446,
-   0.9433,
-   0.2987
+   0.2581,
+   0.8976,
+   0.3573
   ]
  },
  "log": [
-  "KONTAKT: 129 Punkte an den Schaft gelegt (bis 1.07 mm)",
-  "SCHALTER unter der Daumenkuppe bei x = 60.2 mm, -43.4 Grad von oben (Lampenrahmen)",
-  "DRUCK: Grundgelenk +1.5, Endgelenk +21.5 Grad, Kuppe -0.23 mm zur Achse",
-  "KVM kVmWrist(-0.0345, -0.0336, 0.0397) kVmForearm(0.9571, 0.258, -0.1317) kVmHandDir(0.7882, -0.0054, -0.6154) kVmPalm(0.1446, 0.9433, 0.2987)"
+  "FINGER getrennt: 119 Verschiebungen",
+  "KONTAKT: 99 Punkte an den Schaft gelegt (bis 0.96 mm)",
+  "SCHALTER unter der Daumenkuppe bei x = 60.2 mm, -36.1 Grad von oben (Lampenrahmen)",
+  "DRUCK: Mittelhand anziehen 0.00, drehen 4.0, Grundgelenk +0.0, Endgelenk +3.0 Grad, Kuppe -1.73 mm zur Achse",
+  "KVM kVmWrist(-0.0276, -0.0334, 0.0462) kVmForearm(0.9144, 0.2581, -0.312) kVmHandDir(0.6694, -0.0054, -0.7429) kVmPalm(0.2581, 0.8976, 0.3573)"
  ]
 }

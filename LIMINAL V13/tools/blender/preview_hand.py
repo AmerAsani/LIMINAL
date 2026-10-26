@@ -51,7 +51,7 @@ def main():
             bpy.context.scene.frame_set(1)
         models_hand._lamp_cylinder((-0.06, 0, 0), (1, 0, 0))
         ctr = Vector((0.0, 0.0, 0.0))
-        size = 0.26
+        size = 0.20
         eye = (-0.40, -0.15, 0.17)
     else:
         ob, arm = models_hand.build_posed(pose)
@@ -66,7 +66,7 @@ def main():
     sh.cavity_type = 'BOTH'
     sh.show_shadows = False
     sh.show_object_outline = False
-    sc.render.resolution_x, sc.render.resolution_y = 900, 700
+    sc.render.resolution_x, sc.render.resolution_y = 1200, 900
     sc.world = bpy.data.worlds.new('w')
     sh.background_type = 'VIEWPORT'
     sh.background_color = (0.16, 0.16, 0.17)

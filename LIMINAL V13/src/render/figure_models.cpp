@@ -604,6 +604,9 @@ Shape topShape(const Ctx& c, float g, float sleeveT, float hemZ, float collarUp)
         (void)neck;
         return d;
     };
+    // V13: Saum, Kragen und Aermelende gerundet - eine scharfe Schnittkante wird beim Vernetzen zur Treppe (seit die
+    // Hand aus Blender das Aermelende freilegt, sichtbar)
+    s.clipRound = 0.008f;
     return s;
 }
 

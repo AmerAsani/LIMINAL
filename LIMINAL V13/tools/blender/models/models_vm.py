@@ -80,14 +80,31 @@ def _flashlight(lit):
     _lathe('ring', [(0.1600, 0.0228), (0.1604, 0.0246), (0.1690, 0.0248), (0.1720, 0.0240), (0.1725, 0.0212),
                     (0.1712, 0.0205)], bezel, smooth_deg=30.0)
     _lathe('glas', [(0.1700, 0.0206), (0.1702, 0.0)], glass, seg=48)
-    # Schalter: Gummikappe oben auf dem Schaft vor der Griffzone (unter dem Daumen)
+    # Schalter: flache Gummikappe unter der Daumenkuppe der Hand (V13: Lage aus models_hand -> vm_grip.json, sonst oben
+    # bei x = 0,062). Ragt 1,2 mm heraus; der Daumen drueckt sie beim Schalten 1,8 mm tief
+    sx, sdeg = _switch_place()
     sw = bmesh.new()
     bmesh.ops.create_uvsphere(sw, u_segments=24, v_segments=12, radius=1.0)
+    rot = Matrix.Rotation(math.radians(-sdeg), 4, 'X')  # um die Achse: 0 = oben, + = nach +y (links)
     for v in sw.verts:
-        v.co = Vector((0.062 + v.co.x * 0.0075, v.co.y * 0.0060, RB - 0.0008 + max(v.co.z, -0.2) * 0.0032))
+        q = Vector((sx + v.co.x * 0.0072, v.co.y * 0.0058, RB - 0.0006 + max(v.co.z, -0.2) * 0.0018))
+        v.co = rot @ q
     ob = common.obj_from_bmesh('schalter', sw, rubber)
     common.shade_auto(ob, 60.0)
-    _lathe('schalterring', [(0.0530, RB), (0.0530, RB + 0.0004), (0.0710, RB + 0.0004), (0.0710, RB)], bezel)
+    _lathe('schalterring', [(sx - 0.009, RB), (sx - 0.009, RB + 0.0004), (sx + 0.009, RB + 0.0004), (sx + 0.009, RB)], bezel)
+
+
+def _switch_place():
+    """Lage des Schalters (x entlang der Lampe, Winkel um die Achse) aus dem Bau der Hand."""
+    import json
+    import os
+    p = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'vm_grip.json')
+    try:
+        with open(p) as fh:
+            j = json.load(fh)
+        return float(j['switch_x']), float(j['switch_deg'])
+    except (OSError, KeyError, ValueError):
+        return 0.062, 0.0
 
 
 def build_vm_flashlight():

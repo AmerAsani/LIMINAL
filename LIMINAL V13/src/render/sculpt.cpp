@@ -201,7 +201,7 @@ float Shape::eval(vec3 p) const {
     }
     d -= offset;
     if (displace && std::fabs(d) < 0.04f) d += displace(p);
-    if (clip) d = std::max(d, clip(p));
+    if (clip) d = clipRound > 0.0f ? smax(d, clip(p), clipRound) : std::max(d, clip(p));
     return d;
 }
 

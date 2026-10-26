@@ -286,3 +286,27 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
 - **Version 13:** eigene Dateien für Einstellungen (`settings_v13.json`), Spielstände (`saves_v13`), Protokoll und Absturzberichte. V12-Einstellungen werden beim ersten Start nur gelesen, nie geschrieben.
 - **Bauweg:** Der Aufruf von `tools/build.ps1` über `powershell -ExecutionPolicy Bypass` wurde in dieser Umgebung abgelehnt (Sicherheitsregel). Gebaut wird deshalb direkt mit CMake und Ninja aus `.toolchain/`; das Ergebnis ist dasselbe. Befehle in `PROGRESS.md` und im Bericht.
 - **Arbeitsweise:** nach jedem Teilschritt ein Commit; Fortschritt in `PROGRESS.md`; V12-Fortschritt und -Bericht liegen in `docs/archiv/`.
+
+## E-020 Hand und Taschenlampe neu (26.10.2026)
+- **Befund:** siehe `HAND_ANALYSE.md`. Die Hand aus V12 war ein starres Netz aus vereinigten Ellipsoiden, ohne Skelett; das Verfahren selbst war die Ursache.
+- **Methode:**
+  - Box-Modelling als Viereck-Käfig mit Subdivision (Blender, `tools/blender/models/models_hand.py`).
+  - Skelett mit 21 Knochen und einer Markierung (`elbow`); Gewichte beim Bau.
+  - Griff wird gelöst (`hand_grip.py`), dann als Ruhepose übernommen; vorher Corrective Smooth, Trennen sich berührender Finger und Anlegen der Haut an den Schaft.
+- **Posen** als glTF-Animationen: `grip` = Ruhe, `press` (Daumen auf dem Schalter).
+- **Engine:**
+  - Der glb-Leser kann jetzt Skins und Posen. Die Hand nutzt den Skinning-Pfad der Figuren.
+  - Geometrie (Handgelenk, Unterarm, Handfläche) kommt zur Laufzeit aus dem Skelett, nicht aus kopierten Konstanten.
+- **Haltung:**
+  - Die Lampe liegt 52° zur Handachse schräg in der Hohlhand; das Handgelenk knickt 33° zur Elle ab und ist 14° gestreckt.
+  - Die Handfläche zeigt zur Körpermitte, der Daumen liegt oben auf dem Schaft, der Schalter unter seiner Kuppe.
+- **Abwägung:**
+  - Ein Unterarm, der genau von links unten kommt, wäre nur mit nach oben gedrehter Handfläche möglich (unnatürlich).
+  - Gewählt ist die natürliche Handhaltung; die Arm-IK gleicht über Gleiten entlang der Lampe aus (bis 4,5 cm vor).
+  - Beim Blick steil nach unten weicht der Unterarm bis 11,5° vom Modell ab (Test: < 12°).
+- **Schaltfolge:**
+  - Die Lampe bleibt immer in der Hand; gesenkt folgt ihr Rahmen dem Unterarm.
+  - Licht erst nach dem Daumendruck (Klick zugleich); aus: Druck, dann senken.
+  - Folge: Das Licht kommt etwa 0,25 s nach dem Tastendruck statt sofort. Bewusst so (Lampe und Lichtkegel passen immer zusammen).
+- **Spielerfigur:** In der Ego- und Schulteransicht wird ein Netz ohne die linke Hand gezeichnet (`_nh1`). Das Ärmelende ist gerundet.
+- **Haut:** eigenes Material mit Durchscheinen (Licht-Shader, Glanzkanal des G-Buffers); Rötung an Knöcheln und Kuppen je Punkt.

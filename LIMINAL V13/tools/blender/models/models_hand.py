@@ -92,12 +92,15 @@ class Cage:
 
 
 def _ring(cage, c, s, h, w, hd, hp, order, weights, tint=(0.0, 0.0), dorsal_bump=0.0, palmar_crease=0.0,
-          dorsal_tint=None, palmar_tint=None):
-    """Acht Kaefigpunkte um c (Querachse s, Hochachse h), Halbbreite w, Hoehe ueber/unter der Achse hd/hp."""
+          dorsal_tint=None, palmar_tint=None, shift=None):
+    """Acht Kaefigpunkte um c (Querachse s, Hochachse h), Halbbreite w, Hoehe ueber/unter der Achse hd/hp.
+    weights: Gewichte (dict) oder Funktion (a, b) -> dict; shift: Funktion (a, b) -> Versatz (Vektor) je Punkt."""
     out = []
     for (a, b) in order:
         hh = b * (hd if b > 0 else hp)
         p = c + s * (a * w * INFL) + h * (hh * INFL)
+        if shift is not None:
+            p = p + shift(a, b)
         if a == 0.0 and b > 0:
             p = p + h * dorsal_bump
         if a == 0.0 and b < 0:
@@ -107,7 +110,7 @@ def _ring(cage, c, s, h, w, hd, hp, order, weights, tint=(0.0, 0.0), dorsal_bump
             t = dorsal_tint
         if b < -0.5 and palmar_tint is not None:
             t = palmar_tint
-        out.append(cage.v(p, weights, t))
+        out.append(cage.v(p, weights(a, b) if callable(weights) else weights, t))
     return out
 
 
@@ -200,7 +203,7 @@ def build_cage():
         z = -0.0125
         # Daumenballen (Daumenseite, nahe am Handgelenk), Kleinfingerballen, Polster unter den Grundgelenken,
         # flache Hohlhand in der Mitte
-        z -= 0.0095 * math.exp(-((f - 0.36) / 0.22) ** 2) * math.exp(-((un + 0.85) / 0.45) ** 2)
+        z -= 0.0130 * math.exp(-((f - 0.36) / 0.24) ** 2) * math.exp(-((un + 0.85) / 0.45) ** 2)
         z -= 0.0075 * math.exp(-((f - 0.40) / 0.28) ** 2) * math.exp(-((un - 0.80) / 0.40) ** 2)
         z -= 0.0040 * math.exp(-((f - 0.86) / 0.12) ** 2)
         z += 0.0020 * math.exp(-((f - 0.55) / 0.18) ** 2) * math.exp(-(un / 0.5) ** 2)
@@ -216,7 +219,8 @@ def build_cage():
             if j in (0, 8):
                 y *= 0.97
             red = 0.0
-            top[i, j] = cg.v(Vector((x, y, zt(i, j))), palm_weights(x, y), (red, 0.0))
+            tendon = 0.0008 * f if (j % 2 and i >= 1) else 0.0  # Strecksehnen zu den Knoecheln
+            top[i, j] = cg.v(Vector((x, y, zt(i, j) + tendon)), palm_weights(x, y), (red, 0.0))
             dark = 0.10 if (i in (2, 3) and 2 <= j <= 6) else 0.0  # Handlinien angedeutet
             bot[i, j] = cg.v(Vector((x, y, zb(i, j))), palm_weights(x, y), (0.12, dark))
         xr, xu = xdist[0] * f, xdist[8] * f
@@ -250,13 +254,19 @@ def build_cage():
                 w[FING[k][0] + '_1'] = w.get(FING[k][0] + '_1', 0) + p1_share / len(ks)
             return w
 
-        knuckle = 0.0024 if j % 2 else 0.0
-        top5[j] = cg.v(Vector((cx - 0.0060, y, cz + hd + knuckle)), wts(0.85, 0.15), (0.22 if j % 2 else 0.05, 0.0))
-        bot5[j] = cg.v(Vector((cx + 0.0125, y, cz - 0.0120)), wts(0.40, 0.60), (0.18, 0.20 if shared else 0.05))
+        # Knoechel (Kopf des Mittelhandknochens) oben; zwischen den Knoecheln reicht die Haut ein Stueck weiter
+        # (Ruecken der Schwimmhaut); auf der Beugeseite beginnt der Finger erst an der Fingerfalte (~2 cm vor dem
+        # Grundgelenk) - so sitzen die Finger nicht wie angesteckt am Handteller
+        if j % 2:
+            top5[j] = cg.v(Vector((cx - 0.0060, y, cz + hd + 0.0030)), wts(0.90, 0.10), (0.24, 0.0))
+        else:
+            dx = 0.010 if shared else 0.004
+            top5[j] = cg.v(Vector((cx + dx, y, cz + hd - 0.0010)), wts(0.60, 0.40), (0.05, 0.10 if shared else 0.0))
+        bot5[j] = cg.v(Vector((cx + 0.0200, y, cz - 0.0115)), wts(0.25, 0.75), (0.18, 0.22 if shared else 0.05))
         if j % 2 == 0:
             yy = y + (-0.0030 if j == 0 else (0.0030 if j == 8 else 0.0))
-            mid5[j] = cg.v(Vector((cx + 0.0110 + (0.004 if shared else 0.0), yy, cz - 0.0010)), wts(0.50, 0.50),
-                           (0.05, 0.35 if shared else 0.0))
+            mid5[j] = cg.v(Vector((cx + 0.0185 + (0.004 if shared else 0.0), yy, cz - 0.0010)), wts(0.45, 0.55),
+                           (0.05, 0.38 if shared else 0.0))
     # Flaechen des Handtellers
     for i in range(4):
         for j in range(8):
@@ -295,10 +305,10 @@ def build_cage():
             return hw * scale_w, tk * 0.42 * scale_t, tk * 0.58 * scale_t
         J = [0.0, L1, L1 + L2, L1 + L2 + L3]
 
-        def wt(t):
-            """Gewichte entlang des Fingers (t ab dem Grundgelenk)."""
+        def wt_t(t):
+            """Gewichte entlang des Fingers (t ab dem Grundgelenk, schon je Gelenkseite verschoben)."""
             if t < J[1] - 0.005:
-                a = _smooth(0.004, 0.012, t)
+                a = _smooth(0.006, 0.018, t)
                 return {n + '_mc': 1 - a, n + '_1': a} if a < 1 else {n + '_1': 1.0}
             if t < J[1] + 0.005:
                 a = _smooth(J[1] - 0.005, J[1] + 0.005, t)
@@ -310,42 +320,49 @@ def build_cage():
                 return {n + '_2': 1 - a, n + '_3': a}
             return {n + '_3': 1.0}
 
+        def t_of(td, ts, tp, b):
+            """Lage eines Ringpunkts entlang des Fingers: Ruecken td, Seite ts, Beugeseite tp (b: +1 oben, -1 unten)."""
+            return ts + (td - ts) * b if b >= 0 else ts + (ts - tp) * b
+
+        def weights_for(td, ts, tp):
+            # Ueber einem Gelenk haelt die Haut des Rueckens zum Knochen davor (Knoechel = Kopf dieses Knochens), die
+            # der Beugeseite folgt dem Glied danach (dort faltet sie sich)
+            return lambda a_, b_: wt_t(t_of(td, ts, tp, b_) - 0.0040 * max(b_, 0.0) + 0.0015 * max(-b_, 0.0))
+
         rings_t = [
-            # t, Breite, Dicke, Knoechel (Ruecken), Falte (Beugeseite), Toenung Ruecken/Beugeseite
-            (0.016, 0.98, 0.98, 0.0, 0.0006, None, None),
-            (L1 * 0.55, 0.93, 0.95, 0.0, 0.0, None, None),
-            (L1 - 0.0045, 0.97, 0.98, 0.0, 0.0, None, None),
-            (L1, 1.00, 1.00, 0.0016, 0.0015, (0.30, 0.0), (0.10, 0.45)),
-            (L1 + 0.0045, 0.97, 0.97, 0.0, 0.0, None, None),
-            (L1 + L2 * 0.5, 0.91, 0.90, 0.0, 0.0, None, None),
-            (L1 + L2 - 0.0035, 0.90, 0.87, 0.0, 0.0, None, None),
-            (L1 + L2, 0.91, 0.85, 0.0011, 0.0012, (0.24, 0.0), (0.10, 0.40)),
-            (L1 + L2 + 0.0040, 0.88, 0.82, 0.0, 0.0, None, (0.25, 0.0)),
-            (L1 + L2 + L3 * 0.55, 0.86, 0.76, 0.0, 0.0, None, (0.32, 0.0)),
-            (L1 + L2 + L3 * 0.86, 0.72, 0.58, 0.0, 0.0, None, (0.38, 0.0)),
+            # Ruecken, Seite, Beugeseite (t), Breite, Dicke, Knoechel (Ruecken), Falte (Beugeseite), Toenung Ruecken/Beugeseite
+            (0.010, 0.026, 0.028, 0.99, 0.99, 0.0008, 0.0008, (0.14, 0.0), (0.10, 0.30)),
+            (L1 * 0.55, L1 * 0.58, L1 * 0.60, 0.93, 0.95, 0.0, 0.0, None, None),
+            (L1 - 0.0050, L1 - 0.0045, L1 - 0.0040, 0.97, 0.98, 0.0, 0.0, None, None),
+            (L1, L1, L1, 1.00, 1.00, 0.0018, 0.0015, (0.30, 0.0), (0.10, 0.45)),
+            (L1 + 0.0045, L1 + 0.0045, L1 + 0.0045, 0.97, 0.97, 0.0, 0.0, None, None),
+            (L1 + L2 * 0.5, L1 + L2 * 0.5, L1 + L2 * 0.5, 0.91, 0.90, 0.0, 0.0, None, None),
+            (L1 + L2 - 0.0035, L1 + L2 - 0.0035, L1 + L2 - 0.0035, 0.90, 0.87, 0.0, 0.0, None, None),
+            (L1 + L2, L1 + L2, L1 + L2, 0.91, 0.85, 0.0012, 0.0012, (0.24, 0.0), (0.10, 0.40)),
+            (L1 + L2 + 0.0040, L1 + L2 + 0.0040, L1 + L2 + 0.0040, 0.88, 0.82, 0.0, 0.0, None, (0.25, 0.0)),
+            (L1 + L2 + L3 * 0.55, L1 + L2 + L3 * 0.55, L1 + L2 + L3 * 0.55, 0.86, 0.76, 0.0, 0.0, None, (0.32, 0.0)),
+            (L1 + L2 + L3 * 0.86, L1 + L2 + L3 * 0.86, L1 + L2 + L3 * 0.86, 0.72, 0.58, 0.0, 0.0, None, (0.38, 0.0)),
         ]
         prev = base
         rings = []
-        for (t, sw, st, bump, crease, dt, pt) in rings_t:
+        for (td, ts, tp, sw, st, bump, crease, dt, pt) in rings_t:
             w_, hd, hp = dims(sw, st)
-            c = m + u * t
-            r = _ring(cg, c, s, Z, w_, hd, hp, P8_F, wt(t), (0.06, 0.0), dorsal_bump=bump, palmar_crease=crease,
-                      dorsal_tint=dt, palmar_tint=pt)
+            c = m + u * ts
+            r = _ring(cg, c, s, Z, w_, hd, hp, P8_F, weights_for(td, ts, tp), (0.06, 0.0), dorsal_bump=bump,
+                      palmar_crease=crease, dorsal_tint=dt, palmar_tint=pt,
+                      shift=lambda a_, b_, td=td, ts=ts, tp=tp: u * (t_of(td, ts, tp, b_) - ts))
             cg.bridge(prev, r)
             rings.append(r)
             prev = r
         tip = cg.v(m + u * J[3] + Z * (-tk * 0.12), {n + '_3': 1.0}, (0.40, 0.0))
         cg.cap8(prev, tip)
-        # Nagel: Rueckenflaechen zwischen den letzten drei Ringen
-        for a, b in ((rings[-3], rings[-2]), (rings[-2], rings[-1])):
-            for i0 in (7, 0):
-                i1 = (i0 + 1) % 8
-                f = cg.bm.faces.get((a[i0], a[i1], b[i1], b[i0])) if hasattr(cg.bm.faces, 'get') else None
-                if f is None:
-                    for ff in a[i0].link_faces:
-                        if set(ff.verts) == {a[i0], a[i1], b[i1], b[i0]}:
-                            f = ff
-                cg.nail_faces.append(f)
+        # Nagel: die beiden oberen Flaechenstreifen (Punkte 0-1-2) zwischen den letzten drei Ringen
+        for ra, rb in ((rings[-3], rings[-2]), (rings[-2], rings[-1])):
+            for i0 in (0, 1):
+                i1 = i0 + 1
+                for ff in ra[i0].link_faces:
+                    if set(ff.verts) == {ra[i0], ra[i1], rb[i1], rb[i0]}:
+                        cg.nail_faces.append(ff)
 
     # --- Daumen ---------------------------------------------------------------------------------------------
     patch = [bot[1, 0], bot[2, 0], bot[3, 0], midR[3], top[3, 0], top[2, 0], top[1, 0], midR[1]]
@@ -656,6 +673,56 @@ def _flatten_contact(ob, c, a, inner=0.0003, iters=4):
     return int((push > 0).sum()), float(push.max())
 
 
+def _separate_fingers(ob, iters=4, gap=0.0002):
+    """Nach dem Beugen: wo zwei Nachbarfinger (oder Finger und Daumen) einander durchdringen, legt sich die Haut
+    flach aneinander - beide Seiten weichen je zur Haelfte aus."""
+    from mathutils import kdtree
+    me = ob.data
+    groups = {g.index: g.name for g in ob.vertex_groups}
+    owner = np.full(len(me.vertices), -1)
+    names = [f[0] for f in FING] + ['th']
+    for v in me.vertices:
+        best, bw = -1, 0.6
+        for g in v.groups:
+            nm = groups[g.group]
+            for k, fn in enumerate(names):
+                if nm.startswith(fn + '_') and not nm.endswith('_mc') and nm != 'th_0' and g.weight > bw:
+                    best, bw = k, g.weight
+        owner[v.index] = best
+    moved = 0
+    pairs = [(0, 1), (1, 2), (2, 3), (4, 0), (4, 1)]
+    for _ in range(iters):
+        me.update()
+        V = np.array([v.co for v in me.vertices])
+        N = np.array([v.normal for v in me.vertices])
+        delta = np.zeros_like(V)
+        for (a, b) in pairs:
+            ia, ib = np.where(owner == a)[0], np.where(owner == b)[0]
+            if len(ia) == 0 or len(ib) == 0:
+                continue
+            kd = kdtree.KDTree(len(ia))
+            for j, i in enumerate(ia):
+                kd.insert(V[i], j)
+            kd.balance()
+            for i in ib:
+                co, j, dist = kd.find(V[i])
+                if dist > 0.006:
+                    continue
+                q = ia[j]
+                sd = float(np.dot(V[i] - V[q], N[q]))
+                if sd < gap:
+                    push = (gap - sd) * 0.5
+                    delta[i] += N[q] * push
+                    delta[q] -= N[q] * push
+                    moved += 1
+        if not delta.any():
+            break
+        for v, d in zip(me.vertices, delta):
+            v.co = v.co + Vector(d)
+    me.update()
+    return moved
+
+
 def _apply_pose_as_rest(arm):
     bpy.context.view_layer.objects.active = arm
     bpy.ops.object.mode_set(mode='POSE')
@@ -706,7 +773,18 @@ def build_final(log):
     rot = dict(rot)
     rot['forearm'] = q_wrist
     _set_pose(arm, rot)
+    # Lineares Skinning faltet die Haut an stark gebeugten Gelenken (Grate zwischen den Fingern, eingedrueckte
+    # Knoechel). Corrective Smooth glaettet nur diese Verformung gegenueber der Ruheform; danach anwenden
+    cs = ob.modifiers.new('glaetten', 'CORRECTIVE_SMOOTH')
+    cs.rest_source = 'ORCO'
+    cs.smooth_type = 'LENGTH_WEIGHTED'
+    cs.iterations = 12
+    cs.factor = 0.5
+    cs.use_only_smooth = False
     _apply_modifier(ob, 'skelett')
+    _apply_modifier(ob, 'glaetten')
+    nsep = _separate_fingers(ob)
+    log.append(f'FINGER getrennt: {nsep} Verschiebungen')
     n, mx = _flatten_contact(ob, c, a)
     log.append(f'KONTAKT: {n} Punkte an den Schaft gelegt (bis {mx * 1000:.2f} mm)')
     _apply_pose_as_rest(arm)
@@ -740,26 +818,33 @@ def build_final(log):
     _transform_all(ob, arm, M)
     switch_x = float(t[pad] - t0)
     log.append(f'SCHALTER unter der Daumenkuppe bei x = {switch_x * 1000:.1f} mm, {switch_ang:.1f} Grad von oben (Lampenrahmen)')
-    # Druck auf den Schalter: Daumen-Grund- und Endgelenk beugen, bis die Kuppe 1,8 mm tiefer liegt
+    # Druck auf den Schalter: die Kuppe (Punkte des Endglieds bis 3 mm ueber ihrem tiefsten Punkt) soll 1,8 mm tiefer
+    # liegen. Den Daumen druckt vor allem die Mittelhand zum Schaft (Anziehen, etwas Drehen), Grund- und Endgelenk
+    # duerfen nachgeben; moeglichst kleine Winkel
     rig = Rig(arm, ob)
     tsel = np.where(rig.W[:, rig.idx['th_2']] > 0.9)[0]
     ax_c, ax_a = np.zeros(3), np.array([1.0, 0, 0])
-    d0 = axis_dist(rig.V[tsel], ax_c, ax_a)[0].min()
+    dt0 = axis_dist(rig.V[tsel], ax_c, ax_a)[0]
+    pad = tsel[dt0 < dt0.min() + 0.003]
+    p0 = rig.V[pad]
+    d0 = float(axis_dist(p0, ax_c, ax_a)[0].min())
     best = None
-    for d1 in np.arange(0.0, 14.0, 0.5):
-        for d2 in np.arange(0.0, 22.0, 0.5):
-            S = G.chain(rig, ['th_1', 'th_2'], [flex(d1), flex(d2)])
-            # th_0 bleibt: Kette ab th_1 haengt an th_0 (in Ruhe) - Eltern-Ruhe korrekt mitnehmen
-            P = G.skin_sel(rig, S, tsel)
-            dd, tt = axis_dist(P, ax_c, ax_a)
-            k = int(np.argmin(dd))
-            err = (dd[k] - (d0 - 0.0018)) ** 2 * 1e6 + 0.02 * (d1 * d1 + 0.5 * d2 * d2) / 100.0
-            if best is None or err < best[0]:
-                best = (err, d1, d2, dd[k] - d0)
-    _, d1, d2, dz = best
-    log.append(f'DRUCK: Grundgelenk +{d1:.1f}, Endgelenk +{d2:.1f} Grad, Kuppe {dz * 1000:.2f} mm zur Achse')
+    for ab in np.arange(0.0, 4.01, 0.25):
+        for tw in np.arange(-4.0, 6.01, 1.0):
+            for d1 in np.arange(-4.0, 6.01, 2.0):
+                for d2 in np.arange(0.0, 12.1, 3.0):
+                    S = G.chain(rig, ['th_0', 'th_1', 'th_2'], [flex(0.0, ab, tw), flex(d1), flex(d2)])
+                    P = G.skin_sel(rig, S, pad)
+                    dd = float(axis_dist(P, ax_c, ax_a)[0].min())
+                    slide = float(np.abs((P - p0)[:, 0]).mean())  # die Kuppe soll nicht entlang der Lampe rutschen
+                    err = (dd - (d0 - 0.0018)) ** 2 * 1e6 + (slide / 0.002) ** 2 + 0.01 * (4 * ab * ab + tw * tw + d1 * d1 + 0.5 * d2 * d2) / 100.0
+                    if best is None or err < best[0]:
+                        best = (err, ab, tw, d1, d2, dd - d0)
+    _, ab, tw, d1, d2, dz = best
+    log.append(f'DRUCK: Mittelhand anziehen {ab:.2f}, drehen {tw:.1f}, Grundgelenk {d1:+.1f}, Endgelenk {d2:+.1f} Grad, '
+               f'Kuppe {dz * 1000:.2f} mm zur Achse')
     _make_action(arm, 'grip', {})
-    _make_action(arm, 'press', {'th_1': flex(d1), 'th_2': flex(d2)})
+    _make_action(arm, 'press', {'th_0': flex(0.0, ab, tw), 'th_1': flex(d1), 'th_2': flex(d2)})
     # Kennwerte fuer gameplay/body.cpp (Lampenrahmen; im Spiel ist y gespiegelt)
     bones = arm.data.bones
     wrist = bones['hand'].head_local

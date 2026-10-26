@@ -48,6 +48,7 @@ public:
     std::function<float(vec3)> displace;
     // Beschneiden: Punkte mit clip(p) > 0 liegen ausserhalb (z. B. Saum, Aermelende)
     std::function<float(vec3)> clip;
+    float clipRound = 0.0f;  // V13: > 0 - Schnittkante gerundet (weiches Maximum, m), sonst scharf
     float offset = 0.0f;  // gesamte Oberflaeche nach aussen verschieben (Kleidung ueber dem Koerper)
 
     float eval(vec3 p) const;
