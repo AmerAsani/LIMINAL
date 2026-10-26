@@ -118,6 +118,25 @@ target_link_options(LiminalGame PRIVATE -municode)
 add_dependencies(LiminalGame lim_shaders lim_data)
 
 # ------------------------------------------------------------------------------------
+# V13.2: Mehrspieler-Transport (MULTIPLAYER_ARCHITEKTUR.md, Abschnitte 4-6): ENet 1.3.18 (MIT, third_party/enet,
+# unveraendert), Verschluesselung ueber die Windows-Kryptografie (CNG). Alles liegt in liminal_net.dll; das Spiel laedt
+# sie erst beim Hosten oder Beitreten. LiminalGame.exe bindet keine Netzwerkbibliothek (tools/check_no_network.py).
+# ------------------------------------------------------------------------------------
+file(GLOB LIM_ENET_SRC "${CMAKE_SOURCE_DIR}/third_party/enet/*.c")
+add_library(lim_enet STATIC ${LIM_ENET_SRC})
+target_include_directories(lim_enet PUBLIC "${CMAKE_SOURCE_DIR}/third_party/enet/include")
+target_compile_options(lim_enet PRIVATE -w -O2)
+target_link_libraries(lim_enet PUBLIC ws2_32 winmm)
+add_library(lim_netsec STATIC src/netdll/secure.cpp)
+target_link_libraries(lim_netsec PUBLIC lim_options bcrypt)
+add_library(liminal_net SHARED src/netdll/transport.cpp)
+target_link_libraries(liminal_net PRIVATE lim_netsec lim_enet lim_options)
+set_target_properties(liminal_net PROPERTIES PREFIX "" RUNTIME_OUTPUT_DIRECTORY "${LIM_BIN_DIR}")
+# dieselbe Transportschicht statisch fuer Tests und Bots (ohne DLL-Laden)
+add_library(lim_nettransport STATIC src/netdll/transport.cpp)
+target_link_libraries(lim_nettransport PUBLIC lim_netsec lim_enet lim_options)
+
+# ------------------------------------------------------------------------------------
 # Starter (Voraussetzungen pruefen, dann das Spiel starten)
 # ------------------------------------------------------------------------------------
 add_subdirectory(launcher)
@@ -153,6 +172,10 @@ set_target_properties(sound_export PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_
 # V13: Mehrspielerprotokoll - Regeln, Gegentests, Fuzzing, Rate und Zeitlimits (MULTIPLAYER_TESTS.md)
 add_executable(net_protocol_test tests/net_protocol_test.cpp)
 target_link_libraries(net_protocol_test PRIVATE lim_net)
+# V13.2: Transport des Mehrspielers ueber echtes UDP (Kryptografie-Testvektoren, Handshake, Angriffe)
+add_executable(net_transport_test tests/net_transport_test.cpp)
+target_link_libraries(net_transport_test PRIVATE lim_nettransport)
+set_target_properties(net_transport_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
 set_target_properties(net_protocol_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
 
 # V6: raeumliche Struktur (Raumdichte, Raumgroessen, Sichtachsen) alter gegen neuer Aufbau

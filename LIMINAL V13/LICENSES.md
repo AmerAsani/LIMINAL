@@ -121,6 +121,8 @@ Notizen (`data/notes.json`), Hilfe, Abspann und alle Beschriftungen sind selbst 
 |---|---|---|
 | llvm-mingw-Laufzeit (libc++, libc++abi, libunwind, compiler-rt), statisch gebunden | https://github.com/mstorsjo/llvm-mingw | Apache License 2.0 mit LLVM Exceptions |
 | mingw-w64-Laufzeit | https://www.mingw-w64.org | ZPL / MIT-ähnlich |
+| ENet 1.3.18 (UDP-Transport des Mehrspielers, in `liminal_net.dll`), unverändert in `third_party/enet` mit `LICENSE` | https://github.com/lsalzman/enet, Commit 2662c0de09e36f2a2030ccc2c528a3e4c9e8138a, abgerufen 2026-10-26 | MIT, Copyright (c) 2002-2024 Lee Salzman |
+| Windows-Kryptografie (CNG, `bcrypt.dll`) | Bestandteil von Windows, nur dynamisch aufgerufen | Windows-Lizenz (nicht mitgeliefert) |
 
 ## 8. Offene Rechtsfragen (nicht geklärt)
 
