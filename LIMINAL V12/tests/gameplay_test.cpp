@@ -1636,7 +1636,7 @@ static void testV11Supplies() {
             if (std::string(id) == "level0")
                 check(st.total >= 3 && st.total <= 6 && st.kinds.count("energy") == 0 && st.minSame > 20.0f,
                       std::format("Level 0: wenige Vorraete ({}), keine Energy Bars, gleiche weit auseinander", st.total));
-            if (std::string(id) == "level5" || std::string(id) == "level5_3" || std::string(id) == "level188" || std::string(id) == "level903")
+            if (std::string(id) == "level5" || std::string(id) == "level5_3" || std::string(id) == "level188" || std::string(id) == "level903" || std::string(id) == "level36")
                 check(st.onFloor == 0, std::format("{}: Funde liegen auf Ablagen, nicht auf dem Boden", id));
         }
     }
@@ -1660,10 +1660,11 @@ static Mount mountOf(const std::string& m) {
                                  "library_wall", "library_wall_lamp", "library_wall_upper", "bookcase_end", "bookcase_aisle", "bookcase_aisle_b", "painting_renaissance_a", "painting_renaissance_b",
                                  "inscription_bibliotheca", "wallpaper_peel", "door_old_open",  // V12 Level 5.3
                                  "window_188_a", "window_188_b", "window_188_c", "window_188_fig", "window_188_lit", "window_entry_188", "door_mahogany", "walkway_glass", "door_mahogany_open",  // V12 Level 188
-                                 "metro_dormant_a", "metro_dormant_b", "metro_dormant_home", "metro_dormant_coupling", "sign_903_wall"};  // V12 Level 903
+                                 "metro_dormant_a", "metro_dormant_b", "metro_dormant_home", "metro_dormant_coupling", "sign_903_wall",  // V12 Level 903
+                                 "departure_board", "exit_sign_36", "storefront_a", "storefront_b", "storefront_c", "storefront_closed", "gate_sign_c30", "gate_sign_c31", "gate_sign_c32", "gate_sign_c33", "gate_sign_c34", "gate_door_closed", "gate_door_boarding", "clock_36", "clock_36_b", "water_fountain", "restroom_sign"};  // V12 Level 36
     static const char* ceil[] = {"batten", "highbay", "chandelier", "safety_light", "ceiling_vent",
                                  "troffer", "troffer_off", "troffer_red", "ceiling_diffuser", "hanging_bulb",  // V12
-                                 "tube_white", "tube_orange", "tube_dead", "chandelier_grand", "lantern_green", "chandelier_iron", "ceiling_arms", "skylight_188", "tube_long", "sign_903_a", "sign_903_b"};
+                                 "tube_white", "tube_orange", "tube_dead", "chandelier_grand", "lantern_green", "chandelier_iron", "ceiling_arms", "skylight_188", "tube_long", "sign_903_a", "sign_903_b", "sign_36_a", "sign_36_b", "sign_36_empty"};
     static const char* floor[] = {"chair", "rack", "bed", "barrel", "cart", "pump", "wardrobe", "trunk", "water_cooler", "armchair", "sofa",
                                   "side_table", "game_table", "boiler", "statue", "transformer", "fence_panel", "rubble", "barrier", "camp",
                                   "desk_crt", "crate", "pallet", "switch_cabinet", "stall_line", "arrow", "floor_glow", "car",
@@ -1674,7 +1675,8 @@ static Mount mountOf(const std::string& m) {
                                   "mahjong_table", "gramophone", "furnace", "metro_car_end", "hotel_bed", "boiler_tank",  // V12 Level 5
                                   "column_tuff", "candelabrum", "books_fallen",  // V12 Level 5.3
                                   "paving_strip", "birch_circle", "table_188", "pillar_188",  // V12 Level 188
-                                  "metro_car_903", "metro_car_37", "track_metro", "platform_edge", "stairs_barricaded"};  // V12 Level 903
+                                  "metro_car_903", "metro_car_37", "track_metro", "platform_edge", "stairs_barricaded",  // V12 Level 903
+                                  "carousel_36", "luggage_pile", "checkin_counter", "bta_booth", "travelator", "travelator_stopped", "seats_row", "gate_counter", "camp_c32"};  // V12 Level 36
     for (const char* w : wall)
         if (m == w) return Mount::Wall;
     for (const char* c : ceil)

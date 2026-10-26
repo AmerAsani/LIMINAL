@@ -373,6 +373,52 @@ Sound bookFall(int rate, int v) {
     return b.sound();
 }
 
+// V12 Level 36: Durchsage im Flughafen (Wiki: eintoenige, geschlechtslose Stimme ueber Lautsprecher) - zweitoeniger
+// Gong, dann eine Stimme mit fast fester Tonhoehe in Silben, bandbegrenzt wie aus Deckenlautsprechern, mit Raumhall
+Sound paAnnounce(int rate, int v) {
+    Rand r(9700u + (unsigned)v);
+    Buf b(9.0f, rate);
+    for (int k = 0; k < 2; ++k) {  // Gong: zwei Toene, weich, lang
+        const float hz = k == 0 ? 659.0f : 523.0f;
+        const float t0 = 0.05f + k * 0.55f;
+        std::vector<float> g((size_t)(2.0f * (float)rate), 0.0f);
+        for (size_t i = 0; i < g.size(); ++i) {
+            const float t = (float)i / (float)rate;
+            const float e = envAD(t, 0.01f, 1.6f);
+            g[i] = e * (0.7f * std::sin(6.2831853f * hz * t) + 0.2f * std::sin(6.2831853f * hz * 2.0f * t) + 0.1f * std::sin(6.2831853f * hz * 3.0f * t));
+        }
+        b.add(g, t0, 0.35f);
+    }
+    static const float vowels[5][3] = {{730, 1090, 2440}, {530, 1840, 2480}, {270, 2290, 3010}, {570, 840, 2410}, {300, 870, 2240}};
+    const float f0 = 150.0f;  // weder hoch noch tief, kaum Melodie
+    float t = 1.6f;
+    const int words = r.irange(9, 15);
+    for (int w = 0; w < words; ++w) {
+        const int syl = r.irange(1, 3);
+        for (int s = 0; s < syl; ++s) {
+            const float d = r.range(0.12f, 0.2f);
+            VoiceSpec vs;
+            const float fs = f0 * r.range(0.97f, 1.03f);
+            vs.f0 = [=](float u) { return fs * (1.0f - 0.03f * u); };
+            vs.amp = [](float u) { return std::sin(3.14159f * u); };
+            const int vw = r.irange(0, 4);
+            vs.formants = {vowels[vw][0], vowels[vw][1], vowels[vw][2]};
+            vs.breath = 0.15f, vs.jitter = 0.01f;
+            voice(b, t, d, vs, r);
+            t += d + 0.02f;
+        }
+        t += r.range(0.06f, 0.18f);
+    }
+    filter(b, Biquad::HP, 300.0f, 0.7f);
+    filter(b, Biquad::LP, 3400.0f, 0.7f);
+    dsp::RoomSpec room;
+    room.t60Low = 2.4f, room.t60Mid = 2.2f, room.t60High = 1.2f, room.size = 2.0f;
+    reverb(b, room, 0.35f, 0.8f, 9710u + (unsigned)v);
+    trim(b);
+    normalize(b, level::kEvent - 8.0f);
+    return b.sound();
+}
+
 // --- ferne Ereignisse -----------------------------------------------------------------------------------
 Sound distant(int rate, int kind, int v) {
     Rand r(9500u + (unsigned)kind * 11u + (unsigned)v);
@@ -507,6 +553,8 @@ void addLevelSounds(std::vector<SoundDef>& d, int rate) {
     // Level 5.3 – Bibliothek: sehr still, weiter Raum; Buecher fallen
     d.push_back({"bed_l53_room", [] { return bed(roomTone(31.0f, 260.0f, 35.0f, 9830u, 0.08f), 31.0f, level::kBed - 7.0f); }});
     for (int v = 0; v < 3; ++v) d.push_back({std::format("book_fall_{}", v), [=] { return bookFall(rate, v); }});
+    // Level 36 – Flughafen: Durchsagen
+    for (int v = 0; v < 3; ++v) d.push_back({std::format("pa_announce_{}", v), [=] { return paAnnounce(rate, v); }});
     // Level 37 – Becken: ruhige Luft (das Wasser kommt aus pool_loop)
     d.push_back({"bed_l37_air", [] { return bed(roomTone(31.0f, 1200.0f, 80.0f, 9800u, 0.1f), 31.0f, level::kBed - 6.0f); }});
     // Stimmen in den Zonen von Level 3 (Halluzination)

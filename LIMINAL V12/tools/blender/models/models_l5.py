@@ -37,9 +37,11 @@ def _font():
     return FONT
 
 
-def _text(name, body, size, mat, at, depth=0.002):
-    """Text als Mesh in der yz-Ebene, blickt entlang +x, zentriert um at."""
+def _text(name, body, size, mat, at, depth=0.002, res=None):
+    """Text als Mesh in der yz-Ebene, blickt entlang +x, zentriert um at. res: Kurvenaufloesung (weniger Dreiecke)."""
     cu = bpy.data.curves.new(name, 'FONT')
+    if res:
+        cu.resolution_u = res
     cu.body = body
     cu.font = _font()
     cu.size = size

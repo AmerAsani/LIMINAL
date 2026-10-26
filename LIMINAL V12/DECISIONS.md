@@ -232,3 +232,23 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
   - V4-Referenz unverändert grün.
 - **Level 7 entfernt:** Es gehört nicht zur Auswahl. Der Schwimm- und Ertrink-Test läuft jetzt in einer Grube von Level 37. Die Notiz von Level 7 ist entfernt; in V11 bleibt alles erhalten.
 - **Test:** Die Reiseprüfung erwartet das Ende jetzt in Level 36.
+
+## E-017 Level 36 – das Ende (26.10.2026)
+- **Quelle:** Wikidot „Level 36“, Revision 33 (`LEVELSPEC_36.md`), Bild in `LOOK_36.md`. Drei QA-Runden und eine Schlussaufnahme (`docs/screens/level36/`).
+- **Aufbau:**
+  - Gepäckausgabe (Ankunft aus der Metro am Band), Check-in mit Schaltern, Abflugtafeln und BTA-Stand.
+  - Rundgang mit Laufbändern und widersprüchlichen Wegweisern, eine Sackgasse hinter einem EXIT-Schild.
+  - Ladenzeile, Gatehalle C mit fünf Gates.
+- **Ende:**
+  - Nur Gate C33 steigt ein; seine Tür ist der einzige Übergang der Art „end“.
+  - Wiki: Jede Gate-Tür führt in 36.1. Die anderen Tore sind hier geschlossen, weil ihr Countdown nicht läuft (Wiki: Einstieg ab 1000, Schluss bei 0).
+  - Die Reiseprüfung verlangt genau ein Ende, und zwar in Level 36.
+- **Wartende an C32:** Es gibt keine Menschen. Ihre Habseligkeiten und ihr Stimmengewirr zeigen sie.
+- **Klang:** Neue Durchsage `pa_announce`: Gong und eine eintönige, unverständliche Stimme, bandbegrenzt mit Hall.
+- **Schrift in Blender:**
+  - Für Schilder flach und mit geringer Kurvenauflösung. Die Abflugtafel sank von 89 480 auf 8 168 Dreiecke.
+  - Zu grobe Kurven (Stufe 2) zerrissen Buchstaben; Stufe 4–5 ist lesbar.
+- **Fehler gefunden und behoben:**
+  - Abflugtafel mit vertauschten Spalten: Im Blick entlang −x liegt +y rechts.
+  - BTA-Stand zur Wand gedreht; seine Schrift stand nur auf der Rückseite.
+  - Uhr und Trinkbrunnen hingen in Öffnungen.

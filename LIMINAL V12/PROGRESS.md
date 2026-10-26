@@ -79,13 +79,17 @@ Wiedereinstieg: diese Datei zuerst lesen, dann `DECISIONS.md`.
   - Engine: Wasservarianten, Wasser in Durchgängen. Drei QA-Runden, Bilder in `docs/screens/level37/`. Entscheidung E-016.
 - [x] Level 7 aus V12 entfernt; Schwimmtest in Level 37.
 
+- [x] Level 36 „Timeless Airport“ – das Ende:
+  - `LEVELSPEC_36.md`, `LOOK_36.md`.
+  - Gepäckausgabe, Check-in, Rundgang mit Laufbändern, Sackgasse hinter EXIT, Ladenzeile, Gates C30–C34.
+  - Die Wartenden an C32 (nur ihre Sachen), Boarding an C33 = Ende.
+  - 29 Blender-Modelle, Durchsage-Klang. Bilder in `docs/screens/level36/`. Entscheidung E-017.
+- [x] **Alle zehn Level gebaut; Reiseprüfung grün (Tests 351/0).**
+
 ## Als Nächstes
-1. Wesen-Pipeline (gestellte oder gerigte Modelle aus Blender); zuerst die dunkle Gestalt von Level 0.
-2. Level der Reihe nach (1, 2, 3, 5, 5.3, 188, 903, 37, 36): Spec → Look → Bau → Platzierung → Items → Wesen → Klang → Qualitätsschleife → Commit.
-3. Oberfläche neu, geprüft bei mehreren Auflösungen.
+1. Oberfläche neu (Menüs, HUD, Notizbuch, Abspann), geprüft bei mehreren Auflösungen; Debug getrennt.
+2. `LICENSES.md` (Texturen, eigene Texturen, Schrift, Blender, Wikidot je Seite, offene Rechtsfragen), `MULTIPLAYER.md`, `REPORT.md`.
+3. Schlussprüfung: V10- und V11-Manifeste, alle Tests, Build.
 
 ## Bekannte Fehler / offen
-- **Reiseprüfung rot (gameplay_test, 2 Fehler):**
-  - Level 903 zeigt auf 36 (Anker `l903_36` fehlt dort noch); das Ende (Tor in 36) fehlt noch.
-  - Wird mit Level 36 behoben.
 - Einmalig hing in V11 ein Testlauf beim Start (Protokoll endete nach dem Laden der Level). In vier Wiederholungen nicht wieder aufgetreten. Ursache unbekannt; beobachten.
