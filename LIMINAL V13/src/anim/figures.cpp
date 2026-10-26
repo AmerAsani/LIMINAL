@@ -15,6 +15,9 @@ std::array<Build, kFigureCount> makeBuilds() {
         // Rundung vernetzt; bei 24 Grad lag die Innenseite des Oberarms darin und Aermel und Rumpf verschmolzen zu
         // einer Flaeche - beim Bewegen riss der Aermel innen auf
         b.armAbduct = 0.95f;
+        // V13.3: Unterarm 27 cm (Ellbogen- bis Handgelenk; vorher 0,146 x Groesse = 25,4 cm), Oberarm bleibt 0,172 x
+        // Groesse = 29,9 cm (HAND_ANALYSE.md, Abschnitt V13.3)
+        b.forearm = 0.27f;
         a[(int)Figure::Player] = b;
     }
     for (auto& b : a) b.finish();
