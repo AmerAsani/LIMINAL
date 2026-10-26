@@ -59,13 +59,14 @@ WALL_MOUNT = {'outlet', 'vent_grille', 'painting', 'power_box', 'wall_sconce', '
               'junction_box', 'violet_lamp', 'door_steel_white', 'door_steel_grey', 'door_steel_cream', 'door_window', 'door_plywood', 'door_wood_old', 'door_oversize',  # V12 L2
               'window_brick', 'painting_angel', 'painting_angel_scribbled', 'sign_warning', 'canvas_wall',  # V12 L3
               'wainscot', 'hotel_door_a', 'hotel_door_b', 'hotel_door_c', 'hotel_door_d', 'hotel_door_e', 'hotel_door_f', 'placard_beverly', 'candle_sconce', 'painting_portrait', 'window_bright', 'cornice',  # V12 L5
-              'library_wall', 'library_wall_lamp', 'library_wall_upper', 'bookcase_end', 'bookcase_aisle', 'bookcase_aisle_b', 'painting_renaissance_a', 'painting_renaissance_b', 'inscription_bibliotheca', 'wallpaper_peel'}  # V12 L5.3
+              'library_wall', 'library_wall_lamp', 'library_wall_upper', 'bookcase_end', 'bookcase_aisle', 'bookcase_aisle_b', 'painting_renaissance_a', 'painting_renaissance_b', 'inscription_bibliotheca', 'wallpaper_peel',  # V12 L5.3
+              'window_188_a', 'window_188_b', 'window_188_c', 'window_188_fig', 'window_188_lit', 'window_entry_188', 'door_mahogany', 'walkway_glass'}  # V12 L188
 DOOR_MODELS = {'steel_door', 'hotel_door', 'damaged_door'}
 CEILING_MOUNT = {'batten', 'highbay', 'chandelier', 'safety_light', 'ceiling_vent',
                  'troffer', 'troffer_off', 'troffer_red', 'ceiling_diffuser', 'hanging_bulb',  # V12: Blender-Modelle
-                 'tube_white', 'tube_orange', 'tube_dead', 'chandelier_grand', 'lantern_green', 'chandelier_iron', 'ceiling_arms'}
+                 'tube_white', 'tube_orange', 'tube_dead', 'chandelier_grand', 'lantern_green', 'chandelier_iron', 'ceiling_arms', 'skylight_188'}
 # V12: Modelle, die in einem Durchbruch stehen (Bogen mit Laibung): Mitte muss in einer Tuer/Oeffnung liegen
-IN_OPENING = {'arch2', 'arch3', 'arch4', 'arch_tall3', 'arch_tall4', 'swing_door1', 'swing_door2', 'door_level3', 'elevator_door', 'elevator_cage', 'door_old_open'}
+IN_OPENING = {'arch2', 'arch3', 'arch4', 'arch_tall3', 'arch_tall4', 'swing_door1', 'swing_door2', 'door_level3', 'elevator_door', 'elevator_cage', 'door_old_open', 'door_mahogany_open'}
 FLOOR_MOUNT = {'chair', 'rack', 'bed', 'barrel', 'cart', 'pump', 'wardrobe', 'trunk', 'water_cooler', 'armchair', 'sofa',
                'side_table', 'game_table', 'boiler', 'statue', 'transformer', 'fence_panel', 'rubble', 'barrier', 'camp',
                'desk_crt', 'switch_cabinet', 'bookcase', 'coffee_table', 'desk', 'shelf_unit', 'cabinet',
@@ -73,7 +74,8 @@ FLOOR_MOUNT = {'chair', 'rack', 'bed', 'barrel', 'cart', 'pump', 'wardrobe', 'tr
                'mach_cabinet', 'mach_pump', 'mach_tank', 'pipe_riser', 'pipe_bundle_a', 'pipe_bundle_b', 'trolley_flatbed', 'toolbox', 'stepladder', 'cable_reel', 'folding_chair', 'hopper_wagon', 'rail_track', 'chamfer_26', 'chamfer_32',  # V12 L2
                'generator', 'conveyor', 'sludge_pool', 'skull', 'train_bogie', 'greek_torso', 'angel_statue', 'canvas_drape_a', 'canvas_drape_b', 'grate_stair', 'pipe_black', 'column_greek',  # V12 L3
                'mahjong_table', 'gramophone', 'furnace', 'metro_car_end', 'hotel_bed', 'boiler_tank',  # V12 L5
-               'column_tuff', 'candelabrum', 'books_fallen'}  # V12 L5.3
+               'column_tuff', 'candelabrum', 'books_fallen',  # V12 L5.3
+               'paving_strip', 'birch_circle', 'table_188', 'pillar_188'}  # V12 L188
 
 
 class Map:

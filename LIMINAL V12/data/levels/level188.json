@@ -1,0 +1,91 @@
+// LIMINAL V12 - Level 188: "The Courtyard of Windows" (LEVELSPEC_188.md, LOOK_188.md; Wikidot Level 188, Revision 69).
+//
+// Unregelmaessiges, 30 m hohes Atrium aus weissem Beton mit Fensterreihen (Jalousien, Dunkel, Umrisse), kalt und still.
+// Fuenfeckiger Weg aus Pflaster, vier Wege zum hohlen Kreis aus Birkenholz, lebendes Moos. Tisch mit Gegenstaenden und
+// Grammophon (Musik: sofort gehen). Hinter einer Mahagonituer grelle, weisse Gaenge mit leeren Zellen und Treppenhaus.
+// Hinaus nur durch das Eingangsfenster (zurueck nach Level 5). Wesen: Schattengestalten (die Gestalt) - nicht ansehen.
+// Karte data/maps/level188.json aus tools/levels/level188.py.
+{
+  "id": "level188",
+  "name": "Level 188",
+  "title": "Der Hof der Fenster",
+  "display_title": "Der Hof der Fenster",
+  "generator": "map",
+  "map": "level188",
+  "presence_region": 0,
+  "presence": { "hound": false, "smiler": false, "gestalt": true, "blackout": false },
+  "next_level": "level5",
+  "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0 },
+
+  "zones": [
+    { "key": "hof", "name": "Hof",
+      "wall": [0.92, 0.92, 0.92], "floor": [0.78, 0.84, 0.74], "ceil": [0.92, 0.94, 0.96],
+      "trim": [0.8, 0.8, 0.8], "lamp": [0.90, 0.95, 1.00], "fog": [0.10, 0.11, 0.12],
+      "fog_density": 0.012, "ambient": 0.14, "light_style": "authored",
+      "wall_pattern": "concrete", "floor_pattern": "none", "ceil_pattern": "none", "door_height": 2.2,
+      "wall_tex": "concrete_white", "floor_tex": "moss", "ceil_tex": "concrete_white" },
+    { "key": "weiss", "name": "Weisser Gang",
+      "wall": [0.94, 0.94, 0.94], "floor": [0.86, 0.86, 0.86], "ceil": [0.94, 0.94, 0.94],
+      "trim": [0.8, 0.8, 0.8], "lamp": [0.92, 0.97, 1.00], "fog": [0.10, 0.11, 0.12],
+      "fog_density": 0.01, "ambient": 0.16, "light_style": "harsh",
+      "wall_pattern": "concrete", "floor_pattern": "none", "ceil_pattern": "none", "door_height": 2.2,
+      "wall_tex": "concrete_white", "floor_tex": "concrete_white", "ceil_tex": "concrete_white" },
+    { "key": "zelle", "name": "Zelle",
+      "wall": [0.92, 0.92, 0.92], "floor": [0.84, 0.84, 0.84], "ceil": [0.92, 0.92, 0.92],
+      "trim": [0.8, 0.8, 0.8], "lamp": [0.92, 0.97, 1.00], "fog": [0.10, 0.11, 0.12],
+      "fog_density": 0.01, "ambient": 0.14, "light_style": "harsh",
+      "wall_pattern": "concrete", "floor_pattern": "none", "ceil_pattern": "none", "door_height": 2.2,
+      "wall_tex": "concrete_white", "floor_tex": "concrete_white", "ceil_tex": "concrete_white" }
+  ],
+
+  "light_styles": {
+    "authored": { "extra": 0.25, "intensity": 0.75, "hum": 0 },
+    "harsh":    { "extra": 0.3, "intensity": 1.0, "hum": 1 }
+  },
+  "dark_fog": [0.02, 0.022, 0.025],
+
+  // Wiki: Neuro-Wirkstoffe der Gegenstaende, Kaelte (13,8 Grad), Schattengestalten - der Verstand leidet
+  "room_types": [
+    { "key": "hof", "label": "Hof der Fenster", "category": "large", "sanity_drain": 0.12 },
+    { "key": "gang", "label": "Weisser Gang", "category": "corridor", "sanity_drain": 0.08 },
+    { "key": "zelle", "label": "Leere Zelle", "category": "normal", "sanity_drain": 0.06 },
+    { "key": "treppenhaus", "label": "Treppenhaus", "category": "corridor", "sanity_drain": 0.08 }
+  ],
+  "corridor_types": ["gang"],
+  "endless_type": "gang",
+  "default_corridor_type": "gang",
+  "fallback_type": "zelle",
+  "supply_fallback_type": "zelle",
+  "spawn_preferred_types": ["hof"],
+  "supply_items": [ { "item": "almond", "weight": 0.6 }, { "item": "energy", "weight": 0.2 }, { "item": "battery", "weight": 0.2 } ],
+
+  "spawn_rules": {
+    "item":    { "count": [3, 5], "spacing": 8, "table": { "almond": 0.6, "energy": 0.2, "battery": 0.2 }, "first_within": 30 },
+    "note":    { "count": [1, 2], "spacing": 10 },
+    "crate":   { "count": [0, 0] },
+    "deco":    { "chance": 0.7 },
+    "fusebox": { "count": [0, 0] }
+  },
+
+  // Klang (Wiki: schwere Stille, Klopfen, Knarren, Musik vom Grammophon - wer Musik hoert, soll sofort gehen)
+  "audio": {
+    "beds": [
+      { "sound": "bed_l5_room", "gain": 0.45, "only": ["hof"] },
+      { "sound": "bed_l0_room", "gain": 0.5, "only": ["gang", "zelle", "treppenhaus"] }
+    ],
+    "spots": {
+      "music": { "sound": "hotel_music", "radius": 14, "gain": 0.4, "voices": 1 }
+    },
+    "events": [
+      { "sound": "dist_knock", "every": [40, 120], "dist": [8, 25], "height": [0.0, 20.0], "gain": 0.45 },
+      { "sound": "wood_creak", "every": [30, 90], "dist": [6, 20], "height": [0.0, 15.0], "gain": 0.35 }
+    ],
+    "acoustics": {
+      "hof":         { "t60": 2.6, "t60_low": 2.8, "t60_high": 1.4, "size": 2.6, "wet": 0.26, "early": 0.35, "absorption": 0.05 },
+      "gang":        { "t60": 0.7, "t60_low": 0.8, "t60_high": 0.5, "size": 0.7, "wet": 0.14, "early": 0.9, "absorption": 0.05 },
+      "zelle":       { "t60": 0.6, "t60_low": 0.7, "t60_high": 0.5, "size": 0.6, "wet": 0.14, "early": 0.9, "absorption": 0.04 },
+      "treppenhaus": { "t60": 1.0, "t60_low": 1.1, "t60_high": 0.6, "size": 0.8, "wet": 0.16, "early": 0.9, "absorption": 0.04 },
+      "default":     { "t60": 0.8, "t60_low": 0.9, "t60_high": 0.4, "size": 0.8, "wet": 0.14, "early": 0.7, "absorption": 0.1 }
+    }
+  }
+}

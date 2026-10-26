@@ -82,6 +82,7 @@ FN = m.R(fen)
 m.obj('window_bright', FN.x1 - 0.005, FN.cy, 1.55, math.pi, tag='window')
 m.light(fen, FN.x1 - 0.6, FN.cy, 0, 0.9, 5.0, z=1.6, panel=False, color=(1.0, 1.0, 0.98))
 m.transition('l5_188', 'seam', 'level188', FN.x1 - 1.0, FN.cy, 0.0, rect=[FN.x1 - 1, int(FN.cy) - 1, FN.x1, int(FN.cy) + 1])
+m.transition('l188_l5', 'seam', '', FN.x1 - 2.6, FN.cy, math.pi)  # Rueckkehr durch dasselbe Fenster (Wiki 188)
 
 # --- Beverly Room (vor den Zimmern angelegt, damit diese seinen Platz frei lassen) ------------------------------------
 ball = m.room(66, 69, 108, 103, 'ballsaal', 'ballsaal', 0.0, BALL_H, circuit=C_BALL, label='Beverly Room')

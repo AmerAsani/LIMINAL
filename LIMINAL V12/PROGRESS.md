@@ -59,15 +59,22 @@ Wiedereinstieg: diese Datei zuerst lesen, dann `DECISIONS.md`.
   - Platzierung: 1480 Objekte, 0 ohne Halt. Entscheidung E-013.
   - Notizen für Level 5 und 5.3 ergänzt.
 
+- [x] Level 188 „Der Hof der Fenster“:
+  - `LEVELSPEC_188.md`, `LOOK_188.md`.
+  - Hof mit 144 Fenstern, Moos, Fünfeckweg, Birkenholzkreis, Tisch und Grammophon, Glasgalerien, Oberlicht; weißer Gang mit Zellen und Treppenhaus.
+  - Rückweg durch das Eingangsfenster nach Level 5 (Anker `l188_l5`).
+  - 14 Blender-Modelle; Umrisse in Fenstern und die Gestalt als Fensterwesen.
+  - Drei QA-Runden, Bilder in `docs/screens/level188/`. Platzierung: 315 Objekte, 0 ohne Halt. Entscheidung E-014.
+
 ## Als Nächstes
 1. Wesen-Pipeline (gestellte oder gerigte Modelle aus Blender); zuerst die dunkle Gestalt von Level 0.
 2. Level der Reihe nach (1, 2, 3, 5, 5.3, 188, 903, 37, 36): Spec → Look → Bau → Platzierung → Items → Wesen → Klang → Qualitätsschleife → Commit.
 3. Oberfläche neu, geprüft bei mehreren Auflösungen.
 
 ## Bekannte Fehler / offen
-- **Reiseprüfung rot (gameplay_test, 4 Fehler):**
-  - Level 5 zeigt auf 188 und 903, die noch nicht gebaut sind.
+- **Reiseprüfung rot (gameplay_test, 2 Fehler):**
+  - Level 5 zeigt auf 903, das noch nicht gebaut ist.
   - Level 7 zeigt auf das entfernte Level 6.
-  - Die Prüfung „9 Ausgänge, 1 Ende“ erwartet das Ende noch in Level 37 statt am Tor von Level 36.
-  - Wird mit 188, 903, 37 und 36 behoben.
+  - Das Ende liegt noch in Level 37 (aus V11); es soll ans Tor von Level 36 wandern. Die Prüfung auf ein Ende ist dann anzupassen.
+  - Wird mit 903, 37 und 36 behoben.
 - Einmalig hing in V11 ein Testlauf beim Start (Protokoll endete nach dem Laden der Level). In vier Wiederholungen nicht wieder aufgetreten. Ursache unbekannt; beobachten.

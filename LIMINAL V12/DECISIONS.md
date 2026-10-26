@@ -186,3 +186,21 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
   - Runde 1: Die Regalwände der Halle lagen im Dunkeln. Neu: Kerzen an den Handläufen und Kandelaber vor den Regalen.
   - Grüne Sicherungslaternen färbten dunkle Gänge grün; ihr Licht ist jetzt schwach und fast weiß.
   - Regale auf den Treppenstufen und frei stehende Regale in der Freihaltezone vor Türen fielen in der Platzierungsprüfung auf und wurden verlegt.
+
+## E-014 Level 188 (26.10.2026)
+- **Quelle:** Wikidot „Level 188“, Revision 69 (`LEVELSPEC_188.md`), Bild in `LOOK_188.md`. Drei QA-Runden (`docs/screens/level188/`).
+- **Aufbau:**
+  - Ein 30 m hoher Hof aus weißem Beton mit Vorsprüngen und 144 Fenstern in sechs Reihen.
+  - Moos, ein fünfeckiger Plattenweg mit vier Zuwegen zum Birkenholzkreis.
+  - Ein Tisch mit Gegenständen und ein Grammophon (Musik als Warnung).
+  - Glasgalerien und Stützen, Oberlicht.
+  - Hinter einer Mahagonitür ein greller, weißer Gang mit leeren Zellen und einem Treppenhaus.
+- **Fensterwesen:** Es gibt kein Modell. Eigene, einfache Lösung (wie in E-008 angekündigt):
+  - Dunkle Umrisse in einigen schwach erleuchteten Fenstern.
+  - Die Gestalt (Level 0) erscheint im Hof, verharrt, solange man hinsieht, und verschwindet beim Wegsehen.
+  - Nicht tödlich, obwohl das Wiki sie feindlich nennt. Steht so im Bericht.
+- **Rückweg:** Das Eingangsfenster bleibt bestehen (Wiki: es verschwindet nach zwei bis drei Minuten). Sonst gäbe es keinen Rückweg, weil Level 1.5 nicht zur Auswahl gehört.
+- **Leistung:** 22 Oberlichtfelder, aber nur jedes zweite trägt ein Licht. Die Beleuchtung sank von 10,8 auf 5,3 ms GPU (1600 × 900, hohe Qualität).
+- **Fehler gefunden und behoben:**
+  - Runde 1: Die Scheibe vor den Fenstern war undurchsichtig und verdeckte Jalousien, Umrisse und das warme Eingangslicht. Die Scheibe ist entfernt; der Hintergrund selbst glänzt.
+  - Sichtbare Blöcke zählen in mapkit als begehbares Podest; Fenster landeten dadurch in den Vorsprüngen. Eigene Blockprüfung in `level188.py`.
