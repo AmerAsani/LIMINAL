@@ -32,8 +32,10 @@ Wiedereinstieg: diesen Abschnitt lesen, dann `DECISIONS.md` ab E-025.
 - [x] B-002: Texturen Ebene für Ebene, Ladespitze 3,1 GB → 0,68 GB (2048 px: 11,1 → 1,3 GB), Messung je Ebene in `BUGLISTE.md`.
 - [x] B-001: Ärmel am gebeugten Ellbogen (E-028): Ruhepose 54 Grad, Dual Quaternions, Lampenhaltung von außen; Test und Bilder (`docs/screens/b001/`).
 - [x] Animationen der Wesen (Hound, Smiler, Clump, Gestalt, Deathmoth; `ANIMATIONEN.md`) und Nest-Neuentwurf in fünf Runden (E-029, `docs/screens/nest/`)
-- [ ] Fehlende Wiki-Wesen (Faceling, Fensterwesen, Skin-Stealer, Wretch, Death Rat)
-- [x] Mehrspieler als Beta (E-030): Transport, Protokoll v2, Host/Gast, Wesen für mehrere Spieler, Menüs, Wiederverbinden, Koop-Stand; Tests in `MULTIPLAYER_TESTS.md` (Transport 52/0, Koop 164/0 + 5/0, Sanitizer, zwei Prozesse, Langlauf). Bugs B-005 bis B-011.
+- [x] Fehlende Wiki-Wesen (E-031): Faceling (fünf Varianten, vier Verhaltensweisen je Ebene), Fensterwesen (Level 188), Skin-Stealer (wahre Gestalt, getarnt), Wretch (träge, schnell, flehend), Death Rat (mit Fell, haarlos, Schrei-Ereignis). Je Wesen Briefing `KREATUR_<Name>.md` mit mindestens drei Kritikrunden (`docs/screens/<wesen>/`), Blender-Modell, Skelett, Bewegung (`ANIMATIONEN.md`), Verhalten nach Wikidot (Level-JSON `presence.<wesen>`), Klang, Mehrspieler (Protokoll v3), Tests (gameplay 446/0). Bugs B-012 bis B-016. Commit `4734414` und folgende.
+  - Bilder im Spiel: Skriptbefehl `near <wesen> <abstand>` (Spieler mit freier Sicht vor das Wesen), `presence <wesen>` (erzwingen), `figstate wave|talk|plea|strike|variant`.
+  - Prüfhilfe Licht: Einstellung `debug_view` (3 Normalen, 1 direktes Licht, 9 Albedo).
+- [x] Mehrspieler als Beta (E-030): Transport, Protokoll v2 (V13.2 später v3: Gesten der neuen Wesen), Host/Gast, Wesen für mehrere Spieler, Menüs, Wiederverbinden, Koop-Stand; Tests in `MULTIPLAYER_TESTS.md` (Transport 52/0, Koop 169/0 + 5/0, Netz-Fuzzing 300 s 2/0, Sanitizer, zwei Prozesse, Langlauf 60 min 9/0, 30 min mit Speicherproben 9/0 – kein fortlaufendes Leck). Bugs B-005 bis B-012. Im Koop läuft der Klang im Menü weiter.
 - [ ] Abschluss: Tests, V12/V10 prüfen, Tag `v13`, `REPORT_V13_2.md`
 
 Hilfsskripte (Scratchpad `v13`): `b.sh [gameplay|all]` (bauen + Tests), `mem_sweep.ps1` / `mem_trace.ps1` (Speicher), `elbow_tp.ps1` (Kamera um den Spieler, Skriptbefehle `figcam` ohne Vorführung in der Schulteransicht, `egopose 1`), `elbow_shots.ps1` (`vmcam`), `crop.py`.

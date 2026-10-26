@@ -144,7 +144,7 @@ Das Bedrohungsmodell verlangt authentisierte Verschlüsselung nach dem Handshake
 | Teil | Wo | Anmerkung |
 |---|---|---|
 | Transport, Handshake, Verschlüsselung | `src/netdll/` → `liminal_net.dll` (ENet 1.3.18, CNG) | Exporte: genau die zehn `ln_`-Funktionen (`tools/check_no_network.py` prüft das) |
-| Spielprotokoll v2 | `src/net/coop_proto.*` | Join, Input (bis 4 Eingaben je Paket), Action, Ping, Bye; Welcome, Snapshot, Event, Inventory, Roster, Pong, Check |
+| Spielprotokoll v3 (V13.2: v2 + Gesten der neuen Wesen) | `src/net/coop_proto.*` | Join, Input (bis 4 Eingaben je Paket), Action, Ping, Bye; Welcome, Snapshot, Event, Inventory, Roster, Pong, Check |
 | Host und Gast | `src/coop/coop.*` | `CoopHost`, `CoopClient`; DLL-Lader `netapi_dll.cpp` (nur aus dem Ordner des Spiels) |
 | Figuren der Mitspieler | `src/gameplay/pawn.*` | Spielermodell, Lampenhaltung von außen, eigener Lichtkegel |
 | Sitzung im Koop | `src/gameplay/session_coop.cpp` | Absichten des Gasts am Zustand des Hosts geprüft, Welt nach dem Host beim Gast |

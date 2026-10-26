@@ -82,7 +82,7 @@ Der Netzstörer ist ein UDP-Proxy im Test. Er stellt Laufzeit, Schwankung, Verlu
 | Teil | Was | Ergebnis |
 |---|---|---|
 | Schlüssel | Base32 hin und zurück, Kleinbuchstaben, zu kurz, zu lang, fremdes Zeichen | bestanden |
-| Fuzzing Protokoll | 240 000 Fälle (Zufall, veränderte Vorlagen; beide Rollen, beide Zustände): kein Absturz, jede angenommene Nachricht kanonisch; größte Momentaufnahme 1 059 Byte (24 Wesen, 3 Mitspieler); Steuerzeichen, Richtungsumkehr (U+202E), überlange UTF-8-Formen und Pfadzeichen werden nicht kodiert; falsche Rolle, falscher Zustand, 1201 Byte | bestanden |
+| Fuzzing Protokoll | 240 000 Fälle (Zufall, veränderte Vorlagen; beide Rollen, beide Zustände): kein Absturz, jede angenommene Nachricht kanonisch; größte Momentaufnahme 1 155 Byte (Protokoll v3: 24 Wesen mit je 18 Animationswerten, 3 Mitspieler; v2: 1 059 Byte); Steuerzeichen, Richtungsumkehr (U+202E), überlange UTF-8-Formen und Pfadzeichen werden nicht kodiert; falsche Rolle, falscher Zustand, 1201 Byte | bestanden |
 | Bots direkt | Host + 1, Host + 3 (vier Spieler), je 25–30 s mit Zufallsbewegung, Lampe, Aufnehmen, Benutzen, Ablegen; ein Hound beim Host | bestanden: Vorhersage im Mittel 1,8–2,1 cm daneben, über 10 cm in 1–2 % der Momentaufnahmen; nach dem Anhalten Host und Gast höchstens 15 cm auseinander; geteilter Zustand gleich |
 | LAN | 20 ms, ±5 ms, 1 % Verlust | bestanden: 2,5 cm im Mittel; 2,8 kB/s zum Gast, 5,0 kB/s zum Host je Gast |
 | Internet | 80 ms ±30 ms, 3 % Verlust, 1 % Doppelte, 2 % Umordnung, 256 kbit/s | bestanden: 2,7 cm im Mittel; 3,0 / 5,1 kB/s |
@@ -94,7 +94,17 @@ Der Netzstörer ist ein UDP-Proxy im Test. Er stellt Laufzeit, Schwankung, Verlu
 | Tod | Gast stirbt (Host und Gast), sieht dem Host zu, nach 20 s zurück; alle tot → Neubeginn am Sicherungspunkt | 5/5 |
 | Reise | Host + 2 Gäste wechseln als Gruppe durch alle zehn Ebenen (12 Wechsel, Sackgassen zuletzt): gleiche Ebene, gleicher Seed, gleiche Vorräte, beisammen am Anker, verbunden | 50/50 |
 | Wiederverbinden, Kick, Bann | Verbindung verloren → mit Token zurück: gleiche Spielernummer, Inventar zurück; entfernen; sperren → erneuter Versuch abgewiesen | bestanden |
-| **Summe (alle Teile)** | | **OK: 164 Prüfungen, 0 Fehler** (dazu Koop-Stand 5/5) |
+| Fuzzing über den Netzweg (`--only netfuzz`, 300 s) | Ein Angreifer mit gültigem Schlüssel schickt über 768 Verbindungen 8 134 veränderte und zufällige Nachrichten an den echten Host (Transport, Handshake, Spielprotokoll); daneben spielt ein ehrlicher Gast | **OK: 2/2** – kein Absturz, der ehrliche Gast bleibt verbunden; Host: 54 Nachrichten abgelehnt, 307 gedrosselt, von 20 969 Eingaben 1 226 verworfen (Zeitbudget), von 505 Absichten 326 abgelehnt, 6 Trennungen |
+| **Summe (alle Teile)** | | **OK: 169 Prüfungen, 0 Fehler** (`--quick`, Protokoll v3; dazu Koop-Stand 5/5 und Netz-Fuzzing 2/2) |
+
+#### Langlauf (`--long`)
+
+Vier Spieler (Host und drei Bots) über den Netzstörer (Internet-Profil), Zufallsbewegung, Lampe, Aufnehmen, ein Hound beim Host.
+
+| Lauf | Ergebnis |
+|---|---|
+| 60 min (Protokoll v2) | **OK: 9/9**. Vorhersage im Mittel 3,1 cm daneben, über 10 cm in 12 570 von 191 540 Momentaufnahmen (6,6 %); 105 714 Korrekturen, 4 Sprünge (Abgleich über 2 m); größte Abweichung 89,9 m – **Ursache nicht untersucht**: vermutlich ein Ortswechsel eines Bots (Übergang), den der Gast erst mit dem Abgleich übernimmt; im 30-min-Lauf trat kein Sprung auf (offener Punkt, BUGLISTE B-012); Host lehnte 740 von 1 653 Absichten ab (Bots greifen nach Fernem), 12 766 Eingaben verworfen (Zeitbudget); 2,9 kB/s zum Gast, 5,0 kB/s zum Host je Gast; Speicher 96 → 191 MB |
+| 30 min mit Speicherproben (Protokoll v3, mit den neuen Wesen) | **OK: 9/9**. Speicher nach 0/5/10/15/20/25/30 min: 108 / 163 / 198 / 213 / 219 / 224 / 214 MB, Sektoren beim Host durchgehend 12. Der Speicher wächst in der ersten Viertelstunde (vier Sitzungen in einem Prozess laden Welt, Wege und Klänge) und bleibt dann bei 215–225 MB stehen – **kein fortlaufendes Leck festgestellt**. Vorhersage 2,9 cm im Mittel, 0 Sprünge, größte Abweichung 1,44 m |
 
 ### 5.3 Zwei echte Spielprozesse
 
@@ -123,7 +133,7 @@ clang++ ... tests/net_transport_test.cpp src/netdll/transport.cpp src/netdll/sec
 
 | Test | Ergebnis |
 |---|---|
-| `gameplay_test` | OK: 376 Prüfungen, 0 Fehler |
+| `gameplay_test` | OK: 446 Prüfungen, 0 Fehler (V13.2: mit den neuen Wesen) |
 | `audio_test` | OK: 106 Prüfungen, 0 Fehler |
 | `worldgen_test` (V4-Referenz) | OK: 29 658 Prüfungen, 0 Fehler |
 | `supply_balance_test` | OK (0 Fehler); die Vorräte für mehrere Spieler ändern bei Faktor 1,0 nichts |

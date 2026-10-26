@@ -1415,8 +1415,10 @@ void CreatureAnimator::updateBiped(float dt, const Input& in) {
             pole = safeNorm(pole + (od - U - pole) * wave_, pole);
         }
         // Lampe im Gesicht (Faceling): die Hand auf der Seite des Lichts vor das Gesicht
+        // (nur ruhig: wer aufgebracht ist oder zuschlaegt, hebt die Hand nicht vor das Gesicht)
         if (e_ == Entity::Faceling && (s == 0) == lightLeft)
-            blend(headPos_ + headDir_ * 0.16f - U * 0.03f - Lw * (sg * 0.02f), safeNorm(U + headDir_ * 0.2f, U), light_ * 0.9f);
+            blend(headPos_ + headDir_ * 0.16f - U * 0.03f - Lw * (sg * 0.02f), safeNorm(U + headDir_ * 0.2f, U),
+                  light_ * 0.9f * (1.0f - std::clamp(in.alert, 0.0f, 1.0f)) * (stk > 0.0f ? 0.0f : 1.0f));
         // flehen: beide Haende vor, Handflaechen nach oben, zitternd
         blend(S0 + Mb * vec3{0.34f, -sg * 0.07f, -0.16f} + U * (0.006f * std::sin(time_ * 13.0f + (float)s)),
               Mb * normalize(vec3{1.0f, -sg * 0.15f, 0.25f}), plea_);
@@ -1583,7 +1585,7 @@ void CreatureAnimator::updateRat(float dt, const Input& in) {
     {
         const int idx[kTail] = {TAIL0, TAIL0 + 1, TAIL0 + 2, TAIL0 + 3, TAIL0 + 4};
         const vec3 wind = Lw * ((moving ? 0.03f * std::sin(kTau * phase_) : 0.02f * std::sin(time_ * 1.3f)) * sc);
-        hangChain(0, rt::B_PELVIS, idx, kTail, 6.0f, 0.88f, 3.0f, wind, dt);
+        hangChain(0, rt::B_PELVIS, idx, kTail, 15.0f, 0.84f, 1.8f, wind, dt);  // steif genug, dass er im Galopp nicht hochschlaegt
     }
     autoUps();
     pose_.up[rt::B_HEAD] = Mb * (Rh * sk_->bindUp[rt::B_HEAD]);

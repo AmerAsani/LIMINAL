@@ -1397,7 +1397,9 @@ void App::updateAudio(double dt) {
     auto& s = *session_;
     const auto& p = s.player();
     audio_->setListener({(float)p.x, (float)p.y, (float)p.eye()}, (float)p.angle);
-    audio_->setPaused(ui_.pausesGame());
+    // V13.2: im Koop laeuft die Welt im Menue weiter - also auch ihr Klang (man hoert, was einen erwischt)
+    const bool worldPaused = ui_.pausesGame() && !coop();
+    audio_->setPaused(worldPaused);
     static int heartId = -1;
     static double breathTimer = 0.0;
     static int boundGen = -1;
@@ -1414,7 +1416,7 @@ void App::updateAudio(double dt) {
     const vec3 ear{(float)p.x, (float)p.y, (float)p.eye()};
     soundscape_.setBlackout(s.blackout().seed, s.blackout().amount, s.blackout().origin, s.blackout().front);  // V7, V11: Welle
     soundscape_.update(dt, time_, *audio_, s.world(), room, ear, s.stats().sanity,
-                       state_ == State::Playing && !ui_.pausesGame());
+                       state_ == State::Playing && !worldPaused);
     // Automatenbrummen als raeumliche Quellen
     sounds_.clear();
     s.collectSounds(sounds_);
@@ -1523,7 +1525,7 @@ void App::updateAudio(double dt) {
     // schneller und lauter
     float puff = (float)st.breathless();
     breathTimer -= dt;
-    if (puff > 0.06f && !st.dead && breathTimer <= 0.0 && !ui_.pausesGame()) {
+    if (puff > 0.06f && !st.dead && breathTimer <= 0.0 && !worldPaused) {
         audio::PlayOpts o;
         o.volume = 0.25f + 0.5f * puff;
         o.pitch = 0.96f + 0.1f * puff;

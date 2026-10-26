@@ -15,6 +15,11 @@ Stand 26.10.2026. Reihenfolge der Bearbeitung: Abstürze und Blocker zuerst, dan
 | B-009 | Koop: Beenden | hoch | Das Spiel stürzte beim Beenden ab (Exit 3), wenn ein Koop-Spiel lief: Die Koop-Schicht verwies noch auf die schon gelöschte Sitzung. | **behoben (V13.2)**: Koop vor der Sitzung beenden. Zwei-Prozess-Test endet mit 0. |
 | B-010 | Koop: Gast | gering | Unter Paketvertauschung kamen Momentaufnahmen vor dem Willkommen an und wurden als ungültig gezählt (40 im schlechten Netz). | **behoben (V13.2)**: Momentaufnahmen erst nach der ersten Eingabe des Gasts. |
 | B-011 | Koop: Vorhersage | gering | Ein Gast lief mit seiner eigenen eingestellten Laufgeschwindigkeit und ohne den Tempo-Bonus der Energy Bar; der Host rechnete mit dem Grundtempo. Ständige Korrekturen. | **behoben (V13.2)**: Gast mit Grundtempo, Bonus in der Momentaufnahme. |
+| B-012 | Koop: Langlauf | gering | Im 60-min-Lauf vier Sprünge über 2 m, einer davon 89,9 m (Abgleich eines Bots). | **offen**: Ursache nicht untersucht (vermutlich ein Ortswechsel eines Bots über einen Übergang); im 30-min-Lauf mit Protokoll v3 kein Sprung. |
+| B-013 | Wesen: Licht | mittel | Die Lampe „traf“ Wesen oft nicht: die Sichtprüfung beginnt an der Hand – steht man dicht an einer Wand, liegt die Hand in der Wandkachel und jeder Strahl gilt als verdeckt (betraf alle Lichtreaktionen, auch Hound und Motten). | **behoben (V13.2)**: verdeckt nur, wenn auch vom Auge aus keine Sicht ist; neue Wesen prüfen zusätzlich die Brust. Test: Skin-Stealer gereizt durch die Lampe. |
+| B-014 | Skin-Stealer: Größe | mittel | Mit 2,3 m war er höher als die Türstürze der Ebenen (2,2 m): Kopf in der Decke, Sichtprüfungen zum Kopf scheiterten an Türen. | **behoben (V13.2)**: 2,05 m (E-031). |
+| B-015 | Fensterwesen: Material | mittel | Der flache Umriss mit dem Rauchmaterial der Gestalt war fast unsichtbar (das Material dünnt Ränder aus – bei einer flachen Form ist alles Rand). | **behoben (V13.2)**: eigenes Material „Umbra“ (schwarz, matt, fest). |
+| B-016 | Zweibeiner: Gang | mittel | Beim Losgehen blieb der Standfuß stehen, bis die Phase ihn rief; das Becken sank bis zum Boden (Spagat). | **behoben (V13.2)**: der hintere Fuß tritt beim Anlauf zuerst, Ausgleichsschritt, Ferse hebt sich, Becken sinkt höchstens 7 cm. |
 
 ## Prüfungen (Teil 5)
 

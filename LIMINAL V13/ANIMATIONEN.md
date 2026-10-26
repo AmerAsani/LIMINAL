@@ -121,3 +121,51 @@ Die Gestalt verändert sich nie, solange man sie ansieht (Level 0: unbestätigte
 | Alarm (Schwarm fliegt) | wie im Licht, bleibt unruhig, bis der Schwarm zurück ist | – |
 
 Weit weg (über 30 m) bleibt die Pose stehen. Prüfung über `figstate light`/`alert` an der Vorführung und im Spiel (`hiveat`). Bilder der Form: `docs/screens/nest/`.
+
+## Neue Wesen (V13.2): Zweibeiner, Ratte, Fensterwesen
+
+Neue Eingaben: `wave` (winken, locken), `talk` (sprechen: Kiefer in Silben), `plea` (flehen), `strike` (Phase eines Schlags). Sie reisen im Mehrspieler in der Momentaufnahme mit (Protokoll v3). Briefings: `KREATUR_Faceling.md`, `KREATUR_SkinStealer.md`, `KREATUR_Wretch.md`, `KREATUR_DeathRat.md`, `KREATUR_Fensterwesen.md`.
+
+### Zweibeiner (Faceling, Skin-Stealer, Wretch) – `updateBiped`
+
+Gemeinsamer Ablauf, Haltung je Wesen (`BipedStyle`):
+- **Gang:** zwei Beine im Wechsel (Schrittlänge 0,85 + 0,38 × Tempo, relativ zur Beinlänge). Beim Losgehen tritt der hintere Fuß zuerst; steht ein Fuß zu weit hinten, setzt er nach. Im Stand hebt sich die Ferse, sobald der Fuß hinter der Hüfte steht. Im Schwung rollt der Fuß ab. Das Becken hebt und senkt sich, schwingt zur Seite und dreht; die Schultern drehen gegen. Erreichen die Beine den Boden nicht, sinkt das Becken höchstens 7 cm – lieber hebt der Fuß ab.
+- **Arme:** hängen senkrecht (auch bei gebeugtem Rumpf), schwingen gegengleich; beim Rennen gebeugt.
+- **Kopf:** eigene Blickrichtung im Körperrahmen – bleibt aufrecht, auch wenn der Hals vorhängt. Blick, Wahrnehmen, Licht, Umsehen in Ruhe, Rucke, Lauschen (schief).
+
+| Wesen | Haltung | Gesten |
+|---|---|---|
+| Faceling | menschlich, etwas zaghaft | winken (rechte Hand, Unterarm pendelt); im Licht die Hand vor das Gesicht (nur ruhig); Hieb mit dem Stein (über den Kopf ausholen, nach vorn unten); zugreifen |
+| Skin-Stealer | lange Schritte, kaum Armschwung, Kopf dreht langsam, Rucke | sprechen (Kiefer in Silben); jagend weit vorgebeugt; mit beiden Händen greifen |
+| Wretch | gebeugt (0,4 rad), Kopf hängt vor (0,55 rad), Knie gebeugt; das rechte Bein schleift, Becken sackt darauf ein; rasselnder Atem; Rucke | Sprint mit schlackernden Armen; flehen halb aufgerichtet, Hände vor, zitternd; gurgeln (Kiefer zittert) |
+
+### Death Rat – `updateRat`
+
+| Zustand | Bewegung |
+|---|---|
+| Ruhe | schneller Atem, die Nase schnüffelt in Stößen, der Kopf sieht sich um |
+| Trab | diagonale Paare |
+| Galopp | vorn und hinten je fast gleichzeitig, der Rücken beugt und streckt sich |
+| Wittern | auf den Hinterbeinen aufgerichtet, Vorderpfoten vor der Brust, Nase hoch |
+| Fressen | Kopf am Boden, Kiefer kaut |
+| Beißen | Stoß nach vorn, Maul weit auf |
+| Licht | geduckt, Kopf weg |
+| Schwanz | hängt mit Trägheit am Becken, schleift, pendelt im Lauf |
+
+### Fensterwesen – `updateWindow`
+
+| Zustand | Bewegung |
+|---|---|
+| Ruhe | der Umriss wiegt sich kaum merklich, atmet, legt den Kopf schief |
+| Blick | wendet den Kopf dem Betrachter zu |
+| Locken | linker Unterarm aufrecht, die Hand winkt zu sich heran |
+| Greifen | lehnt sich heraus, der rechte Arm schießt heraus und streckt sich bis gut 2 m |
+
+### Kritikrunden der Bewegung
+
+| Runde | Befund | Änderung |
+|---|---|---|
+| 1 (Faceling) | Beim Losgehen Spagat: der Standfuß blieb stehen, bis die Phase ihn rief; das Becken sank zu Boden (B-016). | Anlauf, Ausgleichsschritt, Ferse, Absenkung begrenzt (Messung: Becken schwankt 5–9 cm) |
+| 2 (Faceling, Skin-Stealer) | Gehen, Rennen, Winken, Licht, Zugreifen, Schlag unterscheidbar (`docs/screens/faceling/bewegung_zustaende.jpg`, `docs/screens/skinstealer/bewegung_zustaende.jpg`). | – |
+| 3 (Wretch, Ratte) | Wretch: alle Zustände lesbar. Ratte: im Galopp schlug der Schwanz senkrecht hoch. | Schwanz steifer |
+| 4 (Fensterwesen, im Spiel) | siehe `KREATUR_Fensterwesen.md` (vier Runden) | – |

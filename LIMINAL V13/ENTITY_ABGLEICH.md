@@ -59,8 +59,8 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 | Smiler (Entity 3) | Gesichter im Dunkeln, angezogen von Licht und Lärm; Licht ausmachen oder als Köder werfen. | **teilweise**: Licht hält ihn, Licht aus mit Abstand verliert er das Interesse, Rennen löst den Angriff aus. Fehlte: Lärm als Auslöser – **in V13.2 ergänzt** (siehe unten). Werfen einer Lichtquelle: fehlt (das Spiel hat keine werfbare Lichtquelle). |
 | Hound (Entity 8) | Menschenähnlich auf allen vieren; durch Blick und Lärm einschüchtern. | **umgesetzt** |
 | Clump (Entity 5) | Verschmolzene Glieder, blind, jagt nach Gehör; still bleiben. | **umgesetzt** |
-| Skin-Stealer (Entity 10) | Weiße Menschengestalten, die Haut tragen; ansprechen entlarvt sie; ruhig zurückweichen. | **geplant (V13.2)** |
-| Wretch (Entity 15) | Aggressive, untote Menschengestalten. | **geplant (V13.2)** |
+| Skin-Stealer (Entity 10) | Weiße Menschengestalten, die Haut tragen; ansprechen entlarvt sie; ruhig zurückweichen. | **neu (V13.2), teilweise**: getarnt in Menschenhaut, satt oder hungrig, ruhiges Zurückweichen hilft (`KREATUR_SkinStealer.md`). „Ansprechen entlarvt sie“ fehlt: der Spieler hat keine Stimme. |
+| Wretch (Entity 15) | Aggressive, untote Menschengestalten. | **neu (V13.2)**: träge und schnelle Wretches (`KREATUR_Wretch.md`) |
 | Duller (Entity 6) | Menschengestalten, die durch Wände greifen; bei Schaben in der Wand Abstand von Wänden halten. | **fehlt**: Priorität 6 (nur diese Ebene) |
 | Arms (französischer Zweig, entite-15-fr) | Eine Gliedmaße durch Lüftungen und Risse bei Stromausfall; Licht darauf richten. | **fehlt**: Priorität 9. Die Seite gehört zum französischen Zweig; das Bündel hängt im Spiel schon einen Arm als Köder aus dem Schacht. |
 | Crawler (Entity 17) | Ein krankmachender Pilz. | **bewusst weggelassen**: Pilz ohne Gestalt und Verhalten auf der Ebenenseite; als Gefahr nur über Krankheit, die das Spiel nicht kennt |
@@ -75,17 +75,17 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 
 | Wesen | Wiki (eigene Worte) | Status |
 |---|---|---|
-| Windows (Entity 2) | Am Gangende; nicht nähern. | **geplant (V13.2)**, gemeinsam mit Level 188 |
+| Windows (Entity 2) | Am Gangende; nicht nähern. | **fehlt (bewusst offen, E-031)**: die Rohrgänge haben keine Fenster; ein eigenes Fenster an Gangenden wäre ein neues Ausstattungsstück. Fensterwesen gibt es in Level 188. |
 | Smiler (Entity 3) | Häufig, lieben Dunkelheit, schwärmten beim großen Stromausfall. | **umgesetzt** (an Stromausfälle gebunden) |
 | Deathmoths (Entity 4) | Vom Licht angezogen, meist friedlich, seit dem Stromausfall kleiner. | **bewusst weggelassen**: Die Motten mit Nest sind auf Level 5 verdichtet (dort „zentraler Stock“); auf Level 2 beschreibt die Seite sie als selten und friedlich. |
 | Clump (Entity 5) | Häufig und tödlich; lauern an Ecken und springen. | **umgesetzt** (Lager an Kreuzungen und in Schächten) |
 | Jerry (Entity 7) | In einem Zimmer eingeschlossen; wen er oder sein Kult sieht, der entkommt nicht. | **bewusst weggelassen**: Die Gefahr geht von einem menschlichen Kult aus; das Spiel hat keine Kämpfe gegen Menschen. Jerry selbst beschreibt die Seite nicht. |
 | Hound (Entity 8) | In Rudeln, werden gestört zu schnellen Jägern. | **teilweise**: Hound umgesetzt, aber einzeln; Rudel fehlen |
-| Faceling (Entity 9) | Intelligent, in Gruppen, lassen einen in Ruhe, wenn man sie nicht reizt. | **geplant (V13.2)** |
+| Faceling (Entity 9) | Intelligent, in Gruppen, lassen einen in Ruhe, wenn man sie nicht reizt. | **neu (V13.2)**: Gruppen, reizbar (Lampe im Gesicht, Bedrängen, Anrempeln), dann leichte Schläge; die Gruppe macht mit (`KREATUR_Faceling.md`) |
 | Skin-Stealer (Entity 10) | Haben die Ebene nach dem Stromausfall verlassen. | **bewusst weggelassen** (laut Seite nicht mehr da) |
-| Wretch (Entity 15) | Auf fast jeder Ebene; griffen 2014 die Survivors an. | **geplant (V13.2)** |
+| Wretch (Entity 15) | Auf fast jeder Ebene; griffen 2014 die Survivors an. | **neu (V13.2)**: gemischt träge und schnell, 30 % im zweiten Stadium (flehen, greifen nicht an) |
 | Nguithr'xurh (Entity 16) | Jagen Insekten und Motten, selten Menschen. | **fehlt**: Priorität 7 |
-| Death Rat (Entity 24) | Fast harmlos, fressen Flüssigkeiten aus Fässern und Essen. | **geplant (V13.2)** |
+| Death Rat (Entity 24) | Fast harmlos, fressen Flüssigkeiten aus Fässern und Essen. | **neu (V13.2), teilweise**: haarlose Ratten (Entity 24), stieben davon, beißen bedrängt (`KREATUR_DeathRat.md`); das Fressen aus Fässern fehlt |
 | Cannibal Cuisine (Entity 36) | Unbewegliche, leuchtende Wesen an Sackgassen; Wegmarken im Stromausfall, nicht gefährlich. | **fehlt**: Priorität 11 |
 | Wrangler (Entity 75) | Graben sich durch den Boden und überfallen aus den Gängen. | **fehlt**: Priorität 10 |
 | Photoshop (Entity 104) | Keine Art; selten, vor allem in PC-Räumen. | **bewusst weggelassen**: Die Seite beschreibt weder Gestalt noch Verhalten auf dieser Ebene. |
@@ -99,13 +99,13 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 | Wesen | Wiki (eigene Worte) | Status |
 |---|---|---|
 | Hound (Entity 8) | Lauern allein, bellen, um gemeinsam zu jagen, quälen ihre Opfer. | **teilweise**: Lauern und Bellen umgesetzt, gemeinsames Jagen fehlt |
-| Faceling (Entity 9) | Alle feindselig und bewaffnet (Steinwerkzeuge), „entwickelt“ mit Augen-, Nasen- und Mundansätzen. | **geplant (V13.2)**, Variante „entwickelt“ |
-| Wretch (Entity 15) | Selten, behalten den Körper, rennen und tragen Waffen, sprechen in Bruchstücken. | **geplant (V13.2)** |
+| Faceling (Entity 9) | Alle feindselig und bewaffnet (Steinwerkzeuge), „entwickelt“ mit Augen-, Nasen- und Mundansätzen. | **neu (V13.2)**: Variante „entwickelt“ mit Steinwerkzeug; kurzsichtig und schwerhörig (Entity 9) – bemerken einen erst nah |
+| Wretch (Entity 15) | Selten, behalten den Körper, rennen und tragen Waffen, sprechen in Bruchstücken. | **neu (V13.2), teilweise**: schnelle Wretches (rennen in Stößen); Waffen und Sprache fehlen (kein Modell, keine Stimme) |
 | Deathmoths (Entity 4) | Gefährliche Schwärme, die Mund, Nase, Ohren und Augen angreifen; Praetorianer überwiegen. | **bewusst weggelassen**: Die Motten sind auf Level 5 (Stock); eine zweite Mottenebene direkt davor würde die Begegnung entwerten. Der Praetorian (fast 1 m groß) ist nicht umgesetzt. |
-| Skin-Stealer (Entity 10) | Tarnen sich als Menschen, sprechen einfaches Englisch, halten die Tarnung tagelang. | **geplant (V13.2)** |
+| Skin-Stealer (Entity 10) | Tarnen sich als Menschen, sprechen einfaches Englisch, halten die Tarnung tagelang. | **neu (V13.2), teilweise**: getarnt; sprechen Silben nach (keine verständlichen Worte) |
 | Smiler (Entity 3) | Verbergen Augen und Zähne hinter Lidern und Lippen; greifen ohne Anlass an. | **teilweise**: Umgesetzt mit Stromausfall; das Verbergen ist als langsames Öffnen der Augen angedeutet; „ohne Anlass“ ist nicht umgesetzt (Spielbarkeit: der Angriff kündigt sich an). |
 | Clump (Entity 5) | Viel größer, geschickt, mit Waffen aus eigenen Knochen. | **teilweise**: Bündel umgesetzt, die große, bewaffnete Form nicht |
-| Death Rat (Entity 24) | Wie Wasserschweine mit geschärften Zähnen, bauen Fallen, menschlich klug. | **geplant (V13.2), teilweise**: Ratte umgesetzt; Fallen und Sprachgeräte bewusst weggelassen (Begründung im Briefing) |
+| Death Rat (Entity 24) | Wie Wasserschweine mit geschärften Zähnen, bauen Fallen, menschlich klug. | **neu (V13.2), teilweise**: Ratten in Hausrattengröße; Fallen, menschliche Klugheit und die Größe „wie Wasserschweine“ bewusst weggelassen (Begründung im Briefing) |
 | „Purpurne“ tote Wesen in den Wänden | Unklare Erscheinung mit violetter Energie. | **fehlt**: Priorität 12 (Dekoration) |
 | Schattenfigur hinter den Gittern, Stimmen in Paranoia-Gängen | Unbestätigt. | **umgesetzt** über den Paranoia-Gang der Karte und die Halluzinationen |
 | Engelsstatue im Sanktuarium | Schreckt alle Wesen ab; einziger sicherer Ort. | **umgesetzt** (Sanktuarium mit Engel, bleibt hell). Neu in V13.2: Wesen meiden den Raum (siehe Briefings) |
@@ -118,8 +118,8 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 | Deathmoth (Entity 4) | Sehr häufig, die größte Gefahr; fliegen aus dunklen Zimmern, die Weibchen bleiben in den Nestern; die Ebene gilt als einer der zentralen Stöcke. | **umgesetzt** |
 | Nest der Motten | Ebenenseite: Nester überall auf der Ebene, ohne Beschreibung. Entity-4-Seite: Schichten aus verdautem Material, Pflanzenfasern und Harz, 60–100 cm dick, Säulen aus Resten, fleischige Wucherungen über Türen, Eier an der Auskleidung. | **umgesetzt**, in V13.2 neu entworfen (Entscheidung E-026) |
 | Hound (Entity 8) | Kommt vor, ohne Verhalten. | **umgesetzt** (selten) |
-| Skin-Stealer (Entity 10) | Kommt vor, ohne Verhalten. | **geplant (V13.2)** |
-| Death Rat (Entity 24) | Kommt vor, ohne Verhalten. | **geplant (V13.2)**: frisst männliche Motten (Entity-24-Seite) |
+| Skin-Stealer (Entity 10) | Kommt vor, ohne Verhalten. | **neu (V13.2)**: wahre Gestalt (Verhalten nach der Entity-Seite) |
+| Death Rat (Entity 24) | Kommt vor, ohne Verhalten. | **neu (V13.2)**: Ratten mit dem Schrei-Ereignis (Entity 24: Kreischen, das Licht flackert); dass sie männliche Motten fressen, ist nur dieses Ereignis außer Sicht (das Spiel hat nur Weibchen) |
 | Woodlins (Entity 45), Watchers (Entity 38), Ants (Entity 89), Growlers (Entity 130), Nguithr'xurh (Entity 16) | Nur genannt, ohne Verhalten auf der Ebenenseite. | **fehlt**: Priorität 13. Ohne Verhalten auf der Ebene wäre jedes Verhalten erfunden; die Entity-Seiten sind noch nicht ausgewertet. |
 | Wrangler (Entity 75) | Eine einzelne Meldung aus dem Kesselraum. | **bewusst weggelassen** (Einzelmeldung) |
 | Samantha (Entity 26) | Wandert manchmal durch die Haupthalle; wer sich nähert, soll gutes Fleisch mitbringen. | **fehlt**: Priorität 14. Ein einzelnes, benanntes Wesen mit Handel (Fleisch) – das Spiel hat keinen Tauschhandel. |
@@ -140,9 +140,9 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 
 | Wesen | Wiki (eigene Worte) | Status |
 |---|---|---|
-| Fensterwesen (Entity 2) | Ersetzen gewöhnliche Fenster, große Teile der Atriumwände; dahinter schattige Gestalten; nicht nähern, sie sind keine Ausgänge. | **geplant (V13.2)**: Bisher waren die Fenster mit Umrissen nur Kulisse. |
-| Faceling im rosa Kleid (Entity 9) | In den Gängen; tödlich, tötete ein Expeditionsmitglied mit Hieben und Stichen. | **geplant (V13.2)**, Variante „rosa Kleid“ |
-| Skin-Stealer (Entity 10) | Bösartige Bewohner der Gänge. | **geplant (V13.2)** |
+| Fensterwesen (Entity 2) | Ersetzen gewöhnliche Fenster, große Teile der Atriumwände; dahinter schattige Gestalten; nicht nähern, sie sind keine Ausgänge. | **neu (V13.2)**: drei Fensterwesen in dunklen Fenstern des Hofs – flüstern, winken, greifen unter 1,9 m (`KREATUR_Fensterwesen.md`) |
+| Faceling im rosa Kleid (Entity 9) | In den Gängen; tödlich, tötete ein Expeditionsmitglied mit Hieben und Stichen. | **neu (V13.2)**: Variante „rosa Kleid“, nur in den Gängen, tödlich; lässt im Hof ab |
+| Skin-Stealer (Entity 10) | Bösartige Bewohner der Gänge. | **neu (V13.2)**: wahre Gestalt, nur in den Gängen |
 | Schattenhafte Umrisse | Gleichen den Fensterwesen, an Ecken und am Rand des Blicks; nicht direkt ansehen. | **umgesetzt** als Gestalt |
 | Andere bösartige menschenähnliche Wesen | Nicht beschrieben. | **bewusst weggelassen** (keine Beschreibung) |
 | Entity 39, Amor Incrementum | Nur verlinkt; ein Kult ohne Mitglieder auf der Ebene. | **bewusst weggelassen** |
@@ -152,7 +152,7 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 | Wesen | Wiki (eigene Worte) | Status |
 |---|---|---|
 | Metro (Entity 756) | Ein empfindungsfähiger, selbstfahrender Zug, der Ziele annimmt; neutral. | **umgesetzt** als fahrender Wagen, der Ziele annimmt (Level 37, Level 36) |
-| Faceling (Entity 9) | Friedlich, leben neben Menschen. | **geplant (V13.2)**, friedliche Variante |
+| Faceling (Entity 9) | Friedlich, leben neben Menschen. | **neu (V13.2)**: drei gewöhnliche Varianten, winken, wen sie wiedererkennen |
 | Bewohner, feindselige Lokomotiv-Basen | Menschen. | **bewusst weggelassen** (Menschen; der bewohnte Wagen ist als Kulisse da) |
 
 ### Level 37 – „Sublimity“
@@ -179,11 +179,11 @@ Bewertet nach Zahl der Ebenen, Dichte der Beschreibung auf den Ebenenseiten und 
 
 | Rang | Wesen | Ebenen im Spiel | Entscheidung |
 |---|---|---|---|
-| 1 | Faceling (Entity 9) | 2, 3, 188, 903 | geplant (vier Verhaltensweisen je Ebene) |
-| 2 | Fensterwesen (Entity 2) | 2, 188 | geplant |
-| 3 | Skin-Stealer (Entity 10) | 1, 3, 5, 188 | geplant |
-| 4 | Wretch (Entity 15) | 1, 2, 3 | geplant |
-| 5 | Death Rat (Entity 24) | 2, 3, 5 | geplant |
+| 1 | Faceling (Entity 9) | 2, 3, 188, 903 | **neu (V13.2)**: vier Verhaltensweisen je Ebene, fünf Varianten |
+| 2 | Fensterwesen (Entity 2) | 2, 188 | **neu (V13.2)** in Level 188; Level 2 offen |
+| 3 | Skin-Stealer (Entity 10) | 1, 3, 5, 188 | **neu (V13.2)**: wahre Gestalt und getarnt |
+| 4 | Wretch (Entity 15) | 1, 2, 3 | **neu (V13.2)**: träge, schnell, flehend |
+| 5 | Death Rat (Entity 24) | 2, 3, 5 | **neu (V13.2)**: mit Fell, haarlos, Schrei-Ereignis |
 | 6 | Duller (Entity 6) | 1 | offen |
 | 7 | Nguithr'xurh (Entity 16) | 1, 2, (5) | offen |
 | 8 | Growler (Entity 130) | 1, 2, (5) | offen |
