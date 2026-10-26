@@ -67,12 +67,12 @@ std::string Stats::consume(const ItemDef& it) {
     if (it.sanity != 0.0) {
         double before = sanity;
         sanity = std::min(100.0, sanity + it.sanity);
-        add(std::format("Sanity +{} %", (int)std::lround(sanity - before)));
+        add(std::format("Verstand +{} %", (int)std::lround(sanity - before)));
     }
     if (it.health != 0.0) {
         double before = health;
         health = std::min(100.0, health + it.health);
-        add(std::format("Health +{} %", (int)std::lround(health - before)));
+        add(std::format("Leben +{} %", (int)std::lround(health - before)));
     }
     if (it.speed != 0.0) {
         speedBonus = it.speed;

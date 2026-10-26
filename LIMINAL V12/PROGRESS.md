@@ -85,11 +85,11 @@ Wiedereinstieg: diese Datei zuerst lesen, dann `DECISIONS.md`.
   - Die Wartenden an C32 (nur ihre Sachen), Boarding an C33 = Ende.
   - 29 Blender-Modelle, Durchsage-Klang. Bilder in `docs/screens/level36/`. Entscheidung E-017.
 - [x] **Alle zehn Level gebaut; Reiseprüfung grün (Tests 351/0).**
+- [x] Oberfläche V12 „Beschilderung“: Seitenleisten mit Streckenplan, Ankunftstafeln mit Wiki-Quelle, Abspann mit den Ebenen und Autoren, deutsche Begriffe, neue Hilfe. Geprüft bei fünf Auflösungen (`docs/screens/ui/`). Entscheidung E-018.
 
 ## Als Nächstes
-1. Oberfläche neu (Menüs, HUD, Notizbuch, Abspann), geprüft bei mehreren Auflösungen; Debug getrennt.
-2. `LICENSES.md` (Texturen, eigene Texturen, Schrift, Blender, Wikidot je Seite, offene Rechtsfragen), `MULTIPLAYER.md`, `REPORT.md`.
-3. Schlussprüfung: V10- und V11-Manifeste, alle Tests, Build.
+1. `LICENSES.md` (Texturen, eigene Texturen, Schrift, Blender, Wikidot je Seite, offene Rechtsfragen), `MULTIPLAYER.md`, `REPORT.md`.
+2. Schlussprüfung: V10- und V11-Manifeste, alle Tests, Build.
 
 ## Bekannte Fehler / offen
 - Einmalig hing in V11 ein Testlauf beim Start (Protokoll endete nach dem Laden der Level). In vier Wiederholungen nicht wieder aufgetreten. Ursache unbekannt; beobachten.

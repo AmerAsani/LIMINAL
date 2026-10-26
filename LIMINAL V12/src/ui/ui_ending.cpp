@@ -76,16 +76,20 @@ void Ui::drawEnding(Host& h) {
     auto fade = [&](vec4 c, float from, float len = 1.6f) { return vec4{c.x, c.y, c.z, c.w * ease((t - from) / len)}; };
 
     float y = H_ * 0.11f;
-    // V11: Die Reise endet im letzten Becken (Level 37); der Fahrstuhl-Ausgang aus V9 behaelt seinen Text.
-    const bool pool = ses && ses->world().level().id == "level37";
-    r_->text(W_ * 0.5f, y, 46 * s, pool ? "A N G E K O M M E N" : "D R A U S S E N", fade(ink, 1.0f, 2.2f),
+    // V12: Die Reise endet am Gate C33 von Level 36 (Boarding); V11 endete im Becken von Level 37, V9 im Aufzug.
+    const std::string lid = ses ? ses->world().level().id : std::string();
+    const bool gate = lid == "level36", pool = lid == "level37";
+    r_->text(W_ * 0.5f, y, 46 * s, gate ? "B O A R D I N G" : pool ? "A N G E K O M M E N" : "D R A U S S E N", fade(ink, 1.0f, 2.2f),
              gfx::FontFace::Bold, gfx::Align::Center);
     y += 86 * s;
     const char* kText =
-        pool ? "Das Licht kam von unten, und du bist ihm nachgetaucht. Irgendwann war kein Boden mehr da und kein "
-               "Wasser, nur Wärme. Kein Summen, kein Atmen hinter dir. Zum ersten Mal hat dich nichts gesucht."
-             : "Die Tür ging auf, und dahinter war kein Flur. Nur Licht – so hell, dass es keine Wände mehr gab, an denen "
-               "etwas hätte summen können. Zum ersten Mal seit Langem hast du gar nichts gehört.";
+        gate ? "Die Tür am Gate stand offen, dahinter nur Licht und ein schmaler Gang, der leicht nach unten führte. "
+               "Niemand hat nach dem Ticket gefragt. Wohin der Flug geht, stand auf keiner Tafel – aber zum ersten Mal "
+               "hat sich die Durchsage an dich gerichtet."
+        : pool ? "Das Licht kam von unten, und du bist ihm nachgetaucht. Irgendwann war kein Boden mehr da und kein "
+                 "Wasser, nur Wärme. Kein Summen, kein Atmen hinter dir. Zum ersten Mal hat dich nichts gesucht."
+               : "Die Tür ging auf, und dahinter war kein Flur. Nur Licht – so hell, dass es keine Wände mehr gab, an denen "
+                 "etwas hätte summen können. Zum ersten Mal seit Langem hast du gar nichts gehört.";
     const float tw = std::min(W_ - 120 * s, 980 * s);
     for (const auto& line : r_->wrap(kText, 22 * s, tw)) {
         r_->text(W_ * 0.5f, y, 22 * s, line, fade(soft, 3.0f), gfx::FontFace::Regular, gfx::Align::Center);
@@ -117,16 +121,46 @@ void Ui::drawEnding(Host& h) {
                            false});
         credits.push_back({std::format("Seed {}", ses->seed), false});
     }
+    // V12: die Ebenen und ihre Autoren im Backrooms-Wiki (wikidot, CC BY-SA 3.0); Einzelheiten in LICENSES.md
+    std::vector<std::pair<std::string, bool>> levelCredits;  // V12: rechte Spalte
+    if (gate) {
+        static const char* kLevels[] = {
+            "Level 0 „Threshold“ – u/Deveyerr, DivineAtlas, Robert Goerman, DrAkimoto",
+            "Level 1 „The Habitable Zone“ – Praetor3005, DivineAtlas, EnderMitten, u/ThePizzaEater1000, etoisle",
+            "Level 2 „Abandoned Utility Halls“ – u/M654z, 1000dumplings",
+            "Level 3 „Electrical Station“ – u/M654z, Natedagreat563",
+            "Level 5 „Terror Hotel“ – Discord13, Stretchsterz, ratscrapz",
+            "Level 5.3 „Promethei Bibliotheca“ – Praetor3005",
+            "Level 188 „The Courtyard of Windows“ – 1000dumplings, Kai4C",
+            "Level 903 „The Metro“ – Natedagreat563, Wesbot",
+            "Level 37 „Sublimity“ – egglord",
+            "Level 36 „Timeless Airport“ – Endrew1"};
+        levelCredits.push_back({"D I E   E B E N E N", true});
+        for (const char* l : kLevels) levelCredits.push_back({l, false});
+        levelCredits.push_back({"nach backrooms-wiki.wikidot.com  ·  CC BY-SA 3.0", false});
+        levelCredits.push_back({"Seiten, Fassungen und Lizenzen: LICENSES.md", false});
+    }
+    // zwei Spalten, wenn die Ebenen dazukommen: links das Laufbuch, rechts die Ebenen
+    const float colL = gate ? W_ * 0.27f : W_ * 0.5f, colR = W_ * 0.70f;
+    float yR = y;
+    for (size_t i = 0; i < levelCredits.size(); ++i) {
+        const float from = 5.0f + 0.35f * (float)i;
+        const bool hi = levelCredits[i].second;
+        r_->text(colR, yR, (hi ? 20.0f : 15.0f) * s, levelCredits[i].first, fade(hi ? ink : soft, from, 1.2f),
+                 hi ? gfx::FontFace::Bold : gfx::FontFace::Regular, gfx::Align::Center);
+        yR += (i == 0 ? 38.0f : 25.0f) * s;
+    }
     for (size_t i = 0; i < credits.size(); ++i) {
         const float from = 5.0f + 0.45f * (float)i;
         const bool hi = credits[i].second;
-        r_->text(W_ * 0.5f, y, (hi ? 21.0f : 19.0f) * s, credits[i].first, fade(hi ? ink : soft, from, 1.2f),
+        r_->text(colL, y, (hi ? 21.0f : 19.0f) * s, credits[i].first, fade(hi ? ink : soft, from, 1.2f),
                  hi ? gfx::FontFace::Bold : gfx::FontFace::Regular, gfx::Align::Center);
         y += (i == 0 ? 42.0f : 31.0f) * s;
     }
 
     // Auswahl (erst, wenn der Abspann steht)
-    const float ready = 5.0f + 0.45f * (float)credits.size() + 0.8f;
+    y = std::max(y, yR);
+    const float ready = 5.0f + 0.45f * (float)std::max(credits.size(), levelCredits.size()) + 0.8f;
     if (t < ready) {
         if (in_->actionPressed(Action::UiConfirm) || in_->actionPressed(Action::UiBack)) endingStart_ -= 100.0;  // ueberspringen
         return;
@@ -135,7 +169,8 @@ void Ui::drawEnding(Host& h) {
     const float w = std::min(W_ - 80 * s, 640 * s), hh = 150 * s;
     const float x = (W_ - w) * 0.5f, py = std::max(y + 20 * s, H_ - hh - 56 * s);
     r_->setAlpha(a);
-    r_->rect(x, py, w, hh, kPanel, 4 * s, 1.0f * s, kBorder);
+    r_->rect(x, py, w, hh, kPanel, 0.0f, 1.0f * s, kBorder);
+    r_->rect(x, py, 4 * s, hh, kAccent);
     std::vector<Item> items = {
         {"Weiter erkunden", nullptr, nullptr,
          [this, &h] {

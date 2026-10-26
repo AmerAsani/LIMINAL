@@ -62,7 +62,8 @@ std::vector<std::string> Ui::runLogLines(Host& h, game::GameSession& ses) {
                         rl.rooms == 1 ? "Raum" : "Räume"),
             std::format("{} {} ({})   ·   {} {}   ·   {} von {} Notizen   ·   {} {}", ebenen, ebenen == 1 ? "Ebene" : "Ebenen",
                         ses.regionName(), rl.exits,
-                        inWorld ? (rl.exits == 1 ? "Übergang" : "Übergänge") : (rl.exits == 1 ? "Notausgang" : "Notausgänge"),
+                        (inWorld || lv.mapped()) ? (rl.exits == 1 ? "Übergang" : "Übergänge")  // V12: feste Karten reisen ueber Uebergaenge
+                                                 : (rl.exits == 1 ? "Notausgang" : "Notausgänge"),
                         ses.journal().size(),
                         h.content().notes().size(), rl.visions, rl.visions == 1 ? "Halluzination" : "Halluzinationen"),
             third};

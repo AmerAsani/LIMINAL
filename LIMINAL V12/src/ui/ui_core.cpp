@@ -70,6 +70,20 @@ void Ui::toast(const std::string& text, double duration) {
 
 void Ui::regionTitle(const std::string& text) {
     regionTitle_ = text;
+    regionSource_.clear();
+    regionStart_ = now_;
+}
+
+void Ui::levelCard(const std::string& id, const std::string& name, const std::string& title) {
+    // Wiki-Seite aus der Level-ID: level5_3 -> level-5-3
+    std::string slug = id;
+    if (slug.rfind("level", 0) == 0) {
+        slug = "level-" + slug.substr(5);
+        for (char& c : slug)
+            if (c == '_') c = '-';
+    }
+    regionTitle_ = title.empty() ? name : name + " · " + title;
+    regionSource_ = "nach backrooms-wiki.wikidot.com/" + slug + "  ·  CC BY-SA 3.0";
     regionStart_ = now_;
 }
 
@@ -103,26 +117,78 @@ bool Ui::clicked(float x, float y, float w, float hh) const {
     return in_->pressed(input::MOUSE_LEFT) && hovered(x, y, w, hh);
 }
 
-// V11: dunkles Glas mit feiner Haarlinie, oben links eine kurze Akzentmarke - kein schwerer Rahmen
+// V12: Tafel wie ein Stationsschild - gerade Kanten, links eine Signalkante ueber die volle Hoehe
 void Ui::panel(float x, float y, float w, float hh) {
     float s = S();
-    r_->rect(x, y, w, hh, kPanel, 4 * s, 1.0f * s, kBorder);
-    r_->rect(x + 36 * s, y, 44 * s, 2 * s, kAccent);
+    r_->rect(x, y, w, hh, kPanel, 0.0f, 1.0f * s, kBorder);
+    r_->rect(x, y, 4 * s, hh, kAccent);
 }
 
 float Ui::header(float x, float y, float w, const std::string& title, const std::string& sub) {
     float s = S();
-    r_->text(x + 36 * s, y + 30 * s, kFsTitle * s, title, kTitle, gfx::FontFace::Bold);
+    r_->text(x + 40 * s, y + 28 * s, kFsTitle * s, title, kTitle, gfx::FontFace::Bold);
     if (!sub.empty())
-        r_->text(x + w - 36 * s, y + 37 * s, kFsCaps * s, upperUtf8(sub), kMuted, gfx::FontFace::Bold, gfx::Align::Right);
-    r_->rect(x + 36 * s, y + 76 * s, w - 72 * s, 1.0f * s, kRule);
-    return y + 92 * s;
+        r_->text(x + w - 36 * s, y + 38 * s, kFsCaps * s, upperUtf8(sub), kAccent, gfx::FontFace::Bold, gfx::Align::Right);
+    r_->rect(x + 40 * s, y + 78 * s, w - 76 * s, 1.0f * s, kRule);
+    return y + 94 * s;
 }
 
 void Ui::footer(float x, float y, float w, const std::string& hint) {
     float s = S();
-    r_->rect(x + 36 * s, y, w - 72 * s, 1.0f * s, kRule);
-    r_->text(x + 36 * s, y + 16 * s, kFsSmall * s, hint, kMuted);
+    r_->rect(x + 40 * s, y, w - 76 * s, 1.0f * s, kRule);
+    r_->text(x + 40 * s, y + 16 * s, kFsSmall * s, hint, kMuted);
+}
+
+// V12: Streckenplan wie auf einer Bahnsteigtafel. Hauptlinie 0-1-2-3-5-903-36, Abzweige ueber/unter der Linie:
+// 5.3 (oben) und 188 (unten) an Level 5, 37 (oben) an 903. Die aktuelle Ebene ist ein gefuellter Punkt mit Ring.
+float Ui::drawRoute(float x, float y, float w, const std::string& current) {
+    float s = S();
+    struct Stop {
+        const char* id;
+        const char* label;
+        float t;    // Position entlang der Linie (0..1)
+        int branch; // 0 Hauptlinie, -1 oben, +1 unten
+    };
+    static const Stop stops[] = {{"level0", "0", 0.0f, 0},     {"level1", "1", 0.15f, 0},     {"level2", "2", 0.3f, 0},
+                                 {"level3", "3", 0.45f, 0},    {"level5", "5", 0.6f, 0},      {"level5_3", "5.3", 0.6f, -1},
+                                 {"level188", "188", 0.6f, 1}, {"level903", "903", 0.8f, 0},  {"level37", "37", 0.8f, -1},
+                                 {"level36", "36", 1.0f, 0}};
+    const float lx0 = x + 14 * s, lx1 = x + w - 14 * s, ly = y + 34 * s, dy = 26 * s, r = 6 * s;
+    r_->text(x, y, kFsCaps * s, "S T R E C K E", kMuted, gfx::FontFace::Bold);
+    r_->rect(lx0, ly - 1 * s, lx1 - lx0, 2 * s, kAccent);
+    for (const Stop& st : stops) {
+        const float cx = lx0 + (lx1 - lx0) * st.t;
+        const float cy = ly + dy * (float)st.branch;
+        if (st.branch != 0) r_->rect(cx - 1 * s, std::min(ly, cy), 2 * s, std::abs(cy - ly), kAccent);
+        const bool cur = current == st.id;
+        if (cur) r_->rect(cx - r - 4 * s, cy - r - 4 * s, 2 * (r + 4 * s), 2 * (r + 4 * s), rgba8(0, 0, 0, 0), r + 4 * s, 1.5f * s, kAccent);
+        r_->rect(cx - r, cy - r, 2 * r, 2 * r, cur ? kAccent : kPanel, r, 2 * s, kAccent);
+        // Beschriftung: Hauptlinie unter dem Punkt, Abzweige seitlich
+        const vec4 tc = cur ? kSelText : kText;
+        if (st.branch == 0) r_->text(cx, ly + 14 * s, 13 * s, st.label, tc, gfx::FontFace::Bold, gfx::Align::Center);
+        else r_->text(cx + 12 * s, cy - 9 * s, 13 * s, st.label, tc, gfx::FontFace::Bold);
+    }
+    return 34 * s + dy + 30 * s;
+}
+
+// V12: Seitenleiste fuer Titel und Pause: tiefes Blauschwarz, links bis 34 % der Breite (min. 520 px bei 1080 p),
+// rechts weicher Uebergang in den Raum dahinter; oben die Wortmarke
+float Ui::sidebar(const std::string& tagline) {
+    float s = S();
+    const float sw = std::clamp(W_ * 0.34f, 520 * s, 760 * s);
+    r_->rect(0, 0, sw, H_, kSidebar);
+    const int strips = 16;
+    const float fade = 120 * s;
+    for (int k = 0; k < strips; ++k) {
+        const float t = ((float)k + 0.5f) / strips;
+        r_->rect(sw + fade * (float)k / strips, 0, fade / strips + 1, H_, rgba8(7, 9, 11, (int)(244 * (1.0f - t) * (1.0f - t))));
+    }
+    r_->rect(sw - 1 * s, 0, 1 * s, H_, kRule);
+    const float lx = 64 * s, ly = 72 * s;
+    r_->text(lx, ly, 64 * s, "L I M I N A L", kTitle, gfx::FontFace::Bold);
+    r_->rect(lx + 2 * s, ly + 92 * s, 56 * s, 4 * s, kAccent);
+    r_->text(lx + 2 * s, ly + 110 * s, kFsCaps * s, tagline, kMuted, gfx::FontFace::Bold);
+    return sw;
 }
 
 // Liste mit Auswahl: Tastatur/Gamepad (hoch/runter, links/rechts, bestaetigen), Maus, Mausrad.
@@ -192,13 +258,15 @@ void Ui::runList(Host& h, std::vector<Item>& items, ListState& st, float x, floa
         float ry = y + (float)(i - first) * rowH;
         bool sel = i == st.sel;
         // V11: zurueckhaltende Auswahl - leicht aufgehellte Zeile, schmale Akzentmarke links, hellerer Text
+        // V12: Auswahl wie ein beleuchtetes Feld der Tafel - Hauch Signalgelb, volle Signalkante links, Pfeil
         if (sel) {
-            r_->rect(x, ry + 3 * s, w, rowH - 6 * s, kSelRow, 3 * s);
-            r_->rect(x, ry + 11 * s, 3 * s, rowH - 22 * s, kAccent, 1.5f * s);
+            r_->rect(x, ry + 2 * s, w, rowH - 4 * s, kSelRow);
+            r_->rect(x, ry + 2 * s, 4 * s, rowH - 4 * s, kAccent);
         }
         vec4 tc = sel ? kSelText : (it.muted ? kMuted : kText);
         float ty = ry + (rowH - kFsRow * s) * 0.5f - 2 * s;
-        r_->text(x + 22 * s, ty, kFsRow * s, it.label, tc);
+        if (sel) r_->text(x + 18 * s, ty, kFsRow * s, "›", kAccent, gfx::FontFace::Bold);
+        r_->text(x + (sel ? 40 : 26) * s, ty, kFsRow * s, it.label, tc, sel ? gfx::FontFace::Bold : gfx::FontFace::Regular);
         if (it.value) {
             std::string v = it.value();
             if (it.adjust && sel) v = "◂  " + v + "  ▸";
@@ -216,14 +284,16 @@ void Ui::runList(Host& h, std::vector<Item>& items, ListState& st, float x, floa
 
 void Ui::drawLoading(Host& h) {
     float s = S();
-    r_->text(W_ * 0.5f, H_ * 0.42f, 52 * s, "L I M I N A L", kTitle, gfx::FontFace::Bold, gfx::Align::Center);
-    r_->text(W_ * 0.5f, H_ * 0.42f + 84 * s, kFsBody * s, loadingText_, kMuted, gfx::FontFace::Regular, gfx::Align::Center);
-    // V11: haarfeiner Fortschritt im Akzent statt eines dicken Balkens
-    float bw = 360 * s, bx = (W_ - bw) * 0.5f, by = H_ * 0.42f + 130 * s;
-    r_->rect(bx, by, bw, 2 * s, kEmpty, 1 * s);
+    // V12: wie die Tafel bei der Einfahrt - Wortmarke, Text, haarfeiner Fortschritt in Signalgelb
+    const float cx = W_ * 0.5f, cy = H_ * 0.40f;
+    r_->text(cx, cy, 56 * s, "L I M I N A L", kTitle, gfx::FontFace::Bold, gfx::Align::Center);
+    r_->rect(cx - 28 * s, cy + 86 * s, 56 * s, 4 * s, kAccent);
+    r_->text(cx, cy + 108 * s, kFsBody * s, loadingText_, kMuted, gfx::FontFace::Regular, gfx::Align::Center);
+    float bw = 420 * s, bx = (W_ - bw) * 0.5f, by = cy + 150 * s;
+    r_->rect(bx, by, bw, 2 * s, kEmpty);
     float t = (float)std::fmod(now_ * 0.6, 1.0);
-    if (loadingProgress_ > 0.0f) r_->rect(bx, by, bw * std::clamp(loadingProgress_, 0.02f, 1.0f), 2 * s, kAccent, 1 * s);
-    else r_->rect(bx + bw * t * 0.75f, by, bw * 0.25f, 2 * s, kAccent, 1 * s);
+    if (loadingProgress_ > 0.0f) r_->rect(bx, by, bw * std::clamp(loadingProgress_, 0.02f, 1.0f), 2 * s, kAccent);
+    else r_->rect(bx + bw * t * 0.75f, by, bw * 0.25f, 2 * s, kAccent);
 }
 
 void Ui::frame(Host& h, double dt) {

@@ -38,7 +38,7 @@ void Ui::slotBox(Host& h, const game::Inventory& inv, int idx, float x, float y,
     const auto& slot = inv.slots[(size_t)idx];
     // V11: dunkles Glas mit feiner Kante; aktiver Platz mit Akzentkante, Inventar-Cursor hell
     const vec4 edge = selected ? kAccent : (cursor ? kSelText : kSlotBorder);
-    r_->rect(x, y, size, size, selected ? kSlotSel : (slot ? kSlotFull : kSlot), 4 * s, (selected || cursor) ? 1.6f * s : 1.0f * s,
+    r_->rect(x, y, size, size, selected ? kSlotSel : (slot ? kSlotFull : kSlot), 0.0f, (selected || cursor) ? 2.0f * s : 1.0f * s,
              edge);
     if (slot) {
         const game::ItemDef* d = h.content().item(slot->kind);
@@ -136,9 +136,9 @@ void Ui::drawHotbar(Host& h, game::GameSession& ses) {
         r_->rect(vx, y, bw, bh, kEmpty, bh * 0.5f);
         r_->rect(vx, y, (float)(bw * std::clamp(v / 100.0, 0.0, 1.0)), bh, col, bh * 0.5f);
     };
-    bar(rowH, "Health", st.health, st.health < 35 ? kLow : kHealth);
+    bar(rowH, "Leben", st.health, st.health < 35 ? kLow : kHealth);
     bool pulse = st.sanity < 20 && std::fmod(now_ * 3.0, 2.0) < 1.0;
-    bar(rowS, "Sanity", st.sanity, (pulse || st.sanity <= 0) ? kLow : kSanity);
+    bar(rowS, "Verstand", st.sanity, (pulse || st.sanity <= 0) ? kLow : kSanity);
     r_->setAlpha(base);
     // --- Lampe rechts daneben (an, gerade geschaltet oder schwach)
     {
@@ -188,7 +188,9 @@ void Ui::drawHud(Host& h, double dt) {
     auto pill = [&](float y, const std::string& t, vec4 fg, vec4 bg, float size, float a = 1.0f) {
         if (a <= 0.01f) return;
         float tw = r_->textWidth(t, size * s);
-        r_->rect(W_ * 0.5f - tw * 0.5f - 14 * s, y - 6 * s, tw + 28 * s, size * s * 1.45f + 12 * s, withAlpha(bg, a), 4 * s);
+        const float bx = W_ * 0.5f - tw * 0.5f - 16 * s, bh = size * s * 1.45f + 12 * s;
+        r_->rect(bx, y - 6 * s, tw + 32 * s, bh, withAlpha(bg, a));
+        r_->rect(bx, y - 6 * s, 3 * s, bh, withAlpha(kAccent, a * 0.9f));  // V12: Signalkante wie an den Tafeln
         r_->text(W_ * 0.5f, y, size * s, t, withAlpha(fg, a), gfx::FontFace::Regular, gfx::Align::Center);
     };
     // Interaktion (V11): knapp unter dem Fadenkreuz, die Taste als kleine Kappe (Tastatur oder Gamepad), weich
@@ -244,11 +246,19 @@ void Ui::drawHud(Host& h, double dt) {
             std::string head = regionTitle_, sub;
             if (auto dot = regionTitle_.find(" · "); dot != std::string::npos)
                 head = regionTitle_.substr(0, dot), sub = regionTitle_.substr(dot + std::string(" · ").size());
-            float cy = H_ * 0.28f;
-            r_->text(W_ * 0.5f, cy, 38 * s, spacedCaps(head), withAlpha(kTitle, a * 0.92f), gfx::FontFace::Bold, gfx::Align::Center);
+            // V12: Ankunftstafel - oben die Nummer gesperrt in Signalgelb, darunter der Titel gross, eine Kante,
+            // die Quelle klein (die Ebenen stammen aus dem Wiki)
+            float cy = H_ * 0.24f;
+            const float tw = std::max(r_->textWidth(sub.empty() ? head : sub, 46 * s, gfx::FontFace::Bold), 280 * s);
+            r_->rect(W_ * 0.5f - tw * 0.5f - 40 * s, cy - 22 * s, tw + 80 * s, (regionSource_.empty() ? 128 : 160) * s,
+                     withAlpha(kPanelSoft, a * 0.8f));
+            r_->rect(W_ * 0.5f - tw * 0.5f - 40 * s, cy - 22 * s, 4 * s, (regionSource_.empty() ? 128 : 160) * s, withAlpha(kAccent, a));
+            r_->text(W_ * 0.5f, cy, 16 * s, spacedCaps(head), withAlpha(kAccent, a), gfx::FontFace::Bold, gfx::Align::Center);
             if (!sub.empty())
-                r_->text(W_ * 0.5f, cy + 58 * s, 22 * s, sub, withAlpha(kText, a * 0.85f), gfx::FontFace::Regular, gfx::Align::Center);
-            r_->rect(W_ * 0.5f - 60 * s * a, cy + 50 * s, 120 * s * a, 1.0f * s, withAlpha(kAccent, a * 0.7f));
+                r_->text(W_ * 0.5f, cy + 30 * s, 46 * s, sub, withAlpha(kTitle, a), gfx::FontFace::Bold, gfx::Align::Center);
+            r_->rect(W_ * 0.5f - 40 * s * a, cy + 96 * s, 80 * s * a, 2.0f * s, withAlpha(kAccent, a * 0.9f));
+            if (!regionSource_.empty())
+                r_->text(W_ * 0.5f, cy + 110 * s, 15 * s, regionSource_, withAlpha(kText, a * 0.8f), gfx::FontFace::Regular, gfx::Align::Center);
         }
     }
     drawIntro();  // V9
@@ -334,7 +344,7 @@ void Ui::drawInventory(Host& h) {
     r_->rect(px + 40 * s, py, 44 * s, 2 * s, kAccent);
     r_->text(px + 40 * s, py + 30 * s, kFsTitle * s, "I N V E N T A R", kTitle, gfx::FontFace::Bold);
     r_->text(px + pw - 40 * s, py + 38 * s, kFsCaps * s,
-             std::format("HEALTH  {}       SANITY  {}", (int)std::lround(st.health), (int)std::lround(st.sanity)), kMuted,
+             std::format("LEBEN  {}       VERSTAND  {}", (int)std::lround(st.health), (int)std::lround(st.sanity)), kMuted,
              gfx::FontFace::Bold, gfx::Align::Right);
     r_->rect(px + 40 * s, py + 76 * s, pw - 80 * s, 1.0f * s, kRule);
     float gx = px + 40 * s, gy = py + 100 * s;
@@ -475,7 +485,7 @@ void Ui::drawDead(Host& h) {
                            : role == 5 ? "Was geholfen hätte: leise gehen (C), 2,5 m Abstand, nicht rennen. Etwas werfen (Q) lockt es weg."
                                        : "Was geholfen hätte: essen, Mandelwasser, im Licht bleiben.";
         r_->text(x + w * 0.5f, y + hh - 54 * s, 17 * s, hint, rgba8(200, 150, 140), gfx::FontFace::Regular, gfx::Align::Center);
-        r_->text(x + w * 0.5f, y + hh - 30 * s, 15 * s, "Inventar und Funde bleiben. Volle Health, der Stromausfall ist vorbei.",
+        r_->text(x + w * 0.5f, y + hh - 30 * s, 15 * s, "Inventar und Funde bleiben. Volles Leben, der Stromausfall ist vorbei.",
                  rgba8(150, 110, 100), gfx::FontFace::Regular, gfx::Align::Center);
         return;
     }
@@ -487,7 +497,7 @@ void Ui::drawDead(Host& h) {
     };
     runList(h, items, lists_[10], x + 60 * s, y + 210 * s, w - 120 * s, 50 * s, 3);
     if (h.hasSave())
-        r_->text(x + w * 0.5f, y + hh - 50 * s, 17 * s, "Beim Laden startest du mit voller Health und mindestens 30 % Sanity.",
+        r_->text(x + w * 0.5f, y + hh - 50 * s, 17 * s, "Beim Laden startest du mit vollem Leben und mindestens 30 % Verstand.",
                  rgba8(160, 120, 110), gfx::FontFace::Regular, gfx::Align::Center);
 }
 

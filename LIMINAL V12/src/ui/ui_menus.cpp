@@ -51,7 +51,7 @@ const HelpLine kHelp[] = {
     {'k', "+ / −", "Laufgeschwindigkeit ändern"},
     {'t', "Treppen und Stufen steigst du einfach hinauf und hinunter, von hohen Kanten fällst du. "
           "Unter niedrigen Decken ist kein Platz zum Springen.", ""},
-    {'t', "Sprinten zehrt an der Ausdauer (schmale Leiste zwischen Health und Sanity). Ist sie leer, "
+    {'t', "Sprinten zehrt an der Ausdauer (schmale Leiste zwischen Leben und Verstand). Ist sie leer, "
           "bist du außer Atem: Du kannst erst wieder sprinten, wenn sie sich bis zur Marke erholt hat. "
           "Im Stehen erholst du dich schneller als im Gehen.", ""},
     {' ', "", ""},
@@ -80,65 +80,53 @@ const HelpLine kHelp[] = {
           "achte auf den rot leuchtenden Automaten. Energy Bars sind ein seltener Fund: "
           "sie schimmern leicht auf der Theke und wirken stärker als früher. Abgelegte Items "
           "bleiben liegen (auch im Spielstand) und lassen sich wieder aufheben.", ""},
-    {'k', "Energy Bar  (selten)", "+30 % Sanity, +30 % Tempo (75 s), Ausdauer voll, Sprint halb so teuer"},
-    {'k', "Mandelwasser", "+35 % Sanity"},
+    {'k', "Energy Bar  (selten)", "+30 % Verstand, +30 % Tempo (75 s), Ausdauer voll, Sprint halb so teuer"},
+    {'k', "Mandelwasser", "+35 % Verstand"},
     {' ', "", ""},
-    {'h', "Die Welt", ""},
-    {'t', "Es gibt keine getrennten Level mehr. Jeder Lauf beginnt in den Büros (Level 0). Wer sich weit genug "
-          "entfernt, kommt tiefer: ins Tiefgeschoss (Level 1), dahinter ins Hotel (Level 2) – und noch weiter "
-          "draußen beginnt die Folge von vorn, aber nie ganz gleich. Die Grenzen sind keine Linien: Flure mischen "
-          "sich, Lastenflure, Abgänge und Personaltreppen führen hinüber, manchmal liegt ein Stück der einen Ebene "
-          "mitten in der anderen.", ""},
-    {'t', "Wo du bist, sagt dir niemand sofort. Erst wenn du eine Weile in einer neuen Ebene unterwegs bist, "
-          "erkennst du sie. Zurück geht es jederzeit – zu Fuß in Richtung Start.", ""},
-    {'k', "Aufzüge", "selten, nie nahe am Start: rufen (E), einsteigen, Knopf drücken (E)"},
-    {'t', "Ein Aufzug fährt eine Schicht tiefer und merkt sich den Weg: Derselbe Aufzug bringt dich später "
-          "wieder zurück. Die Karte zeigt gesehene Aufzüge hellblau.", ""},
+    {'h', "Die Reise", ""},
+    {'t', "Zehn Ebenen nach dem Backrooms-Wiki in fester Folge: die Vorzimmer (Level 0), die Lagerdecks (1), die "
+          "Versorgungsgänge (2), das Umspannwerk (3) und das Hotel (5). Vom Hotel zweigen die Bibliothek (5.3) und "
+          "der Hof der Fenster (188) ab, beide mit Rückweg. Ein Metro-Wagen am Ende des Kesselgangs fährt zur Metro "
+          "(903), von dort nach Sublimity (37) und zum Timeless Airport (36).", ""},
+    {'t', "Übergänge sind Orte: eine flackernde Wand, ein Rohrgang, eine Stahltür, ein Aufzug, ein alter Gang, ein "
+          "helles Fenster, ein Wagen. Bei der Ankunft zeigt eine Tafel, wo du bist und von welcher Seite des Wikis "
+          "die Ebene stammt. Den Streckenplan siehst du im Pausenmenü.", ""},
+    {'k', "Metro-Wagen", "vorderes Ende (Wellen) = Level 37, hinteres Ende (Flugzeug) = Level 36"},
+    {'k', "Sicherungspunkte", "grünes Licht (Schild oder Laterne): nach dem Tod geht es dort weiter"},
     {' ', "", ""},
-    {'h', "Taschenlampe, Notizen & Notausgänge", ""},
+    {'h', "Taschenlampe & Notizen", ""},
     {'k', "T  (Gamepad ↑)", "Taschenlampe ein / aus"},
     {'t', "Deine linke Hand hält eine Taschenlampe. Eine Batterie hält eingeschaltet etwa fünf Minuten; "
           "neben der Schnellleiste siehst du, wie viel noch übrig ist. Unter 15 % beginnt das Licht zu "
-          "flackern. Batterien liegen selten herum, am ehesten in dunklen Räumen – mit F benutzt, laden "
-          "sie die Lampe um 50 % auf.", ""},
+          "flackern. Batterien liegen selten herum – mit F benutzt, laden sie die Lampe um 50 % auf.", ""},
     {'t', "Andere Wanderer haben Zettel hinterlassen. Aufgehobene Notizen landen im Notizbuch (ESC → Notizbuch).", ""},
-    {'t', "Notausgänge mit grünem Leuchtschild gibt es nur noch in Spielständen aus V7 und früher (getrennte "
-          "Level). Dort führen sie auf die nächste Ebene.", ""},
-    {'t', "Wenn deine Sanity sinkt, ist nicht mehr alles echt, was du hörst und siehst. Unter "
+    {'t', "Wenn dein Verstand schwindet, ist nicht mehr alles echt, was du hörst und siehst. Unter "
           "»Grafik & Anzeige« lassen sich diese Halluzinationen abschalten.", ""},
     {' ', "", ""},
-    {'h', "Der Weg hinaus", ""},
-    {'t', "Es gibt einen Weg hinaus. Die Aufzüge können weiter fahren als je zuvor – sie brauchen nur Strom. "
-          "Tief im Inneren jeder Ebene, weit weg von den Übergängen, hängen Sicherungskästen an den Wänden. "
-          "Sie brummen, und ihr Licht flackert orange.", ""},
-    {'k', "Sicherungskasten", "Sicherung herausnehmen (E) – eine aus jeder Ebene"},
-    {'t', "Mit allen drei Sicherungen (Büros, Tiefgeschoss, Hotel) in einen Aufzug steigen und »Sicherungen "
-          "einsetzen«. Das Pausenmenü zeigt, welche dir noch fehlen; gesehene Kästen markiert die Karte orange.", ""},
+    {'h', "Das Ende", ""},
+    {'t', "Im Timeless Airport (Level 36) steigt an einem einzigen Gate gerade jemand ein. Die Gate-Tür führt "
+          "ins Flugzeug – dort endet die Reise. Den Schildern dort nicht trauen, dem EXIT schon gar nicht.", ""},
     {' ', "", ""},
     {'h', "Du bist nicht allein", ""},
-    {'t', "Welche Entity wo lebt, folgt den Backrooms-Wikis. In den Innenräumen (Level 0) gibt es keine "
-          "bestätigten Entities – nur Berichte über dunkle Gestalten am Ende der Gänge. Sie verändern sich nie, "
-          "solange du hinsiehst. Sieh weg, und sie sind fort.", ""},
-    {'t', "Im Tiefgeschoss (Level 1) fällt manchmal das Licht aus. Im Dunkeln lebt der Smiler: Du siehst nur "
-          "weiß leuchtende Augen und ein langes Lächeln voller spitzer Zähne. Halte den Blick, dann rührt er sich "
-          "nicht. Geh langsam zurück, ins Licht, und mach die Lampe aus – ihr Licht lockt ihn. Renn nicht: Panik "
-          "lässt ihn angreifen. Siehst du weg, kommt er durch das Dunkel näher, ins Licht folgt er dir nie.", ""},
-    {'t', "Der Hound geht auf allen vieren, mager, mit langem schwarzem Haar über Kopf und Rücken. Er hört dich "
-          "rennen und sieht das Licht deiner Lampe. Knurrt er, halte Blickkontakt – das schüchtert ihn eine Weile "
-          "ein. Weiche langsam zurück und mach das Licht aus. Kehrst du ihm den Rücken zu oder rennst, bellt er "
-          "und stürmt los.", ""},
-    {'t', "Im Hotel (Level 5) überziehen Nester der Deathmoths die Türen dunkler Zimmer. Die Motten sitzen "
-          "still an Wand und Decke. Trifft sie Licht oder kommst du zu nah, fliegt der Schwarm auf und umkreist "
-          "die Lampe – mit Licht stechen sie zu. Lampe aus und weg: Sie kehren zum Nest zurück.", ""},
-    {'t', "Die Entities fahren nicht mit dem Aufzug. Wer in das Lächeln starrt, verliert schneller den Verstand. "
-          "Was keinen Schatten wirft, ist vielleicht nur in deinem Kopf.", ""},
+    {'t', "Welche Wesen wo leben, folgt dem Wiki. In den Vorzimmern (Level 0) gibt es nur Berichte über dunkle "
+          "Gestalten am Ende der Gänge. Sie verändern sich nie, solange du hinsiehst. Sieh weg, und sie sind fort. "
+          "Im Hof der Fenster (188) stehen solche Umrisse in den Fenstern. Bibliothek, Metro, Becken und Flughafen "
+          "sind ohne Wesen.", ""},
+    {'t', "In den Lagerdecks, den Versorgungsgängen und im Umspannwerk (1–3) fällt manchmal das Licht aus. Im "
+          "Dunkeln lebt der Smiler: Du siehst nur weiß leuchtende Augen und ein langes Lächeln. Halte den Blick, "
+          "dann rührt er sich nicht. Geh langsam zurück ins Licht und mach die Lampe aus. Renn nicht.", ""},
+    {'t', "Der Hound geht auf allen vieren, mager, mit langem schwarzem Haar. Er hört dich rennen und sieht das "
+          "Licht deiner Lampe. Knurrt er, halte Blickkontakt und weiche langsam zurück. Kehrst du ihm den Rücken "
+          "zu oder rennst, stürmt er los. Clumps lauern an Kreuzungen in den Gängen.", ""},
+    {'t', "Im Hotel (Level 5) überziehen Nester der Deathmoths die Türen dunkler Zimmer. Trifft sie Licht oder "
+          "kommst du zu nah, fliegt der Schwarm auf. Lampe aus und weg: Sie kehren zum Nest zurück.", ""},
     {'t', "Unter »Grafik & Anzeige« → »Entities«: Alle, Ohne Angriffe (sie sind da, aber niemand greift zu) oder Aus.", ""},
     {' ', "", ""},
-    {'h', "Health & Sanity", ""},
-    {'t', "Deine Sanity sinkt stetig (je nach Schwierigkeit 10–22 % pro Minute). Erreicht sie 0 %, "
-          "färbt sich der Bildschirmrand zunehmend rot und deine Health schwindet – nach wenigen "
+    {'h', "Leben & Verstand", ""},
+    {'t', "Dein Verstand sinkt stetig (je nach Schwierigkeit 10–22 % pro Minute). Erreicht er 0 %, "
+          "färbt sich der Bildschirmrand zunehmend rot und dein Leben schwindet – nach wenigen "
           "Sekunden verlierst du endgültig den Verstand. Ein Item rettet dich, danach erholt sich "
-          "deine Health langsam.", ""},
+          "dein Leben langsam.", ""},
     {'t', "Das Spiel speichert alle 3 Minuten automatisch (sowie beim Beenden). Nach dem Tod "
           "kannst du den letzten Spielstand laden oder zum Hauptmenü zurückkehren.", ""},
     {' ', "", ""},
@@ -418,7 +406,7 @@ std::vector<Ui::Item> Ui::settingsItems(Host& h, const std::string& page) {
                      "Dreht mit: deine Blickrichtung zeigt immer nach oben. Norden oben: feste Karte, der Pfeil dreht sich."});
         v.push_back({"Halluzinationen", [&s] { return onOff(s.hallucinations); },
                      [&s, changed](int) { s.hallucinations = !s.hallucinations, changed(); }, nullptr,
-                     "Bei schwindender Sanity: Schritte hinter dir, Leuchten, die ausgehen, und eine Gestalt am Ende des Gangs. "
+                     "Bei schwindender Verstand: Schritte hinter dir, Leuchten, die ausgehen, und eine Gestalt am Ende des Gangs. "
                      "Rein atmosphärisch – sie schaden dir nicht."});
         v.push_back({"Entities",
                      [&s] {
@@ -519,23 +507,18 @@ void Ui::drawTitle(Host& h) {
     float hh = std::min(H_ - 60 * s, 860 * s);
     float x = (W_ - w) * 0.5f, y = (H_ - hh) * 0.5f;
     if (page_ == "main") {
-        // V11: Hauptmenue ohne Kasten - links ein dunkler Verlauf, darauf Wortmarke, Liste und Hinweis; der Raum
-        // dahinter bleibt sichtbar
-        const int strips = 48;
-        const float gw = std::min(W_, 980 * s);
-        for (int k = 0; k < strips; ++k) {
-            const float x0 = std::floor(gw * (float)k / strips), x1 = std::floor(gw * (float)(k + 1) / strips);
-            const float t = ((float)k + 0.5f) / strips;
-            r_->rect(x0, 0.0f, x1 - x0, H_, rgba8(6, 6, 5, (int)(236 * std::pow(1.0f - t, 1.4f))));
-        }
-        const float lx = 110 * s, ly = H_ * 0.28f;
-        r_->text(lx, ly, 58 * s, "L I M I N A L", kTitle, gfx::FontFace::Bold);
-        r_->rect(lx + 3 * s, ly + 88 * s, 44 * s, 2 * s, kAccent);
-        r_->text(lx + 2 * s, ly + 104 * s, kFsCaps * s, "U N E N D L I C H E    I N N E N R Ä U M E", kMuted,
-                 gfx::FontFace::Bold);
-        titleMain(h, lx - 46 * s, ly + 160 * s, 480 * s);
-        r_->text(lx, H_ - 70 * s, kFsSmall * s,
-                 titleMsg_.empty() ? std::string("↑↓ wählen    Enter bestätigen    ESC zweimal = beenden") : titleMsg_, kMuted);
+        // V12: Seitenleiste wie eine Stationstafel - Wortmarke, Liste, Streckenplan der Reise, Quellenangabe; der
+        // Raum dahinter bleibt rechts sichtbar
+        const float sw = sidebar("Z E H N   E B E N E N   ·   B A C K R O O M S - W I K I");
+        const float lx = 64 * s;
+        titleMain(h, lx - 30 * s, 300 * s, sw - 70 * s);
+        drawRoute(lx, H_ - 268 * s, sw - 128 * s, "");
+        r_->text(lx, H_ - 148 * s, kFsSmall * s, "Ebenen nach backrooms-wiki.wikidot.com (CC BY-SA 3.0).", kMuted);
+        r_->text(lx, H_ - 124 * s, kFsSmall * s, "Autoren, Seiten und Lizenzen: LICENSES.md", kMuted);
+        r_->rect(lx, H_ - 90 * s, sw - 128 * s, 1.0f * s, kRule);
+        r_->text(lx, H_ - 72 * s, kFsSmall * s,
+                 titleMsg_.empty() ? std::string("↑↓ wählen    Enter bestätigen    ESC zweimal = beenden") : titleMsg_,
+                 titleMsg_.empty() ? kMuted : kAccent);
         r_->text(W_ - 28 * s, H_ - 44 * s, 13 * s, "LIMINAL V12", rgba8(255, 255, 255, 64), gfx::FontFace::Bold, gfx::Align::Right);
         return;
     }
@@ -687,7 +670,7 @@ void Ui::titleNew(Host& h, float x, float y, float w) {
     float dy = y + 10 * s + n * rowH + 20 * s;
     const auto& d = diffs[(size_t)newDiff_];
     r_->text(x + 46 * s, dy, 20 * s, d.label + ": " + d.description, kValue);
-    r_->text(x + 46 * s, dy + 34 * s, 19 * s, "Jeder Lauf beginnt in den Büros. Wohin es von dort geht, findest du selbst heraus.",
+    r_->text(x + 46 * s, dy + 34 * s, 19 * s, "Jeder Lauf beginnt in den Vorzimmern (Level 0). Wohin es von dort geht, findest du selbst heraus.",
              kMuted);
     if (confirm) {
         h.playSound("ui_select");
@@ -748,7 +731,7 @@ void Ui::titleLoad(Host& h, float x, float y, float w) {
                  kText);
         r_->text(tx, ey + 70 * s, 18 * s, "Gespeichert " + d["saved_at"].asString(""), kMuted);
         r_->text(tx, ey + 96 * s, 18 * s,
-                 std::format("Spielzeit {}:{:02} min   ·   {:.0f} m   ·   Health {} %   ·   Sanity {} %", pt / 60, pt % 60,
+                 std::format("Spielzeit {}:{:02} min   ·   {:.0f} m   ·   Leben {} %   ·   Verstand {} %", pt / 60, pt % 60,
                              d["player"]["distance"].asNumber(0), (int)std::lround(st["health"].asNumber(100)),
                              (int)std::lround(st["sanity"].asNumber(100))),
                  kMuted);
@@ -784,6 +767,10 @@ void Ui::drawPause(Host& h) {
     float w = std::min(W_ - 60 * s, 820 * s);
     float hh = std::min(H_ - 60 * s, page_ == "main" ? 870 * s : 900 * s);
     float x = (W_ - w) * 0.5f, y = (H_ - hh) * 0.5f;
+    if (page_ == "main") {
+        pauseMain(h);
+        return;
+    }
     panel(x, y, w, hh);
     static const std::pair<const char*, const char*> subs[] = {{"main", ""}, {"mouse", "Maus & Steuerung"},
                                                                {"graphics", "Grafik & Anzeige"}, {"audio", "Audio"},
@@ -793,8 +780,27 @@ void Ui::drawPause(Host& h) {
         if (page_ == p) sub = t;
     float cy = header(x, y, w, "L I M I N A L", sub);
     float footY = y + hh - 58 * s;
-    if (page_ == "main") {
-        std::vector<Item> items = {
+    if (page_ == "help") {
+        helpPage(h, x, cy, w, footY - cy - 10 * s);
+    } else if (page_ == "journal") {
+        journalPage(h, x, cy, w, footY - cy - 10 * s);
+    } else {
+        settingsPage(h, page_, x, cy, w, footY - cy);
+    }
+    footer(x, footY, w, page_ == "help" ? "↑↓ / Mausrad blättern    ESC zurück" : "↑↓ Auswahl    ←→ Wert    Enter OK    ESC zurück");
+}
+
+
+// V12: Pausenmenue als Seitenleiste (wie das Hauptmenue): Liste und Beschreibung links, unten der Streckenplan
+// mit der aktuellen Ebene und das Laufbuch; rechts bleibt das Spiel sichtbar
+void Ui::pauseMain(Host& h) {
+    float s = S();
+    auto* ses = h.session();
+    const std::string lvl = ses ? ses->world().level().id : std::string();
+    const std::string title = ses ? ses->world().level().displayTitle : std::string();
+    const float sw = sidebar(upperUtf8(title.empty() ? std::string("Pause") : title));
+    const float lx = 64 * s;
+    std::vector<Item> items = {
             {"Weiter erkunden", nullptr, nullptr, [this] { setMode(Mode::Hud); },
              "Zurück ins Spiel. Die Maus wird wieder zum Umsehen verwendet."},
             {std::format("Notizbuch  ({})", h.session() ? h.session()->journal().size() : 0), nullptr, nullptr,
@@ -813,57 +819,41 @@ void Ui::drawPause(Host& h) {
             {"Spiel beenden", nullptr, nullptr, [&h] { h.quit(); },
              "LIMINAL schließen. Spielstand und Einstellungen werden gespeichert."},
         };
-        ListState& st = lists_[0];
-        runList(h, items, st, x + 24 * s, cy, w - 48 * s, 48 * s, 9);
-        float dy = cy + 9 * 48 * s + 12 * s;
-        for (const auto& line : r_->wrap(items[(size_t)std::clamp(st.sel, 0, 8)].desc, 19 * s, w - 90 * s)) {
-            r_->text(x + 40 * s, dy, 19 * s, line, kMuted);
-            dy += 26 * s;
-        }
-        if (auto* ses = h.session()) {
-            const auto& stt = ses->stats();
-            int left = std::max(0, (int)(game::GameSession::kAutosave - ses->autosaveTimer));
-            // V7: Laufbuch
-            auto lines = runLogLines(h, *ses);
-            // V9: der Weg hinaus - welche Sicherungen fehlen noch?
-            if (!ses->fuseKinds().empty()) {
-                r_->text(x + 40 * s, footY - 206 * s, kFsCaps * s, "DER WEG HINAUS", kAccent, gfx::FontFace::Bold);
-                float fx = x + 40 * s;
-                const float fy = footY - 178 * s;
-                for (const auto& k : ses->fuseKinds()) {
-                    const bool have = ses->hasFuse(k);
-                    std::string t = std::format("{}  {}", have ? "✓" : "○", ses->fuseLabel(k));
-                    r_->text(fx, fy, 17 * s, t, have ? kAccent : kMuted);
-                    fx += r_->textWidth(t, 17 * s) + 34 * s;
-                }
-                std::string goal = ses->runLog().escaped ? "Du bist entkommen – und doch wieder hier."
-                                   : ses->fusesHeld() >= (int)ses->fuseKinds().size()
-                                       ? "Alle Sicherungen – jetzt in einen Aufzug."
-                                       : "Eine Sicherung aus jeder Ebene, dann ein Aufzug.";
-                r_->text(fx + 10 * s, fy, 17 * s, goal, kMuted);
-            }
-            r_->text(x + 40 * s, footY - 142 * s, kFsCaps * s, "LAUFBUCH", kAccent, gfx::FontFace::Bold);
-            r_->text(x + 40 * s, footY - 116 * s, 17 * s, lines[0], kText);
-            r_->text(x + 40 * s, footY - 92 * s, 17 * s, lines[1], kText);
-            if (!lines[2].empty()) r_->text(x + 40 * s, footY - 68 * s, 17 * s, lines[2], kText);
-            r_->text(x + 40 * s, footY - 36 * s, 16 * s,
-                     std::format("Seed {}   ·   Health {} %   ·   Sanity {} %   ·   Autosave in {}:{:02} min", ses->seed,
-                                 (int)std::lround(stt.health), (int)std::lround(stt.sanity), left / 60, left % 60),
-                     kMuted);
-        }
-        // ESC/B oder erneut Start (Gamepad) schliesst das Menue
-        if (in_->actionPressed(Action::UiBack) || in_->actionPressed(Action::Pause)) {
-            h.playSound("ui_back");
-            setMode(Mode::Hud);
-        }
-    } else if (page_ == "help") {
-        helpPage(h, x, cy, w, footY - cy - 10 * s);
-    } else if (page_ == "journal") {
-        journalPage(h, x, cy, w, footY - cy - 10 * s);
-    } else {
-        settingsPage(h, page_, x, cy, w, footY - cy);
+    ListState& st = lists_[0];
+    runList(h, items, st, lx - 30 * s, 250 * s, sw - 70 * s, 50 * s, 9);
+    float dy = 250 * s + 9 * 50 * s + 14 * s;
+    for (const auto& line : r_->wrap(items[(size_t)std::clamp(st.sel, 0, 8)].desc, kFsBody * s, sw - 128 * s)) {
+        r_->text(lx, dy, kFsBody * s, line, kMuted);
+        dy += 25 * s;
     }
-    footer(x, footY, w, page_ == "help" ? "↑↓ / Mausrad blättern    ESC zurück" : "↑↓ Auswahl    ←→ Wert    Enter OK    ESC zurück");
+    if (ses) {
+        const auto& stt = ses->stats();
+        int left = std::max(0, (int)(game::GameSession::kAutosave - ses->autosaveTimer));
+        auto lines = runLogLines(h, *ses);
+        const float ry = std::max(H_ - 300 * s, dy + 12 * s);  // bei kleinen Hoehen unter die Beschreibung
+        const float rh = drawRoute(lx, ry, sw - 128 * s, lvl);
+        float ly = std::max(H_ - 176 * s, ry + rh + 6 * s);
+        r_->text(lx, ly, kFsCaps * s, "L A U F B U C H", kAccent, gfx::FontFace::Bold);
+        ly += 26 * s;
+        for (const auto& l : lines) {
+            if (l.empty()) continue;
+            for (const auto& wl : r_->wrap(l, 15 * s, sw - 128 * s)) {
+                r_->text(lx, ly, 15 * s, wl, kText);
+                ly += 20 * s;
+            }
+        }
+        r_->text(lx, H_ - 46 * s, 14 * s,
+                 std::format("Leben {} %   ·   Verstand {} %   ·   Autosave in {}:{:02} min", (int)std::lround(stt.health),
+                             (int)std::lround(stt.sanity), left / 60, left % 60),
+                 kMuted);
+    }
+    r_->text(W_ - 28 * s, H_ - 44 * s, kFsSmall * s, "↑↓ Auswahl    Enter OK    ESC zurück ins Spiel", kMuted, gfx::FontFace::Regular,
+             gfx::Align::Right);
+    // ESC/B oder erneut Start (Gamepad) schliesst das Menue
+    if (in_->actionPressed(Action::UiBack) || in_->actionPressed(Action::Pause)) {
+        h.playSound("ui_back");
+        setMode(Mode::Hud);
+    }
 }
 
 }  // namespace lim::ui

@@ -549,7 +549,7 @@ void App::changeLevel(const std::string& next, const std::string& anchor) {
     s->preload();
     log::info("Notausgang: {} -> {} (Seed {})", old.levelId, next, seed);
     enterPlaying(std::move(s));
-    ui_.zoneTitle(std::format("{} · {}", lvl->name, lvl->displayTitle.empty() ? lvl->title : lvl->displayTitle));
+    ui_.levelCard(lvl->id, lvl->name, lvl->displayTitle.empty() ? lvl->title : lvl->displayTitle);  // V12: Tafel bei der Ankunft
     if (opt_.shot.empty() && opt_.benchmark == 0) saveGame();
 }
 

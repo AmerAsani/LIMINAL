@@ -252,3 +252,24 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
   - Abflugtafel mit vertauschten Spalten: Im Blick entlang −x liegt +y rechts.
   - BTA-Stand zur Wand gedreht; seine Schrift stand nur auf der Rückseite.
   - Uhr und Trinkbrunnen hingen in Öffnungen.
+
+## E-018 Oberfläche V12 (26.10.2026)
+- **Ziel (Auftrag):** Oberfläche komplett neu, geprüft bei mehreren Auflösungen, Debug getrennt.
+- **Gestaltung „Beschilderung“:** Die Oberfläche spricht die Sprache der Orte, durch die man reist: Wegweiser, Stationstafeln, Gate-Schilder.
+  - Tiefes Blauschwarz, Signalgelb als einziger Akzent, gerade Kanten, links eine Signalkante an jeder Tafel.
+  - Kapitälchen mit Sperrsatz für Beschriftungen.
+- **Neu:**
+  - Titel- und Pausenmenü als Seitenleiste über dem laufenden Raum, mit Wortmarke und Liste.
+  - Ein **Streckenplan** der Reise (0 → 1 → 2 → 3 → 5 → 903 → 36, Abzweige 5.3, 188, 37); im Pausenmenü ist die aktuelle Ebene markiert.
+  - Quellenangabe des Wikis im Hauptmenü.
+  - **Ankunftstafel** jeder Ebene: Nummer, Titel, Wiki-Seite mit Lizenz.
+  - **Abspann am Gate** mit den zehn Ebenen und ihren Autoren im Wiki.
+  - Deutsche Begriffe „Leben“ und „Verstand“ statt Health/Sanity in allen sichtbaren Texten.
+  - Hilfe auf die Reise von V12 umgeschrieben (Ebenen, Übergänge, Metro-Ziele, Ende, Wesen je Ebene).
+- **Geprüft** (`docs/screens/ui/`): 1280 × 720, 1920 × 1080, 2560 × 1440, 1024 × 768 (4:3), 3440 × 1440 (21:9).
+  - Alle Maße skalieren mit der Höhe (Bezug 1080 p). Die Seitenleiste ist 34 % der Breite, mindestens 520 px bei 1080 p.
+  - Bei 1024 × 768 rutschen Streckenplan und Laufbuch unter die Beschreibung (fließende Abstände).
+- **Debug:** bleibt getrennt (F3/I), technische Begriffe dort unverändert.
+- **Grenzen:**
+  - Die Schrift kommt weiter aus den Windows-Schriften (Segoe UI, Consolas), zur Laufzeit gerastert, nicht mitgeliefert.
+  - Inventar, Karte, Notizblatt und Todesbildschirm folgen dem neuen Thema (Farben, Kanten), behalten aber ihren Aufbau aus V11.

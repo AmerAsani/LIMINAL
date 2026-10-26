@@ -18,7 +18,7 @@
     {
       "key": "energy",
       "name": "Energy Bar",
-      "description": "Selten! +30 % Sanity, +30 % Tempo (75 s), Ausdauer voll und Sprinten kostet nur halb so viel",
+      "description": "Selten! +30 % Verstand, +30 % Tempo (75 s), Ausdauer voll und Sprinten kostet nur halb so viel",
       "sanity": 30.0,
       "speed": 0.30,
       "speed_time": 75.0,
@@ -34,7 +34,7 @@
     {
       "key": "almond",
       "name": "Mandelwasser",
-      "description": "+35 % Sanity",
+      "description": "+35 % Verstand",
       "sanity": 35.0,
       "model": "almond",
       "icon": "almond",

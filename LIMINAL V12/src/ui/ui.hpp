@@ -41,6 +41,8 @@ public:
     void toast(const std::string& text, double duration = 2.2);
     void zoneTitle(const std::string& text);
     void regionTitle(const std::string& text);  // V8: "Level 1 · Das Tiefgeschoss", langsam
+    // V12: Ankunftstafel einer Ebene: Nummer, Titel und die Quelle im Wiki (Seite nach der Level-ID)
+    void levelCard(const std::string& id, const std::string& name, const std::string& title);
     void showHelpHint(double seconds) { helpUntil_ = now_ + seconds; }
     void savedIndicator() { savedUntil_ = now_ + 2.5; }
     // V6: weiche Ueberblendung aus Schwarz (Spielstart, Laden, Hauptmenue)
@@ -116,6 +118,11 @@ private:
     void runList(Host& h, std::vector<Item>& items, ListState& st, float x, float y, float w, float rowH, int visibleRows);
     float header(float x, float y, float w, const std::string& title, const std::string& sub);
     void footer(float x, float y, float w, const std::string& hint);
+    // V12: Streckenplan der Reise (0 - 1 - 2 - 3 - 5 - 903 - 36, Abzweige 5.3, 188, 37); current: Level-ID oder leer.
+    // Liefert die Hoehe.
+    float drawRoute(float x, float y, float w, const std::string& current);
+    // V12: dunkle Seitenleiste links (Titel- und Pausenmenue) mit Wortmarke; liefert die Breite
+    float sidebar(const std::string& tagline);
 
     // Seiten
     void drawLoading(Host& h);
@@ -124,6 +131,7 @@ private:
     void titleNew(Host& h, float x, float y, float w);
     void titleLoad(Host& h, float x, float y, float w);
     void drawPause(Host& h);
+    void pauseMain(Host& h);  // V12: Seitenleiste
     bool settingsPage(Host& h, const std::string& page, float x, float y, float w, float maxH);
     std::vector<Item> settingsItems(Host& h, const std::string& page);
     void helpPage(Host& h, float x, float y, float w, float hgt);
@@ -188,6 +196,7 @@ private:
     double staminaShow_ = 0;      // V6: Ausdauer-Leiste sichtbar bis
     double flashShow_ = 0;        // V7: Batterie-Anzeige sichtbar bis
     std::string regionTitle_;     // V8: gerade entdeckte Ebene
+    std::string regionSource_;  // V12: Quellzeile der Ankunftstafel
     double regionStart_ = -100.0;
     std::string lastPrompt_;
     std::string lastKey_;         // V11: Taste zum Hinweis (als kleine Kappe gezeichnet)
