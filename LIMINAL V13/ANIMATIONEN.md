@@ -36,3 +36,21 @@ Kritikrunden (Bilder `hound_r0` bis `hound_r3`):
 | 1 | Ruhe lebt (Kopf sieht sich um). Wittern deutlich, Galopp ohne Einsacken. Licht kaum von Ruhe zu unterscheiden. Angriff: Rumpf steigt auf, Kopf knickt zur Schulter (Ziel lag seitlich; Sprung ging nach oben). Gelenke mit Dual Quaternions sauber. | Pfote vor die Augen, Becken sinkt; Sprung flach nach vorn, Pfoten vor; Vorführung frontal |
 | 2 | Licht eindeutig (Pfote zum Gesicht), Angriff als Sprung erkennbar. Die Hand liegt aber halb hinter dem Haar, und der Hals streckt sich zu weit (Kopf außerhalb des Bilds). | Pfote vor die Augen, Hals kürzer, mehr Rumpf im Sprung |
 | 3 | Alle acht Zustände unterscheidbar, keine Durchdringung von Pfote und Kopf, Gelenke ohne Knick. Abgenommen. | – |
+
+## Smiler
+
+| Zustand | Bewegung | Wiki-Bezug |
+|---|---|---|
+| Ruhe | Die Masse schwebt und hebt sich langsam wie Atem, das Gesicht treibt kaum merklich, unregelmäßiger Lidschlag, Zungen steigen wie Rauch. | Körper unklar, nur Augen und Lächeln |
+| Gleiten | Masse zieht nach, Zungen wehen nach hinten | – |
+| Wahrnehmen | Augen weit auf, das Gesicht dreht sich schnell zum Reiz, der Kopf legt sich kurz schief, die Masse neigt sich hin. Auslöser im Spiel: Lärm in der Nähe. | greift an bei lautem Lärm |
+| Licht | Das Gesicht wendet sich zur Lampe, die Augen kneifen sich zusammen und leuchten heller (werfen das Licht zurück), die Masse neigt sich zum Licht, die Zungen werden unruhig. Keine Gewöhnung. | „angezogen von Licht“, „Augen reflektieren Licht“ (Entity 3) |
+| Ankündigung | Das Lächeln öffnet sich weiter als zuvor (0,26 statt 0,17 rad), die Augen werden enger, die Masse richtet sich auf, die Zungen steigen. | – (Fairness: 1,5 s Zeit) |
+| Zugriff | schnelles Gleiten, das Gesicht voran | – |
+
+| Runde | Befund | Änderung |
+|---|---|---|
+| 0 (vorher) | Wahrnehmen und Licht wie Ruhe; Ankündigung im Bild kaum zu sehen | – |
+| 1 | Wahrnehmen (Augen weit, Kopf dreht sich) und Licht (Augen eng, Gesicht zur Lampe) eindeutig, Ankündigung im Ausschnitt erkennbar. Ruhe noch starr. | Masse atmet, Gesicht treibt; Augen leuchten im Licht heller |
+| 2 | Ruhe lebt; alle Zustände im hellen Saal unterscheidbar. | Prüfung im Dunkeln, wo er vorkommt |
+| 3 (dunkel) | Nur Augen und Lächeln sichtbar, wie im Wiki; die Zustände sind allein am Leuchten unterscheidbar (zwei weite Augen; schmale Schlitze; breiteres Lächeln). Abgenommen. | – |

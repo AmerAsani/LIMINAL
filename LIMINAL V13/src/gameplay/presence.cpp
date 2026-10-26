@@ -637,6 +637,11 @@ void Presence::thinkSmiler(Agent& a, double dt, const Context& c, std::vector<Ev
     a.lookAt = eye;
     a.jaw = std::clamp(1.25f - d / 9.0f, 0.12f, 1.0f);
     a.stateT += dt;
+    // V13.2: Licht zieht ihn an (Entity-3-Seite) - das Gesicht wendet sich zur Lampe, die Augen kneifen, keine Gewoehnung;
+    // Laerm in der Naehe: die Augen gehen weit auf, das Gesicht dreht sich dorthin
+    lightReact(a, c, face, 22.0f, dt, 1e9);
+    a.perceive = c.noise > 0.4 && d < 14.0f ? 1.0f : 0.0f;
+    a.perceiveAt = eye;
     const world::Tile* here = c.world->tileIfLoaded(ifloor(a.pos.x), ifloor(a.pos.y));
     const bool dark = darkTile(c, here, a.pos.x, a.pos.y);
     if (a.contact && !a.stared) {
@@ -1467,7 +1472,8 @@ void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
         // V11: das Leuchten pulsiert wie Atem (langsam, nicht ganz gleichmaessig)
         if (a.role == Role::Smiler) {
             const double ph = time_ * 1.35 + 0.4 * std::sin(time_ * 0.31);
-            a.rig.setGlow(a.glow * (0.74f + 0.26f * (float)(0.5 + 0.5 * std::sin(ph))));
+            // V13.2: im Lichtkegel werfen die Augen das Licht zurueck (Entity-3-Seite: "reflect light") - heller
+            a.rig.setGlow(a.glow * (0.74f + 0.26f * (float)(0.5 + 0.5 * std::sin(ph))) * (1.0f + 0.5f * a.light));
         }
         // die Gestalt veraendert sich nicht, solange man sie sieht
         a.frozen = a.role == Role::Gestalt && seen;

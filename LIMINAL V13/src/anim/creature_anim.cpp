@@ -368,33 +368,53 @@ void CreatureAnimator::updateSmiler(float dt, const Input& in) {
     const M3 Mb{F, Lw, U};
     auto W = [&](vec3 l) { return pos_ + Mb * l; };
     spring(jaw_, jawV_, in.jaw, 0.9f, dt);  // das Laecheln oeffnet sich langsam
-    spring(tilt_, tiltV_, in.tilt, 0.8f, dt);
+    // V13.2: wahrnehmen - der Kopf legt sich kurz schief (neugierig); Licht zieht ihn an (Entity-3-Seite)
+    spring(perc_, percV_, in.perceive, 2.5f, dt);
+    spring(light_, lightV_, in.light, 3.0f, dt);
+    spring(tilt_, tiltV_, in.tilt + 0.28f * perc_ * std::sin(time_ * 0.9f), 0.8f + 1.5f * perc_, dt);
     // schwebt; die obere Masse zieht beim Gleiten nach
-    const vec3 hover = U * (0.016f * std::sin(time_ * 0.7f) + 0.007f * std::sin(time_ * 1.9f + 1.0f));
+    // V13.2: die Masse hebt und senkt sich langsam wie Atem (in Ruhe deutlicher)
+    const vec3 hover = U * (0.016f * std::sin(time_ * 0.7f) + 0.007f * std::sin(time_ * 1.9f + 1.0f) + 0.018f * std::sin(time_ * 1.2f) * (1.0f - perc_));
     const vec3 upperRigid = W(B[UPPER]) + hover;
     if (!chainInit_) mass_ = upperRigid, massV_ = {};
     springV(mass_, massV_, upperRigid, 2.2f, dt);
     vec3 lag = mass_ - upperRigid;
     if (length(lag) > 0.25f) lag = normalize(lag) * 0.25f;
     const float sw1 = 0.03f * std::sin(time_ * 0.53f), sw2 = 0.025f * std::sin(time_ * 0.37f + 2.0f);
+    // V13.2: die Masse neigt sich zum Reiz und zum Licht; vor dem Zugriff richtet sie sich auf
+    vec3 toward{};
+    auto flatDir = [&](vec3 at) { return safeNorm(vec3{at.x - upperRigid.x, at.y - upperRigid.y, 0.0f}, F); };
+    if (perc_ > 0.01f) toward = toward + flatDir(in.perceiveAt) * perc_;
+    if (light_ > 0.01f) toward = toward + flatDir(in.lightFrom) * light_;
+    const vec3 leanOff = toward * 0.13f + U * (0.09f * jaw_);
     J[ROOT] = pos_;
     J[BASE] = W(B[BASE]) + lag * 0.15f + Lw * (sw2 * 0.5f);
-    J[CORE] = W(B[CORE]) + lag * 0.5f + Lw * sw1 + F * (sw2 * 0.5f) + hover * 0.5f;
-    J[UPPER] = upperRigid + lag + Lw * (sw1 * 0.6f) + F * (sw2 * 0.4f);
+    J[CORE] = W(B[CORE]) + lag * 0.5f + Lw * sw1 + F * (sw2 * 0.5f) + hover * 0.5f + leanOff * 0.45f;
+    J[UPPER] = upperRigid + lag + Lw * (sw1 * 0.6f) + F * (sw2 * 0.4f) + leanOff;
     // Gesicht: dreht sich langsam zu dir - weiter, als ein Kopf es koennte
     float wantYaw = 0.0f, wantPitch = 0.0f;
-    if (in.look) {
-        const vec3 dl = in.lookAt - J[UPPER];
+    auto aimAt = [&](vec3 at, float& yw, float& pt) {
+        const vec3 dl = at - J[UPPER];
         const float lx = dot(dl, F), ly = dot(dl, Lw);
-        wantYaw = std::clamp(std::atan2(ly, lx), -1.5f, 1.5f);
-        wantPitch = std::clamp(std::atan2(dl.z - 0.25f, std::hypot(lx, ly)), -0.55f, 0.45f);
+        yw = std::clamp(std::atan2(ly, lx), -1.5f, 1.5f);
+        pt = std::clamp(std::atan2(dl.z - 0.25f, std::hypot(lx, ly)), -0.55f, 0.45f);
+    };
+    if (in.look) aimAt(in.lookAt, wantYaw, wantPitch);
+    // V13.2: in Ruhe treibt das Gesicht kaum merklich (lebt, auch wenn es dich ansieht)
+    wantYaw += 0.07f * std::sin(time_ * 0.31f + 0.5f), wantPitch += 0.04f * std::sin(time_ * 0.47f);
+    // V13.2: zum Reiz, zum Licht - schneller als sonst
+    const float pull = std::max(perc_, light_);
+    if (pull > 0.01f) {
+        float y2 = 0.0f, p2 = 0.0f;
+        aimAt(light_ > perc_ ? in.lightFrom : in.perceiveAt, y2, p2);
+        wantYaw += (y2 - wantYaw) * pull, wantPitch += (p2 - wantPitch) * pull;
     }
-    spring(headYaw_, headYawV_, wantYaw, 1.0f, dt);
-    spring(headPitch_, headPitchV_, wantPitch, 1.0f, dt);
+    spring(headYaw_, headYawV_, wantYaw, 1.0f + 2.5f * pull, dt);
+    spring(headPitch_, headPitchV_, wantPitch, 1.0f + 2.5f * pull, dt);
     const M3 R = axisAngle({0, 0, 1}, headYaw_) * axisAngle({0, 1, 0}, -headPitch_) * axisAngle({1, 0, 0}, tilt_);
     // V11: die Zaehne zittern kaum merklich (der Unterkiefer bebt)
     const float tremble = 0.0035f * std::sin(time_ * 37.0f) + 0.0025f * std::sin(time_ * 53.0f + 1.0f);
-    const M3 Rj = R * axisAngle({0, 1, 0}, jaw_ * 0.17f + tremble);
+    const M3 Rj = R * axisAngle({0, 1, 0}, jaw_ * 0.26f + tremble);  // V13.2: weiter auf (vorher 0,17)
     J[FACE] = J[UPPER] + Mb * (R * (B[FACE] - B[UPPER]));
     J[FACETIP] = J[UPPER] + Mb * (R * (B[FACETIP] - B[UPPER]));
     J[JAWH] = J[UPPER] + Mb * (R * (B[JAWH] - B[UPPER]));
@@ -411,7 +431,8 @@ void CreatureAnimator::updateSmiler(float dt, const Input& in) {
         blink = p < 0.09f ? p / 0.09f : (p < 0.14f ? 1.0f : 1.0f - (p - 0.14f) / 0.2f);
         if (p >= 0.34f) blinkPh_ = -1.0f, blink = 0.0f;
     }
-    lids_ = std::clamp(std::max(blink, 0.12f + 0.38f * jaw_), 0.0f, 1.0f);
+    // V13.2: wahrnehmend weit offen, im Licht zusammengekniffen
+    lids_ = std::clamp(std::max(blink, (0.12f + 0.38f * jaw_) * (1.0f - perc_) + 0.55f * light_), 0.0f, 1.0f);
     auto setUps = [&]() {
         pose_.up[sm::B_FACE] = Mb * (R * sk_->bindUp[sm::B_FACE]);
         pose_.up[sm::B_JAW] = Mb * (Rj * sk_->bindUp[sm::B_JAW]);
@@ -430,8 +451,11 @@ void CreatureAnimator::updateSmiler(float dt, const Input& in) {
     for (int w = 0; w < kWisps; ++w) {
         const int idx[4] = {wisp(w, 0), wisp(w, 1), wisp(w, 2), wisp(w, 3)};
         const float fw = (float)w;
-        const vec3 wind = vec3{0.06f * std::sin(time_ * 1.3f + fw * 1.7f), 0.06f * std::cos(time_ * 1.1f + fw * 2.3f), 0.03f * std::sin(time_ * 2.1f + fw)} - lag * 0.8f;
-        hangChain(w, sm::B_MID, idx, 4, 7.0f, 0.88f, -1.2f, wind, dt);
+        // V13.2: im Licht und vor dem Zugriff werden die Zungen unruhig und steigen hoeher
+        const float agit = 1.0f + 1.5f * light_ + 1.0f * jaw_;
+        const vec3 wind = vec3{0.06f * std::sin(time_ * 1.3f * agit + fw * 1.7f), 0.06f * std::cos(time_ * 1.1f * agit + fw * 2.3f),
+                               0.03f * std::sin(time_ * 2.1f + fw)} * agit - lag * 0.8f;
+        hangChain(w, sm::B_MID, idx, 4, 7.0f, 0.88f, -1.2f - 1.0f * jaw_, wind, dt);
     }
     autoUps();
     setUps();
