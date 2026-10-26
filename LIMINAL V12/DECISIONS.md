@@ -128,3 +128,19 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
 - **45-Grad-Knicke:** In der Kachelwelt nicht als echte Diagonale möglich. An 28 Knicken schrägt ein Modell die Außenecke ab; Kollision passend (Ecke gesperrt). Siehe `LEVELSPEC_2.md` Abschnitt 2.
 - **Clumps:** lauern in Deckenschächten an Kreuzungen (Wiki: Ecken und Kreuzungen), auch dort, wo das Netz in den Gleistunnel mündet.
 - **Fehler gefunden und behoben:** Die Ziffer „3“ wirkte in Runde 1 gespiegelt. Tatsächlich war sie eine korrekte Segmentziffer; die Korrektur in Runde 2 spiegelte sie wirklich. In Runde 3 ist sie zurückgenommen und der Mittelstrich gekürzt, damit sie eindeutig als 3 lesbar ist.
+
+## E-011 Level 3 und Bereinigung der Levelliste (26.10.2026)
+- **Quelle:** Wikidot „Level 3“, Revision 18 (`LEVELSPEC_3.md`), Bild in `LOOK_3.md`. Drei QA-Runden (`docs/screens/level3/`).
+- **Neu:**
+  - Ziegelgänge in wechselnden Farben (braun, rot, schwarzgrau, weiß) mit Rohren voll schwarzer Flüssigkeit und Schlammlachen;
+  - weiße, rostige Gitter vor versiegelten, hellen Räumen mit Tischen und Engelsbildern;
+  - Generatorräume, eine helle Fertigungsstraße mit Förderbändern und Fenstern auf roten Ziegel, Kesselräume, ein Ziegel-Labyrinth;
+  - ein Sanktuarium mit Säulen und Engel auf Zeichen-Sockel (Zuflucht, Sicherungspunkt);
+  - ein dunkler Paranoia-Gang mit Warnschildern und Halluzinationsklängen;
+  - ein Aufzug nach Level 5.
+- **Texturen:** Bricks089 (als „dunkelgraue Ziegel“ gewählt) erwies sich in Runde 1 als Bruchsteinmauer. Ersetzt durch Bricks038 (alte weiße Ziegel) und Bricks056 (schwarzgraue Ziegel), beide CC0 von ambientCG, im Lock mit Prüfsumme.
+- **Engine:** Klangereignisse können auf Raumtypen beschränkt werden (`"only"`). So erklingen die Halluzinationen nur im Paranoia-Gang.
+  - Weinen, Schreie und Lachen (Wiki) gibt es im Spiel noch nicht. Belegt sind Flüstern, Atmen, Stimmen und Klappern.
+- **Levelliste:** Die V11-Level 4, 6 und 19 gehören nicht zur Auswahl (`LEVELAUSWAHL.md`) und sind aus V12 entfernt, samt ihrer Notizen; in V11 bleiben sie erhalten.
+  - Level 7 bleibt vorerst, weil der Schwimmtest es braucht, bis Level 37 Wasser hat.
+  - Solange Level 5 und 37 nicht neu gebaut sind, schlägt die Reiseprüfung fehl (Anker zu entfernten Leveln). Das ist absichtlich offen und steht in `PROGRESS.md`.

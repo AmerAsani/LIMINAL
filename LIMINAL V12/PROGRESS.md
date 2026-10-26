@@ -37,10 +37,18 @@ Wiedereinstieg: diese Datei zuerst lesen, dann `DECISIONS.md`.
   - 28 Blender-Modelle; drei QA-Runden, Bilder in `docs/screens/level2/`.
   - Platzierung 0 ohne Halt; Tests 354/0. Entscheidung E-010.
 
+- [x] Level 3 „Das Umspannwerk“:
+  - `LEVELSPEC_3.md`, `LOOK_3.md`.
+  - Ziegelgänge, Gitter, Generatorräume, Fertigungsstraße, Kesselräume, Sanktuarium mit Engel, Paranoia-Gang, Labyrinth, Aufzug nach 5.
+  - 22 Blender-Modelle, 2 neue CC0-Texturen; drei QA-Runden, Bilder in `docs/screens/level3/`.
+  - Platzierung 0 ohne Halt. Entscheidung E-011.
+- [x] Level 4, 6, 19 aus V12 entfernt (nicht in der Auswahl).
+
 ## Als Nächstes
 1. Wesen-Pipeline (gestellte oder gerigte Modelle aus Blender); zuerst die dunkle Gestalt von Level 0.
 2. Level der Reihe nach (1, 2, 3, 5, 5.3, 188, 903, 37, 36): Spec → Look → Bau → Platzierung → Items → Wesen → Klang → Qualitätsschleife → Commit.
 3. Oberfläche neu, geprüft bei mehreren Auflösungen.
 
 ## Bekannte Fehler / offen
+- **Reiseprüfung rot (gameplay_test, 6 Fehler):** Level 5 (noch V11) und Level 7 zeigen auf entfernte Level; Level 3 → 5 hat noch kein Gegenstück. Wird mit dem Neubau von Level 5 und 37 behoben.
 - Einmalig hing in V11 ein Testlauf beim Start (Protokoll endete nach dem Laden der Level). In vier Wiederholungen nicht wieder aufgetreten. Ursache unbekannt; beobachten.

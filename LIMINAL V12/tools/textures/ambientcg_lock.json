@@ -554,6 +554,36 @@
    "license": "CC0-1.0",
    "licenseSource": "https://docs.ambientcg.com/license/",
    "retrieved": "2026-10-25"
+  },
+  "Bricks038": {
+   "url": "https://ambientcg.com/get?file=Bricks038_2K-JPG.zip",
+   "file": "Bricks038_2K-JPG.zip",
+   "size": 28526937,
+   "sha256": "58d3de6c94e7e968fdf7c7d8a218b687e20d72bb934d6d8e3ea2c9ba207c84ae",
+   "displayName": "Bricks 038",
+   "releaseDate": "2020-03-22 00:00:00",
+   "dimensionsCm": [
+    110,
+    110
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-26"
+  },
+  "Bricks056": {
+   "url": "https://ambientcg.com/get?file=Bricks056_2K-JPG.zip",
+   "file": "Bricks056_2K-JPG.zip",
+   "size": 27423624,
+   "sha256": "aa9aa1151c9b2d3414ba01e7306401075eb1efbd05f947c2ce51146d0b7e9b60",
+   "displayName": "Bricks 056",
+   "releaseDate": "2021-04-11 00:00:00",
+   "dimensionsCm": [
+    105,
+    105
+   ],
+   "license": "CC0-1.0",
+   "licenseSource": "https://docs.ambientcg.com/license/",
+   "retrieved": "2026-10-26"
   }
  }
 }

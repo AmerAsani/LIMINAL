@@ -12,7 +12,7 @@
 // V11: Hat das Level einen Abschnitt "audio" (AUDIO_DESIGN.md, Abschnitt 4), bestimmt er das Klangbild:
 //   beds        Klangbetten, je nach Raumtyp lauter oder leiser ("only"/"not": Raumtypen)
 //   events      Einzelklaenge in zufaelligen Abstaenden, in Entfernung und Hoehe gestreut oder an
-//               Stellen der Ausstattung ("where": puddle, car ...)
+//               Stellen der Ausstattung ("where": puddle, car ...); V12: "only" beschraenkt auf Raumtypen
 //   spots       Dauerklaenge an Stellen der Ausstattung (Rohre, Schaltkasten, Glut im Bodenloch)
 //   acoustics   Nachhall je Raumtyp; die Fruehreflexionen folgen den Raummassen und dem Hoerer
 //   hum_surge   V12: das Brummen aller Leuchten schwillt in zufaelligen Abstaenden an und klingt wieder ab
@@ -84,6 +84,7 @@ private:
     };
     struct Event {
         std::string sound, where;
+        std::vector<std::string> only;  // V12: nur in diesen Raumtypen (leer: ueberall)
         float every0 = 30, every1 = 60, dist0 = 10, dist1 = 30, h0 = 0, h1 = 0, gain = 0.7f;
         bool height = false;
         double next = 0.0;

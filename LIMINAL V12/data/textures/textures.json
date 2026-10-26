@@ -186,6 +186,31 @@
    ]
   },
   {
+   "name": "bricks_white_old",
+   "dir": "bricks_white_old",
+   "source": "Bricks038",
+   "meters": 1.1,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "3"
+   ]
+  },
+  {
+   "name": "bricks_grey_black",
+   "dir": "bricks_grey_black",
+   "source": "Bricks056",
+   "meters": 1.05,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "3",
+    "2"
+   ]
+  },
+  {
    "name": "bricks_brown_old",
    "dir": "bricks_brown_old",
    "source": "Bricks094",

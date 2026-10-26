@@ -128,6 +128,7 @@ void Soundscape::configure(const world::LevelDef& L, audio::AudioSystem& audio) 
         Event ev;
         ev.sound = e["sound"].asString("");
         ev.where = e["where"].asString("");
+        ev.only = strings(e["only"]);
         range2(e["every"], ev.every0, ev.every1, 30.0f, 60.0f);
         range2(e["dist"], ev.dist0, ev.dist1, 10.0f, 30.0f);
         ev.height = e.has("height");
@@ -411,6 +412,13 @@ void Soundscape::updateEvents(double dt, audio::AudioSystem& audio, world::World
         ev.next -= dt;
         if (ev.next > 0.0) continue;
         ev.next = rng_.uniform(ev.every0, ev.every1);
+        if (!ev.only.empty()) {  // V12: nur in bestimmten Raumtypen (Paranoia-Zone in Level 3)
+            const std::string key = room && room->type ? room->type->key : std::string();
+            if (std::find(ev.only.begin(), ev.only.end(), key) == ev.only.end()) {
+                ev.next = rng_.uniform(3.0, 6.0);
+                continue;
+            }
+        }
         vec3 pos;
         if (!ev.where.empty()) {
             // an einer Stelle der Ausstattung (Tropfen in die Pfuetze, Ticken am Wagen)
