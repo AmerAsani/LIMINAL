@@ -48,7 +48,7 @@ Dieser Bericht trennt, was fertig und geprüft ist, von dem, was offen ist. Was 
 | `e72ba4d`, `3285333` | Teil 6: Bedrohungsmodell, Entscheidung, Prüfschicht `src/net` mit Tests; Starter prüft den Herausgeber des Microsoft-Pakets (B-003) |
 | `fcfaede` | Teil 3: Kachelbruch im Shader, Textur-Audit; `perf` meldet Grafik- und Arbeitsspeicher; B-004 |
 | `fffc771` | Clump, Gestalt, Deathmoth, Nest neu; Materialien `ent_silhouette`, `ent_resin`; Werkzeug: Formteil `tube`, Netze zusammenführen, Gewichtung der Stufen |
-| Abschluss-Commit | Motte Runde 3, Vorher/Nachher aller Wesen, Qualitätsupdate (`QUALITAET_LEVEL.md`), Bugliste, Lizenzen, dieser Bericht |
+| `fe1634b` | Motte Runde 3, Vorher/Nachher aller Wesen, Qualitätsupdate (`QUALITAET_LEVEL.md`), Bugliste, Lizenzen, dieser Bericht |
 
 **Neu im Spiel (sichtbar):**
 - Linke Hand an der Lampe: Finger geschlossen um den Schaft, der Daumen drückt den Schalter, Licht erst danach.
