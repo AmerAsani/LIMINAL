@@ -7,6 +7,7 @@
 #pragma once
 
 #include <string>
+#include <functional>
 #include <vector>
 
 #include "core/core.hpp"
@@ -48,24 +49,30 @@ struct LayerDesc {
 };
 extern const LayerDesc kLayers[L_COUNT];
 
-// Mip-Kette aller Ebenen in einem Block: Ebene fuer Ebene, je Ebene alle Mips.
+// Aufbau der Texturebenen: Mip-Kette Ebene fuer Ebene, je Ebene alle Mips (Versaetze innerhalb einer Ebene: layer 0).
+// V13.2 (B-002): die Daten liegen nicht mehr gesammelt hier, sondern kommen Ebene fuer Ebene als TextureLayer.
 struct TextureSet {
     int size = 0;
     int mips = 0;
-    std::vector<u8> albedo;  // RGBA8 (sRGB)
-    std::vector<u8> normal;  // RG8 (Normale xy * 0.5 + 0.5)
-    std::vector<u8> orm;     // RGBA8: AO, Rauheit, Metall, Hoehe
+    bool compressed = false;  // V6: BC1 Albedo, BC5 Normalen (texture_compress.hpp)
     size_t mipOffset(int layer, int mip, int bytesPerPixel) const;
-    // V6: blockkomprimierte Fassungen (BC1 Albedo, BC5 Normalen), siehe texture_compress.hpp
-    bool compressed = false;
-    std::vector<u8> albedoBC, normalBC;
     size_t bcOffset(int layer, int mip, int blockBytes) const;
 };
 
-// V6: Albedo und Normalen blockkomprimieren (parallel je Ebene); gibt die unkomprimierten Daten frei
-void compressTextureSet(TextureSet& ts, JobSystem& jobs);
+// Eine fertige Ebene mit ihrer ganzen Mip-Kette
+struct TextureLayer {
+    int layer = 0;
+    std::vector<u8> albedo;  // RGBA8 (sRGB) oder BC1
+    std::vector<u8> normal;  // RG8 (Normale xy * 0.5 + 0.5) oder BC5
+    std::vector<u8> orm;     // RGBA8: AO, Rauheit, Metall, Hoehe (unkomprimiert: die Hoehe steuert die Parallaxe)
+};
 
-TextureSet generateTextures(int size, JobSystem& jobs);
+// V13.2 (B-002): Ebene fuer Ebene erzeugen; compress: Albedo BC1, Normalen BC5 (sofort je Ebene, V6: ~45 % weniger
+// Grafikspeicher). Gleichzeitig nur textureLayerSlots() Ebenen (Speicherbudget ~450 MB fuer Zwischenpuffer).
+// sink wird aus Arbeitsthreads aufgerufen (je Ebene einmal, in beliebiger Reihenfolge).
+TextureSet generateTextures(int size, JobSystem& jobs, bool compress, const std::function<void(TextureLayer&&)>& sink);
+int textureLayerSlots(int size, unsigned workers);
+int textureMips(int size);
 // Grossflaechiges, kachelbares Variationsrauschen (RGBA8)
 std::vector<u8> generateMacroNoise(int size);
 // Symbole fuer die Schnellleiste/Inventar (RGBA8, vormultipliziert, sRGB)

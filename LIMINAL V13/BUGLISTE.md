@@ -5,7 +5,7 @@ Stand 26.10.2026. Reihenfolge der Bearbeitung: Abstürze und Blocker zuerst, dan
 | Nr. | Bereich | Schwere | Befund | Stand |
 |---|---|---|---|---|
 | B-001 | Spielerfigur (Schulteransicht) | gering | Die Kapuzenjacke reißt am stark gebeugten Ellbogen auf (Skinning der Figur). Nur in der Schulteransicht (F5) sichtbar. | offen |
-| B-002 | Speicher beim Start | gering | Beim Laden steigt der Arbeitsspeicher kurz auf rund 3,1 GB (danach 470–620 MB). Ursache: alle 91 Texturebenen werden mit Mip-Stufen erst unkomprimiert im Speicher aufgebaut (Farbe 4, Normalen 2, ORM 4 Byte je Pixel ≈ 1,3 GB), dann in BC1/BC5 umgewandelt und hochgeladen; dazu die Bilddateien und die Texturen der Wesen. | offen – Empfehlung: Ebenen einzeln erzeugen, komprimieren und freigeben; auf Rechnern mit 8 GB unkritisch. |
+| B-002 | Speicher beim Start | gering | Beim Laden stieg der Arbeitsspeicher kurz auf rund 3,1 GB (bei Texturgröße 2048: 11,1 GB). Ursache: alle 91 Texturebenen lagen mit Mip-Stufen unkomprimiert im Speicher, dazu Höhen und Normalen aller Ebenen als float und je Thread Zwischenpuffer; hochgeladen wurde erst am Ende. | **behoben (V13.2)**: Ebene für Ebene erzeugen, sofort komprimieren, über eine wiederverwendete Zwischenablage auf die GPU kopieren und freigeben; höchstens drei bis vier Ebenen gleichzeitig. Spitze 672–682 MB je Ebene (vorher 3 088–3 116 MB), bei 2048 px 1,25–1,31 GB (vorher 11,07 GB). Messung im Abschnitt „B-002: Messung“. |
 | B-003 | Starter (`LIMINAL.exe`) | Sicherheit, mittel | Die Signaturprüfung des heruntergeladenen Visual-C++-Pakets akzeptierte jede gültige Signatur, nicht nur die von Microsoft. Das Paket wird mit Administratorrechten ausgeführt. | **behoben** (E-023): Unterzeichner muss „Microsoft Corporation“ sein, Widerrufsprüfung der Kette. Nachweis `MULTIPLAYER_TESTS.md` Abschnitt 4. |
 | B-004 | Protokoll | gering | Bei jedem ersten Start zwölf Warnungen „JSON-Datei nicht gefunden“ für Dateien, die fehlen dürfen (ältere Einstellungsversionen, die absichtlich entfernte `world.json` der alten Welt). Echte Warnungen gingen darin unter. | **behoben**: `loadJsonFile(path, optional)` schweigt bei fehlenden optionalen Dateien. |
 
@@ -22,3 +22,27 @@ Stand 26.10.2026. Reihenfolge der Bearbeitung: Abstürze und Blocker zuerst, dan
 | Karten | `tools/levels/<ebene>.py` | alle 10 bestanden, Inhalt identisch |
 | Auflösungen | `ui_shots.ps1`: Titel, Pause, HUD, Inventar, Karte bei 1280 × 720, 1920 × 1080, 2560 × 1440, 1024 × 768 (4:3), 3440 × 1440 (21:9) | alle 25 Bilder vollständig, nichts abgeschnitten oder überlappend (`docs/screens/ui/v13_aufloesungen.jpg`) |
 
+
+
+## B-002: Messung (V13.2)
+
+Befehl `perf` (Arbeitsspeicher jetzt und Spitze seit Prozessstart, `K32GetProcessMemoryInfo`). Start direkt auf der Ebene, 1600 × 900, Qualität 2 (Texturen 1024 px, BC1/BC5), 240 Bilder nach dem Laden. Vorher: Stand vor V13.2 (`bin_smoke`, gleicher Datenstand). Skript `mem_sweep.ps1`.
+
+| Ebene | RAM-Spitze vorher | RAM-Spitze nachher | RAM im Spiel vorher | RAM im Spiel nachher | Start bis Texturen oben vorher | nachher |
+|---|---|---|---|---|---|---|
+| Level 0 | 3 116 MB | 672 MB | 559 MB | 493 MB | 6,43 s | 9,03 s (erster Lauf, kalter Dateicache) |
+| Level 1 | 3 089 MB | 676 MB | 533 MB | 516 MB | 6,40 s | 6,63 s |
+| Level 2 | 3 099 MB | 678 MB | 546 MB | 540 MB | 6,37 s | 6,59 s |
+| Level 3 | 3 100 MB | 681 MB | 532 MB | 511 MB | 6,37 s | 6,54 s |
+| Level 5 | 3 093 MB | 681 MB | 562 MB | 540 MB | 6,34 s | 6,55 s |
+| Level 5.3 | 3 099 MB | 675 MB | 594 MB | 580 MB | 6,34 s | 6,57 s |
+| Level 188 | 3 097 MB | 677 MB | 553 MB | 506 MB | 6,41 s | 6,59 s |
+| Level 903 | 3 099 MB | 681 MB | 556 MB | 513 MB | 6,39 s | 6,53 s |
+| Level 37 | 3 088 MB | 676 MB | 522 MB | 502 MB | 6,43 s | 6,55 s |
+| Level 36 | 3 100 MB | 682 MB | 529 MB | 516 MB | 6,37 s | 6,63 s |
+
+Texturgröße 2048 (Qualität 3), Level 0 und Level 5: Spitze vorher 11 074 / 11 091 MB, nachher 1 251 / 1 308 MB; bis die Texturen oben sind vorher 20,2 / 20,3 s, nachher 22,7 / 20,6 s. Grafikspeicher unverändert (953 MB bzw. 3 318 MB).
+
+- **Bild unverändert:** Bildschirmfoto Level 1 vorher gegen nachher (gleicher Seed, feste Bildzeit): 231 von 1 440 000 Pixeln weichen um mehr als 4 Stufen ab, verstreut (schwebender Staub, zufällig je Lauf); mittlere Abweichung 0,04 Stufen.
+- **Zwischenschritt verworfen:** Ebenen einzeln mit `UpdateSubresource` hochladen senkte die Spitze, ließ aber im Spiel rund 350 MB mehr Arbeitsspeicher stehen (Hochladepuffer des Treibers). Deshalb eine eigene Zwischenablage (`D3D11_USAGE_STAGING`, zwei im Wechsel) und `CopySubresourceRegion`.
+- **Zeitverlauf** (Abtastung alle 50 ms, `mem_trace.ps1`): vorher Sprung auf rund 1 GB mit dem Anlegen der Ergebnisfelder, danach bis 3,1 GB; nachher gleichmäßig 500–700 MB während des Erzeugens.

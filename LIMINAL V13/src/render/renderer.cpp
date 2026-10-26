@@ -5,6 +5,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstring>
+#include <mutex>
 
 #include "core/jobs.hpp"
 #include "core/log.hpp"
@@ -19,7 +20,33 @@ struct Renderer::TexJob {
     std::atomic<bool> done{false};
     TextureSet set;
     int size = 1024;
+    double seconds = 0.0;  // V13.2: Dauer der Erzeugung (Protokoll)
+    // V13.2 (B-002): fertige Ebenen warten hier, bis das naechste Bild sie hochlaedt
+    std::mutex m;
+    std::vector<TextureLayer> ready;
+    Texture albedo, normal, orm;  // neue Felder; sichtbar erst, wenn alle Ebenen oben sind
+    // Zwischenablage je Feld (eine Ebene mit allen Mips, zwei im Wechsel): Kopie auf der GPU statt
+    // UpdateSubresource - der Treiber behielt dessen Hochladepuffer (im Spiel ~350 MB mehr Arbeitsspeicher)
+    Com<ID3D11Texture2D> stage[2][3];
+    int uploaded = 0;
+    size_t bytes = 0;
 };
+
+namespace {
+Com<ID3D11Texture2D> makeStaging(ID3D11Device* dev, int size, int mips, DXGI_FORMAT fmt) {
+    D3D11_TEXTURE2D_DESC d{};
+    d.Width = d.Height = (UINT)size;
+    d.MipLevels = (UINT)mips;
+    d.ArraySize = 1;
+    d.Format = fmt;
+    d.SampleDesc.Count = 1;
+    d.Usage = D3D11_USAGE_STAGING;
+    d.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    Com<ID3D11Texture2D> t;
+    dev->CreateTexture2D(&d, nullptr, t.put());
+    return t;
+}
+}  // namespace
 
 // V10: Figuren werden einmal beim Start im Hintergrund modelliert
 struct Renderer::FigJob {
@@ -137,12 +164,19 @@ void Renderer::applySettings(const RenderSettings& s) {
 void Renderer::startTextureGeneration() {
     auto job = std::make_shared<TexJob>();
     job->size = std::clamp(settings_.textureSize, 256, 2048);
+    job->set.size = job->size, job->set.mips = textureMips(job->size), job->set.compressed = settings_.textureCompression;
     texJob_ = job;
     JobSystem* js = jobs_;
     const bool compress = settings_.textureCompression;
     jobs_->submit([job, js, compress] {
-        job->set = generateTextures(job->size, *js);
-        if (compress) compressTextureSet(job->set, *js);  // V6: ~45 % weniger Grafikspeicher
+        const auto t0 = std::chrono::steady_clock::now();
+        // job->set steht schon (Groesse, Mips) - der Renderer liest es waehrenddessen, daher nicht neu zuweisen
+        (void)generateTextures(job->size, *js, compress, [&job](TextureLayer&& l) {
+            std::lock_guard lock(job->m);
+            job->ready.push_back(std::move(l));
+        });
+        job->seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+        log::info("Texturen erzeugt ({:.2f} s)", job->seconds);
         job->done = true;
     });
 }
@@ -251,32 +285,59 @@ void Renderer::uploadEntityTextures() {
 }
 
 void Renderer::uploadTextures() {
-    if (!texJob_ || !texJob_->done) return;
-    const TextureSet& ts = texJob_->set;
-    std::vector<D3D11_SUBRESOURCE_DATA> a, n, o;
-    for (int l = 0; l < L_COUNT; ++l)
-        for (int m = 0; m < ts.mips; ++m) {
-            UINT s = (UINT)std::max(1, ts.size >> m);
-            if (ts.compressed) {  // V6: Zeilen aus 4x4-Bloecken (BC1: 8 Byte, BC5: 16 Byte je Block)
-                UINT blocks = std::max(1u, s / 4);
-                a.push_back({ts.albedoBC.data() + ts.bcOffset(l, m, 8), blocks * 8, 0});
-                n.push_back({ts.normalBC.data() + ts.bcOffset(l, m, 16), blocks * 16, 0});
-            } else {
-                a.push_back({ts.albedo.data() + ts.mipOffset(l, m, 4), s * 4, 0});
-                n.push_back({ts.normal.data() + ts.mipOffset(l, m, 2), s * 2, 0});
+    if (!texJob_) return;
+    TexJob& j = *texJob_;
+    const TextureSet& ts = j.set;
+    // V13.2 (B-002): Felder leer anlegen, jede fertige Ebene sofort hochladen und freigeben
+    if (!j.albedo.tex) {
+        j.albedo = gpu_.createTexture(ts.size, ts.size, ts.compressed ? DXGI_FORMAT_BC1_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+                                      TEX_SRV, ts.mips, L_COUNT, nullptr);
+        j.normal = gpu_.createTexture(ts.size, ts.size, ts.compressed ? DXGI_FORMAT_BC5_UNORM : DXGI_FORMAT_R8G8_UNORM, TEX_SRV,
+                                      ts.mips, L_COUNT, nullptr);
+        j.orm = gpu_.createTexture(ts.size, ts.size, DXGI_FORMAT_R8G8B8A8_UNORM, TEX_SRV, ts.mips, L_COUNT, nullptr);
+    }
+    std::vector<TextureLayer> batch;
+    {
+        std::lock_guard lock(j.m);
+        batch.swap(j.ready);
+    }
+    auto* ctx = gpu_.ctx();
+    const DXGI_FORMAT fmts[3] = {ts.compressed ? DXGI_FORMAT_BC1_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+                                 ts.compressed ? DXGI_FORMAT_BC5_UNORM : DXGI_FORMAT_R8G8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM};
+    ID3D11Texture2D* dst[3] = {j.albedo.tex.get(), j.normal.tex.get(), j.orm.tex.get()};
+    for (const TextureLayer& l : batch) {
+        const int slot = j.uploaded & 1;
+        const std::vector<u8>* src[3] = {&l.albedo, &l.normal, &l.orm};
+        for (int f = 0; f < 3; ++f) {
+            if (!j.stage[slot][f]) j.stage[slot][f] = makeStaging(gpu_.dev(), ts.size, ts.mips, fmts[f]);
+            ID3D11Texture2D* st = j.stage[slot][f].get();
+            if (!st || !dst[f]) continue;
+            const bool bc = ts.compressed && f < 2;
+            const int bpp = f == 1 ? 2 : 4, blockBytes = f == 0 ? 8 : 16;
+            for (int m = 0; m < ts.mips; ++m) {
+                const int s = std::max(1, ts.size >> m);
+                const int rows = bc ? std::max(1, s / 4) : s;
+                const size_t rowBytes = bc ? (size_t)std::max(1, s / 4) * blockBytes : (size_t)s * bpp;
+                const u8* data = src[f]->data() + (bc ? ts.bcOffset(0, m, blockBytes) : ts.mipOffset(0, m, bpp));
+                D3D11_MAPPED_SUBRESOURCE ms{};
+                if (FAILED(ctx->Map(st, (UINT)m, D3D11_MAP_WRITE, 0, &ms))) continue;  // wartet, bis die GPU kopiert hat
+                for (int y = 0; y < rows; ++y) std::memcpy((u8*)ms.pData + (size_t)y * ms.RowPitch, data + (size_t)y * rowBytes, rowBytes);
+                ctx->Unmap(st, (UINT)m);
+                ctx->CopySubresourceRegion(dst[f], D3D11CalcSubresource((UINT)m, (UINT)l.layer, (UINT)ts.mips), 0, 0, 0, st,
+                                           (UINT)m, nullptr);
             }
-            o.push_back({ts.orm.data() + ts.mipOffset(l, m, 4), s * 4, 0});
         }
-    albedoArr_ = gpu_.createTexture(ts.size, ts.size, ts.compressed ? DXGI_FORMAT_BC1_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
-                                    TEX_SRV, ts.mips, L_COUNT, a.data());
-    normalArr_ = gpu_.createTexture(ts.size, ts.size, ts.compressed ? DXGI_FORMAT_BC5_UNORM : DXGI_FORMAT_R8G8_UNORM, TEX_SRV,
-                                    ts.mips, L_COUNT, n.data());
-    ormArr_ = gpu_.createTexture(ts.size, ts.size, DXGI_FORMAT_R8G8B8A8_UNORM, TEX_SRV, ts.mips, L_COUNT, o.data());
+        j.bytes += l.albedo.size() + l.normal.size() + l.orm.size();
+        ++j.uploaded;
+    }
+    if (!j.done || j.uploaded < (int)L_COUNT) return;
+    // alle oben: umschalten (bis hierher blieben die bisherigen Texturen sichtbar)
+    albedoArr_ = std::move(j.albedo);
+    normalArr_ = std::move(j.normal);
+    ormArr_ = std::move(j.orm);
     texturesUploaded_ = true;
-    const double mb = (double)((ts.compressed ? ts.albedoBC.size() + ts.normalBC.size() : ts.albedo.size() + ts.normal.size()) +
-                               ts.orm.size()) / (1024.0 * 1024.0);
-    log::info("Texturen: {} Ebenen a {} px, {} Mip-Stufen, {:.0f} MB{}", (int)L_COUNT, ts.size, ts.mips, mb,
-              ts.compressed ? " (BC1/BC5)" : "");
+    log::info("Texturen: {} Ebenen a {} px, {} Mip-Stufen, {:.0f} MB{}, erzeugt in {:.2f} s (Ebene fuer Ebene hochgeladen)",
+              (int)L_COUNT, ts.size, ts.mips, (double)j.bytes / (1024.0 * 1024.0), ts.compressed ? " (BC1/BC5)" : "", j.seconds);
     texJob_.reset();  // Speicher freigeben
 }
 
@@ -371,6 +432,7 @@ void Renderer::createTargets(int w, int h) {
 
 // --- Bild ------------------------------------------------------------------------------------
 void Renderer::renderBlank(vec3 color) {
+    uploadTextures();  // V13.2 (B-002): auch waehrend des Ladebildschirms Ebene fuer Ebene hochladen
     vec4 c = srgbToLinear(vec4(color, 1.0f));
     float cc[4] = {c.x, c.y, c.z, 1.0f};
     gpu_.ctx()->ClearRenderTargetView(gpu_.backbufferRtv(), cc);

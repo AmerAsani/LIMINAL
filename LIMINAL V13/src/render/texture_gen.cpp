@@ -3,6 +3,8 @@
 #include "render/texture_vending.hpp"
 
 #include <algorithm>
+#include <atomic>
+#include <functional>
 #include <cmath>
 
 #include "core/jobs.hpp"
@@ -699,21 +701,6 @@ size_t TextureSet::bcOffset(int layer, int mip, int blockBytes) const {
     return off;
 }
 
-void compressTextureSet(TextureSet& ts, JobSystem& jobs) {
-    ts.albedoBC.resize(ts.bcOffset(L_COUNT, 0, 8));
-    ts.normalBC.resize(ts.bcOffset(L_COUNT, 0, 16));
-    jobs.parallelFor(L_COUNT, [&](int layer) {
-        for (int m = 0; m < ts.mips; ++m) {
-            int s = std::max(4, ts.size >> m);
-            compressBC1(ts.albedo.data() + ts.mipOffset(layer, m, 4), s, s, ts.albedoBC.data() + ts.bcOffset(layer, m, 8));
-            compressBC5(ts.normal.data() + ts.mipOffset(layer, m, 2), s, s, ts.normalBC.data() + ts.bcOffset(layer, m, 16));
-        }
-    });
-    ts.compressed = true;
-    std::vector<u8>().swap(ts.albedo);
-    std::vector<u8>().swap(ts.normal);
-}
-
 size_t TextureSet::mipOffset(int layer, int mip, int bpp) const {
     size_t perLayer = 0;
     for (int m = 0; m < mips; ++m) {
@@ -761,119 +748,163 @@ std::vector<u8> resampleWrap(const std::vector<u8>& src, int w, int h, int size)
     return out;
 }
 
-TextureSet generateTextures(int size, JobSystem& jobs) {
+// V13.2 (B-002): Ebene fuer Ebene. Frueher lagen alle 91 Ebenen erst unkomprimiert mit Mip-Ketten im Speicher, dazu
+// Hoehen und Normalen aller Ebenen als float und je Arbeitsthread Zwischenpuffer - beim Laden rund 3,1 GB (bei
+// 2048 px das Vierfache). Jetzt baut eine Ebene ihre Mip-Kette in eigenen Puffern, komprimiert Albedo und Normalen
+// sofort und gibt die fertige Ebene an sink (der Renderer laedt sie im naechsten Bild hoch und gibt sie frei).
+// Gleichzeitig arbeiten nur so viele Ebenen, wie in das Speicherbudget passen (innerhalb einer Ebene rechnen alle
+// Threads mit).
+namespace {
+// Speicher einer Ebene in Arbeit (Byte): Abtastung und Mip-Kette als float, eigene Ketten, eingelesene Bilder
+size_t layerWorkBytes(int size) {
+    const size_t px = (size_t)size * size;
+    return px * 70 + ((size_t)64 << 20);
+}
+}  // namespace
+
+int textureLayerSlots(int size, unsigned workers) {
+    const size_t budget = (size_t)448 << 20;
+    // mindestens drei, damit Einlesen und Rechnen sich ueberlappen (bei 2048 px mit einer Ebene: 52 s statt 20 s)
+    const int slots = (int)std::max<size_t>(3, budget / layerWorkBytes(size));
+    return std::clamp(slots, 1, (int)std::max(1u, workers + 1));
+}
+
+int textureMips(int size) {
+    int mips = 1;
+    while ((size >> mips) >= 4) ++mips;
+    return mips;
+}
+
+TextureSet generateTextures(int size, JobSystem& jobs, bool compress, const std::function<void(TextureLayer&&)>& sink) {
     TextureSet ts;
     ts.size = size;
-    ts.mips = 1;
-    while ((size >> ts.mips) >= 4) ++ts.mips;
-    ts.albedo.resize(ts.mipOffset(L_COUNT, 0, 4));
-    ts.normal.resize(ts.mipOffset(L_COUNT, 0, 2));
-    ts.orm.resize(ts.mipOffset(L_COUNT, 0, 4));
-
-    // Stufe 1: Oberflaechen abtasten (je Ebene in Zeilenbloecken parallel). Albedo und
-    // Rauheit/AO/Metall landen direkt als Bytes in Mip 0, die Hoehe bleibt fuer die Normalen.
-    const int blocksPerLayer = 8;
-    std::vector<std::vector<float>> height(L_COUNT, std::vector<float>((size_t)size * size));
-    // V12: Ebenen aus Bilddateien - eingelesen, kachelbar auf die Zielgroesse gebracht; die Normalen kommen aus
-    // der Normalenkarte (DirectX-Format wie die aus Hoehen gerechneten), nicht aus der Hoehe
+    ts.mips = textureMips(size);
+    ts.compressed = compress;
     const auto& imported = world::importedTextures();
-    std::vector<std::vector<float>> impNormal(L_COUNT);
-    jobs.parallelFor((int)imported.size(), [&](int i) {
-        const world::ImportedTexture& it = imported[(size_t)i];
-        const int layer = L_IMP0 + i;
-        std::vector<u8> a, n, o;
-        int aw = 0, ah = 0, nw = 0, nh = 0, ow = 0, oh = 0;
-        if (!loadPng(it.dir + "/albedo.jpg", a, aw, ah) || !loadPng(it.dir + "/normal.png", n, nw, nh) ||
-            !loadPng(it.dir + "/orm.png", o, ow, oh)) {
-            log::warn("Textur {} ({}) nicht lesbar - grau", it.name, it.dir);
-            return;
-        }
-        a = resampleWrap(a, aw, ah, size), n = resampleWrap(n, nw, nh, size), o = resampleWrap(o, ow, oh, size);
-        u8* da = ts.albedo.data() + ts.mipOffset(layer, 0, 4);
-        u8* dor = ts.orm.data() + ts.mipOffset(layer, 0, 4);
-        std::copy(a.begin(), a.end(), da);
-        std::copy(o.begin(), o.end(), dor);
-        auto& nv = impNormal[(size_t)layer];
-        nv.resize((size_t)size * size * 3);
-        for (size_t p = 0; p < (size_t)size * size; ++p) {
-            float x = n[p * 4] / 127.5f - 1.0f, y = n[p * 4 + 1] / 127.5f - 1.0f, z = n[p * 4 + 2] / 127.5f - 1.0f;
-            const float l = std::max(1e-4f, std::sqrt(x * x + y * y + z * z));
-            nv[p * 3] = x / l, nv[p * 3 + 1] = y / l, nv[p * 3 + 2] = z / l;
-        }
-    });
-    jobs.parallelFor(L_COUNT * blocksPerLayer, [&](int job) {
-        int layer = job / blocksPerLayer, blk = job % blocksPerLayer;
-        if (!impNormal[(size_t)layer].empty()) return;  // V12: aus der Bilddatei
-        int y0 = size * blk / blocksPerLayer, y1 = size * (blk + 1) / blocksPerLayer;
-        float px = 1.0f / (float)size;
-        u8* a = ts.albedo.data() + ts.mipOffset(layer, 0, 4);
-        u8* o = ts.orm.data() + ts.mipOffset(layer, 0, 4);
-        auto& hh = height[(size_t)layer];
-        for (int y = y0; y < y1; ++y)
-            for (int x = 0; x < size; ++x) {
-                size_t i = (size_t)y * size + x;
-                Surf s = sampleLayer(layer, ((float)x + 0.5f) * px, ((float)y + 0.5f) * px, px);
-                a[i * 4] = toByte(std::clamp(s.r, 0.0f, 1.0f));
-                a[i * 4 + 1] = toByte(std::clamp(s.g, 0.0f, 1.0f));
-                a[i * 4 + 2] = toByte(std::clamp(s.b, 0.0f, 1.0f));
-                a[i * 4 + 3] = 255;
-                o[i * 4] = toByte(s.ao);
-                o[i * 4 + 1] = toByte(s.rough);
-                o[i * 4 + 2] = toByte(s.metal);
-                o[i * 4 + 3] = toByte(std::clamp(0.5f + s.h * 25.0f, 0.0f, 1.0f));
-                hh[i] = s.h;
-            }
-    });
+    // Mip-Kette einer Ebene fuer sich (Byte-Versatz innerhalb der Ebene = mipOffset(0, m, bpp))
+    const size_t chainA = ts.mipOffset(1, 0, 4), chainN = ts.mipOffset(1, 0, 2);
 
-    // Stufe 2: Normalen aus der Hoehe, dann Mip-Ketten (je Ebene parallel)
-    jobs.parallelFor(L_COUNT, [&](int layer) {
-        const auto& hh = height[(size_t)layer];
+    auto buildLayer = [&](int layer) {
+        const size_t px = (size_t)size * size;
+        std::vector<u8> a0(px * 4), o0(px * 4);
+        std::vector<float> hh, impN;
+        // Stufe 1: Oberflaeche - aus der Bilddatei (V12) oder prozedural abgetastet (Zeilenbloecke parallel)
+        const int imp = layer - (int)L_IMP0;
+        bool fromFile = false;
+        if (imp >= 0 && imp < (int)imported.size()) {
+            const world::ImportedTexture& it = imported[(size_t)imp];
+            // die drei Bilder parallel einlesen und gleich auf die Zielgroesse bringen (je Bild ein Thread)
+            std::vector<u8> n;
+            bool ok[3] = {false, false, false};
+            jobs.parallelFor(3, [&](int k) {
+                static const char* const files[3] = {"/albedo.jpg", "/orm.png", "/normal.png"};
+                std::vector<u8> img;
+                int w = 0, h = 0;
+                if (!loadPng(it.dir + files[k], img, w, h)) return;
+                img = resampleWrap(img, w, h, size);
+                if (k == 0) std::copy(img.begin(), img.end(), a0.begin());
+                if (k == 1) std::copy(img.begin(), img.end(), o0.begin());
+                if (k == 2) n.swap(img);
+                ok[k] = true;
+            });
+            if (!ok[0] || !ok[1] || !ok[2]) {
+                log::warn("Textur {} ({}) nicht lesbar - grau", it.name, it.dir);
+            } else {
+                impN.resize(px * 3);
+                for (size_t p = 0; p < px; ++p) {
+                    float x = n[p * 4] / 127.5f - 1.0f, y = n[p * 4 + 1] / 127.5f - 1.0f, z = n[p * 4 + 2] / 127.5f - 1.0f;
+                    const float l = std::max(1e-4f, std::sqrt(x * x + y * y + z * z));
+                    impN[p * 3] = x / l, impN[p * 3 + 1] = y / l, impN[p * 3 + 2] = z / l;
+                }
+                fromFile = true;
+            }
+        }
+        if (!fromFile) {
+            hh.resize(px);
+            const int blocks = 8;
+            const float pxs = 1.0f / (float)size;
+            jobs.parallelFor(blocks, [&](int blk) {
+                const int y0 = size * blk / blocks, y1 = size * (blk + 1) / blocks;
+                for (int y = y0; y < y1; ++y)
+                    for (int x = 0; x < size; ++x) {
+                        const size_t i = (size_t)y * size + x;
+                        const Surf sf = sampleLayer(layer, ((float)x + 0.5f) * pxs, ((float)y + 0.5f) * pxs, pxs);
+                        a0[i * 4] = toByte(std::clamp(sf.r, 0.0f, 1.0f));
+                        a0[i * 4 + 1] = toByte(std::clamp(sf.g, 0.0f, 1.0f));
+                        a0[i * 4 + 2] = toByte(std::clamp(sf.b, 0.0f, 1.0f));
+                        a0[i * 4 + 3] = 255;
+                        o0[i * 4] = toByte(sf.ao);
+                        o0[i * 4 + 1] = toByte(sf.rough);
+                        o0[i * 4 + 2] = toByte(sf.metal);
+                        o0[i * 4 + 3] = toByte(std::clamp(0.5f + sf.h * 25.0f, 0.0f, 1.0f));
+                        hh[i] = sf.h;
+                    }
+            });
+        }
+        // Stufe 2: Normalen, dann die Mip-Kette (Zeilenbloecke parallel - nur wenige Ebenen gleichzeitig)
+        auto rowsPar = [&](int n, const std::function<void(int, int)>& fn) {
+            const int blocks = n >= 128 ? 8 : 1;
+            if (blocks == 1) return fn(0, n);
+            jobs.parallelFor(blocks, [&](int b) { fn(n * b / blocks, n * (b + 1) / blocks); });
+        };
         const float texel = kLayers[layer].meters / (float)size;
-        std::vector<float> A((size_t)size * size * 4), N((size_t)size * size * 3), O((size_t)size * size * 4);
-        const u8* a0 = ts.albedo.data() + ts.mipOffset(layer, 0, 4);
-        const u8* o0 = ts.orm.data() + ts.mipOffset(layer, 0, 4);
-        for (int y = 0; y < size; ++y)
+        std::vector<float> A(px * 4), N(px * 3), O(px * 4);
+        rowsPar(size, [&](int ya, int yb) {
+        for (int y = ya; y < yb; ++y)
             for (int x = 0; x < size; ++x) {
-                size_t i = (size_t)y * size + x;
-                if (!impNormal[(size_t)layer].empty()) {  // V12: Normalenkarte
-                    for (int c = 0; c < 3; ++c) N[i * 3 + c] = impNormal[(size_t)layer][i * 3 + c];
+                const size_t i = (size_t)y * size + x;
+                if (fromFile) {  // V12: Normalenkarte
+                    for (int c = 0; c < 3; ++c) N[i * 3 + c] = impN[i * 3 + c];
                 } else {
                     auto hAt = [&](int xx, int yy) { return hh[(size_t)((yy + size) % size) * size + (size_t)((xx + size) % size)]; };
-                    float dx = (hAt(x + 1, y) - hAt(x - 1, y)) / (2.0f * texel);
-                    float dy = (hAt(x, y + 1) - hAt(x, y - 1)) / (2.0f * texel);
-                    float nx = -dx, ny = -dy, nz = 1.0f;
-                    float l = std::sqrt(nx * nx + ny * ny + nz * nz);
+                    const float dx = (hAt(x + 1, y) - hAt(x - 1, y)) / (2.0f * texel);
+                    const float dy = (hAt(x, y + 1) - hAt(x, y - 1)) / (2.0f * texel);
+                    const float nx = -dx, ny = -dy, nz = 1.0f;
+                    const float l = std::sqrt(nx * nx + ny * ny + nz * nz);
                     N[i * 3] = nx / l, N[i * 3 + 1] = ny / l, N[i * 3 + 2] = nz / l;
                 }
                 for (int c = 0; c < 3; ++c) A[i * 4 + c] = srgbToLinear(a0[i * 4 + c] / 255.0f);
                 A[i * 4 + 3] = 1.0f;
                 for (int c = 0; c < 4; ++c) O[i * 4 + c] = o0[i * 4 + c] / 255.0f;
             }
+        });
+        std::vector<float>().swap(hh);
+        std::vector<float>().swap(impN);
+        std::vector<u8>().swap(a0);
+        std::vector<u8>().swap(o0);
+        // komprimiert: eigene Ketten fuer Albedo und Normalen, danach BC1/BC5 in das Ergebnis
+        std::vector<u8> chA(chainA), chN(chainN);
+        TextureLayer out;
+        out.layer = layer;
+        out.orm.resize(ts.mipOffset(1, 0, 4));
         int sz = size;
         for (int m = 0; m < ts.mips; ++m) {
-            u8* a = ts.albedo.data() + ts.mipOffset(layer, m, 4);
-            u8* n = ts.normal.data() + ts.mipOffset(layer, m, 2);
-            u8* o = ts.orm.data() + ts.mipOffset(layer, m, 4);
-            for (size_t i = 0; i < (size_t)sz * sz; ++i) {
+            u8* a = chA.data() + ts.mipOffset(0, m, 4);
+            u8* n = chN.data() + ts.mipOffset(0, m, 2);
+            u8* o = out.orm.data() + ts.mipOffset(0, m, 4);
+            rowsPar(sz, [&](int ya, int yb) {
+            for (size_t i = (size_t)ya * sz; i < (size_t)yb * sz; ++i) {
                 a[i * 4] = toByte(linearToSrgb(A[i * 4]));
                 a[i * 4 + 1] = toByte(linearToSrgb(A[i * 4 + 1]));
                 a[i * 4 + 2] = toByte(linearToSrgb(A[i * 4 + 2]));
                 a[i * 4 + 3] = 255;
                 float nx = N[i * 3], ny = N[i * 3 + 1], nz = N[i * 3 + 2];
-                float l = std::sqrt(nx * nx + ny * ny + nz * nz);
+                const float l = std::sqrt(nx * nx + ny * ny + nz * nz);
                 if (l > 1e-6f) nx /= l, ny /= l;
                 n[i * 2] = toByte(nx * 0.5f + 0.5f);
                 n[i * 2 + 1] = toByte(ny * 0.5f + 0.5f);
                 for (int c = 0; c < 4; ++c) o[i * 4 + c] = toByte(O[i * 4 + c]);
             }
+            });
             if (m + 1 >= ts.mips) break;
             // 2x2-Mittelung (Albedo linear, Normalen ungenormt -> Rauheit waechst mit der Streuung)
-            int ns = std::max(1, sz / 2);
+            const int ns = std::max(1, sz / 2);
             std::vector<float> A2((size_t)ns * ns * 4), N2((size_t)ns * ns * 3), O2((size_t)ns * ns * 4);
-            for (int y = 0; y < ns; ++y)
+            rowsPar(ns, [&](int ya, int yb) {
+            for (int y = ya; y < yb; ++y)
                 for (int x = 0; x < ns; ++x) {
-                    size_t d = (size_t)y * ns + x;
-                    size_t s00 = (size_t)(2 * y) * sz + 2 * x, s10 = s00 + 1, s01 = s00 + sz, s11 = s01 + 1;
+                    const size_t d = (size_t)y * ns + x;
+                    const size_t s00 = (size_t)(2 * y) * sz + 2 * x, s10 = s00 + 1, s01 = s00 + sz, s11 = s01 + 1;
                     for (int c = 0; c < 4; ++c) {
                         A2[d * 4 + c] = 0.25f * (A[s00 * 4 + c] + A[s10 * 4 + c] + A[s01 * 4 + c] + A[s11 * 4 + c]);
                         O2[d * 4 + c] = 0.25f * (O[s00 * 4 + c] + O[s10 * 4 + c] + O[s01 * 4 + c] + O[s11 * 4 + c]);
@@ -885,17 +916,43 @@ TextureSet generateTextures(int size, JobSystem& jobs) {
                     }
                     // Toksvig: kuerzere gemittelte Normale -> mehr Rauheit (weniger Glitzern in der Ferne)
                     len = std::sqrt(len);
-                    float r = O2[d * 4 + 1];
-                    float a2 = r * r * r * r;
-                    float ft = len / std::max(1e-4f, len + a2 * (1.0f - len));
-                    float rNew = std::sqrt(std::sqrt(std::max(a2, (a2 / std::max(ft, 1e-4f)))));
+                    const float r = O2[d * 4 + 1];
+                    const float a2 = r * r * r * r;
+                    const float ft = len / std::max(1e-4f, len + a2 * (1.0f - len));
+                    const float rNew = std::sqrt(std::sqrt(std::max(a2, (a2 / std::max(ft, 1e-4f)))));
                     O2[d * 4 + 1] = std::clamp(std::max(r, rNew), 0.0f, 1.0f);
                 }
+            });
             A.swap(A2);
             N.swap(N2);
             O.swap(O2);
             sz = ns;
         }
+        std::vector<float>().swap(A), std::vector<float>().swap(N), std::vector<float>().swap(O);
+        if (!compress) {
+            out.albedo.swap(chA), out.normal.swap(chN);
+        } else {
+            out.albedo.resize(ts.bcOffset(1, 0, 8)), out.normal.resize(ts.bcOffset(1, 0, 16));
+            for (int m = 0; m < ts.mips; ++m) {
+                const int s = std::max(4, ts.size >> m), bw = s / 4;
+                // Blockzeilen parallel: jede Blockzeile liegt im Ergebnis zusammenhaengend
+                rowsPar(bw, [&](int b0, int b1) {
+                    compressBC1(chA.data() + ts.mipOffset(0, m, 4) + (size_t)b0 * 4 * s * 4, s, (b1 - b0) * 4,
+                                out.albedo.data() + ts.bcOffset(0, m, 8) + (size_t)b0 * bw * 8);
+                    compressBC5(chN.data() + ts.mipOffset(0, m, 2) + (size_t)b0 * 4 * s * 2, s, (b1 - b0) * 4,
+                                out.normal.data() + ts.bcOffset(0, m, 16) + (size_t)b0 * bw * 16);
+                });
+            }
+        }
+        std::vector<u8>().swap(chA), std::vector<u8>().swap(chN);
+        sink(std::move(out));  // V13.2: sofort weiter zum Hochladen - hier bleibt nichts liegen
+    };
+    // nur so viele Ebenen gleichzeitig, wie in das Budget passen
+    const int slots = textureLayerSlots(size, jobs.workerCount());
+    std::atomic<int> next{0};
+    jobs.parallelFor(slots, [&](int) {
+        int layer;
+        while ((layer = next.fetch_add(1)) < (int)L_COUNT) buildLayer(layer);
     });
     return ts;
 }
