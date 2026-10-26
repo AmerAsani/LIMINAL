@@ -319,3 +319,14 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
 - **Abwägung gegen Sculpting von Hand:** Ohne Grafiktablett und ohne Sicht in Blender ist reproduzierbarer Code der verlässlichere Weg. Jede Form ist im Quelltext begründet und kann neu erzeugt werden.
 - **Smiler ohne Arme:** Die angedeuteten Arme der ersten Fassung lasen sich im Licht als Strichmännchen-Arme. Die Seite nennt sie nur als unbestätigtes Gerücht; der Körper bleibt deshalb eine formlose Masse.
 - **Neues Formteil `tube`:** Strecke mit ellipsenförmigem Querschnitt. Ketten aus einzelnen Ellipsoiden ergaben an Lippen und Maulspalt eine Perlenschnur.
+
+## E-023 Starter: nur von Microsoft signierte Pakete ausführen (26.10.2026)
+- **Befund:** Der Starter (`LIMINAL.exe`) lädt auf alten Windows-Versionen ohne Universal C Runtime – nach Rückfrage – das Visual-C++-Paket von aka.ms und führt es mit Administratorrechten aus. Geprüft wurde nur, ob die Datei *irgendeine* gültige Signatur trägt.
+- **Entscheidung:** Der Unterzeichner muss „Microsoft Corporation“ sein; die Zertifikatskette wird auf Widerruf geprüft. Schlägt das fehl, wird die Datei gelöscht und der Spieler auf den manuellen Download verwiesen.
+- **Nachweis:** `MULTIPLAYER_TESTS.md` Abschnitt 4 (Microsoft-Datei angenommen, gültig signierte Fremddatei abgelehnt, unsignierte abgelehnt). `BUGLISTE.md` B-003.
+
+## E-024 Mehrspieler bleibt aus (26.10.2026)
+- **Entscheidung:** Kein Mehrspielermodus in V13, nicht erreichbar; kein Netzwerkcode im Spiel (`tools/check_no_network.py`).
+- **Begründung:** `MULTIPLAYER_ENTSCHEIDUNG.md` – die Spielsysteme sind für einen Spieler gebaut; „nachweislich sicher“ ist ohne vollständige Umsetzung, verschlüsselten Netzweg, Prozesstests und Durchsicht nicht belegbar; bei Unklarheit gilt höhere Sicherheit und Stabilität.
+- **Geliefert:** Bedrohungsmodell mit Architekturregeln, Prüfschicht `src/net` (vom Spiel nicht gebunden) mit 72 Prüfungen, 1 000 000 Fuzz-Runden, Sanitizer-Lauf (`MULTIPLAYER_TESTS.md`).
+

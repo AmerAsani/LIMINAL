@@ -16,6 +16,7 @@
 #include <windows.h>
 #include <d3d11.h>
 #include <shellapi.h>
+#include <wincrypt.h>
 #include <softpub.h>
 #include <wintrust.h>
 
@@ -80,8 +81,14 @@ bool hasUcrt() {
     return true;
 }
 
-// Authenticode-Signatur einer Datei pruefen (gueltige, vertrauenswuerdige Kette)
-bool signatureValid(const wchar_t* file) {
+bool same(const wchar_t* a, const wchar_t* b) {
+    while (*a && *a == *b) ++a, ++b;
+    return *a == *b;
+}
+
+// Authenticode-Signatur einer Datei pruefen: gueltige, vertrauenswuerdige, nicht widerrufene Kette UND der
+// erwartete Herausgeber (V13: vorher genuegte irgendeine gueltige Signatur - BUGLISTE.md B-003)
+bool signatureValid(const wchar_t* file, const wchar_t* publisher) {
     WINTRUST_FILE_INFO fi;
     memset(&fi, 0, sizeof(fi));
     fi.cbStruct = sizeof(fi);
@@ -91,14 +98,24 @@ bool signatureValid(const wchar_t* file) {
     memset(&wd, 0, sizeof(wd));
     wd.cbStruct = sizeof(wd);
     wd.dwUIChoice = WTD_UI_NONE;
-    wd.fdwRevocationChecks = WTD_REVOKE_NONE;
+    wd.fdwRevocationChecks = WTD_REVOKE_WHOLECHAIN;
     wd.dwUnionChoice = WTD_CHOICE_FILE;
     wd.pFile = &fi;
     wd.dwStateAction = WTD_STATEACTION_VERIFY;
     LONG r = WinVerifyTrust((HWND)INVALID_HANDLE_VALUE, &action, &wd);
+    bool ok = false;
+    if (r == 0) {  // Herausgeber = Anzeigename des Unterzeichner-Zertifikats
+        CRYPT_PROVIDER_DATA* pd = WTHelperProvDataFromStateData(wd.hWVTStateData);
+        CRYPT_PROVIDER_SGNR* sg = pd ? WTHelperGetProvSignerFromChain(pd, 0, FALSE, 0) : nullptr;
+        if (sg && sg->csCertChain > 0 && sg->pasCertChain && sg->pasCertChain[0].pCert) {
+            wchar_t name[256];
+            if (CertGetNameStringW(sg->pasCertChain[0].pCert, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, nullptr, name, 256) > 1)
+                ok = same(name, publisher);
+        }
+    }
     wd.dwStateAction = WTD_STATEACTION_CLOSE;
     WinVerifyTrust((HWND)INVALID_HANDLE_VALUE, &action, &wd);
-    return r == 0;
+    return ok;
 }
 
 typedef HRESULT(WINAPI* URLDownloadToFileWFn)(LPUNKNOWN, LPCWSTR, LPCWSTR, DWORD, LPVOID);
@@ -117,9 +134,9 @@ bool installRedist() {
             MB_OK | MB_ICONWARNING);
         return false;
     }
-    if (!signatureValid(tmp)) {
+    if (!signatureValid(tmp, L"Microsoft Corporation")) {
         DeleteFileW(tmp);
-        ask(L"Die heruntergeladene Datei hat keine gueltige digitale Signatur und wurde geloescht.", MB_OK | MB_ICONERROR);
+        ask(L"Die heruntergeladene Datei hat keine gueltige digitale Signatur von Microsoft und wurde geloescht.", MB_OK | MB_ICONERROR);
         return false;
     }
     SHELLEXECUTEINFOW sei;
