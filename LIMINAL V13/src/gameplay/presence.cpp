@@ -1188,7 +1188,7 @@ void Presence::thinkClump(Agent& a, double dt, const Context& c, std::vector<Eve
     // ganz nah hoert es jeden Schritt, auch leise; wer still steht, bleibt unbemerkt (blind)
     const bool close = d < 2.5f && c.noise > 0.1 && a.hang < 0.5f;
     a.stateT += dt;
-    a.alert = 0.0f, a.reach = 0.0f, a.shiver = 0.0f;
+    a.alert = 0.0f, a.reach = 0.0f, a.shiver = 0.0f, a.perceive = 0.0f;
     a.look = false;
     a.noShadow = a.hang > 0.5f;
     auto setState = [&](int s) {
@@ -1252,9 +1252,13 @@ void Presence::thinkClump(Agent& a, double dt, const Context& c, std::vector<Eve
             if (!moving || hdist(a.pos, a.heard) < 1.2f) setState(3), a.lostT = 0.0;
             break;
         }
-        case 3:  // Suchen: tastet mit allen Gliedern, verharrt
+        case 3: {  // Suchen: tastet mit allen Gliedern, verharrt
             a.hang = 0.0f;
-            a.shiver = 1.0f;
+            // V13.2: im Wechsel tasten und lauschen (erstarrt, Kern hoch, Finger tippen) - zum letzten Geraeusch hin
+            const bool listen = std::fmod(a.stateT, 4.5) > 2.6;
+            a.shiver = listen ? 0.0f : 1.0f;
+            a.perceive = listen ? 1.0f : 0.0f;
+            a.perceiveAt = a.heard;
             if (close && c.mode >= 2) {
                 windup();
                 break;
@@ -1271,6 +1275,7 @@ void Presence::thinkClump(Agent& a, double dt, const Context& c, std::vector<Eve
                 a.cool = 0.0;
             }
             break;
+        }
         case 4:  // Ausholen: der laengste Arm holt aus (1,0 - 1,5 s Ankuendigung, F2) - zur Stelle des Laerms
             a.alert = 1.0f;
             if (hears && loud >= 0.2f) a.heard = where;  // lauter Laerm verraet, wo du bist; leise Schritte nicht

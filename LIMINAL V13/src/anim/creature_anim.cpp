@@ -477,19 +477,33 @@ void CreatureAnimator::updateClump(float dt, const Input& in) {
     spring(windup_, windupV_, in.alert, 3.2f, dt);
     spring(grab_, grabV_, in.reach, 10.0f, dt);
     spring(grope_, gropeV_, in.shiver, 2.0f, dt);
+    // V13.2: lauschen (es ist blind, Level-1-Seite: jagt nach Gehoer) - erstarrt, hebt den Kern, legt die Haende flach
+    // und tastet mit den Fingern nach Erschuetterungen. Licht: keine Reaktion (blind).
+    spring(perc_, percV_, in.perceive, 2.5f, dt);
+    spring(idleW_, idleWV_, speed_ > 0.07f ? 0.0f : 1.0f, 2.5f, dt);
     const float floorZ = pos_.z, ceilZ = pos_.z + std::min(in.clearance, 6.0f);
     // Kern: am Boden ruckweise (Stoesse, waehrend die Haende ziehen), schaukelnd; in der Decke verborgen
     pull_ += (speed_ * 2.2f + 0.15f) * dt;
     const float pulse = std::pow(std::max(0.0f, std::sin(pull_ * 6.2832f)), 2.0f);
-    const vec3 floorCore = pos_ + U * (kCoreZ + 0.02f * std::sin(time_ * 1.4f));
+    // V13.2: Atem - der Kern hebt und senkt sich (in Ruhe deutlicher); lauschend steht er hoeher und still
+    const float breathC = (0.02f + 0.02f * idleW_ * (1.0f - perc_)) * std::sin(time_ * 1.4f);
+    const vec3 floorCore = pos_ + U * (kCoreZ + breathC + 0.22f * perc_);
     const vec3 hideCore = vec3{pos_.x, pos_.y, ceilZ + 0.5f};
     const vec3 want = floorCore + (hideCore - floorCore) * sm01(hang_);
     springV(core_, coreV_, want, 2.0f + 10.0f * pulse + 6.0f * hang_, dt);
     const vec3 lag = core_ - want;
     if (length(lag) > 0.35f) core_ = want + normalize(lag) * 0.35f;
     // aufbaeumen beim Griff (das Maul nach vorn), sonst schaukeln
-    const float rock = 0.14f * std::sin(pull_ * 3.1f) * (1.0f - hang_) + 0.05f * std::sin(time_ * 0.9f);
-    const M3 Rc = axisAngle(L, rock - grab_ * 1.25f - windup_ * 0.25f) * axisAngle(F, 0.08f * std::sin(pull_ * 2.3f + 1.0f));
+    const float rock = (0.14f * std::sin(pull_ * 3.1f) * (1.0f - hang_) + 0.05f * std::sin(time_ * 0.9f)) * (1.0f - perc_);
+    // lauschend neigt sich der Kern (mit Ohren und Maul) zur Richtung des Geraeuschs
+    float listenTilt = 0.0f, listenRoll = 0.0f;
+    if (perc_ > 0.01f) {
+        const vec3 dl = in.perceiveAt - core_;
+        listenTilt = -0.35f * perc_ * std::clamp(dot(safeNorm(dl, F), F), -1.0f, 1.0f);
+        listenRoll = 0.35f * perc_ * std::clamp(dot(safeNorm(dl, F), L), -1.0f, 1.0f);
+    }
+    const M3 Rc = axisAngle(L, rock - grab_ * 1.25f - windup_ * 0.25f + listenTilt) *
+                  axisAngle(F, 0.08f * std::sin(pull_ * 2.3f + 1.0f) * (1.0f - perc_) - listenRoll);
     auto body = [&](int j) { return core_ + Rc * (Mb * (B[(size_t)j] - B[CORE])); };
     J[ROOT] = pos_;
     J[CORE] = core_;
@@ -504,6 +518,7 @@ void CreatureAnimator::updateClump(float dt, const Input& in) {
         const vec3 d0 = Mb * vec3{std::cos(kArm[a].ang), std::sin(kArm[a].ang), 0.0f};
         vec3 target, pole = U + d0 * 0.4f, handDir;
         bool flatHand = true;
+        float lie = 0.0f;  // V13.2: liegender langer Arm
         if (a == 0 && (windup_ > 0.05f || grab_ > 0.05f)) {
             // ausholen: hoch hinter den Kern; greifen: zum Ziel
             const vec3 up = core_ + U * 1.45f - F * 0.55f + L * 0.25f;
@@ -529,9 +544,14 @@ void CreatureAnimator::updateClump(float dt, const Input& in) {
             // greifen ringsum: Ruheort der Hand, beim Kriechen etwas voraus; tastend: suchend hin und her
             const float sweep = grope_ * 0.7f * std::sin(time_ * 1.6f + (float)a * 2.1f);
             const vec3 dr = Mb * vec3{std::cos(kArm[a].ang + sweep), std::sin(kArm[a].ang + sweep), 0.0f};
-            const float reach = (lu + lf) * (0.55f + 0.2f * grope_ * (0.5f + 0.5f * std::sin(time_ * 1.1f + (float)a)));
+            // V13.2: der laengste Arm liegt in Ruhe lang ausgestreckt (vorher stand er wie eine Stelze); lauschend
+            // greifen alle Haende weit und flach aus
+            lie = a == 0 ? 0.32f * idleW_ * (1.0f - grope_) : 0.0f;
+            const float reach = (lu + lf) * (0.55f + lie + 0.15f * perc_ + 0.2f * grope_ * (0.5f + 0.5f * std::sin(time_ * 1.1f + (float)a)));
             const vec3 ideal = vec3{core_.x, core_.y, floorZ + 0.04f} + dr * reach + F * std::min(0.5f, speed_ * 0.4f);
-            if (!g.swing) {
+            // V13.2: in Ruhe unruhig - ab und zu greift eine Hand ein Stueck neu (nie beim Lauschen)
+            if (!g.swing && idleW_ > 0.5f && perc_ < 0.2f && rnd() < dt * 0.12f) g.stray = 0.0f;
+            if (!g.swing && perc_ < 0.5f) {
                 const float stray = g.stray * (1.0f - 0.5f * grope_);
                 if (length(vec3{g.plant.x - ideal.x, g.plant.y - ideal.y, 0.0f}) > stray && swinging < 2) {
                     g.swing = true;
@@ -557,13 +577,18 @@ void CreatureAnimator::updateClump(float dt, const Input& in) {
             target = g.swing ? g.from + (g.to - g.from) * t + U * (0.3f * std::sin(t * 3.1416f)) : g.plant;
             handDir = safeNorm(vec3{target.x - S.x, target.y - S.y, 0.0f}, F);
         }
+        // V13.2: liegender langer Arm - Ellbogen flach nach aussen, nicht nach oben
+        if (a == 0 && lie > 0.01f && flatHand) pole = safeNorm(d0 * 0.3f - U * idleW_ + U * (1.0f - idleW_), U);  // Ellbogen zum Boden
+        if (flatHand && perc_ > 0.01f) pole = safeNorm(pole + (d0 * 0.4f - U * 0.6f - pole) * perc_, U);  // lauschend: alle Ellbogen flach
         vec3 E, Wr;
         ik2(S, target, lu, lf, pole, E, Wr);
         J[armJ(a, 0)] = S;
         J[armJ(a, 1)] = E;
         J[armJ(a, 2)] = Wr;
         // Finger: flach auf dem Boden, sonst in Armrichtung; sie zucken (Koeder, Tasten)
-        const float twitch = (a == 0 ? 0.6f : 0.15f + 0.5f * grope_) * std::sin(time_ * (9.0f + (float)a)) * std::sin(time_ * 2.3f + (float)a);
+        // lauschend tippen die Finger in schnellen Stoessen auf den Boden
+        const float tap = perc_ * std::max(0.0f, std::sin(time_ * (13.0f + 1.7f * (float)a) + (float)a * 1.3f));
+        const float twitch = (a == 0 ? 0.6f : 0.15f + 0.5f * grope_) * std::sin(time_ * (9.0f + (float)a)) * std::sin(time_ * 2.3f + (float)a) + 0.8f * tap;
         vec3 tip = Wr + handDir * kHand + L * (0.03f * twitch);
         if (flatHand) tip.z = std::max(floorZ + 0.02f, Wr.z - 0.03f);
         J[armJ(a, 3)] = tip;

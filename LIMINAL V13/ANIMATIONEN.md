@@ -54,3 +54,23 @@ Kritikrunden (Bilder `hound_r0` bis `hound_r3`):
 | 1 | Wahrnehmen (Augen weit, Kopf dreht sich) und Licht (Augen eng, Gesicht zur Lampe) eindeutig, Ankündigung im Ausschnitt erkennbar. Ruhe noch starr. | Masse atmet, Gesicht treibt; Augen leuchten im Licht heller |
 | 2 | Ruhe lebt; alle Zustände im hellen Saal unterscheidbar. | Prüfung im Dunkeln, wo er vorkommt |
 | 3 (dunkel) | Nur Augen und Lächeln sichtbar, wie im Wiki; die Zustände sind allein am Leuchten unterscheidbar (zwei weite Augen; schmale Schlitze; breiteres Lächeln). Abgenommen. | – |
+
+## Clump (Bündel)
+
+| Zustand | Bewegung | Wiki-Bezug |
+|---|---|---|
+| Ruhe | Der Kern hebt und senkt sich (Atem). Unruhig: ab und zu greift eine Hand ein Stück neu. Der längste Arm liegt lang ausgestreckt am Boden, den Ellbogen zum Boden (vorher stand er wie eine Stelze). | „längstes Glied 8–10 Fuß“ (Entity 5) |
+| Ziehen / Eilen | Hand über Hand, der Kern folgt ruckweise und schaukelt, die Beine schleifen | „bewegt sich, indem es über den Boden wischt“ |
+| Lauschen | Erstarrt (keine neuen Griffe). Der Kern steht 22 cm höher und neigt sich zum Geräusch, alle Ellbogen flach, die Finger tippen in schnellen Stößen. Im Spiel: beim Suchen im Wechsel mit dem Tasten. | blind, jagt nach Gehör (Level 1) |
+| Licht | **keine Reaktion** – blind | „eyeless“ (Level 1) |
+| Tasten | Arme fegen suchend hin und her | – |
+| Ausholen | Der längste Arm hebt sich hoch hinter den Kern (1–1,5 s Ankündigung) | „streckt das längste Glied, um zu greifen“ |
+| Zugriff | Der Arm schnellt zum Ziel, der Kern bäumt sich auf (Maul nach vorn) | Griff ab etwa 2,4 m |
+| Schacht / Abstieg | Der Kern liegt über der Decke, der Köderarm hängt heraus, die Finger zucken; Abstieg: fällt und landet | klettert Wände, nutzt Lüftungen |
+
+| Runde | Befund | Änderung |
+|---|---|---|
+| 0 (vorher) | Langer Arm steht in Ruhe wie eine Stelze; Lauschen und Licht wie Ruhe. Die Vorführung „Ausholen“ setzte das falsche Feld. Schacht unter der 6-m-Decke außerhalb des Bilds. | – |
+| 1 | Ausholen und Zugriff deutlich, Lauschen hebt den Kern; der lange Arm steht weiter steil (Ellbogen nach oben). | Ellbogen des langen Arms zum Boden; lauschend alle Ellbogen flach, Kern höher |
+| 2 | Langer Arm liegt; Lauschen klar anders als Ruhe; Licht ohne Wirkung. | Prüfung unter niedriger Decke (Level 0) |
+| 3 | Alle Zustände einschließlich Schacht und Abstieg sichtbar und unterscheidbar. Abgenommen. | – |
