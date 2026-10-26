@@ -198,7 +198,7 @@ void FigureRig::collect(std::vector<VisibleMesh>& out, std::vector<mat4>& palett
     v.bones = (int)off;  // Index der ersten Matrix
     v.dynamic = dynamic;
     v.attached = attached;
-    v.dualQuat = !creature_;  // V13.2 (B-001): Menschen mit Dual Quaternions (Wesen: lineares Mischen, ihre Rahmen koennen strecken)
+    v.dualQuat = true;  // V13.2 (B-001): Dual Quaternions - die Rahmen sind starr (Menschen und Wesen), Gelenke klappen nicht ein
     v.cullCenter = c;
     v.cullRadius = attached ? 0.0f : reach_;
     v.material = material;

@@ -26,6 +26,7 @@
 #pragma once
 
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "anim/animator.hpp"
@@ -140,6 +141,9 @@ public:
     // kind 0..5: die Entities (anim::Entity), 6: Mensch (der Spieler)
     void showcase(int kind, vec3 pos, float yaw, float walkSpeed = 0.0f);
     void clearShowcase();  // V13 (Tests): alle Vorfuehrungen entfernen
+    // V13.2 (Tests): Eingabe der Animation der zuletzt gezeigten Vorfuehrung setzen (jaw, alert, crouch, growl, reach,
+    // fly, shiver, lean, tilt, hang, bait, light, perceive, speed, look); false: unbekannt
+    bool showcaseSet(const std::string& key, float v);
     bool showcasePos(vec3& pos, float& yaw) const;  // V13 (Tests): Lage der zuletzt gezeigten Vorfuehrung
 
 private:

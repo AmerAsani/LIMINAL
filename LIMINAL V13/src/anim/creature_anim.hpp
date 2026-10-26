@@ -43,6 +43,10 @@ public:
         vec3 fwd{0, 0, 0};        // Deathmoth: Koerper-vorn (0: aus yaw)
         float hang = 0.0f;        // V11 Buendel: 0 am Boden .. 1 verborgen ueber der Decke (clearance)
         float bait = 0.0f;        // V11 Buendel: 0 .. 1 wie weit der Koederarm aus der Decke haengt
+        float light = 0.0f;       // V13.2: 0..1 im Lichtkegel der Lampe (Lichtreaktion je Wesen)
+        float perceive = 0.0f;    // V13.2: 0..1 nimmt etwas wahr (wittert, lauscht) - Richtung perceiveAt
+        vec3 perceiveAt;
+        vec3 lightFrom;           // V13.2: woher das Licht kommt (Lampe)
     };
 
     void init(Entity e, vec3 pos, float yaw, unsigned seed = 1);
@@ -112,6 +116,9 @@ private:
     float jaw_ = 0.0f, jawV_ = 0.0f, growl_ = 0.0f, growlV_ = 0.0f;
     float curl_[2][5]{}, curlT_[2][5]{}, curlV_[2][5]{};
     float twitchT_ = 5.0f;
+    // V13.2: Licht, Wahrnehmen, Ruhe (Gewicht verlagern, Pfote neu setzen), Schnueffeln in Stoessen
+    float light_ = 0.0f, lightV_ = 0.0f, perc_ = 0.0f, percV_ = 0.0f, idleW_ = 1.0f, idleWV_ = 0.0f;
+    float shuffleT_ = 5.0f, sniff_ = 0.0f, sniffV_ = 0.0f, swayPh_ = 0.0f;
     // V11 Buendel: je Arm die aufgesetzte Hand und der Schwung zum naechsten Griff; der Kern zieht ruckweise
     // nach und schaukelt; die Beine schleifen
     struct Grip {

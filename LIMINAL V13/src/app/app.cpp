@@ -309,6 +309,11 @@ void App::scriptStep() {
             vec3 at{(float)(pl.x + std::cos(pl.angle) * dist), (float)(pl.y + std::sin(pl.angle) * dist), 0.0f};
             at.z = session_->world().tile(ifloor(at.x), ifloor(at.y)).floor;
             session_->presence().showcase(kind, at, (float)(pl.angle + kPi + turn), (float)(walk > 0.0 && walk < 1.01 ? 1.2 : walk));
+        } else if (cmd == "figstate" && session_) {  // V13.2 (Tests): figstate <feld> <wert> - Eingabe der Vorfuehrung
+            char key[32] = {};
+            float val = 0.0f;
+            if (std::sscanf(arg.c_str(), "%31s %f", key, &val) < 2 || !session_->presence().showcaseSet(key, val))
+                log::warn("Skript: figstate '{}' unbekannt oder keine Vorfuehrung", arg);
         } else if (cmd == "figclear" && session_) {  // V13 (Tests): Vorfuehrungen entfernen
             session_->presence().clearShowcase();
         } else if (cmd == "presence" && session_) {  // V10: Entity erscheinen lassen: presence <smiler|hound|moth|gestalt|blackout> [abstand]

@@ -575,13 +575,19 @@ void CreatureAnimator::updateHound(float dt, const Input& in) {
     spring(tilt_, tiltV_, in.tilt, 3.0f, dt);
     spring(crouch_, crouchV_, in.crouch, 2.2f, dt);
     spring(growl_, growlV_, in.growl, 3.0f, dt);
+    // V13.2: Licht (geblendet: zurueckweichen, Kopf weg und tief), Wahrnehmen (wittern), Ruhe
+    spring(light_, lightV_, in.light, 4.0f, dt);
+    spring(perc_, percV_, in.perceive, 3.0f, dt);
+    spring(idleW_, idleWV_, speed_ > 0.07f ? 0.0f : 1.0f, 2.5f, dt);
+    const float crouchE = std::clamp(crouch_ + 0.35f * light_, 0.0f, 1.0f);
     // Gangart: Kreuzgang - ab ~2,2 m/s Galopp mit Flugphase
     if (!run_ && speed_ > 2.2f) run_ = true;
     else if (run_ && speed_ < 1.6f) run_ = false;
     static const float walkOff[4] = {0.25f, 0.75f, 0.0f, 0.5f}, runOff[4] = {0.0f, 0.1f, 0.5f, 0.62f};
     const float* offs = run_ ? runOff : walkOff;
-    const float duty = run_ ? 0.36f : 0.66f + 0.06f * crouch_;
-    const float S = run_ ? 1.5f + 0.3f * speed_ : 0.9f + 0.3f * speed_ - 0.25f * crouch_;
+    const float duty = run_ ? 0.38f : 0.66f + 0.06f * crouchE;
+    // V13.2: kuerzerer Galoppsprung (vorher 1,5 + 0,3 v: die Beine ueberstreckten sich, im Sammeln fiel der Rumpf zu Boden)
+    const float S = run_ ? 1.05f + 0.17f * speed_ : 0.9f + 0.3f * speed_ - 0.25f * crouchE;
     vec3 rest[4];
     for (int s = 0; s < 2; ++s) {
         rest[s] = W({B[front(KNUCK_L, s)].x, B[front(KNUCK_L, s)].y, 0.0f});
@@ -589,6 +595,20 @@ void CreatureAnimator::updateHound(float dt, const Input& in) {
     }
     const float wgt[4] = {0.5f, 0.5f, 0.7f, 0.7f};
     stepLegs(dt, 4, offs, duty, S, rest, 0.42f, wgt);
+    // V13.2: im Stehen ab und zu eine Pfote neu setzen (Gewicht verlagern) - nicht beim Wittern oder im Licht
+    shuffleT_ -= dt;
+    if (shuffleT_ <= 0.0f) {
+        shuffleT_ = 4.0f + 5.0f * rnd();
+        bool anySw = false;
+        for (int i = 0; i < 4; ++i) anySw = anySw || leg_[i].swing;
+        if (speed_ < 0.07f && !anySw && perc_ < 0.3f && light_ < 0.3f) {
+            const int i = std::min(3, (int)(rnd() * 4.0f));
+            Leg& f = leg_[i];
+            f.swing = true, f.from = f.plant, f.t = 0.0f, f.dur = 0.45f;
+            f.to = rest[i] + F * ((rnd() - 0.5f) * 0.08f) + Lw * ((rnd() - 0.5f) * 0.06f);
+            f.to.z = pos_.z;
+        }
+    }
     const float lift[4] = {run_ ? 0.2f : 0.1f, run_ ? 0.2f : 0.1f, run_ ? 0.16f : 0.07f, run_ ? 0.16f : 0.07f};
     vec3 g[4];
     for (int i = 0; i < 4; ++i) g[i] = footPos(i, lift);
@@ -597,15 +617,24 @@ void CreatureAnimator::updateHound(float dt, const Input& in) {
     float bobC = 0.0f, bobP = 0.0f, flex = 0.0f;
     const bool moving = speed_ > 0.07f;
     if (run_) {
-        bobC = 0.05f * std::sin(kTau * phase_);
-        bobP = 0.05f * std::sin(kTau * phase_ + 2.2f);
-        flex = 0.07f * std::sin(kTau * phase_ - 0.6f);
+        bobC = 0.03f * std::sin(kTau * phase_);
+        bobP = 0.035f * std::sin(kTau * phase_ + 2.2f);
+        flex = 0.06f * std::sin(kTau * phase_ - 0.6f);
     } else if (moving) {
         bobC = 0.012f * std::cos(4.0f * kPi * phase_);
         bobP = 0.012f * std::cos(4.0f * kPi * phase_ + 1.0f);
     } else {
         bobC = 0.006f * std::sin(time_ * 2.4f);  // flacher, schneller Atem
     }
+    // V13.2: Atem sichtbar (Brustkorb hebt sich, ~3 s), in Ruhe Gewicht von Seite zu Seite; im Licht zittert er
+    const float breath = std::sin(time_ * 1.9f) * (0.6f + 0.4f * idleW_);
+    swayPh_ += dt * (0.5f + 0.15f * std::sin(time_ * 0.21f));
+    const float sway = std::sin(swayPh_) * idleW_ * (1.0f - perc_) * (1.0f - light_);
+    const vec3 swayC = Lw * (0.022f * sway) + F * (0.012f * std::sin(swayPh_ * 0.5f) * idleW_);
+    const vec3 swayP = Lw * (-0.012f * sway);
+    const vec3 trem = Lw * (0.004f * light_ * std::sin(time_ * 37.0f)) + U * (0.003f * light_ * std::sin(time_ * 29.0f));
+    // Angriff: der ganze Koerper springt nach vorn (nicht nur der Kopf); Licht: er weicht zurueck
+    const vec3 lunge = F * (0.27f * reach_ - 0.07f * light_) - U * (0.05f * reach_);
     // hinkt: steht das linke Vorderbein, sackt die Brust ein
     float limp = 0.0f;
     if (moving) {
@@ -614,11 +643,13 @@ void CreatureAnimator::updateHound(float dt, const Input& in) {
         if (ph0 < duty) limp = 0.04f * std::sin(kPi * ph0 / duty);
     }
     vec3 C = W({B[CHEST].x + flex * 0.5f, 0.0f, 0.0f});
-    C.z = pos_.z + B[CHEST].z - crouch_ * 0.2f - (run_ ? 0.06f : 0.0f) + bobC - limp;
+    C.z = pos_.z + B[CHEST].z - crouchE * 0.2f - (run_ ? 0.03f : 0.0f) + bobC - limp + 0.012f * breath + 0.05f * perc_;
     vec3 P = W({B[PELVIS].x - flex * 0.5f, 0.0f, 0.0f});
-    P.z = pos_.z + B[PELVIS].z - crouch_ * 0.1f + bobP;
+    P.z = pos_.z + B[PELVIS].z - crouchE * 0.1f + bobP - 0.03f * reach_ - 0.06f * light_;
+    C = C + swayC + trem + lunge;
+    P = P + swayP + lunge * 0.4f;
     // ausgemergelt: der Ruecken buckelt
-    const vec3 ctrl = (P + C) * 0.5f + U * (0.08f - (run_ ? flex * 0.8f : 0.0f) + crouch_ * 0.05f);
+    const vec3 ctrl = (P + C) * 0.5f + U * (0.08f - (run_ ? flex * 0.8f : 0.0f) + crouchE * 0.05f + 0.006f * breath + 0.04f * light_);
     auto bez = [&](float t) {
         float a = 1.0f - t;
         return P * (a * a) + ctrl * (2.0f * a * t) + C * (t * t);
@@ -644,8 +675,21 @@ void CreatureAnimator::updateHound(float dt, const Input& in) {
         const vec3 S0 = C + Mb * (B[sh] - B[CHEST]);
         vec3 k = g[s];
         k.z += 0.025f;
-        const float sw = leg_[s].swing ? std::sin(kPi * leg_[s].t) : 0.0f;
-        const vec3 wristT = k - F * (0.10f * (1.0f - sw * 0.6f)) + U * (0.095f + sw * 0.06f);
+        // V13.2: wittert er im Stehen, haelt er die linke Vorderpfote angehoben (lauernd)
+        const float point = s == 0 ? perc_ * idleW_ : 0.0f;
+        k = k + U * (0.09f * point) - F * (0.04f * point);
+        // V13.2: Sprung - beide Vorderpfoten weit vor und angehoben
+        k = k + F * (0.28f * reach_) + U * (0.12f * reach_);
+        const float sw = std::max(leg_[s].swing ? std::sin(kPi * leg_[s].t) : 0.0f, 0.7f * point);
+        vec3 wristT = k - F * (0.10f * (1.0f - sw * 0.6f)) + U * (0.095f + sw * 0.06f);
+        // V13.2: geblendet hebt er die Pfote auf der Seite des Lichts vor das Gesicht
+        const vec3 toLs = safeNorm(vec3{in.lightFrom.x - C.x, in.lightFrom.y - C.y, 0.0f}, F);
+        const float shield = light_ * idleW_ * ((s == 0) == (dot(toLs, Lw) > 0.0f) ? 1.0f : 0.0f);
+        if (shield > 0.001f) {
+            const vec3 face = headPos_ + headDir_ * 0.1f + U * 0.02f;  // V13.2: vor die Augen
+            wristT = wristT + (face - wristT) * (0.85f * shield);
+            k = k + (face + F * 0.05f + U * 0.1f - k) * (0.85f * shield);
+        }
         vec3 e, w;
         ik2(S0, wristT, lu, lf, U * 0.25f - F, e, w);
         J[sh] = S0;
@@ -687,13 +731,19 @@ void CreatureAnimator::updateHound(float dt, const Input& in) {
     // Kopf: haengt vorgestreckt unter den Schultern; geduckt noch tiefer; beim Zuschnappen stoesst er vor
     vec3 hl = run_ ? vec3{0.76f, 0.0f, 0.68f} : vec3{0.70f, 0.0f, 0.64f};
     hl = hl + (vec3{0.74f, 0.0f, 0.5f} - hl) * crouch_;
+    // V13.2: wittern - der Kopf hebt sich und streckt sich vor; Licht - er zieht ihn ein und senkt ihn
+    hl = hl + vec3{0.06f, 0.0f, 0.16f} * perc_ + vec3{-0.12f, 0.0f, -0.1f} * light_;
+    // Schnueffeln in Stoessen (0,75 s an der Luft, 0,75 s Pause)
+    spring(sniff_, sniffV_, perc_ > 0.3f && std::fmod(time_, 1.5f) < 0.75f ? 1.0f : 0.0f, 10.0f, dt);
     vec3 headT = W(hl) + Lw * (lean_ * 0.5f);
     headT.z = pos_.z + hl.z;
+    headT = headT + swayC + lunge + trem;  // der Kopf folgt dem Rumpf
+    headT.z += 0.011f * perc_ * sniff_ * std::sin(time_ * 42.0f);
     if (reach_ > 0.01f) headT = headT + (in.reachAt - headT) * (reach_ * 0.7f);
     {
         vec3 dc = headT - C;
         float dl = length(dc);
-        if (dl > 1e-4f) headT = C + dc * (std::clamp(dl, 0.25f, 0.5f + 0.15f * reach_) / dl);
+        if (dl > 1e-4f) headT = C + dc * (std::clamp(dl, 0.25f, 0.5f + 0.04f * reach_) / dl);  // V13.2: Hals beim Sprung kaum laenger
     }
     const vec3 restDir = safeNorm(Mb * (B[SNOUT] - B[SKULL]), F);
     if (!chainInit_) {
@@ -704,6 +754,17 @@ void CreatureAnimator::updateHound(float dt, const Input& in) {
     }
     springV(headPos_, headPosV_, headT, run_ ? 8.0f : (reach_ > 0.2f ? 14.0f : 5.5f), dt);
     vec3 want = in.look ? safeNorm(in.lookAt - headPos_, restDir) : restDir;
+    // V13.2: in Ruhe sieht er sich langsam um; witternd zum Reiz; im Licht vom Licht weg (nach unten-seitlich)
+    if (!in.look && idleW_ > 0.01f) {
+        const float sy = 0.35f * std::sin(time_ * 0.37f) * idleW_, sp = 0.12f * std::sin(time_ * 0.23f + 1.0f) * idleW_;
+        want = safeNorm(Mb * vec3{std::cos(sy), std::sin(sy), sp - 0.25f}, restDir);
+    }
+    if (perc_ > 0.01f) want = safeNorm(want + (safeNorm(in.perceiveAt - headPos_, want) - want) * perc_, restDir);
+    if (light_ > 0.01f) {
+        const vec3 toL = safeNorm(vec3{in.lightFrom.x - headPos_.x, in.lightFrom.y - headPos_.y, 0.0f}, F);
+        const vec3 away = safeNorm(Lw * (dot(toL, Lw) > 0.0f ? -1.0f : 1.0f) + F * 0.5f - U * 0.7f, restDir);
+        want = safeNorm(want + (away - want) * light_, restDir);
+    }
     {
         const float yw = std::clamp(std::atan2(dot(want, Lw), dot(want, F)), -1.2f, 1.2f);
         const float pt = std::clamp(std::asin(std::clamp(want.z, -1.0f, 1.0f)), -1.1f, 0.45f);
@@ -729,7 +790,8 @@ void CreatureAnimator::updateHound(float dt, const Input& in) {
     J[JAWH] = xf(relH, B[JAWH]);
     // Kiefer: beim Knurren zittert er halb offen, beim Zuschnappen weit auf
     const vec3 headY = safeNorm(cross(hu, headDir_), Lw);
-    const float open = jaw_ * 0.8f + growl_ * (0.14f + 0.035f * std::sin(time_ * 47.0f) + 0.02f * std::sin(time_ * 31.0f));
+    const float open = jaw_ * 0.8f + growl_ * (0.14f + 0.035f * std::sin(time_ * 47.0f) + 0.02f * std::sin(time_ * 31.0f)) +
+                       0.06f * perc_ + 0.25f * reach_;
     J[JAW] = J[JAWH] + rotateAround(xfDir(relH, B[JAW] - B[JAWH]), headY, open);
     // Hals: Bogen von der Brust zum Kopf
     {

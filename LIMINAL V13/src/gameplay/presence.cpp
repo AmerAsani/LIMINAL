@@ -40,6 +40,15 @@ bool inBeam(const Viewer& v, world::World& w, vec3 p, float range) {
 }
 }  // namespace
 
+// V13.2: Lichtreaktion - im Kegel der Lampe zuckt das Wesen zurueck (light 1), nach 'hold' s gewoehnt es sich (geht auf 0)
+template <class A>
+void lightReact(A& a, const Presence::Context& c, vec3 at, float range, double dt, double hold) {
+    const bool lit = inBeam(c.view, *c.world, at, range);
+    a.lightT = lit ? a.lightT + dt : 0.0;
+    a.light = lit ? (float)std::clamp(1.0 - (a.lightT - hold) / 1.2, 0.0, 1.0) : 0.0f;
+    a.lightFrom = c.view.flashPos;
+}
+
 struct Presence::Agent {
     Role role = Role::Smiler;
     bool human = false;
@@ -65,6 +74,9 @@ struct Presence::Agent {
     vec3 lookAt;
     float tilt = 0.0f, lean = 0.0f, reach = 0.0f, jaw = 0.0f, alert = 0.0f, crouch = 0.0f, growl = 0.0f, fly = 0.0f, shiver = 0.0f;
     float hang = 0.0f, bait = 0.0f;  // V11 Buendel: verborgen in der Decke, Koederarm
+    float light = 0.0f, perceive = 0.0f;  // V13.2: im Lichtkegel, nimmt etwas wahr (Richtung perceiveAt)
+    double lightT = 0.0;                  // V13.2: wie lange schon im Lichtkegel
+    vec3 perceiveAt, lightFrom;
     vec3 up{0, 0, 1}, fwd{};
     // Deathmoth: Ruheplatz an Wand oder Decke, Kreisbahn um das Licht
     vec3 rest, restN{0, 0, 1}, restF{1, 0, 0};
@@ -523,6 +535,31 @@ bool Presence::showcasePos(vec3& pos, float& yaw) const {
     return false;
 }
 
+bool Presence::showcaseSet(const std::string& key, float v) {
+    Agent* a = nullptr;
+    for (auto it = agents_.rbegin(); it != agents_.rend() && !a; ++it)
+        if ((*it)->showcase) a = it->get();
+    if (!a) return false;
+    const vec3 side{std::cos(a->yaw + 1.1f), std::sin(a->yaw + 1.1f), 0.0f};
+    if (key == "jaw") a->jaw = v;
+    else if (key == "alert") a->alert = v;
+    else if (key == "crouch") a->crouch = v;
+    else if (key == "growl") a->growl = v;
+    else if (key == "reach") a->reach = v;
+    else if (key == "fly") a->fly = v;
+    else if (key == "shiver") a->shiver = v;
+    else if (key == "lean") a->lean = v;
+    else if (key == "tilt") a->tilt = v;
+    else if (key == "hang") a->hang = v;
+    else if (key == "bait") a->bait = v;
+    else if (key == "light") a->light = v;
+    else if (key == "perceive") a->perceive = v, a->perceiveAt = a->pos + side * 3.0f + vec3{0, 0, 0.8f};
+    else if (key == "look") a->look = v > 0.5f;
+    else if (key == "speed") a->speed = v, a->walkShow = v > 0.0f;
+    else return false;
+    return true;
+}
+
 void Presence::clearShowcase() {
     std::erase_if(agents_, [](const auto& a) { return a->showcase; });
 }
@@ -728,6 +765,9 @@ void Presence::thinkHound(Agent& a, double dt, const Context& c, std::vector<Eve
     a.growl = 0.0f;
     a.reach = 0.0f;
     if (a.state < 3) a.jaw = 0.0f;
+    // V13.2: geblendet zuckt er zurueck (Pfote vor die Augen), nach 1,5 s hat er sich gewoehnt
+    lightReact(a, c, head, 18.0f, dt, 1.5);
+    a.perceive = 0.0f;
     switch (a.state) {
         case 0: {  // streift umher
             a.crouch = 0.0f;
@@ -753,6 +793,10 @@ void Presence::thinkHound(Agent& a, double dt, const Context& c, std::vector<Eve
             if (a.timer2 > 0.0) {
                 a.timer2 -= dt;
                 a.alert = 0.8f;
+                // V13.2: er wittert - Kopf hoch, schnueffelt in die Richtung, aus der er zuletzt etwas hoerte
+                a.perceive = 1.0f;
+                a.perceiveAt = a.heard + vec3{0, 0, 0.8f};
+                if (hdist(a.heard, a.pos) < 0.5f) a.perceiveAt = a.pos + dirYaw(a.yaw + 0.8f) * 3.0f + vec3{0, 0, 0.8f};
                 break;
             }
             if (!a.hasGoal || !walkTo(a, a.field, 0.85, dt, c) || hdist(a.pos, a.goal) < 1.2f)
@@ -773,6 +817,9 @@ void Presence::thinkHound(Agent& a, double dt, const Context& c, std::vector<Eve
                 a.field.build(*c.world, ifloor(ppos.x), ifloor(ppos.y), 1.1f);
             }
             if (!walkTo(a, a.field, 1.4, dt, c) || hdist(a.pos, a.heard) < 1.5f) {
+                // V13.2: am Ort des Geraeuschs: wittern, bevor er weiterzieht
+                a.perceive = 1.0f;
+                a.perceiveAt = a.pos + dirYaw(a.yaw + (float)std::sin(a.stateT * 0.7) * 1.2f) * 3.0f + vec3{0, 0, 0.8f};
                 if (a.stateT > 4.0) setState(0), pickGoal(c, a, 60, 220, false);
             }
             break;
@@ -1465,6 +1512,8 @@ void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
         in.shiver = a.shiver;
         in.hang = a.hang;
         in.bait = a.bait;
+        in.light = a.light, in.perceive = a.perceive, in.perceiveAt = a.perceiveAt;
+        in.lightFrom = a.showcase && a.light > 0.0f && length(a.lightFrom) < 1e-3f ? c.view.eye : a.lightFrom;
         if (const world::Tile* t = c.world->tileIfLoaded(ifloor(a.pos.x), ifloor(a.pos.y))) in.clearance = t->clearance();
         a.cre.update(dt, in);
         a.rig.setCreaturePose(a.cre.pose());
