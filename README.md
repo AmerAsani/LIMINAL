@@ -11,7 +11,7 @@ Dieses Repository sichert die Entwicklungsstände. Jede Version liegt in einem e
 | V1–V10 | `main` | Frühere Stände (seit langem öffentlich in diesem Repository). |
 | V11 | `liminal-v11` / Tag `v11` | Zehn feste Ebenen als eine Reise von Level 0 bis Level 37, tödliche Begegnungen mit Wiedereinstieg, Wasser, eigene Klänge je Ebene. Bericht: `LIMINAL V11/CHANGELOG.md`. |
 | V12 | `liminal-v12` / Tag `v12` | Autonomes Neudesign der zehn Ebenen mit festen Karten aus Python-Skripten, Modellen aus Blender, CC0-Texturen (ambientCG), neuer Oberfläche. Bericht: `LIMINAL V12/REPORT.md`. |
-| V13 | `liminal-v13` / Tag `v13` | Neue Hand an der Taschenlampe, sechs Wesen neu gebaut, Kachelbruch der Texturen, Fehlersuche; Mehrspieler-Arbeit. Berichte: `LIMINAL V13/REPORT_V13.md`, `LIMINAL V13/REPORT_V13_2.md`. |
+| V13 | `liminal-v13` / Tag `v13` | Neue Hand an der Taschenlampe, sechs Wesen neu gebaut, Kachelbruch der Texturen, Fehlersuche. Fortsetzung V13.2: eigene Bewegung aller Wesen, neues Mottennest, fünf weitere Wesen aus dem Wiki (Faceling, Fensterwesen, Skin-Stealer, Wretch, Death Rat), Koop-Mehrspieler für bis zu vier Spieler als **Beta** (verschlüsselt, Host entscheidet; keine Garantie vollständiger Sicherheit – siehe `MULTIPLAYER_*.md`). Berichte: `LIMINAL V13/REPORT_V13.md`, `LIMINAL V13/REPORT_V13_2.md`. |
 
 ## Voraussetzungen
 

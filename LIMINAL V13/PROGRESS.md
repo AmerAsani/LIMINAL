@@ -36,7 +36,8 @@ Wiedereinstieg: diesen Abschnitt lesen, dann `DECISIONS.md` ab E-025.
   - Bilder im Spiel: Skriptbefehl `near <wesen> <abstand>` (Spieler mit freier Sicht vor das Wesen), `presence <wesen>` (erzwingen), `figstate wave|talk|plea|strike|variant`.
   - Prüfhilfe Licht: Einstellung `debug_view` (3 Normalen, 1 direktes Licht, 9 Albedo).
 - [x] Mehrspieler als Beta (E-030): Transport, Protokoll v2 (V13.2 später v3: Gesten der neuen Wesen), Host/Gast, Wesen für mehrere Spieler, Menüs, Wiederverbinden, Koop-Stand; Tests in `MULTIPLAYER_TESTS.md` (Transport 52/0, Koop 169/0 + 5/0, Netz-Fuzzing 300 s 2/0, Sanitizer, zwei Prozesse, Langlauf 60 min 9/0, 30 min mit Speicherproben 9/0 – kein fortlaufendes Leck). Bugs B-005 bis B-012. Im Koop läuft der Klang im Menü weiter.
-- [ ] Abschluss: Tests, V12/V10 prüfen, Tag `v13`, `REPORT_V13_2.md`
+- [x] Modellier-Analyse der übrigen Wesen (`KREATUREN_ANALYSE.md` 6): Smiler-Kopf verbessert (Vorher/Nachher aus 1 m), Bündel-Versuch verworfen, Hound/Gestalt/Motte geprüft ohne Änderung.
+- [x] Abschluss: alle Tests grün (gameplay 446, audio 106, worldgen 29 658, supply OK, net 72, Transport 52, Koop 169 vollständig), V12-Manifest 0 Abweichungen, V10 unverändert, `REPORT_V13_2.md`, README, `../GITHUB_UPLOAD.md` (Nachtrag 6), Tag `v13`. Kein Upload (E-025).
 
 Hilfsskripte (Scratchpad `v13`): `b.sh [gameplay|all]` (bauen + Tests), `mem_sweep.ps1` / `mem_trace.ps1` (Speicher), `elbow_tp.ps1` (Kamera um den Spieler, Skriptbefehle `figcam` ohne Vorführung in der Schulteransicht, `egopose 1`), `elbow_shots.ps1` (`vmcam`), `crop.py`.
 

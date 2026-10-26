@@ -1,6 +1,6 @@
 # LIMINAL – Sicherung auf GitHub (V11, V12, V13)
 
-Stand: 26.10.2026. Entscheidung E-025 in `LIMINAL V13/DECISIONS.md`.
+Stand: 27.10.2026 (Abschluss V13.2). Entscheidung E-025 in `LIMINAL V13/DECISIONS.md`.
 
 ## 1. Befund
 
@@ -22,7 +22,7 @@ Stand: 26.10.2026. Entscheidung E-025 in `LIMINAL V13/DECISIONS.md`.
 |---|---|---|---|
 | `liminal-v11` | `v11` | `42529a2` | V11-Ordner (287 Dateien, bisher nie committet; jede Datei bytegleich mit dem lokalen Ordner geprüft), README, `.gitignore` |
 | `liminal-v12` | `v12` | `60557d7` | Stand `e8481b6` plus README und `.gitignore`; Ordner `LIMINAL V12` unverändert |
-| `liminal-v13` | `v13` (am Ende) | siehe `git log` | laufende Arbeit V13 |
+| `liminal-v13` | `v13` | Tag `v13` (Abschluss V13.2, `git rev-parse v13^{}`) | V13 mit Fortsetzung V13.2 (Berichte `REPORT_V13.md`, `REPORT_V13_2.md`) |
 
 - **Bestehende Historie unverändert:** Die Commits wurden nur angehängt (kein Rebase, kein Force, kein Löschen).
 - **V10:** wird nicht neu hochgeladen. Er steckt allerdings in der gemeinsamen Historie aller Branches (seit Commit `c701337` auf `main`, öffentlich auf `origin`). Ihn aus den Branches zu entfernen, hieße die Historie umzuschreiben – das ist ausgeschlossen.
@@ -34,7 +34,7 @@ Stand: 26.10.2026. Entscheidung E-025 in `LIMINAL V13/DECISIONS.md`.
 | Geheimnisse (GitHub-, AWS-, OpenAI-, Google-, Slack-Tokens, private Schlüssel, `.env`, `.pem`, `.key`, `id_rsa`, Zugangsdateien) in allen Branches und im V11-Ordner | **nichts gefunden** |
 | Persönliche Pfade (`C:\Users\…`, Benutzername) und E-Mail-Adresse in Dateien | **nichts gefunden** (Commit-Metadaten enthalten wie bisher Name und E-Mail des Git-Kontos) |
 | Dateigröße | größte Datei 6,8 MB; nichts über 50 MB (Warngrenze) oder 100 MB (Sperrgrenze) |
-| Größe | Pack 267 MB; Branch `liminal-v13` 587 MB unkomprimiert |
+| Größe | Pack 267 MB (+ lose Objekte der Fortsetzung, etwa 40 MB vor dem Packen); Branch `liminal-v13` 629 MB unkomprimiert; `LIMINAL V13` 1 312 Dateien im Branch |
 | Lizenzen | Texturen ambientCG CC0 (Lock mit Prüfsummen), eigene Modelle, eigene Klänge; Wiki-Inhalte nur in eigenen Worten (CC BY-SA 3.0). Abgleich: `LIMINAL V13/LICENSES.md`. Keine Dateien mit unklarer Lizenz gefunden. |
 | `.gitignore` | ergänzt: Build-Ausgaben (`**/build/`, `**/Release/`), Toolchain (`**/.toolchain/`), Python-Zwischenstände, Protokolle, Absturzabbilder, Sicherungskopien, lokale Einfrier-Manifeste (`/Sicherungen/`) |
 | Git LFS | Nur ZIP-Dateien laufen über LFS (`.gitattributes`). Die Spielassets (Modelle, Texturen) liegen seit V12 als normale Git-Objekte in der Historie. Sie nachträglich in LFS zu verschieben (`git lfs migrate`), würde die Historie umschreiben – ausgeschlossen. Bei der jetzigen Größe (größte Datei 6,8 MB) ist das unkritisch. |
@@ -83,4 +83,10 @@ Erwartet nach Schritt 4: drei `refs/tags/v1x` und die vier Branches mit denselbe
 |---|---|---|
 | V11 | ja (`v11`) | nein – Befehle oben |
 | V12 | ja (`v12`) | nein – Befehle oben |
-| V13 | wird am Ende getaggt | nein – Befehle oben |
+| V13 | ja (`v13`, Abschluss V13.2) | nein – Befehle oben |
+
+## 6. Nachtrag Abschluss V13.2 (27.10.2026)
+
+- **Erneut geprüft vor dem Tag `v13`:** keine Geheimnisse (Tokens, Schlüssel, `.env`), keine persönlichen Pfade, keine E-Mail-Adresse in den Dateien von `LIMINAL V13`; größte Datei im Repository weiterhin 6,8 MB; die neuen Modelle (`data/models/ent_*.glb`) zusammen 9,8 MB, eigene Werke (Blender-Skripte im Repository); einzige neue Fremdquelle ist ENet 1.3.18 (MIT, `LICENSES.md`).
+- **`liminal-v13` regelmäßig mitpushen** (Auftrag) war nicht möglich: es gibt kein privates Remote, und `origin` ist öffentlich (E-025). Der lokale Stand ist vollständig committet.
+- **Was du ausführen musst:** Abschnitt 4 unverändert (Schritte 1–6). Nach Schritt 4 erwartet: Branches `main`, `liminal-v11`, `liminal-v12`, `liminal-v13` und Tags `v11`, `v12`, `v13` mit denselben Kennungen wie lokal.
