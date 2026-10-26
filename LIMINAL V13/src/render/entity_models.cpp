@@ -1322,7 +1322,7 @@ void buildClump(ECtx& c, FigureModel& m) {
 
 }  // namespace
 
-bool entityFromGlb(Entity e, FigureModel& out, std::string& info) {
+bool entityFromGlb(Entity e, FigureModel& out, std::string& info, const std::string& base) {
     static const std::pair<const char*, u32> kMat[] = {
         {"ent_skin", FM_ENT_SKIN},     {"ent_hair", FM_ENT_HAIR},         {"ent_horn", FM_ENT_HORN},
         {"ent_tooth", FM_ENT_TOOTH},   {"ent_mouth", FM_ENT_MOUTH},       {"ent_eyeshine", FM_ENT_EYESHINE},
@@ -1331,7 +1331,13 @@ bool entityFromGlb(Entity e, FigureModel& out, std::string& info) {
         {"ent_fur", FM_ENT_FUR},       {"ent_motheye", FM_ENT_MOTHEYE},   {"ent_nest", FM_ENT_NEST},
         {"clump_a", FM_ENT_CLUMP_A},   {"clump_b", FM_ENT_CLUMP_B},       {"clump_c", FM_ENT_CLUMP_C},
         {"clump_core", FM_ENT_CLUMP_CORE}, {"ent_nestflesh", FM_ENT_NESTFLESH}, {"ent_darkskin", FM_ENT_DARKSKIN},
-        {"ent_silhouette", FM_ENT_SILHOUETTE}, {"ent_resin", FM_ENT_RESIN}, {"ent_nestegg", FM_ENT_NESTEGG}};
+        {"ent_silhouette", FM_ENT_SILHOUETTE}, {"ent_resin", FM_ENT_RESIN}, {"ent_nestegg", FM_ENT_NESTEGG},
+        // V13.2: neue Wesen
+        {"ent_cloth_a", FM_ENT_CLOTH_A}, {"ent_cloth_b", FM_ENT_CLOTH_B}, {"ent_cloth_pink", FM_ENT_CLOTH_PINK},
+        {"ent_paleskin", FM_ENT_PALESKIN}, {"ent_wretchskin", FM_ENT_WRETCHSKIN}, {"ent_stone", FM_ENT_STONE},
+        {"ent_ratfur", FM_ENT_RATFUR}, {"ent_hornglow", FM_ENT_HORNGLOW}, {"ent_view", FM_ENT_VIEW}, {"ent_ooze", FM_ENT_OOZE},
+        {"ent_humanskin", FM_ENT_HUMANSKIN}, {"ent_ratskin", FM_ENT_RATSKIN}, {"ent_umbra", FM_ENT_UMBRA},
+        {"ent_cloth_c", FM_ENT_CLOTH_C}, {"ent_cloth_d", FM_ENT_CLOTH_D}, {"ent_humanskin_b", FM_ENT_HUMANSKIN_B}, {"ent_hair_grey", FM_ENT_HAIR_GREY}};
     const CreatureSkeleton& sk = entitySkeleton(e);
     FigureModel m;
     std::vector<mat4> frames;
@@ -1341,7 +1347,7 @@ bool entityFromGlb(Entity e, FigureModel& out, std::string& info) {
     m.radius = sk.reach;
     std::string files;
     for (int l = 0; l < kFigureLods; ++l) {
-        const std::string name = std::string(entityModel(e)) + "_l" + std::to_string(l);
+        const std::string name = (base.empty() ? std::string(entityModel(e)) : base) + "_l" + std::to_string(l);
         const props::Model* pm = props::model(name);
         if (!pm || !pm->skin) return false;
         // Gelenk der Datei -> Knochen des Skeletts ("B07" = Knochen 7)

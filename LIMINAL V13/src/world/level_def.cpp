@@ -207,6 +207,22 @@ std::optional<LevelDef> LevelDef::fromJson(const Json& jIn, std::string* error, 
         L.clumpRate = cj.isNumber() ? std::clamp(cj.asNumber(1.0), 0.0, 1.0) : (cj.asBool(false) ? 1.0 : 0.0);
         L.allowClump = L.clumpRate > 0.0;
         L.allowGestalt = (*pr)["gestalt"].asBool(true), L.allowBlackout = (*pr)["blackout"].asBool(true);
+        // V13.2: neue Wesen
+        static const char* kKin[KIN_COUNT] = {"faceling", "skinstealer", "wretch", "rat", "window"};
+        for (int k = 0; k < KIN_COUNT; ++k) {
+            const Json* kj = pr->find(kKin[k]);
+            if (!kj || !kj->isObject()) continue;
+            KinDef& K = L.kin[(size_t)k];
+            K.on = (*kj)["on"].asBool(true);
+            K.mode = (*kj)["mode"].asString("");
+            if (const Json* g = kj->find("group"); g && g->isArray() && g->size() >= 2)
+                K.groupMin = std::max(1, (int)(*g)[0].asInt(1)), K.groupMax = std::max(K.groupMin, (int)(*g)[1].asInt(1));
+            K.every = std::max(5.0, (*kj)["every"].asNumber(180.0));
+            K.chance = std::clamp((*kj)["chance"].asNumber(0.0), 0.0, 1.0);
+            K.count = (int)(*kj)["count"].asInt(0);
+            if (const Json* rs = kj->find("rooms"); rs && rs->isArray())
+                for (size_t i = 0; i < rs->size(); ++i) K.rooms.push_back((*rs)[i].asString(""));
+        }
     }
     L.audio = j["audio"];
     L.dressing = j["dressing"];

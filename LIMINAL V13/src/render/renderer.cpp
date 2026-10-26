@@ -54,6 +54,7 @@ struct Renderer::FigJob {
     std::vector<FigureModel> models;     // Menschen (anim::Figure)
     std::vector<FigureModel> entities;   // Wesen (anim::Entity)
     std::vector<std::string> entitySource;  // V13: Herkunft je Wesen (Protokoll)
+    std::vector<std::pair<std::string, FigureModel>> variants;  // V13.2: Varianten (Name, Modell)
     double seconds = 0.0;
 };
 struct Renderer::EntTexJob {
@@ -204,6 +205,13 @@ void Renderer::startFigureGeneration() {
             if (!entityFromGlb((anim::Entity)e, m, info)) m = buildEntity((anim::Entity)e, js), info = "prozedural (render/entity_models.cpp)";
             job->entities.push_back(std::move(m));
             job->entitySource.push_back(info);
+            // V13.2: Varianten desselben Wesens (nur aus Blender)
+            const auto& vars = anim::entityVariants((anim::Entity)e);
+            for (size_t v = 1; v < vars.size(); ++v) {
+                FigureModel vm;
+                std::string vi;
+                if (entityFromGlb((anim::Entity)e, vm, vi, vars[v])) job->variants.push_back({vars[v], std::move(vm)});
+            }
         }
         job->seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
         job->done = true;
@@ -236,6 +244,11 @@ void Renderer::uploadFigures() {
         log::info("Wesen {}: {} | Quelle {} | Inhalt {:016x}", anim::entityName((anim::Entity)e), figureStats(m),
                   e < (int)figJob_->entitySource.size() ? figJob_->entitySource[(size_t)e] : std::string("?"), modelHash(m));
     }
+    for (const auto& [name, m] : figJob_->variants) {
+        for (int l = 0; l < anim::kFigureLods; ++l) meshes_.addSkinned(gpu_, name + "_l" + std::to_string(l), m.lods[(size_t)l]);
+        log::info("Variante {}: {}", name, figureStats(m));
+    }
+    figJob_->variants.clear();
     figJob_->entities.clear();
     log::info("Figuren modelliert in {:.2f} s", figJob_->seconds);
     figJob_->models.clear();

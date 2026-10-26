@@ -400,11 +400,173 @@ CreatureSkeleton makeClump() {
     return k.s;
 }
 
+// --- V13.2: Zweibeiner (Faceling, Skin-Stealer, Wretch) ------------------------------------------------------
+// Ruhepose: aufrecht, Arme 40 Grad abgespreizt (sonst verschmelzen Arm und Rumpf beim Vernetzen - die Lehre aus B-001),
+// Beine gerade, Fuesse nach vorn. Die Masse kommen aus bipedBuild.
+CreatureSkeleton makeBiped(Entity e) {
+    using namespace bp;
+    const Build& m = bipedBuild(e);
+    Builder k(e, JCOUNT, BCOUNT);
+    const float headH = m.headTop - m.neckTop;
+    k.j(ROOT, {0, 0, 0});
+    k.j(PELVIS, {0, 0, m.hip});
+    k.j(SPINE, {0.005f, 0, m.waist});
+    k.j(CHEST, {0.01f, 0, m.chest});
+    k.j(NECK, {0.0f, 0, m.shoulder + 0.03f});
+    k.j(HEAD, {0.01f, 0, m.neckTop});
+    k.j(HEADTOP, {0.01f, 0, m.headTop});
+    k.j(JAW, {0.07f + 0.1f * headH, 0, m.neckTop + 0.12f * headH});
+    for (int s = 0; s < 2; ++s) {
+        const float sg = s == 0 ? 1.0f : -1.0f;
+        const vec3 S{0.0f, sg * m.shoulderW, m.shoulder};
+        const vec3 d{0.0f, sg * std::sin(m.armOut), -std::cos(m.armOut)};
+        k.j(arm(SHOULDER_L, s), S);
+        k.j(arm(ELBOW_L, s), S + d * m.upperArm + vec3{-0.01f, 0, 0});  // Ellbogen leicht hinten (Pol fuer die Beugung)
+        k.j(arm(WRIST_L, s), S + d * (m.upperArm + m.foreArm));
+        k.j(arm(HAND_L, s), S + d * (m.upperArm + m.foreArm + m.hand));
+        const vec3 H{0.0f, sg * m.hipW, m.hip - 0.05f};
+        k.j(leg(HIP_L, s), H);
+        k.j(leg(KNEE_L, s), vec3{0.015f, sg * m.hipW, H.z - m.thigh});
+        k.j(leg(ANKLE_L, s), vec3{0.0f, sg * m.hipW, m.ankle});
+        k.j(leg(TOE_L, s), vec3{m.foot - 0.06f, sg * (m.hipW + 0.01f), 0.02f});
+    }
+    const vec3 F{1, 0, 0}, Z{0, 0, 1};
+    k.b(B_ROOT, ROOT, ROOT, -1, 0.0f, F, false);
+    k.b(B_PELVIS, PELVIS, SPINE, B_ROOT, m.hipW + 0.05f, F);
+    k.b(B_SPINE, SPINE, CHEST, B_PELVIS, m.hipW + 0.04f, F);
+    k.b(B_CHEST, CHEST, NECK, B_SPINE, m.shoulderW * 0.7f, F);
+    k.b(B_NECK, NECK, HEAD, B_CHEST, 0.05f, F);
+    k.b(B_HEAD, HEAD, HEADTOP, B_NECK, headH * 0.55f, F);
+    k.b(B_JAW, HEAD, JAW, B_HEAD, 0.04f, Z, false);
+    for (int s = 0; s < 2; ++s) {
+        k.b(armB(B_CLAV_L, s), CHEST, arm(SHOULDER_L, s), B_CHEST, 0.05f, Z, false);
+        k.b(armB(B_UPPER_L, s), arm(SHOULDER_L, s), arm(ELBOW_L, s), armB(B_CLAV_L, s), 0.05f, F);
+        k.b(armB(B_FORE_L, s), arm(ELBOW_L, s), arm(WRIST_L, s), armB(B_UPPER_L, s), 0.04f, F);
+        k.b(armB(B_HAND_L, s), arm(WRIST_L, s), arm(HAND_L, s), armB(B_FORE_L, s), 0.035f, F, false);
+        k.b(legB(B_THIGH_L, s), leg(HIP_L, s), leg(KNEE_L, s), B_PELVIS, 0.075f, F);
+        k.b(legB(B_SHIN_L, s), leg(KNEE_L, s), leg(ANKLE_L, s), legB(B_THIGH_L, s), 0.055f, F);
+        k.b(legB(B_FOOT_L, s), leg(ANKLE_L, s), leg(TOE_L, s), legB(B_SHIN_L, s), 0.04f, Z);
+    }
+    k.s.height = m.headTop;
+    k.s.reach = std::max(1.0f, m.headTop * 0.6f);
+    k.s.center = {0.0f, 0, m.headTop * 0.55f};
+    return k.s;
+}
+
+// --- V13.2: Death Rat ------------------------------------------------------------------------------------------
+// Die Seite: wie eine gewoehnliche Hausratte, mit langem Koerper. Entworfen mit 0,52 m Rumpf und Kopf, im Spiel auf
+// kRatScale verkleinert (32 cm Rumpf und Kopf, 26 cm Schwanz); Wurzel am Boden unter der Mitte
+constexpr float kRatScale = 0.62f;
+CreatureSkeleton makeRat() {
+    using namespace rt;
+    Builder k(Entity::Rat, JCOUNT, BCOUNT);
+    k.j(ROOT, {0, 0, 0});
+    k.j(PELVIS, {-0.17f, 0, 0.105f});
+    k.j(SPINE, {-0.02f, 0, 0.125f});
+    k.j(CHEST, {0.12f, 0, 0.11f});
+    k.j(NECK, {0.19f, 0, 0.115f});
+    k.j(HEAD, {0.23f, 0, 0.12f});
+    k.j(SNOUT, {0.35f, 0, 0.095f});
+    k.j(JAW, {0.31f, 0, 0.075f});
+    // Beine: vorn kurz unter der Brust, hinten mit Sprunggelenk; Zehen nach vorn
+    const vec3 top[4] = {{0.11f, 0.045f, 0.085f}, {0.11f, -0.045f, 0.085f}, {-0.15f, 0.05f, 0.085f}, {-0.15f, -0.05f, 0.085f}};
+    for (int l = 0; l < 4; ++l) {
+        const bool front = l < 2;
+        const float sg = (l % 2 == 0) ? 1.0f : -1.0f;
+        const vec3 T = top[l];
+        const vec3 K = front ? T + vec3{-0.02f, sg * 0.012f, -0.045f} : T + vec3{0.045f, sg * 0.015f, -0.04f};
+        const vec3 P = front ? vec3{T.x + 0.015f, T.y + sg * 0.012f, 0.012f} : vec3{T.x - 0.03f, T.y + sg * 0.012f, 0.014f};
+        k.j(legJ(l, 0), T);
+        k.j(legJ(l, 1), K);
+        k.j(legJ(l, 2), P);
+        k.j(legJ(l, 3), P + vec3{front ? 0.03f : 0.05f, 0, -0.006f});
+    }
+    for (int i = 0; i < kTail; ++i) {
+        const float t = (float)i / (float)(kTail - 1);
+        k.j(TAIL0 + i, {-0.22f - 0.42f * t, 0, 0.095f - 0.08f * t});
+    }
+    for (vec3& p : k.s.bind) p = p * kRatScale;
+    const vec3 F{1, 0, 0}, Z{0, 0, 1};
+    k.b(B_ROOT, ROOT, ROOT, -1, 0.0f, F, false);
+    k.b(B_PELVIS, PELVIS, SPINE, B_ROOT, 0.06f, Z);
+    k.b(B_SPINE, SPINE, CHEST, B_PELVIS, 0.065f, Z);
+    k.b(B_NECK, CHEST, HEAD, B_SPINE, 0.05f, Z);
+    k.b(B_HEAD, HEAD, SNOUT, B_NECK, 0.04f, Z);
+    k.b(B_JAW, HEAD, JAW, B_HEAD, 0.02f, Z, false);
+    for (int l = 0; l < 4; ++l)
+        for (int i = 0; i < 3; ++i)
+            k.b(legB(l, i), legJ(l, i), legJ(l, i + 1), i == 0 ? (l < 2 ? B_SPINE : B_PELVIS) : legB(l, i - 1), 0.015f, i == 2 ? Z : F, false);
+    for (int i = 0; i < kTail - 1; ++i) k.b(B_TAIL0 + i, TAIL0 + i, TAIL0 + i + 1, i == 0 ? B_PELVIS : B_TAIL0 + i - 1, 0.012f, Z, false);
+    for (CBone& x : k.s.bones) x.radius *= kRatScale;
+    k.s.height = 0.2f * kRatScale;
+    k.s.reach = 0.5f * kRatScale;
+    k.s.center = vec3{-0.05f, 0, 0.1f} * kRatScale;
+    return k.s;
+}
+
+// --- V13.2: Fensterwesen -----------------------------------------------------------------------------------------
+// Wurzel in der Mitte der Fensteroeffnung auf der Wandflaeche (Fenster in Level 188: Mitte 1,9 m ueber dem Boden),
+// x aus der Wand heraus. Der Umriss steht hinter dem Fenster wie ein Mensch im Raum dahinter: sichtbar ab der Huefte
+// (Unterkante der Oeffnung), der Kopf auf etwa 1,65 m.
+CreatureSkeleton makeWindow() {
+    using namespace wn;
+    Builder k(Entity::Window, JCOUNT, BCOUNT);
+    k.j(ROOT, {0, 0, 0});
+    k.j(BACK, {0.006f, 0, 0.0f});
+    const float y0 = 0.08f;
+    // Ebene des Umrisses: vor der Rueckwand des Fensters (x 0..0,005, models_l188.py), hinter der Sprosse (ab 0,026)
+    const float fx = kFigX;
+    k.j(FIG_BASE, {fx, y0, -0.9f});
+    k.j(FIG_CHEST, {fx, y0, -0.52f});
+    k.j(FIG_NECK, {fx, y0, -0.36f});
+    k.j(FIG_TOP, {fx, y0 + 0.01f, -0.08f});
+    for (int s = 0; s < 2; ++s) {
+        const float sg = s == 0 ? 1.0f : -1.0f;
+        const int sh = s == 0 ? SH_L : SH_R;
+        const vec3 S{fx, y0 + sg * 0.19f, -0.43f};
+        const vec3 d{0.0f, sg * 0.42f, -0.91f};
+        k.j(sh, S);
+        k.j(sh + 1, S + d * 0.29f);
+        k.j(sh + 2, S + d * 0.54f);
+        k.j(sh + 3, S + d * 0.72f);
+    }
+    const vec3 X{1, 0, 0};
+    k.b(B_ROOT, ROOT, ROOT, -1, 0.0f, X, false);
+    k.b(B_BACK, ROOT, BACK, B_ROOT, 0.0f, vec3{0, 0, 1}, false);
+    k.b(B_BODY, FIG_BASE, FIG_CHEST, B_ROOT, 0.15f, X, false);
+    k.b(B_CHEST, FIG_CHEST, FIG_NECK, B_BODY, 0.17f, X, false);
+    k.b(B_HEAD, FIG_NECK, FIG_TOP, B_CHEST, 0.1f, X, false);
+    for (int s = 0; s < 2; ++s) {
+        const int sh = s == 0 ? SH_L : SH_R;
+        const int b0 = s == 0 ? B_UPPER_L : B_UPPER_R;
+        k.b(b0, sh, sh + 1, B_CHEST, 0.045f, X, s == 1);
+        k.b(b0 + 1, sh + 1, sh + 2, b0, 0.035f, X, s == 1);
+        k.b(b0 + 2, sh + 2, sh + 3, b0 + 1, 0.03f, X, s == 1);
+    }
+    k.s.height = 1.8f;
+    k.s.reach = 1.1f;
+    k.s.center = {0.0f, 0, 0.0f};
+    return k.s;
+}
+
 }  // namespace
+
+namespace bp {
+const Build& bipedBuild(Entity e) {
+    // Faceling: Mensch, eher schmal (schwaecher als ein Mensch, Entity 9). Skin-Stealer: gross (Entity 10) - 2,05 m, lange
+    // Glieder; nicht hoeher, denn die Tueren der Ebenen sind 2,2 m hoch (E-031).
+    // Wretch: hager, sonst menschlich (Entity 15); die Haltung (gebeugt) macht erst die Bewegung
+    static const Build fc{0.92f, 1.08f, 1.30f, 1.43f, 1.55f, 1.70f, 0.180f, 0.090f, 0.29f, 0.25f, 0.18f, 0.44f, 0.42f, 0.075f, 0.22f, 0.70f};
+    static const Build ss{1.09f, 1.28f, 1.57f, 1.72f, 1.88f, 2.05f, 0.205f, 0.100f, 0.38f, 0.35f, 0.22f, 0.52f, 0.50f, 0.08f, 0.26f, 0.62f};
+    static const Build wr{0.93f, 1.09f, 1.31f, 1.44f, 1.57f, 1.73f, 0.175f, 0.085f, 0.31f, 0.28f, 0.19f, 0.45f, 0.43f, 0.075f, 0.23f, 0.70f};
+    return e == Entity::SkinStealer ? ss : (e == Entity::Wretch ? wr : fc);
+}
+}  // namespace bp
 
 const CreatureSkeleton& entitySkeleton(Entity e) {
     static const std::array<CreatureSkeleton, kEntityCount> all = {makeSmiler(), makeHound(), makeMoth(), makeGestalt(), makeNest(),
-                                                                   makeClump()};
+                                                                   makeClump(), makeBiped(Entity::Faceling), makeBiped(Entity::SkinStealer),
+                                                                   makeBiped(Entity::Wretch), makeRat(), makeWindow()};
     return all[(size_t)std::min((int)e, kEntityCount - 1)];
 }
 
@@ -416,8 +578,20 @@ const char* entityModel(Entity e) {
         case Entity::Gestalt: return "ent_gestalt";
         case Entity::Nest: return "ent_nest";
         case Entity::Clump: return "ent_clump";
+        case Entity::Faceling: return "ent_faceling";
+        case Entity::SkinStealer: return "ent_skinstealer";
+        case Entity::Wretch: return "ent_wretch";
+        case Entity::Rat: return "ent_rat";
+        case Entity::Window: return "ent_window";
         default: return "ent_smiler";
     }
+}
+
+const std::vector<const char*>& entityVariants(Entity e) {
+    // Faceling: entwickelt (Level 3), rosa Kleid (Level 188); Death Rat: haarlos (Level 2, Hitze); Skin-Stealer: getarnt (in Menschenhaut)
+    static const std::vector<const char*> none, fc{"ent_faceling", "ent_faceling_evo", "ent_faceling_dress", "ent_faceling_b", "ent_faceling_c"}, rat{"ent_rat", "ent_rat_bald"},
+        ss{"ent_skinstealer", "ent_skinstealer_skin"};
+    return e == Entity::Faceling ? fc : (e == Entity::Rat ? rat : (e == Entity::SkinStealer ? ss : none));
 }
 
 const char* entityName(Entity e) {
@@ -428,6 +602,11 @@ const char* entityName(Entity e) {
         case Entity::Gestalt: return "Gestalt";
         case Entity::Nest: return "Nest";
         case Entity::Clump: return "Buendel";
+        case Entity::Faceling: return "Faceling";
+        case Entity::SkinStealer: return "Skin-Stealer";
+        case Entity::Wretch: return "Wretch";
+        case Entity::Rat: return "Death Rat";
+        case Entity::Window: return "Fensterwesen";
         default: return "?";
     }
 }

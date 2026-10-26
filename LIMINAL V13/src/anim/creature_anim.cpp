@@ -53,6 +53,7 @@ vec3 safeNorm(vec3 v, vec3 fb) {
 }
 vec3 xf(const mat4& m, vec3 p) { return (m * vec4(p, 1.0f)).xyz(); }
 vec3 xfDir(const mat4& m, vec3 d) { return (m * vec4(d, 0.0f)).xyz(); }
+bool isBiped(Entity e) { return e == Entity::Faceling || e == Entity::SkinStealer || e == Entity::Wretch; }
 }  // namespace
 
 float CreatureAnimator::rnd() {
@@ -69,12 +70,13 @@ void CreatureAnimator::init(Entity e, vec3 pos, float yaw, unsigned seed) {
     if (rng_ == 0) rng_ = 1;
     pose_ = bindPose(*sk_);
     creatureFrames(*sk_, pose_, bindFrames_);
-    legs_ = e == Entity::Hound ? 4 : 0;
+    legs_ = e == Entity::Hound || e == Entity::Rat ? 4 : (isBiped(e) ? 2 : 0);
     int chains = 0;
     switch (e) {
         case Entity::Smiler: chains = sm::kWisps; break;
         case Entity::Hound: chains = hd::kHeadHair + hd::kBackHair; break;
         case Entity::Gestalt: chains = ge::kWisps; break;
+        case Entity::Rat: chains = 1; break;  // V13.2: Schwanz
         default: break;
     }
     chain_.assign((size_t)chains, Chain{});
@@ -111,6 +113,15 @@ void CreatureAnimator::snap(vec3 pos, float yaw) {
             l.t = 0.0f;
         }
     }
+    if (isBiped(e_) || e_ == Entity::Rat) {  // V13.2: Fuesse (Knoechel) bzw. Pfoten der Ruhepose
+        for (int i = 0; i < legs_; ++i) {
+            Leg& l = leg_[i];
+            l.plant = l.from = l.to = restAt(e_ == Entity::Rat ? rt::legJ(i, 2) : bp::leg(bp::ANKLE_L, i));
+            l.plant.z = l.from.z = l.to.z = pos.z;
+            l.swing = false;
+            l.t = 0.0f;
+        }
+    }
     if (e_ == Entity::Clump) {  // V11: Haende und Fuesse der Ruhepose, Kern ueber der Wurzel
         for (int a = 0; a < cl::kArms; ++a) {
             Grip& g = grip_[a];
@@ -138,6 +149,7 @@ void CreatureAnimator::setHidden(bool hidden) {
 
 float CreatureAnimator::height() const {
     if (e_ == Entity::Hound) return sk_->height - crouch_ * 0.2f;
+    if (isBiped(e_)) return std::max(0.5f, pose_.j[bp::HEADTOP].z - pos_.z);  // V13.2: gebeugt (Wretch), geduckt
     return sk_->height;
 }
 
@@ -148,6 +160,11 @@ vec3 CreatureAnimator::headPos() const {
         case Entity::Moth: return pose_.j[mo::HEAD];
         case Entity::Gestalt: return pose_.j[ge::HEAD];
         case Entity::Clump: return pose_.j[cl::CORE];
+        case Entity::Faceling:
+        case Entity::SkinStealer:
+        case Entity::Wretch: return (pose_.j[bp::HEAD] + pose_.j[bp::HEADTOP]) * 0.5f;
+        case Entity::Rat: return pose_.j[rt::HEAD];
+        case Entity::Window: return (pose_.j[wn::FIG_NECK] + pose_.j[wn::FIG_TOP]) * 0.5f;
         default: return pose_.j[ns::TOP];
     }
 }
@@ -169,7 +186,10 @@ void CreatureAnimator::update(double dtIn, const Input& in) {
         vel_ = vel_ + (v - vel_) * std::min(1.0f, dt * 6.0f);
     }
     pos_ = in.pos;
-    const float turn = e_ == Entity::Hound ? 6.0f : (air ? 9.0f : (e_ == Entity::Smiler ? 1.2f : 0.5f));
+    float turn = e_ == Entity::Hound ? 6.0f : (air ? 9.0f : (e_ == Entity::Smiler ? 1.2f : 0.5f));
+    if (isBiped(e_)) turn = e_ == Entity::SkinStealer ? 3.0f : 4.5f;  // V13.2
+    if (e_ == Entity::Rat) turn = 12.0f;
+    if (e_ == Entity::Window) turn = 1000.0f;  // haengt fest in der Wand
     const float yawBefore = yaw_;
     yaw_ += wrapPi(in.yaw - yaw_) * std::min(1.0f, dt * turn);
     speed_ = air ? length(vel_) : std::hypot(vel_.x, vel_.y);
@@ -185,6 +205,11 @@ void CreatureAnimator::update(double dtIn, const Input& in) {
         }
         case Entity::Gestalt: updateGestalt(dt, in); break;
         case Entity::Clump: updateClump(dt, in); break;
+        case Entity::Faceling:
+        case Entity::SkinStealer:
+        case Entity::Wretch: updateBiped(dt, in); break;
+        case Entity::Rat: updateRat(dt, in); break;
+        case Entity::Window: updateWindow(dt, in); break;
         default: updateNest(dt, in); break;
     }
     last_ = in;
@@ -1100,6 +1125,540 @@ void CreatureAnimator::updateNest(float dt, const Input& in) {
     }
     for (size_t b = 0; b < sk_->bones.size(); ++b) pose_.up[b] = Mb * sk_->bindUp[b];
     pose_.up[ns::B_ROOT] = F;
+}
+
+// --- V13.2: Zweibeiner (Faceling, Skin-Stealer, Wretch) -----------------------------------------------------------
+// Gang auf zwei Beinen (stepLegs): Becken mit Hub, Seitschwung und Drehung, Rumpf mit Gegendrehung, die Arme haengen
+// senkrecht und schwingen gegengleich. Der Kopf hat eine eigene Blickrichtung (Blick, Wahrnehmen, Licht, Umsehen, Rucke).
+// Haltung je Wesen (BipedStyle, ANIMATIONEN.md):
+//   Faceling     menschlich, etwas zaghaft; winkt (Level 903: gruesst Bekannte); vor der Lampe hebt er die Hand vor das
+//                Gesicht und wendet sich ab; der entwickelte schlaegt mit dem Steinwerkzeug zu (strike).
+//   Skin-Stealer lange Glieder, zu wenig Armschwung (er spielt einen Menschen), langsam drehender Kopf, ab und zu ein
+//                Ruck; spricht er (talk), bewegt sich der Kiefer in Silben; jagend weit vorgebeugt, greift mit beiden Haenden.
+//   Wretch       gebeugt, der Kopf haengt vor; schlurft (das rechte Bein zieht nach), der Kopf zuckt; sprintet mit
+//                schlackernden Armen; fleht (plea) halb aufgerichtet mit vorgestreckten Haenden; gurgelt (growl).
+namespace {
+struct BipedStyle {
+    float bend, bendRun;     // Vorbeugen des Rumpfs (rad), gehend und rennend
+    float neck;              // Kopf vorgeschoben (rad im Hals)
+    float lookDown;          // Grundneigung des Blicks (rad, + nach unten)
+    float armOut, armSwing;  // Haengen der Arme seitlich (rad), Armschwung (rad)
+    float elbow, elbowRun;   // Beugung der Ellbogen (rad)
+    float runAt;             // ab hier rennt er (m/s)
+    float stride;            // Schrittlaenge (Anteil)
+    float lift, liftRun;     // Fusshub (m)
+    float drag;              // 0..1: das rechte Bein schleift nach (Wretch)
+    float jerk;              // ruckartige Kopfbewegungen je Sekunde
+    float breathHz, breath;  // Atem: Frequenz, Hub der Schultern (m)
+    float knees;             // Grundbeugung der Knie (Absenkung des Beckens, m)
+};
+const BipedStyle& bipedStyle(Entity e) {
+    static const BipedStyle fc{0.03f, 0.22f, 0.05f, 0.05f, 0.11f, 0.30f, 0.22f, 1.25f, 2.4f, 1.0f, 0.07f, 0.16f, 0.0f, 0.0f, 0.25f, 0.005f, 0.01f};
+    static const BipedStyle ss{0.08f, 0.42f, 0.12f, 0.12f, 0.08f, 0.09f, 0.10f, 1.0f, 2.6f, 1.08f, 0.06f, 0.2f, 0.0f, 0.08f, 0.14f, 0.009f, 0.015f};
+    static const BipedStyle wr{0.40f, 0.62f, 0.55f, 0.1f, 0.16f, 0.14f, 0.45f, 1.0f, 2.2f, 0.82f, 0.035f, 0.15f, 0.7f, 0.35f, 0.45f, 0.007f, 0.06f};
+    return e == Entity::SkinStealer ? ss : (e == Entity::Wretch ? wr : fc);
+}
+// Richtung (Gier, Neigung) von a nach b im Rahmen F/L (Neigung + nach oben)
+void yawPitch(vec3 a, vec3 b, vec3 F, vec3 L, float& yw, float& pt) {
+    const vec3 d = b - a;
+    yw = std::atan2(dot(d, L), dot(d, F));
+    pt = std::atan2(d.z, std::hypot(dot(d, F), dot(d, L)));
+}
+}  // namespace
+
+void CreatureAnimator::updateBiped(float dt, const Input& in) {
+    using namespace bp;
+    const auto& B = sk_->bind;
+    auto& J = pose_.j;
+    const BipedStyle& st = bipedStyle(e_);
+    const vec3 F = dirYaw(yaw_), Lw{-F.y, F.x, 0.0f}, U{0, 0, 1};
+    const M3 Mb{F, Lw, U};
+    auto W = [&](vec3 l) { return pos_ + Mb * l; };
+    spring(lean_, leanV_, in.lean, 3.0f, dt);
+    spring(jaw_, jawV_, in.jaw, 8.0f, dt);
+    spring(reach_, reachV_, in.reach, 6.0f, dt);
+    spring(tilt_, tiltV_, in.tilt, 3.0f, dt);
+    spring(crouch_, crouchV_, in.crouch, 2.5f, dt);
+    spring(growl_, growlV_, in.growl, 4.0f, dt);
+    spring(light_, lightV_, in.light, 3.5f, dt);
+    spring(perc_, percV_, in.perceive, 2.5f, dt);
+    spring(wave_, waveV_, in.wave, 3.0f, dt);
+    spring(talk_, talkV_, in.talk, 6.0f, dt);
+    spring(plea_, pleaV_, in.plea, 2.0f, dt);
+    spring(idleW_, idleWV_, speed_ > 0.07f ? 0.0f : 1.0f, 2.5f, dt);
+    const bool wretch = e_ == Entity::Wretch;
+
+    // Gang: zwei Beine im Wechsel, ab runAt rennen (mit Flugphase)
+    if (!run_ && speed_ > st.runAt) run_ = true;
+    else if (run_ && speed_ < st.runAt - 0.6f) run_ = false;
+    static const float offs[2] = {0.0f, 0.5f};
+    const float duty = run_ ? 0.36f : 0.58f + 0.05f * st.drag;
+    const float legL = length(B[KNEE_L] - B[HIP_L]) + length(B[ANKLE_L] - B[KNEE_L]);
+    const float S = st.stride * legL * (run_ ? 1.5f + 0.42f * speed_ : 0.85f + 0.38f * speed_);
+    vec3 rest[2];
+    for (int s = 0; s < 2; ++s) rest[s] = W({B[leg(ANKLE_L, s)].x, B[leg(ANKLE_L, s)].y * 0.85f, 0.0f});
+    // Anlauf und Ausgleich: der Fuss, der am weitesten hinten steht, tritt sofort (sonst bleibt er im Stand stehen,
+    // bis die Phase ihn ruft, und der Koerper zieht in einen Spagat)
+    {
+        const bool walkNow = speed_ > 0.07f;
+        if (walkNow && (run_ || (!leg_[0].swing && !leg_[1].swing))) {  // im Rennen auch waehrend des anderen Schwungs
+            int lag = walk_ ? -1 : 0;
+            float worst = 0.0f;
+            for (int i = 0; i < 2; ++i) {
+                if (leg_[i].swing) continue;
+                vec3 d = leg_[i].plant - rest[i];
+                d.z = 0.0f;
+                if (-dot(d, F) > worst) worst = -dot(d, F), lag = i;
+            }
+            if (lag >= 0 && (!walk_ || worst > 0.42f * legL)) {
+                const float ph = duty + 0.01f - offs[lag];
+                phase_ = ph - std::floor(ph);
+            }
+        }
+        walk_ = walkNow;
+    }
+    const float heavy = e_ == Entity::SkinStealer ? 0.9f : 0.55f;
+    const float wgt[2] = {heavy, st.drag > 0.0f ? 0.35f : heavy};
+    stepLegs(dt, 2, offs, duty, S, rest, 0.4f, wgt);
+    // im Stehen ab und zu einen Fuss neu setzen (Gewicht verlagern) - nicht beim Lauschen, Greifen oder Flehen
+    shuffleT_ -= dt;
+    if (shuffleT_ <= 0.0f) {
+        shuffleT_ = 5.0f + 6.0f * rnd();
+        if (speed_ < 0.07f && !leg_[0].swing && !leg_[1].swing && perc_ < 0.3f && reach_ < 0.1f && plea_ < 0.3f) {
+            const int i = rnd() < 0.5f ? 0 : 1;
+            Leg& f = leg_[i];
+            f.swing = true, f.from = f.plant, f.t = 0.0f, f.dur = 0.5f;
+            f.to = rest[i] + F * ((rnd() - 0.5f) * 0.1f) + Lw * ((rnd() - 0.3f) * 0.05f * (i == 0 ? 1.0f : -1.0f));
+            f.to.z = pos_.z;
+        }
+    }
+    const float lf = run_ ? st.liftRun : st.lift;
+    const float lift[2] = {lf, std::max(0.012f, lf * (1.0f - st.drag))};
+    vec3 g[2];
+    for (int i = 0; i < 2; ++i) g[i] = footPos(i, lift);
+    const bool moving = speed_ > 0.07f;
+    const float mv = sm01(speed_ / 0.6f);
+    const float c1 = std::cos(kTau * phase_);
+    // Hub: tief im Doppelstand, hoch ueber dem Standbein; im Rennen tief in der Mitte des Stands
+    float bob = 0.0f;
+    if (run_) bob = -0.03f * std::cos(2.0f * kTau * (phase_ - 0.18f));
+    else if (moving) bob = -0.016f * mv * std::cos(2.0f * kTau * (phase_ - 0.05f));
+    // Wretch: auf dem schleifenden Bein sackt er ein
+    float limp = 0.0f;
+    if (moving && st.drag > 0.0f) {
+        float ph1 = phase_ + offs[1];
+        ph1 -= std::floor(ph1);
+        if (ph1 < duty) limp = 0.045f * st.drag * std::sin(kPi * ph1 / duty);
+    }
+    // Atem (Wretch: rasselnd, unregelmaessig) und in Ruhe das Gewicht von Seite zu Seite
+    const float bph = time_ * kTau * st.breathHz;
+    const float breath = std::sin(bph) + (wretch ? 0.35f * std::sin(bph * 2.7f + 1.0f) : 0.0f);
+    swayPh_ += dt * (0.42f + 0.1f * std::sin(time_ * 0.17f));
+    const float sway = std::sin(swayPh_) * idleW_ * (1.0f - perc_ * 0.7f);
+    // Gesten
+    const float grab = reach_;
+    const float stk = std::clamp(in.strike, 0.0f, 1.0f);
+    const float stkWind = stk > 0.0f ? sm01(stk / 0.45f) * (1.0f - sm01((stk - 0.55f) / 0.12f)) : 0.0f;
+    const float stkHit = stk > 0.0f ? sm01((stk - 0.55f) / 0.12f) * (1.0f - sm01((stk - 0.85f) / 0.15f)) : 0.0f;
+
+    // Rumpf: Vorbeugen je Gangart und Geste
+    float bend = st.bend + (st.bendRun - st.bend) * sm01((speed_ - 0.8f) / std::max(0.5f, st.runAt + 0.2f));
+    bend += 0.3f * crouch_ + 0.22f * grab + 0.15f * stkHit - 0.05f * stkWind - st.bend * 0.6f * plea_;
+    if (e_ == Entity::Faceling) bend -= 0.07f * light_;     // weicht vor der Lampe zurueck
+    if (e_ == Entity::SkinStealer) bend += 0.06f * perc_;   // beugt sich dem Reiz entgegen
+    const float py = -0.09f * c1 * mv * (run_ ? 1.3f : 1.0f);
+    vec3 P = pos_ + Lw * ((run_ ? 0.01f : 0.024f) * mv * std::cos(kTau * (phase_ - 0.3f)) + 0.022f * sway) + F * (0.16f * grab * (1.0f - mv));
+    P.z = pos_.z + B[PELVIS].z - st.knees - (run_ ? 0.05f : 0.0f) + bob - limp - 0.22f * crouch_ - 0.06f * grab;
+    const M3 Rpel = axisAngle({0, 0, 1}, py) * axisAngle({0, 1, 0}, bend * 0.3f) * axisAngle({1, 0, 0}, lean_ * 0.3f);
+    // Fuesse: im Schwung rollt der Fuss ab (Zehen erst unten, beim Aufsetzen oben); im Stand hebt sich die Ferse, sobald
+    // der Fuss hinter der Huefte steht (er dreht um die Zehen, der Knoechel steigt)
+    const float ankH = B[ANKLE_L].z;
+    vec3 ankT[2], footV[2];
+    for (int s = 0; s < 2; ++s) {
+        const Leg& L = leg_[s];
+        const vec3 fd0 = Mb * (B[leg(TOE_L, s)] - B[leg(ANKLE_L, s)]);
+        float pitch = 0.0f;
+        if (L.swing) {
+            const float t = L.t;
+            pitch = 0.45f * std::sin(kPi * t) * (1.0f - t) - 0.2f * sm01((t - 0.65f) / 0.35f);
+            if (s == 1 && st.drag > 0.0f) pitch = pitch * (1.0f - st.drag) + 0.42f * st.drag;  // die Zehen schleifen
+        } else if (moving) {
+            const float rel = dot(g[s] - P, F);
+            pitch = std::clamp((-rel - 0.1f) * 1.8f, 0.0f, 0.75f) * (1.0f - 0.6f * st.drag);
+        }
+        footV[s] = rotateAround(fd0, Lw, pitch);
+        ankT[s] = g[s] + U * ankH + (L.swing ? vec3{} : fd0 - footV[s]);
+        const float toeZ = ankT[s].z + footV[s].z;
+        if (toeZ < pos_.z + 0.01f) ankT[s].z += pos_.z + 0.01f - toeZ;
+    }
+    // die Beine muessen den Boden erreichen: Becken notfalls absenken
+    {
+        float drop = 0.0f;
+        for (int s = 0; s < 2; ++s) {
+            const vec3 H = P + Mb * (Rpel * (B[leg(HIP_L, s)] - B[PELVIS]));
+            const vec3 A = ankT[s];
+            const float h = std::hypot(A.x - H.x, A.y - H.y), lmax = legL * 0.985f;
+            const float allowed = std::sqrt(std::max(lmax * lmax - h * h, 0.01f));
+            drop = std::max(drop, (H.z - A.z) - allowed);
+        }
+        P.z -= std::min(drop, 0.07f + 0.15f * crouch_);  // nie in die Hocke fallen: lieber streckt sich das Bein (Fuss hebt ab)
+    }
+    // Schultern drehen gegen das Becken; beim Ausholen zurueck, beim Schlag vor
+    const float tw = 0.11f * c1 * mv * (run_ ? 1.5f : 1.0f) * std::min(1.0f, st.armSwing / 0.2f) - 0.35f * stkWind + 0.25f * stkHit;
+    const M3 Rsp = Rpel * axisAngle({0, 0, 1}, -py * 0.7f + tw * 0.3f) * axisAngle({0, 1, 0}, bend * 0.35f) * axisAngle({1, 0, 0}, lean_ * 0.35f);
+    const M3 Rch = Rsp * axisAngle({0, 0, 1}, -py * 0.5f + tw * 0.7f) * axisAngle({0, 1, 0}, bend * 0.35f - 0.012f * breath) *
+                   axisAngle({1, 0, 0}, lean_ * 0.35f);
+    J[ROOT] = pos_;
+    J[PELVIS] = P;
+    J[SPINE] = P + Mb * (Rpel * (B[SPINE] - B[PELVIS]));
+    J[CHEST] = J[SPINE] + Mb * (Rsp * (B[CHEST] - B[SPINE]));
+    J[NECK] = J[CHEST] + Mb * (Rch * (B[NECK] - B[CHEST])) + U * (st.breath * breath * 0.6f);
+    const float neckP = st.neck * (1.0f - 0.5f * plea_) + 0.08f * perc_ * (e_ == Entity::SkinStealer ? 1.0f : 0.3f) +
+                        0.25f * grab * (wretch ? 1.0f : 0.3f);
+    const M3 Rnk = Rch * axisAngle({0, 1, 0}, neckP);
+    J[HEAD] = J[NECK] + Mb * (Rnk * (B[HEAD] - B[NECK]));
+
+    // Kopf: Blickrichtung im Koerperrahmen (bleibt aufrecht, auch wenn der Hals vorhaengt)
+    float wy = 0.0f, wp = -st.lookDown;
+    if (in.look) {
+        yawPitch(J[HEAD], in.lookAt, F, Lw, wy, wp);
+    } else if (idleW_ > 0.01f) {
+        wy = 0.45f * std::sin(time_ * 0.31f) * idleW_;
+        wp = -st.lookDown + 0.08f * std::sin(time_ * 0.19f + 1.0f) * idleW_;
+    }
+    if (perc_ > 0.01f) {
+        float y2, p2;
+        yawPitch(J[HEAD], in.perceiveAt, F, Lw, y2, p2);
+        wy += wrapPi(y2 - wy) * perc_;
+        wp += (p2 - wp) * perc_;
+    }
+    if (light_ > 0.01f) {  // vom Licht weg, Kopf gesenkt (der Faceling deutlich, der Skin-Stealer kaum)
+        float ly, lp;
+        yawPitch(J[HEAD], in.lightFrom, F, Lw, ly, lp);
+        const float away = ly > 0.0f ? ly - 1.3f : ly + 1.3f;
+        const float k = e_ == Entity::Faceling ? 0.8f : (wretch ? 0.5f : 0.3f);
+        wy += wrapPi(away - wy) * light_ * k;
+        wp += (-0.45f - wp) * light_ * k * 0.7f;
+    }
+    if (st.jerk > 0.0f) {  // Rucke: ein Stoss in die Feder des Kopfes
+        twitchT_ -= dt;
+        if (twitchT_ <= 0.0f) {
+            twitchT_ = (0.4f + 1.2f * rnd()) / st.jerk;
+            headYawV_ += (rnd() - 0.5f) * 14.0f;
+            headPitchV_ += (rnd() - 0.5f) * 6.0f;
+        }
+    }
+    wy = std::clamp(wrapPi(wy), -1.25f, 1.25f);
+    wp = std::clamp(wp, -0.9f, 0.6f);
+    if (!chainInit_) headYaw_ = wy, headPitch_ = wp, headYawV_ = headPitchV_ = 0.0f;
+    const float hw = in.alert > 0.5f || reach_ > 0.2f ? 9.0f : (e_ == Entity::SkinStealer ? 2.2f : 4.0f);
+    spring(headYaw_, headYawV_, wy, hw, dt);
+    spring(headPitch_, headPitchV_, wp, hw, dt);
+    // lauschen: still stehend den Kopf schief legen
+    listenT_ -= dt;
+    listenOn_ -= dt;
+    if (listenT_ <= 0.0f) {
+        listenT_ = 4.0f + 6.0f * rnd();
+        if (in.alert > 0.3f && speed_ < 0.4f) listenOn_ = 1.0f + 0.8f * rnd(), listenSide_ = rnd() < 0.5f ? 1.0f : -1.0f;
+    }
+    spring(listen_, listenV_, listenOn_ > 0.0f ? 0.3f * listenSide_ : 0.0f, 5.0f, dt);
+    const float tiltAll = tilt_ + listen_ + 0.25f * plea_ + (e_ == Entity::SkinStealer ? 0.2f * perc_ : 0.0f);
+    const M3 Rh = axisAngle({0, 0, 1}, headYaw_) * axisAngle({0, 1, 0}, -headPitch_) * axisAngle({1, 0, 0}, tiltAll);
+    J[HEADTOP] = J[HEAD] + Mb * (Rh * (B[HEADTOP] - B[HEAD]));
+    // Kiefer: offen (jaw), zugreifend, sprechend in Silben, Wretch haengend und gurgelnd, flehend
+    float open = 0.3f * jaw_ + (e_ == Entity::Faceling ? 0.0f : 0.25f * grab);
+    if (talk_ > 0.01f) {
+        const float syl = std::max(0.0f, std::sin(time_ * 28.0f)) * (0.55f + 0.45f * std::sin(time_ * 3.7f));
+        open += talk_ * 0.16f * syl * (std::fmod(time_, 2.6f) < 1.8f ? 1.0f : 0.0f);
+    }
+    if (wretch) open += 0.08f + growl_ * (0.12f + 0.04f * std::sin(time_ * 41.0f)) + 0.1f * plea_ * (0.5f + 0.5f * std::sin(time_ * 9.0f));
+    else open += 0.1f * growl_;
+    const M3 Rj = Rh * axisAngle({0, 1, 0}, open);
+    J[JAW] = J[HEAD] + Mb * (Rj * (B[JAW] - B[HEAD]));
+    headPos_ = (J[HEAD] + J[HEADTOP]) * 0.5f;
+    headDir_ = Mb * (Rh * vec3{1, 0, 0});
+
+    // Arme
+    const float shrug = st.breath * breath * 0.6f + (e_ == Entity::Faceling ? 0.025f * light_ : 0.0f) + 0.02f * plea_;
+    const bool lightLeft = dot(in.lightFrom - J[CHEST], Lw) > 0.0f;
+    for (int s = 0; s < 2; ++s) {
+        const float sg = s == 0 ? 1.0f : -1.0f;
+        const int sh = arm(SHOULDER_L, s), el = arm(ELBOW_L, s), wr = arm(WRIST_L, s), hn = arm(HAND_L, s);
+        const float l1 = length(B[el] - B[sh]), l2 = length(B[wr] - B[el]), lh = length(B[hn] - B[wr]);
+        const vec3 S0 = J[CHEST] + Mb * (Rch * (B[sh] - B[CHEST])) + U * shrug;
+        // Grundhaltung: haengt senkrecht (auch bei gebeugtem Rumpf), schwingt gegengleich zum Bein derselben Seite
+        float phi = (s == 0 ? -1.0f : 1.0f) * st.armSwing * c1 * mv * (run_ ? 1.8f : 1.0f);
+        float out = st.armOut + 0.015f * sway * sg;
+        float elb = st.elbow + (run_ ? st.elbowRun : 0.0f) * mv + std::max(0.0f, phi) * 0.5f;
+        if (run_ && wretch) {  // die Arme schlackern beim Sprint nach hinten aussen
+            phi = -0.5f + 0.35f * std::sin(time_ * 9.5f + 2.0f * (float)s);
+            out += 0.35f + 0.15f * std::sin(time_ * 7.3f + (float)s);
+            elb = 0.3f + 0.25f * std::sin(time_ * 8.1f + 1.3f * (float)s);
+        }
+        const vec3 du = Mb * normalize(vec3{std::sin(phi) * std::cos(out), sg * std::sin(out), -std::cos(phi) * std::cos(out)});
+        const vec3 bax = safeNorm(cross(du, F), -Lw);
+        const vec3 df = rotateAround(du, bax, elb);
+        vec3 Wt = S0 + du * l1 + df * l2;
+        vec3 hdir = rotateAround(df, bax, 0.12f);
+        vec3 pole = safeNorm(-F + Lw * (sg * 0.35f) - U * 0.25f, -F);
+        auto blend = [&](vec3 w, vec3 h, float a) {
+            if (a <= 0.001f) return;
+            Wt = Wt + (w - Wt) * a;
+            hdir = safeNorm(hdir + (h - hdir) * a, h);
+        };
+        // winken (rechte Hand): Oberarm seitlich hoch, Unterarm aufrecht, pendelt
+        if (s == 1 && wave_ > 0.001f) {
+            const vec3 od = Mb * normalize(vec3{0.35f, sg, -0.1f});
+            const float wv = 0.38f * std::sin(time_ * kTau * 1.7f);
+            const vec3 fa = safeNorm(U * std::cos(wv) + od * std::sin(wv), U);
+            blend(S0 + od * l1 + fa * (l2 * 0.95f), fa, wave_);
+            pole = safeNorm(pole + (od - U - pole) * wave_, pole);
+        }
+        // Lampe im Gesicht (Faceling): die Hand auf der Seite des Lichts vor das Gesicht
+        if (e_ == Entity::Faceling && (s == 0) == lightLeft)
+            blend(headPos_ + headDir_ * 0.16f - U * 0.03f - Lw * (sg * 0.02f), safeNorm(U + headDir_ * 0.2f, U), light_ * 0.9f);
+        // flehen: beide Haende vor, Handflaechen nach oben, zitternd
+        blend(S0 + Mb * vec3{0.34f, -sg * 0.07f, -0.16f} + U * (0.006f * std::sin(time_ * 13.0f + (float)s)),
+              Mb * normalize(vec3{1.0f, -sg * 0.15f, 0.25f}), plea_);
+        // zugreifen: beide Arme zum Ziel
+        {
+            const vec3 to = in.reachAt - S0;
+            const float dl = length(to);
+            const vec3 dirT = dl > 1e-4f ? to / dl : F;
+            blend(S0 + dirT * std::min(dl, (l1 + l2) * 0.97f), dirT, grab);
+        }
+        // zuschlagen (rechte Hand mit dem Steinwerkzeug): ueber den Kopf ausholen, nach vorn unten schlagen
+        if (s == 1 && stk > 0.0f) {
+            blend(S0 + Mb * vec3{-0.12f, -0.02f, 0.0f} + U * ((l1 + l2) * 0.8f), Mb * normalize(vec3{-0.4f, 0.0f, 1.0f}), stkWind);
+            const vec3 dirT = safeNorm(in.reachAt - S0, F);
+            blend(S0 + safeNorm(dirT - U * 0.35f, F) * ((l1 + l2) * 0.95f), safeNorm(dirT - U * 0.6f, F), stkHit);
+        }
+        vec3 e, w;
+        ik2(S0, Wt, l1, l2, pole, e, w);
+        J[sh] = S0;
+        J[el] = e;
+        J[wr] = w;
+        J[hn] = w + safeNorm(hdir, U) * lh;
+    }
+    // Beine: Huefte - Knie (vorn) - Knoechel - Zehen
+    for (int s = 0; s < 2; ++s) {
+        const float sg = s == 0 ? 1.0f : -1.0f;
+        const int hp = leg(HIP_L, s), kn = leg(KNEE_L, s), an = leg(ANKLE_L, s), to = leg(TOE_L, s);
+        const float l1 = length(B[kn] - B[hp]), l2 = length(B[an] - B[kn]);
+        const vec3 H = P + Mb * (Rpel * (B[hp] - B[PELVIS]));
+        vec3 knee, ank;
+        ik2(H, ankT[s], l1, l2, safeNorm(F + Lw * (sg * 0.08f), F), knee, ank);
+        J[hp] = H;
+        J[kn] = knee;
+        J[an] = ank;
+        J[to] = ank + footV[s];
+    }
+    autoUps();
+    pose_.up[bp::B_PELVIS] = Mb * (Rpel * sk_->bindUp[bp::B_PELVIS]);
+    pose_.up[bp::B_SPINE] = Mb * (Rsp * sk_->bindUp[bp::B_SPINE]);
+    pose_.up[bp::B_CHEST] = Mb * (Rch * sk_->bindUp[bp::B_CHEST]);
+    pose_.up[bp::B_NECK] = Mb * (Rnk * sk_->bindUp[bp::B_NECK]);
+    pose_.up[bp::B_HEAD] = Mb * (Rh * sk_->bindUp[bp::B_HEAD]);
+    pose_.up[bp::B_JAW] = Mb * (Rj * sk_->bindUp[bp::B_JAW]);
+    for (int s = 0; s < 2; ++s) pose_.up[(size_t)armB(bp::B_CLAV_L, s)] = Mb * (Rch * sk_->bindUp[(size_t)armB(bp::B_CLAV_L, s)]);
+}
+
+// --- V13.2: Death Rat ------------------------------------------------------------------------------------------------
+// Trab (diagonale Paare); schnell ein Galopp in Spruengen (vorn und hinten je fast gleichzeitig, der Ruecken beugt und
+// streckt sich). Im Stand schnell atmend, die Nase schnueffelt in Stoessen; witternd (perceive) richtet sie sich auf den
+// Hinterbeinen auf, die Vorderpfoten vor der Brust. Fressen (jaw): Kopf am Boden, kauend. Beissen (reach): Stoss nach
+// vorn, das Maul weit auf. Im Licht duckt sie sich und dreht den Kopf weg. Der Schwanz schleift mit Traegheit nach.
+void CreatureAnimator::updateRat(float dt, const Input& in) {
+    using namespace rt;
+    const auto& B = sk_->bind;
+    auto& J = pose_.j;
+    const vec3 F = dirYaw(yaw_), Lw{-F.y, F.x, 0.0f}, U{0, 0, 1};
+    const M3 Mb{F, Lw, U};
+    auto W = [&](vec3 l) { return pos_ + Mb * l; };
+    const float sc = sk_->height / 0.2f;  // Massstab des Skeletts (kRatScale)
+    spring(jaw_, jawV_, in.jaw, 10.0f, dt);
+    spring(perc_, percV_, in.perceive, 4.0f, dt);
+    spring(reach_, reachV_, in.reach, 9.0f, dt);
+    spring(light_, lightV_, in.light, 4.0f, dt);
+    spring(idleW_, idleWV_, speed_ > 0.05f ? 0.0f : 1.0f, 3.0f, dt);
+    if (!run_ && speed_ > 0.9f) run_ = true;
+    else if (run_ && speed_ < 0.6f) run_ = false;
+    static const float walkOff[4] = {0.0f, 0.5f, 0.5f, 0.0f}, runOff[4] = {0.5f, 0.58f, 0.0f, 0.08f};
+    const float* offs = run_ ? runOff : walkOff;
+    const float duty = run_ ? 0.38f : 0.62f;
+    const float S = (run_ ? 0.24f + 0.07f * speed_ : 0.09f + 0.14f * speed_) * sc;
+    vec3 rest[4];
+    for (int l = 0; l < 4; ++l) rest[l] = W({B[legJ(l, 2)].x, B[legJ(l, 2)].y, 0.0f});
+    const float wgt[4] = {0.05f, 0.05f, 0.07f, 0.07f};
+    stepLegs(dt, 4, offs, duty, S, rest, 0.12f, wgt);
+    const float lift[4] = {(run_ ? 0.03f : 0.016f) * sc, (run_ ? 0.03f : 0.016f) * sc, (run_ ? 0.035f : 0.013f) * sc, (run_ ? 0.035f : 0.013f) * sc};
+    vec3 g[4];
+    for (int i = 0; i < 4; ++i) g[i] = footPos(i, lift);
+    const bool moving = speed_ > 0.05f;
+    const float rear = perc_ * idleW_ * (1.0f - jaw_);
+    float bobC = 0.0f, bobP = 0.0f, flex = 0.0f;
+    if (run_) {
+        bobC = 0.012f * sc * std::sin(kTau * phase_);
+        bobP = 0.014f * sc * std::sin(kTau * phase_ + 2.4f);
+        flex = std::sin(kTau * phase_ - 0.5f);
+    } else if (moving) {
+        bobC = 0.004f * sc * std::cos(4.0f * kPi * phase_);
+        bobP = 0.004f * sc * std::cos(4.0f * kPi * phase_ + 1.0f);
+    } else {
+        bobC = 0.0025f * sc * std::sin(time_ * 9.0f);  // schneller Atem
+    }
+    const vec3 lunge = F * (0.06f * sc * reach_);
+    vec3 C = W({B[CHEST].x + flex * 0.03f * sc - rear * 0.05f * sc, 0.0f, 0.0f}) + lunge;
+    C.z = pos_.z + B[CHEST].z + bobC + rear * 0.11f * sc - 0.015f * sc * jaw_ - 0.02f * sc * light_;
+    vec3 P = W({B[PELVIS].x - flex * 0.03f * sc, 0.0f, 0.0f}) + lunge * 0.3f;
+    P.z = pos_.z + B[PELVIS].z + bobP - rear * 0.02f * sc - 0.015f * sc * light_;
+    const vec3 ctrl = (P + C) * 0.5f + U * ((0.025f - 0.02f * flex) * sc);
+    J[ROOT] = pos_;
+    J[PELVIS] = P;
+    J[SPINE] = P * 0.25f + ctrl * 0.5f + C * 0.25f;
+    J[CHEST] = C;
+    // Kopf: Blick, Wittern (Nase hoch), Fressen (zum Boden), Licht (weg)
+    float wy = 0.0f, wp = -0.15f;
+    if (in.look) yawPitch(C, in.lookAt, F, Lw, wy, wp);
+    else if (idleW_ > 0.01f) wy = 0.5f * std::sin(time_ * 0.9f) * idleW_, wp = -0.2f + 0.15f * std::sin(time_ * 0.7f);
+    if (perc_ > 0.01f) {
+        float y2, p2;
+        yawPitch(C, in.perceiveAt, F, Lw, y2, p2);
+        wy += wrapPi(y2 - wy) * perc_;
+        wp += (std::max(p2, 0.0f) + 0.5f * rear - wp) * perc_;
+    }
+    wp += (-0.95f - wp) * jaw_;
+    if (light_ > 0.01f) {
+        float ly, lp;
+        yawPitch(C, in.lightFrom, F, Lw, ly, lp);
+        wy += wrapPi((ly > 0.0f ? ly - 1.5f : ly + 1.5f) - wy) * light_ * 0.7f;
+    }
+    if (reach_ > 0.01f) {
+        float ry, rp;
+        yawPitch(C, in.reachAt, F, Lw, ry, rp);
+        wy += wrapPi(ry - wy) * reach_;
+        wp += (rp - wp) * reach_;
+    }
+    wy = std::clamp(wrapPi(wy), -1.0f, 1.0f);
+    wp = std::clamp(wp, -1.1f, 0.9f);
+    if (!chainInit_) headYaw_ = wy, headPitch_ = wp, headYawV_ = headPitchV_ = 0.0f;
+    spring(headYaw_, headYawV_, wy, 10.0f, dt);
+    spring(headPitch_, headPitchV_, wp, 10.0f, dt);
+    const M3 Rn = axisAngle({0, 0, 1}, headYaw_ * 0.5f) * axisAngle({0, 1, 0}, -headPitch_ * 0.5f);
+    const M3 Rh = axisAngle({0, 0, 1}, headYaw_) * axisAngle({0, 1, 0}, -headPitch_);
+    // Schnueffeln in Stoessen (Nase zuckt)
+    spring(sniff_, sniffV_, (idleW_ > 0.5f || perc_ > 0.3f) && std::fmod(time_, 1.1f) < 0.6f ? 1.0f : 0.0f, 12.0f, dt);
+    J[HEAD] = C + Mb * (Rn * (B[HEAD] - B[CHEST]));
+    J[NECK] = (C + J[HEAD]) * 0.5f + U * (0.004f * sc);
+    J[SNOUT] = J[HEAD] + Mb * (Rh * (B[SNOUT] - B[HEAD])) + U * (0.0025f * sc * sniff_ * std::sin(time_ * 48.0f));
+    const float open = jaw_ * (0.12f + 0.12f * std::sin(time_ * 30.0f)) + 0.55f * reach_ + 0.04f * sniff_ * std::sin(time_ * 24.0f);
+    const M3 Rj = Rh * axisAngle({0, 1, 0}, std::max(0.0f, open));
+    J[JAW] = J[HEAD] + Mb * (Rj * (B[JAW] - B[HEAD]));
+    headPos_ = J[HEAD];
+    headDir_ = Mb * (Rh * vec3{1, 0, 0});
+    // Beine: vorn am Brustkorb (Ellbogen nach hinten), hinten am Becken (Knie nach vorn, Sprunggelenk hinten)
+    for (int l = 0; l < 4; ++l) {
+        const bool front = l < 2;
+        const float sg = (l % 2 == 0) ? 1.0f : -1.0f;
+        const vec3 base = front ? C : P;
+        const vec3 T = base + Mb * (B[legJ(l, 0)] - B[front ? CHEST : PELVIS]);
+        const float l1 = length(B[legJ(l, 1)] - B[legJ(l, 0)]), l2 = length(B[legJ(l, 2)] - B[legJ(l, 1)]);
+        vec3 paw = g[l] + U * B[legJ(l, 2)].z;
+        if (front && rear > 0.001f)  // aufgerichtet: Vorderpfoten vor der Brust
+            paw = paw + (C + Mb * vec3{0.04f * sc, sg * 0.025f * sc, -0.045f * sc} - paw) * rear;
+        if (front && reach_ > 0.001f) paw = paw + F * (0.04f * sc * reach_);
+        vec3 knee, pw;
+        ik2(T, paw, l1, l2, front ? safeNorm(-F - U * 0.2f, -F) : safeNorm(F + U * 0.1f, F), knee, pw);
+        J[legJ(l, 0)] = T;
+        J[legJ(l, 1)] = knee;
+        J[legJ(l, 2)] = pw;
+        const float sw = leg_[l].swing ? std::sin(kPi * leg_[l].t) : 0.0f;
+        J[legJ(l, 3)] = pw + rotateAround(Mb * (B[legJ(l, 3)] - B[legJ(l, 2)]), Lw, 0.6f * sw + (front ? 0.9f * rear : 0.0f));
+    }
+    autoUps();
+    pose_.up[rt::B_HEAD] = Mb * (Rh * sk_->bindUp[rt::B_HEAD]);
+    pose_.up[rt::B_JAW] = Mb * (Rj * sk_->bindUp[rt::B_JAW]);
+    // Schwanz: haengt mit Traegheit am Becken, schleift am Boden, pendelt im Lauf
+    cols_.clear();
+    {
+        const int idx[kTail] = {TAIL0, TAIL0 + 1, TAIL0 + 2, TAIL0 + 3, TAIL0 + 4};
+        const vec3 wind = Lw * ((moving ? 0.03f * std::sin(kTau * phase_) : 0.02f * std::sin(time_ * 1.3f)) * sc);
+        hangChain(0, rt::B_PELVIS, idx, kTail, 6.0f, 0.88f, 3.0f, wind, dt);
+    }
+    autoUps();
+    pose_.up[rt::B_HEAD] = Mb * (Rh * sk_->bindUp[rt::B_HEAD]);
+    pose_.up[rt::B_JAW] = Mb * (Rj * sk_->bindUp[rt::B_JAW]);
+}
+
+// --- V13.2: Fensterwesen -------------------------------------------------------------------------------------------
+// Der Umriss wiegt sich kaum merklich und atmet; er wendet den Kopf dem Betrachter zu (look) und legt ihn schief. Er
+// lockt mit der linken Hand (wave): Unterarm aufrecht, die Hand winkt zu sich heran. Greift er (reach), lehnt er sich
+// aus dem Fenster und streckt den rechten Arm zum Ziel - laenger als ein Menschenarm (bis gut 2 m von der Wand).
+void CreatureAnimator::updateWindow(float dt, const Input& in) {
+    using namespace wn;
+    const auto& B = sk_->bind;
+    auto& J = pose_.j;
+    const vec3 F = dirYaw(yaw_), Lw{-F.y, F.x, 0.0f}, U{0, 0, 1};
+    const M3 Mb{F, Lw, U};
+    spring(reach_, reachV_, in.reach, 7.0f, dt);  // der Arm schiesst heraus
+    spring(wave_, waveV_, in.wave, 2.0f, dt);
+    spring(perc_, percV_, in.perceive, 1.5f, dt);
+    spring(tilt_, tiltV_, in.tilt, 1.5f, dt);
+    for (size_t k = 0; k < B.size(); ++k) J[k] = pos_ + Mb * B[k];
+    const float out = reach_;
+    const float sw = (0.018f * std::sin(time_ * 0.45f) + 0.008f * std::sin(time_ * 1.13f + 1.0f)) * (1.0f - out);
+    const float br = 0.004f * std::sin(time_ * 1.2f);
+    // heraus lehnen: um die Huefte (Unterkante der Oeffnung) nach vorn, die Huefte ueber die Bank
+    const M3 Rl = axisAngle({0, 1, 0}, 0.45f * out + 0.05f * perc_) * axisAngle({1, 0, 0}, sw * 1.5f);
+    const vec3 base = J[FIG_BASE] + F * (0.3f * out);
+    J[FIG_BASE] = base;
+    J[FIG_CHEST] = base + Mb * (Rl * (B[FIG_CHEST] - B[FIG_BASE])) + U * br;
+    J[FIG_NECK] = base + Mb * (Rl * (B[FIG_NECK] - B[FIG_BASE])) + U * br;
+    float wy = 0.0f, wp = 0.0f;
+    if (in.look) yawPitch(J[FIG_NECK], in.lookAt, F, Lw, wy, wp);
+    if (!chainInit_) headYaw_ = 0.0f, headYawV_ = 0.0f;
+    spring(headYaw_, headYawV_, std::clamp(wy, -0.5f, 0.5f) * (0.4f + 0.6f * perc_), 1.2f, dt);
+    const M3 Rh = Rl * axisAngle({0, 0, 1}, headYaw_) * axisAngle({1, 0, 0}, tilt_ + 0.12f * std::sin(time_ * 0.3f) + 0.2f * perc_);
+    J[FIG_TOP] = J[FIG_NECK] + Mb * (Rh * (B[FIG_TOP] - B[FIG_NECK]));
+    for (int s = 0; s < 2; ++s) {
+        const int sh = s == 0 ? SH_L : SH_R;
+        const float l1 = length(B[sh + 1] - B[sh]), l2 = length(B[sh + 2] - B[sh + 1]), lh = length(B[sh + 3] - B[sh + 2]);
+        const vec3 S0 = J[FIG_CHEST] + Mb * (Rl * (B[sh] - B[FIG_CHEST]));
+        // Ruhe: haengt dicht am Koerper (die Ruhepose spreizt die Arme nur fuer das Vernetzen)
+        const float sg = s == 0 ? 1.0f : -1.0f;
+        vec3 Wt = S0 + Mb * (Rl * (normalize(vec3{0.02f, sg * 0.2f, -1.0f}) * ((l1 + l2) * 0.97f)));
+        vec3 hdir = Mb * (Rl * normalize(vec3{0.0f, sg * 0.15f, -1.0f}));
+        float k = 1.0f;  // Streckung des Arms
+        vec3 pole = Mb * (Rl * vec3{-0.3f, s == 0 ? 1.0f : -1.0f, -0.4f});
+        if (s == 0 && wave_ > 0.001f) {  // locken: Oberarm seitlich, Unterarm aufrecht, die Hand winkt heran
+            const vec3 od = Mb * normalize(vec3{0.25f, 1.0f, -0.35f});
+            const float curl = 0.9f * (0.5f + 0.5f * std::sin(time_ * kTau * 0.9f));
+            const vec3 E = S0 + od * l1;
+            const vec3 Wg = E + safeNorm(U + F * 0.15f, U) * l2;
+            Wt = Wt + (Wg - Wt) * wave_;
+            hdir = safeNorm(hdir + (rotateAround(U, Lw, -curl) - hdir) * wave_, U);
+            pole = safeNorm(pole + (od - U * 0.5f - pole) * wave_, pole);
+        }
+        if (s == 1 && out > 0.001f) {  // greifen: zum Ziel, der Arm streckt sich
+            const vec3 to = in.reachAt - S0;
+            const float dl = length(to);
+            k = 1.0f + (std::clamp(dl / ((l1 + l2) * 0.97f), 1.0f, 1.9f) - 1.0f) * out;
+            const vec3 dirT = dl > 1e-4f ? to / dl : F;
+            Wt = Wt + (S0 + dirT * std::min(dl, (l1 + l2) * k * 0.97f) - Wt) * out;
+            hdir = safeNorm(hdir + (dirT - hdir) * out, dirT);
+            pole = safeNorm(pole + (-U - pole) * out, pole);
+        }
+        vec3 e, w;
+        ik2(S0, Wt, l1 * k, l2 * k, pole, e, w);
+        J[sh] = S0;
+        J[sh + 1] = e;
+        J[sh + 2] = w;
+        J[sh + 3] = w + hdir * lh;
+    }
+    autoUps();
+    for (int b = wn::B_BODY; b <= wn::B_CHEST; ++b) pose_.up[(size_t)b] = Mb * (Rl * sk_->bindUp[(size_t)b]);
+    pose_.up[wn::B_HEAD] = Mb * (Rh * sk_->bindUp[wn::B_HEAD]);
+    pose_.up[wn::B_BACK] = Mb * sk_->bindUp[wn::B_BACK];
 }
 
 }  // namespace lim::anim

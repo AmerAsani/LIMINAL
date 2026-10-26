@@ -1,6 +1,7 @@
 """V13: Wesen bauen (KREATUREN_ANALYSE.md). Aufruf aus dem V13-Ordner:
   .toolchain/blender/blender-4.5.14-windows-x64/blender.exe -b --factory-startup --python tools/blender/creatures/build.py -- <wesen> [--preview <ordner>] [--grob]
-<wesen>: hound, smiler, clump, gestalt, moth, nest. Schreibt data/models/ent_<wesen>_l0..l2.glb.
+<wesen>: hound, smiler, clump, gestalt, moth, nest; V13.2: faceling, faceling_evo, faceling_dress, skinstealer, wretch, rat,
+rat_bald, window. Schreibt data/models/ent_<wesen>_l0..l2.glb (Varianten mit SKELETON im Modul).
 
 Je Wesen liefert ein Modul (creatures/<wesen>.py) eine Funktion build(J, bones) -> Liste von Gruppen:
   {'name', 'fm' (Material im Spiel), 'parts' (sdf.Part), 'disp' (Verschiebung oder None), 'h' (Voxel, m)}
@@ -49,7 +50,13 @@ PREVIEW_RGB = {'ent_skin': (0.55, 0.47, 0.40), 'ent_hair': (0.03, 0.03, 0.03), '
                'clump_a': (0.75, 0.58, 0.50), 'clump_b': (0.55, 0.40, 0.32), 'clump_c': (0.36, 0.25, 0.20),
                'clump_core': (0.55, 0.35, 0.40), 'ent_darkskin': (0.06, 0.05, 0.05),
                'ent_silhouette': (0.03, 0.03, 0.03), 'ent_resin': (0.7, 0.42, 0.12), 'ent_nestflesh': (0.30, 0.13, 0.10),
-               'ent_nestegg': (0.70, 0.62, 0.42)}
+               'ent_nestegg': (0.70, 0.62, 0.42), 'ent_cloth_a': (0.30, 0.29, 0.27), 'ent_cloth_b': (0.16, 0.17, 0.20),
+               'ent_cloth_pink': (0.78, 0.42, 0.50), 'ent_paleskin': (0.85, 0.78, 0.52), 'ent_wretchskin': (0.55, 0.30, 0.22),
+               'ent_stone': (0.55, 0.53, 0.50), 'ent_ratfur': (0.08, 0.08, 0.08), 'ent_hornglow': (0.9, 0.2, 0.1),
+               'ent_view': (0.6, 0.62, 0.55), 'ent_ooze': (0.35, 0.18, 0.10), 'ent_humanskin': (0.62, 0.47, 0.40),
+               'ent_ratskin': (0.62, 0.48, 0.48), 'ent_umbra': (0.02, 0.02, 0.02),
+               'ent_cloth_c': (0.20, 0.26, 0.36), 'ent_cloth_d': (0.17, 0.20, 0.14), 'ent_humanskin_b': (0.38, 0.26, 0.21),
+               'ent_hair_grey': (0.55, 0.53, 0.5)}
 
 
 def build_group(g, nb):
@@ -193,10 +200,13 @@ def main():
     common.reset()
     mod = importlib.import_module(name)
     model = 'ent_' + name
-    J, bones = sdf.skeleton(model)
+    J, bones = sdf.skeleton(getattr(mod, 'SKELETON', model))  # V13.2: Varianten nutzen das Skelett des Wesens
     nb = len(bones)
     t0 = time.time()
-    groups = mod.build(J, bones)
+    # V13.2: SCALE - das Modul baut in eigenem Massstab (Ratte: entworfen in 1/SCALE der Spielgroesse), das Netz wird danach
+    # auf die Spielgroesse gebracht
+    S = float(getattr(mod, 'SCALE', 1.0))
+    groups = mod.build(np.asarray(J, dtype=float) / S if S != 1.0 else J, bones)
     if coarse:
         for g in groups:
             g['h'] *= 2.0
@@ -205,6 +215,7 @@ def main():
     built = []
     for g in groups:
         V, T, W, cav, edge = build_group(g, nb)
+        V = V * S
         key = g.get('merge')
         tgt = next((b for b in built if key and b['key'] == key), None)
         if tgt is None:

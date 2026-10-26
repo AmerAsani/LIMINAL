@@ -16,7 +16,7 @@ struct ExtraLight;  // V7, renderer.hpp
 
 // Die ersten GPU-Materialien sind fest vergeben (Items, Requisiten);
 // Weltmaterialien folgen dahinter.
-constexpr u32 kFixedMaterials = 64;  // V9: 16 -> 32 (Sicherungen ...), V10: 64 (Figuren)
+constexpr u32 kFixedMaterials = 80;  // V9: 16 -> 32 (Sicherungen ...), V10: 64 (Figuren), V13.2: 80 (neue Wesen)
 enum FixedMaterial : u32 {
     FM_ITEM_ENERGY = 0, FM_ITEM_ALMOND = 1, FM_BODY = 2, FM_BODY_FACE = 3,
     FM_VEND_BODY = 4, FM_VEND_GLOW = 5, FM_VEND_GLASS = 6,  // V6: Automat
@@ -40,6 +40,14 @@ enum FixedMaterial : u32 {
     FM_ENT_RESIN,                // V13: Nest - nasses, bernsteinfarbenes Harz (Tropfen, Faeden)
     FM_ENT_NESTFLESH,            // V13.2: Nest - nasse, dunkel rotbraune Wucherung (statt des rosa Kerns des Buendels)
     FM_ENT_NESTEGG,              // V13.2: Nest - Eier, matt cremegelb (nicht das glaenzende Weiss der Zaehne)
+    // V13.2: neue Wesen - Kleidung (Faceling, Reste beim Wretch), blasse Haut (Skin-Stealer), Haut des Wretch, Steinwerkzeug,
+    // Rattenfell, gluehende Hornspitzen, Landschaft im Fenster, Ausfluss
+    FM_ENT_CLOTH_A, FM_ENT_CLOTH_B, FM_ENT_CLOTH_PINK, FM_ENT_PALESKIN, FM_ENT_WRETCHSKIN, FM_ENT_STONE, FM_ENT_RATFUR,
+    FM_ENT_HORNGLOW, FM_ENT_VIEW, FM_ENT_OOZE,
+    FM_ENT_HUMANSKIN, FM_ENT_RATSKIN,  // V13.2: Menschenhaut (Faceling, getarnter Skin-Stealer), nackte Rattenhaut
+    FM_ENT_UMBRA,                      // V13.2: Fensterwesen - schwarz und matt, aber fest (ohne den Rauchrand der Gestalt)
+    // V13.2: Facelings sind verschieden (Haar, Haut, Kleidung) - weitere Stoffe, dunklere Haut, graues Haar
+    FM_ENT_CLOTH_C, FM_ENT_CLOTH_D, FM_ENT_HUMANSKIN_B, FM_ENT_HAIR_GREY,
     FM_FIG_END,
 };
 static_assert(FM_FIG_END <= kFixedMaterials);

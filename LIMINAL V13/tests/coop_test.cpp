@@ -582,7 +582,15 @@ static void testBots(int nBots, double seconds, const Netem* em, const std::stri
     g.hs->presence().force(game::Presence::Role::Hound, 10.0);
     const auto t0 = std::chrono::steady_clock::now();
     size_t mem0 = memMB();
-    g.run(seconds);
+    if (seconds > 600.0) {  // Langlauf: Speicher alle 5 Minuten (waechst er weiter oder bleibt er stehen?)
+        for (double t = 0.0; t < seconds; t += 300.0) {
+            g.run(std::min(300.0, seconds - t));
+            note(std::format("{}: nach {:.0f} s Speicher {} MB, Sektoren beim Host {}", label, std::min(seconds, t + 300.0), memMB(),
+                             g.hs->world().loadedSectors()));
+        }
+    } else {
+        g.run(seconds);
+    }
     // still stehen und abgleichen
     for (auto& b : g.bots) b->idle = true;
     g.hostWalks = false;

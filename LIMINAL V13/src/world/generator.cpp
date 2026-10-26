@@ -1129,7 +1129,7 @@ std::unique_ptr<Sector> Generator::mapSector(i64 sx, i64 sy) const {
         addProp(*sec, props::model(o.model, o.variant), (float)o.x, (float)o.y, (float)o.z, (float)o.yaw, (float)o.sx, (float)o.sy,
                 (float)o.sz);
         if (o.tag == "pipes" || o.tag == "machine" || o.tag == "glow" || o.tag == "gate" || o.tag == "steam" || o.tag == "water" || o.tag == "fence" || o.tag == "window" || o.tag == "music" || o.tag == "waves")
-            sec->spots.push_back({o.tag, (float)o.x, (float)o.y, (float)o.z});
+            sec->spots.push_back({o.tag, (float)o.x, (float)o.y, (float)o.z, (float)o.yaw, o.model});
         // Notbeleuchtung (gruene Schilder) hat eine eigene Batterie: kein Stromkreis, brennt im Stromausfall
         if (o.tag == "emergency" && props::model(o.model, o.variant) && !sec->props.empty()) sec->props.back().flickSeed = 0, sec->props.back().flickMode = 0;
     }

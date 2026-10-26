@@ -9,6 +9,7 @@
 //              mit Knoecheln an Rohren
 //   Motten     Fluegelschlag (25-40 Hz), Schuppenrascheln
 //   Tiefe      Unterbass, Wasser, das verdraengt wird
+//   V13.2: Faceling, Skin-Stealer, Wretch, Death Rat, Fensterwesen (Abschnitt unten)
 // Halluzinationen sind trocken (ohne eigenen Raum) und sprechen keine Woerter.
 #include <cmath>
 #include <format>
@@ -580,6 +581,286 @@ Sound musicBox(int rate) {
 
 }  // namespace
 
+// --- V13.2: neue Wesen ----------------------------------------------------------------------------------------------
+//   Faceling     ohne Mund: gedaempfte Vokale hinter geschlossenen Lippen (die Seite: vokalartige, undeutliche Laute);
+//                aufgebracht schneller, hoeher, stossweise
+//   Skin-Stealer spricht nach, ohne zu verstehen: Silben mit Mitlauten, flache, zu gleichmaessige Betonung, Wiederholungen
+//   Wretch       traege: tiefes, nasses Gurgeln; schnell: hohes, rauhes Fauchen (die Seite: der Laut verraet die Gefahr);
+//                zweites Stadium: heiseres Flehen in zwei, drei Silben
+//   Ratte        Quieken (2,5-6 kHz); das Schrei-Ereignis: viele Stimmen, kreischend, durcheinander
+//   Fenster      warmes, langsames Fluestern (trostend), der Arm faehrt mit einem Sog heraus
+namespace {
+struct Vowel {
+    float f1, f2, f3;
+};
+constexpr Vowel kVowels[] = {{730, 1090, 2440}, {530, 1840, 2480}, {270, 2290, 3010}, {570, 840, 2410}, {300, 870, 2240}, {500, 1500, 2500}};
+
+// eine stimmhafte Silbe: Grundton f0a -> f0b, Vokal v, Rauheit
+void syllable(Buf& b, float at, float len, float f0a, float f0b, const Vowel& v, float breath, float rough, float subharm, Rand& r) {
+    VoiceSpec vs;
+    vs.f0 = [=](float u) { return f0a + (f0b - f0a) * u; };
+    vs.amp = [=](float u) { return dsp::smooth01(u / 0.18f) * (1.0f - dsp::smooth01((u - 0.7f) / 0.3f)); };
+    vs.formants = {v.f1 * r.range(0.95f, 1.05f), v.f2 * r.range(0.95f, 1.05f), v.f3, 3400.0f};
+    vs.bandwidths = {90.0f, 120.0f, 180.0f, 260.0f};
+    vs.jitter = 0.03f, vs.shimmer = 0.15f, vs.breath = breath, vs.rough = rough, vs.subharm = subharm;
+    voice(b, at, len, vs, r);
+}
+// Mitlaut vor der Silbe: Verschluss (p t k) oder Reibelaut (s f h)
+void consonant(Buf& b, float at, Rand& r, float amp) {
+    const int k = r.irange(0, 4);
+    const float hz = k == 0 ? 900.0f : k == 1 ? 3500.0f : k == 2 ? 1800.0f : k == 3 ? 6200.0f : 1200.0f;
+    const float len = k <= 2 ? 0.025f : r.range(0.05f, 0.09f);
+    Biquad bp = Biquad::make(Biquad::BP, hz, k <= 2 ? 1.2f : 0.9f, (float)b.rate);
+    for (size_t i = 0; i < b.at(len) && b.at(at) + i < b.n(); ++i)
+        b.x[b.at(at) + i] += bp.run(r.bi()) * amp * (k <= 2 ? envAD(b.t(i), 0.002f, 0.02f) : envAHR(b.t(i), len * 0.3f, len * 0.3f, len * 0.4f));
+}
+}  // namespace
+
+Sound facelingHum(int rate, int v) {
+    Rand r(9100u + (unsigned)v);
+    Buf b(1.6f, rate);
+    float at = 0.05f;
+    const int n = r.irange(1, 3);
+    const float f0 = r.range(115.0f, 190.0f);
+    for (int k = 0; k < n; ++k) {
+        const float len = r.range(0.35f, 0.7f);
+        syllable(b, at, len, f0 * r.range(0.95f, 1.08f), f0 * r.range(0.85f, 1.05f), kVowels[r.irange(0, 5)], 0.25f, 0.0f, 0.0f, r);
+        at += len + r.range(0.05f, 0.2f);
+    }
+    filter(b, Biquad::LP, 750.0f, 0.7f);  // hinter geschlossener Haut: nur das Summen dringt durch
+    filter(b, Biquad::LP, 1100.0f, 0.7f);
+    trim(b);
+    normalize(b, level::kCreature - 6.0f);
+    return b.sound();
+}
+
+Sound facelingOutburst(int rate, int v) {
+    Rand r(9200u + (unsigned)v);
+    Buf b(1.4f, rate);
+    float at = 0.02f;
+    const float f0 = r.range(230.0f, 300.0f);
+    for (int k = 0; k < 4; ++k) {
+        const float len = r.range(0.14f, 0.26f);
+        syllable(b, at, len, f0 * r.range(1.0f, 1.2f), f0 * r.range(0.8f, 1.0f), kVowels[r.irange(0, 3)], 0.4f, 0.5f, 0.15f, r);
+        at += len + r.range(0.03f, 0.08f);
+    }
+    filter(b, Biquad::LP, 1300.0f, 0.8f);
+    trim(b);
+    normalize(b, level::kCreature);
+    return b.sound();
+}
+
+Sound stoneSwing(int rate) {  // Ausholen und Durchziehen: ein Luftzug
+    Rand r(9300u);
+    Buf b(0.5f, rate);
+    dsp::Svf f;
+    for (size_t i = 0; i < b.n(); ++i) {
+        const float t = b.t(i);
+        f.set(500.0f + 1800.0f * dsp::smooth01(t / 0.3f), 2.0f, (float)rate);
+        b.x[i] = f.bp(r.bi()) * envAHR(t, 0.18f, 0.05f, 0.2f);
+    }
+    trim(b);
+    normalize(b, level::kEvent - 3.0f);
+    return b.sound();
+}
+
+Sound hitBody(int rate, int v) {  // ein Schlag trifft (dumpf), dazu ein Stoss Atem
+    Rand r(9400u + (unsigned)v);
+    Buf b(0.6f, rate);
+    Biquad lp = Biquad::make(Biquad::LP, 180.0f + 60.0f * (float)v, 0.9f, (float)rate);
+    for (size_t i = 0; i < b.at(0.15f); ++i) b.x[i] += lp.run(r.bi()) * envAD(b.t(i), 0.003f, 0.08f) * 3.0f;
+    ImpactSpec sp;
+    sp.modes = modesWood(r.range(140.0f, 220.0f), 0.05f, r);
+    sp.contact = 0.004f, sp.noise = 0.5f, sp.noiseHz = 900.0f;
+    b.add(impact(sp, 0.8f, 0.15f, rate, r), 0.0f);
+    breathe(b, 0.02f, 0.25f, false, 0.5f, 1.0f, r);
+    trim(b);
+    normalize(b, level::kEvent);
+    return b.sound();
+}
+
+Sound skinMimic(int rate, int v) {
+    Rand r(9500u + (unsigned)v);
+    Buf b(2.4f, rate);
+    // ein "Wort" aus 2-3 Silben, zwei- oder dreimal, mit derselben flachen Melodie - nie ganz gleich, nie ganz richtig
+    struct Syl {
+        int vow;
+        bool cons;
+        float len;
+    };
+    std::vector<Syl> word;
+    const int ns = r.irange(2, 3);
+    for (int k = 0; k < ns; ++k) word.push_back({r.irange(0, 5), r.chance(0.7f), r.range(0.13f, 0.22f)});
+    const bool ask = (v % 3) == 0;  // fragend (steigt am Ende)
+    const float f0 = r.range(102.0f, 125.0f);
+    float at = 0.05f;
+    const int reps = r.irange(1, 3);
+    for (int rep = 0; rep < reps; ++rep) {
+        for (size_t k = 0; k < word.size(); ++k) {
+            const Syl& s = word[k];
+            if (s.cons) consonant(b, at, r, 0.5f), at += 0.035f;
+            const bool last = k + 1 == word.size();
+            const float a0 = f0 * (1.0f + 0.01f * (float)rep), a1 = ask && last ? f0 * 1.35f : f0 * 0.97f;
+            syllable(b, at, s.len * r.range(0.95f, 1.15f), a0, a1, kVowels[s.vow], 0.2f, 0.05f, 0.0f, r);
+            at += s.len + 0.03f;
+        }
+        at += r.range(0.35f, 0.6f);
+    }
+    filter(b, Biquad::HP, 90.0f, 0.7f);
+    trim(b);
+    normalize(b, level::kCreature - 4.0f);
+    return b.sound();
+}
+
+Sound wretchGurgle(int rate, int v) {  // traege: tief, nass, langsam
+    Rand r(9600u + (unsigned)v);
+    const float len = r.range(1.2f, 2.0f);
+    Buf b(len + 0.3f, rate);
+    VoiceSpec vs;
+    const float base = r.range(62.0f, 84.0f), ph = r.range(0.0f, 6.0f);
+    vs.f0 = [=](float u) { return base * (1.0f + 0.15f * std::sin(u * 5.0f + ph)); };
+    vs.amp = [=](float u) { return dsp::smooth01(u / 0.2f) * (1.0f - dsp::smooth01((u - 0.75f) / 0.25f)) * (0.6f + 0.4f * std::sin(u * 17.0f + ph)); };
+    vs.formants = {r.range(320.0f, 420.0f), r.range(700.0f, 900.0f), 2300.0f, 3200.0f};
+    vs.bandwidths = {140.0f, 180.0f, 240.0f, 320.0f};
+    vs.jitter = 0.08f, vs.shimmer = 0.4f, vs.subharm = 0.8f, vs.breath = 0.35f, vs.rough = 0.7f, vs.roughHz = r.range(18.0f, 26.0f);
+    vs.tiltHz = 1600.0f;
+    voice(b, 0.0f, len, vs, r);
+    wetClicks(b, 0.0f, len, 14.0f, 0.12f, r);  // Schlamm im Rachen
+    trim(b);
+    normalize(b, level::kCreature - 2.0f);
+    return b.sound();
+}
+
+Sound wretchSnarl(int rate, int v) {  // schnell: hoch, rauh, fauchend
+    Rand r(9700u + (unsigned)v);
+    const float len = r.range(0.6f, 1.0f);
+    Buf b(len + 0.2f, rate);
+    VoiceSpec vs;
+    const float base = r.range(320.0f, 460.0f);
+    vs.f0 = [=](float u) { return base * (1.1f - 0.25f * u); };
+    vs.amp = [](float u) { return dsp::smooth01(u / 0.08f) * std::pow(std::max(0.0f, 1.0f - u), 0.8f); };
+    vs.formants = {r.range(700.0f, 850.0f), r.range(1300.0f, 1600.0f), 2900.0f, 3800.0f};
+    vs.bandwidths = {160.0f, 200.0f, 280.0f, 360.0f};
+    vs.jitter = 0.1f, vs.shimmer = 0.35f, vs.subharm = 0.3f, vs.breath = 0.9f, vs.rough = 0.5f, vs.roughHz = 34.0f;
+    vs.tiltHz = 4200.0f;
+    voice(b, 0.0f, len, vs, r);
+    breathe(b, 0.0f, len * 0.8f, false, 0.6f, 1.0f, r);
+    wetClicks(b, 0.0f, len, 8.0f, 0.06f, r);
+    trim(b);
+    normalize(b, level::kCreature);
+    return b.sound();
+}
+
+Sound wretchPlead(int rate, int v) {  // heiser, gebrochen: zwei, drei Silben, fallend
+    Rand r(9800u + (unsigned)v);
+    Buf b(2.0f, rate);
+    const float f0 = r.range(140.0f, 175.0f);
+    float at = 0.05f;
+    const int n = r.irange(2, 3);
+    for (int k = 0; k < n; ++k) {
+        if (r.chance(0.6f)) consonant(b, at, r, 0.35f), at += 0.04f;
+        const float len = r.range(0.22f, 0.4f);
+        syllable(b, at, len, f0 * (1.05f - 0.08f * (float)k), f0 * (0.92f - 0.08f * (float)k), kVowels[r.irange(0, 5)], 0.7f, 0.35f, 0.1f, r);
+        at += len + r.range(0.06f, 0.16f);
+    }
+    breathe(b, at, 0.4f, true, 0.4f, 0.8f, r);  // rasselnd einatmen
+    trim(b);
+    normalize(b, level::kCreature - 5.0f);
+    return b.sound();
+}
+
+Sound ratSqueak(int rate, int v) {
+    Rand r(9900u + (unsigned)v);
+    Buf b(0.5f, rate);
+    float at = 0.0f;
+    const int n = r.irange(1, 3);
+    for (int k = 0; k < n; ++k) {
+        const float len = r.range(0.04f, 0.11f), f0 = r.range(2600.0f, 4200.0f), f1 = f0 * r.range(1.1f, 1.5f);
+        float ph = 0.0f;
+        for (size_t i = 0; i < b.at(len) && b.at(at) + i < b.n(); ++i) {
+            const float u = b.t(i) / len;
+            ph += kTwoPi * (f0 + (f1 - f0) * std::sin(kPi * u)) / (float)rate;
+            b.x[b.at(at) + i] += (std::sin(ph) + 0.3f * std::sin(2.0f * ph) + 0.15f * r.bi()) * envAHR(b.t(i), len * 0.15f, len * 0.5f, len * 0.35f);
+        }
+        at += len + r.range(0.02f, 0.08f);
+    }
+    trim(b);
+    normalize(b, level::kCreature - 8.0f);
+    return b.sound();
+}
+
+Sound ratScream(int rate) {  // das Schrei-Ereignis: viele Ratten kreischen durcheinander (gedaempft, hinter Waenden)
+    Rand r(9950u);
+    const float L = 4.2f;
+    Buf b(L + 0.4f, rate);
+    for (int k = 0; k < 90; ++k) {
+        const float at = r.range(0.0f, L - 0.3f), len = r.range(0.08f, 0.3f);
+        const float f0 = r.range(1800.0f, 3800.0f), f1 = f0 * r.range(0.8f, 1.6f);
+        float ph = 0.0f;
+        const float amp = r.range(0.2f, 0.7f) * (1.0f - 0.5f * dsp::smooth01((at - L * 0.6f) / (L * 0.4f)));
+        for (size_t i = 0; i < b.at(len) && b.at(at) + i < b.n(); ++i) {
+            const float u = b.t(i) / len;
+            ph += kTwoPi * (f0 + (f1 - f0) * u + 120.0f * std::sin(u * 40.0f)) / (float)rate;
+            b.x[b.at(at) + i] += (std::sin(ph) + 0.4f * std::sin(3.0f * ph) + 0.3f * r.bi()) * amp * envAHR(b.t(i), len * 0.1f, len * 0.5f, len * 0.4f);
+        }
+    }
+    // Rangeln, Krallen
+    grains(b, 0.0f, L, 30.0f, [](Buf& bb, float t, Rand& rr) {
+        Biquad bp = Biquad::make(Biquad::BP, rr.range(2000.0f, 5000.0f), 3.0f, (float)bb.rate);
+        const size_t a = bb.at(t);
+        for (size_t i = 0; i < 200 && a + i < bb.n(); ++i) bb.x[a + i] += bp.run(i < 6 ? rr.bi() * 1.5f : 0.0f) * 0.3f;
+    }, r);
+    filter(b, Biquad::LP, 3200.0f, 0.7f);  // nicht im selben Raum
+    trim(b);
+    normalize(b, level::kDistant + 4.0f);
+    return b.sound();
+}
+
+Sound windowWhisper(int rate, int v) {  // warm, langsam, nah am Ohr - trostend (die Seite)
+    Rand r(9970u + (unsigned)v);
+    const float len = r.range(1.6f, 2.6f);
+    Buf b(len + 0.4f, rate);
+    float t = 0.1f;
+    while (t < len) {
+        const float syl = r.range(0.2f, 0.34f);
+        const Vowel& vw = kVowels[r.irange(0, 5)];
+        if (r.chance(0.35f)) {
+            Biquad hp = Biquad::make(Biquad::HP, r.range(2500.0f, 4000.0f), 0.7f, (float)rate);
+            const float sl = r.range(0.05f, 0.1f);
+            for (size_t i = 0; i < b.at(sl) && b.at(t) + i < b.n(); ++i)
+                b.x[b.at(t) + i] += hp.run(r.bi()) * 0.2f * envAHR(b.t(i), sl * 0.4f, 0.0f, sl * 0.6f);
+            t += sl * 0.7f;
+        }
+        dsp::Svf f1, f2;
+        f1.set(vw.f1 * 0.9f, 5.0f, (float)rate), f2.set(vw.f2 * 0.85f, 6.0f, (float)rate);
+        for (size_t i = 0; i < b.at(syl) && b.at(t) + i < b.n(); ++i) {
+            const float w = r.bi();
+            b.x[b.at(t) + i] += (f1.bp(w) + f2.bp(w) * 0.6f) * envAHR(b.t(i), syl * 0.35f, syl * 0.25f, syl * 0.4f);
+        }
+        t += syl + (r.chance(0.3f) ? r.range(0.15f, 0.4f) : 0.02f);
+    }
+    filter(b, Biquad::LP, 2600.0f, 0.7f);
+    trim(b);
+    normalize(b, level::kCreature - 9.0f);
+    return b.sound();
+}
+
+Sound windowPull(int rate) {  // der Arm faehrt heraus: ein Sog, dann ein Zug wie durch Stoff
+    Rand r(9990u);
+    Buf b(0.9f, rate);
+    dsp::Svf f;
+    for (size_t i = 0; i < b.n(); ++i) {
+        const float t = b.t(i);
+        f.set(200.0f + 900.0f * dsp::smooth01(t / 0.5f), 1.5f, (float)rate);
+        b.x[i] = f.bp(r.bi()) * envAHR(t, 0.25f, 0.15f, 0.4f) * 0.8f;
+    }
+    Biquad lp = Biquad::make(Biquad::LP, 90.0f, 0.7f, (float)rate);
+    for (size_t i = 0; i < b.n(); ++i) b.x[i] += lp.run(r.bi()) * 1.5f * envAHR(b.t(i), 0.3f, 0.1f, 0.4f);
+    trim(b);
+    normalize(b, level::kCreature - 3.0f);
+    return b.sound();
+}
+
 // --- Schreck (V11): der toedliche Zugriff -----------------------------------------------------------
 // Aufbau beider Schrecken: Druckstoss (Unterbass mit fallendem Ton) und Rauschschlag im selben Moment,
 // darueber der Schrei der Kreatur, angeraut und gesaettigt; danach Ohrenklingen (hoher Sinus) und ein
@@ -717,6 +998,19 @@ void addCreatureSounds(std::vector<SoundDef>& d, int rate) {
     for (int v = 0; v < 3; ++v) d.push_back({std::format("hal_scratch_{}", v), [=] { return scratchWall(rate, v); }});
     for (int v = 0; v < 2; ++v) d.push_back({std::format("hal_breath_{}", v), [=] { return halBreath(rate, v); }});
     d.push_back({"music_box", [=] { return musicBox(rate); }});
+    // V13.2: neue Wesen
+    for (int v = 0; v < 4; ++v) d.push_back({std::format("faceling_hum_{}", v), [=] { return facelingHum(rate, v); }});
+    for (int v = 0; v < 2; ++v) d.push_back({std::format("faceling_outburst_{}", v), [=] { return facelingOutburst(rate, v); }});
+    d.push_back({"stone_swing", [=] { return stoneSwing(rate); }});
+    for (int v = 0; v < 2; ++v) d.push_back({std::format("hit_body_{}", v), [=] { return hitBody(rate, v); }});
+    for (int v = 0; v < 6; ++v) d.push_back({std::format("skin_mimic_{}", v), [=] { return skinMimic(rate, v); }});
+    for (int v = 0; v < 3; ++v) d.push_back({std::format("wretch_gurgle_{}", v), [=] { return wretchGurgle(rate, v); }});
+    for (int v = 0; v < 3; ++v) d.push_back({std::format("wretch_snarl_{}", v), [=] { return wretchSnarl(rate, v); }});
+    for (int v = 0; v < 3; ++v) d.push_back({std::format("wretch_plead_{}", v), [=] { return wretchPlead(rate, v); }});
+    for (int v = 0; v < 4; ++v) d.push_back({std::format("rat_squeak_{}", v), [=] { return ratSqueak(rate, v); }});
+    d.push_back({"rat_scream", [=] { return ratScream(rate); }});
+    for (int v = 0; v < 4; ++v) d.push_back({std::format("window_whisper_{}", v), [=] { return windowWhisper(rate, v); }});
+    d.push_back({"window_pull", [=] { return windowPull(rate); }});
 }
 
 }  // namespace lim::audio

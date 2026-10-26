@@ -13,7 +13,11 @@
   "generator": "map",
   "map": "level188",
   "presence_region": 0,
-  "presence": { "hound": false, "smiler": false, "gestalt": true, "blackout": false },
+  // V13.2: Faceling im rosa Kleid (toedlich, nur in den Gaengen), Skin-Stealer in den Gaengen, drei Fensterwesen im Hof
+  "presence": { "hound": false, "smiler": false, "gestalt": true, "blackout": false,
+               "faceling": { "mode": "lethal", "group": [1, 1], "every": 220, "rooms": ["gang", "zelle", "treppenhaus"] },
+               "skinstealer": { "mode": "true", "group": [1, 1], "every": 320, "chance": 0.35, "rooms": ["gang", "zelle", "treppenhaus"] },
+               "window": { "count": 3 } },
   "next_level": "level5",
   "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0 },
 

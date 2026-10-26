@@ -332,6 +332,7 @@ private:
     int deepStage_ = 0;
     std::string checkpoint_, checkpointLabel_;       // V11: letzter Sicherungspunkt
     int killRole_ = -1;                              // V11
+    double hitScale_ = 1.0;                          // V13.2: Schaden der Schlaege (stalker_hit / 35)
     bool killCam_ = false;                           // V11
     double killT_ = 0.0;                             // V11: Zeit seit dem Zugriff
     float killYaw0_ = 0.0f, killPitch0_ = 0.0f;      // V11: Blick im Moment des Zugriffs

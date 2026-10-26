@@ -54,7 +54,7 @@ FigureModel buildFigure(anim::Figure f, JobSystem* jobs);
 FigureModel buildEntity(anim::Entity e, JobSystem* jobs);
 // V13: ein Wesen aus Blender (data/models/<entityModel>_l<Stufe>.glb, Skin mit Knochen "B00".., Materialien fm=ent_*).
 // false, wenn eine Stufe fehlt oder nicht passt (dann bleibt das prozedurale Modell); info: Quelle fuer das Protokoll
-bool entityFromGlb(anim::Entity e, FigureModel& out, std::string& info);
+bool entityFromGlb(anim::Entity e, FigureModel& out, std::string& info, const std::string& base = "");  // V13.2: base = Variante
 // V13: Inhalt-Hash eines Modells (Punkte und Indizes aller Stufen) - fuer den Nachweis im Protokoll
 u64 modelHash(const FigureModel& m);
 // Kennzahlen fuer das Protokoll

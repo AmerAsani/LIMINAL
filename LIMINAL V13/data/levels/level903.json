@@ -12,7 +12,9 @@
   "generator": "map",
   "map": "level903",
   "presence_region": 0,
-  "presence": { "hound": false, "smiler": false, "gestalt": false, "blackout": false },
+  // V13.2: friedliche Facelings (leben neben Menschen, winken)
+  "presence": { "hound": false, "smiler": false, "gestalt": false, "blackout": false,
+               "faceling": { "mode": "peaceful", "group": [2, 4], "every": 50 } },
   "next_level": "level36",
   "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0 },
 

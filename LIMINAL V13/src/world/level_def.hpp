@@ -87,6 +87,20 @@ struct StyleOverride {
     std::optional<std::string> wallTex, floorTex, ceilTex;  // V12
 };
 
+// V13.2: weitere Wesen je Ebene (Level-JSON "presence": {"faceling": {...}, "skinstealer": ..., "wretch": ..., "rat": ...,
+// "window": ...}); Verhalten nach den Wikidot-Seiten (ENTITY_ABGLEICH.md, KREATUR_<Name>.md)
+enum KinIndex : int { KIN_FACELING, KIN_SKINSTEALER, KIN_WRETCH, KIN_RAT, KIN_WINDOW, KIN_COUNT };
+struct KinDef {
+    bool on = false;
+    std::string mode;                // je Wesen (Faceling: peaceful|irritable|armed|lethal; Skin-Stealer: skin|true;
+                                     // Wretch: shambler|sprinter|mixed; Ratte: normal|bald; Fenster: wall)
+    int groupMin = 1, groupMax = 1;  // so viele zugleich (je Auftritt)
+    double every = 180.0;            // mittlerer Abstand der Auftritte (s)
+    double chance = 0.0;             // je Wesen: Skin-Stealer hungrig; Wretch im zweiten Stadium (fleht); Ratte: Schrei-Ereignis
+    int count = 0;                   // Fensterwesen: so viele Fenster
+    std::vector<std::string> rooms;  // nur in diesen Raumtypen (leer: ueberall)
+};
+
 struct RoomTypeDef {
     int index = 0;
     std::string key, label;
@@ -235,6 +249,7 @@ struct LevelDef {
     bool allowHound = true, allowSmiler = true, allowGestalt = true, allowBlackout = true;
     bool allowClump = false;  // V11: Buendel (nur wo die Karte Lager hat)
     double clumpRate = 1.0;   // V11: Anteil der Gelegenheiten, bei denen es einzieht (Level 1: selten)
+    std::array<KinDef, KIN_COUNT> kin;  // V13.2
     bool flashlight = true;   // V11: Level 6 - die Lampe gibt kein Licht
     bool touchLight = false;  // V11: Level 6 - Waende in Armlaenge zeichnen sich schwach ab
     bool mapped() const { return map != nullptr; }

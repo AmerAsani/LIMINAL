@@ -6,7 +6,9 @@
 #include <cstdint>
 
 #include "core/log.hpp"
+#include "world/level_def.hpp"
 #include "world/room.hpp"
+#include "world/sector.hpp"
 #include "world/world.hpp"
 
 namespace lim::game {
@@ -24,6 +26,7 @@ vec3 nrmF(vec3 v, vec3 fb) {
     return l > 1e-5f ? v / l : fb;
 }
 vec3 dirYaw(float y) { return {std::cos(y), std::sin(y), 0.0f}; }
+vec3 rotateYaw(vec3 v, float a) { return {v.x * std::cos(a) - v.y * std::sin(a), v.x * std::sin(a) + v.y * std::cos(a), v.z}; }
 
 // dunkel: kein Raumlicht (Leuchten aus, dunkler Raum oder Stromausfall) - die Taschenlampe zaehlt nicht.
 // V11: (x, y) fuer die Welle des Stromausfalls
@@ -37,14 +40,16 @@ bool inBeam(const Viewer& v, world::World& w, vec3 p, float range) {
     if (!v.flashOn) return false;
     vec3 d = p - v.flashPos;
     const float len = length(d);
-    return len < range && len > 0.05f && dot(d / len, v.flashDir) > 0.9f && clearSight(w, v.flashPos, p);
+    // V13.2: verdeckt nur, wenn auch vom Auge aus keine Sicht ist - dicht an der Wand liegt die Lampe in der Wandkachel
+    return len < range && len > 0.05f && dot(d / len, v.flashDir) > 0.9f && (clearSight(w, v.flashPos, p) || clearSight(w, v.eye, p));
 }
 }  // namespace
 
 // V13.2: Lichtreaktion - im Kegel der Lampe zuckt das Wesen zurueck (light 1), nach 'hold' s gewoehnt es sich (geht auf 0)
 template <class A>
-void lightReact(A& a, const Presence::Context& c, vec3 at, float range, double dt, double hold) {
-    const bool lit = inBeam(c.view, *c.world, at, range);
+void lightReact(A& a, const Presence::Context& c, vec3 at, float range, double dt, double hold, const vec3* at2 = nullptr) {
+    // V13.2: at2 - zweiter Punkt (Brust), falls eine Kante den Strahl zum Kopf verdeckt
+    const bool lit = inBeam(c.view, *c.world, at, range) || (at2 && inBeam(c.view, *c.world, *at2, range));
     a.lightT = lit ? a.lightT + dt : 0.0;
     a.light = lit ? (float)std::clamp(1.0 - (a.lightT - hold) / 1.2, 0.0, 1.0) : 0.0f;
     a.lightFrom = c.view.flashPos;
@@ -76,6 +81,13 @@ struct Presence::Agent {
     float tilt = 0.0f, lean = 0.0f, reach = 0.0f, jaw = 0.0f, alert = 0.0f, crouch = 0.0f, growl = 0.0f, fly = 0.0f, shiver = 0.0f;
     float hang = 0.0f, bait = 0.0f;  // V11 Buendel: verborgen in der Decke, Koederarm
     float light = 0.0f, perceive = 0.0f;  // V13.2: im Lichtkegel, nimmt etwas wahr (Richtung perceiveAt)
+    float wave = 0.0f, talk = 0.0f, plea = 0.0f, strike = 0.0f;  // V13.2: Gesten (Zweibeiner, Fensterwesen)
+    bool strikeLoop = false;
+    // V13.2: neue Wesen - Art je Ebene, Hunger (Skin-Stealer), zweites Stadium (Wretch), allein (Ziel ohne Mitspieler
+    // in der Naehe), Reizung, Wiedererkennen, Sprechen, Laute, Sprintstoss, Gruppe
+    int mode = 0, group = -1;
+    bool hungry = false, pleads = false, alone = true;
+    double provoke = 0.0, recog = 0.0, speakT = 0.0, talkT = 0.0, growlT = 0.0, burst = 0.0;
     double lightT = 0.0;                  // V13.2: wie lange schon im Lichtkegel
     vec3 perceiveAt, lightFrom;
     vec3 up{0, 0, 1}, fwd{};
@@ -93,6 +105,7 @@ struct Presence::Agent {
     // V13.2 Koop: Kennung im Netz, Ziel (Spieler), Puppe beim Gast (Proben des Hosts zum Nachfuehren)
     u16 netId = 0;
     int target = 0;
+    int variant = 0;  // V13.2: Modellvariante (anim::entityVariants)
     bool puppet = false, netLit = false;
     struct Sample {
         double t = 0.0;
@@ -110,7 +123,8 @@ struct Presence::Agent {
             rig.setPose(anim.pose());
         } else {
             cre.init(ent, p, y, seed);
-            rig.initEntity(ent);
+            const auto& vars = anim::entityVariants(ent);
+            rig.initEntity(ent, variant > 0 && variant < (int)vars.size() ? vars[(size_t)variant] : "");
             rig.setCreaturePose(cre.pose());
         }
     }
@@ -137,6 +151,11 @@ const char* Presence::roleName(Role r) {
         case Role::Gestalt: return "Gestalt";
         case Role::Nest: return "Nest";
         case Role::Clump: return "Clump";
+        case Role::Faceling: return "Faceling";
+        case Role::SkinStealer: return "Skin-Stealer";
+        case Role::Wretch: return "Wretch";
+        case Role::Rat: return "Death Rat";
+        case Role::Window: return "Fensterwesen";
     }
     return "?";
 }
@@ -148,6 +167,8 @@ void Presence::clear() {
     agents_.clear();
     hive_ = Hive{};
     pendingSmiler_ = -1.0;
+    windowsPlaced_ = false;  // V13.2: neue Ebene, neue Fenster
+    screamT_ = 0.0;
 }
 
 void Presence::setGrace(double s) {
@@ -155,6 +176,7 @@ void Presence::setGrace(double s) {
     nextBlackout_ = std::max(nextBlackout_, s * 0.8);
     nextHive_ = std::max(nextHive_, s * 0.4);
     nextGestalt_ = std::max(nextGestalt_, s * 0.6);
+    for (double& k : nextKin_) k = std::max(k, s * 0.5);  // V13.2
 }
 
 void Presence::remove(size_t i) { agents_.erase(agents_.begin() + (std::ptrdiff_t)i); }
@@ -245,10 +267,15 @@ int Presence::swarm(vec3& center) const {
 
 // --- Orte finden -------------------------------------------------------------------------------
 // Versteckter Platz auf dem Weg lo..hi (Kosten) vom Spieler, ausserhalb seines Blicks
-bool Presence::hiddenSpawn(const Context& c, int lo, int hi, bool behind, vec3& out) {
+bool Presence::hiddenSpawn(const Context& c, int lo, int hi, bool behind, vec3& out, const std::function<bool(vec3)>& ok) {
     if (!fld().valid()) return false;
     std::vector<std::pair<i64, i64>> cand;
     fld().ring(lo, hi, cand);
+    if (ok)  // V13.2: nur Stellen, die dem Wesen erlaubt sind (Raumtypen)
+        std::erase_if(cand, [&](const std::pair<i64, i64>& xy) {
+            const world::Tile* t = c.world->tileIfLoaded(xy.first, xy.second);
+            return !t || !ok(vec3{(float)xy.first + 0.5f, (float)xy.second + 0.5f, t->floor});
+        });
     if (cand.empty()) return false;
     const vec3 fl = nrmF(flat(c.view.look), {1, 0, 0});
     for (int pass = 0; pass < 2; ++pass)
@@ -525,20 +552,17 @@ void Presence::force(Role r, double dist) {
 
 void Presence::showcase(int kind, vec3 pos, float yaw, float walkSpeed) {
     auto a = std::make_unique<Agent>();
-    a->role = kind == 1 ? Role::Hound
-              : kind == 2 ? Role::Moth
-              : kind == 3 ? Role::Gestalt
-              : kind == 4 ? Role::Nest
-              : kind == 5 ? Role::Clump
-                          : Role::Smiler;
-    a->human = kind >= 6;
+    // V13.2: kind 0..kEntityCount-1 = Wesen (Rolle = Entity, gleiche Reihenfolge), 99 = Mensch (der Spieler)
+    a->human = kind == 99;
     a->ent = (Entity)std::clamp(kind, 0, anim::kEntityCount - 1);
+    a->role = (Role)std::clamp(kind, 0, kRoleCount - 1);
     a->showcase = true;
     a->walkShow = walkSpeed > 0.0f;
     a->speed = walkSpeed;
     a->glow = 1.0f;
     a->look = kind == 0;
     if (a->ent == Entity::Moth) pos.z += 1.3f;
+    if (a->ent == Entity::Window) pos.z += 1.9f;  // V13.2: Mitte des Fensters (Level 188: 1,9 m ueber dem Boden)
     a->initBody(pos, yaw, (unsigned)rng_.randint(1, 1 << 30));
     a->rig.setGlow(1.0f);
     if (a->ent == Entity::Moth && a->walkShow) a->fly = 1.0f;
@@ -575,8 +599,38 @@ bool Presence::showcaseSet(const std::string& key, float v) {
     else if (key == "perceive") a->perceive = v, a->perceiveAt = a->pos + side * 3.0f + vec3{0, 0, 0.8f};
     else if (key == "look") a->look = v > 0.5f;
     else if (key == "speed") a->speed = v, a->walkShow = v > 0.0f;
+    else if (key == "wave") a->wave = v;
+    else if (key == "talk") a->talk = v;
+    else if (key == "plea") a->plea = v;
+    else if (key == "strike") a->strike = v, a->strikeLoop = v >= 1.0f;
+    else if (key == "variant") a->variant = (int)v, a->initBody(a->pos, a->yaw, 7);
     else return false;
     return true;
+}
+
+bool Presence::kinSet(Role r, const std::string& key, double v) {
+    for (auto& a : agents_)
+        if (a->role == r && !a->showcase) {
+            if (key == "hungry") a->hungry = v > 0.5;
+            else if (key == "pleads") a->pleads = v > 0.5;
+            else if (key == "mode") a->mode = (int)v;
+            else if (key == "provoke") a->provoke = v;
+            else return false;
+            return true;
+        }
+    return false;
+}
+
+int Presence::variantOf(Role r) const {
+    for (const auto& a : agents_)
+        if (a->role == r && !a->showcase) return a->variant;
+    return -1;
+}
+
+vec3 Presence::headOf(Role r) const {
+    for (const auto& a : agents_)
+        if (a->role == r && !a->showcase) return a->cre.headPos();
+    return {};
 }
 
 void Presence::clearShowcase() {
@@ -1144,6 +1198,11 @@ void Presence::think(Agent& a, double dt, const Context& c, std::vector<Event>& 
         case Role::Moth: thinkMoth(a, dt, c, out); break;
         case Role::Gestalt: thinkGestalt(a, dt, c, out); break;
         case Role::Clump: thinkClump(a, dt, c, out); break;
+        case Role::Faceling: thinkFaceling(a, dt, c, out); break;  // V13.2
+        case Role::SkinStealer: thinkSkinStealer(a, dt, c, out); break;
+        case Role::Wretch: thinkWretch(a, dt, c, out); break;
+        case Role::Rat: thinkRat(a, dt, c, out); break;
+        case Role::Window: thinkWindow(a, dt, c, out); break;
         default: break;
     }
 }
@@ -1374,6 +1433,17 @@ void Presence::regie(double dt, const Context& c, std::vector<Event>& out) {
             else if (r == Role::Gestalt) spawnGestalt(c, out, fd);
             else if (r == Role::Clump) {
                 if (!spawnClump(c, out, true)) log::info("Praesenz: erzwungenes Buendel nicht moeglich (kein Lager)");
+            } else if (r == Role::Window) {  // V13.2: Fenster der Ebene (neu verteilt)
+                windowsPlaced_ = false;
+            } else if (r >= Role::Faceling) {  // V13.2: wie die Ebene sie kennt; kennt sie es nicht, die Grundart
+                static std::array<world::KinDef, world::KIN_COUNT> base;
+                Context x = c;
+                if (!c.kin || !c.kin[(size_t)r - (size_t)Role::Faceling].on) {
+                    if (c.kin) std::copy(c.kin, c.kin + world::KIN_COUNT, base.begin());
+                    base[(size_t)r - (size_t)Role::Faceling].on = true;
+                    x.kin = base.data();
+                }
+                if (!spawnKin(r, x, out)) log::info("Praesenz: erzwungenes {} nicht moeglich", roleName(r));
             }
             else if (!hive_.active && !spawnHive(c, fd > 0.0 ? fd : 0.0) && fd <= 0.0)
                 log::info("Praesenz: erzwungenes Nest nicht moeglich");
@@ -1452,6 +1522,42 @@ void Presence::regie(double dt, const Context& c, std::vector<Event>& out) {
             }
         }
     }
+    // V13.2: neue Wesen der Ebene (Level-JSON presence.<wesen>): je Wesen eine Gruppe zur Zeit; die Fensterwesen einmal
+    // je Ebene in dunklen Fenstern; die Ratten fallen ab und zu irgendwo ueber ein anderes Wesen her (Schrei-Ereignis)
+    if (c.mode > 0 && !c.suspended && c.kin) {
+        if (!windowsPlaced_) placeWindows(c);
+        for (int k = 0; k < world::KIN_WINDOW; ++k) {
+            const world::KinDef& K = c.kin[k];
+            if (!K.on) continue;
+            const Role r = (Role)((int)Role::Faceling + k);
+            bool alive = false;
+            for (const auto& a : agents_) alive = alive || (a->role == r && !a->showcase);
+            if (alive) continue;
+            nextKin_[k] -= dt;
+            if (nextKin_[k] <= 0.0) nextKin_[k] = spawnKin(r, c, out) ? rng_.uniform(K.every * 0.7, K.every * 1.3) * c.stalkerPause : 8.0;
+        }
+        const world::KinDef& R = c.kin[world::KIN_RAT];
+        if (R.on && R.chance > 0.0 && screamT_ <= 0.0) {
+            nextScream_ -= dt * R.chance;
+            vec3 p;
+            if (nextScream_ <= 0.0 && hiddenSpawn(c, 90, 240, false, p)) {
+                nextScream_ = rng_.uniform(160.0, 320.0);
+                screamT_ = rng_.uniform(3.0, 5.0);
+                screamPos_ = p + vec3{0, 0, 0.3f};
+                screamTick_ = 0.0;
+                out.push_back({Event::Scream, Role::Rat, screamPos_, 1.0f});
+                log::info("Praesenz: Schrei-Ereignis der Ratten bei ({:.1f}, {:.1f})", p.x, p.y);
+            } else if (nextScream_ <= 0.0) {
+                nextScream_ = 10.0;
+                log::info("Praesenz: Schrei-Ereignis - kein Ort ausser Sicht, spaeter");
+            }
+        }
+    }
+    if (screamT_ > 0.0) {  // das Licht flackert, bis es vorbei ist
+        screamT_ -= dt;
+        screamTick_ -= dt;
+        if (screamTick_ <= 0.0) screamTick_ = rng_.uniform(0.3, 0.6), out.push_back({Event::Flicker, Role::Rat, screamPos_ + vec3{0, 0, 2.0f}});
+    }
     // V11: Buendel - haust in den Deckenschaechten der Karte; hoechstens eins in Hoerweite. Ist es weit weg und
     // lauert, verschwindet es (es wartet anderswo)
     if (c.mode > 0 && !c.suspended && c.allowClump && c.lairs && !c.lairs->empty()) {
@@ -1484,7 +1590,8 @@ void Presence::animate(Agent& a, double dt, const Context& c, std::vector<Event>
     }
     // Motten am Ruheplatz und weit weg: Pose bleibt (sie sitzen still)
     if (a.role == Role::Moth && a.state == 0 && a.stateT > 2.0 && !a.showcase) return;
-    const bool audible = a.role == Role::Hound || a.role == Role::Smiler || a.role == Role::Clump;
+    const bool audible = a.role == Role::Hound || a.role == Role::Smiler || a.role == Role::Clump || a.role == Role::Faceling ||
+                         a.role == Role::SkinStealer || a.role == Role::Wretch || a.role == Role::Rat;  // V13.2
     if (a.human) {
         anim::Animator::Input in;
         in.pos = a.pos;
@@ -1503,7 +1610,7 @@ void Presence::animate(Agent& a, double dt, const Context& c, std::vector<Event>
     in.tilt = a.tilt;
     in.lean = a.lean;
     in.reach = a.reach;
-    in.reachAt = (a.puppet ? a.lookAt : c.view.eye) - vec3{0, 0, 0.35f};
+    in.reachAt = (a.puppet ? a.lookAt : c.view.eye) - vec3{0, 0, a.role == Role::Window ? 0.75f : 0.35f};  // V13.2: Fenster greift nach der Brust
     in.jaw = a.jaw;
     in.alert = a.alert;
     in.crouch = a.crouch;
@@ -1515,6 +1622,7 @@ void Presence::animate(Agent& a, double dt, const Context& c, std::vector<Event>
     in.hang = a.hang;
     in.bait = a.bait;
     in.light = a.light, in.perceive = a.perceive, in.perceiveAt = a.perceiveAt;
+    in.wave = a.wave, in.talk = a.talk, in.plea = a.plea, in.strike = a.strike;
     in.lightFrom = a.showcase && a.light > 0.0f && length(a.lightFrom) < 1e-3f ? c.view.eye : a.lightFrom;
     if (const world::Tile* t = c.world->tileIfLoaded(ifloor(a.pos.x), ifloor(a.pos.y))) in.clearance = t->clearance();
     a.cre.update(dt, in);
@@ -1659,6 +1767,10 @@ void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
             continue;
         }
         a.target = T->id;
+        // V13.2: allein - kein anderer Spieler naeher als 6 m am Ziel (der Skin-Stealer sucht Einzelne)
+        a.alone = true;
+        for (const Tgt& t : tgts)
+            if (&t != T && hdist(t.v->eye, T->v->eye) < 6.0f) a.alone = false;
         const Context ct = multi || !c.selfAlive ? ctxFor(*T) : c;
         curField_ = T->f;
         a.sight = perceive(ct.view, *c.world, a.feet(), H);
@@ -1670,7 +1782,8 @@ void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
         if (seen) {
             a.seenT += dt;
             a.unseenT = 0.0;
-            if (!a.sighted && !a.showcase && (a.role == Role::Smiler || a.role == Role::Hound || (a.role == Role::Clump && a.state >= 2)) &&
+            const bool kinThreat = (a.role == Role::Faceling && a.mode >= 2) || a.role == Role::SkinStealer || (a.role == Role::Wretch && !a.pleads);
+            if (!a.sighted && !a.showcase && (a.role == Role::Smiler || a.role == Role::Hound || (a.role == Role::Clump && a.state >= 2) || kinThreat) &&
                 (a.role == Role::Smiler || a.sight.level > 0.35f)) {
                 a.sighted = true;
                 ++encounters;
@@ -1698,6 +1811,7 @@ void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
             a.yaw += (float)dt * w;
             a.pos += vec3{std::cos(a.yaw), std::sin(a.yaw), 0.0f} * (float)(dt * speed);
         }
+        if (a.showcase && a.strikeLoop) a.strike = (float)std::fmod(a.age, 1.8) / 1.8f;  // V13.2: Schlag in Schleife
         animate(a, dt, ct, out);
     }
     // Abgaenge
@@ -1711,6 +1825,635 @@ void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
         } else {
             ++i;
         }
+    }
+}
+
+// --- V13.2: neue Wesen (ENTITY_ABGLEICH.md; Verhalten je Wesen: KREATUR_<Name>.md) -----------------------------------
+// Auftritte nach der Ebene (Level-JSON presence.<wesen>), ausser Sicht, in den erlaubten Raumtypen. Gemeinsam: sie
+// gehen umher (wander), sehen (Blickfeld, Licht, Abstand) und hoeren (Rennen, Gehen). Was sie dann tun, folgt der
+// jeweiligen Wikidot-Seite; jede Gefahr kuendigt sich an (Laut, Haltung) und hat einen Ausweg.
+namespace {
+int kinOf(Presence::Role r) { return (int)r - (int)Presence::Role::Faceling; }
+// Faceling: 0 friedlich (Level 903), 1 reizbar (Level 2), 2 feindselig mit Steinwerkzeug (Level 3), 3 toedlich (Level 188)
+int facelingMode(const std::string& m) { return m == "irritable" ? 1 : m == "armed" ? 2 : m == "lethal" ? 3 : 0; }
+}  // namespace
+
+bool Presence::roomAllowed(const Context& c, vec3 p, int kin) const {
+    if (!c.kin) return true;
+    const auto& rooms = c.kin[kin].rooms;
+    if (rooms.empty()) return true;
+    const world::Tile* t = c.world->tileIfLoaded(ifloor(p.x), ifloor(p.y));
+    if (!t || !t->room || !t->room->type) return false;
+    for (const std::string& k : rooms)
+        if (k == t->room->type->key) return true;
+    return false;
+}
+
+// umhergehen: zum Ziel (4..24 m um den Spieler, in erlaubten Raeumen), dort eine Weile stehen; true: geht gerade
+bool Presence::wander(Agent& a, double dt, const Context& c, double speed, int kin) {
+    if (a.timer2 > 0.0) {
+        a.timer2 -= dt;
+        return false;
+    }
+    if (a.hasGoal && hdist(a.pos, a.goal) > 0.8f && walkTo(a, a.field, speed, dt, c)) return true;
+    a.hasGoal = false;
+    a.timer2 = rng_.uniform(2.0, 7.0);
+    const float clear = a.ent == Entity::Rat ? 0.4f : 1.9f;
+    std::vector<std::pair<i64, i64>> cand;
+    fld().ring(40, 240, cand);
+    for (int tries = 0; tries < 40 && !cand.empty(); ++tries) {
+        auto [x, y] = cand[(size_t)rng_.randint(0, (i64)cand.size() - 1)];
+        const world::Tile* t = c.world->tileIfLoaded(x, y);
+        if (!t || !figureWalkable(t, clear)) continue;
+        const vec3 g{(float)x + 0.5f, (float)y + 0.5f, t->floor};
+        const float dd = hdist(g, a.pos);
+        if (dd > (a.ent == Entity::Rat ? 7.0f : 18.0f) || dd < 2.0f || !roomAllowed(c, g, kin)) continue;
+        a.field.build(*c.world, x, y, clear);
+        if (a.field.at(ifloor(a.pos.x), ifloor(a.pos.y)) < 0) continue;
+        a.goal = g;
+        a.hasGoal = true;
+        break;
+    }
+    return false;
+}
+
+bool Presence::spawnKin(Role r, const Context& c, std::vector<Event>& out) {
+    if (!c.kin) return false;
+    const int k = kinOf(r);
+    const world::KinDef& K = c.kin[k];
+    const bool rat = r == Role::Rat;
+    // ausser Sicht, 14..30 m Weg (Ratten 8..20 m); erlaubter Raum; Wretch bevorzugt das Dunkel (die Seite: im Schatten)
+    vec3 p;
+    bool ok = false;
+    const auto allowed = [&](vec3 q) { return roomAllowed(c, q, k); };
+    for (int tries = 0; tries < 8 && !ok; ++tries) {
+        // erst nah (14..30 m Weg), sonst weiter (Raeume der Art koennen weiter weg liegen - die Gaenge in Level 188)
+        if (!hiddenSpawn(c, rat ? 80 : 140, rat ? 200 : 300, false, p, allowed) && !hiddenSpawn(c, rat ? 80 : 140, 900, false, p, allowed)) return false;
+        if (r == Role::Wretch && tries < 5 && !darkTile(c, c.world->tileIfLoaded(ifloor(p.x), ifloor(p.y)), p.x, p.y)) continue;
+        ok = true;
+    }
+    if (!ok) return false;
+    const int n = (int)rng_.randint(K.groupMin, K.groupMax);
+    const int group = nextGroup_++;
+    int made = 0;
+    for (int i = 0; i < n; ++i) {
+        vec3 q = p;
+        if (i > 0) {  // die anderen in der Naehe (freie Kachel bis 2 m)
+            bool found = false;
+            for (int t = 0; t < 12 && !found; ++t) {
+                const vec3 c2 = p + vec3{(float)rng_.uniform(-2.0, 2.0), (float)rng_.uniform(-2.0, 2.0), 0.0f};
+                const world::Tile* tl = c.world->tileIfLoaded(ifloor(c2.x), ifloor(c2.y));
+                if (figureWalkable(tl, rat ? 0.4f : 1.9f) && std::fabs(tl->floor - p.z) < 0.4f) q = {c2.x, c2.y, tl->floor}, found = true;
+            }
+            if (!found) continue;
+        }
+        auto a = std::make_unique<Agent>();
+        a->role = r;
+        a->ent = (Entity)r;
+        a->group = group;
+        a->glow = 1.0f;
+        switch (r) {
+            case Role::Faceling:
+                a->mode = facelingMode(K.mode);
+                // Varianten: 1 entwickelt, 2 rosa Kleid; sonst verschieden (0, 3 Frau, 4 aelterer Mann - Entity 9: Haar, Haut,
+                // Kleidung und Koerperbau sind sehr verschieden)
+                a->variant = a->mode == 2 ? 1 : (a->mode == 3 ? 2 : (int)std::array<int, 3>{0, 3, 4}[(size_t)rng_.randint(0, 2)]);
+                break;
+            case Role::SkinStealer:
+                a->mode = K.mode == "skin" ? 1 : 0;
+                a->variant = a->mode;
+                a->hungry = rng_.uniform(0.0, 1.0) < K.chance;
+                break;
+            case Role::Wretch:
+                a->mode = K.mode == "sprinter" ? 1 : K.mode == "mixed" ? (int)rng_.randint(0, 1) : 0;
+                a->pleads = rng_.uniform(0.0, 1.0) < K.chance;
+                break;
+            case Role::Rat: a->variant = K.mode == "bald" ? 1 : 0; break;
+            default: break;
+        }
+        a->initBody(q, (float)rng_.uniform(-kPiF, kPiF), (unsigned)rng_.randint(1, 1 << 30));
+        a->rig.setGlow(1.0f);
+        a->timer2 = rng_.uniform(0.5, 3.0);
+        out.push_back({Event::Appear, r, q});
+        agents_.push_back(std::move(a));
+        ++made;
+    }
+    log::info("Praesenz: {} x{} bei ({:.1f}, {:.1f}), {:.0f} m", roleName(r), made, p.x, p.y, hdist(p, c.view.eye));
+    return made > 0;
+}
+
+// --- Faceling (Entity 9) --------------------------------------------------------------------------------------------
+// Menschen ohne Gesicht, schwaecher als ein Mensch. Je Ebene (KREATUR_Faceling.md):
+//   0 friedlich   leben ihr Leben nach, gehen umher; wen sie wiedererkennen, dem winken sie
+//   1 reizbar     in Gruppen; lassen einen in Ruhe - gereizt (Lampe lange im Gesicht, Bedraengen, Anrempeln) werden sie
+//                 ausfallend: sie schlagen zu (leichter Schaden) und beruhigen sich nach einer Weile; die Gruppe macht mit
+//   2 bewaffnet   feindselig, mit Steinwerkzeugen; kurzsichtig (kleine Augen), schwerhoerig (Ohrenschmalz): sie bemerken
+//                 einen erst nah - dann Hiebe mit dem Stein
+//   3 toedlich    im rosa Kleid, nur in den Gaengen: bleibt stehen und neigt den Kopf, dann kommt sie, zuletzt im Lauf
+void Presence::thinkFaceling(Agent& a, double dt, const Context& c, std::vector<Event>& out) {
+    if (a.state == 10) {
+        killPose(a, dt, c);
+        return;
+    }
+    const vec3 eye = c.view.eye;
+    const float d = hdist(a.pos, eye);
+    const vec3 head = a.cre.headPos();
+    const bool los = clearSight(*c.world, head + vec3{0, 0, 0.05f}, eye);
+    const vec3 toP = nrmF(flat(eye - a.pos), {1, 0, 0});
+    const float facing = dot(toP, dirYaw(a.yaw));
+    a.stateT += dt;
+    a.cool -= dt;
+    const vec3 chest = a.pos + vec3{0, 0, 1.25f};
+    lightReact(a, c, head, 12.0f, dt, 1e9, &chest);  // solange das Licht auf ihm liegt
+    const bool lit = a.light > 0.5f;
+    const float range = a.mode == 2 ? (lit ? 8.0f : 5.0f) : (a.mode == 3 ? 18.0f : 14.0f);
+    const bool sees = los && d < range && (facing > 0.2f || d < 3.0f);
+    const bool hears = (c.player->sprinting && d < (a.mode == 2 ? 6.0f : 14.0f)) || (a.mode == 2 && d < 2.5f && c.player->gait > 0.3f);
+    a.wave = 0.0f, a.reach = 0.0f, a.strike = 0.0f, a.alert = 0.0f, a.perceive = 0.0f, a.jaw = 0.0f;
+    auto setState = [&](int s) { a.state = s, a.stateT = 0.0; };
+    auto angry = [&](Agent& x) {
+        if (x.state == 2) return;
+        x.state = 2, x.stateT = 0.0;
+        out.push_back({Event::Hum, Role::Faceling, x.cre.headPos(), 1.0f});
+    };
+    switch (a.state) {
+        case 0: {  // geht umher, steht, lebt nach
+            a.look = sees && d < 9.0f;
+            a.lookAt = eye;
+            if (a.mode == 0) {  // friedlich: wiedererkennen (lange genug in der Naehe gesehen), dann winken
+                if (sees && d < 9.0f) a.recog += dt;
+                if (a.recog > 2.5 && a.cool <= 0.0 && sees && d < 9.0f) {
+                    setState(5);
+                    a.cool = rng_.uniform(35.0, 60.0);
+                    break;
+                }
+                if (d < 1.6f) break;  // nicht in den Weg laufen
+            } else if (a.mode == 1) {  // reizbar
+                if (lit && d < 9.0f && facing > 0.3f) a.provoke += dt;                   // Lampe im Gesicht
+                if (d < 1.3f) a.provoke += dt * 0.8;                                    // bedraengt
+                if (d < 1.6f && c.player->sprinting) a.provoke += 3.0;                  // angerempelt
+                a.provoke = std::max(0.0, a.provoke - dt * 0.25);
+                if (a.provoke > 2.5) {
+                    angry(a);
+                    // die Gruppe reagiert mit
+                    for (auto& o : agents_)
+                        if (o.get() != &a && o->role == Role::Faceling && o->group == a.group && hdist(o->pos, a.pos) < 10.0f && rng_.uniform(0.0, 1.0) < 0.65)
+                            angry(*o);
+                    break;
+                }
+            } else if (a.mode == 2) {  // feindselig: wer nah genug ist, wird bemerkt
+                if (sees || hears) {
+                    angry(a);
+                    break;
+                }
+            } else if (a.mode == 3) {  // toedlich: sieht sie einen in den Gaengen, bleibt sie stehen
+                if (sees && roomAllowed(c, eye, kinOf(Role::Faceling))) {
+                    setState(3);
+                    out.push_back({Event::Hum, Role::Faceling, head, 0.5f});
+                    break;
+                }
+            }
+            if (rng_.uniform(0.0, 1.0) < dt / 14.0) out.push_back({Event::Hum, Role::Faceling, head, 0.0f});  // leise Vokale
+            wander(a, dt, c, a.mode == 3 ? 0.8 : 1.0, kinOf(Role::Faceling));
+            break;
+        }
+        case 2: {  // aufgebracht / Angriff
+            a.look = true;
+            a.lookAt = eye;
+            a.alert = 1.0f;
+            const double speed = a.mode == 2 ? 2.7 : 2.3;
+            if (d > 1.3f) walkTo(a, fld(), speed, dt, c);
+            else a.yaw += wrapA(std::atan2(toP.y, toP.x) - a.yaw) * (float)std::min(1.0, dt * 6.0);
+            // Schlag: bewaffnet ein Hieb mit dem Stein (Ausholen 0,5 s, Treffer bei 0,62), sonst Fuchteln
+            if (a.mode == 2) {
+                if (a.timer > 0.0) {
+                    a.timer += dt / 0.9;
+                    a.strike = (float)std::min(a.timer, 0.999);
+                    if (a.timer >= 0.62 && a.timer - dt / 0.9 < 0.62 && d < 1.9f && c.mode >= 2)
+                        out.push_back({Event::Hit, Role::Faceling, head, 22.0f});
+                    if (a.timer >= 1.0) a.timer = 0.0, a.cool = 1.2;
+                } else if (d < 1.8f && a.cool <= 0.0) {
+                    a.timer = 1e-4;
+                    out.push_back({Event::Swing, Role::Faceling, head});
+                }
+            } else {
+                a.reach = d < 1.8f ? 1.0f : 0.0f;
+                if (d < 1.5f && a.cool <= 0.0 && c.mode >= 2) {
+                    out.push_back({Event::Hit, Role::Faceling, head, 8.0f});
+                    a.cool = 1.4;
+                }
+            }
+            if (rng_.uniform(0.0, 1.0) < dt / 3.0) out.push_back({Event::Hum, Role::Faceling, head, 1.0f});
+            // reizbar: beruhigt sich nach 8-12 s oder mit Abstand; bewaffnet: verliert einen aus den kurzsichtigen Augen
+            const bool calm = a.mode == 1 ? (a.stateT > 10.0 || d > 12.0f) : ((!sees && a.unseenT > 5.0 && d > 6.0f) || d > 18.0f);
+            if (calm) setState(0), a.provoke = 0.0, a.timer = 0.0, a.strike = 0.0f;
+            break;
+        }
+        case 3: {  // toedlich (rosa Kleid): Kopf schief - kommt - rennt
+            a.look = true;
+            a.lookAt = eye;
+            const bool inHalls = roomAllowed(c, eye, kinOf(Role::Faceling));
+            if (a.stateT < 1.6) {
+                a.perceive = 1.0f;
+                a.perceiveAt = eye;
+                break;
+            }
+            a.alert = 1.0f;
+            if (!inHalls || (a.unseenT > 6.0 && d > 8.0f) || d > 30.0f) {  // aus den Gaengen hinaus oder ausser Sicht: sie laesst ab
+                setState(0);
+                a.hasGoal = false;
+                break;
+            }
+            const bool run = d < 9.0f && los;
+            a.reach = d < 2.6f ? 1.0f - d / 2.6f : 0.0f;
+            if (d < 1.1f && std::fabs(a.pos.z - (float)c.player->z) < 1.0f && c.mode >= 2) {
+                out.push_back({Event::Attack, Role::Faceling, head, 1.0f});
+                startKill(a, c);
+                break;
+            }
+            walkTo(a, fld(), run ? 3.7 : 1.5, dt, c);
+            break;
+        }
+        case 5: {  // winken (friedlich)
+            a.look = true;
+            a.lookAt = eye;
+            a.wave = 1.0f;
+            a.yaw += wrapA(std::atan2(toP.y, toP.x) - a.yaw) * (float)std::min(1.0, dt * 3.0);
+            if (a.stateT > 3.2) setState(0), a.recog = 0.0;
+            break;
+        }
+        default: break;
+    }
+    // fort, wenn weit weg und ungesehen
+    if (a.state == 0 && ((d > 48.0f && a.unseenT > 3.0) || (a.age > 420.0 && a.unseenT > 5.0))) a.state = 9;
+}
+
+// --- Skin-Stealer (Entity 10) ---------------------------------------------------------------------------------------
+// Satt: geht ziellos umher, harmlos, solange man ihn nicht reizt (Lampe lange im Gesicht, zu nah, anrennen). Hungrig:
+// sucht Menschen, die allein unterwegs sind - kommt naeher (ungesehen schneller), spricht nach, um zu locken, haelt
+// inne (Ankuendigung) und toetet mit blossen Haenden. Getarnt (mode 1) traegt er Menschenhaut. Ausweg: ruhig weggehen,
+// Abstand und Deckung; im Mehrspieler: zusammenbleiben (er sucht Einzelne).
+void Presence::thinkSkinStealer(Agent& a, double dt, const Context& c, std::vector<Event>& out) {
+    if (a.state == 10) {
+        killPose(a, dt, c);
+        return;
+    }
+    const vec3 eye = c.view.eye;
+    const float d = hdist(a.pos, eye);
+    const vec3 head = a.cre.headPos();
+    const bool los = clearSight(*c.world, head + vec3{0, 0, 0.05f}, eye);
+    const vec3 toP = nrmF(flat(eye - a.pos), {1, 0, 0});
+    const float facing = dot(toP, dirYaw(a.yaw));
+    a.stateT += dt;
+    a.cool -= dt;
+    const vec3 chest = a.pos + vec3{0, 0, 1.45f};
+    lightReact(a, c, head, 14.0f, dt, 1e9, &chest);
+    const bool sees = los && d < 22.0f && (facing > 0.1f || d < 4.0f);
+    a.talk = 0.0f, a.reach = 0.0f, a.perceive = 0.0f, a.alert = 0.0f, a.jaw = 0.0f;
+    auto setState = [&](int s) { a.state = s, a.stateT = 0.0; };
+    auto speak = [&](double lo, double hi) {  // nachsprechen: einzelne Worte, um zu locken
+        a.speakT -= dt;
+        if (a.speakT <= 0.0 && d < 20.0f) {
+            a.speakT = rng_.uniform(lo, hi);
+            a.talkT = rng_.uniform(1.0, 1.8);
+            out.push_back({Event::Mimic, Role::SkinStealer, head, a.mode == 1 ? 1.0f : 0.6f});
+        }
+        if (a.talkT > 0.0) a.talkT -= dt, a.talk = 1.0f;
+    };
+    switch (a.state) {
+        case 0: {  // satt: umhergehen; schaut, wenn er einen sieht
+            a.look = sees && d < 14.0f;
+            a.lookAt = eye;
+            if (a.light > 0.5f && d < 10.0f) a.provoke += dt;
+            if (d < 2.0f) a.provoke += dt * 0.7;
+            if (d < 4.0f && c.player->sprinting) a.provoke += dt * 2.0;
+            a.provoke = std::max(0.0, a.provoke - dt * 0.2);
+            if (a.provoke > 3.0) {  // gereizt
+                setState(2);
+                break;
+            }
+            if (a.hungry && a.alone && sees) {
+                setState(1);
+                a.speakT = rng_.uniform(0.5, 2.0);
+                break;
+            }
+            if (a.look && a.mode == 1) speak(7.0, 13.0);  // getarnt spricht er Worte nach (spricht kaum)
+            if (a.look && d < 8.0f) {
+                a.perceive = 1.0f;
+                a.perceiveAt = eye;
+                break;  // bleibt stehen und sieht her
+            }
+            wander(a, dt, c, 0.9, kinOf(Role::SkinStealer));
+            break;
+        }
+        case 1: {  // hungrig: kommt naeher, lockt mit Worten
+            a.look = los;
+            a.lookAt = eye;
+            speak(3.5, 6.5);
+            if (!a.alone) {  // nicht allein: er gibt sich harmlos und zieht weiter
+                setState(0);
+                break;
+            }
+            if (d < 6.5f && los && a.stateT > 1.0 && a.cool <= 0.0) {
+                setState(3);  // haelt inne: Ankuendigung
+                a.burst = d;  // Abstand zu Beginn - weicht man ruhig zurueck, greift er nicht an
+                break;
+            }
+            walkTo(a, fld(), a.unseenT > 0.5 ? 2.3 : 1.15, dt, c);
+            if ((a.unseenT > 25.0 && d > 20.0f) || a.stateT > 90.0) setState(4), pickGoal(c, a, 260, 380, true);
+            break;
+        }
+        case 3: {  // haelt inne (1,4 s), der Kiefer oeffnet sich - dann greift er an. Wer ruhig zurueckweicht (Wiki: langsam
+                   // und ruhig weggehen), den laesst er ziehen und folgt erst wieder spaeter; wer rennt, reizt ihn
+            a.look = true;
+            a.lookAt = eye;
+            a.alert = 1.0f;
+            a.jaw = (float)std::min(1.0, a.stateT / 1.4);
+            a.perceive = 1.0f;
+            a.perceiveAt = eye;
+            if (c.player->sprinting) {
+                setState(2);
+            } else if (a.stateT > 1.4) {
+                if (d > a.burst + 0.7) setState(1), a.cool = 6.0;  // weicht zurueck: wieder nur folgen
+                else setState(2);
+            }
+            break;
+        }
+        case 2: {  // Angriff: stuermt, greift mit beiden Haenden
+            a.look = true;
+            a.lookAt = eye;
+            a.alert = 1.0f;
+            a.jaw = 0.8f;
+            a.reach = d < 2.6f ? 1.0f - d / 2.6f : 0.0f;
+            if (d < 1.2f && std::fabs(a.pos.z - (float)c.player->z) < 1.0f && c.mode >= 2) {
+                out.push_back({Event::Attack, Role::SkinStealer, head, 1.0f});
+                startKill(a, c);
+                break;
+            }
+            walkTo(a, fld(), 4.0, dt, c);
+            if ((a.unseenT > 6.0 && d > 10.0f) || d > 28.0f) setState(4), pickGoal(c, a, 260, 380, true);
+            break;
+        }
+        case 4: {  // zieht sich zurueck
+            a.look = false;
+            if (!a.hasGoal || !walkTo(a, a.field, 1.4, dt, c)) pickGoal(c, a, 260, 380, true);
+            if ((d > 30.0f && a.unseenT > 2.0) || (a.stateT > 40.0 && a.unseenT > 2.0)) a.state = 9;
+            break;
+        }
+        default: break;
+    }
+    if (a.state == 0 && ((d > 50.0f && a.unseenT > 3.0) || (a.age > 480.0 && a.unseenT > 5.0))) a.state = 9;
+}
+
+// --- Wretch (Entity 15) ---------------------------------------------------------------------------------------------
+// Feindselig, haelt sich im Schatten. Zwei Arten (die Seite: der Laut verraet die Gefahr): mode 0 schlurft (tiefes,
+// langsames Gurgeln), mode 1 sprintet schneller als ein Mensch (hohes Fauchen) - in Stoessen, dazwischen ringt er nach
+// Luft. Schlaege mit uebermenschlicher Kraft (Schaden, nicht sofort toedlich). Im zweiten Stadium (pleads) fleht er
+// um Wasser, Essen, Hilfe und greift nicht an.
+void Presence::thinkWretch(Agent& a, double dt, const Context& c, std::vector<Event>& out) {
+    const vec3 eye = c.view.eye;
+    const float d = hdist(a.pos, eye);
+    const vec3 head = a.cre.headPos();
+    const bool los = clearSight(*c.world, head + vec3{0, 0, 0.05f}, eye);
+    const vec3 toP = nrmF(flat(eye - a.pos), {1, 0, 0});
+    const float facing = dot(toP, dirYaw(a.yaw));
+    a.stateT += dt;
+    a.cool -= dt;
+    const vec3 chest = a.pos + vec3{0, 0, 1.1f};
+    lightReact(a, c, head, 12.0f, dt, 1.2, &chest);
+    const bool playerLit = c.view.flashOn || litPoint(c.view, *c.world, eye - vec3{0, 0, 0.6f});
+    const bool sees = los && d < (playerLit ? 18.0f : 7.0f) && (facing > 0.1f || d < 4.0f);
+    const int here = fld().at(ifloor(a.pos.x), ifloor(a.pos.y));
+    const float pathD = here >= 0 ? (float)here / 10.0f : 1e9f;
+    const bool hears = (c.player->sprinting && pathD < (a.mode == 1 ? 24.0f : 16.0f)) || (pathD < 6.0f && c.player->gait > 0.3f);
+    const float pitch = a.mode == 1 ? 1.0f : 0.0f;
+    a.reach = 0.0f, a.plea = 0.0f, a.growl = 0.0f, a.alert = 0.0f;
+    auto setState = [&](int s) { a.state = s, a.stateT = 0.0; };
+    a.timer -= dt;
+    if (a.timer <= 0.0 && d < 26.0f) {  // Laute: Gurgeln (traege), Fauchen (schnell), Flehen (zweites Stadium)
+        a.timer = a.pleads ? rng_.uniform(3.5, 6.5) : rng_.uniform(a.state == 2 ? 2.0 : 5.0, a.state == 2 ? 4.0 : 11.0);
+        out.push_back({a.pleads ? Event::Plead : Event::Gurgle, Role::Wretch, head, pitch});
+        a.growlT = 1.2;
+    }
+    if (a.growlT > 0.0) a.growlT -= dt, a.growl = 1.0f;
+    if (a.pleads) {  // fleht: dreht sich zu, kommt langsam nach (Abstand 3 m), greift nie an
+        a.look = los && d < 16.0f;
+        a.lookAt = eye;
+        if (a.look) {
+            a.plea = 1.0f;
+            if (d > 3.2f && d < 14.0f) walkTo(a, fld(), 0.6, dt, c);
+            else a.yaw += wrapA(std::atan2(toP.y, toP.x) - a.yaw) * (float)std::min(1.0, dt * 2.0);
+        } else {
+            wander(a, dt, c, 0.5, kinOf(Role::Wretch));
+        }
+        if ((d > 40.0f && a.unseenT > 3.0) || (a.age > 240.0 && a.unseenT > 3.0)) a.state = 9;
+        return;
+    }
+    switch (a.state) {
+        case 0: {  // lauert im Schatten, schlurft umher
+            a.look = false;
+            if (sees || hears) {
+                setState(2);
+                a.timer = 0.0;  // gleich ein Laut
+                a.burst = rng_.uniform(4.0, 6.0);
+                break;
+            }
+            wander(a, dt, c, a.mode == 1 ? 1.1 : 0.55, kinOf(Role::Wretch));
+            break;
+        }
+        case 2: {  // jagt
+            a.look = los;
+            a.lookAt = eye;
+            a.alert = 1.0f;
+            // Sprinter in Stoessen: 4-6 s Lauf, 2-3 s ringt er nach Luft (die Gelegenheit zu entkommen)
+            double speed = 1.35;
+            if (a.mode == 1) {
+                a.burst -= dt;
+                if (a.burst <= 0.0 && a.timer2 <= 0.0) a.timer2 = rng_.uniform(2.0, 3.0);
+                if (a.timer2 > 0.0) {
+                    a.timer2 -= dt;
+                    speed = 0.4;
+                    a.growl = 1.0f;
+                    if (a.timer2 <= 0.0) a.burst = rng_.uniform(4.0, 6.0);
+                } else {
+                    speed = 4.9;
+                }
+            }
+            if (d < 1.6f) {
+                a.reach = 1.0f;
+                a.yaw += wrapA(std::atan2(toP.y, toP.x) - a.yaw) * (float)std::min(1.0, dt * 5.0);
+                if (a.cool <= 0.0 && c.mode >= 2 && std::fabs(a.pos.z - (float)c.player->z) < 1.0f) {
+                    out.push_back({Event::Hit, Role::Wretch, head, a.mode == 1 ? 26.0f : 34.0f});
+                    a.cool = a.mode == 1 ? 1.3 : 1.8;
+                }
+            } else {
+                walkTo(a, fld(), speed, dt, c);
+            }
+            if (sees || hears) a.lostT = 0.0;
+            else a.lostT += dt;
+            if (a.lostT > (a.mode == 1 ? 4.0 : 7.0) || d > 34.0f) setState(4), pickGoal(c, a, 220, 360, true);
+            break;
+        }
+        case 4: {  // laesst ab, zurueck ins Dunkel
+            a.look = false;
+            if (sees && d < 10.0f) {
+                setState(2);
+                break;
+            }
+            if (!a.hasGoal || !walkTo(a, a.field, a.mode == 1 ? 1.2 : 0.6, dt, c)) pickGoal(c, a, 220, 360, true);
+            if ((d > 30.0f && a.unseenT > 2.0) || (a.stateT > 45.0 && a.unseenT > 2.0)) a.state = 9;
+            break;
+        }
+        default: break;
+    }
+    if (a.state == 0 && ((d > 50.0f && a.unseenT > 3.0) || (a.age > 420.0 && a.unseenT > 5.0))) a.state = 9;
+}
+
+// --- Death Rat (Entity 24) ------------------------------------------------------------------------------------------
+// Meist harmlos. Klein, in Gruppen, huscht an den Waenden entlang, schnueffelt, frisst. Kommt man nah (oder rennt), stieben
+// sie auseinander und quieken; bedraengt (Licht lange auf ihr, sehr nah) beisst eine zu - wie die Seite sagt: man weiss nie,
+// wie sie reagieren. Sie fallen ueber andere Wesen her (das "Screaming Event": Kreischen, Flackern) - siehe regie.
+void Presence::thinkRat(Agent& a, double dt, const Context& c, std::vector<Event>& out) {
+    const vec3 feet{(float)c.player->x, (float)c.player->y, (float)c.player->z};
+    const float d = hdist(a.pos, feet);
+    a.stateT += dt;
+    a.cool -= dt;
+    lightReact(a, c, a.pos + vec3{0, 0, 0.08f}, 10.0f, dt, 1e9);
+    a.reach = 0.0f, a.jaw = 0.0f, a.perceive = 0.0f;
+    auto setState = [&](int s) { a.state = s, a.stateT = 0.0; };
+    if (a.light > 0.5f && d < 4.0f) a.provoke += dt;
+    if (d < 0.9f) a.provoke += dt * 1.5;
+    a.provoke = std::max(0.0, a.provoke - dt * 0.3);
+    const bool scare = d < (c.player->sprinting ? 6.0f : 3.0f) || (a.light > 0.5f && d < 6.0f);
+    switch (a.state) {
+        case 0: {  // schnueffeln, fressen, huschen
+            if (a.provoke > 2.5 && d < 1.6f && a.cool <= 0.0) {  // bedraengt: beisst zu
+                a.reach = 1.0f;
+                a.cool = 3.0;
+                a.provoke = 0.0;
+                out.push_back({Event::Squeak, Role::Rat, a.pos, 1.0f});
+                if (c.mode >= 2) out.push_back({Event::Hit, Role::Rat, a.pos, 6.0f});
+                setState(1);
+                break;
+            }
+            if (scare) {
+                setState(1);
+                out.push_back({Event::Squeak, Role::Rat, a.pos, 0.6f});
+                // weg vom Spieler
+                const vec3 away = nrmF(flat(a.pos - feet), dirYaw(a.yaw));
+                a.hasGoal = false;
+                for (int t = 0; t < 10 && !a.hasGoal; ++t) {
+                    const vec3 g = a.pos + rotateYaw(away, (float)rng_.uniform(-0.9, 0.9)) * (float)rng_.uniform(4.0, 7.0);
+                    const world::Tile* tl = c.world->tileIfLoaded(ifloor(g.x), ifloor(g.y));
+                    if (!figureWalkable(tl, 0.4f)) continue;
+                    a.field.build(*c.world, ifloor(g.x), ifloor(g.y), 0.4f);
+                    if (a.field.at(ifloor(a.pos.x), ifloor(a.pos.y)) < 0) continue;
+                    a.goal = {g.x, g.y, tl->floor};
+                    a.hasGoal = true;
+                }
+                break;
+            }
+            if (!wander(a, dt, c, 0.35, kinOf(Role::Rat))) {  // steht: schnueffeln oder fressen
+                a.perceive = std::fmod(a.age, 9.0) < 4.0 ? 1.0f : 0.0f;
+                a.perceiveAt = a.pos + dirYaw(a.yaw) * 1.5f + vec3{0, 0, 0.3f};
+                a.jaw = a.perceive > 0.5f ? 0.0f : 1.0f;
+            }
+            if (rng_.uniform(0.0, 1.0) < dt / 9.0 && d < 14.0f) out.push_back({Event::Squeak, Role::Rat, a.pos, 0.2f});
+            break;
+        }
+        case 1: {  // stiebt davon
+            if (!a.hasGoal || !walkTo(a, a.field, 2.2, dt, c) || hdist(a.pos, a.goal) < 0.6f) {
+                if (!scare) setState(0), a.hasGoal = false, a.timer2 = rng_.uniform(1.0, 3.0);
+                else if (a.stateT > 2.0) a.state = 9;  // fort in eine Ritze (ungesehen) oder weiter weg
+            }
+            break;
+        }
+        default: break;
+    }
+    if (a.state == 9 && a.sight.level > 0.25f) a.state = 1, a.stateT = 0.0;  // nicht vor den Augen verschwinden
+    if (a.state == 0 && ((d > 40.0f && a.unseenT > 3.0) || (a.age > 360.0 && a.unseenT > 5.0))) a.state = 9;
+}
+
+// --- Fensterwesen (Entity 2) ----------------------------------------------------------------------------------------
+// Sitzt in einem Fenster und bleibt dort. Lockt mit Fluestern (trostend) und mit der Hand. Wer naeher als etwa 1,9 m vor
+// das Fenster tritt, nach dem greift ein Arm heraus - wer nicht sofort zuruecktritt, wird hineingezogen (toedlich).
+void Presence::placeWindows(const Context& c) {
+    windowsPlaced_ = true;
+    if (!c.kin || !c.kin[world::KIN_WINDOW].on) return;
+    const world::KinDef& K = c.kin[world::KIN_WINDOW];
+    const world::Sector* sec = c.world->sectorIfReady(c.player->x, c.player->y);
+    if (!sec) {
+        windowsPlaced_ = false;  // spaeter noch einmal
+        return;
+    }
+    std::vector<const world::Sector::Spot*> cand;
+    for (const auto& sp : sec->spots)
+        if (sp.kind == "window" && sp.model == (K.mode.empty() ? "window_188_c" : K.mode) && sp.z < 3.0f) cand.push_back(&sp);
+    for (int i = 0; i < K.count && !cand.empty(); ++i) {
+        const size_t k = (size_t)rng_.randint(0, (i64)cand.size() - 1);
+        const auto* sp = cand[k];
+        cand.erase(cand.begin() + (std::ptrdiff_t)k);
+        auto a = std::make_unique<Agent>();
+        a->role = Role::Window;
+        a->ent = Entity::Window;
+        a->glow = 1.0f;
+        a->noShadow = true;
+        a->initBody({sp->x, sp->y, sp->z}, sp->yaw, (unsigned)rng_.randint(1, 1 << 30));
+        a->rig.setGlow(1.0f);
+        a->timer = rng_.uniform(1.0, 4.0);
+        log::info("Praesenz: Fensterwesen bei ({:.1f}, {:.1f})", sp->x, sp->y);
+        agents_.push_back(std::move(a));
+    }
+}
+
+void Presence::thinkWindow(Agent& a, double dt, const Context& c, std::vector<Event>& out) {
+    const vec3 eye = c.view.eye;
+    const vec3 n = dirYaw(a.yaw), l{-n.y, n.x, 0.0f};
+    const vec3 rel = eye - a.pos;
+    const float dn = dot(rel, n), dl = dot(rel, l);
+    const float d = hdist(a.pos, eye);
+    const vec3 head = a.cre.headPos();
+    a.stateT += dt;
+    a.cool -= dt;
+    const bool front = dn > 0.15f && std::fabs(dl) < 1.0f;  // vor der Oeffnung
+    const bool sees = dn > 0.2f && d < 16.0f && clearSight(*c.world, head + n * 0.1f, eye);
+    a.look = sees;
+    a.lookAt = eye;
+    a.perceive = sees && d < 10.0f ? 1.0f : 0.0f;
+    a.wave = sees && d < 14.0f ? 1.0f : 0.0f;
+    if (a.state == 10) {  // haelt fest und zieht hinein
+        a.reach = 1.0f;
+        if (a.stateT > 2.6) a.state = 0, a.stateT = 0.0, a.reach = 0.0f;
+        return;
+    }
+    // Fluestern: trostend, lockend - je naeher, desto oefter
+    a.timer -= dt;
+    if (a.timer <= 0.0 && d < 11.0f && dn > 0.0f) {
+        a.timer = rng_.uniform(2.5, 5.0) * (0.5 + 0.5 * std::clamp(d / 11.0f, 0.0f, 1.0f));
+        out.push_back({Event::Whisper, Role::Window, head + n * 0.2f, std::clamp(1.0f - d / 11.0f, 0.2f, 1.0f)});
+    }
+    switch (a.state) {
+        case 0: {  // lockt
+            a.reach = 0.0f;
+            if (front && dn < 1.9f && a.cool <= 0.0) {
+                a.state = 2, a.stateT = 0.0;
+                out.push_back({Event::Pull, Role::Window, a.pos + n * 0.3f});
+            }
+            break;
+        }
+        case 2: {  // der Arm faehrt heraus (0,7 s), dann greift er - wer zurueckgetreten ist, entkommt
+            a.reach = 1.0f;
+            if (a.stateT > 0.7) {
+                if (front && dn < 2.3f && std::fabs((float)c.player->z - (a.pos.z - 1.9f)) < 1.2f && c.mode >= 2) {
+                    out.push_back({Event::Attack, Role::Window, head, 1.0f});
+                    a.state = 10, a.stateT = 0.0;
+                } else {
+                    a.state = 0, a.stateT = 0.0, a.cool = 4.0;
+                }
+            }
+            break;
+        }
+        default: break;
     }
 }
 
@@ -1731,6 +2474,7 @@ void Presence::netStates(std::vector<NetState>& out, vec3 near, size_t max) cons
         NetState n;
         n.netId = a->netId;
         n.role = (int)a->role;
+        n.variant = a->variant;
         n.pos = a->pos;
         n.yaw = a->yaw;
         n.state = std::clamp(a->state, 0, 15);
@@ -1741,6 +2485,7 @@ void Presence::netStates(std::vector<NetState>& out, vec3 near, size_t max) cons
         n.jaw = a->jaw, n.alert = a->alert, n.crouch = a->crouch, n.growl = a->growl, n.reach = a->reach, n.fly = a->fly;
         n.shiver = a->shiver, n.hang = a->hang, n.bait = a->bait, n.light = a->light, n.perceive = a->perceive, n.glow = a->glow;
         n.tilt = a->tilt, n.lean = a->lean;
+        n.wave = a->wave, n.talk = a->talk, n.plea = a->plea, n.strike = a->strike;
         n.up = a->up, n.fwd = length(a->fwd) > 0.1f ? a->fwd : dirYaw(a->yaw);
         out.push_back(n);
     }
@@ -1758,23 +2503,19 @@ void Presence::netApply(const std::vector<NetState>& in, double stamp) {
         Agent* a = nullptr;
         for (auto& q : agents_)
             if (q->puppet && q->netId == n.netId) a = q.get();
-        const Role role = (Role)std::clamp(n.role, 0, 5);
-        if (a && a->role != role) {  // Kennung neu vergeben: neu anlegen
+        const Role role = (Role)std::clamp(n.role, 0, kRoleCount - 1);
+        if (a && (a->role != role || a->variant != n.variant)) {  // Kennung neu vergeben: neu anlegen
             std::erase_if(agents_, [&](const auto& q) { return q.get() == a; });
             a = nullptr;
         }
         if (!a) {
             auto na = std::make_unique<Agent>();
             na->role = role;
-            na->ent = role == Role::Hound     ? Entity::Hound
-                      : role == Role::Moth    ? Entity::Moth
-                      : role == Role::Gestalt ? Entity::Gestalt
-                      : role == Role::Nest    ? Entity::Nest
-                      : role == Role::Clump   ? Entity::Clump
-                                              : Entity::Smiler;
+            na->ent = (Entity)role;  // gleiche Reihenfolge
             na->puppet = true;
             na->netId = n.netId;
-            na->noShadow = role == Role::Nest || role == Role::Moth || role == Role::Gestalt || role == Role::Clump;
+            na->variant = n.variant;
+            na->noShadow = role == Role::Nest || role == Role::Moth || role == Role::Gestalt || role == Role::Clump || role == Role::Window;
             na->up = n.up, na->fwd = n.fwd;
             na->initBody(n.pos, n.yaw, 0x9E37u + n.netId);
             if (role == Role::Moth) {  // gleich fertig an Wand oder Decke (wie beim Host)
@@ -1801,6 +2542,7 @@ void Presence::netApply(const std::vector<NetState>& in, double stamp) {
         a->jaw = n.jaw, a->alert = n.alert, a->crouch = n.crouch, a->growl = n.growl, a->reach = n.reach, a->fly = n.fly;
         a->shiver = n.shiver, a->hang = n.hang, a->bait = n.bait, a->light = n.light, a->perceive = n.perceive, a->glow = n.glow;
         a->tilt = n.tilt, a->lean = n.lean;
+        a->wave = n.wave, a->talk = n.talk, a->plea = n.plea, a->strike = n.strike;
         a->up = n.up, a->fwd = n.fwd;
         if (a->role == Role::Hound) a->rig.setGlow(1.0f);
     }

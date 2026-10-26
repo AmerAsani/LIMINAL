@@ -24,6 +24,9 @@ const EntLayerDesc kEntLayers[EL_COUNT] = {
     {"panzer", 0.15f, 0.8f},
     {"pelz", 0.12f, 0.8f},
     {"nest", 0.8f, 1.0f},
+    {"ansicht", 2.0f, 0.05f},  // V13.2: Fensterwesen - die Kachel um den Ursprung fuellt die Oeffnung (1,2 x 1,8 m)
+    {"mensch", 0.5f, 0.6f},    // V13.2
+    {"blass", 0.35f, 0.9f},    // V13.2
 };
 const EntLayerDesc kMicroLayers[ML_COUNT] = {
     {"poren", 0.08f, 0.45f},
@@ -284,6 +287,79 @@ Tex nest(float u, float v) {
     return make(col, h, 0.7f - 0.55f * resin + 0.1f * bits, 1.0f - 0.25f * vein);
 }
 
+// V13.2: Fensterwesen (Entity 2) - eine verschwommene, verzerrte Landschaft, die vertraut wirkt und nicht zur Wand
+// passt: Himmel, ferne Huegel, Felder, ein Weg, einzelne Baeume, alles weich wie durch nasses Glas. Die Kachel ist um den
+// Ursprung angelegt (Fenstermitte = Horizont knapp darunter); u = waagrecht, v = senkrecht (Meter / 2).
+Tex view(float u, float v) {
+    const float cu = u < 0.5f ? u : u - 1.0f, cv = v < 0.5f ? v : v - 1.0f;  // -0.5 .. 0.5 um die Mitte
+    // Verzerrung: langsame Wirbel (nicht zu stark - es soll eine Landschaft bleiben)
+    const float wu = cu + 0.035f * N(u, v, 3, 3, 201) + 0.015f * N(u, v, 9, 9, 202);
+    const float wv = cv + 0.025f * N(u, v, 3, 3, 203);
+    const float horizon = -0.02f + 0.03f * std::sin(wu * 9.0f + 0.7f) + 0.02f * N(u, 0.3f, 6, 1, 204);
+    C3 col;
+    if (wv > horizon) {  // Himmel: oben dunkler, am Horizont hell und warm (Abend), weiche Wolkenbaenke
+        const float t = sm(0.0f, 0.42f, wv - horizon);
+        col = mixc({0.86f, 0.78f, 0.62f}, {0.42f, 0.52f, 0.66f}, t);
+        const float cloud = sm(0.05f, 0.55f, fbm(u, v * 0.6f, 4, 3, 3, 205) + 0.15f);
+        col = mixc(col, {0.74f, 0.72f, 0.70f}, cloud * 0.55f * (1.0f - 0.5f * t));
+        // ferne Huegelkette (verschwommen)
+        const float hill = horizon + 0.05f + 0.035f * std::sin(wu * 13.0f) + 0.02f * N(u, 0.5f, 8, 1, 206);
+        if (wv < hill) col = mixc(col, {0.40f, 0.46f, 0.50f}, 0.75f * sm(hill, hill - 0.03f, wv));
+    } else {  // Boden: Felder in Streifen zum Horizont hin, ein heller Weg, dunkle Baumgruppen
+        const float depth = sm(horizon, horizon - 0.45f, wv);  // 0 am Horizont .. 1 vorn
+        const float stripe = sm(-0.2f, 0.2f, std::sin((wv - horizon) * 60.0f / (0.2f + depth) + wu * 3.0f));
+        col = mixc({0.46f, 0.50f, 0.30f}, {0.62f, 0.56f, 0.34f}, stripe * 0.6f);
+        col = mixc(col, {0.34f, 0.38f, 0.34f}, 1.0f - depth);  // Dunst zum Horizont
+        const float roadX = 0.05f + 0.4f * (wv - horizon);
+        const float road = sm(0.035f + 0.08f * depth, 0.0f, std::fabs(wu - roadX));
+        col = mixc(col, {0.72f, 0.68f, 0.60f}, road * 0.8f);
+        const float trees = sm(0.55f, 0.75f, fbm(u * 2.0f, v, 6, 3, 2, 207)) * sm(0.0f, 0.12f, horizon - wv) * sm(0.35f, 0.1f, horizon - wv);
+        col = mixc(col, {0.16f, 0.20f, 0.16f}, trees);
+    }
+    // weich, als laege nasses Glas davor: alles etwas heller und flau
+    col = mixc(col, {0.70f, 0.70f, 0.68f}, 0.18f);
+    return make(col, 0.0f, 0.35f, 1.0f);
+}
+
+// V13.2: Menschenhaut - warmer Grundton mit grossen, weichen Wechseln (Roete an Wangen, Knoecheln), feine Poren,
+// wenige Leberflecken, zarte Adern; etwas fettiger Glanz
+Tex human(float u, float v) {
+    const float macro = fbm(u, v, 3, 3, 4, 301);
+    const float red = fbm(u, v, 7, 7, 3, 302);
+    C3 col = mixc({0.60f, 0.45f, 0.37f}, {0.52f, 0.39f, 0.33f}, sm(-0.4f, 0.5f, macro));
+    col = mixc(col, {0.62f, 0.38f, 0.33f}, sm(0.1f, 0.6f, red) * 0.35f);
+    const Cell pore = worley(u, v, 260, 303);
+    const float pr = 1.0f - sm(0.0f, 0.22f, pore.d1);
+    col = mulc(col, 1.0f - 0.08f * pr);
+    const Cell mole = worley(u, v, 18, 304);
+    const float ml = (1.0f - sm(0.03f, 0.07f, mole.d1)) * (r01(mole.id) > 0.82f ? 1.0f : 0.0f);
+    col = mixc(col, {0.30f, 0.20f, 0.15f}, ml * 0.8f);
+    const float wu = u + 0.03f * N(u, v, 8, 8, 305), wv = v + 0.03f * N(u, v, 8, 8, 306);
+    const float vein = std::pow(1.0f - std::fabs(N(wu, wv, 10, 10, 307)), 16.0f);
+    col = mixc(col, {0.45f, 0.42f, 0.48f}, vein * 0.18f);
+    const float wr = ridge(u, v, 40, 308, 10.0f);  // feine Falten
+    const float h = 0.0002f * macro - 0.00012f * pr - 0.0001f * wr + 0.00008f * ml;
+    return make(col, h, 0.5f + 0.12f * pr - 0.08f * sm(0.0f, 0.8f, red), 1.0f - 0.12f * pr - 0.1f * wr);
+}
+
+// V13.2: Skin-Stealer - blassgelb (Wikidot Entity 10), ueber und ueber mit winzigen Noppen wie Saugnaepfe eines Kraken:
+// je eine Mulde mit hellem Rand, dicht an dicht; fleckig zwischen gelblich und grau, feucht glaenzend, zarte Adern
+Tex pale(float u, float v) {
+    const float macro = fbm(u, v, 3, 3, 4, 311);
+    C3 col = mixc({0.80f, 0.74f, 0.52f}, {0.74f, 0.71f, 0.58f}, sm(-0.4f, 0.5f, macro));
+    col = mixc(col, {0.78f, 0.72f, 0.44f}, sm(0.0f, 0.6f, fbm(u, v, 9, 9, 3, 312)) * 0.4f);
+    const Cell c = worley(u + 0.004f * N(u, v, 40, 40, 313), v, 150, 314);
+    const float cup = 1.0f - sm(0.0f, 0.3f, c.d1);                       // Mulde
+    const float rim = sm(0.26f, 0.36f, c.d1) * (1.0f - sm(0.36f, 0.5f, c.d1));  // Rand
+    col = mixc(col, {0.58f, 0.52f, 0.36f}, cup * 0.55f);
+    col = mixc(col, {0.88f, 0.84f, 0.66f}, rim * 0.35f);
+    const float wu = u + 0.03f * N(u, v, 6, 6, 315), wv = v + 0.03f * N(u, v, 6, 6, 316);
+    const float vein = std::pow(1.0f - std::fabs(N(wu, wv, 8, 8, 317)), 14.0f);
+    col = mixc(col, {0.56f, 0.60f, 0.62f}, vein * 0.25f);
+    const float h = 0.00025f * macro - 0.00045f * cup + 0.00018f * rim;
+    return make(col, h, 0.32f + 0.18f * rim - 0.1f * cup, 1.0f - 0.35f * cup);
+}
+
 Tex layerSample(int layer, float u, float v) {
     switch (layer) {
         case EL_SKIN: return skin(u, v);
@@ -293,6 +369,9 @@ Tex layerSample(int layer, float u, float v) {
         case EL_WING: return wingTex(u, v);
         case EL_CHITIN: return chitin(u, v);
         case EL_FUR: return fur(u, v);
+        case EL_VIEW: return view(u, v);
+        case EL_HUMAN: return human(u, v);
+        case EL_PALE: return pale(u, v);
         default: return nest(u, v);
     }
 }

@@ -609,14 +609,16 @@ void CoopHost::sendSnapshot(Guest& g) {
     for (const Presence::NetState& c : cs) {
         nc::CreatureNet& o = sn.creatures[sn.nCreatures++];
         o.netId = c.netId;
-        o.role = (u8)std::clamp(c.role, 0, 5);
+        o.role = (u8)std::clamp(c.role, 0, nc::kRoles - 1);
+        o.variant = (u8)std::clamp(c.variant, 0, 3);
         o.x = nc::toMm(c.pos.x), o.y = nc::toMm(c.pos.y), o.z = nc::toMm(c.pos.z);
         o.yaw = nc::toMrad(c.yaw);
         o.state = (u8)std::clamp(c.state, 0, 15);
         o.target = c.target >= 0 && c.target < nc::kMaxPlayers ? (u8)c.target : 255;
         o.flags = (u8)((c.look ? 1 : 0) | (c.lit ? 2 : 0) | (c.frozen ? 4 : 0));
         o.anim = {q01(c.jaw), q01(c.alert), q01(c.crouch), q01(c.growl), q01(c.reach), q01(c.fly), q01(c.shiver),
-                  q01(c.hang), q01(c.bait), q01(c.light), q01(c.perceive), q01(c.glow), qs(c.tilt), qs(c.lean)};
+                  q01(c.hang), q01(c.bait), q01(c.light), q01(c.perceive), q01(c.glow), qs(c.tilt), qs(c.lean),
+                  q01(c.wave), q01(c.talk), q01(c.plea), q01(c.strike)};
         o.up = qv(c.up), o.fwd = qv(c.fwd);
     }
     ++counters.snapshots;
@@ -1209,6 +1211,7 @@ void CoopClient::applySnapshot(const nc::Snapshot& sn) {
         Presence::NetState n;
         n.netId = c.netId;
         n.role = c.role;
+        n.variant = c.variant;
         n.pos = mmVec(c.x, c.y, c.z);
         n.yaw = (float)nc::fromMrad(c.yaw);
         n.state = c.state;
@@ -1218,6 +1221,7 @@ void CoopClient::applySnapshot(const nc::Snapshot& sn) {
         n.reach = dq01(c.anim[4]), n.fly = dq01(c.anim[5]), n.shiver = dq01(c.anim[6]), n.hang = dq01(c.anim[7]);
         n.bait = dq01(c.anim[8]), n.light = dq01(c.anim[9]), n.perceive = dq01(c.anim[10]), n.glow = dq01(c.anim[11]);
         n.tilt = dqs(c.anim[12]), n.lean = dqs(c.anim[13]);
+        n.wave = dq01(c.anim[14]), n.talk = dq01(c.anim[15]), n.plea = dq01(c.anim[16]), n.strike = dq01(c.anim[17]);
         n.up = dqv(c.up), n.fwd = dqv(c.fwd);
         s.netCreatures.push_back(n);
     }

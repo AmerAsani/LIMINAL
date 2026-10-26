@@ -12,7 +12,10 @@
   "generator": "map",
   "map": "level5",
   "presence_region": 2,
-  "presence": { "hound": true, "smiler": false, "gestalt": false, "blackout": false },
+  // V13.2: Skin-Stealer (wahre Gestalt), Death Rats mit Schrei-Ereignis (fallen ueber andere Wesen her)
+  "presence": { "hound": true, "smiler": false, "gestalt": false, "blackout": false,
+               "skinstealer": { "mode": "true", "group": [1, 1], "every": 360, "chance": 0.3 },
+               "rat": { "group": [2, 4], "every": 160, "chance": 1.0 } },
   "next_level": "level5_3",
   "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0 },
 

@@ -27,7 +27,7 @@ anim::JointPose playerJointPose(const Body& body, vec3 root);
 class FigureRig {
 public:
     void init(anim::Figure f);        // Mensch
-    void initEntity(anim::Entity e);  // Wesen
+    void initEntity(anim::Entity e, const std::string& model = "");  // Wesen (V13.2: model = Variante)
     bool creature() const { return creature_; }
     anim::Entity entity() const { return ent_; }
     anim::Figure figure() const { return fig_; }

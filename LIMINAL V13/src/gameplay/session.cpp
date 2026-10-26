@@ -36,6 +36,7 @@ GameSession::GameSession(const Content& content, const PrefabLibrary& prefabs,
       stats_(content.difficulty(diff)),
       inventory_(&content) {
     const DifficultyDef& d = content.difficulty(diff);
+    hitScale_ = std::clamp(d.stalkerHit / 35.0, 0.3, 2.0);  // V13.2
     world_ = std::make_unique<world::World>(level, seed, d.itemsNone, d.itemsOne, jobs, loadRadius, content.supplyRules());
     tiles_ = std::make_unique<TileAdapter>(*world_);
     world_->onChunkLoaded = [this](const world::ChunkData& cd) { onChunk(cd, true); };
@@ -1535,6 +1536,7 @@ void GameSession::updatePresence(double dt) {
     c.allowHound = L.allowHound, c.allowSmiler = L.allowSmiler, c.allowGestalt = L.allowGestalt, c.allowBlackout = L.allowBlackout;
     // V11: Buendel - Lager aus der Karte (einmal je Ebene), Laerm des Spielers (ENTITY_BEHAVIOR 1)
     c.allowClump = L.allowClump, c.clumpRate = L.clumpRate;
+    c.kin = L.kin.data();  // V13.2: neue Wesen der Ebene
     if (L.allowClump && !lairsRead_ && L.mapped())
         if (const world::Sector* sec = world_->sectorIfReady(player_.x, player_.y)) {
             lairsRead_ = true;
@@ -1621,6 +1623,12 @@ void GameSession::updatePresence(double dt) {
                         p->stats.sanity = std::max(0.0, p->stats.sanity - 1.0);
                         if (p->stats.health <= 0.0) p->stats.dead = true, p->killRole = (int)e.role;
                         break;
+                    case PE::Hit:  // V13.2: Schlag, Hieb, Biss
+                        p->stats.health = std::max(0.0, p->stats.health - (double)e.strength * hitScale_);
+                        p->stats.sanity = std::max(0.0, p->stats.sanity - 2.0);
+                        if (p->stats.health <= 0.0) p->stats.dead = true, p->killRole = (int)e.role;
+                        break;
+                    case PE::Whisper: p->stats.sanity = std::max(0.0, p->stats.sanity - 0.4 * e.strength); break;
                     default: break;
                 }
             }
@@ -1632,7 +1640,9 @@ void GameSession::updatePresence(double dt) {
             // was man im Raum hoert, hoert auch der Host (Schritte, Knurren, Flattern ...)
             const bool audible = e.type == PE::Step || e.type == PE::Growl || e.type == PE::Bark || e.type == PE::Whine ||
                                  e.type == PE::TakeOff || e.type == PE::Knock || e.type == PE::Drop || e.type == PE::Drag ||
-                                 e.type == PE::Flicker || e.type == PE::Breath;
+                                 e.type == PE::Flicker || e.type == PE::Breath || e.type == PE::Mimic || e.type == PE::Plead ||
+                                 e.type == PE::Gurgle || e.type == PE::Hum || e.type == PE::Squeak || e.type == PE::Scream ||
+                                 e.type == PE::Swing || e.type == PE::Pull || e.type == PE::Whisper;  // V13.2
             if (!audible) continue;
             if (e.type == PE::Flicker)
                 if (const world::Tile* t = world_->tileIfLoaded(ifloor(e.pos.x), ifloor(e.pos.y)); t && t->room) haunt_.flicker(t->room);
@@ -1647,7 +1657,9 @@ void GameSession::updatePresence(double dt) {
             continue;
         }
         if (netRole == NetRole::Host && (e.type == PE::Step || e.type == PE::Growl || e.type == PE::Bark || e.type == PE::TakeOff ||
-                                         e.type == PE::Knock || e.type == PE::Drop || e.type == PE::Drag || e.type == PE::Flicker))
+                                         e.type == PE::Knock || e.type == PE::Drop || e.type == PE::Drag || e.type == PE::Flicker ||
+                                         e.type == PE::Mimic || e.type == PE::Plead || e.type == PE::Gurgle || e.type == PE::Hum ||
+                                         e.type == PE::Squeak || e.type == PE::Scream || e.type == PE::Swing || e.type == PE::Pull))
             netFigureOut.push_back(e);  // auch die Gaeste hoeren es
         GameEvent ev;
         ev.type = GameEvent::Figure;
@@ -1696,6 +1708,20 @@ void GameSession::updatePresence(double dt) {
             case PE::Vision:
                 ++runLog_.visions;
                 stats_.sanity = std::max(0.0, stats_.sanity - 3.0);
+                break;
+            case PE::Hit:  // V13.2: Schlag, Hieb, Biss - Schaden nach Schwierigkeit
+                stats_.health = std::max(0.0, stats_.health - (double)e.strength * hitScale_);
+                stats_.sanity = std::max(0.0, stats_.sanity - 2.0);
+                ev.intensity = e.strength;
+                if (stats_.health <= 0.0) {
+                    stats_.dead = true;
+                    deathCause_ = "stalker";
+                    killRole_ = (int)e.role;
+                }
+                break;
+            case PE::Whisper: stats_.sanity = std::max(0.0, stats_.sanity - 0.4 * e.strength); break;  // V13.2: es zehrt
+            case PE::Scream:  // V13.2: Ratten - das Licht im Raum flackert (weiter ueber Flicker)
+                if (const world::Tile* t = world_->tileIfLoaded(ifloor(e.pos.x), ifloor(e.pos.y)); t && t->room) haunt_.flicker(t->room);
                 break;
             default: break;
         }

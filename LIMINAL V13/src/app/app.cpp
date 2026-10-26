@@ -231,6 +231,43 @@ void App::scriptStep() {
                 session_->body().reset();
                 resetHistory_ = true;
             }
+        } else if (cmd == "near" && session_) {  // V13.2 (Tests, Bilder): near <wesen> <abstand> [seite] - der Spieler steht so weit
+            // vor dem ersten Wesen dieser Art und sieht es an (seite: Winkel um das Wesen, 0 = vor ihm); frei begehbare Kachel
+            char name[32] = {};
+            double dist = 3.0, side = 0.0;
+            std::sscanf(arg.c_str(), "%31s %lf %lf", name, &dist, &side);
+            using R = game::Presence::Role;
+            const std::string n = name;
+            const R r = n == "faceling" ? R::Faceling : n == "skinstealer" ? R::SkinStealer : n == "wretch" ? R::Wretch : n == "rat" ? R::Rat
+                        : n == "window" ? R::Window : n == "hound" ? R::Hound : n == "smiler" ? R::Smiler : n == "clump" ? R::Clump : R::Gestalt;
+            auto& pr = session_->presence();
+            if (!pr.has(r)) {
+                log::warn("Skript: near - kein {}", game::Presence::roleName(r));
+            } else {
+                const vec3 at = pr.posOf(r);
+                auto& w = session_->world();
+                const float baseZ = r == R::Window ? at.z - 1.9f : at.z, aimZ = r == R::Window ? at.z : at.z + (r == R::Rat ? 0.1f : 1.0f);
+                bool placed = false;
+                // erst die gewuenschte Seite, dann reihum weitere Winkel (freie Sicht vom Auge zum Wesen)
+                for (int k = 0; k < 13 && !placed; ++k) {
+                    const float yaw0 = pr.yawOf(r) + (float)side + (k == 0 ? 0.0f : (float)((k + 1) / 2) * 0.48f * (k % 2 ? 1.0f : -1.0f));
+                    for (double dd = dist; dd > 0.6 && !placed; dd -= 0.25) {
+                        const double x = at.x + std::cos(yaw0) * dd, y = at.y + std::sin(yaw0) * dd;
+                        const world::Tile* t = w.tileIfLoaded(ifloor(x), ifloor(y));
+                        if (!t || !t->open() || std::fabs(t->floor - baseZ) > 0.6f) continue;
+                        if (!game::clearSight(w, vec3{(float)x, (float)y, t->floor + (float)game::Player::kEye}, vec3{at.x, at.y, aimZ})) continue;
+                        placed = true;
+                    auto& pl = session_->player();
+                    pl.x = x, pl.y = y, pl.z = t->floor;
+                    pl.angle = std::atan2(at.y - y, at.x - x);
+                    pl.pitch = std::atan2(aimZ - (t->floor + game::Player::kEye), dd) * 0.8;
+                    session_->body().reset();
+                    resetHistory_ = true;
+                    log::info("Skript: near {} {:.1f} m", game::Presence::roleName(r), dd);
+                    }
+                }
+                if (!placed) log::warn("Skript: near - kein freier Platz mit Sicht");
+            }
         } else if (cmd == "goto" && session_) {  // V10 (Tests): zur naechsten Stelle einer Ebene: goto buero|keller|hotel
             const int want = arg == "hotel" ? 2 : (arg == "keller" ? 1 : 0);
             auto& pl = session_->player();
@@ -305,7 +342,9 @@ void App::scriptStep() {
             std::sscanf(arg.c_str(), "%31s %lf %lf %lf", name, &dist, &turn, &walk);
             std::string n = name;
             // Entities nach Namen (anim::Entity); player: der Mensch
-            const int kind = n == "hound" ? 1 : n == "moth" ? 2 : n == "gestalt" ? 3 : n == "nest" ? 4 : n == "clump" ? 5 : n == "player" ? 6 : 0;
+            // V13.2: neue Wesen; player = 99 (Mensch)
+            const int kind = n == "hound" ? 1 : n == "moth" ? 2 : n == "gestalt" ? 3 : n == "nest" ? 4 : n == "clump" ? 5 : n == "faceling" ? 6
+                             : n == "skinstealer" ? 7 : n == "wretch" ? 8 : n == "rat" ? 9 : n == "window" ? 10 : n == "player" ? 99 : 0;
             auto& pl = session_->player();
             vec3 at{(float)(pl.x + std::cos(pl.angle) * dist), (float)(pl.y + std::sin(pl.angle) * dist), 0.0f};
             at.z = session_->world().tile(ifloor(at.x), ifloor(at.y)).floor;
@@ -332,6 +371,12 @@ void App::scriptStep() {
                 session_->presence().forceEncounter();
             } else {
                 R r = n == "smiler" ? R::Smiler : n == "moth" || n == "nest" ? R::Moth : n == "gestalt" ? R::Gestalt : n == "clump" ? R::Clump : R::Hound;
+                // V13.2: neue Wesen (Art nach der Ebene; sonst die Grundart)
+                if (n == "faceling") r = R::Faceling;
+                if (n == "skinstealer") r = R::SkinStealer;
+                if (n == "wretch") r = R::Wretch;
+                if (n == "rat") r = R::Rat;
+                if (n == "window") r = R::Window;
                 session_->presence().force(r, dist);
             }
         } else if (cmd == "audioinfo") {  // V11 (Tests): Zustand der Klanglandschaft ins Protokoll
@@ -1265,6 +1310,12 @@ void App::handleEvents() {
                         // V11 Buendel: nasse Haende klatschen auf den Boden
                         if (role == Role::Clump)
                             at(std::format("clump_slap_{}", n % 5), e.pos, 0.35f + 0.4f * e.intensity, 16.0f, 0.92f + 0.16f * var);
+                        // V13.2: Zweibeiner - Schuhe nach Untergrund (Faceling), schwer (Skin-Stealer: barfuss, tiefer), der
+                        // Wretch schlurft (das schleifende Bein leiser, gedehnt); Ratten trippeln kaum hoerbar
+                        if (role == Role::Faceling) at(stepSound(e.surface), e.pos, 0.42f * e.intensity + 0.1f, 18.0f, 0.97f + 0.08f * var);
+                        if (role == Role::SkinStealer) at("hound_step", e.pos, 0.55f + 0.3f * e.intensity, 22.0f, 0.62f + 0.06f * var);
+                        if (role == Role::Wretch) at(stepSound(e.surface), e.pos, 0.3f + 0.4f * e.intensity, 18.0f, e.intensity < 0.5f ? 0.7f : 0.9f + 0.1f * var);
+                        if (role == Role::Rat) at("hound_step", e.pos, 0.08f, 6.0f, 2.2f + 0.3f * var);
                         break;
                     // V11 Buendel: Klopfen im Schacht, Herabfallen, Schleifen, Ausholen
                     case PE::Knock: at(std::format("clump_knock_{}", n % 3), e.pos, 0.9f, 30.0f); break;
@@ -1295,6 +1346,26 @@ void App::handleEvents() {
                     case PE::Announce: at("smiler_open", e.pos, 1.0f, 30.0f); break;
                     case PE::Calm: at("smiler_fade", e.pos, 0.4f, 20.0f); break;
                     case PE::Lost: break;
+                    // V13.2: neue Wesen
+                    case PE::Hit:
+                        at(std::format("hit_body_{}", n % 2), e.pos, 0.9f, 14.0f, 0.9f + 0.15f * var);
+                        hitFlash_ = std::max(hitFlash_, std::clamp(e.intensity / 40.0f, 0.2f, 0.7f));  // nur eigene Treffer kommen hier an
+                        break;
+                    case PE::Mimic: at(std::format("skin_mimic_{}", n % 6), e.pos, 0.55f + 0.3f * e.intensity, 26.0f, 0.97f + 0.06f * var); break;
+                    case PE::Whisper: at(std::format("window_whisper_{}", n % 4), e.pos, 0.35f + 0.5f * e.intensity, 12.0f); break;
+                    case PE::Plead: at(std::format("wretch_plead_{}", n % 3), e.pos, 0.7f, 20.0f, 0.95f + 0.1f * var); break;
+                    case PE::Gurgle:
+                        if (e.intensity > 0.5f) at(std::format("wretch_snarl_{}", n % 3), e.pos, 0.8f, 30.0f, 0.95f + 0.1f * var);
+                        else at(std::format("wretch_gurgle_{}", n % 3), e.pos, 0.75f, 24.0f, 0.9f + 0.1f * var);
+                        break;
+                    case PE::Hum:
+                        if (e.intensity > 0.75f) at(std::format("faceling_outburst_{}", n % 2), e.pos, 0.8f, 24.0f, 0.95f + 0.1f * var);
+                        else at(std::format("faceling_hum_{}", n % 4), e.pos, 0.4f + 0.4f * e.intensity, 14.0f, 0.95f + 0.1f * var);
+                        break;
+                    case PE::Squeak: at(std::format("rat_squeak_{}", n % 4), e.pos, 0.25f + 0.5f * e.intensity, 12.0f, 0.95f + 0.1f * var); break;
+                    case PE::Scream: at("rat_scream", e.pos, 1.0f, 40.0f); break;
+                    case PE::Swing: at("stone_swing", e.pos, 0.8f, 12.0f, 0.95f + 0.1f * var); break;
+                    case PE::Pull: at("window_pull", e.pos, 0.9f, 14.0f); break;
                     default: break;
                 }
                 break;

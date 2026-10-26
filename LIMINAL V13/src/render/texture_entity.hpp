@@ -16,6 +16,10 @@
 //   Panzer    die Brust der Deathmoth: dunkelbraun, gefleckt, unregelmaessig (Fandom)
 //   Pelz      der Hinterleib der Deathmoth: feines graues Haar
 //   Nest      Deathmoth-Nest: fleischig, geadert, mit Harz ueberzogen, Einschluesse
+//   V13.2:
+//   Ansicht   Fensterwesen: verschwommene Landschaft
+//   Mensch    Faceling, getarnter Skin-Stealer: Menschenhaut mit Poren, leichter Roete, wenigen Leberflecken
+//   Blass     Skin-Stealer: blassgelb, dicht mit winzigen Noppen wie Saugnaepfe (Mulde mit hellem Rand), feucht
 #pragma once
 
 #include <vector>
@@ -28,7 +32,8 @@ class JobSystem;
 
 namespace lim::gfx {
 
-enum EntLayer : u8 { EL_SKIN, EL_HAIR, EL_HORN, EL_TOOTH, EL_WING, EL_CHITIN, EL_FUR, EL_NEST, EL_COUNT };
+// V13.2: Ansicht im Fenster (Fensterwesen), Menschenhaut (Faceling, getarnter Skin-Stealer), blasse Noppenhaut (Skin-Stealer)
+enum EntLayer : u8 { EL_SKIN, EL_HAIR, EL_HORN, EL_TOOTH, EL_WING, EL_CHITIN, EL_FUR, EL_NEST, EL_VIEW, EL_HUMAN, EL_PALE, EL_COUNT };
 enum MicroLayer : u8 { ML_PORES, ML_FIBER, ML_CRAZE, ML_SCALE, ML_COUNT };
 
 struct EntLayerDesc {
@@ -39,7 +44,7 @@ struct EntLayerDesc {
 extern const EntLayerDesc kEntLayers[EL_COUNT];
 extern const EntLayerDesc kMicroLayers[ML_COUNT];
 // Plaetze der Ebenen-Konstanten (gLayer im Shader) hinter den Weltebenen
-constexpr int kEntLayerSlot = 96, kMicroLayerSlot = 104;  // V12: Weltebenen bis 90 (48 aus Bilddateien)
+constexpr int kEntLayerSlot = 96, kMicroLayerSlot = 107;  // V12: Weltebenen bis 90 (48 aus Bilddateien); V13.2: Mikro ab 107
 constexpr int kLayerSlots = 112;
 
 struct EntityTextures {

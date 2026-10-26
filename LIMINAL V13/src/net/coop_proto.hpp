@@ -19,7 +19,7 @@
 
 namespace lim::net::coop {
 
-constexpr u16 kProtoVersion = 2;
+constexpr u16 kProtoVersion = 3;  // V13.2: 3 - Gesten der neuen Wesen (kAnimN 18)
 constexpr size_t kMaxMsg = 1200;    // = LN_MAX_PAYLOAD
 constexpr int kMaxPlayers = 4;      // Host + 3 Gaeste
 constexpr int kMaxCreatures = 24;   // je Momentaufnahme (die naechsten)
@@ -29,7 +29,8 @@ constexpr int kKindMax = 24;        // Kennung eines Gegenstands ([a-z0-9_])
 constexpr int kLevelMax = 24;       // Kennung einer Ebene oder eines Uebergangs ([a-z0-9_.-])
 constexpr int kTextMax = 96;        // Meldungen (UTF-8, darstellbar)
 constexpr int kNameMax = 16;
-constexpr int kAnimN = 14;          // Eingaben der Animation eines Wesens
+constexpr int kAnimN = 18;          // Eingaben der Animation eines Wesens (V13.2: + wave talk plea strike)
+constexpr int kRoles = 11;          // Presence::Role
 constexpr i32 kCoordMax = 100'000'000;  // mm (100 km)
 constexpr u8 kButtonMask = 0x0F;        // Rennen, Springen, Sprung gehalten, Schleichen
 
@@ -114,13 +115,15 @@ struct SelfNet {
 };
 struct CreatureNet {
     u16 netId = 0;
-    u8 role = 0;              // Presence::Role 0..5
+    u8 role = 0;              // Presence::Role 0..10
+    u8 variant = 0;           // Modellvariante 0..3
     i32 x = 0, y = 0, z = 0;
     i16 yaw = 0;
     u8 state = 0;
     u8 target = 255;          // Spieler, auf den es sich richtet (255: keiner)
     u8 flags = 0;             // Bit 0 sieht hin (look), 1 im Licht, 2 erstarrt
-    std::array<u8, kAnimN> anim{};  // jaw alert crouch growl reach fly shiver hang bait light perceive glow (0..255), tilt lean (-127..127)
+    std::array<u8, kAnimN> anim{};  // jaw alert crouch growl reach fly shiver hang bait light perceive glow (0..255), tilt lean (-127..127),
+                                    // wave talk plea strike (0..255)
     std::array<i8, 3> up{0, 0, 127}, fwd{127, 0, 0};  // Lage (Motte an Wand oder Decke), Einheitsvektoren x 127
 };
 struct Snapshot {

@@ -213,6 +213,29 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     // Runde 4: Textur des Nests (Fasern, Adern, Harz) statt glatter Haut, rotbraun getoent, matter
     materialData_[FM_ENT_NESTFLESH] = GpuMaterial{{1.05f, 0.62f, 0.55f}, 0, ent(EL_NEST, ML_PORES) | kMatFlagSkin, 0.74f, 0, 0.15f};
     materialData_[FM_ENT_NESTEGG] = GpuMaterial{{0.74f, 0.66f, 0.46f}, 0, ent(EL_TOOTH, ML_PORES), 0.55f, 0, 0.1f};
+    // V13.2: neue Wesen. Kleidung mit den Stoffen der Spielerfigur (triplanar aus der Ruhepose), eigene Toenung
+    materialData_[FM_ENT_CLOTH_A] = GpuMaterial{{0.30f, 0.29f, 0.27f}, 0, tri(L_WOOL), 1.0f, 0, 0.45f};        // Hemd, grau
+    materialData_[FM_ENT_CLOTH_B] = GpuMaterial{{0.16f, 0.17f, 0.20f}, 0, tri(L_DENIM), 1.0f, 0, 0.45f};       // Hose, dunkel
+    materialData_[FM_ENT_CLOTH_C] = GpuMaterial{{0.20f, 0.26f, 0.36f}, 0, tri(L_WOOL), 1.0f, 0, 0.4f};        // Bluse, gedecktes Blau
+    materialData_[FM_ENT_CLOTH_D] = GpuMaterial{{0.17f, 0.20f, 0.14f}, 0, tri(L_DENIM), 1.0f, 0, 0.45f};      // Jacke, dunkles Oliv (Braun wirkte im Lampenlicht wie Haut)
+    materialData_[FM_ENT_HUMANSKIN_B] = GpuMaterial{{0.62f, 0.52f, 0.46f}, 0, ent(EL_HUMAN, ML_PORES) | kMatFlagSkin, 0.6f, 0, 0.15f};
+    materialData_[FM_ENT_HAIR_GREY] = GpuMaterial{{2.6f, 2.5f, 2.4f}, 0, ent(EL_HAIR, ML_FIBER), 0.8f, 0, 0.12f};
+    materialData_[FM_ENT_CLOTH_PINK] = GpuMaterial{{0.78f, 0.42f, 0.50f}, 0, tri(L_WOOL), 0.95f, 0, 0.35f};    // Kleid (Level 188)
+    // Skin-Stealer: blassgelb, Saugnaepfchen als Mikrostruktur (Schuppen), feucht
+    materialData_[FM_ENT_PALESKIN] = GpuMaterial{{1, 1, 1}, 0, ent(EL_PALE, ML_SCALE) | kMatFlagSkin, 0.55f, 0, 0.1f};
+    materialData_[FM_ENT_HUMANSKIN] = GpuMaterial{{1, 1, 1}, 0, ent(EL_HUMAN, ML_PORES) | kMatFlagSkin, 0.6f, 0, 0.15f};
+    materialData_[FM_ENT_UMBRA] = GpuMaterial{{0.010f, 0.010f, 0.012f}, 0, tri(L_SKIN), 1.3f, 1.0f, 0.0f};
+    materialData_[FM_ENT_RATSKIN] = GpuMaterial{{1.05f, 0.88f, 0.92f}, 0, ent(EL_HUMAN, ML_CRAZE) | kMatFlagSkin, 0.7f, 0, 0.2f};
+    // Wretch: rotbraun, trocken und schuppig (Risse)
+    materialData_[FM_ENT_WRETCHSKIN] = GpuMaterial{{1.05f, 0.55f, 0.38f}, 0, ent(EL_SKIN, ML_CRAZE) | kMatFlagSkin, 0.95f, 0, 0.35f};
+    materialData_[FM_ENT_STONE] = GpuMaterial{{0.62f, 0.60f, 0.56f}, 0, ent(EL_HORN, ML_CRAZE), 1.0f, 0, 0.3f};
+    materialData_[FM_ENT_RATFUR] = GpuMaterial{{0.16f, 0.15f, 0.15f}, 0, ent(EL_FUR, ML_FIBER), 0.9f, 0, 0.2f};
+    // Hoernerspitzen der Death Rat: rot gluehend (Entity 24)
+    materialData_[FM_ENT_HORNGLOW] = GpuMaterial{{1.0f, 0.18f, 0.08f}, 3.0f, ent(EL_HORN, ML_CRAZE), 0.5f, 0, 0.0f};
+    // Fensterwesen: verschwommene Landschaft, schwach leuchtend (wie Licht von draussen)
+    materialData_[FM_ENT_VIEW] = GpuMaterial{{1.0f, 1.0f, 1.0f}, 1.4f, ent(EL_VIEW, ML_PORES), 0.3f, 0, 0.0f};
+    // Ausfluss (Wretch: rotbrauner Saft aus den Pusteln, brauner Schlamm aus dem Mund)
+    materialData_[FM_ENT_OOZE] = GpuMaterial{{0.42f, 0.20f, 0.11f}, 0, ent(EL_HORN, ML_PORES), 0.22f, 0, 0.05f};
     writeMaterials(gpu);
     lights_ = gpu.createStructured(sizeof(GpuLight), 2048, true, false);
     return height_.valid() && ambient_.valid() && lights_.valid();

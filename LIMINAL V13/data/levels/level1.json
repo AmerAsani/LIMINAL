@@ -11,7 +11,10 @@
   "generator": "map",
   "map": "level1",
   "presence_region": 1,
-  "presence": { "hound": true, "smiler": true, "gestalt": false, "blackout": true, "clump": 0.35 },
+  // V13.2 (ENTITY_ABGLEICH.md): Skin-Stealer getarnt (die Seite: weisse Menschengestalten, die Haut tragen), Wretch
+  "presence": { "hound": true, "smiler": true, "gestalt": false, "blackout": true, "clump": 0.35,
+               "skinstealer": { "mode": "skin", "group": [1, 1], "every": 300, "chance": 0.25 },
+               "wretch": { "mode": "mixed", "group": [1, 1], "every": 260 } },
   "next_level": "level2",
   "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0 },
 

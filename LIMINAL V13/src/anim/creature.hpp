@@ -17,6 +17,18 @@
 //   Buendel (Entity 5)  V11 (ART_DIRECTION 5.2): eine etwa 1 m grosse Masse ineinander verwachsener
 //                       menschlicher Arme und zweier Beine, unterschiedlich lang (der laengste 2,6 m),
 //                       darunter ein Maul mit Zaehnen. Zieht sich Hand ueber Hand, das Ganze schleift nach.
+//   V13.2 (ENTITY_ABGLEICH.md, nur Wikidot):
+//   Faceling (Entity 9) ein Mensch ohne Gesicht (Haar ja, Augen, Nase, Mund, Ohren nein), schwaecher als ein Mensch;
+//                       Varianten: gewoehnlich, "entwickelt" (Level 3: Ansaetze von Auge, Nase, Mund), im rosa Kleid
+//                       (Level 188). Zweibeiner (bp), 1,70 m.
+//   Skin-Stealer (E. 10) gross (2,05 m), blassgelb, eingesunkene weisse Augen, Haut mit Saugnaepfchen; traegt die Haut
+//                       eines Menschen. Zweibeiner (bp) mit langen Gliedern.
+//   Wretch (Entity 15)  ausgezehrter Mensch: rotbraune, schuppige Haut mit Loechern und Pusteln, offene Augen ohne
+//                       Lider, Reste der Kleidung. Zweibeiner (bp), gebeugt.
+//   Death Rat (E. 24)   eine Ratte mit langem Koerper, schwarzem Fell, braunen Hoernern mit rot gluehenden Spitzen.
+//                       Vierbeiner (rt), langer Schwanz.
+//   Fensterwesen (E. 2) ein Fenster: verschwommene Landschaft, darin ein dunkler Umriss, der winkt; greift mit einem Arm
+//                       aus dem Fenster (wn). Wurzel: Mitte der Fensteroeffnung auf der Wand, x zeigt aus der Wand.
 //
 // Wie beim Menschen (anim/skeleton) werden Gelenkpositionen animiert; jeder Knochen ist ein starrer
 // Rahmen vom Start- zum Endgelenk, gedreht nach einem Hinweisvektor ("oben"). Skinning-Matrix =
@@ -31,7 +43,7 @@
 
 namespace lim::anim {
 
-enum class Entity : std::uint8_t { Smiler, Hound, Moth, Gestalt, Nest, Clump, Count };
+enum class Entity : std::uint8_t { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Count };
 constexpr int kEntityCount = (int)Entity::Count;
 
 struct CBone {
@@ -60,6 +72,8 @@ struct CreaturePose {
 const CreatureSkeleton& entitySkeleton(Entity e);
 const char* entityModel(Entity e);  // Basisname der Modelle ("ent_smiler"), je Stufe "_l0" ...
 const char* entityName(Entity e);   // Name im Spiel
+// V13.2: weitere Modelle desselben Wesens (gleiches Skelett): Index 1.. = Variante (0 ist entityModel)
+const std::vector<const char*>& entityVariants(Entity e);
 
 // starrer Rahmen (Spalten x, y, z, Ursprung): x von a nach b, z nach up
 mat4 boneFrame(vec3 a, vec3 b, vec3 up);
@@ -221,5 +235,70 @@ enum J : std::uint8_t {
 enum B : std::uint8_t { B_ROOT, B_BODY, B_MEMB, B_LIP, B_SAC0, B_SAC1, B_SAC2, B_SAC3, B_EGGS, BCOUNT };
 constexpr float kOpenW = 1.0f;
 }  // namespace ns
+
+// V13.2: Zweibeiner (Faceling, Skin-Stealer, Wretch) - gleiche Gelenkfolge, eigene Masse je Wesen (bipedBuild)
+namespace bp {
+enum J : std::uint8_t {
+    ROOT, PELVIS, SPINE, CHEST, NECK, HEAD, HEADTOP, JAW,
+    SHOULDER_L, ELBOW_L, WRIST_L, HAND_L,
+    SHOULDER_R, ELBOW_R, WRIST_R, HAND_R,
+    HIP_L, KNEE_L, ANKLE_L, TOE_L,
+    HIP_R, KNEE_R, ANKLE_R, TOE_R,
+    JCOUNT
+};
+enum B : std::uint8_t {
+    B_ROOT, B_PELVIS, B_SPINE, B_CHEST, B_NECK, B_HEAD, B_JAW,
+    B_CLAV_L, B_UPPER_L, B_FORE_L, B_HAND_L,
+    B_CLAV_R, B_UPPER_R, B_FORE_R, B_HAND_R,
+    B_THIGH_L, B_SHIN_L, B_FOOT_L,
+    B_THIGH_R, B_SHIN_R, B_FOOT_R,
+    BCOUNT
+};
+constexpr int kArm = SHOULDER_R - SHOULDER_L, kArmB = B_CLAV_R - B_CLAV_L, kLeg = HIP_R - HIP_L, kLegB = B_THIGH_R - B_THIGH_L;
+inline int arm(int left, int s) { return left + s * kArm; }
+inline int armB(int left, int s) { return left + s * kArmB; }
+inline int leg(int left, int s) { return left + s * kLeg; }
+inline int legB(int left, int s) { return left + s * kLegB; }
+// Koerperbau (m): Hoehen ueber dem Boden, halbe Breiten, Laengen der Glieder
+struct Build {
+    float hip, waist, chest, shoulder, neckTop, headTop;  // Hoehen
+    float shoulderW, hipW;                                // halbe Breiten
+    float upperArm, foreArm, hand, thigh, shin, ankle, foot;
+    float armOut;                                         // Abspreizen der Arme in der Ruhepose (rad)
+};
+const Build& bipedBuild(Entity e);
+}  // namespace bp
+
+// V13.2: Death Rat - Rumpf in drei Abschnitten, Kopf mit Kiefer (Hoerner sitzen fest am Kopf), vier Beine zu je drei
+// Gliedern, Schwanz in vier Gliedern
+namespace rt {
+constexpr int kTail = 5;
+enum J : std::uint8_t {
+    ROOT, PELVIS, SPINE, CHEST, NECK, HEAD, SNOUT, JAW,
+    LEG0,                    // + leg * 4 + i (0 vorn links, 1 vorn rechts, 2 hinten links, 3 hinten rechts): oben, Knie, Fuss, Zehen
+    TAIL0 = LEG0 + 4 * 4,    // + i
+    JCOUNT = TAIL0 + kTail
+};
+enum B : std::uint8_t {
+    B_ROOT, B_PELVIS, B_SPINE, B_NECK, B_HEAD, B_JAW,
+    B_LEG0,                  // + leg * 3 + i
+    B_TAIL0 = B_LEG0 + 4 * 3,
+    BCOUNT = B_TAIL0 + kTail - 1
+};
+inline int legJ(int l, int i) { return LEG0 + l * 4 + i; }
+inline int legB(int l, int i) { return B_LEG0 + l * 3 + i; }
+}  // namespace rt
+
+// V13.2: Fensterwesen - Hintergrund (Landschaft) und Umriss in der Fensteroeffnung (1,2 x 1,8 m, Mitte = Wurzel),
+// der Umriss mit Rumpf, Kopf und zwei Armen (links winkt, rechts greift aus dem Fenster)
+namespace wn {
+enum J : std::uint8_t {
+    ROOT, BACK, FIG_BASE, FIG_CHEST, FIG_NECK, FIG_TOP,
+    SH_L, EL_L, WR_L, HAND_L, SH_R, EL_R, WR_R, HAND_R,
+    JCOUNT
+};
+enum B : std::uint8_t { B_ROOT, B_BACK, B_BODY, B_CHEST, B_HEAD, B_UPPER_L, B_FORE_L, B_HAND_L, B_UPPER_R, B_FORE_R, B_HAND_R, BCOUNT };
+constexpr float kW = 1.2f, kH = 1.8f, kFigX = 0.016f;  // Oeffnung; Ebene des Umrisses (x)
+}  // namespace wn
 
 }  // namespace lim::anim

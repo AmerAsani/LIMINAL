@@ -2280,6 +2280,387 @@ static void testB001Sleeve(const std::string& dataDir) {
     (void)worstAll;
 }
 
+// V13.2: die neuen Wesen (KREATUR_<Name>.md) - Verhalten je Ebene auf den festen Karten
+static void testV13Kin(const std::string& dataDir) {
+    const game::Content& content = *gContent11;
+    game::PrefabLibrary prefabs;
+    prefabs.loadDirectory(dataDir + "/prefabs");
+    JobSystem jobs(2);
+    using PE = game::Presence::Event;
+    using Role = game::Presence::Role;
+    auto open = [&](const char* level, i64 seed) {
+        auto s = std::make_unique<game::GameSession>(content, prefabs, content.level(level, world::kLayoutV6), seed, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        return s;
+    };
+    auto step = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, double secs, const std::function<bool()>& each = {}) {
+        for (int i = 0; i < (int)(secs * 60.0); ++i) {
+            if (each && each()) break;
+            s.update(1.0 / 60.0, {}, false);
+            ev.insert(ev.end(), s.events().begin(), s.events().end());
+            s.events().clear();
+        }
+    };
+    auto count = [](const std::vector<game::GameEvent>& ev, PE::Type t, Role r, float minI = -1.0f, float maxI = 1e9f) {
+        return (int)std::count_if(ev.begin(), ev.end(), [&](const game::GameEvent& e) {
+            return e.type == game::GameEvent::Figure && e.index == (int)t && e.role == (int)r && e.intensity >= minI && e.intensity <= maxI;
+        });
+    };
+    // Blick auf den Kopf des Wesens
+    auto aim = [](game::GameSession& s, vec3 q) {
+        auto& pl = s.player();
+        pl.angle = std::atan2(q.y - pl.y, q.x - pl.x);
+        pl.pitch = std::atan2(q.z - pl.eye(), std::max(0.4, std::hypot(q.x - pl.x, q.y - pl.y)));
+    };
+    // der Spieler etwa dist m vor dem Wesen, freie Sicht auf den Kopf (reihum andere Winkel); room: nur in diesem Raumtyp
+    auto placeNear = [&](game::GameSession& s, Role r, double dist, const char* room = nullptr, double back = 0.0) {
+        auto& P = s.presence();
+        if (!P.has(r)) return false;
+        const vec3 at = P.posOf(r), head = P.headOf(r);
+        world::World& w = s.world();
+        for (int k = 0; k < 24; ++k) {
+            const float yaw0 = P.yawOf(r) + (float)((k + 1) / 2) * 0.27f * (k % 2 ? 1.0f : -1.0f);
+            for (double dd = dist; dd > dist * 0.6; dd -= 0.2) {
+                const double x = at.x + std::cos(yaw0) * dd, y = at.y + std::sin(yaw0) * dd;
+                const world::Tile* t = w.tileIfLoaded(ifloor(x), ifloor(y));
+                const float baseZ = r == Role::Window ? at.z - 1.9f : at.z;
+                if (!t || !t->open() || t->clearance() < 2.0f || std::fabs(t->floor - baseZ) > 0.4f) continue;
+                if (room && !(t->room && t->room->type && t->room->type->key == room)) continue;
+                if (!game::clearSight(w, vec3{(float)x, (float)y, t->floor + (float)game::Player::kEye}, head)) continue;
+                bool room2 = true;  // back: so viel Platz hinter dem Spieler (vom Wesen weg)
+                for (double bb = 0.5; bb <= back && room2; bb += 0.5) {
+                    const world::Tile* tb = w.tileIfLoaded(ifloor(x + std::cos(yaw0) * bb), ifloor(y + std::sin(yaw0) * bb));
+                    room2 = tb && tb->open() && std::fabs(tb->floor - t->floor) < 0.3f;
+                }
+                if (!room2) continue;
+                auto& pl = s.player();
+                pl.x = x, pl.y = y, pl.z = t->floor, pl.vx = pl.vy = 0.0;
+                s.body().reset();
+                aim(s, head);
+                return true;
+            }
+        }
+        return false;
+    };
+    auto spawn = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, Role r) {
+        s.presence().force(r);
+        step(s, ev, 3.0, [&] { return s.presence().has(r); });  // nach einem Wiedereinstieg erst, wenn die Regie wieder laeuft
+        return s.presence().has(r);
+    };
+
+    // --- Faceling, friedlich (Level 903): leben ihr Leben, winken, wen sie wiedererkennen --------------------------------
+    {
+        auto s = open("level903", 7);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        check(spawn(*s, ev, Role::Faceling), "Level 903: Facelings erscheinen");
+        const int v = P.variantOf(Role::Faceling);
+        check(v == 0 || v == 3 || v == 4, std::format("Level 903: eine der gewoehnlichen Varianten ({})", v));
+        check(placeNear(*s, Role::Faceling, 5.0), "Level 903: mit Sicht vor einem Faceling");
+        const double h0 = s->stats().health;
+        bool waved = false;
+        step(*s, ev, 8.0, [&] {
+            if (P.has(Role::Faceling)) aim(*s, P.headOf(Role::Faceling));
+            waved = waved || P.stateOf(Role::Faceling) == 5;
+            return false;
+        });
+        check(waved, "Level 903: wer laenger in der Naehe ist, dem winkt es");
+        check(s->stats().health >= h0 && count(ev, PE::Hit, Role::Faceling) == 0, "Level 903: friedlich - kein Schlag");
+    }
+    // --- Faceling, reizbar (Level 2): die Lampe im Gesicht reizt; dann Schlaege; mit Abstand beruhigt er sich ------------
+    {
+        auto s = open("level2", 8);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        check(spawn(*s, ev, Role::Faceling), "Level 2: Facelings erscheinen (Gruppe)");
+        check(placeNear(*s, Role::Faceling, 2.6), "Level 2: mit Sicht vor einem Faceling");
+        step(*s, ev, 2.0, [&] { aim(*s, P.headOf(Role::Faceling)); return false; });
+        check(P.stateOf(Role::Faceling) == 0, "Level 2: ohne Reiz lassen sie einen in Ruhe");
+        s->flashlight().on = true;
+        int angryAt = -1, frame = 0;
+        step(*s, ev, 6.0, [&] {
+            aim(*s, P.headOf(Role::Faceling));
+            if (angryAt < 0 && P.stateOf(Role::Faceling) == 2) angryAt = frame;
+            ++frame;
+            return angryAt >= 0;
+        });
+        check(angryAt > 60, std::format("Level 2: die Lampe im Gesicht reizt ihn - nach {:.1f} s ausfallend", angryAt / 60.0));
+        check(count(ev, PE::Hum, Role::Faceling, 0.9f) > 0, "Level 2: aufgebracht laut (Vokale, stossweise)");
+        const double h0 = s->stats().health;
+        step(*s, ev, 4.0, [&] { aim(*s, P.headOf(Role::Faceling)); return false; });
+        check(s->stats().health < h0 && s->stats().health > h0 - 50.0, std::format("Level 2: er schlaegt zu - leicht ({:.0f} -> {:.0f})", h0, s->stats().health));
+        check(!s->stats().dead, "Level 2: nicht toedlich");
+        // weggehen: er beruhigt sich
+        s->flashlight().on = false;
+        s->placeAtSpawn();
+        s->preload();
+        step(*s, ev, 14.0);
+        check(!P.has(Role::Faceling) || P.stateOf(Role::Faceling) == 0, "Level 2: mit Abstand beruhigt er sich wieder");
+    }
+    // --- Faceling, bewaffnet (Level 3): kurzsichtig - bemerkt einen erst nah, dann Hiebe mit dem Stein ------------------
+    {
+        auto s = open("level3", 9);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        check(spawn(*s, ev, Role::Faceling), "Level 3: ein entwickelter Faceling erscheint");
+        check(P.variantOf(Role::Faceling) == 1, "Level 3: Variante 'entwickelt' (mit Steinwerkzeug)");
+        if (placeNear(*s, Role::Faceling, 8.0)) {
+            step(*s, ev, 2.5, [&] { aim(*s, P.headOf(Role::Faceling)); return false; });
+            check(P.stateOf(Role::Faceling) == 0 || P.distOf(Role::Faceling) < 5.5f, "Level 3: auf 8 m bemerkt er einen nicht (kurzsichtig)");
+        }
+        check(placeNear(*s, Role::Faceling, 3.0), "Level 3: nah vor ihm");
+        const double h0 = s->stats().health;
+        step(*s, ev, 6.0, [&] { aim(*s, P.headOf(Role::Faceling)); return s->stats().dead; });
+        check(P.stateOf(Role::Faceling) == 2 || s->stats().health < h0, "Level 3: nah bemerkt er einen und greift an");
+        check(count(ev, PE::Swing, Role::Faceling) > 0 && count(ev, PE::Hit, Role::Faceling) > 0, "Level 3: er holt aus und trifft (Stein)");
+        check(s->stats().health < h0, std::format("Level 3: Schaden ({:.0f} -> {:.0f})", h0, s->stats().health));
+    }
+    // --- Faceling im rosa Kleid (Level 188): toedlich, nur in den Gaengen ----------------------------------------------
+    {
+        auto s = open("level188", 10);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        {  // an die Ostseite des Hofs, nahe der Tuer zum weissen Gang (vom Eingang sind die Gaenge 45 m weit)
+            auto& pl = s->player();
+            pl.x = 52.5, pl.y = 38.5, pl.z = s->world().tile(52, 38).floor, pl.angle = 3.14159, pl.pitch = 0.0;
+            s->body().reset();
+            s->preload();
+            step(*s, ev, 0.5);
+        }
+        check(spawn(*s, ev, Role::Faceling), "Level 188: der Faceling im rosa Kleid erscheint");
+        check(P.variantOf(Role::Faceling) == 2, "Level 188: Variante 'rosa Kleid'");
+        const world::Tile& ft = s->world().tile(ifloor(P.posOf(Role::Faceling).x), ifloor(P.posOf(Role::Faceling).y));
+        check(ft.room && ft.room->type && (ft.room->type->key == "gang" || ft.room->type->key == "zelle" || ft.room->type->key == "treppenhaus"),
+              "Level 188: sie ist in den Gaengen");
+        const bool placed = placeNear(*s, Role::Faceling, 7.0, "gang") || placeNear(*s, Role::Faceling, 7.0, "zelle") ||
+                            placeNear(*s, Role::Faceling, 7.0, "treppenhaus");
+        check(placed, "Level 188: mit Sicht in einem Gang");
+        bool stopped = false;
+        step(*s, ev, 1.2, [&] {
+            aim(*s, P.headOf(Role::Faceling));
+            stopped = stopped || P.stateOf(Role::Faceling) == 3;
+            return false;
+        });
+        check(stopped && !s->stats().dead, "Level 188: sieht sie einen, bleibt sie zuerst stehen (Ankuendigung)");
+        step(*s, ev, 12.0, [&] {
+            if (P.has(Role::Faceling)) aim(*s, P.headOf(Role::Faceling));
+            return s->stats().dead;
+        });
+        check(s->stats().dead && s->killRole() == (int)Role::Faceling, "Level 188: bleibt man, ist es toedlich");
+        // Ausweg: aus den Gaengen hinaus in den Hof - sie laesst ab
+        s->respawnAtCheckpoint();
+        P.clear();
+        {
+            auto& pl = s->player();
+            pl.x = 52.5, pl.y = 38.5, pl.z = s->world().tile(52, 38).floor, pl.angle = 3.14159, pl.pitch = 0.0;
+            s->body().reset();
+            s->preload();
+        }
+        step(*s, ev, 0.5);
+        check(spawn(*s, ev, Role::Faceling), "Level 188: wieder da");
+        if (placeNear(*s, Role::Faceling, 7.0, "gang") || placeNear(*s, Role::Faceling, 7.0, "zelle") || placeNear(*s, Role::Faceling, 7.0, "treppenhaus")) {
+            step(*s, ev, 1.0, [&] { aim(*s, P.headOf(Role::Faceling)); return false; });
+            s->placeAtSpawn();  // im Hof
+            s->preload();
+            step(*s, ev, 8.0);
+            check(!s->stats().dead && (!P.has(Role::Faceling) || P.stateOf(Role::Faceling) == 0), "Level 188: im Hof laesst sie ab");
+        }
+    }
+    // --- Skin-Stealer (Level 5, wahre Gestalt): satt harmlos, gereizt toedlich -------------------------------------------
+    {
+        auto s = open("level5", 11);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        check(spawn(*s, ev, Role::SkinStealer), "Level 5: ein Skin-Stealer erscheint");
+        check(P.variantOf(Role::SkinStealer) == 0, "Level 5: wahre Gestalt (blassgelb)");
+        P.kinSet(Role::SkinStealer, "hungry", 0.0);
+        check(placeNear(*s, Role::SkinStealer, 5.0), "Level 5: mit Sicht vor ihm");
+        step(*s, ev, 6.0, [&] { aim(*s, P.headOf(Role::SkinStealer)); return false; });
+        check(!s->stats().dead && P.stateOf(Role::SkinStealer) == 0, "Level 5: satt ist er harmlos (ruhig dabeistehen)");
+        s->flashlight().on = true;
+        int replaced = 0;
+        step(*s, ev, 14.0, [&] {
+            if (!P.has(Role::SkinStealer)) return s->stats().dead;
+            // die Lampe soll ihn treffen: verliert man ihn hinter einer Kante, tritt man wieder vor ihn
+            const vec3 ey{(float)s->player().x, (float)s->player().y, (float)s->player().eye()};
+            if (!game::clearSight(s->world(), ey, P.headOf(Role::SkinStealer)) && replaced < 6 && P.stateOf(Role::SkinStealer) == 0)
+                replaced += placeNear(*s, Role::SkinStealer, 4.0) ? 1 : 0;
+            aim(*s, P.headOf(Role::SkinStealer));
+            return s->stats().dead;
+        });
+        check(s->stats().dead && s->killRole() == (int)Role::SkinStealer, "Level 5: gereizt (Lampe im Gesicht) toetet er mit blossen Haenden");
+    }
+    // --- Skin-Stealer (Level 3, getarnt, hungrig): spricht nach, kommt naeher, haelt inne, greift an --------------------
+    {
+        auto s = open("level3", 12);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        check(spawn(*s, ev, Role::SkinStealer), "Level 3: ein Skin-Stealer erscheint");
+        check(P.variantOf(Role::SkinStealer) == 1, "Level 3: getarnt (in Menschenhaut)");
+        P.kinSet(Role::SkinStealer, "hungry", 1.0);
+        check(placeNear(*s, Role::SkinStealer, 11.0) || placeNear(*s, Role::SkinStealer, 8.0), "Level 3: mit Sicht in einigem Abstand");
+        bool stalked = false, paused = false;
+        step(*s, ev, 30.0, [&] {
+            if (P.has(Role::SkinStealer)) aim(*s, P.headOf(Role::SkinStealer));
+            stalked = stalked || P.stateOf(Role::SkinStealer) == 1;
+            paused = paused || P.stateOf(Role::SkinStealer) == 3;
+            return s->stats().dead;
+        });
+        check(stalked, "Level 3: hungrig sucht er den, der allein ist");
+        check(count(ev, PE::Mimic, Role::SkinStealer) > 0, "Level 3: er spricht nach, um zu locken");
+        check(paused, "Level 3: vor dem Angriff haelt er inne (Ankuendigung)");
+        check(s->stats().dead && s->killRole() == (int)Role::SkinStealer, "Level 3: dann toetet er");
+        // Ausweg (Wiki: langsam und ruhig weggehen): haelt er inne und man weicht zurueck, folgt er nur wieder
+        s->respawnAtCheckpoint();
+        P.clear();
+        P.setGrace(3000.0);  // keine anderen Wesen dazwischen
+        step(*s, ev, 0.5);
+        if (spawn(*s, ev, Role::SkinStealer)) {
+            P.kinSet(Role::SkinStealer, "hungry", 1.0);
+            placeNear(*s, Role::SkinStealer, 9.0, nullptr, 3.0) || placeNear(*s, Role::SkinStealer, 7.0, nullptr, 3.0) ||
+                placeNear(*s, Role::SkinStealer, 9.0);
+            bool backed = false;
+            step(*s, ev, 30.0, [&] {
+                if (!P.has(Role::SkinStealer)) return true;
+                aim(*s, P.headOf(Role::SkinStealer));
+                if (P.stateOf(Role::SkinStealer) == 3 && !backed) {  // zwei Schritte zurueck, ruhig (wohin der Gang es erlaubt)
+                    auto& pl = s->player();
+                    const vec3 at = P.posOf(Role::SkinStealer);
+                    const double a0 = std::atan2(pl.y - at.y, pl.x - at.x);
+                    for (int k = 0; k < 25 * 5 && !backed; ++k) {
+                        const double a = a0 + (double)((k % 25 + 1) / 2) * 0.13 * (k % 2 ? 1.0 : -1.0), r = 1.0 + 0.5 * (k / 25);
+                        const double nx = pl.x + std::cos(a) * r, ny = pl.y + std::sin(a) * r;
+                        const world::Tile& t = s->world().tile(ifloor(nx), ifloor(ny));
+                        if (t.open() && std::fabs(t.floor - pl.z) < 0.3 && std::hypot(nx - at.x, ny - at.y) > std::hypot(pl.x - at.x, pl.y - at.y) + 0.8)
+                            pl.x = nx, pl.y = ny, s->body().reset(), backed = true;
+                    }
+                }
+                return backed && P.stateOf(Role::SkinStealer) != 3;
+            });
+            check(backed && !s->stats().dead && P.stateOf(Role::SkinStealer) == 1, "Level 3: wer ruhig zurueckweicht, den laesst er ziehen (er folgt nur)");
+        }
+    }
+    // --- Wretch (Level 2): schlurfend - tiefes Gurgeln, schwere Schlaege; flehend - harmlos ------------------------------
+    {
+        auto s = open("level2", 13);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        check(spawn(*s, ev, Role::Wretch), "Level 2: ein Wretch erscheint");
+        P.kinSet(Role::Wretch, "pleads", 0.0);
+        P.kinSet(Role::Wretch, "mode", 0.0);
+        check(placeNear(*s, Role::Wretch, 6.0), "Level 2: mit Sicht vor dem Wretch");
+        s->flashlight().on = true;
+        const double h0 = s->stats().health;
+        double firstHit = -1.0;
+        step(*s, ev, 20.0, [&] {
+            if (P.has(Role::Wretch)) aim(*s, P.headOf(Role::Wretch));
+            if (firstHit < 0.0 && s->stats().health < h0) firstHit = s->stats().health;
+            return s->stats().dead || s->stats().health < h0 - 60.0;
+        });
+        check(P.stateOf(Role::Wretch) == 2 || s->stats().health < h0, "Level 2: er sieht einen und jagt");
+        check(count(ev, PE::Gurgle, Role::Wretch, -1.0f, 0.5f) > 0, "Level 2: der traege gurgelt tief");
+        check(firstHit > 0.0 && firstHit < h0 - 15.0, std::format("Level 2: ein schwerer Schlag, nicht sofort toedlich ({:.0f} -> {:.0f})", h0, firstHit));
+        // zweites Stadium: fleht und greift nicht an
+        P.clear();
+        s->respawnAtCheckpoint();
+        step(*s, ev, 0.3);
+        check(spawn(*s, ev, Role::Wretch), "Level 2: noch ein Wretch");
+        P.kinSet(Role::Wretch, "pleads", 1.0);
+        ev.clear();
+        if (placeNear(*s, Role::Wretch, 3.0)) {
+            const double h1 = s->stats().health;
+            step(*s, ev, 10.0, [&] {
+                if (P.has(Role::Wretch)) aim(*s, P.headOf(Role::Wretch));
+                return false;
+            });
+            check(count(ev, PE::Plead, Role::Wretch) > 0, "Level 2: im zweiten Stadium fleht er (um Wasser, Essen, Hilfe)");
+            check(s->stats().health >= h1 && count(ev, PE::Hit, Role::Wretch) == 0, "Level 2: der Flehende schlaegt nicht");
+        }
+    }
+    // --- Wretch (Level 3): schnell - hoch fauchend, in Stoessen ---------------------------------------------------------
+    {
+        auto s = open("level3", 14);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        check(spawn(*s, ev, Role::Wretch), "Level 3: ein Wretch erscheint");
+        P.kinSet(Role::Wretch, "pleads", 0.0);
+        check(placeNear(*s, Role::Wretch, 9.0) || placeNear(*s, Role::Wretch, 6.0), "Level 3: mit Sicht");
+        s->flashlight().on = true;
+        step(*s, ev, 8.0, [&] {
+            if (P.has(Role::Wretch)) aim(*s, P.headOf(Role::Wretch));
+            return s->stats().dead;
+        });
+        check(count(ev, PE::Gurgle, Role::Wretch, 0.5f) > 0, "Level 3: der schnelle faucht hoch (der Laut verraet die Gefahr)");
+    }
+    // --- Death Rat (Level 2, haarlos): stiebt davon, quiekt; bedraengt beisst sie -----------------------------------------
+    {
+        auto s = open("level2", 15);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        check(spawn(*s, ev, Role::Rat), "Level 2: Ratten erscheinen");
+        check(P.variantOf(Role::Rat) == 1, "Level 2: haarlos (an die Hitze angepasst)");
+        check(placeNear(*s, Role::Rat, 2.2), "Level 2: nah bei einer Ratte");
+        const float d0 = P.distOf(Role::Rat);
+        step(*s, ev, 1.5);
+        check(count(ev, PE::Squeak, Role::Rat) > 0, "Level 2: sie quiekt");
+        check(!P.has(Role::Rat) || P.distOf(Role::Rat) > d0 + 0.5f || P.stateOf(Role::Rat) == 1, "Level 2: und stiebt davon");
+    }
+    // --- Death Rat (Level 5): das Schrei-Ereignis - Kreischen, das Licht flackert ----------------------------------------
+    {
+        auto s = open("level5", 16);
+        s->figureMode = 1;  // ohne Angriffe: hier geht es nur um das Ereignis
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 400.0, [&] { return count(ev, PE::Scream, Role::Rat) > 0; });
+        check(count(ev, PE::Scream, Role::Rat) > 0, "Level 5: die Ratten fallen ueber ein Wesen her (Schrei-Ereignis)");
+        step(*s, ev, 2.0);
+        check(count(ev, PE::Flicker, Role::Rat) > 0, "Level 5: dabei flackert das Licht");
+    }
+    // --- Fensterwesen (Level 188): drei Fenster; lockt mit Fluestern; wer zu nah tritt, wird hineingezogen -------------
+    {
+        auto s = open("level188", 17);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 1.0);
+        auto& P = s->presence();
+        check(P.count(Role::Window) == 3, std::format("Level 188: drei Fensterwesen ({})", P.count(Role::Window)));
+        const vec3 w = P.posOf(Role::Window);
+        const float yw = P.yawOf(Role::Window);
+        auto stand = [&](double dn) {
+            auto& pl = s->player();
+            pl.x = w.x + std::cos(yw) * dn, pl.y = w.y + std::sin(yw) * dn, pl.z = s->world().tile(ifloor(pl.x), ifloor(pl.y)).floor;
+            pl.vx = pl.vy = 0.0;
+            s->body().reset();
+            aim(*s, w);
+        };
+        stand(4.0);
+        ev.clear();
+        step(*s, ev, 8.0, [&] { aim(*s, w); return false; });
+        check(count(ev, PE::Whisper, Role::Window) > 0, "Level 188: es fluestert (lockt)");
+        check(!s->stats().dead, "Level 188: auf 4 m geschieht nichts");
+        // kurz zu nah, gleich zurueck: der Arm greift ins Leere
+        stand(1.5);
+        step(*s, ev, 0.25);
+        check(count(ev, PE::Pull, Role::Window) > 0, "Level 188: zu nah - der Arm faehrt heraus");
+        stand(3.2);
+        step(*s, ev, 2.0);
+        check(!s->stats().dead, "Level 188: wer sofort zuruecktritt, entkommt");
+        // stehen bleiben
+        step(*s, ev, 4.5);
+        stand(1.5);
+        step(*s, ev, 2.0, [&] { return s->stats().dead; });
+        check(s->stats().dead && s->killRole() == (int)Role::Window, "Level 188: wer stehen bleibt, wird hineingezogen (toedlich)");
+    }
+}
+
 int main(int argc, char** argv) {
     if (argc < 2) {
         std::printf("Aufruf: gameplay_test <data-Ordner>\n");
@@ -2309,6 +2690,7 @@ int main(int argc, char** argv) {
     testWorld(content, argv[1]);  // V8
     testV9(content, argv[1]);
     testV11Creatures(argv[1]);  // V11
+    testV13Kin(argv[1]);        // V13.2: neue Wesen (Faceling, Skin-Stealer, Wretch, Death Rat, Fensterwesen)
     testV11Journey(argv[1]);    // V11
     testV11Supplies();          // V11: Vorraete
     testV11Placement();         // V11: Halt der Ausstattung

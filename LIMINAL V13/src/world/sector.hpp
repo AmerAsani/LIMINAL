@@ -36,6 +36,8 @@ public:
     struct Spot {
         std::string kind;
         float x = 0, y = 0, z = 0;
+        float yaw = 0;      // V13.2: Ausrichtung des Objekts (Fenster: x aus der Wand)
+        std::string model;  // V13.2: Modell (Fenster: welche Art - Fensterwesen sitzen in dunklen Fenstern)
     };
     std::vector<Spot> spots;
     // V11: Notizen an den Spawnpunkten der Karte (vom Lauf gewaehlt); welche Notiz, entscheidet die Sitzung

@@ -107,7 +107,7 @@ void FigureRig::init(Figure f) {
     posed_ = false;
 }
 
-void FigureRig::initEntity(Entity e) {
+void FigureRig::initEntity(Entity e, const std::string& model) {
     creature_ = true;
     ent_ = e;
     const CreatureSkeleton& sk = entitySkeleton(e);
@@ -118,7 +118,7 @@ void FigureRig::initEntity(Entity e) {
     bindInv_.resize(bf.size());
     for (size_t i = 0; i < bf.size(); ++i) bindInv_[i] = rigidInverse(bf[i]);
     for (int l = 0; l < kFigureLods; ++l) {
-        model_[l] = std::string(entityModel(e)) + "_l" + std::to_string(l);
+        model_[l] = (model.empty() ? std::string(entityModel(e)) : model) + "_l" + std::to_string(l);
         meshId_[l] = -2;
     }
     fpModel_ = model_[0];

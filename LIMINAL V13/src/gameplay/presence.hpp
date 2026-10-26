@@ -25,6 +25,7 @@
 // (Knurren und Bellen, ein naeher kommendes Laecheln mit tiefem Droehnen, das Flattern des Schwarms).
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -39,13 +40,16 @@
 namespace lim::world {
 class World;
 class Room;
+struct KinDef;
 }
 
 namespace lim::game {
 
 class Presence {
 public:
-    enum class Role { Smiler, Hound, Moth, Gestalt, Nest, Clump };  // V11: Clump (Buendel)
+    // V11: Clump (Buendel); V13.2: Faceling, Skin-Stealer, Wretch, Death Rat, Fensterwesen (gleiche Reihenfolge wie anim::Entity)
+    enum class Role { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window };
+    static constexpr int kRoleCount = 11;
     static const char* roleName(Role r);
 
     struct Event {
@@ -73,6 +77,17 @@ public:
             Drop,        // V11 Buendel: faellt aus dem Schacht
             Drag,        // V11 Buendel: zieht sich ueber den Boden
             Windup,      // V11 Buendel: der lange Arm holt aus - in 1-1,5 s greift es zu (F2)
+            // V13.2: neue Wesen
+            Hit,         // ein Schlag, Biss oder Hieb (strength: Schaden in Health-Punkten) - nicht toedlich
+            Mimic,       // Skin-Stealer spricht nach (Worte ohne Sinn, um zu locken)
+            Whisper,     // Fensterwesen fluestert (trostend, lockend)
+            Plead,       // Wretch im zweiten Stadium fleht (um Wasser, Essen, Hilfe)
+            Gurgle,      // Wretch gurgelt und faucht (strength 0: tief und langsam - traeger; 1: hoch - schnell)
+            Hum,         // Faceling: vokalartiger Laut (strength 1: aufgebracht)
+            Squeak,      // Death Rat quiekt
+            Scream,      // Death Rats fallen ueber ein anderes Wesen her ("Screaming Event"): Kreischen, Flackern
+            Swing,       // Schlag mit dem Steinwerkzeug (Ausholen)
+            Pull,        // Fensterwesen: der Arm faehrt aus dem Fenster
         } type;
         Role role = Role::Smiler;
         vec3 pos;
@@ -122,6 +137,8 @@ public:
         bool selfAlive = true;
         // V13.2 Koop (Gast): keine KI - die Wesen kommen vom Host (netApply), hier nur ihre Bewegung
         bool puppet = false;
+        // V13.2: neue Wesen der Ebene (world::KinDef[KIN_COUNT]: Faceling, Skin-Stealer, Wretch, Ratte, Fenster) oder nullptr
+        const world::KinDef* kin = nullptr;
     };
 
     // V13.2 Koop: Zustand eines Wesens fuer die Momentaufnahme (Host) und die Puppe beim Gast
@@ -132,9 +149,11 @@ public:
         float yaw = 0.0f;
         int state = 0;
         int target = -1;
+        int variant = 0;  // V13.2: Modellvariante (anim::entityVariants)
         bool look = false, lit = false, frozen = false;
         float jaw = 0, alert = 0, crouch = 0, growl = 0, reach = 0, fly = 0, shiver = 0, hang = 0, bait = 0, light = 0, perceive = 0, glow = 0;
         float tilt = 0, lean = 0;
+        float wave = 0, talk = 0, plea = 0, strike = 0;  // V13.2: Gesten
         vec3 up{0, 0, 1}, fwd{1, 0, 0};
     };
     // Host: die Wesen, nach Abstand zu near sortiert, hoechstens max (ohne Vorfuehrungen)
@@ -186,6 +205,10 @@ public:
     // fly, shiver, lean, tilt, hang, bait, light, perceive, speed, look); false: unbekannt
     bool showcaseSet(const std::string& key, float v);
     bool showcasePos(vec3& pos, float& yaw) const;  // V13 (Tests): Lage der zuletzt gezeigten Vorfuehrung
+    // V13.2 (Tests): Eigenschaft des ersten Wesens dieser Rolle setzen (hungry, pleads, mode, provoke) bzw. lesen (variant)
+    bool kinSet(Role r, const std::string& key, double v);
+    int variantOf(Role r) const;
+    vec3 headOf(Role r) const;  // V13.2 (Tests): Kopf des ersten Wesens dieser Rolle
 
 private:
     struct Agent;
@@ -229,9 +252,19 @@ private:
     void thinkHound(Agent& a, double dt, const Context& c, std::vector<Event>& out);
     void thinkMoth(Agent& a, double dt, const Context& c, std::vector<Event>& out);
     void thinkGestalt(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    // V13.2: neue Wesen (KREATUR_<Name>.md)
+    bool spawnKin(Role r, const Context& c, std::vector<Event>& out);
+    void placeWindows(const Context& c);
+    void thinkFaceling(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    void thinkSkinStealer(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    void thinkWretch(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    void thinkRat(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    void thinkWindow(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    bool roomAllowed(const Context& c, vec3 p, int kin) const;
+    bool wander(Agent& a, double dt, const Context& c, double speed, int kin);
     void updateHive(double dt, const Context& c, std::vector<Event>& out);
     bool walkTo(Agent& a, const NavField& f, double speed, double dt, const Context& c);
-    bool hiddenSpawn(const Context& c, int lo, int hi, bool behind, vec3& out);
+    bool hiddenSpawn(const Context& c, int lo, int hi, bool behind, vec3& out, const std::function<bool(vec3)>& ok = {});
     bool pickGoal(const Context& c, Agent& a, int lo, int hi, bool away);
     void remove(size_t i);
 
@@ -248,6 +281,11 @@ private:
     int forced_ = -1;              // erzwungene Rolle (Tests, Skripte)
     bool forceBlackout_ = false, forceEncounter_ = false;
     int hiveDoorX_ = -1, hiveDoorY_ = -1;  // V13.2
+    double nextKin_[5] = {30.0, 150.0, 90.0, 25.0, 0.0};  // V13.2: naechster Auftritt je neuem Wesen
+    bool windowsPlaced_ = false;                            // V13.2: Fensterwesen der Ebene gesetzt
+    double nextScream_ = 120.0, screamT_ = 0.0, screamTick_ = 0.0;  // V13.2: Schrei-Ereignis der Ratten (Dauer, Flackern)
+    vec3 screamPos_;
+    int nextGroup_ = 1;
     double forcedDist_ = 0.0;
     Hive hive_;
 };

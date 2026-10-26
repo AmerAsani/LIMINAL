@@ -12,7 +12,12 @@
 //              Sitzt sie, liegen die Fluegel flach an der Flaeche, die Beine greifen - vor dem Abflug
 //              zittern die Fluegel (Aufwaermen).
 //   Gestalt    steht. Kaum merkliches Wanken, die unteren Fasern treiben.
-//   Nest       starr.
+//   Nest       atmet (V13.2).
+//   V13.2:
+//   Zweibeiner Faceling, Skin-Stealer, Wretch: Gang auf zwei Beinen, Haltung je Wesen (ANIMATIONEN.md); Gesten:
+//              winken, zuschlagen, zugreifen, flehen, Hand vor das Gesicht.
+//   Ratte      Trab, im Rennen Galopp in Spruengen; richtet sich witternd auf, frisst, beisst; der Schwanz schleift nach.
+//   Fenster    der Umriss wiegt sich und winkt; greift er zu, lehnt er sich heraus, der Arm streckt sich bis 2 m.
 #pragma once
 
 #include <vector>
@@ -47,6 +52,11 @@ public:
         float perceive = 0.0f;    // V13.2: 0..1 nimmt etwas wahr (wittert, lauscht) - Richtung perceiveAt
         vec3 perceiveAt;
         vec3 lightFrom;           // V13.2: woher das Licht kommt (Lampe)
+        // V13.2 Zweibeiner und Fensterwesen: Gesten
+        float wave = 0.0f;        // 0..1 winken (Faceling) / locken (Fensterwesen)
+        float talk = 0.0f;        // 0..1 spricht (Skin-Stealer ahmt Worte nach): Kiefer im Takt von Silben
+        float plea = 0.0f;        // 0..1 fleht (Wretch im zweiten Stadium): halb aufgerichtet, Haende vor
+        float strike = 0.0f;      // Phase 0..1 eines Schlags (entwickelter Faceling mit Steinwerkzeug), 0 = keiner
     };
 
     void init(Entity e, vec3 pos, float yaw, unsigned seed = 1);
@@ -83,6 +93,9 @@ private:
     void updateGestalt(float dt, const Input& in);
     void updateNest(float dt, const Input& in);  // V13.2: atmet, Haut schwingt, Gelege zuckt
     void updateClump(float dt, const Input& in);  // V11
+    void updateBiped(float dt, const Input& in);   // V13.2: Faceling, Skin-Stealer, Wretch
+    void updateRat(float dt, const Input& in);     // V13.2: Death Rat
+    void updateWindow(float dt, const Input& in);  // V13.2: Fensterwesen
     // Gangzyklus fuer n Beine; rest: Ruhepunkte (Welt) dieses Bildes
     void stepLegs(float dt, int n, const float* offs, float duty, float S, const vec3* rest, float standDur, const float* weight);
     vec3 footPos(int i, const float* lift) const;
@@ -119,6 +132,9 @@ private:
     // V13.2: Licht, Wahrnehmen, Ruhe (Gewicht verlagern, Pfote neu setzen), Schnueffeln in Stoessen
     float light_ = 0.0f, lightV_ = 0.0f, perc_ = 0.0f, percV_ = 0.0f, idleW_ = 1.0f, idleWV_ = 0.0f;
     float shuffleT_ = 5.0f, sniff_ = 0.0f, sniffV_ = 0.0f, swayPh_ = 0.0f;
+    // V13.2: Gesten der Zweibeiner und des Fensterwesens
+    float wave_ = 0.0f, waveV_ = 0.0f, talk_ = 0.0f, talkV_ = 0.0f, plea_ = 0.0f, pleaV_ = 0.0f;
+    bool walk_ = false;  // V13.2 Zweibeiner: ging im letzten Bild (Anlauf: der hintere Fuss tritt zuerst)
     // V11 Buendel: je Arm die aufgesetzte Hand und der Schwung zum naechsten Griff; der Kern zieht ruckweise
     // nach und schaukelt; die Beine schleifen
     struct Grip {

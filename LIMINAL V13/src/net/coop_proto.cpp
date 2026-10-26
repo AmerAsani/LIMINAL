@@ -149,7 +149,7 @@ Reject validate(const Msg& m) {
             }
             for (int i = 0; i < s.nCreatures; ++i) {
                 const CreatureNet& c = s.creatures[(size_t)i];
-                if (c.role > 5 || !coordOk(c.x) || !coordOk(c.y) || !coordOk(c.z) || !inRange(c.yaw, -3142, 3142) || (c.flags & ~7u) ||
+                if (c.role >= kRoles || c.variant > 3 || !coordOk(c.x) || !coordOk(c.y) || !coordOk(c.z) || !inRange(c.yaw, -3142, 3142) || (c.flags & ~7u) ||
                     (c.target != 255 && c.target >= kMaxPlayers) || c.state > 15)
                     return Reject::BadRange;
                 for (int j = 0; j < i; ++j)
@@ -211,6 +211,7 @@ Reject validate(const Msg& m) {
 void putCreature(Writer& o, const CreatureNet& c) {
     o.w(c.netId);
     o.b(c.role);
+    o.b(c.variant);
     o.d((u32)c.x), o.d((u32)c.y), o.d((u32)c.z);
     o.w((u16)c.yaw);
     o.b(c.state);
@@ -459,6 +460,7 @@ Reject decode(Role from, ConnState st, const u8* data, size_t n, Msg& out) {
                 CreatureNet& c = s.creatures[(size_t)i];
                 c.netId = r.w();
                 c.role = r.b();
+                c.variant = r.b();
                 c.x = (i32)r.d(), c.y = (i32)r.d(), c.z = (i32)r.d();
                 c.yaw = (i16)r.w();
                 c.state = r.b(), c.target = r.b(), c.flags = r.b();
