@@ -31,9 +31,9 @@ Wiedereinstieg: diesen Abschnitt lesen, dann `DECISIONS.md` ab E-025.
 - [x] Entity-Abgleich: `ENTITY_ABGLEICH.md` (zehn Ebenenseiten, Entity-Übersicht, Entity-Seiten; Revisionen vom 26.10.2026). Nest belegt (E-026), Reihenfolge der fehlenden Wesen (E-027). Smiler reagiert auf Lärm.
 - [x] B-002: Texturen Ebene für Ebene, Ladespitze 3,1 GB → 0,68 GB (2048 px: 11,1 → 1,3 GB), Messung je Ebene in `BUGLISTE.md`.
 - [x] B-001: Ärmel am gebeugten Ellbogen (E-028): Ruhepose 54 Grad, Dual Quaternions, Lampenhaltung von außen; Test und Bilder (`docs/screens/b001/`).
-- [ ] Animationen und Modelle der Wesen, Nest-Neuentwurf
+- [x] Animationen der Wesen (Hound, Smiler, Clump, Gestalt, Deathmoth; `ANIMATIONEN.md`) und Nest-Neuentwurf in fünf Runden (E-029, `docs/screens/nest/`)
 - [ ] Fehlende Wiki-Wesen (Faceling, Fensterwesen, Skin-Stealer, Wretch, Death Rat)
-- [ ] Mehrspieler (Architektur, Stufen 1–7, Sicherheit) und Tests
+- [x] Mehrspieler als Beta (E-030): Transport, Protokoll v2, Host/Gast, Wesen für mehrere Spieler, Menüs, Wiederverbinden, Koop-Stand; Tests in `MULTIPLAYER_TESTS.md` (Transport 52/0, Koop 164/0 + 5/0, Sanitizer, zwei Prozesse, Langlauf). Bugs B-005 bis B-011.
 - [ ] Abschluss: Tests, V12/V10 prüfen, Tag `v13`, `REPORT_V13_2.md`
 
 Hilfsskripte (Scratchpad `v13`): `b.sh [gameplay|all]` (bauen + Tests), `mem_sweep.ps1` / `mem_trace.ps1` (Speicher), `elbow_tp.ps1` (Kamera um den Spieler, Skriptbefehle `figcam` ohne Vorführung in der Schulteransicht, `egopose 1`), `elbow_shots.ps1` (`vmcam`), `crop.py`.

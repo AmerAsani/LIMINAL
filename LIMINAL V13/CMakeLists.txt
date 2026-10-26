@@ -53,6 +53,8 @@ lim_module(ui lim_gameplay lim_render lim_input)
 # V13: Pruefschicht eines moeglichen Mehrspielerprotokolls - ohne Netzwerk und vom Spiel NICHT gebunden
 # (MULTIPLAYER_ENTSCHEIDUNG.md); nur net_protocol_test nutzt sie
 lim_module(net lim_core)
+# V13.2: Koop (Beta) - Host und Gast ueber dem Transport; die DLL laedt das Spiel erst beim Hosten oder Beitreten
+lim_module(coop lim_gameplay lim_net)
 
 # ------------------------------------------------------------------------------------
 # Shader (HLSL -> Bytecode .cso beim Build; das Spiel braucht keinen Compiler)
@@ -112,7 +114,7 @@ add_custom_target(lim_data ALL
 # ------------------------------------------------------------------------------------
 file(GLOB LIM_APP_SRC CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/src/app/*.cpp")
 add_executable(LiminalGame WIN32 ${LIM_APP_SRC} src/app/liminal.rc)
-target_link_libraries(LiminalGame PRIVATE lim_ui lim_audio lim_gameplay lim_render lim_input lim_platform lim_core
+target_link_libraries(LiminalGame PRIVATE lim_ui lim_coop lim_net lim_audio lim_gameplay lim_render lim_input lim_platform lim_core
     user32 gdi32 ole32 shell32 winmm)
 target_link_options(LiminalGame PRIVATE -municode)
 add_dependencies(LiminalGame lim_shaders lim_data)
@@ -176,6 +178,10 @@ target_link_libraries(net_protocol_test PRIVATE lim_net)
 add_executable(net_transport_test tests/net_transport_test.cpp)
 target_link_libraries(net_transport_test PRIVATE lim_nettransport)
 set_target_properties(net_transport_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
+# V13.2: Koop mit echten Sitzungen (Bots, Netzstoerer, Angriffe, Fuzzing, Reise, Langlauf)
+add_executable(coop_test tests/coop_test.cpp tests/support/netapi_static.cpp)
+target_link_libraries(coop_test PRIVATE lim_coop lim_net lim_nettransport lim_gameplay ws2_32 psapi)
+set_target_properties(coop_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
 set_target_properties(net_protocol_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
 
 # V6: raeumliche Struktur (Raumdichte, Raumgroessen, Sichtachsen) alter gegen neuer Aufbau

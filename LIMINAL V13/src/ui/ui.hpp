@@ -32,7 +32,7 @@ public:
     Mode mode() const { return mode_; }
     const std::string& page() const { return page_; }
     void setMode(Mode m);
-    bool pausesGame() const {
+    bool pausesGame() const {  // V13.2: im Koop laeuft das Spiel weiter (die App entscheidet)
         return mode_ == Mode::Pause || mode_ == Mode::Inventory || mode_ == Mode::Dead || mode_ == Mode::Note ||
                mode_ == Mode::Ending;
     }
@@ -84,6 +84,13 @@ public:
         loadingProgress_ = progress;
     }
     void openPause() { setMode(Mode::Pause); }
+    void coopMessage(const std::string& m) { coopMsg_ = m; }  // V13.2: Zustand des Beitritts auf der Koop-Seite
+    // V13.2 Koop: Namen ueber den Mitspielern (Bildschirm 0..1, von der Anwendung je Bild berechnet)
+    struct NameTag {
+        float x = 0, y = 0, alpha = 1;
+        std::string name;
+    };
+    void setNameTags(std::vector<NameTag> t) { nameTags_ = std::move(t); }
     void toggleMap() { showMap_ = !showMap_; }
     void toggleDebug() { showDebug_ = !showDebug_; }
     bool debugVisible() const { return showDebug_; }
@@ -130,6 +137,14 @@ private:
     void titleMain(Host& h, float x, float y, float w);
     void titleNew(Host& h, float x, float y, float w);
     void titleLoad(Host& h, float x, float y, float w);
+    // V13.2 Koop (Beta)
+    void titleCoop(Host& h, float x, float y, float w);
+    void coopPlayersPage(Host& h, float x, float y, float w);
+    void drawCoopHud(Host& h);
+    int coopSel_ = 0;
+    bool coopJoin_ = true, coopResume_ = false;
+    std::string coopName_, coopAddr_, coopPort_ = "27500", coopKey_, coopMsg_;
+    std::vector<NameTag> nameTags_;
     void drawPause(Host& h);
     void pauseMain(Host& h);  // V12: Seitenleiste
     bool settingsPage(Host& h, const std::string& page, float x, float y, float w, float maxH);

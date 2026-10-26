@@ -166,7 +166,8 @@ public:
     bool hasMachine() const { return machine_.has_value(); }
     std::optional<TilePos> machineTile() const;  // Weltkoordinaten
     int machineDirX = 0, machineDirY = 0;
-    void planSupply(const LevelDef& level, double oddsNone, double oddsOne, const SupplyRules& rules = {});
+    // V13.2 Koop: supplyScale > 1 legt zusaetzliche Funde dazu (eigener Hash, die Grundbelegung bleibt gleich)
+    void planSupply(const LevelDef& level, double oddsNone, double oddsOne, const SupplyRules& rules = {}, double supplyScale = 1.0);
 
     // --- V8: Aufzug (nur in der Welt) --------------------------------------------------
     // Ein Kern aus 4 x 3 Kacheln an einer Wand: hinten massiv, davor eine Kabine von 2 x 2 m,

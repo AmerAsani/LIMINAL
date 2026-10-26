@@ -68,6 +68,12 @@ private:
     MaterialBank& bank_;
     ZoneField zones_;
     double oddsNone_, oddsOne_;
+    double supplyScale_ = 1.0;  // V13.2 Koop
+
+public:
+    void setSupplyScale(double s) { supplyScale_ = s; }  // vor dem ersten Sektor setzen
+
+private:
     SupplyRules supplyRules_;  // V6: Seltenheit einzelner Items (leer = V4-Verteilung)
     std::unique_ptr<SpawnPlan> plan_;  // V11
     void addProp(Sector& sec, const props::Model* m, float x, float y, float z, float yaw, float sx = 1, float sy = 1, float sz = 1) const;

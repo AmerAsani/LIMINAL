@@ -51,6 +51,8 @@ GameSession::~GameSession() {
     world_.reset();
 }
 
+phys::TileSource& GameSession::tileSrc() { return *tiles_; }
+
 void GameSession::placeAtSpawn() {
     auto [x, y, z, a] = world_->findSpawn();
     player_ = Player(x, y, z, a);
@@ -653,43 +655,23 @@ ecs::Entity GameSession::spawnDropped(DroppedItem& d, vec3 vel, bool resting) {
 }
 
 void GameSession::throwItem(const std::string& kind, int count) {
-    const Player& p = player_;
     // aus der Hand vor dem Koerper, leicht nach oben und in Blickrichtung (mit Schwung des Laufens)
-    vec3 fwd = forwardFromAngles((float)p.angle, (float)std::clamp(p.pitch, -0.7, 0.45));
-    vec3 flat = normalize(vec3{fwd.x, fwd.y, 0.0f});
-    vec3 eye = body_.eye();
-    vec3 start = eye + flat * 0.3f - vec3{0, 0, 0.32f};
-    auto freeAt = [&](vec3 q) {
-        const world::Tile* t = world_->tileIfLoaded(ifloor(q.x), ifloor(q.y));
-        return t && t->open() && q.z > t->floor + 0.05f && q.z < t->ceil - 0.08f;
-    };
-    if (!freeAt(start)) start = {(float)p.x, (float)p.y, (float)p.z + 1.0f};
-    for (int i = 0; i < count; ++i) {
-        if (dropped_.size() >= kMaxDropped) {  // aelteste zuerst aufgeben (Speicher bleibt begrenzt)
-            if (reg_.alive(dropped_.front().entity)) reg_.destroy(dropped_.front().entity);
-            dropped_.erase(dropped_.begin());
-        }
-        u32 h = hash32((u32)nextDrop_ * 747796405u + 12345u);
-        vec3 spread{(hash01(h) - 0.5f) * 0.5f, (hash01(h ^ 0x9E37u) - 0.5f) * 0.5f, hash01(h ^ 0x51EDu) * 0.3f};
-        vec3 vel = fwd * 1.8f + vec3{0, 0, 1.1f} + vec3{(float)p.vx, (float)p.vy, 0.0f} * 0.5f + spread * (count > 1 ? 1.0f : 0.3f);
-        DroppedItem d;
-        d.id = std::format("drop:{}", nextDrop_++);
-        d.kind = kind;
-        d.pos = start + vec3{(hash01(h ^ 0xA5u) - 0.5f) * 0.06f, (hash01(h ^ 0x5Au) - 0.5f) * 0.06f, 0.0f};
-        d.yaw = (float)p.angle + (hash01(h ^ 0x77u) - 0.5f) * 1.2f;
-        dropped_.push_back(d);
-        spawnDropped(dropped_.back(), vel, false);
-    }
+    throwFrom(player_, body_.eye(), kind, count, netSelfId);  // V13.2: auch fuer die Gaeste (session_coop.cpp)
     const ItemDef* def = content_.item(kind);
     GameEvent ev{GameEvent::Drop,
                  count > 1 ? std::format("{} × {} abgelegt", count, def ? def->name : kind)
                            : std::format("{} abgelegt", def ? def->name : kind),
                  1.6f};
     events_.push_back(ev);
-    body_.gesture(Body::Gesture::Toss, start, "");
+    body_.gesture(Body::Gesture::Toss, body_.eye() - vec3{0, 0, 0.32f}, "");
 }
 
 bool GameSession::dropSlot(int idx, bool all) {
+    if (netAction) {  // V13.2 Koop (Gast): der Host legt ab und meldet es allen
+        netAction(all ? 4 : 3, (u32)std::clamp(idx, 0, Inventory::kSize - 1));
+        if (idx >= 0 && idx < Inventory::kSize && inventory_.slots[(size_t)idx]) body_.gesture(Body::Gesture::Toss, body_.eye() - vec3{0, 0, 0.32f}, "");
+        return true;
+    }
     if (idx < 0 || idx >= Inventory::kSize || !inventory_.slots[(size_t)idx]) {
         events_.push_back({GameEvent::Toast, "Kein Item auf diesem Platz", 1.5f});
         return false;
@@ -767,7 +749,7 @@ void GameSession::updateDropped(double dt) {
 // --- Aktualisierung ------------------------------------------------------------------------
 void GameSession::update(double dt, const PlayerControl& control, bool paused) {
     if (!paused) {
-        stats_.update(dt);
+        if (netRole != NetRole::Guest) stats_.update(dt);  // V13.2 Koop: beim Gast rechnet der Host die Werte
         autosaveTimer += dt;
         if (autosaveTimer >= kAutosave) {
             autosaveTimer = 0.0;
@@ -783,6 +765,7 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
     PlayerControl c = paused ? PlayerControl{} : control;
     if (!stats_.canSprint()) c.sprint = false;
     if (ride_.active) c.forward = c.side = 0.0f, c.sprint = c.jump = false;  // V8: im Aufzug nur umsehen
+    if (stats_.dead) c.forward = c.side = 0.0f, c.sprint = c.jump = c.jumpHeld = false;  // V13.2: tot (Koop: zusehen)
     const double prevX = player_.x, prevY = player_.y;
     // V11: Wasserspiegel am Ort (Raum unter dem Spieler)
     if (const world::Room* wr = world_->roomAt(player_.x, player_.y)) player_.waterZ = wr->water;
@@ -802,6 +785,12 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
     }
     player_.breathless = stats_.breathless();
     applyBodyStyle();  // V10
+    if (netRole == NetRole::Host) {  // V13.2 Koop: auch um die Figuren der Gaeste laden
+        std::vector<std::pair<double, double>> centers;
+        for (const Pawn* p : pawns)
+            if (p) centers.push_back({p->player.x, p->player.y});
+        world_->setExtraCenters(std::move(centers));
+    }
     world_->update(player_.x, player_.y);
     // V13: Schaltfolge der Lampe (siehe toggleFlashlight). Ist sie an, ist sie gehoben (auch wenn ein Spielstand oder
     // ein Test sie direkt einschaltet); ging sie ohne Daumen aus (Batterie leer), sinkt sie kurz danach
@@ -871,6 +860,9 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
         supplyHint(dt);
         updateWanderers(dt);
         updateHaunt(dt);  // V7
+        if (netRole == NetRole::Host)  // V13.2 Koop: Werte, Lampe, Koerper und Tod der Gaeste (vor den Wesen)
+            for (Pawn* p : pawns)
+                if (p) pawnTick(*p, dt);
         updatePresence(dt);  // V10
     }
     if (killCam_ && !paused) killT_ += dt;  // V11
@@ -878,8 +870,8 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
     if (!paused) {
         findTarget();
         trackExits(dt);  // V7
-        trackTransitions();  // V11
-        trackCheckpoints();  // V11
+        if (netRole == NetRole::Solo) trackTransitions();  // V11 (V13.2 Koop: die Gruppe wechselt, CoopHost)
+        if (netRole != NetRole::Guest) trackCheckpoints();  // V11 (V13.2 Koop: entscheidet der Host)
         trackFuses(dt);  // V9
         cabinHints();
     }
@@ -1070,6 +1062,13 @@ std::string GameSession::targetPrompt() const {
 
 void GameSession::interact() {
     if (target_ == ecs::kNull) return;
+    if (netAction) {  // V13.2 Koop (Gast): Aufnehmen und Lesen entscheidet der Host
+        if (const u32 h = targetHash()) {
+            netAction(1, h);
+            if (auto* t = reg_.get<Transform>(target_)) body_.gesture(Body::Gesture::Grab, t->pos, "", 0.0f, 1.0f);
+        }
+        return;
+    }
     // V8: Aufzug rufen bzw. in der Kabine losfahren
     if (auto* el = reg_.get<Elevator>(target_)) {
         auto* t = reg_.get<Transform>(target_);
@@ -1165,6 +1164,10 @@ void GameSession::interact() {
 }
 
 void GameSession::useSlot(int idx) {
+    if (netAction) {  // V13.2 Koop (Gast)
+        if (idx >= 0 && idx < Inventory::kSize && inventory_.slots[(size_t)idx]) netAction(2, (u32)idx);
+        return;
+    }
     if (idx >= 0 && idx < Inventory::kSize && inventory_.slots[(size_t)idx] && isFuse(inventory_.slots[(size_t)idx]->kind)) {
         events_.push_back({GameEvent::Toast, "Eine Sicherung. Sie gehört in eine Fassung – unter dem Tastenfeld eines Aufzugs.", 3.2f});
         return;
@@ -1214,6 +1217,7 @@ void GameSession::flashClick() {
     flashPending_ = 0;
     if (what == -1) {
         flash_.on = false;
+        if (netAction) netAction(5, 0);  // V13.2 Koop (Gast): der Host schaltet mit
         GameEvent ev{GameEvent::FlashToggle};
         ev.intensity = 0.0f;
         events_.push_back(ev);
@@ -1228,11 +1232,13 @@ void GameSession::flashClick() {
         return;
     }
     if (!flash_.toggle()) {
+        if (netAction) netAction(5, 0);
         events_.push_back({GameEvent::Toast, "Die Batterie ist leer – vielleicht liegt irgendwo eine.", 2.8f});
         events_.push_back({GameEvent::FlashEmpty, "", 0.0f});
         flashLowerT_ = 0.5;
         return;
     }
+    if (netAction) netAction(5, flash_.on ? 1u : 0u);
     GameEvent ev{GameEvent::FlashToggle};
     ev.intensity = flash_.on ? 1.0f : 0.0f;
     events_.push_back(ev);
@@ -1248,6 +1254,7 @@ FlashBeam GameSession::flashBeam() const {
 }
 
 void GameSession::selectSlot(int idx) {
+    if (netAction && idx >= 0 && idx < Inventory::kSize) netAction(6, (u32)idx);  // V13.2 Koop: der Host merkt sich die Wahl
     inventory_.selected = std::clamp(idx, 0, Inventory::kHotbar - 1);
     if (const auto& s = inventory_.slots[(size_t)inventory_.selected])
         if (const ItemDef* d = content_.item(s->kind)) events_.push_back({GameEvent::Toast, d->name, 1.2f});
@@ -1292,6 +1299,8 @@ void GameSession::collectMeshes(std::vector<VisibleMesh>& out) {
     });
     haunt_.collect(out);  // V7: "Der Andere"
     presence_.collect(out, palette_, eye, figureDetail);  // V10: die Figuren
+    for (Pawn* p : pawns)  // V13.2 Koop: die Mitspieler (Spielermodell, Lampe von aussen)
+        if (p) p->collect(out, palette_, eye, figureDetail);
     // V8: Aufzuege - Rahmen und Kabine, zwei Schiebefluegel, Etagenanzeige
     reg_.each<Elevator, Transform>([&](ecs::Entity, Elevator& el, Transform& t) {
         vec3 d = t.pos - eye;
@@ -1556,19 +1565,90 @@ void GameSession::updatePresence(double dt) {
     c.stalkerPause = d.stalkerPause;
     // V7: die Gestalt im (halluzinierten) Stromausfall zeigt jetzt das Praesenzsystem
     if (haunt_.takeGhostRequest() && hallucinations) presence_.force(Presence::Role::Gestalt);
+    if (netRole != NetRole::Solo) updatePawnsPresence(c);  // V13.2 Koop
+    if (netRole == NetRole::Guest && netCreaturesFresh) {
+        presence_.netApply(netCreatures, presence_.netTime());
+        netCreaturesFresh = false;
+    }
     presence_.update(dt, c, presenceEvents_);
     noisePings_.clear();
+    if (netRole == NetRole::Guest) {  // Werte rechnet der Host; hier nur Klang und Bild der Puppen
+        for (const Presence::Event& e : presenceEvents_) {
+            GameEvent ev;
+            ev.type = GameEvent::Figure;
+            ev.index = (int)e.type;
+            ev.role = (int)e.role;
+            ev.pos = e.pos;
+            ev.intensity = e.strength;
+            if (e.type == Presence::Event::Step) ev.surface = surfaceAt(e.pos.x, e.pos.y);
+            events_.push_back(ev);
+        }
+        return;
+    }
+    // V13.2 Koop (Host): was die Wesen den Gaesten antun, und ihre Dauerwirkung auf deren Verstand
+    for (Pawn* p : pawns) {
+        if (!p || !p->alive) continue;
+        if (presence_.seenRoleBy(Presence::Role::Smiler, p->id)) p->stats.sanity -= dt * 0.5;
+        if (presence_.seenRoleBy(Presence::Role::Gestalt, p->id)) p->stats.sanity -= dt * 0.2;
+        p->stats.sanity = std::max(0.0, p->stats.sanity);
+    }
     // in das Laecheln zu starren, die Naehe eines jagenden Hounds, die Gestalt - das zehrt am Verstand
-    if (presence_.seenRole(Presence::Role::Smiler)) stats_.sanity -= dt * 0.5;
+    if (presence_.seenRoleBy(Presence::Role::Smiler, netSelfId)) stats_.sanity -= dt * 0.5;
     // V11: Raumtypen zehren am Verstand (rote Raeume) oder geben ihn zurueck (Glut im Dachboden); Hitze kostet Ausdauer
     if (room_ && room_->type && room_->type->sanityDrain != 0.0)
         stats_.sanity = std::clamp(stats_.sanity - dt * room_->type->sanityDrain, 0.0, 100.0);
     if (room_ && room_->type && room_->type->staminaDrain > 0.0) stats_.spendStamina(dt * room_->type->staminaDrain);
-    if (presence_.seenRole(Presence::Role::Gestalt)) stats_.sanity -= dt * 0.2;
+    if (presence_.seenRoleBy(Presence::Role::Gestalt, netSelfId)) stats_.sanity -= dt * 0.2;
     if (presence_.hunting()) stats_.sanity -= dt * 0.3 * presence_.threatProximity();
     stats_.sanity = std::max(0.0, stats_.sanity);
     using PE = Presence::Event;
     for (const PE& e : presenceEvents_) {
+        if (netRole == NetRole::Host && e.target != netSelfId) {  // V13.2 Koop: betrifft einen Gast
+            netFigureOut.push_back(e);
+            Pawn* p = nullptr;
+            for (Pawn* q : pawns) p = q && q->id == e.target ? q : p;
+            if (p && p->alive) {
+                switch (e.type) {
+                    case PE::FirstSight: p->stats.sanity = std::max(0.0, p->stats.sanity - (e.role == Presence::Role::Smiler || e.role == Presence::Role::Hound ? 4.0 : 1.0)); break;
+                    case PE::Stare:
+                    case PE::Vision: p->stats.sanity = std::max(0.0, p->stats.sanity - 3.0); break;
+                    case PE::Attack:  // toedlich wie beim eigenen Spieler (ENTITY_BEHAVIOR.md F4)
+                        p->stats.health = 0.0, p->stats.dead = true, p->killRole = (int)e.role;
+                        ++runLog_.caught;
+                        break;
+                    case PE::Sting:
+                        p->stats.health = std::max(0.0, p->stats.health - 5.0);
+                        p->stats.sanity = std::max(0.0, p->stats.sanity - 1.0);
+                        if (p->stats.health <= 0.0) p->stats.dead = true, p->killRole = (int)e.role;
+                        break;
+                    default: break;
+                }
+            }
+            if (e.type == PE::Blackout) {  // der Strom faellt im Raum des Gasts aus - fuer alle
+                haunt_.powerCut(world_->roomAt(e.pos.x, e.pos.y), e.strength, e.pos);
+                netBlackoutOut.push_back({e.pos, e.strength});
+                continue;
+            }
+            // was man im Raum hoert, hoert auch der Host (Schritte, Knurren, Flattern ...)
+            const bool audible = e.type == PE::Step || e.type == PE::Growl || e.type == PE::Bark || e.type == PE::Whine ||
+                                 e.type == PE::TakeOff || e.type == PE::Knock || e.type == PE::Drop || e.type == PE::Drag ||
+                                 e.type == PE::Flicker || e.type == PE::Breath;
+            if (!audible) continue;
+            if (e.type == PE::Flicker)
+                if (const world::Tile* t = world_->tileIfLoaded(ifloor(e.pos.x), ifloor(e.pos.y)); t && t->room) haunt_.flicker(t->room);
+            GameEvent ev;
+            ev.type = GameEvent::Figure;
+            ev.index = (int)e.type;
+            ev.role = (int)e.role;
+            ev.pos = e.pos;
+            ev.intensity = e.strength;
+            if (e.type == PE::Step) ev.surface = surfaceAt(e.pos.x, e.pos.y);
+            events_.push_back(ev);
+            continue;
+        }
+        if (netRole == NetRole::Host && (e.type == PE::Step || e.type == PE::Growl || e.type == PE::Bark || e.type == PE::TakeOff ||
+                                         e.type == PE::Knock || e.type == PE::Drop || e.type == PE::Drag || e.type == PE::Flicker))
+            netFigureOut.push_back(e);  // auch die Gaeste hoeren es
         GameEvent ev;
         ev.type = GameEvent::Figure;
         ev.index = (int)e.type;
@@ -1606,7 +1686,10 @@ void GameSession::updatePresence(double dt) {
                     killRole_ = (int)e.role;
                 }
                 break;
-            case PE::Blackout: haunt_.powerCut(room_, e.strength, {(float)player_.x, (float)player_.y, (float)player_.z}); break;
+            case PE::Blackout:
+                haunt_.powerCut(room_, e.strength, {(float)player_.x, (float)player_.y, (float)player_.z});
+                if (netRole == NetRole::Host) netBlackoutOut.push_back({{(float)player_.x, (float)player_.y, (float)player_.z}, e.strength});
+                break;
             case PE::Flicker:
                 if (const world::Tile* t = world_->tileIfLoaded(ifloor(e.pos.x), ifloor(e.pos.y)); t && t->room) haunt_.flicker(t->room);
                 break;
@@ -1728,6 +1811,8 @@ void GameSession::collectBody(std::vector<VisibleMesh>& out, bool firstPerson) {
 
 void GameSession::collectShadows(std::vector<ShadowCaster>& out) {
     presence_.shadows(out);
+    for (const Pawn* p : pawns)  // V13.2 Koop
+        if (p) p->shadow(out);
     if (realisticBody && playerRig_.posed()) {
         ShadowCaster s;
         playerRig_.shadow(s);

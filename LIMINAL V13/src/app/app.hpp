@@ -10,6 +10,8 @@
 #include "app/settings.hpp"
 #include "app/soundscape.hpp"
 #include "audio/audio.hpp"
+#include "coop/coop.hpp"
+#include "coop/netapi.hpp"
 #include "core/jobs.hpp"
 #include "core/paths.hpp"
 #include "gameplay/autopilot.hpp"
@@ -77,6 +79,12 @@ public:
     void loadLastSave() override;
     float fps() const override { return fps_; }
     std::string debugInfo() override;
+    // V13.2 Koop (Beta)
+    CoopView coopView() override;
+    bool hasCoopSave() override;
+    bool hostCoop(const std::string& name, const std::string& difficulty, int port, bool resume, std::string& error) override;
+    bool joinCoop(const std::string& name, const std::string& address, int port, const std::string& key, std::string& error) override;
+    void kickCoop(int id, bool ban) override;
 
 private:
     enum class State { Loading, Title, Playing };
@@ -171,6 +179,24 @@ private:
     } figCam_;
     bool egoPose_ = false;  // V13.2 (Tests): Ego-Lampenhaltung auch von aussen zeigen
     bool scriptFailed_ = false;
+
+    // --- V13.2 Koop (Beta, MULTIPLAYER_ARCHITEKTUR.md) ----------------------------------------------
+    coop::NetApi netApi_;
+    std::unique_ptr<coop::CoopHost> coopHost_;
+    std::unique_ptr<coop::CoopClient> coopClient_;
+    bool coop() const { return coopHost_ || coopClient_; }
+    bool loadNet(std::string& error);
+    u32 coopBuild() const;
+    int difficultyIndex(const std::string& key) const;
+    void coopBefore(double dt);                                 // Netz lesen (vor dem Spielschritt)
+    bool coopAfter(double dt, const game::PlayerControl& ctl);  // senden, Ebenenwechsel; false: Sitzung ersetzt
+    void coopJoinPump(double dt);                               // Titel: Beitritt abwarten, dann die Ebene bauen
+    void leaveCoop(const std::string& reason);
+    double coopJoinT_ = 0.0;
+    bool coopWasDead_ = false;
+    std::string coopName_;
+    bool coopSave_ = false;  // dieser Lauf ist ein Koop-Stand (Host)
+    std::string coopKeyFile_;  // Skript (Tests): Schluessel des Hosts in diese Datei
 };
 
 }  // namespace lim

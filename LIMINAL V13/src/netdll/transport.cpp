@@ -272,6 +272,9 @@ void serverReceive(LnContext* c, ENetPeer* ep, int channel, const u8* d, size_t 
             SecureZeroMemory(c2s, 32), SecureZeroMemory(s2c, 32);
             p.phase = Peer::Open;
             pushEvent(c, LN_EV_CONNECTED, slot, 0, 0, nullptr, 0, p.name);
+            // leere, verschluesselte Bestaetigung: der Gast weiss damit, dass der Host den Schluessel kennt (gegenseitig),
+            // und darf senden; ohne sie warteten beide aufeinander
+            sendData(p, 1, LN_RELIABLE, nullptr, 0);
             return;
         }
         case Peer::Open: {
@@ -288,7 +291,7 @@ void serverReceive(LnContext* c, ENetPeer* ep, int channel, const u8* d, size_t 
             }
             p.rateDrops = 0;
             ++p.st.received;
-            pushEvent(c, LN_EV_MESSAGE, slot, channel, 0, out, len, nullptr);
+            if (len > 0) pushEvent(c, LN_EV_MESSAGE, slot, channel, 0, out, len, nullptr);
             return;
         }
         default: return;
@@ -363,7 +366,7 @@ void clientReceive(LnContext* c, int channel, const u8* d, size_t n) {
             pushEvent(c, LN_EV_CONNECTED, 0, 0, 0, nullptr, 0, nullptr);
         }
         ++p.st.received;
-        pushEvent(c, LN_EV_MESSAGE, 0, channel, 0, out, len, nullptr);
+        if (len > 0) pushEvent(c, LN_EV_MESSAGE, 0, channel, 0, out, len, nullptr);  // leer: nur die Bestaetigung
     }
 }
 

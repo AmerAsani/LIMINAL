@@ -93,7 +93,7 @@ std::optional<TilePos> Room::machineTile() const {
 }
 
 // --- Versorgungsraum (V3) --------------------------------------------------------------
-void Room::planSupply(const LevelDef& level, double oddsNone, double oddsOne, const SupplyRules& rules) {
+void Room::planSupply(const LevelDef& level, double oddsNone, double oddsOne, const SupplyRules& rules, double supplyScale) {
     items.clear();
     counter_.clear();
     machine_.reset();
@@ -159,6 +159,9 @@ void Room::planSupply(const LevelDef& level, double oddsNone, double oddsOne, co
     bool alongX = bestWall < 2;
     double r = rng.random();
     int n = r < oddsNone ? 0 : (r < oddsOne ? 1 : 2);
+    // V13.2 Koop: mehr Spieler, mehr Funde (MULTIPLAYER_ARCHITEKTUR.md 9). Zusaetzlich gewuerfelt ueber einen eigenen
+    // Hash und erst nach den Grundfunden aus rng gezogen - bei 1,0 bleibt alles wie im Einzelspiel
+    if (supplyScale > 1.0) n += (int)std::floor((double)std::max(n, 1) * (supplyScale - 1.0) + hfloat(seed, 0xC0F0, 0));
     auto spots = strip;
     const int count = std::min<int>(n, (int)spots.size());  // wie range(min(n, len(spots))) - einmal ausgewertet
     for (int k = 0; k < count; ++k) {

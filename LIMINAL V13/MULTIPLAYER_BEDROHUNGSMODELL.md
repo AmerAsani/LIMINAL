@@ -75,3 +75,37 @@ Kein Teil dieses Dokuments behauptet, ein Mehrspielermodus sei „vollkommen sic
 - Ohne Verschlüsselung ist Internetspiel auf offenen Netzen angreifbar; mit Verschlüsselung bleibt der Host selbst ein möglicher Angreifer.
 - Portfreigaben machen den Host im Internet sichtbar.
 - Die bisherigen Systeme (Wesen-KI, Gegenstände, Türen, Aufzüge, Spielstände) sind für einen Spieler gebaut; jede Anpassung für mehrere Spieler kann Fehler in den Einzelspieler tragen.
+
+## 8. Stand der Umsetzung (V13.2)
+
+Seit V13.2 gibt es den Koop-Modus als Beta (`MULTIPLAYER_ARCHITEKTUR.md`, `MULTIPLAYER_ENTSCHEIDUNG.md`). Die Tabelle zeigt je Bedrohung, was umgesetzt ist und wo es geprüft wird (`MULTIPLAYER_TESTS.md` Abschnitt 5).
+
+| # | Umsetzung | Prüfung |
+|---|---|---|
+| S1 | Beitrittsschlüssel 128 Bit (BCryptGenRandom); der Gast beweist ihn per HMAC über beide Zufallswerte, ohne ihn zu senden; der Host bestätigt verschlüsselt (gegenseitig) | Transport: falscher Schlüssel, Sperre nach 5 Fehlversuchen |
+| S2 | Antwort des Hosts vor dem Beweis (CHALLENGE 25 Byte, REFUSE 2 Byte) kleiner als die Anfrage (HELLO 40 Byte); Keks im Beweis | Transport: Handshake von Hand |
+| T1 | Der Gast sendet nur Eingaben (Achsen, Blick, Tasten, Zeit) und Absichten (aufnehmen, benutzen, ablegen, Lampe, Platz, zusehen); jede Absicht prüft der Host an seinem Zustand (Reichweite +0,6 m, Höhe, freie Sicht, Inventar, lebt) | Angriffe: erfundene und ferne Gegenstände, Wettlauf |
+| T2 | Alle Felder mit Bereich; Zeit je Eingabe 1–100 ms und Zeitbudget je Gast (Uhr des Hosts + 0,5 s). **Abweichung:** Der Blick kommt als Winkel, nicht als begrenzte Änderung; er bestimmt nur Laufrichtung und Lampe, keine Treffer | Fuzzing, Speedhack-Test |
+| T3 | Zähler je Kanal im Transport (Wiederholung und Alter verworfen); Folgenummern der Eingaben und Absichten im Spiel | Transport: Wiederholung, alter Zähler |
+| T4 | AES-256-GCM je Richtung, Schlüssel aus HKDF; Kanal in den Zusatzdaten | Testvektoren, veränderte Nachricht, falscher Kanal |
+| I1 | Längen nur innerhalb der geprüften Nachricht; Texte mit eigener Länge, höchstens 96 Byte, nur darstellbares UTF-8 | Fuzzing (alle angenommenen Nachrichten kanonisch) |
+| I2 | Gäste erfahren keine Adressen anderer Gäste, nur Namen | Protokoll: kein Feld dafür |
+| I3 | Keine Pfade, Rechnernamen oder Protokollzeilen im Netz | Durchsicht der Nachrichten |
+| D1 | Rate je Gast im Transport (120/s, Vorrat 60) und je Nachrichtentyp im Spiel (Eingaben 75/s, Absichten 10/s, Ping 2/s) | Transport-Flut, Flut von Absichten |
+| D2 | Höchstens 1200 Byte; höchstens 3 Gäste, 8 halbe Handshakes, 3 je Adresse | halboffene Flut |
+| D3 | Gäste stoßen keine teure Arbeit an; Laden um ihre Figuren nur im üblichen Radius | Bots, Langlauf |
+| D4 | Handshake 5 s, Stille 10 s | Transport, Langlauf |
+| D5 | Sperre nach 5 falschen Beweisen (60 s); Zeitlimits im Handshake zählen als Fehlversuch; Kick mit Bann für die Sitzung | Transport, Bann-Test |
+| E1 | Feste Felder, Texte mit Zeichensatzprüfung, Gegenstandsarten nur `[a-z0-9_]` und nur bekannte | Fuzzing unter ASan/UBSan (12 Mio. Fälle) |
+| E2 | Keine Dateien, Skripte oder Befehle über das Netz | – |
+| E3 | Erlaubnisliste je Rolle und Zustand | Fuzzing, Angriffe |
+
+**Durchsicht:** Eine unabhängige Durchsicht durch Dritte war nicht möglich. Ich habe den Code selbst entlang dieser Tabelle durchgesehen. Dabei fand ich B-006 (getrennter Gast behielt seinen Platz in der Liste) und die fehlende Bestätigung im Handshake (B-005); beide sind behoben.
+
+**Restrisiken der Beta (zusätzlich zu Abschnitt 7):**
+- Der Spielername steht im HELLO unverschlüsselt (vor dem Schlüsseltausch). Wer mitliest, sieht ihn, sonst nichts.
+- ENet selbst (Verbindungsaufbau, Bestätigungen) ist unverschlüsselt. Ein Angreifer mit gefälschten Absendern kann die freien ENet-Plätze des Hosts kurzzeitig belegen und so Beitritte verzögern (Gegenmittel: Zeitlimit, 3 je Adresse, Port nicht veröffentlichen).
+- Kein Vorwärtsgeheimnis: Wer den Beitrittsschlüssel später erfährt und den Verkehr aufgezeichnet hat, kann ihn lesen.
+- Der Host ist vertrauenswürdig gesetzt. Er kann Werte und Inventare der Gäste nach Belieben setzen und Meldungen schicken (geprüft auf Länge und Zeichen, nicht auf Inhalt).
+- Fuzzing über den echten Netzweg lief Minuten, nicht Stunden; die Prüfschicht selbst lief 12 Millionen Fälle unter Sanitizern.
+

@@ -138,3 +138,28 @@ Das Bedrohungsmodell verlangt authentisierte Verschlüsselung nach dem Handshake
 - **Keine Sprachübertragung.** Begründung in `MULTIPLAYER_ENTSCHEIDUNG.md`: Mikrofonzugriff, Audio-Codec und Moderation sind ein eigenes Datenschutz- und Sicherheitsthema.
 - **Kein NAT-Traversal, kein Serverbrowser** (keine Dritten).
 - Die letzte Aufzugsfahrt (Flucht mit drei Sicherungen, V9) gibt es nur in der alten, zusammenhängenden Welt. Die Reise durch die zehn Ebenen nutzt sie nicht; im Koop ist sie aus.
+
+## 12. Umsetzung (Stand V13.2)
+
+| Teil | Wo | Anmerkung |
+|---|---|---|
+| Transport, Handshake, Verschlüsselung | `src/netdll/` → `liminal_net.dll` (ENet 1.3.18, CNG) | Exporte: genau die zehn `ln_`-Funktionen (`tools/check_no_network.py` prüft das) |
+| Spielprotokoll v2 | `src/net/coop_proto.*` | Join, Input (bis 4 Eingaben je Paket), Action, Ping, Bye; Welcome, Snapshot, Event, Inventory, Roster, Pong, Check |
+| Host und Gast | `src/coop/coop.*` | `CoopHost`, `CoopClient`; DLL-Lader `netapi_dll.cpp` (nur aus dem Ordner des Spiels) |
+| Figuren der Mitspieler | `src/gameplay/pawn.*` | Spielermodell, Lampenhaltung von außen, eigener Lichtkegel |
+| Sitzung im Koop | `src/gameplay/session_coop.cpp` | Absichten des Gasts am Zustand des Hosts geprüft, Welt nach dem Host beim Gast |
+| Wesen für mehrere Spieler | `src/gameplay/presence.cpp` | Ziel je Wesen (nächster lebender Spieler), Regie reihum, Erscheinen nie im Blick irgendeines Spielers, Puppen beim Gast |
+| Laden um mehrere Spieler | `src/world/world.cpp` | Kacheln um den Host und um jede Figur eines Gasts |
+| Oberfläche | `src/ui/ui_coop.cpp` | Hauptmenü „Koop (Beta)“, Pausenmenü „Mitspieler“, Statuszeile, Namen über den Mitspielern |
+| Prüfungen | `tests/net_transport_test.cpp`, `tests/coop_test.cpp` | `MULTIPLAYER_TESTS.md` |
+
+Abweichungen und Ergänzungen gegenüber den Abschnitten 1–11:
+
+- **Bestätigung im Handshake:** Nach dem angenommenen Beweis sendet der Host eine leere, verschlüsselte Nachricht. Erst damit meldet der Gast „verbunden“ und darf senden. Ohne sie warteten beide aufeinander (gefunden im ersten Bot-Test). Die Authentisierung ist dadurch gegenseitig, bevor ein Byte Spielinhalt fließt.
+- **Blick als Winkel, nicht als Änderung:** Eine Eingabe trägt Gier- und Nickwinkel absolut (Nicken auf ±83° begrenzt). Der Blick bestimmt im Koop nur die Laufrichtung und die Lampe, nie Treffer oder Werte; eine begrenzte Blickänderung (Bedrohungsmodell T2) schützt hier nichts. Die Bewegung selbst bleibt Eingabe (Achsen, Tasten), ihr Zeitanteil ist begrenzt (1–100 ms je Eingabe, Zeitbudget je Gast: nicht mehr Spielzeit als die Uhr des Hosts plus 0,5 s).
+- **Momentaufnahmen erst nach der ersten Eingabe:** Der Host sendet sie, sobald der Gast spielt. Davor kämen sie auf dem unzuverlässigen Kanal vor dem Willkommen an, und der Gast müsste sie verwerfen.
+- **Vorräte:** Der Faktor 1 + 0,6 × (n − 1) gilt ab der nächsten Ebene (n = verbundene Spieler beim Wechsel). Der Host überträgt ihn mit dem Wechsel und im Willkommen. Der Generator würfelt die Zusatzfunde über einen eigenen Hash, deshalb bleibt die Grundbelegung (und das Einzelspiel mit 1,0) unverändert.
+- **Ebenenwechsel:** Der Ausgang ist ein Bereich, keine Tür. Wer darin steht, ist bereit; verlässt er ihn, ist er es nicht mehr. Braucht der Übergang eine Sache (Sicherung im Aufzug von Level 3), genügt sie bei einem der Bereiten.
+- **Speichern:** Der Host speichert einen eigenen Koop-Stand (Markierung `coop` im Spielstand) mit den Werten, Inventaren und Lampen der Gäste nach Namen. Hostet er „Koop-Stand fortsetzen“, bekommt ein Gast mit demselben Namen seine Sachen zurück. Gäste speichern nichts.
+- **Namen über den Mitspielern:** Alle Körper sind dasselbe Spielermodell; der Name schwebt über dem Kopf (mit denselben Matrizen wie das Bild projiziert).
+- **Gezeichnete Wesen beim Gast:** Puppen mit derselben Animation wie beim Host. Ihre Schritte erzeugt der Gast selbst; Knurren, Bellen, Flattern, Klopfen und die Schrecken des eigenen Todes kommen als Ereignisse.

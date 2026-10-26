@@ -3,6 +3,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 namespace lim {
 struct Settings;
@@ -42,6 +43,30 @@ public:
     // V11: Wiedereinstieg am letzten Sicherungspunkt (feste Karten)
     virtual bool canRespawn() const { return false; }
     virtual void respawn() {}
+    // V13.2 Koop (Beta): Zustand fuer Menue und Anzeige; hosten (neuer Lauf) und beitreten; Spieler entfernen/sperren
+    struct CoopPlayer {
+        int id = 0;
+        std::string name;
+        bool alive = true, ready = false, connected = true, self = false;
+        int rttMs = 0;
+    };
+    struct CoopView {
+        bool active = false, host = false, dead = false;
+        std::string key, address, status, spectating;
+        int port = 0, respawnIn = 0;
+        std::vector<CoopPlayer> players;
+    };
+    virtual CoopView coopView() { return {}; }
+    virtual bool hasCoopSave() { return false; }  // gibt es einen Koop-Stand zum Fortsetzen?
+    virtual bool hostCoop(const std::string&, const std::string&, int, bool, std::string& error) {
+        error = "nicht verfuegbar";
+        return false;
+    }
+    virtual bool joinCoop(const std::string&, const std::string&, int, const std::string&, std::string& error) {
+        error = "nicht verfuegbar";
+        return false;
+    }
+    virtual void kickCoop(int, bool) {}
     virtual float fps() const = 0;
     virtual std::string debugInfo() = 0;
 };

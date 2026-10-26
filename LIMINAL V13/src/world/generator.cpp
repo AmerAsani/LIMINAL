@@ -154,7 +154,7 @@ std::unique_ptr<Sector> Generator::generateSector(i64 sx, i64 sy) const {
     // V3: Versorgungsraeume mit Theke und (seltenen) Items
     for (auto& room : sec->rooms) {
         if (room->type->supply) {
-            room->planSupply(level_, oddsNone_, oddsOne_, supplyRules_);
+            room->planSupply(level_, oddsNone_, oddsOne_, supplyRules_, supplyScale_);
             room->avgLight = std::min(1.4, room->avgLight + 0.2);  // Licht faellt in den Flur
         }
     }

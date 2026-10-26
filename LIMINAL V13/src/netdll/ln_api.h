@@ -6,6 +6,7 @@
      Gast -> Host   HELLO      Magie, Version, Zufall des Gasts (16), Name (16)
      Host -> Gast   CHALLENGE  Magie, Zufall des Hosts (16), Keks (4)
      Gast -> Host   PROOF      Magie, Keks, HMAC-SHA256(Schluessel, "LIMN-proof" | Zufall Gast | Zufall Host | Name)[0..16]
+     Host -> Gast   DATA leer  Bestaetigung (verschluesselt): erst jetzt meldet der Gast CONNECTED und sendet
      danach         DATA       Zaehler (8), AES-256-GCM(Nutzdaten) + Tag (16); Schluessel je Richtung aus HKDF
      Host -> Gast   REFUSE     Grund (unverschluesselt, kleiner als die Anfrage)
 */
@@ -71,7 +72,8 @@ LN_API LnContext* ln_connect(const char* host, uint16_t port, const uint8_t key[
 LN_API int ln_poll(LnContext* c, LnEvent* ev);
 /* Nachricht senden (Gast: peer 0). 1 = angenommen */
 LN_API int ln_send(LnContext* c, int peer, int channel, const uint8_t* data, int len);
-/* Gegenstelle trennen (Host: Kick; ban = 1 sperrt die Adresse fuer die Sitzung) */
+/* Gegenstelle trennen (Host: Kick; ban = 1 sperrt die Adresse fuer die Sitzung). Meldet kein LN_EV_DISCONNECTED:
+   der Aufrufer weiss es schon */
 LN_API void ln_drop(LnContext* c, int peer, int reason, int ban);
 LN_API int ln_stats(LnContext* c, int peer, LnStats* out);
 LN_API uint16_t ln_port(LnContext* c);

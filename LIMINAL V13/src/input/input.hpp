@@ -77,6 +77,7 @@ public:
     vec2 mouseDelta() const { return mouseDelta_; }
     int wheel() const { return wheel_; }
     const std::u32string& text() const { return text_; }
+    static std::string clipboardText();  // V13.2: Text der Zwischenablage (Einfuegen von Adresse und Schluessel)
     vec2 leftStick() const { return lstick_; }
     vec2 rightStick() const { return rstick_; }
     bool gamepadConnected() const { return padConnected_; }

@@ -8,6 +8,9 @@
 Bekannte Ausnahme: der Starter LIMINAL.exe laedt auf alten Windows-Versionen ohne Universal C Runtime - nur nach
 Rueckfrage - das Visual-C++-Paket von Microsoft (HTTPS, aka.ms) und fuehrt es nur aus, wenn es von
 "Microsoft Corporation" signiert ist (V13, BUGLISTE.md B-003). Dafuer urlmon per LoadLibrary. Kein Port, kein Spielverkehr.
+V13.2 (Koop, Beta): Netzwerk gibt es nur in liminal_net.dll. Das Spiel laedt sie erst beim Hosten oder Beitreten
+(LoadLibrary, MULTIPLAYER_ARCHITEKTUR.md Abschnitt 6) und darf sie nicht statisch importieren. Die DLL darf ws2_32
+(UDP) importieren, aber keine HTTP- oder Download-Bibliothek, und exportiert genau die zehn ln_-Funktionen.
 Ausgang 0 = sauber, 1 = Fund, 2 = Werkzeug fehlt.
 """
 import os
@@ -45,5 +48,26 @@ for exe in ('LiminalGame.exe', 'LIMINAL.exe'):
     print(f'{exe}: {len(dlls)} DLLs importiert, Netzwerk-DLLs: {hits or "keine"}, Netzwerk-Zeichenketten: {strs or "keine"}'
           + (f', bekannte Ausnahme: {known}' if known else ''))
     bad += len(hits) + len(strs)
+# V13.2: die Netzwerk-DLL des Koop-Modus
+EXPORTS = {'ln_host', 'ln_connect', 'ln_poll', 'ln_send', 'ln_drop', 'ln_stats', 'ln_port', 'ln_close', 'ln_random', 'ln_version'}
+game = subprocess.run([OBJDUMP, '-p', os.path.join(BIN, 'LiminalGame.exe')], capture_output=True, text=True).stdout
+if 'liminal_net' in game.lower():
+    print('LiminalGame.exe importiert liminal_net.dll statisch (verboten: nur LoadLibrary beim Hosten/Beitreten)')
+    bad += 1
+dll = os.path.join(BIN, 'liminal_net.dll')
+if os.path.exists(dll):
+    out = subprocess.run([OBJDUMP, '-p', dll], capture_output=True, text=True).stdout
+    dlls = sorted({m.lower() for m in re.findall(r'DLL Name:\s*(\S+)', out)})
+    web = [d for d in dlls if any(n in d for n in ('winhttp', 'wininet', 'urlmon', 'dnsapi'))]
+    exports = set(re.findall(r'\]\s+(ln_\w+)', out)) | set(re.findall(r'^\s+\d+\s+\w+\s+(\w+)$', out, re.M))
+    exports = {e for e in exports if e.startswith('ln_') or e in EXPORTS}
+    extra = sorted(exports - EXPORTS)
+    missing = sorted(EXPORTS - exports)
+    print(f'liminal_net.dll: {len(dlls)} DLLs importiert ({", ".join(d for d in dlls if not d.startswith("api-ms"))}), '
+          f'HTTP/Download: {web or "keine"}, Exporte: {len(exports)}' + (f', fremd: {extra}' if extra else '') +
+          (f', fehlen: {missing}' if missing else ''))
+    bad += len(web) + len(extra) + len(missing)
+else:
+    print('liminal_net.dll fehlt (Koop nicht moeglich)')
 print('SAUBER' if bad == 0 else f'FUNDE: {bad}')
 sys.exit(1 if bad else 0)

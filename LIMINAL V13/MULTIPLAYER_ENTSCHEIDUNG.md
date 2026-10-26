@@ -1,5 +1,26 @@
 # LIMINAL V13 – Entscheidung Mehrspieler
 
+## V13.2: Koop als Beta freigegeben (Stand 26.10.2026, DECISIONS E-030)
+
+**Der Koop-Modus ist als Beta im Spiel:** Hauptmenü „Koop (Beta)“ (Hosten oder Beitreten), im Pausenmenü „Mitspieler“. Bis zu vier Spieler, ein Spieler hostet (`MULTIPLAYER_ARCHITEKTUR.md`). Er ist nie „vollkommen sicher“; das Restrisiko steht in `MULTIPLAYER_BEDROHUNGSMODELL.md`, Abschnitte 7 und 8.
+
+Regel des Auftrags: Beta, wenn die Tests bestehen. Sie bestehen (`MULTIPLAYER_TESTS.md`, Abschnitt 5). Die Bedingungen aus V13 (unten) im Einzelnen:
+
+| Bedingung (V13) | Stand V13.2 |
+|---|---|
+| 1. Alle Regeln aus Abschnitt 6 des Bedrohungsmodells; nur `src/net` führt Netzbytes ins Spiel | erfüllt. Abweichung: Der Blick kommt als Winkel (begründet im Bedrohungsmodell, T2) |
+| 2. Verschlüsselt und authentisiert mit geprüfter Bibliothek | erfüllt: Windows-Kryptografie (CNG), Testvektoren aus RFC 4231, RFC 5869 und der GCM-Spezifikation |
+| 3. Tests mit echten Prozessen: Beitritt, Abbruch, Wiederverbinden, Host verlässt, Wettläufe beim Ebenenwechsel, Verlust und Vertauschung, Flut | erfüllt: Bots über echtes UDP und Netzstörer, zwei echte Spielprozesse, Reise durch zehn Ebenen |
+| 4. Fuzzing des Netzwegs über Stunden; Sanitizer | **teilweise**: Prüfschicht 12 Mio. Fälle unter ASan/UBSan, Transporttest unter Sanitizern, Netzweg-Fuzzing über Minuten, Langlauf 60 min. Nicht über Stunden |
+| 5. Einzelspieler-Tests und Bildzeiten unverändert | erfüllt (Tests). Ohne Koop lädt das Spiel die DLL nicht und öffnet keinen Port |
+| 6. Unabhängige Durchsicht | **nicht erfüllt**: niemand Drittes verfügbar; Selbstdurchsicht entlang des Bedrohungsmodells dokumentiert |
+
+Wegen 4 und 6 bleibt es eine **Beta**, deutlich so beschriftet. Sprachübertragung gibt es nicht: Mikrofonzugriff, Codec und Moderation wären ein eigenes Datenschutz- und Sicherheitsthema.
+
+---
+
+## V13 (ursprüngliche Entscheidung, überholt durch V13.2)
+
 Stand 26.10.2026. Grundlage: `MULTIPLAYER_BEDROHUNGSMODELL.md` (dazu die früheren Analysen `MULTIPLAYER_ASSESSMENT.md`, V11, und `MULTIPLAYER.md`, V12), Prüfungen: `MULTIPLAYER_TESTS.md`. Entscheidung E-024 in `DECISIONS.md`.
 
 ## Entscheidung

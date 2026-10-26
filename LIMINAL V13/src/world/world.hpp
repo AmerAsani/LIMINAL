@@ -64,8 +64,12 @@ public:
 
     // --- Streaming -------------------------------------------------------------------
     void update(double px, double py);
+    // V13.2 Koop: weitere Zentren (die Figuren der Gaeste beim Host) - um jedes wird geladen, entladen wird nur, was
+    // von allen weit weg ist
+    void setExtraCenters(std::vector<std::pair<double, double>> c) { extra_ = std::move(c); }
     void preload(double px, double py);  // wartet, bis der Laderadius vollstaendig geladen ist
     void setLoadRadius(int r) { loadRadius_ = std::max(2, r); }
+    void setSupplyScale(double s);  // V13.2 Koop: vor dem Laden setzen (Generator)
     int loadRadius() const { return loadRadius_; }
 
     std::function<void(const ChunkData&)> onChunkLoaded;
@@ -114,6 +118,7 @@ private:
     void ensureLinkedSync(SectorKey k);
     const ChunkData& chunkSync(ChunkKey k);
     void unloadFar(i64 pcx, i64 pcy);
+    std::vector<std::pair<double, double>> extra_;  // V13.2
 
     std::shared_ptr<const LevelDef> level_;
     i64 seed_;

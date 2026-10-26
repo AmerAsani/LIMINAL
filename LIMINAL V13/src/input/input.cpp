@@ -290,4 +290,18 @@ bool Input::actionPressed(Action a) const {
     return p >= 0 && padPressed_[(size_t)p];
 }
 
+std::string Input::clipboardText() {
+    std::string out;
+    if (!OpenClipboard(nullptr)) return out;
+    if (HANDLE h = GetClipboardData(CF_UNICODETEXT)) {
+        if (const wchar_t* w = (const wchar_t*)GlobalLock(h)) {
+            for (size_t i = 0; w[i] && i < 256; ++i)
+                if (w[i] < 128) out.push_back((char)w[i]);
+            GlobalUnlock(h);
+        }
+    }
+    CloseClipboard();
+    return out;
+}
+
 }  // namespace lim::input

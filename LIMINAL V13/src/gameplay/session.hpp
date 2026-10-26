@@ -24,6 +24,7 @@
 #include "gameplay/figure.hpp"
 #include "gameplay/presence.hpp"
 #include "gameplay/inventory.hpp"
+#include "gameplay/pawn.hpp"
 #include "gameplay/player.hpp"
 #include "gameplay/prefabs.hpp"
 #include "gameplay/stats.hpp"
@@ -32,6 +33,9 @@
 
 namespace lim::props {
 struct Skin;
+}
+namespace lim::world {
+struct MapTransition;
 }
 
 namespace lim::game {
@@ -49,7 +53,9 @@ struct GameEvent {
                 // V10: Ereignis einer Figur (index = Presence::Event::Type, role = Presence::Role)
                 Figure,
                 // V11: Sicherungspunkt erreicht (text = Name)
-                Checkpoint };
+                Checkpoint,
+                // V13.2 Koop: Schritt eines Mitspielers (pos, surface, intensity)
+                OtherStep };
     Type type = Toast;
     std::string text;
     float duration = 2.2f;
@@ -223,6 +229,71 @@ public:
     ExploreMap& explore() { return explore_; }
     const ExploreMap& explore() const { return explore_; }
 
+    // --- V13.2 Koop (MULTIPLAYER_ARCHITEKTUR.md) ---------------------------------------------------------------
+    // Host: der Rechner rechnet die Welt, die Figuren der Gaeste (pawns) bewegt er mit deren Eingaben. Gast: die
+    // eigene Figur wird vorhergesagt und vom Host korrigiert; Absichten gehen an den Host (netAction), die Wesen
+    // sind Puppen, Werte und Inventar kommen vom Host.
+    enum class NetRole { Solo, Host, Guest };
+    NetRole netRole = NetRole::Solo;
+    int netSelfId = 0;          // Spielernummer dieses Rechners (Host 0)
+    std::vector<Pawn*> pawns;   // die anderen Spieler (gehoeren der Koop-Schicht)
+    // Host
+    void pawnInput(Pawn& p, const PlayerControl& c, double dt);  // eine Eingabe des Gasts (dieselbe Physik)
+    void pawnTick(Pawn& p, double dt);                           // je Bild: Werte, Lampe, Koerper, Laerm, Tod
+    // Absichten des Gasts, am Zustand des Hosts geprueft (Reichweite, Sicht, Inventar); false: abgelehnt
+    bool pawnInteract(Pawn& p, u32 itemHash, std::string& msg, int& note);
+    bool pawnUse(Pawn& p, int slot, std::string& msg, std::string& sound);
+    bool pawnDrop(Pawn& p, int slot, bool all);
+    void pawnRespawn(Pawn& p);
+    // Uebergang, in dem dieser Spieler gerade steht (nullptr: keiner); needsOk: die noetige Sache ist dabei
+    const world::MapTransition* transitionAt(const Player& p, const Inventory& inv, bool& needsOk) const;
+    // Ein Uebergang fuer die Gruppe: Ziel und Anker (Host und Gast setzen damit dieselbe Ebene)
+    void respawnCoop();  // eigener Spieler (Host oder Gast): am Sicherungspunkt, ohne die Wesen zu entfernen
+    struct NetWorldEvent {
+        enum Kind { Picked, Dropped } kind = Picked;
+        u32 hash = 0;
+        std::string itemKind;
+        vec3 pos;
+        int by = 0;
+    };
+    std::vector<NetWorldEvent> netWorldOut;                // Host: an alle Gaeste
+    std::vector<Presence::Event> netFigureOut;             // Host: Ereignisse der Wesen, die einen Gast betreffen
+    std::vector<std::pair<vec3, float>> netBlackoutOut;    // Host: Stromausfaelle (Ort, Dauer)
+    struct NetPersonal {
+        int to = 0;
+        std::string text;
+    };
+    std::vector<NetPersonal> netPersonalOut;               // Host: Meldungen an einen Gast (leere Lampe ...)
+    // Gast
+    std::function<void(int kind, u32 arg)> netAction;      // Absichten an den Host (statt sie hier auszufuehren)
+    void netRemoveItem(u32 hash);
+    void netAddDropped(u32 hash, const std::string& kind, vec3 pos);
+    void netPowerCut(vec3 pos, float seconds);
+    void netFlicker(vec3 pos);
+    std::vector<Presence::NetState> netCreatures;          // letzte Momentaufnahme der Wesen
+    double netCreatureStamp = -1.0;
+    bool netCreaturesFresh = false;
+    u32 targetHash() const;   // Kennzahl des anvisierten Gegenstands (0: keiner)
+    void netDie(int role);    // Gast: der Host meldet den eigenen Tod (Schreck wie im Einzelspiel)
+    // Gast: Stand des Hosts nach der zuletzt verarbeiteten Eingabe setzen und die unbestaetigten Eingaben nachrechnen;
+    // kleine Abweichungen gleichen sich weich aus, grosse springen. Liefert die Abweichung (m)
+    struct NetReplay {
+        PlayerControl c;
+        double dt = 0.0;
+        float yaw = 0.0f, pitch = 0.0f;
+    };
+    double netReconcile(vec3 pos, vec3 vel, const std::vector<NetReplay>& replay, bool snap);
+    u32 sharedHash() const;   // Pruefsumme des geteilten Zustands (aufgenommen, abgelegt) - Desync-Pruefung
+    int itemCount() const;    // Gegenstaende in der Welt (Tests)
+    // Vorraete fuer mehrere Spieler (1 + 0,6 x (n - 1)); vor placeAtSpawn/preload setzen, gilt fuer die ganze Ebene
+    void setSupplyScale(double s) {
+        supplyScale_ = s;
+        world_->setSupplyScale(s);
+    }
+    double supplyScale() const { return supplyScale_; }
+    double supplyScale_ = 1.0;
+    bool pawnBeam(const Pawn& p, vec3& pos, vec3& dir, float& power) const { return p.beam(pos, dir, power, stats_.playTime); }
+
     std::string name, difficulty, slot, levelId;
     i64 seed;
     std::unordered_set<std::string> picked;
@@ -240,6 +311,7 @@ public:
 
 private:
     class TileAdapter;
+    phys::TileSource& tileSrc();  // V13.2 (session_coop.cpp)
     void onChunk(const world::ChunkData& cd, bool loaded);
     void findTarget();
     void supplyHint(double dt);
@@ -269,9 +341,14 @@ private:
         vec3 pos;
         float yaw = 0;
         ecs::Entity entity = ecs::kNull;
+        u32 netHash = 0;  // V13.2 Koop (Gast): Kennzahl beim Host
     };
     ecs::Entity spawnDropped(DroppedItem& d, vec3 vel, bool resting);
     void throwItem(const std::string& kind, int count);
+    // V13.2 Koop: werfen aus der Hand eines beliebigen Spielers (by: Spielernummer)
+    void throwFrom(const Player& p, vec3 eye, const std::string& kind, int count, int by);
+    void updatePawnsPresence(Presence::Context& c);
+    std::vector<Presence::Other> others_;
     // V11: Laerm an anderen Orten in diesem Bild (Aufprall geworfener Dinge) und Lager des Buendels
     std::vector<std::pair<vec3, float>> noisePings_;
     std::vector<vec3> clumpLairs_;

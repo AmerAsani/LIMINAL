@@ -25,7 +25,8 @@ using Clock = std::chrono::steady_clock;
 App::App() = default;
 
 App::~App() {
-    // Reihenfolge: Sitzung (wartet auf Weltjobs) vor Renderer und Jobs
+    // Reihenfolge: Koop (verweist auf die Sitzung, V13.2), Sitzung (wartet auf Weltjobs) vor Renderer und Jobs
+    leaveCoop("");
     session_.reset();
     audio_.reset();
     renderer_.reset();
@@ -354,6 +355,45 @@ void App::scriptStep() {
             session_->stats().health = std::clamp(std::atof(arg.c_str()), 1.0, 100.0);
         } else if (cmd == "sanity" && session_) {  // V7: Sanity setzen (Tests)
             session_->stats().sanity = std::clamp(std::atof(arg.c_str()), 0.0, 100.0);
+        } else if (cmd == "coophost" && session_) {  // V13.2 (Tests): coophost <Port> <Datei> - diese Sitzung hosten, Schluessel in die Datei
+            char file[260] = {};
+            int port = 27500;
+            std::sscanf(arg.c_str(), "%d %259s", &port, file);
+            std::string err;
+            if (!loadNet(err)) {
+                log::error("Skript: {}", err);
+                scriptFailed_ = true;
+                continue;
+            }
+            coopHost_ = std::make_unique<coop::CoopHost>(netApi_, "Host", coopBuild());
+            if (!coopHost_->start((u16)port, 4, err)) {
+                log::error("Skript: {}", err);
+                coopHost_.reset();
+                scriptFailed_ = true;
+                continue;
+            }
+            coopHost_->attach(*session_, "", difficultyIndex(session_->difficulty));
+            if (FILE* f = std::fopen(file, "wb")) {
+                std::fprintf(f, "%s", coopHost_->key().text().c_str());
+                std::fclose(f);
+            }
+            log::info("Skript: Koop-Host auf Port {}", coopHost_->port());
+        } else if (cmd == "coopjoin") {  // V13.2 (Tests): coopjoin <Adresse> <Port> <Datei mit Schluessel>
+            char addr[128] = {}, file[260] = {};
+            int port = 27500;
+            std::sscanf(arg.c_str(), "%127s %d %259s", addr, &port, file);
+            std::string key;
+            if (FILE* f = std::fopen(file, "rb")) {
+                char buf[64] = {};
+                std::fread(buf, 1, sizeof(buf) - 1, f);
+                std::fclose(f);
+                key = buf;
+            }
+            std::string err;
+            if (!joinCoop("Gast", addr, port, key, err)) {
+                log::error("Skript: {}", err);
+                scriptFailed_ = true;
+            }
         } else if (cmd == "egopose") {  // V13.2 (Tests): egopose 1 - auch von aussen die Lampenhaltung des Ego-Bilds
             egoPose_ = std::atoi(arg.c_str()) != 0;
         } else if (cmd == "vmdebug" && session_) {  // V13 (Tests): Teile ausblenden (1 Hand, 2 Koerper, 4 Lampe)
@@ -613,6 +653,8 @@ void App::changeLevel(const std::string& next, const std::string& anchor) {
     const long long runSeed = (long long)old.runSeedOr();
     long long seed = next == "level0" ? runSeed : (long long)(hash64((u64)runSeed, "level", next.c_str()) % 2147483646ull) + 1;
     auto s = makeSession(seed, old.difficulty, old.name, next, world::kLayoutV6);
+    if (coopHost_) s->setSupplyScale(coopHost_->supplyScaleNext());  // V13.2 Koop: Vorraete fuer die Gruppe
+    else if (coopClient_) s->setSupplyScale(coopClient_->pendingSupply());
     attachSession(*s);
     s->slot = old.slot;
     s->carryOver(old);
@@ -640,7 +682,12 @@ void App::loadLastSave() {
 
 void App::saveGame() {
     if (!session_ || state_ != State::Playing || session_->stats().dead) return;
+    if (coopClient_) return;  // V13.2 Koop: Gaeste speichern nichts (der Host speichert fuer alle)
     Json data = session_->toJson();
+    if (coopHost_ || coopSave_) {  // V13.2: eigener Koop-Stand (nie ueber einen Einzelspielerstand)
+        data.set("coop", true);
+        if (coopHost_) data.set("coop_guests", coopHost_->saveGuests());
+    }
     data.set("name", session_->name);
     data.set("difficulty", session_->difficulty);
     data.set("level", session_->levelId);
@@ -662,6 +709,7 @@ void App::saveGame() {
 
 void App::toTitle() {
     if (state_ == State::Playing) saveGame();
+    leaveCoop("");  // V13.2
     startTitleWorld();
 }
 
@@ -679,7 +727,7 @@ void App::settingsChanged() {
         autoTune_.requestCalibration();
     lastWinMode_ = window_.displayMode();
     if (session_) {
-        session_->player().walkSpeed = settings_.walkSpeed;
+        if (!coopClient_) session_->player().walkSpeed = settings_.walkSpeed;  // V13.2: der Gast laeuft wie seine Figur beim Host
         session_->player().bobEnabled = settings_.bob;
         session_->world().setLoadRadius(settings_.viewDistance);
     }
@@ -866,6 +914,10 @@ void App::updateTitle(double dt) {
         quit_ = true;
         return;
     }
+    if (coopClient_) {  // V13.2 Koop: Beitritt abwarten
+        coopJoinPump(dt);
+        if (state_ == State::Playing) return;
+    }
     // langsame Kamerafahrt im Hintergrund
     session_->player().angle += dt * 0.06;
     session_->update(dt, {}, true);
@@ -918,6 +970,10 @@ void App::updatePlaying(double dt) {
             if (opt_.shot.empty() && opt_.benchmark == 0) saveGame();
         }
     }
+    if (coop()) {  // V13.2 Koop: Netz lesen; bei Verbindungsende zum Titel
+        coopBefore(dt);
+        if (!session_ || state_ != State::Playing) return;
+    }
     game::GameSession& s = *session_;
     ++framesInPlay_;
     if (!opt_.shotUi.empty() && framesInPlay_ == 3) {
@@ -928,7 +984,7 @@ void App::updatePlaying(double dt) {
     // Hintergrund weiter sinkt
     if (!window_.focused() && ui_.mode() == ui::Mode::Hud && !testRun() && !pilot_)
         ui_.openPause();
-    bool paused = ui_.pausesGame();
+    bool paused = ui_.pausesGame() && !coop();  // V13.2: im Koop laeuft die Welt weiter (Menues bremsen nur die Eingabe)
     // Spieltasten (nur ohne offenes Menue)
     if (ui_.mode() == ui::Mode::Hud) {
         if (pilot_ && input_.anyKeyPressed()) {
@@ -1002,7 +1058,31 @@ void App::updatePlaying(double dt) {
     simMs_ = std::chrono::duration<double, std::milli>(Clock::now() - tSim).count();
     renderer_->syncMaterials(s.world().bank());
     handleEvents();
-    if (s.stats().dead && deathDelay_ <= 0.0 && ui_.mode() != ui::Mode::Dead && ui_.mode() != ui::Mode::Title) {
+    if (coop()) {  // V13.2 Koop: senden, Gruppe, Ebenenwechsel; Tod: zusehen statt Todesschirm
+        if (!coopAfter(dt, ctl)) return;
+        if (s.stats().dead) {
+            if (scareT_ < 0.0 && !coopWasDead_) ui_.toast("Du bist tot. Die anderen spielen weiter – du kommst am Sicherungspunkt zurück.", 4.0);
+            if (scareCut_ && scareT_ > 1.6) {  // nach dem Schnitt wieder hinsehen (Zuschauen)
+                ui_.clearFadeOut();
+                ui_.fadeFromBlack(0.8);
+                audio_->setMuffle(0.0f);
+                scareT_ = -1.0, scareCut_ = false;
+            }
+            if (input_.pressed(input::MOUSE_LEFT) && ui_.mode() == ui::Mode::Hud) {
+                if (coopHost_) coopHost_->cycleSpectate();
+                else coopClient_->cycleSpectate();
+            }
+        } else if (coopWasDead_) {  // zurueck
+            scareT_ = -1.0, scareCut_ = false, deathDelay_ = 0.0, hitFlash_ = 0.0f;
+            ui_.clearFadeOut();
+            ui_.fadeFromBlack(1.0);
+            audio_->setMuffle(0.0f);
+            resetHistory_ = true;
+            ui_.toast(std::format("Zurück · {}", s.checkpointLabel()), 3.0);
+        }
+        coopWasDead_ = s.stats().dead;
+    }
+    if (s.stats().dead && !coop() && deathDelay_ <= 0.0 && ui_.mode() != ui::Mode::Dead && ui_.mode() != ui::Mode::Title) {
         ui_.setMode(ui::Mode::Dead);
         log::info("Todesschirm (Schreck {:.2f} s, Ursache {})", scareT_, s.deathCause().empty() ? "Verstand" : s.deathCause());
     }
@@ -1118,6 +1198,12 @@ void App::handleEvents() {
                 static u32 n = 0;
                 ++n;
                 at(stepSound(e.surface), e.pos, 0.6f, 16.0f, 0.9f + 0.06f * hash01(n * 29u));
+                break;
+            }
+            case game::GameEvent::OtherStep: {  // V13.2 Koop: Schritte eines Mitspielers
+                static u32 n = 0;
+                ++n;
+                at(stepSound(e.surface), e.pos, 0.35f + 0.45f * e.intensity, 18.0f, 0.95f + 0.08f * hash01(n * 31u));
                 break;
             }
             case game::GameEvent::Blackout:
@@ -1413,6 +1499,17 @@ void App::renderWorld(double dt, bool clean) {
             // V6: Kamera im Kopf des Strichmaennchens (bzw. hinter der Schulter)
             s.body().setOutsideView(third && !egoPose_);  // V13.2 (B-001): Lampenhaltung fuer die Ansicht von aussen
             game::ViewCamera vc = s.camera(third, clean ? 0.0 : dt);
+            if (coop() && s.stats().dead && scareT_ < 0.0) {  // V13.2 Koop: tot - einem Mitspieler zusehen
+                const int sid = coopHost_ ? coopHost_->spectate() : coopClient_->spectate();
+                game::Pawn* sp = sid > 0 ? (coopHost_ ? coopHost_->pawnOf(sid) : coopClient_->pawnOf(sid)) : nullptr;
+                if (!sp && coopClient_ && sid == 0) sp = coopClient_->pawnOf(0);
+                if (sp) {
+                    const float a = (float)sp->player.angle, pt = (float)sp->player.pitch;
+                    const vec3 f{std::cos(a) * std::cos(pt), std::sin(a) * std::cos(pt), std::sin(pt)};
+                    vc.pos = sp->eye() - f * 2.2f + vec3{0, 0, 0.35f};
+                    vc.yaw = a, vc.pitch = pt - 0.12f, vc.roll = 0.0f;
+                }
+            }
             cam.pos = vc.pos;
             cam.yaw = vc.yaw;
             cam.pitch = vc.pitch;
@@ -1449,6 +1546,24 @@ void App::renderWorld(double dt, bool clean) {
             cam.yaw = (float)(p.angle + p.sway());
             cam.pitch = (float)p.pitch;
             cam.fovY = fovY();
+        }
+        if (playing && coop()) {  // V13.2: Namen ueber den Mitspielern (nach allen Kameras; dieselben Matrizen wie das Bild)
+            std::vector<ui::Ui::NameTag> tags;
+            const float aspect = (float)window_.width() / (float)std::max(1, window_.height());
+            const mat4 vp = perspectiveReversedInfinite(cam.fovY, aspect, 0.05f) * viewMatrix(cam.pos, cam.yaw, cam.pitch, cam.roll);
+            const auto ps = coopView().players;
+            for (const game::Pawn* pw : s.pawns) {
+                if (!pw || !pw->alive) continue;
+                const vec3 head = pw->eye() + vec3{0, 0, 0.24f};
+                const float dist = length(head - cam.pos);
+                const vec4 c = vp * vec4(head, 1.0f);
+                if (c.w < 0.3f || dist > 40.0f) continue;
+                std::string nm = pw->name;
+                for (const auto& pi : ps)
+                    if (pi.id == pw->id) nm = pi.name;
+                tags.push_back({0.5f + 0.5f * c.x / c.w, 0.5f - 0.5f * c.y / c.w, std::clamp(1.4f - dist / 30.0f, 0.25f, 1.0f), nm});
+            }
+            ui_.setNameTags(std::move(tags));
         }
         gfx::SceneParams sp;
         sp.fogColor = s.fogColor();
@@ -1544,6 +1659,25 @@ void App::renderWorld(double dt, bool clean) {
                 L.cosOuter = 0.885f;  // ~28 Grad weicher Rand
                 L.soft = 0.3f;
                 L.size = 0.012f;
+                sp.extraLights.push_back(L);
+            }
+            // V13.2 Koop: die Lampen der Mitspieler (gleicher Kegel, ohne Schatten ab dem dritten)
+            int others = 0;
+            for (const game::Pawn* pw : s.pawns) {
+                vec3 lp, ld;
+                float pwr = 0.0f;
+                if (!pw || !s.pawnBeam(*pw, lp, ld, pwr) || sp.extraLights.size() >= 8) continue;
+                gfx::ExtraLight L;
+                L.pos = lp;
+                L.dir = ld;
+                L.color = vec3{1.0f, 0.93f, 0.8f} * (3.6f * pwr);
+                L.range = 24.0f;
+                L.spot = true;
+                L.cosInner = 0.975f;
+                L.cosOuter = 0.885f;
+                L.soft = 0.3f;
+                L.size = 0.012f;
+                L.shadows = ++others <= 2;
                 sp.extraLights.push_back(L);
             }
         }
@@ -1722,6 +1856,220 @@ void App::runBenchmark() {
     log::info("Benchmark: {}", renderer_->gpuTimer().summary());
     res += "\n" + renderer_->gpuTimer().summary();
     paths::writeFileAtomic(paths::join(paths::localDataDir(), "benchmark_v13.txt"), res + "\n", false);
+}
+
+// --- V13.2 Koop (Beta) -----------------------------------------------------------------------------
+bool App::loadNet(std::string& error) {
+    if (netApi_.ok()) return true;
+    return coop::loadNetLibrary(netApi_, error);
+}
+
+// Pruefsumme der Spieldaten: Host und Gast muessen dieselbe Welt erzeugen (Version, Gegenstaende, Ebenen, Schwierigkeiten)
+u32 App::coopBuild() const {
+    u64 h = hash64(0x13020001ull, "LIMINAL V13.2 Koop", (u64)net::coop::kProtoVersion);
+    for (const auto& it : content_.items()) h = hash64(h, it.key.c_str(), it.name.c_str());
+    for (const auto& lv : content_.levels()) h = hash64(h, lv.def ? lv.def->id.c_str() : "");
+    for (const auto& d : content_.difficulties()) h = hash64(h, d.key.c_str());
+    return (u32)(h ^ (h >> 32));
+}
+
+int App::difficultyIndex(const std::string& key) const {
+    const auto& d = content_.difficulties();
+    for (size_t i = 0; i < d.size(); ++i)
+        if (d[i].key == key) return (int)i;
+    return 0;
+}
+
+bool App::hasCoopSave() {
+    for (const auto& e : game::savegame::list())
+        if (e.data["coop"].asBool(false)) return true;
+    return false;
+}
+
+bool App::hostCoop(const std::string& name0, const std::string& difficulty, int port, bool resume, std::string& error) {
+    std::string name;
+    for (char c : name0)
+        if (std::isalnum((unsigned char)c) || c == ' ' || c == '_' || c == '-') name += c;
+    if (name.empty() || name.size() > 16) name = name.substr(0, 16);
+    if (name.empty()) name = "Host";
+    if (!loadNet(error)) return false;
+    auto host = std::make_unique<coop::CoopHost>(netApi_, name, coopBuild());
+    if (!host->start((u16)port, 4, error)) return false;
+    if (resume) {
+        game::SaveEntry best;
+        bool found = false;
+        for (const auto& e : game::savegame::list())
+            if (e.data["coop"].asBool(false) && !found) best = e, found = true;  // neueste zuerst
+        if (!found || !loadGame(best)) {
+            error = "Kein Koop-Stand gefunden.";
+            return false;
+        }
+        host->loadGuests(best.data["coop_guests"]);
+    } else {
+        newGame(name, difficulty, "");
+    }
+    if (!session_ || state_ != State::Playing) {
+        error = "Spiel konnte nicht starten.";
+        return false;
+    }
+    coopHost_ = std::move(host);
+    coopSave_ = true;
+    coopHost_->attach(*session_, "", difficultyIndex(session_->difficulty));
+    ui_.toast(std::format("Koop (Beta) offen auf Port {} · Schlüssel {} · Pausenmenü → Mitspieler", coopHost_->port(), coopHost_->key().text()), 8.0);
+    log::info("Koop: Host gestartet (Port {})", coopHost_->port());
+    return true;
+}
+
+bool App::joinCoop(const std::string& name, const std::string& address, int port, const std::string& key, std::string& error) {
+    coop::JoinKey k;
+    if (!coop::JoinKey::parse(key, k)) {
+        error = "Schlüssel: 26 Zeichen (A–Z und 2–7), Bindestriche egal.";
+        return false;
+    }
+    if (address.empty()) {
+        error = "Adresse des Hosts fehlt.";
+        return false;
+    }
+    if (!loadNet(error)) return false;
+    auto c = std::make_unique<coop::CoopClient>(netApi_, coopBuild());
+    if (!c->connect(address, (u16)port, k, name, error)) return false;
+    coopClient_ = std::move(c);
+    coopName_ = name;
+    coopJoinT_ = 0.0;
+    ui_.coopMessage(std::format("Verbinde mit {}:{} …", address, port));
+    // im Spiel (Skript): sofort weiter warten; im Titel uebernimmt updateTitle
+    return true;
+}
+
+void App::coopJoinPump(double dt) {
+    coopJoinT_ += dt;
+    coopClient_->pump();
+    net::coop::Welcome w;
+    if (coopClient_->takeWelcome(w)) {
+        const auto& diffs = content_.difficulties();
+        const std::string diff = diffs.empty() ? std::string("medium") : diffs[std::min<size_t>(w.difficulty, diffs.size() - 1)].key;
+        ui_.setLoading(std::format("Lade {} …", w.level), 0);
+        auto s = makeSession(w.seed, diff, coopName_, w.level);
+        s->setSupplyScale(w.supply / 100.0);  // dieselben Vorraete wie beim Host
+        attachSession(*s);
+        s->runSeed = w.runSeed;
+        s->slot.clear();
+        s->placeAtSpawn();
+        if (!w.anchor.empty()) s->placeAtAnchor(w.anchor);
+        s->preload();
+        enterPlaying(std::move(s));
+        coopClient_->attach(*session_);
+        coopSave_ = false;
+        currentSlotPath_.clear();
+        ui_.coopMessage("");
+        ui_.toast(std::format("Koop (Beta): beigetreten als Spieler {}", coopClient_->selfId()), 4.0);
+        return;
+    }
+    if (coopClient_->state() == coop::CoopClient::State::Closed || coopJoinT_ > 15.0) {
+        const std::string why = coopClient_->state() == coop::CoopClient::State::Closed ? coopClient_->closeReason() : "Host antwortet nicht";
+        ui_.coopMessage("Beitritt fehlgeschlagen: " + (why.empty() ? std::string("getrennt") : why));
+        coopClient_->stop();
+        coopClient_.reset();
+    }
+}
+
+void App::coopBefore(double dt) {
+    if (coopHost_) coopHost_->beforeUpdate(dt);
+    if (coopClient_ && coopClient_->state() != coop::CoopClient::State::Playing) {  // Beitritt aus dem Spiel heraus (Skript)
+        coopJoinPump(dt);
+        if (!coopClient_ && state_ == State::Playing) ui_.toast("Beitritt fehlgeschlagen.", 3.0);
+        return;
+    }
+    if (coopClient_) {
+        coopClient_->beforeUpdate(dt);
+        if (coopClient_->state() == coop::CoopClient::State::Closed) {
+            const std::string why = coopClient_->closeReason();
+            leaveCoop(why);
+            startTitleWorld();
+            ui_.coopMessage("Verbindung beendet: " + (why.empty() ? std::string("getrennt") : why));
+            ui_.openPage("coop");
+        }
+    }
+}
+
+bool App::coopAfter(double dt, const game::PlayerControl& ctl) {
+    std::string lvl, anchor;
+    if (coopHost_) {
+        coopHost_->afterUpdate(dt);
+        if (coopHost_->takeEscape()) {  // das Ende der Reise (Level 36): fuer alle
+            session_->events().push_back({game::GameEvent::Escaped});
+            handleEvents();
+        }
+        if (coopHost_->takeLevelChange(lvl, anchor)) {
+            ui_.fadeToBlack(0.3);
+            changeLevel(lvl, anchor);
+            if (session_) coopHost_->attach(*session_, anchor, difficultyIndex(session_->difficulty));
+            return false;
+        }
+    }
+    if (coopClient_) {
+        coopClient_->afterUpdate(dt, ctl);
+        if (coopClient_->takeEscape()) {
+            session_->events().push_back({game::GameEvent::Escaped});
+            handleEvents();
+        }
+        if (coopClient_->takeLevelChange(lvl, anchor)) {
+            changeLevel(lvl, anchor);
+            if (session_) coopClient_->attach(*session_);
+            return false;
+        }
+    }
+    return true;
+}
+
+void App::leaveCoop(const std::string& reason) {
+    if (coopHost_) {
+        coopHost_->stop();
+        coopHost_.reset();
+        log::info("Koop: Host beendet");
+    }
+    if (coopClient_) {
+        coopClient_->stop();
+        coopClient_.reset();
+        log::info("Koop: verlassen{}", reason.empty() ? "" : " (" + reason + ")");
+    }
+    if (session_) {
+        session_->netRole = game::GameSession::NetRole::Solo;
+        session_->pawns.clear();
+        session_->netAction = nullptr;
+    }
+    coopWasDead_ = false;
+}
+
+void App::kickCoop(int id, bool ban) {
+    if (coopHost_) coopHost_->kick(id, ban);
+}
+
+ui::Host::CoopView App::coopView() {
+    CoopView v;
+    if (!coop() || !session_) return v;
+    v.active = true;
+    v.host = coopHost_ != nullptr;
+    std::vector<coop::PlayerInfo> ps;
+    if (coopHost_) {
+        v.key = coopHost_->key().text();
+        v.port = coopHost_->port();
+        v.address = "IP dieses Rechners (ipconfig)";
+        v.status = coopHost_->status();
+        ps = coopHost_->players();
+        v.dead = coopHost_->selfDead();
+        v.respawnIn = (int)std::ceil(coopHost_->selfRespawnIn());
+        if (game::Pawn* p = coopHost_->pawnOf(coopHost_->spectate())) v.spectating = p->name;
+    } else {
+        v.status = coopClient_->status();
+        ps = coopClient_->players();
+        v.dead = coopClient_->dead();
+        v.respawnIn = coopClient_->respawnIn();
+        for (const auto& p : ps)
+            if (p.id == coopClient_->spectate()) v.spectating = p.name;
+    }
+    for (const auto& p : ps) v.players.push_back({p.id, p.name, p.alive, p.ready, p.connected, p.self, p.rttMs});
+    return v;
 }
 
 }  // namespace lim

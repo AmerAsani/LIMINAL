@@ -526,10 +526,15 @@ void Ui::drawTitle(Host& h) {
         hh = std::min(hh, 620 * s);
         y = (H_ - hh) * 0.5f;
     }
+    if (page_ == "coop") {  // V13.2
+        hh = std::min(hh, 720 * s);
+        y = (H_ - hh) * 0.5f;
+    }
     panel(x, y, w, hh);
     static const std::pair<const char*, const char*> subs[] = {
         {"main", "unendliche Innenräume"}, {"new", "Neues Spiel"}, {"load", "Spiel fortsetzen"}, {"mouse", "Maus & Steuerung"},
-        {"graphics", "Grafik & Anzeige"}, {"audio", "Audio"}, {"help", "Hilfe"}, {"settings", "Einstellungen"}};
+        {"graphics", "Grafik & Anzeige"}, {"audio", "Audio"}, {"help", "Hilfe"}, {"settings", "Einstellungen"},
+        {"coop", "Koop (Beta)"}};
     std::string sub;
     for (auto& [p, t] : subs)
         if (page_ == p) sub = t;
@@ -538,6 +543,7 @@ void Ui::drawTitle(Host& h) {
     if (page_ == "main") titleMain(h, x, cy, w);
     else if (page_ == "new") titleNew(h, x, cy, w);
     else if (page_ == "load") titleLoad(h, x, cy, w);
+    else if (page_ == "coop") titleCoop(h, x, cy, w);  // V13.2
     else if (page_ == "help") helpPage(h, x, cy, w, footY - cy - 10 * s);
     else if (page_ == "settings") {
         std::vector<Item> items = {
@@ -560,6 +566,7 @@ void Ui::drawTitle(Host& h) {
         settingsPage(h, page_, x, cy, w, footY - cy);
     }
     std::string hint = page_ == "new"  ? "Namen eintippen    ↑↓ Auswahl    ←→ Schwierigkeit    Enter weiter    ESC zurück"
+                       : page_ == "coop" ? "Eintippen    Strg+V einfügen    ↑↓ Auswahl    ←→ Modus/Schwierigkeit    Enter weiter    ESC zurück"
                        : page_ == "load" ? (confirmDelete_ ? "Entf nochmal drücken = Spielstand löschen"
                                                            : "↑↓ wählen    Enter laden    Entf löschen    ESC zurück")
                        : page_ == "help" ? "↑↓ / Mausrad blättern    ESC zurück"
@@ -587,14 +594,19 @@ void Ui::titleMain(Host& h, float x, float y, float w) {
                  confirmDelete_ = false;
              }
          }, ""},
+        {"Koop (Beta)", nullptr, nullptr, [this] {  // V13.2
+             page_ = "coop";
+             coopSel_ = 0;
+             coopMsg_.clear();
+         }, ""},
         {"Einstellungen", nullptr, nullptr, [this] { page_ = "settings"; }, ""},
         {"Beenden", nullptr, nullptr, [&h] { h.quit(); }, ""},
     };
-    runList(h, items, lists_[0], x + 24 * s, y + 10 * s, w - 48 * s, 58 * s, 4);
+    runList(h, items, lists_[0], x + 24 * s, y + 10 * s, w - 48 * s, 58 * s, 5);
     // ESC waehlt zuerst "Beenden" aus; erst ein zweites ESC beendet (kein versehentliches Schliessen)
     if (in_->actionPressed(Action::UiBack)) {
-        if (lists_[0].sel == 3) h.quit();
-        else lists_[0].sel = 3, h.playSound("ui_back");
+        if (lists_[0].sel == 4) h.quit();
+        else lists_[0].sel = 4, h.playSound("ui_back");
     }
 }
 
@@ -774,7 +786,8 @@ void Ui::drawPause(Host& h) {
     panel(x, y, w, hh);
     static const std::pair<const char*, const char*> subs[] = {{"main", ""}, {"mouse", "Maus & Steuerung"},
                                                                {"graphics", "Grafik & Anzeige"}, {"audio", "Audio"},
-                                                               {"help", "Hilfe"}, {"journal", "Notizbuch"}};
+                                                               {"help", "Hilfe"}, {"journal", "Notizbuch"},
+                                                               {"coop", "Mitspieler (Koop, Beta)"}};
     std::string sub;
     for (auto& [p, t] : subs)
         if (page_ == p) sub = t;
@@ -784,6 +797,8 @@ void Ui::drawPause(Host& h) {
         helpPage(h, x, cy, w, footY - cy - 10 * s);
     } else if (page_ == "journal") {
         journalPage(h, x, cy, w, footY - cy - 10 * s);
+    } else if (page_ == "coop") {  // V13.2
+        coopPlayersPage(h, x, cy, w);
     } else {
         settingsPage(h, page_, x, cy, w, footY - cy);
     }
@@ -813,8 +828,12 @@ void Ui::pauseMain(Host& h) {
             {"Audio", nullptr, nullptr, [this] { pageStack_.push_back(page_), page_ = "audio"; }, "Lautstärken."},
             {"Hilfe", nullptr, nullptr, [this] { pageStack_.push_back(page_), page_ = "help", helpScroll_ = 0; },
              "Alle Steuerungen und Funktionen des Spiels im Überblick."},
-            {"Spiel speichern", nullptr, nullptr, [&h] { h.saveGame(); },
-             "Speichert den aktuellen Spielstand. Er erscheint im Hauptmenü unter »Spiel fortsetzen«."},
+            h.coopView().active
+                ? Item{"Mitspieler (Koop)", nullptr, nullptr, [this] { pageStack_.push_back(page_), page_ = "coop", lists_[10] = {}; },
+                       h.coopView().host ? "Adresse, Port und Schlüssel zum Beitreten; Spieler entfernen oder sperren. Gespeichert wird nur beim Host, in einem eigenen Koop-Stand."
+                                         : "Wer mitspielt. Speichern kann nur der Host."}
+                : Item{"Spiel speichern", nullptr, nullptr, [&h] { h.saveGame(); },
+                       "Speichert den aktuellen Spielstand. Er erscheint im Hauptmenü unter »Spiel fortsetzen«."},
             {"Zum Hauptmenü", nullptr, nullptr, [&h] { h.toTitle(); }, "Speichert und kehrt zum Hauptmenü zurück."},
             {"Spiel beenden", nullptr, nullptr, [&h] { h.quit(); },
              "LIMINAL schließen. Spielstand und Einstellungen werden gespeichert."},

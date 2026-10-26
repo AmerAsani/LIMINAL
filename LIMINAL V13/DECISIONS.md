@@ -369,3 +369,19 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
 - **Gewählt:** ein zerrissener Schleier aus Fasern und Harz mit durchhängenden Fäden, eine geschichtete Kante im Zimmer, eine asymmetrische Wucherung im Flur und Eier halb in der Kruste.
 - **Material:** `ent_nestflesh` nutzt die Nesttextur (Fasern, Adern, Harz), rotbraun getönt und matt. Harzflächen sind seltener und dunkler; Eier bekommen ein eigenes mattes Cremegelb (`ent_nestegg`).
 - **Bewegung:** Das Nest ist jetzt ein Wesen mit neun Knochen; Licht und Alarm machen es unruhig (ANIMATIONEN.md).
+
+## E-030 Koop (Beta): Umsetzung und Freigabe (26.10.2026)
+- **Architektur:** Listen-Server, hostautoritativ (`MULTIPLAYER_ARCHITEKTUR.md`). Transport ENet 1.3.18 in `liminal_net.dll`, Handshake mit Beweis des Schlüssels, AES-256-GCM über CNG. Das Spiel lädt die DLL erst beim Hosten oder Beitreten.
+- **Gast:** sendet nur Eingaben und Absichten; seine Figur sagt er voraus und gleicht sie mit dem Host ab (weich unter 2 m, sonst Sprung). Mitspieler und Wesen sieht er 100 ms zurück interpoliert.
+- **Wesen:** Jedes richtet sich nach dem nächsten lebenden Spieler (Sicht, Lärm, Weg). Die Regie wechselt alle 30 s den Bezugsspieler. Was im Blick irgendeines Spielers erschiene, wird verworfen. Beim Gast sind die Wesen Puppen mit derselben Animation.
+- **Gruppe:**
+  - Ebenenwechsel, wenn alle Lebenden im Ausgangsbereich stehen, sonst nach 60 s.
+  - Tod: zusehen, nach 20 s am Sicherungspunkt zurück; alle tot: Neubeginn.
+  - Vorräte ab der nächsten Ebene × (1 + 0,6 (n − 1)), deterministisch im Generator.
+  - Der Host speichert einen eigenen Koop-Stand mit den Gästen nach Namen.
+- **Verworfen:**
+  - ein eigener dedizierter Server (zu groß für 2–4 Freunde);
+  - Zustände vom Gast (Bedrohungsmodell T1);
+  - Sprachübertragung;
+  - Vermittlung über fremde Server (Datenschutz).
+- **Freigabe:** Beta, weil die Tests bestehen (Auftrag). Offen: Fuzzing über Stunden und eine Durchsicht durch Dritte (`MULTIPLAYER_ENTSCHEIDUNG.md`).

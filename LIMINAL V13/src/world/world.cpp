@@ -254,30 +254,39 @@ const Room* World::roomAt(double x, double y) {
     return nullptr;
 }
 
+void World::setSupplyScale(double s) { gen_->setSupplyScale(s); }
+
 void World::update(double px, double py) {
     jobs_.drainCompletions(4.0);
-    const i64 pcx = ifloor(px) >> CS_SHIFT, pcy = ifloor(py) >> CS_SHIFT;
+    // V13.2 Koop: alle Zentren (zuerst der eigene Spieler)
+    std::vector<std::pair<i64, i64>> centers{{ifloor(px) >> CS_SHIFT, ifloor(py) >> CS_SHIFT}};
+    for (const auto& [x, y] : extra_) centers.push_back({ifloor(x) >> CS_SHIFT, ifloor(y) >> CS_SHIFT});
     // Direkte Umgebung immer sofort (Kollision, Sicht)
-    for (i64 dy = -1; dy <= 1; ++dy)
-        for (i64 dx = -1; dx <= 1; ++dx) chunkSync({pcx + dx, pcy + dy});
+    for (const auto& [pcx, pcy] : centers)
+        for (i64 dy = -1; dy <= 1; ++dy)
+            for (i64 dx = -1; dx <= 1; ++dx) chunkSync({pcx + dx, pcy + dy});
 
     const int R = loadRadius_;
     std::vector<std::pair<i64, ChunkKey>> missing;
-    for (i64 dy = -R; dy <= R; ++dy)
-        for (i64 dx = -R; dx <= R; ++dx) {
-            ChunkKey k{pcx + dx, pcy + dy};
-            if (!chunks_.count(k) && !building_.count(k)) missing.push_back({dx * dx + dy * dy, k});
-        }
+    for (size_t ci = 0; ci < centers.size(); ++ci) {
+        const auto [pcx, pcy] = centers[ci];
+        for (i64 dy = -R; dy <= R; ++dy)
+            for (i64 dx = -R; dx <= R; ++dx) {
+                ChunkKey k{pcx + dx, pcy + dy};
+                if (!chunks_.count(k) && !building_.count(k)) missing.push_back({dx * dx + dy * dy, k});
+            }
+    }
     std::sort(missing.begin(), missing.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
     const int maxInFlight = (int)jobs_.workerCount() * 3 + 2;
     for (const auto& [d, k] : missing) {
         if (inFlight_ >= maxInFlight) break;
+        if (building_.count(k)) continue;
         requiredSectors(k, tmpKeys_);
         bool ready = true;
         for (const auto& sk : std::vector<SectorKey>(tmpKeys_)) ready = ensureLinked(sk) && ready;
         if (ready) scheduleChunk(k);
     }
-    unloadFar(pcx, pcy);
+    unloadFar(centers[0].first, centers[0].second);
 }
 
 void World::preload(double px, double py) {
@@ -318,9 +327,15 @@ void World::preload(double px, double py) {
 
 void World::unloadFar(i64 pcx, i64 pcy) {
     const i64 U = loadRadius_ + 2;
+    // V13.2 Koop: nur, was von allen Zentren weit weg ist
+    std::vector<std::pair<i64, i64>> centers{{pcx, pcy}};
+    for (const auto& [x, y] : extra_) centers.push_back({ifloor(x) >> CS_SHIFT, ifloor(y) >> CS_SHIFT});
     std::vector<ChunkKey> far;
-    for (const auto& [k, c] : chunks_)
-        if (std::abs(k.x - pcx) > U || std::abs(k.y - pcy) > U) far.push_back(k);
+    for (const auto& [k, c] : chunks_) {
+        bool isFar = true;
+        for (const auto& [cx, cy] : centers) isFar = isFar && (std::abs(k.x - cx) > U || std::abs(k.y - cy) > U);
+        if (isFar) far.push_back(k);
+    }
     for (const auto& k : far) {
         auto it = chunks_.find(k);
         if (onChunkUnloaded) onChunkUnloaded(*it->second);
@@ -328,13 +343,17 @@ void World::unloadFar(i64 pcx, i64 pcy) {
     }
     // Sektoren weit ausserhalb des Laderadius verwerfen (werden bei Bedarf identisch neu erzeugt)
     const i64 S = level_->sectorSize;
-    const i64 psx = floorDiv(pcx * CS, S), psy = floorDiv(pcy * CS, S);
     const i64 keep = floorDiv((loadRadius_ + 3) * CS, S) + 2;
     std::vector<SectorKey> drop;
-    for (const auto& [k, e] : sectors_)
-        if ((std::abs(k.x - psx) > keep || std::abs(k.y - psy) > keep) && e.state != SState::Generating &&
-            e.state != SState::Linking)
-            drop.push_back(k);
+    for (const auto& [k, e] : sectors_) {
+        if (e.state == SState::Generating || e.state == SState::Linking) continue;
+        bool isFar = true;
+        for (const auto& [cx, cy] : centers) {
+            const i64 psx = floorDiv(cx * CS, S), psy = floorDiv(cy * CS, S);
+            isFar = isFar && (std::abs(k.x - psx) > keep || std::abs(k.y - psy) > keep);
+        }
+        if (isFar) drop.push_back(k);
+    }
     for (const auto& k : drop) sectors_.erase(k);
 }
 
