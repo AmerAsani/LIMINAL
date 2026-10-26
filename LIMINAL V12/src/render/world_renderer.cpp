@@ -1,5 +1,6 @@
 #include "render/world_renderer.hpp"
 #include "world/imported_textures.hpp"
+#include "world/room.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -294,7 +295,11 @@ void WorldRenderer::addChunk(Gpu& gpu, const world::ChunkData& cd) {
         for (int x = 0; x < world::CS; ++x) {
             const world::Tile& t = cd.tile(x, y);
             size_t i = (size_t)(y * world::CS + x);
-            hf[i * 2] = floatToHalf(t.solid() ? 60000.0f : t.floor);
+            // V12: niedrige unsichtbare Bloecke (Kisten, Bett: nur Kollision) werfen keinen Kastenschatten - das
+            // Modell darauf ist kleiner als die Kacheln; hohe (Regale, Saeulen) bleiben als Schattenwerfer
+            float fl = t.floor;
+            if ((t.flags & world::TF_HIDDEN) && t.room && t.floor - (float)t.room->floor < 1.2f) fl = (float)t.room->floor;
+            hf[i * 2] = floatToHalf(t.solid() ? 60000.0f : fl);
             hf[i * 2 + 1] = floatToHalf(t.solid() ? -60000.0f : t.ceil);
             vec3 a = cd.ambient[i];
             am[i * 4] = floatToHalf(a.x);

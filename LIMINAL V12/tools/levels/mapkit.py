@@ -54,15 +54,17 @@ class Room:
 # keine Oeffnung, kein Nachbarraum) und Luft davor; Bodenteile stehen auf dem Raumboden (oder einem Block);
 # Deckenteile haengen an der Decke. validate() prueft es; tests/gameplay_test prueft es in der echten Welt.
 WALL_MOUNT = {'outlet', 'vent_grille', 'painting', 'power_box', 'wall_sconce', 'gauge', 'window', 'speaker',
-              'exit_sign', 'locker_shutter', 'steel_door', 'hotel_door', 'damaged_door'}
+              'exit_sign', 'locker_shutter', 'steel_door', 'hotel_door', 'damaged_door', 'padded_panel',
+              'painting_a', 'painting_b', 'painting_c', 'painting_d', 'painting_e', 'painting_f', 'painting_lean_a', 'painting_lean_b', 'painting_lean_c', 'exit_sign_green'}  # V12 L1
 DOOR_MODELS = {'steel_door', 'hotel_door', 'damaged_door'}
 CEILING_MOUNT = {'batten', 'highbay', 'chandelier', 'safety_light', 'ceiling_vent',
-                 'troffer', 'troffer_off', 'troffer_red', 'ceiling_diffuser'}  # V12: Blender-Modelle
+                 'troffer', 'troffer_off', 'troffer_red', 'ceiling_diffuser', 'hanging_bulb'}  # V12: Blender-Modelle
 # V12: Modelle, die in einem Durchbruch stehen (Bogen mit Laibung): Mitte muss in einer Tuer/Oeffnung liegen
-IN_OPENING = {'arch2', 'arch3', 'arch4'}
+IN_OPENING = {'arch2', 'arch3', 'arch4', 'arch_tall3', 'arch_tall4', 'swing_door1', 'swing_door2'}
 FLOOR_MOUNT = {'chair', 'rack', 'bed', 'barrel', 'cart', 'pump', 'wardrobe', 'trunk', 'water_cooler', 'armchair', 'sofa',
                'side_table', 'game_table', 'boiler', 'statue', 'transformer', 'fence_panel', 'rubble', 'barrier', 'camp',
-               'desk_crt', 'switch_cabinet', 'bookcase', 'coffee_table', 'desk', 'shelf_unit', 'cabinet'}
+               'desk_crt', 'switch_cabinet', 'bookcase', 'coffee_table', 'desk', 'shelf_unit', 'cabinet',
+               'crate_a', 'crate_b', 'crate_c', 'debris_a', 'debris_b', 'hospital_bed', 'work_table', 'column_round'}  # V12 L1
 
 
 class Map:
@@ -416,6 +418,8 @@ class Map:
         if self.checkpoints:
             for t in self.transitions:
                 if t['kind'] in ('hole', 'dive', 'end'):  # Einbahnwege hinab und das Ende
+                    continue
+                if not t['target']:  # V12: nur Ankunft - ohne Sicherungspunkt beginnt man wieder am Ankunftsort
                     continue
                 d = min(math.hypot(c['pos'][0] - t['pos'][0], c['pos'][1] - t['pos'][1]) for c in self.checkpoints)
                 if d > 16.0:

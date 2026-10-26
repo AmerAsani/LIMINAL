@@ -1,22 +1,24 @@
-"""Level 1 - "Das Lagerdeck": Entwurf der festen Karte (LEVEL_SELECTION.md, Abschnitt 4).
+"""Level 1 - "Die Lagerdecks" (V12, LEVELSPEC_1.md / LOOK_1.md; Wikidot Level 1, Revision 83).
 
-Gestalt (Draufsicht, Norden oben):
+Draufsicht (x nach rechts, y nach unten):
 
-    +--------------------------------------------------------------------------------+
-    |                Gang-Labyrinth: enge Betongaenge mit Kammern                     |
-    +---------+---------------------------+------+--------------------+-----+--------+
-    |         |                           |Rampe |                    |Rampe|        |
-    | Wartung |  Deck A (blau, +-0)       |      |  Deck B (gelb,-1,6)|     | Deck C |
-    | (weiss) |                           |      |                    |     |(rot,   |
-    |         +---------------------------+      +---------+----------+     | -3,2)  |
-    |         |  Lagerboxen               |      |Lagerh. 1| Lagerh. 2|     |        |
-    +---------+---------------------------+------+---------+----------+     +--+-----+
-      Lastenflur (Ankunft aus Level 0, West)                                    Rohrgang
-                                                                              (Level 2, Sued)
+    +-------------------------+-----------------------+-------------------------+
+    | Aquila A1 (Ankunft)     | Gothic G1             | Gild: Ocker | Blaugrau  |
+    |  Stuetzen 1 m, Rohre    | runde Saeulen,        |  Regale, Kisten         |
+    +-----------+  Aquila A2  +  Boegen zwischen      +-------------+-----------+
+    |           |             | Gothic G2             | Altrosa     | Gruen     |
+    | Aquila A3 (dunkler, 2-m-Stuetzen)               |             |           |
+    +--+--+--+--+--+--+--+--+-+ Gothic G3             +-------------+-----------+
+    | Vorraeume: Krankenzimmer, Bilderraum ... (Schwingtueren mit gruenem Schild zur Halle)
+    +----------------------------------------------+
+    | Gaenge: Betonlabyrinth mit kleinen Raeumen   |==== Rohrgang (Rohre und Messuhren nehmen zu) ==> Level 2
+    +----------------------------------------------+
 
-Raumfolge fuer den Spieler: Lastenflur (gelbe Tapete weicht Beton) -> Deck A (weit, hell, Lichtinseln
-ueber den Fahrgassen) -> Rampe hinab -> Deck B -> Lagerhallen / Labyrinth / das Bodenloch -> Rampe
--> Deck C (am dunkelsten) -> Rohrgang nach Level 2.
+Hallen (Wiki): weit, fleckige Waende, vereinzelt Betonstuetzen, Tiefgarage x Lager, Kisten auf Regalen und am Boden,
+Pfuetzen unter tropfenden Rohren, Haufen aus Holz, Verpackung und Blech, Schaltkaesten, Tische, farbige Stuetzen.
+Gaenge (Wiki): eng, schwach beleuchtet, Beton, waermer; Schwingtueren, manchmal mit Notausgangsschild; Raeume ohne
+Zweck: Bueros (Rechner, haengende Birne), Ziegelraeume, Krankenzimmer (Bett in der Mitte, Beistelltische),
+Gummizellen (Stuhl in der Mitte), weite Raeume mit Bildern an den Waenden und auf dem Boden.
 """
 import math
 import os
@@ -25,369 +27,429 @@ import sys
 sys.path.insert(0, os.path.dirname(__file__))
 from mapkit import Map, corridor_maze  # noqa: E402
 
-m = Map('level1', 256, 236, seed=1101)
+m = Map('level1', 252, 212, seed=1201)
 rng = m.rng
 
-DECK_H = 4.4
-GRID = 8          # Stuetzenraster (m)
-BEAM = 0.55       # Unterzug
-BAND = {'deck_a': 'A', 'deck_b': 'B', 'deck_c': 'C'}
+HALL_H, GOTH_H, GILD_H, GANG_H = 4.2, 5.6, 6.0, 2.6
+COOL, WARM, GILDL, BULB = (1.0, 0.98, 0.92), (1.0, 0.91, 0.78), (1.0, 0.93, 0.80), (1.0, 0.84, 0.62)
+C_AQUILA, C_GOTHIC, C_GILD, C_GANG, C_ROOMS = 1, 2, 3, 4, 5
+m.blackout_circuits = {C_AQUILA, C_GOTHIC, C_GILD, C_GANG}
 
-# --- Hilfen ---------------------------------------------------------------------------------------
+# --- Hallen: Aquila ----------------------------------------------------------------------------------------------
+a1 = m.room(2, 2, 70, 58, 'halle', 'aquila', 0.0, HALL_H, pillars=[12, 12, 1, 8, 8], beams=0.55, circuit=C_AQUILA,
+            label='Aquila', tags=['hall'])
+a2 = m.room(71, 2, 120, 58, 'halle', 'aquila', 0.0, HALL_H, pillars=[12, 12, 1, 77, 8], beams=0.55, circuit=C_AQUILA,
+            tags=['hall'])
+a3 = m.room(2, 59, 120, 96, 'halle', 'aquila_dunkel', 0.0, HALL_H, pillars=[13, 12, 2, 9, 66], beams=0.55,
+            circuit=C_AQUILA, tags=['hall'])
+aquila = [a1, a2, a3]
+for y in (9, 29, 47):
+    m.opening(a1, a2, width=6, at=y)
+for x in (16, 47):
+    m.opening(a1, a3, width=8, at=x)
+for x in (86, 109):
+    m.opening(a2, a3, width=8, at=x)
+# freistehende, fleckige Wandscheiben (die Hallen sind weit, aber nicht leer)
+for (r, x0, y0, x1, y1) in ((a1, 24, 18, 25, 33), (a1, 40, 40, 56, 41), (a2, 92, 22, 93, 40), (a3, 30, 72, 46, 73),
+                            (a3, 70, 80, 71, 92), (a3, 96, 68, 97, 82)):
+    m.block(r, x0, y0, x1, y1, HALL_H, hidden=False)
 
-
-def deck(x0, y0, x1, y1, zone, floor, circuit, label):
-    """Ein Parkdeck: Stuetzen alle 8 m, Unterzuege darueber, Fahrgassen in jeder zweiten Bucht.
-
-    Gibt den Raumindex und die Mittellinien der Fahrgassen (y) zurueck.
-    """
-    ox, oy = x0 + 4, y0 + 5
-    r = m.room(x0, y0, x1, y1, 'deck', zone, floor, DECK_H, pillars=[GRID, GRID, 1, ox, oy], beams=BEAM,
-               light='battens', circuit=circuit, label=label, tags=['deck'])
-    # Buchten zwischen Stuetzenreihen: abwechselnd Stellplaetze und Fahrgasse
-    aisles = []
-    y = oy + 1
-    k = 0
-    while y + GRID - 1 <= y1 - 1:
-        if k % 2 == 0:
-            aisles.append(y + (GRID - 1) / 2)
-        y += GRID
-        k += 1
-    # Leuchtbaender ueber den Fahrgassen, zwischen den Stuetzen; einige tot oder fehlend
-    ceil = floor + DECK_H - 0.01
-    for ay in aisles:
-        x = ox + 1 + (GRID - 1) / 2
-        while x < x1 - 2:
-            alive = rng.random() > 0.12
-            if alive:
-                m.light(r, x, ay, 0, 1.0, 6.5, z=ceil - 0.42, panel=False)
-            m.obj('batten', x, ay, ceil, 0.0, variant=0 if alive else 1, tag='light')
-            x += GRID
-    # Stellplatzlinien beidseits der Fahrgassen (je 3 Plaetze zwischen zwei Stuetzen)
-    for ay in aisles:
-        for side in (-1, 1):
-            yl = ay + side * (GRID / 2 + 2.5)  # Mitte der Stellplatzreihe
-            x = ox + 1
-            while x + GRID <= x1:
-                for s in range(4):
-                    m.obj('stall_line', x + s * (GRID - 1) / 3.0, yl, floor + 0.005, math.pi / 2, tag='paint')
-                x += GRID
-        # Fahrpfeile in der Gasse
-        for x in range(ox + 6, x1 - 6, 24):
-            m.obj('arrow', x, ay, floor + 0.005, 0.0 if rng.random() < 0.7 else math.pi, tag='paint')
-    # Stuetzennummern (Abschnitt + Spalte/Reihe), eine Plakette je Stuetze
-    num = 1
-    letter = ord(BAND[zone]) - ord('A')
-    x = ox
-    while x < x1 - 1:
-        y = oy
-        while y < y1 - 1:
-            if x0 + 1 <= x < x1 - 1 and y0 + 1 <= y < y1 - 1:
-                # V11: an Durchgaengen raeumt die Engine Stuetzen weg (Kopffreiheit) - dort keine Plakette
-                near = any(d['rect'][0] - 3.5 <= x + 0.5 <= d['rect'][2] + 3.5 and d['rect'][1] - 3.5 <= y + 0.5 <= d['rect'][3] + 3.5
-                           for d in m.doors)
-                if not near:
-                    m.obj('pillar_label', x + 0.5, y + 0.5, floor + 1.75, 0.0, variant=letter * 256 + num, tag=BAND[zone])
-                num += 1
-            y += GRID
-        x += GRID
-    return r, aisles
+# --- Hallen: Gothic (Boegen, runde Saeulen) -----------------------------------------------------------------------
+g1 = m.room(121, 2, 182, 30, 'gothic', 'gothic', 0.0, GOTH_H, circuit=C_GOTHIC, label='Gothic', tags=['hall'])
+g2 = m.room(121, 31, 182, 64, 'gothic', 'gothic', 0.0, GOTH_H, circuit=C_GOTHIC, tags=['hall'])
+g3 = m.room(121, 65, 182, 96, 'gothic', 'gothic', 0.0, GOTH_H, circuit=C_GOTHIC, tags=['hall'])
+gothic = [g1, g2, g3]
 
 
-def ramp(x0, y0, x1, y1, zone, floor_low, circuit, label):
-    r = m.room(x0, y0, x1, y1, 'rampe', zone, floor_low, DECK_H + 1.6, light='battens', circuit=circuit, label=label,
-               tags=['ramp'])
-    cx = (y0 + y1) / 2
-    top = floor_low + DECK_H + 1.6 - 0.01
-    for x in range(x0 + 3, x1 - 1, 6):
-        m.light(r, x + 0.5, cx, 0, 0.9, 5.5, z=top - 0.42, panel=False)
-        m.obj('batten', x + 0.5, cx, top, 0.0, tag='light')
-    return r
+def arch_door(a, b, width, at):
+    d = m.doors[m.door(a, b, 'wide', width, at=at, top=4.6)]
+    x0, y0, x1, y1 = d['rect']
+    yaw = 0.0 if d['axis'] == 0 else math.pi / 2
+    m.obj(f'arch_tall{width}', (x0 + x1) / 2, (y0 + y1) / 2, 0.0, yaw)
 
 
-def exit_sign(x, y, z, yaw):
-    """Gruenes Notausgangsschild (eigene Batterie: leuchtet auch im Stromausfall)."""
-    m.obj('exit_sign', x, y, z, yaw, tag='emergency')
+for x in (131, 151, 171):
+    arch_door(g1, g2, 4, x + 0.0)
+for x in (138, 162):
+    arch_door(g2, g3, 4, x + 0.0)
+arch_door(a2, g1, 3, 15.5)
+arch_door(a2, g2, 4, 44)
+arch_door(a3, g3, 4, 80)
 
 
-# --- Ankunft: Lastenflur aus Level 0 (West) ---------------------------------------------------------
-la = m.room(2, 112, 13, 116, 'lastenflur', 'naht0', 0.0, 2.8, label='Lastenflur', tags=['seam'])
-lb = m.room(14, 112, 24, 116, 'lastenflur', 'naht0', 0.0, 2.9, ambient=0.08, tags=['seam'])
-lc = m.room(25, 112, 35, 116, 'gang', 'gang', 0.0, 3.0, tags=['seam'])
-m.opening(la, lb)
-m.opening(lb, lc)
-for r_, xs in ((la, (4, 9)), (lb, (17, 22)), (lc, (28, 32))):
-    for x in xs:
-        m.light(r_, x + 0.5, 114.0, 0, 0.7 if r_ != lc else 0.55, 3.8)
-m.start = (3.5, 114.0, 0.0)
-m.transition('l0_l1', 'seam', 'level0', 5.0, 114.0, 0.0, rect=[2, 112, 4, 116])
+def columns(r, step=7, rows=2):
+    """Runde Saeulen in Reihen entlang der laengeren Seite; jede steht auf einem unsichtbaren Block (Halt)."""
+    R = m.R(r)
+    ys = [R.y0 + round((R.h) * (k + 1) / (rows + 1)) for k in range(rows)]
+    for y in ys:
+        for x in range(R.x0 + 5, R.x1 - 4, step):
+            m.block(r, x, y, x + 1, y + 1, GOTH_H, hidden=True)
+            m.obj('column_round', x + 0.5, y + 0.5, 0.0, 0.0)
 
-# --- Deck A (blau) -----------------------------------------------------------------------------------
-deckA, aislesA = deck(36, 80, 100, 141, 'deck_a', 0.0, 1, 'Deck A')
-m.door(lc, deckA, 'wide', 4, top=2.4)  # V11: mit Sturz, darauf das Notausgangsschild
-exit_sign(36.0, 114.0, 2.55, 0.0)
 
-# --- Rampe A -> B und Deck B (gelb) -------------------------------------------------------------------
-# Rampen mit eigenem Stromkreis: faellt in einem Deck der Strom aus, bleiben sie hell (Fluchtweg ins Licht)
-rampAB = ramp(101, 108, 119, 115, 'deck_a', -1.6, 10, 'Rampe')
-m.opening(deckA, rampAB)
-deckB, aislesB = deck(120, 64, 180, 141, 'deck_b', -1.6, 2, 'Deck B')
-m.opening(rampAB, deckB)
+for r in gothic:
+    columns(r)
 
-# --- Rampe B -> C und Deck C (rot, am dunkelsten) -----------------------------------------------------
-rampBC = ramp(181, 96, 199, 103, 'deck_b', -3.2, 11, 'Rampe')
-m.opening(deckB, rampBC)
-deckC, aislesC = deck(200, 24, 252, 141, 'deck_c', -3.2, 3, 'Deck C')
-m.opening(rampBC, deckC)
+# --- Hallen: Gild (farbig, Regale, die meisten Kisten) -----------------------------------------------------------
+gd = [m.room(183, 2, 214, 47, 'gild', 'gild_ocker', 0.0, GILD_H, circuit=C_GILD, label='Gild', tags=['hall']),
+      m.room(215, 2, 249, 47, 'gild', 'gild_blau', 0.0, GILD_H, circuit=C_GILD, tags=['hall']),
+      m.room(183, 48, 214, 96, 'gild', 'gild_rosa', 0.0, GILD_H, circuit=C_GILD, tags=['hall']),
+      m.room(215, 48, 249, 96, 'gild', 'gild_gruen', 0.0, GILD_H, circuit=C_GILD, tags=['hall'])]
+m.opening(gd[0], gd[1], width=6, at=24)
+m.opening(gd[2], gd[3], width=6, at=72)
+m.opening(gd[0], gd[2], width=6, at=198)
+m.opening(gd[1], gd[3], width=8, at=232)
+m.opening(g1, gd[0], width=5, at=16)
+m.opening(g3, gd[2], width=5, at=80)
 
-# --- Lagerboxen unter Deck A --------------------------------------------------------------------------
-boxen = m.room(40, 75, 96, 78, 'boxenreihe', 'boxen', 0.0, 2.6, circuit=8, label='Lagerboxen', tags=['lockers'])
-m.door(deckA, boxen, 'door', 1, at=44, style='steel')
-m.door(deckA, boxen, 'door', 1, at=92, style='steel')
-for x in range(44, 96, 14):
-    m.light(boxen, x + 0.5, 76.5, 0, 0.45, 3.2)
-for x in range(41, 95, 2):
-    m.obj('locker_shutter', x + 1.0, 75.02, 0.0, math.pi / 2, variant=rng.randrange(4), tag='locker')
-    v = rng.randrange(4)  # (Zufallsfolge unveraendert lassen: das Labyrinth haengt daran)
-    if m.wall_ok(x + 1.0, 77.98, -math.pi / 2, 1.0):  # V11: nicht vor die Stahltueren ins Deck
-        m.obj('locker_shutter', x + 1.0, 77.98, 0.0, -math.pi / 2, variant=v, tag='locker')
-m.spawn('entity', 60.5, 76.5, role='hound', tags=['locker', 'dark'])
-m.spawn('entity', 84.5, 76.5, role='hound', tags=['locker', 'dark'])
 
-# --- Lagerhallen unter Deck B (hinter Holztueren, eigener Stromkreis) -----------------------------------
-vorraeume = []
-for i, (hx0, hx1, style) in enumerate(((122, 148, 'wood_pink'), (152, 178, 'wood_brown'))):
-    vor = m.room(hx0 + 10, 58, hx0 + 16, 63, 'gang', 'gang', -1.6, 3.0, circuit=4, tags=['warehouse_entry'])
-    vorraeume.append(vor)
-    m.opening(deckB, vor)
-    halle = m.room(hx0, 14, hx1, 56, 'lagerhalle', 'lager', -1.6, 8.6, circuit=5, label=f'Lagerhalle {i + 1}',
-                   tags=['warehouse'])
-    m.door(vor, halle, 'wide', 2, style=style)
-    m.light(vor, hx0 + 13, 60.5, 0, 0.5, 3.5)
-    # Hochregale: vier Doppelreihen (2 m tief) entlang y, je zwei Abschnitte mit Quergang in der Mitte;
-    # Gassen 3 m. Der Block traegt Kollision, Schatten und Wege, das Modell zeigt Rahmen, Traversen, Ladung.
-    RACK_X = (4, 9, 14, 19)
-    for rx in RACK_X:
-        for y0, y1 in ((20, 34), (36, 50)):
-            m.block(halle, hx0 + rx, y0, hx0 + rx + 2, y1, 5.25)
-            bays = int((y1 - y0) // 2.7)
-            start = y0 + ((y1 - y0) - bays * 2.7) / 2
-            for b in range(bays):
-                v = rng.randrange(4) | (4 if b == bays - 1 else 0)
-                m.obj('rack', hx0 + rx + 1.0, start + 1.35 + b * 2.7, -1.6, math.pi / 2, variant=v, tag='rack')
-    # Hallenstrahler ueber den Gassen (die Gassen dazwischen bleiben dunkler)
-    for ax in (7.5, 12.5, 17.5):
-        for y in (17, 26, 35, 44, 53):
-            m.light(halle, hx0 + ax, y + 0.5, 0, 1.2, 8.0, z=-1.6 + 8.6 - 1.0, panel=False)
-            m.obj('highbay', hx0 + ax, y + 0.5, -1.6 + 8.6 - 0.01, 0.0, tag='light')
-    # Gegenstaende in den Regalgassen, Kisten
-    AISLES = (2.0, 7.5, 12.5, 17.5, 23.5)
-    for k in range(10):
-        m.spawn('item', hx0 + rng.choice(AISLES) + (rng.random() - 0.5), 16.5 + rng.random() * 37,
-                tags=['floor', 'warehouse'], group=100 + i * 10 + k // 3)
-    for k in range(4):
-        m.spawn('crate', hx0 + rng.choice((2.0, 23.5)), 17 + rng.random() * 35, tags=['warehouse'])
-    # Rolltore an der Rueckwand (Laderampe)
-    for x in range(hx0 + 3, hx1 - 3, 6):
-        m.obj('rollgate', x + 1.5, 14.02, -1.6, math.pi / 2, variant=1, tag='gate')
+def racks(r, along_x=True):
+    """Hochregale in Doppelreihen (2,7-m-Felder, 2,2 m tief) mit 3,2 m breiten Gassen; Kisten liegen darin."""
+    R = m.R(r)
+    y = R.y0 + 4
+    while y + 3 <= R.y1 - 4:
+        n = int((R.w - 8) // 2.7)
+        x0 = R.x0 + 4
+        for k in range(n):
+            last = 4 if k == n - 1 else 0
+            m.obj('rack', x0 + 1.35 + k * 2.7, y + 1.0, 0.0, 0.0, variant=rng.randrange(4) | last, tag='rack')
+        m.block(r, x0, y, x0 + int(n * 2.7 + 0.99), y + 2, 5.25)  # Halt, Schatten, Wege: Regale sind nicht begehbar
+        y += 6
 
-# --- Gang-Labyrinth im Norden (enge Betongaenge mit Kammern) ---------------------------------------------
-KAMMER = {'buero': 'kammer', 'krankenzimmer': 'kranken', 'gummizelle': 'polster', 'bilderraum': 'kammer',
-          'ziegelraum': 'ziegel', 'schlaflager': 'kammer', 'abstellraum': 'gang'}
-J, S, C = corridor_maze(m, 36, 148, 196, 232, 12, 2, 'gang', 'gang',
-                        ['buero', 'buero', 'krankenzimmer', 'gummizelle', 'bilderraum', 'ziegelraum', 'schlaflager',
-                         'abstellraum', 'abstellraum'],
-                        lambda t: KAMMER[t], height=2.7, floor=0.0, density=0.8, room_chance=0.75, circuit=6)
-# Kammern: Licht in der Mitte (manche dunkel), Notizen und Vorraete
-for (i, j), r in C.items():
+
+for r in gd:
+    racks(r)
+
+# --- Vorraeume zwischen Halle und Gaengen (Krankenzimmer, Bilderraeume, Bueros, Schleusen) ------------------------
+band = []
+x = 2
+plan = [('krankenzimmer', 12), ('schleuse', 4), ('bilderraum', 14), ('buero', 6), ('schleuse', 4), ('krankenzimmer', 10),
+        ('ziegelraum', 6), ('schleuse', 4), ('bilderraum', 12), ('gummizelle', 5), ('schleuse', 4), ('buero', 6),
+        ('krankenzimmer', 9)]
+for t, w in plan:
+    if x + w > 120:
+        break
+    zone = {'krankenzimmer': 'kranken', 'bilderraum': 'bilder', 'buero': 'buero', 'ziegelraum': 'ziegel',
+            'gummizelle': 'polster', 'schleuse': 'gaenge'}[t]
+    h = {'krankenzimmer': 3.0, 'bilderraum': 3.2}.get(t, GANG_H)
+    band.append(m.room(x, 97, x + w, 109, t, zone, 0.0, h, circuit=C_ROOMS if t != 'schleuse' else C_GANG))
+    x += w + 1
+for a, b in zip(band, band[1:]):
+    m.door(a, b, 'door', 1)
+
+# Hallentueren: Schwingtueren mit gruenem Notausgangsschild darueber (Wiki: im Dunkeln das einzige Licht)
+hall_doors = []
+for r in band:
+    if m.R(r).type == 'schleuse':
+        d = m.door(a3, r, 'door', 2, top=2.2)
+        hall_doors.append(d)
+for r in [band[0], band[2]]:
+    hall_doors.append(m.door(a3, r, 'door', 2, top=2.2))
+for di in hall_doors:
+    D = m.doors[di]
+    x0, y0, x1, y1 = D['rect']
+    cx = (x0 + x1) / 2
+    m.obj('swing_door2', cx, (y0 + y1) / 2, 0.0, math.pi / 2)  # Fluegel stehen zum Vorraum hin offen
+    m.obj('exit_sign_green', cx, y0 - 0.005, 2.42, -math.pi / 2, tag='emergency')  # an der Hallenwand, Blick in die Halle
+
+# --- Gaenge: Betonlabyrinth mit kleinen Raeumen --------------------------------------------------------------------
+GANG_ROOMS = ['buero', 'buero', 'ziegelraum', 'gummizelle', 'zimmer', 'zimmer', 'zimmer', 'krankenzimmer', 'bilderraum']
+ZONE_OF = {'buero': 'buero', 'ziegelraum': 'ziegel', 'gummizelle': 'polster', 'zimmer': 'zimmer', 'krankenzimmer': 'kranken',
+           'bilderraum': 'bilder'}
+J, S, C = corridor_maze(m, 2, 110, 140, 209, 9, 2, 'gang', 'gaenge', GANG_ROOMS, lambda t: ZONE_OF[t], height=GANG_H,
+                        density=0.78, room_chance=0.8, circuit=C_GANG, light_every=7)
+maze = list(J.values()) + list(S.values())
+maze = [r for r in maze if r is not None]
+cells = list(C.values())
+for r in cells:
+    m.R(r).kw['circuit'] = C_ROOMS
+# Vorraeume an das Labyrinth: jede Schleuse und jedes zweite Zimmer bekommt eine Tuer nach Sueden
+for r in band:
+    R = m.R(r)
+    below = [g for g in maze if m.R(g).y0 == 110 and min(R.x1, m.R(g).x1) - max(R.x0, m.R(g).x0) >= 1]
+    if below and (R.type == 'schleuse' or rng.random() < 0.5):
+        m.door(r, below[0], 'door', 1)
+
+# --- Rohrgang nach Level 2: Rohre und Messuhren nehmen zu, der Gang wird enger ------------------------------------
+east = [g for g in maze if m.R(g).x1 >= 136]
+gate = min(east, key=lambda g: abs(m.R(g).cy - 150))
+G = m.R(gate)
+pipe_segs = []
+x, y = G.x1 + 1, int(G.cy) - 1
+# (Laenge, Versatz quer, Breite, Hoehe): der Gang verspringt, wird schmaler und niedriger
+specs = [(16, 0, 3, 2.9), (14, 1, 3, 2.8), (12, 0, 3, 2.7), (12, 1, 2, 2.6), (14, 1, 2, 2.6), (12, 1, 2, 2.5)]
+prev = gate
+for (L, dy, w, h) in specs:
+    seg = m.room(x, y + dy, x + L, y + dy + w, 'rohrgang', 'rohr', 0.0, h, circuit=C_GANG, tags=['pipes'])
+    m.opening(prev, seg, width=2)
+    pipe_segs.append(seg)
+    prev = seg
+    x += L + 1
+last = m.R(pipe_segs[-1])
+m.transition('l1_l2', 'seam', 'level2', last.x1 - 1.5, last.cy, 0.0, rect=[last.x1 - 3, last.y0, last.x1, last.y1])
+
+# --- Start: Aquila, an der Westwand (die meisten kommen hier aus Level 0 an) --------------------------------------
+m.start = (3.6, 30.5, 0.0)
+m.transition('l0_l1', 'seam', '', 3.6, 30.5, 0.0)  # Ankunft aus Level 0 (flackernde Wand), kein Rueckweg
+
+# --- Licht ---------------------------------------------------------------------------------------------------------
+
+
+def battens(r, step_x=6, step_y=6, inten=0.85, radius=6.5, color=COOL, dead=0.12, model='batten', z_off=0.0):
+    """Leuchtbaender in Reihen unter der Decke, zwischen den Stuetzen; einige tot. In Hallen mit Stuetzenraster
+    haengen sie in den Feldern zwischen den Unterzuegen (nie unter einem Unterzug)."""
+    R = m.R(r)
+    top = R.floor + R.height
+    ox, oy = rng.randrange(step_x), rng.randrange(step_y)
+    grid = R.kw.get('pillars')
+    n = 0
+    for y in range(R.y0 + 3 + oy, R.y1 - 2, step_y):
+        for x in range(R.x0 + 3 + ox, R.x1 - 2, step_x):
+            px, py = x + 0.5, y + 0.5
+            if grid:
+                sp, spy, th, gx, gy = (list(grid) + [0] * 5)[:5]
+                if any((x - gx - d) % sp == 0 for d in range(-1, th + 1)) or any((y - gy - d) % spy == 0 for d in range(-1, th + 1)):
+                    continue
+            if m.blocked(px, py) or m.blocked(px - 0.8, py) or m.blocked(px + 0.8, py):
+                continue
+            if rng.random() < dead:
+                continue
+            m.obj(model, px, py, top, 0.0, tag='light')
+            m.light(r, px, py, 0, inten, radius, z=top - 0.45 + z_off, panel=False, color=color)
+            n += 1
+    return n
+
+
+for r in aquila:
+    battens(r, 4, 4, 1.0 if r != a3 else 0.8, 7.5, COOL, 0.12 if r != a3 else 0.22)
+    if rng.random() < 0.5:
+        m.R(r).kw['flicker'] = 2 if r == a3 else 0
+for r in gothic:
+    R = m.R(r)
+    # wenige Pendelstrahler zwischen den Saeulenreihen, warm
+    for x in range(R.x0 + 8, R.x1 - 4, 8):
+        for y in (R.y0 + R.h // 2, R.y0 + 3, R.y1 - 4):
+            if not m.blocked(x + 0.5, y + 0.5):
+                m.obj('highbay', x + 0.5, y + 0.5, GOTH_H, 0.0, tag='light')
+                m.light(r, x + 0.5, y + 0.5, 0, 1.05, 11.0, z=GOTH_H - 0.8, panel=False, color=(1.0, 0.90, 0.74))
+for r in gd:
+    R = m.R(r)
+    top = R.floor + R.height
+    y = R.y0 + 4 + 2 + 2  # Mitte der Gasse hinter der ersten Doppelreihe (Reihen: y0+4, alle 6 m, 2 m tief)
+    rows = [R.y0 + 2] + [R.y0 + 4 + 2 + 2 + 6 * k for k in range(10) if R.y0 + 8 + 6 * k < R.y1 - 2]
+    for yy in rows:
+        for x in range(R.x0 + 3, R.x1 - 2, 4):
+            if rng.random() < 0.05:
+                continue
+            m.obj('batten', x + 0.5, yy + 0.0, top, 0.0, tag='light')
+            m.light(r, x + 0.5, yy + 0.0, 0, 1.0, 7.5, z=top - 0.45, panel=False, color=GILDL)
+
+# Gaenge: die Leuchten des Labyrinths sind schwach und warm (corridor_maze setzt sie); Raeume eigene
+for r in maze:
+    R = m.R(r)
+    R.lights = [l[:5] + [0, 0, round(R.floor + R.height - 0.05, 3), 1] + list(WARM) for l in R.lights]
+    for l in R.lights:
+        l[3] = 0.45
+
+
+def bulb(r, x=None, y=None, inten=0.7, radius=4.0):
+    R = m.R(r)
+    x = R.cx if x is None else x
+    y = R.cy if y is None else y
+    m.obj('hanging_bulb', x, y, R.floor + R.height, 0.0, tag='light')
+    m.light(r, x, y, 0, inten, radius, z=R.floor + R.height - 0.71, panel=False, color=BULB)
+
+
+def wall_spot(r, inward=0.35, margin=1):
+    faces = m.wall_faces(r, margin=margin)
+    if not faces:
+        return None
+    fx, fy, fyaw = rng.choice(faces)
+    return fx + math.cos(fyaw) * inward, fy + math.sin(fyaw) * inward, fyaw
+
+
+rooms_all = band + cells
+for r in rooms_all:
     R = m.R(r)
     t = R.type
-    if rng.random() < 0.8:
-        m.light(r, R.cx, R.cy, 0, 0.7, 4.0)
-    m.spawn('note', R.cx + 0.3, R.cy - 0.2, tags=['table', t])
-    if t == 'buero':  # V11: auf dem Schreibtisch neben dem Monitor
-        m.spawn('item', R.cx - 0.05, R.y1 - 0.7, 0.75, tags=['surface', 'desk', t], group=300 + i * 10 + j)
-    else:
-        m.spawn('item', R.x0 + 0.6, R.y0 + 0.6, tags=['floor', 'corner', t], group=300 + i * 10 + j)
-    if t == 'schlaflager':
-        m.obj('camp', R.cx, R.cy, 0.0, rng.random() * 6.28, tag='story')
-    elif t == 'bilderraum':
-        for k in range(3):
-            m.obj('painting', R.x0 + 0.06, R.y0 + 1.5 + k * (R.h - 3) / 2, 1.5, 0.0, variant=rng.randrange(8), tag='story')
-    elif t == 'buero':
-        m.obj('desk_crt', R.cx, R.y1 - 1.2, 0.0, math.pi, variant=rng.randrange(3), tag='story')
-    elif t == 'krankenzimmer':
-        m.obj('bed', R.x0 + 1.6, R.cy, 0.0, 0.0, tag='story')
-# Zugaenge vom Labyrinth zu den Decks (Gaenge durch die Wand, gruenes Schild darueber)
-bottom = sorted([k for k, v in J.items() if v is not None and k[1] == 0])
-links = 0
-connectors = []
-for (i, j) in bottom:
-    jr = m.R(J[(i, j)])
-    x = jr.x0
-    for dk, dname in ((deckA, 'A'), (deckB, 'B')):
-        D = m.R(dk)
-        if D.x0 + 2 <= x and x + 2 <= D.x1 - 2 and links < 6:
-            con = m.room(x, D.y1 + 1, x + 2, jr.y0 - 1, 'gang', 'gang', 0.0 if dname == 'A' else -1.6, 2.7, circuit=6)
-            connectors.append((con, dname))
-            m.door(dk, con, 'wide', 2, top=2.3)  # V11: Durchgang mit Sturz - das Schild sitzt darauf
-            m.opening(con, J[(i, j)])
-            exit_sign(x + 1.0, D.y1, D.floor + 2.5, -math.pi / 2)
-            m.light(con, x + 1.0, (D.y1 + jr.y0) / 2, 0, 0.5, 3.2)
-            links += 1
-            break
-
-# --- Wartungsflure im Suedwesten (weiss, eigener Strom, sicher im Stromausfall) -----------------------
-JW, SW, CW = corridor_maze(m, 2, 8, 34, 98, 10, 2, 'wartungsflur', 'wartung', ['schaltraum', 'abstellraum'],
-                           lambda t: 'wartung', height=2.6, floor=0.0, density=0.7, room_chance=0.6, circuit=7,
-                           light_every=4)
-for (i, j), r in CW.items():
-    R = m.R(r)
-    m.light(r, R.cx, R.cy, 0, 0.9, 4.0)
-    m.spawn('item', R.cx, R.cy, tags=['floor', 'maint'], group=500 + i * 10 + j)
-    m.obj('power_box', R.x1 - 0.1, R.cy, 1.2, math.pi, tag='machine')
-# schwarze Metalltuer ins Deck A
-east = sorted([k for k, v in JW.items() if v is not None], key=lambda k: (-k[0], abs(k[1] - 9)))
-for k in east:
-    jr = m.R(JW[k])
-    if jr.y0 >= 81 and jr.y1 <= 140 and m._wall(JW[k], deckA):
-        m.door(JW[k], deckA, 'door', 1, style='black')
-        wartung_tuer = JW[k]
-        break
-else:
-    raise SystemExit('Wartung ohne Zugang zu Deck A')
-
-# --- Bodenloch zu Level 19 (Deck B, Nordrand): die Deckenplatte ist durchgebrochen ---------------------
-# Ein unregelmaessiges Loch im Boden zwischen zwei Stuetzen, 7,4 m tief. Unten glimmt es warm (Level 19).
-# Bruchkanten mit Bewehrung rundum, Brocken am Rand und unten, Absperrschranken (eine umgekippt).
-HOLE_DEPTH = 7.4
-HOLE = ({(x, y) for x in range(150, 155) for y in range(136, 139)} | {(x, 135) for x in range(151, 155)}
-        | {(x, 139) for x in range(151, 154)})
-for (x, y) in sorted(HOLE):
-    m.block(deckB, x, y, x + 1, y + 1, -HOLE_DEPTH, hidden=False)
-for (x, y) in sorted(HOLE):
-    for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-        if (x + dx, y + dy) not in HOLE:
-            m.obj('slab_edge', x + 0.5 + dx * 0.5, y + 0.5 + dy * 0.5, -1.6, math.atan2(-dy, -dx),
-                  variant=rng.randrange(4), tag='hole')
-for k, (x, y) in enumerate(((149.2, 134.6), (155.9, 139.4), (152.8, 134.2), (149.4, 139.7))):
-    m.obj('rubble', x, y, -1.6, rng.random() * 6.28, variant=k, tag='hole')
-for k in range(3):
-    m.obj('rubble', 151.2 + k * 1.4, 136.4 + (k % 2) * 1.5, -1.6 - HOLE_DEPTH, rng.random() * 6.28, variant=k + 1, tag='hole')
-m.obj('barrier', 152.6, 133.7, -1.6, 0.0, tag='hole')
-m.obj('barrier', 156.4, 137.2, -1.6, math.pi / 2 + 0.12, tag='hole')
-m.obj('barrier', 148.7, 137.4, -1.6, math.pi / 2 - 0.5, variant=1, tag='hole')
-m.light(deckB, 152.5, 137.3, 3, 6.0, 11.0, z=-1.6 - HOLE_DEPTH + 0.4, panel=False, color=(1.0, 0.42, 0.12))
-m.obj('hole_glow', 152.5, 137.3, -1.6 - HOLE_DEPTH + 0.02, 0.0, tag='glow')
-m.transition('l1_l19', 'hole', 'level19', 152.5, 137.5, 0.0, rect=[150, 135, 155, 140])
-
-
-def free_pos(D, margin):
-    """Zufaelliger Punkt im Raum D, nicht in einem Block (Loch, Hochregal) und nicht direkt am Loch."""
-    while True:
-        x = D.x0 + margin + rng.random() * (D.w - 2 * margin)
-        y = D.y0 + margin + rng.random() * (D.h - 2 * margin)
-        if not m.blocked(x, y) and not (147 <= x < 158 and 133 <= y < 141):
-            return x, y
-
-# --- Rohrgang nach Level 2 (Sued, aus Deck C): Rohre werden dichter ------------------------------------
-r1 = m.room(226, 12, 230, 23, 'rohrgang', 'naht2', -3.2, 3.0, circuit=9, tags=['seam'])
-m.opening(deckC, r1)
-r2 = m.room(226, 2, 230, 11, 'rohrgang', 'naht2', -3.2, 2.7, circuit=9, tags=['seam'])
-m.opening(r1, r2)
-for y in (20, 15):
-    m.light(r1, 228.0, y + 0.5, 0, 0.55, 3.5)
-m.light(r2, 228.0, 7.5, 0, 0.45, 3.2)
-for y in range(3, 23, 1):
-    m.obj('pipe_run', 226.3, y + 0.5, -3.2 + 2.3, math.pi / 2, variant=0, tag='pipes')
-    if y < 16:
-        m.obj('pipe_run', 229.7, y + 0.5, -3.2 + 2.0, math.pi / 2, variant=1, tag='pipes')
-m.transition('l1_l2', 'seam', 'level2', 228.0, 6.5, math.pi / 2, rect=[226, 2, 230, 5])
-
-# --- Belegung der Decks ---------------------------------------------------------------------------------
-for dk, aisles in ((deckA, aislesA), (deckB, aislesB), (deckC, aislesC)):
-    D = m.R(dk)
-    for ay in aisles:
-        for side in (-1, 1):
-            yl = ay + side * (GRID / 2 + 2.5)
-            if not (D.y0 + 1 < yl < D.y1 - 1):
-                continue
-            x = D.x0 + 6
-            while x < D.x1 - 4:
-                # abgestellte Wagen (Dekoration, je Lauf), Pfuetzen, Oelflecken
-                m.spawn('deco', x + 0.3, yl, D.floor, math.pi / 2 if side > 0 else -math.pi / 2, set='car', weight=0.35)
-                if rng.random() < 0.3:
-                    m.spawn('deco', x + 1.5 + rng.random() * 3, ay + (rng.random() - 0.5) * 4, D.floor, rng.random() * 6.28,
-                            set='puddle')
-                x += GRID * 1.0
-    # Gefahren: das Laecheln in den Stellplatzreihen (nur im Stromausfall), Vorraete an Stuetzen
-    for k in range(6):
-        m.spawn('entity', *free_pos(D, 4), D.floor, role='smiler', tags=['dark'])
-    for k in range(5):
-        m.spawn('item', *free_pos(D, 3), D.floor, tags=['floor', 'deck'], group=700 + dk * 10 + k)
-    for k in range(3):
-        m.spawn('crate', *free_pos(D, 4), D.floor, tags=['deck'])
-    m.spawn('entity', D.x0 + 2.5, D.y1 - 2.5, D.floor, role='hound', tags=['corner'])
-# Buendel: selten, in den Gaengen des Labyrinths
-for k, r in list(S.items())[::9]:
-    R = m.R(r)
-    m.spawn('entity', R.cx, R.cy, 0.0, role='clump', tags=['vent'])
-
-# --- Sicherungspunkte: Wiedereinstieg nach dem Tod (WORLD_GENERATION.md, Abschnitt Sicherungspunkte) -----
-# Am Eingang jedes Bereichs, damit ein Tod hoechstens einen Bereich zurueckwirft; in Raeumen mit eigenem
-# Stromkreis (Gaenge, Vorraeume, Wartung, Rampen), die im Stromausfall eines Decks hell bleiben; mit Blick
-# in die Richtung, in die es weitergeht. mapkit.validate() prueft die Regeln. Jeder Punkt bekommt eine
-# gruene Sicherheitsleuchte mit eigener Batterie (brennt immer): man erkennt den sicheren Ort von weitem.
-roamers = [s_['pos'] for s_ in m.spawns if s_.get('role') in ('hound', 'clump')]
-
-
-def far_from_roamers(x, y):
-    return all(math.hypot(p[0] - x, p[1] - y) >= 15.0 for p in roamers)
-
-
-def safe_point(cid, x, y, yaw, label):
-    ri = m.at(x, y)
-    R = m.R(ri)
     top = R.floor + R.height
-    m.checkpoint(cid, x, y, yaw, label)
-    m.obj('safety_light', x, y, top - 0.01, yaw, tag='emergency')
-    if not R.lights:  # Gang ohne eigene Leuchte: ein schwaches, gruenliches Licht
-        m.light(ri, x, y, 0, 0.45, 3.2, z=top - 0.12, panel=False, color=(0.75, 1.0, 0.82))
+    if t == 'buero':
+        bulb(r, R.cx + 0.3, R.cy - 0.3, inten=1.0, radius=5.0)
+        p = wall_spot(r, 0.45)
+        if p:
+            m.obj('desk_crt', p[0], p[1], R.floor, p[2] + math.pi / 2, variant=rng.randrange(3))
+            m.obj('chair', p[0] + math.cos(p[2]) * 0.75, p[1] + math.sin(p[2]) * 0.75, R.floor, p[2] + math.pi)
+    elif t == 'ziegelraum':
+        bulb(r, inten=0.55, radius=3.5)
+    elif t == 'krankenzimmer':
+        battens(r, 3, 3, 0.7, 4.5, (0.95, 1.0, 1.0), 0.0, z_off=0.0)
+        if not R.lights:
+            m.obj('batten', R.cx, R.cy, top, 0.0, tag='light')
+            m.light(r, R.cx, R.cy, 0, 0.7, 4.5, z=top - 0.45, panel=False, color=(0.95, 1.0, 1.0))
+        yaw = 0.0 if R.w >= R.h else math.pi / 2
+        m.obj('hospital_bed', R.cx, R.cy, R.floor, yaw)
+        m.block(r, int(R.cx - 1), int(R.cy - 1), int(R.cx + 1), int(R.cy + 1), 0.7, hidden=True)
+        for s in (-1, 1):
+            dx, dy = (-math.sin(yaw) * s * 0.95, math.cos(yaw) * s * 0.95)
+            if not m.blocked(R.cx + dx, R.cy + dy):
+                m.obj('side_table', R.cx + dx * 1.15, R.cy + dy * 1.15, R.floor, yaw)
+    elif t == 'gummizelle':
+        m.obj('batten', R.cx, R.cy, top, 0.0, tag='light')
+        m.light(r, R.cx, R.cy, 0, 0.6, 3.6, z=top - 0.45, panel=False, color=(1.0, 0.97, 0.90))
+        for (fx, fy, fyaw) in m.wall_faces(r, inset=0.0, margin=0):
+            m.obj('padded_panel', fx, fy, R.floor, fyaw, tag='deco')
+        m.obj('chair', R.cx, R.cy, R.floor, rng.random() * 6.28)
+    elif t == 'bilderraum':
+        n = 0
+        prev_spot = None
+        for (fx, fy, fyaw) in m.wall_faces(r, margin=1):
+            if prev_spot and abs(fx - prev_spot[0]) + abs(fy - prev_spot[1]) < 1.6 and abs(fyaw - prev_spot[2]) < 0.1:
+                continue
+            u = rng.random()
+            if u < 0.35:
+                m.obj(rng.choice(['painting_a', 'painting_b', 'painting_c', 'painting_d', 'painting_e', 'painting_f']),
+                      fx, fy, R.floor + 1.55, fyaw, tag='deco')
+                prev_spot = (fx, fy, fyaw)
+            elif u < 0.5:  # Wiki: auch auf dem Boden - an die Wand gelehnt
+                m.obj(rng.choice(['painting_lean_a', 'painting_lean_b', 'painting_lean_c']), fx, fy, R.floor, fyaw, tag='deco')
+                prev_spot = (fx, fy, fyaw)
+        for k in range(max(2, int(R.w * R.h / 30))):
+            px = R.x0 + 1.5 + rng.random() * (R.w - 3)
+            py = R.y0 + 1.5 + rng.random() * (R.h - 3)
+            m.light(r, px, py, 0, 0.75, 5.0, z=top - 0.05, panel=True, color=(1.0, 0.92, 0.80))
+    elif t == 'zimmer':
+        if rng.random() < 0.7:
+            bulb(r, inten=0.5, radius=3.4)
+    elif t == 'schleuse':
+        m.light(r, R.cx, R.cy, 0, 0.45, 3.2, z=top - 0.05, panel=True, color=WARM)
+
+# --- Rohrgang: Rohre unter der Decke und an den Waenden, Messuhren; je weiter, desto dichter --------------------
+for k, s in enumerate(pipe_segs):
+    R = m.R(s)
+    top = R.floor + R.height
+    dens = (k + 1) / len(pipe_segs)
+    for j in range(1 + int(dens * 4)):
+        y = R.y0 + 0.3 + (j % max(1, R.h)) * 0.35 if R.h > 1 else R.y0 + 0.3
+        z = top - 0.12 - 0.17 * (j // max(1, R.h))
+        m.obj('pipe_run', R.cx, min(R.y1 - 0.3, y), z, 0.0, scale=[R.w, 1, 1], variant=j % 2, tag='pipes')
+    for (fx, fy, fyaw) in m.wall_faces(s, margin=1):
+        if rng.random() < 0.08 + 0.25 * dens:
+            m.obj('gauge', fx, fy, R.floor + 1.5 + rng.random() * 0.3, fyaw, variant=rng.randrange(2))
+    for x in range(R.x0 + 2, R.x1 - 1, 5):
+        m.light(s, x + 0.5, R.cy, 0, 0.5 - 0.2 * dens, 3.6, z=top - 0.05, panel=True, color=WARM)
+
+# --- Hallen: Rohre unter der Decke, Pfuetzen darunter, Kisten, Haufen, Schaltkaesten, Tische, farbige Stuetzen -----
+for r in aquila:
+    R = m.R(r)
+    top = R.floor + R.height
+    # Rohrbuendel entlang x unter der Decke (neben den Unterzuegen), alle 18-24 m
+    y = R.y0 + 5
+    while y < R.y1 - 3:
+        L = R.w - 2
+        m.obj('pipe_run', R.cx, y + 0.3, top - 0.62, 0.0, scale=[L, 1, 1], variant=0, tag='pipes')
+        m.obj('pipe_run', R.cx, y + 0.55, top - 0.68, 0.0, scale=[L, 1, 1], variant=1, tag='pipes')
+        # undichte Stellen: Pfuetzen darunter (Wiki: Aquila)
+        for k in range(int(L / 9)):
+            px = R.x0 + 2 + rng.random() * (L - 2)
+            if not m.blocked(px, y + 0.45):
+                m.spawn('deco', px, y + 0.45 + rng.uniform(-0.4, 0.4), 0.0, rng.random() * 6.28, set='puddle', weight=1.0)
+        y += rng.randint(18, 24)
+    # Schaltkaesten an Waenden, Tische, Haufen
+    faces = m.wall_faces(r, margin=1)
+    for _ in range(max(2, int(R.w * R.h / 900))):
+        if faces:
+            fx, fy, fyaw = rng.choice(faces)
+            m.obj('power_box', fx, fy, R.floor + 1.5, fyaw, tag='deco')
+    for _ in range(int(R.w * R.h / 700)):
+        px, py = R.x0 + 3 + rng.random() * (R.w - 6), R.y0 + 3 + rng.random() * (R.h - 6)
+        if not m.blocked(px, py) and not m.blocked(px + 1, py) and not m.blocked(px - 1, py):
+            m.obj(rng.choice(['debris_a', 'debris_b']), px, py, R.floor, rng.random() * 6.28)
+    for _ in range(int(R.w * R.h / 1400)):
+        px, py = R.x0 + 4 + rng.random() * (R.w - 8), R.y0 + 4 + rng.random() * (R.h - 8)
+        if not any(m.blocked(px + dx, py + dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1)):
+            m.obj('work_table', px, py, R.floor, rng.choice([0.0, math.pi / 2]))
 
 
-safe_point('start', 5.5, 114.0, 0.0, 'Lastenflur')
-safe_point('vor_deck_a', 31.0, 114.0, 0.0, 'Gang vor Deck A')
-RA = m.R(rampAB)
-safe_point('rampe_ab', RA.x0 + 3.5, RA.cy, 0.0, 'Rampe A–B')
-RB = m.R(rampBC)
-safe_point('rampe_bc', RB.x0 + 3.5, RB.cy, 0.0, 'Rampe B–C')
-for i, vr in enumerate(vorraeume):
-    VR = m.R(vr)
-    safe_point(f'lager_{i + 1}', VR.cx, VR.cy, -math.pi / 2, f'Vorraum Lagerhalle {i + 1}')
-WT = m.R(wartung_tuer)
-safe_point('wartung', WT.cx, WT.cy, 0.0, 'Wartungsflur')
-safe_point('rohrgang', 228.0, 18.5, -math.pi / 2, 'Rohrgang')
-# je Deck ein Zugang ins Labyrinth (der erste Verbindungsgang fern vom Hund in der Deckecke)
-seen_decks = set()
-for con, dname in connectors:
-    CR = m.R(con)
-    if dname in seen_decks or not far_from_roamers(CR.cx, CR.cy):
-        continue
-    seen_decks.add(dname)
-    safe_point(f'zugang_{dname.lower()}', CR.cx, CR.cy, math.pi / 2, f'Gang ins Labyrinth (Deck {dname})')
-# im Labyrinth: drei Kreuzungen (West, Mitte, Ost), weit genug von den Spawnpunkten des Buendels
-for name, tx in (('West', 60.0), ('Mitte', 116.0), ('Ost', 172.0)):
-    cands = sorted((v for v in J.values() if v is not None),
-                   key=lambda v: math.hypot(m.R(v).cx - tx, m.R(v).cy - 190.0))
-    for v in cands:
-        RJ = m.R(v)
-        if far_from_roamers(RJ.cx, RJ.cy):
-            safe_point(f'labyrinth_{name.lower()}', RJ.cx, RJ.cy, math.pi / 2, f'Labyrinth {name}')
-            break
+def crate_stack(r, px, py, yaw):
+    """Zwei bis vier Kisten, zum Teil gestapelt. Gibt True zurueck, wenn gesetzt."""
+    if any(m.blocked(px + dx, py + dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1)):
+        return False
+    R = m.R(r)
+    c, s = math.cos(yaw), math.sin(yaw)
+    m.obj('crate_c', px, py, R.floor, yaw)
+    m.obj('crate_b', px + c * 1.05 - s * 0.1, py + s * 1.05 + c * 0.1, R.floor, yaw + rng.uniform(-0.2, 0.2))
+    if rng.random() < 0.6:
+        m.obj('crate_a', px + rng.uniform(-0.15, 0.15), py + rng.uniform(-0.1, 0.1), R.floor + 0.75, yaw + rng.uniform(-0.4, 0.4))
+    if rng.random() < 0.5:
+        m.obj('crate_a', px - s * 0.9, py + c * 0.9, R.floor, yaw + rng.uniform(-0.5, 0.5))
+    m.block(r, int(math.floor(px - 0.6)), int(math.floor(py - 0.6)), int(math.floor(px - 0.6)) + 2, int(math.floor(py - 0.6)) + 2, 0.75,
+            hidden=True)
+    return True
 
-# V11: Stuetzenplaketten an Stuetzen, die die Engine fuer einen Durchgang wegraeumt (Kopffreiheit), entfernen -
-# die Durchgaenge entstehen teils erst nach den Decks
-m.objects = [o for o in m.objects if not (o['model'] == 'pillar_label' and any(
-    d['rect'][0] - 3.5 <= o['pos'][0] <= d['rect'][2] + 3.5 and d['rect'][1] - 3.5 <= o['pos'][1] <= d['rect'][3] + 3.5
-    for d in m.doors))]
+
+crate_spots = []
+for r in aquila + gd + gothic:
+    R = m.R(r)
+    dens = 1400 if r in gd else (1100 if r in aquila else 2600)
+    for _ in range(int(R.w * R.h / dens)):
+        px, py = R.x0 + 3 + rng.random() * (R.w - 6), R.y0 + 3 + rng.random() * (R.h - 6)
+        if crate_stack(r, px, py, rng.random() * 6.28):
+            crate_spots.append((r, px, py))
+
+# farbige Stuetzen (Merkpunkte): etwa jede sechste Stuetze in Aquila
+for r in aquila:
+    R = m.R(r)
+    sp, spy, th, px, py = (list(R.kw['pillars']) + [0] * 5)[:5]
+    colors = ['blau', 'gelb', 'rot', 'gruen'] if th == 1 else ['blau', 'gelb']
+    for ty in range(R.y0 + 1, R.y1 - 1):
+        for tx in range(R.x0 + 1, R.x1 - 1):
+            if Map.pillar_at(R, tx, ty) and Map.pillar_at(R, tx - 1, ty) is False and Map.pillar_at(R, tx, ty - 1) is False:
+                if rng.random() < 0.17:
+                    name = 'pillar_band' if th == 1 else 'pillar_band2'
+                    m.obj(f'{name}_{rng.choice(colors)}', tx + th / 2, ty + th / 2, R.floor, 0.0, tag='deco')
+
+# --- Funde, Notizen, Wesen, Sicherungspunkte ------------------------------------------------------------------------
+for (r, px, py) in crate_spots[::2]:
+    a = rng.random() * 6.28
+    qx, qy = px + math.cos(a) * 1.6, py + math.sin(a) * 1.6
+    if m.at(qx, qy) == r and not m.blocked(qx, qy):
+        m.spawn('item', qx, qy, 0.0, a, tags=['floor', 'crate'], group=r)
+for r in rng.sample(cells, min(18, len(cells))):
+    R = m.R(r)
+    p = wall_spot(r, 0.4)
+    if p and not m.blocked(p[0], p[1]):
+        m.spawn('item', p[0], p[1], R.floor, p[2] + math.pi, tags=['floor', 'wall', 'room'], group=r)
+for r in rng.sample(cells + band, 12):
+    p = wall_spot(r, 0.5)
+    if p and not m.blocked(p[0], p[1]):
+        m.spawn('note', p[0], p[1], m.R(r).floor, p[2], tags=['floor'])
+# Hounds und Clumps streifen durch die Hallen (Wiki); Smiler kommen mit dem Flackern (Regie)
+for r in aquila + gothic + gd:
+    R = m.R(r)
+    for _ in range(2):
+        for _try in range(10):
+            px, py = R.x0 + 4 + rng.random() * (R.w - 8), R.y0 + 4 + rng.random() * (R.h - 8)
+            if not m.blocked(px, py) and math.hypot(px - m.start[0], py - m.start[1]) > 30:
+                m.spawn('entity', px, py, R.floor, role=rng.choice(['hound', 'hound', 'clump']), tags=['hall'])
+                break
+
+
+def safe_point(cid, r, label, at=None):
+    R = m.R(r)
+    x, y = at if at else (R.cx, R.cy)
+    m.checkpoint(cid, x, y, 0.0, label)
+    m.obj('safety_light', x, y, R.floor + R.height, 0.0, tag='emergency')
+
+
+safe_point('vorraum', band[3], 'Büro an der Halle')
+safe_point('kranken', band[0], 'Krankenzimmer', at=(m.R(band[0]).cx, m.R(band[0]).y0 + 1.5))
+lit_cells = [c for c in cells if m.R(c).type in ('buero', 'zimmer', 'ziegelraum') and m.R(c).lights]
+for k, r in enumerate(rng.sample(lit_cells, 4)):
+    safe_point(f'gang{k}', r, 'Raum in den Gängen')
+near = min(cells, key=lambda c: math.hypot(m.R(c).cx - G.cx, m.R(c).cy - G.cy))
+safe_point('rohr', near, 'Vor dem Rohrgang')
+# vor dem Uebergang: Sicherungspunkt am Anfang des letzten Rohrgang-Abschnitts (eigener Stromkreis)
+last.kw['circuit'] = C_ROOMS
+m.checkpoint('l2_tor', last.x0 + 2.5, last.cy, 0.0, 'Rohre und Messuhren')
+m.obj('safety_light', last.x0 + 2.5, last.cy, last.floor + last.height, 0.0, tag='emergency')
 m.save()

@@ -844,8 +844,8 @@ static void testV9(const game::Content& content, const std::string& dataDir) {
     }
     // Smiler (Entity 3): Stromausfall, im Dunkeln das Laecheln; Blickkontakt haelt ihn, Wegsehen nicht
     {
-        // V11: auf der festen Karte von Level 1, mitten im Deck A (Fahrgasse) - die Begegnung braucht den
-        // grossen Raum (F1: mindestens 15 m Weg) und die Regie des Tiefgeschosses
+        // V11/V12: auf der festen Karte von Level 1, mitten in der Halle Aquila - die Begegnung braucht den
+        // grossen Raum (F1: mindestens 15 m Weg) und die Regie mit Stromausfall
         auto s = std::make_unique<game::GameSession>(*gContent11, prefabs, gContent11->level("level1", world::kLayoutV6), 4242, "medium",
                                                      "Test", jobs, 3);
         s->placeAtSpawn();
@@ -855,14 +855,14 @@ static void testV9(const game::Content& content, const std::string& dataDir) {
         world::World& ww = s->world();
         {
             auto& pl = s->player();
-            pl.x = 68.5, pl.y = 105.5, pl.z = ww.tile(68, 105).floor;
+            pl.x = 38.5, pl.y = 26.5, pl.z = ww.tile(38, 26).floor;
             s->body().reset();
         }
         s->preload();
         run(*s, 0.5);
-        const world::Tile& deckT = ww.tile(68, 105);
-        const bool placed = deckT.open() && deckT.room && deckT.room->type && deckT.room->type->key == "deck";
-        check(placed, "mitten im Deck A (Level 1)");
+        const world::Tile& deckT = ww.tile(38, 26);
+        const bool placed = deckT.open() && deckT.room && deckT.room->type && deckT.room->type->key == "halle";
+        check(placed, "mitten in der Halle Aquila (Level 1)");
         std::vector<game::GameEvent> ev;
         P.force(Role::Smiler);
         // V11: erst laeuft die Welle des Stromausfalls durch, dann erscheint er (mindestens 15 m Weg, F1)
@@ -903,10 +903,10 @@ static void testV9(const game::Content& content, const std::string& dataDir) {
         check(hasFig(ev, PE::Rustle, Role::Smiler), "ein tiefes Droehnen verraet ihn");
         check(has(ev, game::GameEvent::StalkerHit), "erreicht er dich ungesehen, greift er an");
         check(s->stats().dead && s->killRole() == (int)Role::Smiler, "V11: der Zugriff ist toedlich");
-        {  // V11: Wiedereinstieg, dann zurueck ins Deck A
+        {  // V11: Wiedereinstieg, dann zurueck in die Halle
             s->respawnAtCheckpoint();
             auto& pl = s->player();
-            pl.x = 68.5, pl.y = 105.5, pl.z = ww.tile(68, 105).floor;
+            pl.x = 38.5, pl.y = 26.5, pl.z = ww.tile(38, 26).floor;
             s->body().reset();
             s->preload();
             run(*s, 0.3);
@@ -934,8 +934,8 @@ static void testV9(const game::Content& content, const std::string& dataDir) {
     // sich, mindestens 1,5 s vor dem Zugriff. Bleibt man stehen und sieht hin, beruhigt er sich. Ein
     // Treffer kostet hoechstens 35 % (auch auf "schwer").
     {
-        // V11: auf der festen Karte von Level 1, mitten im Deck A (Fahrgasse) - die Begegnung braucht den
-        // grossen Raum (F1: mindestens 15 m Weg) und die Regie des Tiefgeschosses
+        // V11/V12: auf der festen Karte von Level 1, mitten in der Halle Aquila - die Begegnung braucht den
+        // grossen Raum (F1: mindestens 15 m Weg) und die Regie mit Stromausfall
         auto s = std::make_unique<game::GameSession>(*gContent11, prefabs, gContent11->level("level1", world::kLayoutV6), 4242, "hard",
                                                      "Test", jobs, 3);
         s->placeAtSpawn();
@@ -945,13 +945,13 @@ static void testV9(const game::Content& content, const std::string& dataDir) {
         world::World& ww = s->world();
         {
             auto& pl = s->player();
-            pl.x = 68.5, pl.y = 105.5, pl.z = ww.tile(68, 105).floor;
+            pl.x = 38.5, pl.y = 26.5, pl.z = ww.tile(38, 26).floor;
             s->body().reset();
         }
         s->preload();
         run(*s, 0.5);
-        const world::Tile& deckT = ww.tile(68, 105);
-        const bool placed = deckT.open() && deckT.room && deckT.room->type && deckT.room->type->key == "deck";
+        const world::Tile& deckT = ww.tile(38, 26);
+        const bool placed = deckT.open() && deckT.room && deckT.room->type && deckT.room->type->key == "halle";
         // vor das Laecheln stellen: 6 m entfernt, freie Sicht, dahinter 14 m freier Boden zum Wegrennen
         auto standNear = [&]() {
             const vec3 sp = P.posOf(Role::Smiler);
@@ -984,31 +984,40 @@ static void testV9(const game::Content& content, const std::string& dataDir) {
             return P.has(Role::Smiler) && standNear();
         };
         // a) weiterrennen: Ankuendigung, frühestens 1,5 s danach der Zugriff, Treffer hoechstens 35 %
-        check(placed, "mitten im Deck A (Level 1, schwer)");
-        // V11: Sicherungspunkte - genug, beleuchtet, nicht im offenen Deck (mapkit prueft die Regeln beim Entwurf)
+        check(placed, "mitten in der Halle Aquila (Level 1, schwer)");
+        // V11/V12: Sicherungspunkte - genug, beleuchtet, nicht in den Hallen (mapkit prueft die Regeln beim Entwurf)
         {
             const auto& cps = gContent11->level("level1", world::kLayoutV6)->map->checkpoints;
             int ok = 0;
             for (const auto& c : cps) {
                 const world::Tile& t = ww.tile(ifloor(c.x), ifloor(c.y));
-                if (t.open() && t.room && t.room->type && t.room->type->key != "deck" && !t.room->fixtures().empty()) ++ok;
+                const std::string k = t.room && t.room->type ? t.room->type->key : "";
+                if (t.open() && t.room && k != "halle" && k != "gothic" && k != "gild" && !t.room->fixtures().empty()) ++ok;
             }
-            check(cps.size() >= 10 && ok == (int)cps.size(), std::format("V11: {} Sicherungspunkte, alle beleuchtet und ausserhalb der Decks", cps.size()));
+            check(cps.size() >= 6 && ok == (int)cps.size(), std::format("V11: {} Sicherungspunkte, alle beleuchtet und ausserhalb der Hallen", cps.size()));
         }
-        // V11: Ausstattung mit Kollision - Wagen und Hochregale stehen auf unsichtbaren Bloecken, das Loch ist tief
-        int cars = 0, carsSolid = 0;
-        if (const world::Sector* sec = ww.sectorIfReady(68.5, 105.5))
-            for (const auto& sp : sec->spots)
-                if (sp.kind == "car") {
-                    ++cars;
-                    const world::Tile& ct = ww.tile(ifloor(sp.x), ifloor(sp.y));
-                    if ((ct.flags & world::TF_HIDDEN) && ct.floor > sp.z + 1.2f) ++carsSolid;
-                }
-        check(cars > 0 && carsSolid == cars, std::format("Wagen mit Kollision ({} von {})", carsSolid, cars));
-        const world::Tile& rack = ww.tile(126, 25);  // Hochregal in Lagerhalle 1
-        check((rack.flags & world::TF_HIDDEN) && rack.floor > 3.4f, std::format("Hochregal mit Kollision (Oberkante {:.2f} m)", rack.floor));
-        const world::Tile& hole = ww.tile(152, 137);  // Bodenloch in Deck B
-        check(hole.open() && hole.floor < -8.5f && !(hole.flags & world::TF_HIDDEN), std::format("Bodenloch 7,4 m tief ({:.1f} m)", hole.floor));
+        // V12: Ausstattung mit Kollision - Hochregale (Gild), Kistenstapel und runde Saeulen (Gothic) stehen auf
+        // unsichtbaren Bloecken; man laeuft nicht hindurch
+        {
+            const auto& objs = gContent11->level("level1", world::kLayoutV6)->map->objects;
+            int n = 0, solid = 0;
+            for (const char* model : {"rack", "crate_c", "column_round"})
+                for (const auto& o : objs)
+                    if (o.model == model) {
+                        ++n;
+                        s->player().x = o.x, s->player().y = o.y;
+                        s->preload();
+                        const world::Tile& t = ww.tile(ifloor(o.x), ifloor(o.y));
+                        const float need = o.model == "rack" ? 3.4f : (o.model == "crate_c" ? 0.6f : 5.0f);
+                        if ((t.flags & world::TF_HIDDEN) && t.floor > need) ++solid;
+                        break;
+                    }
+            check(n == 3 && solid == n, std::format("Regal, Kisten und Saeule mit Kollision ({} von {})", solid, n));
+            auto& pl = s->player();
+            pl.x = 38.5, pl.y = 26.5, pl.z = ww.tile(38, 26).floor;
+            s->body().reset();
+            s->preload();
+        }
         bool ready = appear();
         check(ready, "Laecheln erschienen, 6 m davor freie Bahn");
         double tAnnounce = -1.0, tStage3 = -1.0, tHit = -1.0, t = 0.0;
@@ -1075,7 +1084,7 @@ static void testV9(const game::Content& content, const std::string& dataDir) {
             // ein neuer Sicherungspunkt: vorbeigehen speichert ihn (Ereignis), der naechste Tod fuehrt dorthin
             const world::MapCheckpoint* ramp = nullptr;
             for (const auto& c : gContent11->level("level1", world::kLayoutV6)->map->checkpoints)
-                if (c.id == "rampe_ab") ramp = &c;
+                if (c.id == "vorraum") ramp = &c;
             bool got = false;
             if (ramp) {
                 auto& pl = s->player();
@@ -1088,18 +1097,18 @@ static void testV9(const game::Content& content, const std::string& dataDir) {
                     s->events().clear();
                 }
             }
-            check(got && s->checkpointId() == "rampe_ab", "V11: Sicherungspunkt Rampe A-B erreicht (Ereignis, gespeichert)");
+            check(got && s->checkpointId() == "vorraum", "V11: Sicherungspunkt im Buero an der Halle erreicht (Ereignis, gespeichert)");
             s->stats().health = 0.0, s->stats().dead = true;
             s->respawnAtCheckpoint();
-            check(ramp && std::hypot(s->player().x - ramp->x, s->player().y - ramp->y) < 1.0, "V11: der naechste Wiedereinstieg an der Rampe");
+            check(ramp && std::hypot(s->player().x - ramp->x, s->player().y - ramp->y) < 1.0, "V11: der naechste Wiedereinstieg dort");
             const Json sv = s->toJson();
-            check(sv["checkpoint"].asString("") == "rampe_ab", "V11: der Sicherungspunkt steht im Spielstand");
+            check(sv["checkpoint"].asString("") == "vorraum", "V11: der Sicherungspunkt steht im Spielstand");
         }
         // b) stehen bleiben und hinsehen: es beruhigt sich, kein Treffer
-        {  // V11: Wiedereinstieg, dann zurueck ins Deck A
+        {  // V11: Wiedereinstieg, dann zurueck in die Halle
             s->respawnAtCheckpoint();
             auto& pl = s->player();
-            pl.x = 68.5, pl.y = 105.5, pl.z = ww.tile(68, 105).floor;
+            pl.x = 38.5, pl.y = 26.5, pl.z = ww.tile(38, 26).floor;
             s->body().reset();
             s->preload();
             run(*s, 0.3);
@@ -1634,12 +1643,17 @@ enum class Mount { Wall, Floor, Ceiling, Any };
 static Mount mountOf(const std::string& m) {
     static const char* wall[] = {"outlet", "vent_grille", "painting", "power_box", "wall_sconce", "gauge", "window", "hotel_door",
                                  "damaged_door", "steel_door", "locker_shutter", "speaker", "exit_sign", "pillar_label",
-                                 "arch2", "arch3", "arch4"};  // V12: Boegen - nur im Durchbruch gueltig (TF_DOOR)
+                                 "arch2", "arch3", "arch4",   // V12: Boegen - nur im Durchbruch gueltig (TF_DOOR)
+                                 "arch_tall3", "arch_tall4", "swing_door1", "swing_door2", "padded_panel",  // V12 Level 1
+                                 "painting_a", "painting_b", "painting_c", "painting_d", "painting_e", "painting_f",
+                                 "painting_lean_a", "painting_lean_b", "painting_lean_c", "exit_sign_green"};
     static const char* ceil[] = {"batten", "highbay", "chandelier", "safety_light", "ceiling_vent",
-                                 "troffer", "troffer_off", "troffer_red", "ceiling_diffuser"};  // V12
+                                 "troffer", "troffer_off", "troffer_red", "ceiling_diffuser", "hanging_bulb"};  // V12
     static const char* floor[] = {"chair", "rack", "bed", "barrel", "cart", "pump", "wardrobe", "trunk", "water_cooler", "armchair", "sofa",
                                   "side_table", "game_table", "boiler", "statue", "transformer", "fence_panel", "rubble", "barrier", "camp",
-                                  "desk_crt", "crate", "pallet", "switch_cabinet", "stall_line", "arrow", "floor_glow", "car"};
+                                  "desk_crt", "crate", "pallet", "switch_cabinet", "stall_line", "arrow", "floor_glow", "car",
+                                  "crate_a", "crate_b", "crate_c", "debris_a", "debris_b", "hospital_bed", "work_table",
+                                  "column_round"};  // V12 Level 1
     for (const char* w : wall)
         if (m == w) return Mount::Wall;
     for (const char* c : ceil)
@@ -1676,7 +1690,7 @@ static void testV11Placement() {
             const world::Tile& here = w.tile(ifloor(o.x), ifloor(o.y));
             std::string why;
             const bool isDoor = o.model == "steel_door" || o.model == "hotel_door" || o.model == "damaged_door" ||
-                                o.model.rfind("arch", 0) == 0;  // V12: Boegen stehen im Durchbruch
+                                o.model.rfind("arch", 0) == 0 || o.model.rfind("swing_door", 0) == 0;  // V12: im Durchbruch
             if (o.model == "pillar_label") {  // Ursprung in der Stuetze: die Kachel muss fest sein
                 if (!here.solid()) why = "keine Stuetze";
             } else if (isDoor && (here.flags & world::TF_DOOR)) {
@@ -1694,7 +1708,9 @@ static void testV11Placement() {
                 const bool hidden = (here.flags & world::TF_HIDDEN) && here.room;
                 const float fl = hidden ? (float)here.room->floor : here.floor;
                 if (here.solid() && !hidden) why = "steht in fester Kachel";
-                else if (std::fabs(o.z - fl) > 0.06) why = std::format("schwebt {:.2f} m ueber/unter dem Boden", o.z - fl);
+                // V12: auf einem unsichtbaren Block darf auch etwas stehen (Kiste auf Kiste)
+                else if (std::fabs(o.z - fl) > 0.06 && !(hidden && std::fabs(o.z - here.floor) <= 0.06))
+                    why = std::format("schwebt {:.2f} m ueber/unter dem Boden", o.z - fl);
             } else if (mt == Mount::Ceiling) {
                 if (here.solid()) why = "haengt in fester Kachel";
                 else if (std::fabs(o.z - here.ceil) > 0.08) why = std::format("{:.2f} m unter der Decke", here.ceil - o.z);
@@ -1916,9 +1932,9 @@ static void testV11SoundField() {
         const auto L = content.level("level1", world::kLayoutV6);
         JobSystem jobs(1);
         world::World w(L, 3, 0.28, 0.80, jobs, 2);
-        const auto& R = L->map->rooms[0];
-        const vec3 a{(float)R.x0 + 0.5f, (float)R.y0 + 0.5f, (float)R.floor + 1.6f};
-        const vec3 c{(float)R.x1 - 0.5f, (float)R.y1 - 0.5f, (float)R.floor + 1.6f};
+        // V12: zwei Punkte in der Halle Aquila mit freier Sicht (zwischen den Stuetzenreihen, ohne Wandscheiben)
+        const vec3 a{30.5f, 26.5f, 1.6f};
+        const vec3 c{38.5f, 26.5f, 1.6f};
         w.preload(a.x, a.y);
         game::SoundField f;
         f.update(w, a, 0.0);

@@ -23,6 +23,13 @@ Wiedereinstieg: diese Datei zuerst lesen, dann `DECISIONS.md`.
   - Kein Durchstoßen am Ärmel und an der Wand (35 cm geprüft).
   - Bilder: Ruhe, Gehen, Laufen, Drehen, Blick unten/oben, Wand, Dunkel in `docs/screens/viewmodel/`.
 
+- [x] Level 1 „Die Lagerdecks“:
+  - `LEVELSPEC_1.md`, `LOOK_1.md`.
+  - Neue Karte: Aquila, Gothic, Gild, Vorräume, Gang-Labyrinth, Rohrgang nach Level 2.
+  - 30 Blender-Modelle; Wesen Hound, Clump, Smiler; Klang mit Rohren und Tropfen.
+  - Drei QA-Runden, Bilder in `docs/screens/level1/`.
+  - Platzierung: 1451 Objekte, 0 ohne Halt; Tests 357/0. Entscheidung E-009.
+
 ## Als Nächstes
 1. Wesen-Pipeline (gestellte oder gerigte Modelle aus Blender); zuerst die dunkle Gestalt von Level 0.
 2. Level der Reihe nach (1, 2, 3, 5, 5.3, 188, 903, 37, 36): Spec → Look → Bau → Platzierung → Items → Wesen → Klang → Qualitätsschleife → Commit.

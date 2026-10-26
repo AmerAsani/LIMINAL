@@ -97,3 +97,21 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
   - Level 0: nur die dunkle Gestalt; sie greift nie an.
   - Nicht als Modell vorhandene Wesen (Facelings in 903, Fensterwesen in 188) bekommen eigene, einfache Lösungen. Was davon fehlt, steht ehrlich im Bericht.
 - **Level 0:** Gestalt-Aufnahmen in `docs/screens/level0/13–15`.
+
+## E-009 Level 1 (26.10.2026)
+- **Quelle:** Wikidot „Level 1“, Revision 83 (`LEVELSPEC_1.md`), Bild in `LOOK_1.md`. Drei QA-Runden (`docs/screens/level1/`).
+- **Neu statt V11:** Die V11-Karte (farbige Parkdecks, Rampen, Autos, Rolltore, Wartungsflure) enthielt Dinge, die die Seite nicht beschreibt. Ersetzt durch:
+  - drei der genannten Hallen-Sektoren: Aquila (Ankunft, grau, Stützen, tropfende Rohre), Gothic (Bögen, runde Säulen), Gild (farbig, Regale, die meisten Kisten);
+  - eine Reihe Vorräume und ein Gang-Labyrinth mit den belegten Raumarten: Büro mit Birne, Ziegelraum, Krankenzimmer mit Bett, Gummizelle mit Stuhl, Raum mit Bildern an Wänden und auf dem Boden;
+  - einen Rohrgang nach Level 2, in dem Rohre und Messuhren zunehmen.
+- **Nicht dargestellt:** Stützpunkte und Bewohner (M.E.G., B.N.T.G. u. a.) sowie drei Sektoren mit eigenen Regeln. Begründung in `LEVELSPEC_1.md` Abschnitt 3.
+- **Neue Blender-Modelle:**
+  - Ausstattung: Holzkisten (3), Haufen (2), farbige Stützenbänder, hohe Bögen, runde Säule, Schwingtüren.
+  - Räume: Krankenbett, Polsterfeld, Glühbirne, Arbeitstisch.
+  - Schilder und Bilder: grünes Notausgangsschild mit eigenem Piktogramm, Bilder (6 an der Wand, 3 angelehnt). Die Bilder sind eigene Farbflächen-Kompositionen.
+- **Renderer:** Niedrige unsichtbare Kollisionsblöcke (unter 1,2 m, z. B. Kisten, Bett) zählen im Höhenfeld als Boden.
+  - Vorher warfen sie einen harten Kastenschatten, der größer als das Modell war.
+  - Hohe Blöcke (Regale, Säulen) werfen weiter Schatten.
+- **Tests:** Die V11-Tests der Begegnungen (Smiler, Treffer, Sicherungspunkt) laufen jetzt in der Halle Aquila.
+  - Statt der Autos und des Bodenlochs wird geprüft: Regal, Kisten und Säule haben Kollision.
+  - Kisten auf Kisten gelten als gehalten.
