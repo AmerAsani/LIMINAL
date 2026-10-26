@@ -69,21 +69,88 @@ struct SkinIn
     float4 weights : BLENDWEIGHT;
 };
 
+// V13.2 (B-001): Dual-Quaternion-Skinning fuer Menschen (Bit 31 von gBoneOffset). Lineares Mischen der Matrizen laesst
+// Punkte zwischen zwei Knochen (Ellbogen innen, Schulter vorn) bei starker Beugung zusammenfallen und umklappen - die
+// Innenseite des Stoffs wurde als dunkle Zacken sichtbar. Dual Quaternions halten die Punkte auf Boegen um das Gelenk.
+// Gleichmaessige Skalierung (die verborgene Hand schrumpft auf 2 %) wird getrennt linear gemischt.
+float4 quatFromRot(float3x3 m)
+{
+    float tr = m[0][0] + m[1][1] + m[2][2];
+    float4 q;
+    if (tr > 0.0)
+    {
+        float s = sqrt(tr + 1.0) * 2.0;
+        q = float4((m[2][1] - m[1][2]) / s, (m[0][2] - m[2][0]) / s, (m[1][0] - m[0][1]) / s, 0.25 * s);
+    }
+    else if (m[0][0] > m[1][1] && m[0][0] > m[2][2])
+    {
+        float s = sqrt(1.0 + m[0][0] - m[1][1] - m[2][2]) * 2.0;
+        q = float4(0.25 * s, (m[0][1] + m[1][0]) / s, (m[0][2] + m[2][0]) / s, (m[2][1] - m[1][2]) / s);
+    }
+    else if (m[1][1] > m[2][2])
+    {
+        float s = sqrt(1.0 + m[1][1] - m[0][0] - m[2][2]) * 2.0;
+        q = float4((m[0][1] + m[1][0]) / s, 0.25 * s, (m[1][2] + m[2][1]) / s, (m[0][2] - m[2][0]) / s);
+    }
+    else
+    {
+        float s = sqrt(1.0 + m[2][2] - m[0][0] - m[1][1]) * 2.0;
+        q = float4((m[0][2] + m[2][0]) / s, (m[1][2] + m[2][1]) / s, 0.25 * s, (m[1][0] - m[0][1]) / s);
+    }
+    return q;
+}
+float4 quatMul(float4 a, float4 b) { return float4(a.w * b.xyz + b.w * a.xyz + cross(a.xyz, b.xyz), a.w * b.w - dot(a.xyz, b.xyz)); }
+float3 quatRot(float4 q, float3 v) { return v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v); }
+
 VSOut VSSkinned(SkinIn i)
 {
     float3x4 m = (float3x4)0;
-    [unroll] for (int k = 0; k < 4; ++k)
+    float3 p, nrm, tng;
+    const bool dq = (gBoneOffset & 0x80000000u) != 0u;
+    const uint off = gBoneOffset & 0x7FFFFFFFu;
+    if (dq)
     {
-        uint b = gBoneOffset + i.bones[k] * 3u;
-        m += i.weights[k] * float3x4(gBones[b], gBones[b + 1u], gBones[b + 2u]);
+        float4 r0 = 0, d0 = 0, rFirst = 0;
+        float sc = 0.0;
+        [unroll] for (int k = 0; k < 4; ++k)
+        {
+            uint b = off + i.bones[k] * 3u;
+            float3x4 mk = float3x4(gBones[b], gBones[b + 1u], gBones[b + 2u]);
+            float s = length(float3(mk[0][0], mk[1][0], mk[2][0]));
+            float3x3 rk = (float3x3)mk / max(s, 1e-6);
+            float4 q = quatFromRot(rk);
+            if (k == 0) rFirst = q;
+            float sgn = dot(q, rFirst) < 0.0 ? -1.0 : 1.0;  // kuerzester Weg
+            float4 d = 0.5 * quatMul(float4(mk[0][3], mk[1][3], mk[2][3], 0.0), q);
+            r0 += i.weights[k] * sgn * q;
+            d0 += i.weights[k] * sgn * d;
+            sc += i.weights[k] * s;
+        }
+        float len = max(length(r0), 1e-6);
+        r0 /= len;
+        d0 /= len;
+        float3 t = 2.0 * (r0.w * d0.xyz - d0.w * r0.xyz + cross(r0.xyz, d0.xyz));
+        p = quatRot(r0, i.pos * sc) + t;
+        nrm = quatRot(r0, i.normal);
+        tng = quatRot(r0, i.tangent.xyz);
     }
-    float3 p = mul(m, float4(i.pos, 1.0));
+    else
+    {
+        [unroll] for (int k = 0; k < 4; ++k)
+        {
+            uint b = off + i.bones[k] * 3u;
+            m += i.weights[k] * float3x4(gBones[b], gBones[b + 1u], gBones[b + 2u]);
+        }
+        p = mul(m, float4(i.pos, 1.0));
+        nrm = mul((float3x3)m, i.normal);
+        tng = mul((float3x3)m, i.tangent.xyz);
+    }
     VSOut o;
     float4 w = mul(gWorld, float4(p, 1.0));
     o.svpos = mul(gViewProj, w);
     o.wpos = w.xyz;
-    o.n = mul((float3x3)gWorld, mul((float3x3)m, i.normal));
-    o.t = float4(mul((float3x3)gWorld, mul((float3x3)m, i.tangent.xyz)), i.tangent.w);
+    o.n = mul((float3x3)gWorld, nrm);
+    o.t = float4(mul((float3x3)gWorld, tng), i.tangent.w);
     o.uv = i.uv;
     o.bindPos = i.bindPos;
     o.bindN = i.tangent.xyz;

@@ -20,6 +20,10 @@ struct ShadowCaster {
     std::vector<vec4> caps;  // je Kapsel 2: (a, r), (b, 0)
 };
 
+class Body;
+// V13.2: Pose des Koerpers (Body) als Skelett der Spielerfigur (Fuesse bei root)
+anim::JointPose playerJointPose(const Body& body, vec3 root);
+
 class FigureRig {
 public:
     void init(anim::Figure f);        // Mensch

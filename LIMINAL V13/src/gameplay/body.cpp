@@ -1,4 +1,5 @@
 #include "gameplay/body.hpp"
+#include "core/log.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -71,6 +72,7 @@ void follow(double& v, double target, double rate, double dt) { v += (target - v
 
 void Body::setViewmodelGeometry(vec3 wrist, vec3 forearm, vec3 handDir, vec3 palm) {
     vmWrist_ = wrist, vmForearm_ = normalize(forearm), vmHandDir_ = normalize(handDir), vmPalm_ = normalize(palm);
+    log::info("Viewmodel: Unterarm im Lampenrahmen ({:.2f}, {:.2f}, {:.2f})", vmForearm_.x, vmForearm_.y, vmForearm_.z);
 }
 
 float Body::thumbPress() const {
@@ -233,7 +235,7 @@ void Body::update(double dt, const Player& p) {
         // erschoepft im Stehen: Arme haengen schlaff nach vorn (Richtung Knie)
         theta += 0.35 * p.breathless * (1.0 - gait);
         bend += 0.25 * p.breathless * (1.0 - gait);
-        double abd = 0.13 + 0.04 * gait + 0.16 * sprint + (double)std::sin(time_ * 0.9 + i) * 0.015 * (1.0 - gait);
+        double abd = 0.22 + 0.04 * gait + 0.12 * sprint + (double)std::sin(time_ * 0.9 + i) * 0.015 * (1.0 - gait);
         if (air > 0.001f) {
             // Steigen: Arme schwungvoll nach vorn oben ("Juhu!"). Fallen: Rudern (Windmuehle)
             double fa = flailBase + i * kPiD;
@@ -266,6 +268,8 @@ void Body::update(double dt, const Player& p) {
         // V12: mit der Hand aus Blender sitzt die Griffmitte hoeher (die ganze Faust soll im Bild sein)
         const float drop = pr_.gripOut > 0.0f ? 0.17f : 0.25f;
         vec3 target = eye_ + hf * 0.40f - hu * (drop + sway) - R * (0.15f + 0.01f * (float)std::cos(p.bobPhase)) + U * (bob * 0.3f);
+        // V13.2 (B-001): von aussen vor der Brust, etwas links der Mitte - der Unterarm liegt fast waagerecht
+        if (outside_) target = eye_ + hf * 0.36f - hu * (0.40f + sway) - R * (0.08f + 0.01f * (float)std::cos(p.bobPhase)) + U * (bob * 0.3f);
         // V11: dicht vor einer Wand zieht die Hand die Lampe zurueck und senkt sie; reicht der Platz fuer die
         // 17 cm vor dem Griff nicht, kippt die Lampe nach unten (wie man sie in der Enge haelt). Nichts steckt in
         // der Wand, das Glas bleibt davor, der Kegel faellt dann auf Wand und Boden davor.
@@ -301,7 +305,7 @@ void Body::update(double dt, const Player& p) {
                 const vec3 wr0 = target + aim * vmWrist_.x + side * vmWrist_.y + up * vmWrist_.z;
                 const vec3 fw = aim * vmForearm_.x + side * vmForearm_.y + up * vmForearm_.z;
                 float slideWant = 0.0f, bestErr = 1e9f;
-                for (int k = -16; k <= 9; ++k) {  // V13: bis 4,5 cm vor (Blick nach unten)
+                for (int k = outside_ ? 0 : -16; k <= (outside_ ? 0 : 9); ++k) {  // V13: bis 4,5 cm vor (Blick nach unten)
                     const float sl = (float)k * 0.005f;
                     const vec3 el = wr0 + aim * sl - fw * pr_.forearm;
                     const float err = std::fabs(length(el - pose_.shoulder[0]) - pr_.upperArm) + 0.1f * std::fabs(sl);
@@ -314,7 +318,10 @@ void Body::update(double dt, const Player& p) {
             auto toRaised = [&](vec3 m) { return aim * m.x + side * m.y + up * m.z; };
             const vec3 wristWant = target + toRaised(vmWrist_);
             if (w > 0.001f) {
-                const vec3 elbowWant = wristWant - toRaised(vmForearm_) * pr_.forearm;
+                // V13.2: von aussen steigt der Unterarm leicht zum Handgelenk an (Modell: er faellt ab, der Ellbogen
+                // stuende ueber der Hand) - der Ellbogen haengt dann neben dem Rumpf
+                const vec3 fwm = outside_ ? normalize(vec3{vmForearm_.x, vmForearm_.y, 0.0f} * (1.0f / std::max(0.2f, length(vec3{vmForearm_.x, vmForearm_.y, 0.0f}))) + vec3{0.0f, 0.0f, 0.3f}) : vmForearm_;
+                const vec3 elbowWant = wristWant - toRaised(fwm) * pr_.forearm;
                 const vec3 pole = elbowWant - (pose_.shoulder[0] + wristWant) * 0.5f;
                 solveArm(0, lerp(pose_.hand[0], wristWant, w), normalize(pole));
             }

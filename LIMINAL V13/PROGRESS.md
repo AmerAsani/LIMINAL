@@ -24,12 +24,24 @@ Vorgeschichte: `docs/archiv/PROGRESS_V12.md`, `docs/archiv/REPORT_V12.md`.
 - [x] Teil 5: Bugsuche – `BUGLISTE.md` (Smoke-Test aller Ebenen und Menüs, Speichern/Laden, fünf Auflösungen, Bildzeiten, Speicher); B-003 und B-004 behoben.
 - [x] Abschluss: `REPORT_V13.md`; V12-Manifest geprüft (25 550 Dateien, 0 verändert), V10 ohne Änderung; Tests gameplay 357/0, audio 106/0, worldgen 29 658/0, supply OK, net 72/0.
 
+## V13 Fortsetzung (V13.2) – Auftrag „Offene Punkte, Mottennest, Entity-Abgleich, Multiplayer, GitHub-Upload“
+Wiedereinstieg: diesen Abschnitt lesen, dann `DECISIONS.md` ab E-025.
+
+- [x] Schritt 0: GitHub-Sicherung lokal vorbereitet (E-025, `../GITHUB_UPLOAD.md`): `origin` ist öffentlich, daher kein Push; Branches `liminal-v11`/`liminal-v12`, Tags `v11`/`v12`, README, `.gitignore`, Prüfungen. Befehle für ein privates Repository stehen bereit.
+- [x] Entity-Abgleich: `ENTITY_ABGLEICH.md` (zehn Ebenenseiten, Entity-Übersicht, Entity-Seiten; Revisionen vom 26.10.2026). Nest belegt (E-026), Reihenfolge der fehlenden Wesen (E-027). Smiler reagiert auf Lärm.
+- [x] B-002: Texturen Ebene für Ebene, Ladespitze 3,1 GB → 0,68 GB (2048 px: 11,1 → 1,3 GB), Messung je Ebene in `BUGLISTE.md`.
+- [x] B-001: Ärmel am gebeugten Ellbogen (E-028): Ruhepose 54 Grad, Dual Quaternions, Lampenhaltung von außen; Test und Bilder (`docs/screens/b001/`).
+- [ ] Animationen und Modelle der Wesen, Nest-Neuentwurf
+- [ ] Fehlende Wiki-Wesen (Faceling, Fensterwesen, Skin-Stealer, Wretch, Death Rat)
+- [ ] Mehrspieler (Architektur, Stufen 1–7, Sicherheit) und Tests
+- [ ] Abschluss: Tests, V12/V10 prüfen, Tag `v13`, `REPORT_V13_2.md`
+
+Hilfsskripte (Scratchpad `v13`): `b.sh [gameplay|all]` (bauen + Tests), `mem_sweep.ps1` / `mem_trace.ps1` (Speicher), `elbow_tp.ps1` (Kamera um den Spieler, Skriptbefehle `figcam` ohne Vorführung in der Schulteransicht, `egopose 1`), `elbow_shots.ps1` (`vmcam`), `crop.py`.
+
 ## Als Nächstes (Vorschläge für V14)
 - Bewegung der Wesen auf die neue Anatomie abstimmen.
 - ORM-Texturen komprimieren (≈ 360 MB VRAM), Ladespitze senken (B-002).
 - Rechte Hand mit dem neuen Handmodell; Ellbogen der Kapuzenjacke (B-001).
 
 ## Bekannte Fehler
-- B-001: Kapuzenjacke reißt am stark gebeugten Ellbogen auf (Schulteransicht von der Seite).
-- B-002: Arbeitsspeicher beim Laden kurz 3,1 GB.
 - Rechte Hand (Gesten) ist weiter die prozedurale Hand.

@@ -1682,74 +1682,7 @@ void GameSession::collectBody(std::vector<VisibleMesh>& out, bool firstPerson) {
         body_.collect(out, firstPerson);
         return;
     }
-    using namespace anim;
-    const BodyPose& bp = body_.pose();
-    const Build& b = figureBuild(Figure::Player);
-    static const JointPose bind = bindPose(b);
-    JointPose jp = bind;
-    // Skelettseite 0 liegt bei +L (= Body::right); im Koerper (Body) ist das Index 1
-    const vec3 U{0, 0, 1}, F = bp.fwd, L = bp.right;
-    const vec3 sd = normalize(bp.neck - bp.pelvis);
-    const vec3 pelvis = bp.pelvis + sd * (0.018f * b.height);
-    const float len = length(bp.neck - pelvis), total = b.spineLow + b.spineUp + b.neck;
-    jp.fwd = F, jp.up = normalize(U * 0.7f + sd * 0.3f);
-    jp.j[J_ROOT] = vec3{(float)player_.x, (float)player_.y, (float)player_.z};
-    jp.j[J_PELVIS] = pelvis;
-    jp.j[J_SPINE] = pelvis + sd * (len * b.spineLow / total);
-    jp.j[J_CHEST] = jp.j[J_SPINE] + sd * (len * b.spineUp / total) + F * 0.007f;
-    jp.j[J_NECK] = bp.neck;
-    jp.chestFwd = normalize(orthoTo(F, sd));
-    // Kopf
-    const vec3 hf = bp.headFwd, hu = bp.headUp, hl = normalize(cross(hu, hf));
-    jp.headFwd = hf, jp.headUp = hu;
-    jp.j[J_HEAD] = bp.neck + normalize(sd * 0.55f + hu * 0.45f + hf * 0.18f) * length(bind.j[J_HEAD] - bind.j[J_NECK]);
-    auto relHead = [&](Joint j) {
-        vec3 o = bind.j[j] - bind.j[J_HEAD];
-        return jp.j[J_HEAD] + hf * o.x + hl * o.y + hu * o.z;
-    };
-    jp.j[J_HEADTOP] = relHead(J_HEADTOP), jp.j[J_JAW] = relHead(J_JAW), jp.j[J_CHIN] = relHead(J_CHIN);
-    const vec3 cu = sd, cf = jp.chestFwd, cl = normalize(cross(cu, cf));
-    auto relChest = [&](Joint j) {
-        vec3 o = bind.j[j] - bind.j[J_NECK];
-        return bp.neck + cf * o.x + cl * o.y + cu * o.z;
-    };
-    for (int i = 0; i < 2; ++i) {
-        const float sg = i == 0 ? 1.0f : -1.0f;
-        const int bi = 1 - i;  // Index im Koerper (Body)
-        jp.j[sideJoint(J_STERN_L, i)] = relChest(sideJoint(J_STERN_L, i));
-        jp.j[sideJoint(J_SHOULDER_L, i)] = bp.shoulder[bi];
-        jp.j[sideJoint(J_ELBOW_L, i)] = bp.elbow[bi];
-        jp.j[sideJoint(J_WRIST_L, i)] = bp.hand[bi];
-        vec3 mid = (bp.shoulder[bi] + bp.hand[bi]) * 0.5f, pole = bp.elbow[bi] - mid;
-        jp.armPole[i] = length(pole) > 0.01f ? normalize(pole) : F * -1.0f;
-        vec3 d = normalize(bp.hand[bi] - bp.elbow[bi]);
-        vec3 palm = orthoTo(L * -sg, d);
-        jp.palm[i] = length(palm) > 1e-3f ? normalize(palm) : normalize(orthoTo(F * -1.0f, d));
-        const bool grip = (bi == 0 && body_.flashlightHeld()) || (bi == 1 && body_.holdsItem());
-        jp.fingerCurl[i] = grip ? 0.85f : 0.42f;  // entspannt leicht gekruemmt
-        jp.thumbCurl[i] = grip ? 0.75f : 0.3f;
-        if (bi == 0 && body_.flashWeight() > 0.001f && body_.proportions().gripOut > 0.0f) {
-            // V11: Faustgriff um die Taschenlampe - Handrichtung und Handflaeche kommen aus dem Koerper (dort sitzt
-            // auch die Lampe), die Finger schliessen sich mit dem Heben
-            const float w = body_.flashWeight();
-            d = body_.flashHandDir();
-            jp.palm[i] = body_.flashPalm();
-            jp.fingerCurl[i] = 0.42f + (0.84f - 0.42f) * w;  // ~90 Grad: Finger liegen vorn am Schaft
-            jp.thumbCurl[i] = 0.3f + (0.55f - 0.3f) * w;
-        }
-        placeHand(jp, b, i, d);
-        jp.j[legJoint(J_HIP_L, i)] = bp.hip[bi];
-        jp.j[legJoint(J_KNEE_L, i)] = bp.knee[bi];
-        jp.j[legJoint(J_ANKLE_L, i)] = bp.ankle[bi];
-        vec3 lm = (bp.hip[bi] + bp.ankle[bi]) * 0.5f, lp = bp.knee[bi] - lm;
-        jp.legPole[i] = length(lp) > 0.01f ? normalize(lp) : F;
-        vec3 toe = bp.toe[bi] - bp.ankle[bi];
-        vec3 ff = orthoTo(toe, U);
-        ff = length(ff) > 1e-3f ? normalize(ff) : F;
-        jp.footUp[i] = normalize(orthoTo(U, normalize(toe)) + U * 0.5f);
-        placeFoot(jp, b, i, ff);
-    }
-    playerRig_.setPose(jp);
+    playerRig_.setPose(playerJointPose(body_, vec3{(float)player_.x, (float)player_.y, (float)player_.z}));
     // V12: haelt die Hand die Lampe, kommt die Hand aus Blender (Body::collectProps); die des Skeletts (Seite 1 =
     // linke Hand des Koerpers) schrumpft ins Handgelenk. V13: die Lampe bleibt immer in der Hand - mit Skelett zeichnet
     // die Sitzung die Hand (Griff, Daumendruck als Mischung der Posen aus Blender)

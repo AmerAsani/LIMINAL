@@ -11,6 +11,10 @@ std::array<Build, kFigureCount> makeBuilds() {
         Build b;
         b.height = 1.74f;
         b.muscle = 0.35f;
+        // V13.2 (B-001): Ruhepose mit weiter abgespreizten Armen (37 statt 24 Grad). Die Brust wird mit 7,5 cm
+        // Rundung vernetzt; bei 24 Grad lag die Innenseite des Oberarms darin und Aermel und Rumpf verschmolzen zu
+        // einer Flaeche - beim Bewegen riss der Aermel innen auf
+        b.armAbduct = 0.95f;
         a[(int)Figure::Player] = b;
     }
     for (auto& b : a) b.finish();

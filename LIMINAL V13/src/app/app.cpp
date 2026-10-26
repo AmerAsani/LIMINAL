@@ -346,6 +346,8 @@ void App::scriptStep() {
             session_->stats().health = std::clamp(std::atof(arg.c_str()), 1.0, 100.0);
         } else if (cmd == "sanity" && session_) {  // V7: Sanity setzen (Tests)
             session_->stats().sanity = std::clamp(std::atof(arg.c_str()), 0.0, 100.0);
+        } else if (cmd == "egopose") {  // V13.2 (Tests): egopose 1 - auch von aussen die Lampenhaltung des Ego-Bilds
+            egoPose_ = std::atoi(arg.c_str()) != 0;
         } else if (cmd == "vmdebug" && session_) {  // V13 (Tests): Teile ausblenden (1 Hand, 2 Koerper, 4 Lampe)
             session_->debugDraw = std::atoi(arg.c_str());
         } else if (cmd == "figcam") {  // V13 (Tests): figcam <az> <el> <abstand> [hoehe] [vor] | figcam off
@@ -1401,6 +1403,7 @@ void App::renderWorld(double dt, bool clean) {
         gfx::CameraState cam;
         if (playing) {
             // V6: Kamera im Kopf des Strichmaennchens (bzw. hinter der Schulter)
+            s.body().setOutsideView(third && !egoPose_);  // V13.2 (B-001): Lampenhaltung fuer die Ansicht von aussen
             game::ViewCamera vc = s.camera(third, clean ? 0.0 : dt);
             cam.pos = vc.pos;
             cam.yaw = vc.yaw;
@@ -1409,7 +1412,10 @@ void App::renderWorld(double dt, bool clean) {
             cam.fovY = fovY(vc.fovMul);
             vec3 fp;
             float fyaw = 0.0f;
-            if (figCam_.on && s.presence().showcasePos(fp, fyaw)) {
+            // V13.2 (Tests): ohne Vorfuehrung und in der Schulteransicht kreist figcam um den Spieler selbst
+            const bool aroundPlayer = figCam_.on && third && !s.presence().showcasePos(fp, fyaw);
+            if (aroundPlayer) fp = vec3{(float)p.x, (float)p.y, (float)p.z}, fyaw = (float)p.angle;
+            if (figCam_.on && (aroundPlayer || s.presence().showcasePos(fp, fyaw))) {
                 // V13: um das Wesen, az = 0 vor ihm (in seiner Blickrichtung), Blick auf die Hoehe h
                 const vec3 tgt = fp + vec3{std::cos(fyaw) * figCam_.ahead, std::sin(fyaw) * figCam_.ahead, figCam_.h};
                 const float a = fyaw + figCam_.az * 0.0174533f, e = figCam_.el * 0.0174533f;
@@ -1505,6 +1511,7 @@ void App::renderWorld(double dt, bool clean) {
                 md.cullRadius = v.cullRadius;
                 md.material = v.material == game::kShadowLook ? (int)gfx::FM_ENT_SHADOW : v.material;  // V10
                 md.clip = v.clip;  // V13
+                md.dualQuat = v.dualQuat;  // V13.2
                 draws_.push_back(md);
             }
         }

@@ -23,6 +23,8 @@
 #include "anim/figures.hpp"
 #include "core/jobs.hpp"
 #include "gameplay/body.hpp"
+#include "gameplay/figure.hpp"
+#include "render/figure_models.hpp"
 #include "gameplay/components.hpp"
 #include "gameplay/content.hpp"
 #include "gameplay/explore.hpp"
@@ -2073,6 +2075,211 @@ static void testV12Glb(const char* dataDir) {
     check(total > 0 && agree == total, std::format("Umlaufsinn passt zu den Normalen ({} von {})", agree, total));
 }
 
+// V13.2 (B-001): Skinning wie VSSkinned im Shader (shaders/mesh_gbuffer.hlsl) - Dual Quaternions fuer Menschen
+namespace dqs {
+float el(const mat4& m, int r, int c) { return r == 0 ? m.c[c].x : (r == 1 ? m.c[c].y : m.c[c].z); }
+vec4 quatFromRot(const mat4& m, float s) {
+    auto e = [&](int r, int c) { return el(m, r, c) / s; };
+    const float tr = e(0, 0) + e(1, 1) + e(2, 2);
+    if (tr > 0.0f) {
+        const float q = std::sqrt(tr + 1.0f) * 2.0f;
+        return {(e(2, 1) - e(1, 2)) / q, (e(0, 2) - e(2, 0)) / q, (e(1, 0) - e(0, 1)) / q, 0.25f * q};
+    }
+    if (e(0, 0) > e(1, 1) && e(0, 0) > e(2, 2)) {
+        const float q = std::sqrt(1.0f + e(0, 0) - e(1, 1) - e(2, 2)) * 2.0f;
+        return {0.25f * q, (e(0, 1) + e(1, 0)) / q, (e(0, 2) + e(2, 0)) / q, (e(2, 1) - e(1, 2)) / q};
+    }
+    if (e(1, 1) > e(2, 2)) {
+        const float q = std::sqrt(1.0f + e(1, 1) - e(0, 0) - e(2, 2)) * 2.0f;
+        return {(e(0, 1) + e(1, 0)) / q, 0.25f * q, (e(1, 2) + e(2, 1)) / q, (e(0, 2) - e(2, 0)) / q};
+    }
+    const float q = std::sqrt(1.0f + e(2, 2) - e(0, 0) - e(1, 1)) * 2.0f;
+    return {(e(0, 2) + e(2, 0)) / q, (e(1, 2) + e(2, 1)) / q, 0.25f * q, (e(1, 0) - e(0, 1)) / q};
+}
+vec4 mul(vec4 a, vec4 b) {
+    const vec3 av{a.x, a.y, a.z}, bv{b.x, b.y, b.z};
+    const vec3 v = bv * a.w + av * b.w + cross(av, bv);
+    return {v.x, v.y, v.z, a.w * b.w - dot(av, bv)};
+}
+vec3 rot(vec4 q, vec3 v) {
+    const vec3 qv{q.x, q.y, q.z};
+    return v + cross(qv, cross(qv, v) + v * q.w) * 2.0f;
+}
+// Punkt und Normale eines Punktes mit vier Knochen
+void skin(const std::vector<mat4>& pal, const u8* bones, const u8* weights, vec3 pos, vec3 nrm, vec3& outP, vec3& outN) {
+    vec4 r0{0, 0, 0, 0}, d0{0, 0, 0, 0}, first{0, 0, 0, 1};
+    float sc = 0.0f;
+    for (int k = 0; k < 4; ++k) {
+        const float w = weights[k] / 255.0f;
+        const mat4& m = pal[bones[k]];
+        const float s = length(vec3{m.c[0].x, m.c[0].y, m.c[0].z});
+        const vec4 q = quatFromRot(m, std::max(s, 1e-6f));
+        if (k == 0) first = q;
+        const float sg = q.x * first.x + q.y * first.y + q.z * first.z + q.w * first.w < 0.0f ? -1.0f : 1.0f;
+        const vec4 d = mul(vec4{m.c[3].x, m.c[3].y, m.c[3].z, 0.0f}, q) * 0.5f;
+        r0 = r0 + q * (w * sg), d0 = d0 + d * (w * sg);
+        sc += w * s;
+    }
+    const float len = std::max(std::sqrt(r0.x * r0.x + r0.y * r0.y + r0.z * r0.z + r0.w * r0.w), 1e-6f);
+    r0 = r0 * (1.0f / len), d0 = d0 * (1.0f / len);
+    const vec3 rv{r0.x, r0.y, r0.z}, dv{d0.x, d0.y, d0.z};
+    const vec3 t = (dv * r0.w - rv * d0.w + cross(rv, dv)) * 2.0f;
+    outP = rot(r0, pos * sc) + t;
+    outN = rot(r0, nrm);
+}
+}  // namespace dqs
+
+// V13.2 (B-001): Die Kapuzenjacke reisst am gebeugten Ellbogen nicht auf und zieht keinen Fluegel. Der Koerper haelt
+// die Lampe in den extremen Haltungen (Ego: Blick geradeaus, nach unten, nach oben, dicht an der Wand; von aussen);
+// die Jacke wird auf der CPU gehaeutet wie im Shader. Gemessen: Dehnung jeder Kante gegen die Ruhepose.
+static void testB001Sleeve(const std::string& dataDir) {
+    std::printf("V13.2: Kapuzenjacke am gebeugten Ellbogen (B-001)\n");
+    JobSystem jobs(2);
+    const gfx::FigureModel fm = gfx::buildFigure(anim::Figure::Player, &jobs);
+    const gfx::SkinPart* hood = nullptr;
+    for (const auto& part : fm.lods[0])
+        if (part.material == 22) hood = &part;  // gfx::FM_HOODIE = FM_SKIN_PLAYER (19) + 3 (render/world_renderer.hpp zieht windows.h mit)
+    check(hood && hood->v.size() > 1000, "Kapuzenjacke im Modell (Stufe 0)");
+    if (!hood) return;
+    // a) Ursache von B-001: In der Ruhepose verschmolzen Aermel und Rumpf (Brust mit 7,5 cm Rundung vernetzt, Arm nur 24
+    // Grad abgespreizt) - Flaeche des Rumpfs lag im Aermel und riss beim Bewegen auf. Jetzt: im Aermel (50-100 % des
+    // Oberarms, nah an der Achse) ueberwiegt bei keinem Punkt der Rumpf.
+    const anim::Build& bb = anim::figureBuild(anim::Figure::Player);
+    const anim::JointPose bind = anim::bindPose(bb);
+    int sleeve = 0, fused = 0;
+    for (const auto& v : hood->v) {
+        float arm = 0.0f, torso = 0.0f;
+        for (int k = 0; k < 4; ++k) {
+            const int bn = v.bones[k];
+            const float w = v.weights[k] / 255.0f;
+            if (bn == anim::B_UARM_L || bn == anim::B_UARM_R || bn == anim::B_FARM_L || bn == anim::B_FARM_R) arm += w;
+            if (bn == anim::B_PELVIS || bn == anim::B_SPINE || bn == anim::B_CHEST || bn == anim::B_NECK) torso += w;
+        }
+        for (int sd = 0; sd < 2; ++sd) {
+            const vec3 S = bind.j[anim::sideJoint(anim::J_SHOULDER_L, sd)], E = bind.j[anim::sideJoint(anim::J_ELBOW_L, sd)];
+            const float t = dot(v.pos - S, E - S) / dot(E - S, E - S);
+            if (t > 0.5f && t < 1.0f && length(v.pos - (S + (E - S) * t)) < bb.upperArmR + 0.035f) {
+                ++sleeve;
+                if (torso > arm) {
+                    ++fused;
+                    if (std::getenv("B001_DEBUG")) std::printf("    verschmolzen t %.2f r %.3f z %.3f arm %.2f rumpf %.2f\n", t, length(v.pos - (S + (E - S) * t)), v.pos.z, arm, torso);
+                }
+            }
+        }
+    }
+    check(sleeve > 200 && fused == 0, std::format("Ruhepose: im Aermel keine Rumpfflaeche ({} von {} Punkten)", fused, sleeve));
+
+    // b) Haltungen
+    const float hs = bb.headScale * (0.6f + 0.4f * bb.height / 1.78f);
+    game::BodyProportions pr;
+    pr.thigh = bb.thigh, pr.shin = bb.shin, pr.ankle = bb.ankle;
+    pr.hip = bb.ankle + (bb.thigh + bb.shin) * 0.975f;
+    pr.eyeUp = 0.154f * hs, pr.eyeFwd = 0.1f * hs;
+    pr.spine = (float)game::Player::kEye - pr.hip - pr.eyeUp;
+    pr.neck = 0.11f * hs, pr.headR = 0.1f * hs;
+    pr.upperArm = bb.upperArm, pr.forearm = bb.forearm;
+    pr.hipW = bb.hipW * 0.5f, pr.shoulderW = bb.shoulderW * 0.5f;
+    pr.footW = bb.hipW * 0.5f + 0.02f * bb.height;
+    pr.gripFwd = 0.03f, pr.gripOut = 0.03f;
+    FnWorld flat;
+    flat.fn = [](i64, i64, float& f, float& c) { f = 0, c = 4.0f; };
+    props::Model hm;
+    std::string err;
+    vec3 wr, fa, hd, pa;
+    const bool geo = props::loadGlb(dataDir + "/models/vm_hand_l.glb", hm, err) && hm.skin && game::vmGeometryFromSkin(*hm.skin, wr, fa, hd, pa);
+    check(geo, "Hand aus Blender fuer die Lampenhaltung");
+    std::vector<mat4> bindInv(anim::kBoneCount);
+    {
+        anim::Frames bf;
+        anim::computeFrames(bind, bf);
+        for (int i = 0; i < anim::kBoneCount; ++i) bindInv[(size_t)i] = anim::rigidInverse(bf[(size_t)i]);
+    }
+    struct Case {
+        const char* name;
+        bool outside;
+        float pitch, clear;
+    };
+    const Case cases[] = {{"Ego geradeaus", false, 0.0f, 9.0f}, {"Ego nach unten", false, -0.9f, 9.0f}, {"Ego nach oben", false, 0.6f, 9.0f},
+                          {"Ego an der Wand", false, 0.0f, 0.35f}, {"aussen geradeaus", true, 0.0f, 9.0f}, {"aussen nach unten", true, -0.9f, 9.0f}};
+    float worstAll = 0.0f;
+    for (const Case& cs : cases) {
+        game::Player p(0.5, 0.5, 0.0, 0.0);
+        game::Body b;
+        b.setProportions(pr);
+        b.setViewmodelHand(true);
+        if (geo) b.setViewmodelGeometry(wr, fa, hd, pa);
+        b.setFlashlight(true, true);
+        b.setOutsideView(cs.outside);
+        p.pitch = cs.pitch;
+        for (int i = 0; i < 90; ++i) {
+            b.setFlashClearance(cs.clear);
+            p.update(1.0 / 60.0, {}, flat);
+            b.update(1.0 / 60.0, p);
+        }
+        const anim::JointPose jp = game::playerJointPose(b, vec3{(float)p.x, (float)p.y, (float)p.z});
+        anim::Frames f;
+        anim::computeFrames(jp, f);
+        std::vector<mat4> pal(anim::kBoneCount);
+        for (int k = 0; k < anim::kBoneCount; ++k) pal[(size_t)k] = f[(size_t)k] * bindInv[(size_t)k];
+        std::vector<vec3> q(hood->v.size()), qn(hood->v.size());
+        for (size_t i = 0; i < hood->v.size(); ++i) {
+            const auto& v = hood->v[i];
+            dqs::skin(pal, v.bones, v.weights, v.pos, v.normal, q[i], qn[i]);
+        }
+        // Umgeklappte Dreiecke: die Flaeche zeigt gegen die Normalen ihrer Punkte - so sah man die Innenseite des
+        // Stoffs (die dunklen Zacken von B-001)
+        int flipped = 0, tris = 0;
+        for (size_t t = 0; t + 2 < hood->idx.size(); t += 3) {
+            const u32 a = hood->idx[t], c1 = hood->idx[t + 1], c2 = hood->idx[t + 2];
+            const vec3 n0 = cross(hood->v[c1].pos - hood->v[a].pos, hood->v[c2].pos - hood->v[a].pos);
+            if (length(n0) < 1e-6f) continue;
+            ++tris;
+            const vec3 n1 = cross(q[c1] - q[a], q[c2] - q[a]);
+            if (dot(n1, qn[a] + qn[c1] + qn[c2]) * (dot(n0, hood->v[a].normal + hood->v[c1].normal + hood->v[c2].normal) > 0.0f ? 1.0f : -1.0f) < 0.0f) {
+                ++flipped;
+                if (std::getenv("B001_DEBUG") && flipped % 4 == 1) {
+                    const vec3 cb = (hood->v[a].pos + hood->v[c1].pos + hood->v[c2].pos) * (1.0f / 3.0f);
+                    std::printf("    umgeklappt bei (%.3f %.3f %.3f) b%d w%d b%d w%d\n", cb.x, cb.y, cb.z, hood->v[a].bones[0], hood->v[a].weights[0],
+                                hood->v[a].bones[1], hood->v[a].weights[1]);
+                }
+            }
+        }
+        // Dehnung je Kante (nur Kanten ab 4 mm in Ruhe); "gerissen": laenger als das Dreifache
+        float worst = 0.0f;
+        int torn = 0, edges = 0;
+        for (size_t t = 0; t + 2 < hood->idx.size(); t += 3)
+            for (int e = 0; e < 3; ++e) {
+                const u32 i0 = hood->idx[t + e], i1 = hood->idx[t + (e + 1) % 3];
+                const float l0 = length(hood->v[i0].pos - hood->v[i1].pos);
+                if (l0 < 0.004f) continue;
+                const float st = length(q[i0] - q[i1]) / l0;
+                ++edges;
+                if (st > worst && std::getenv("B001_DEBUG")) {
+                    const auto& a = hood->v[i0];
+                    const auto& c = hood->v[i1];
+                    std::printf("    Kante %.2f: (%.3f %.3f %.3f) b%d/%d w%d/%d -> (%.3f %.3f %.3f) b%d/%d w%d/%d\n", st, a.pos.x, a.pos.y, a.pos.z,
+                                a.bones[0], a.bones[1], a.weights[0], a.weights[1], c.pos.x, c.pos.y, c.pos.z, c.bones[0], c.bones[1], c.weights[0], c.weights[1]);
+                }
+                worst = std::max(worst, st);
+                if (st > 3.0f) ++torn;
+            }
+        const float bendDeg = std::acos(std::clamp(dot(normalize(b.pose().elbow[0] - b.pose().shoulder[0]), normalize(b.pose().hand[0] - b.pose().elbow[0])), -1.0f, 1.0f)) * 57.3f;
+        std::printf("  %-18s Ellbogen %5.1f Grad gebeugt, staerkste Dehnung %.2f (ueber 3-fach: %d von %d Kanten), umgeklappt %d von %d Dreiecken\n",
+                    cs.name, bendDeg, worst, torn, edges, flipped, tris);
+        // von aussen sieht man alles: keine umgeklappte Flaeche, Dehnung hoechstens 3,5-fach; die Ego-Haltung (Arm hoch,
+        // Achsel nur im Ego-Bild verdeckt) darf in der Achsel staerker dehnen
+        // Grenzen: einzelne umgeklappte Dreiecke liegen in der Achsel (Stoff staucht sich zwischen Arm und Rumpf, verdeckt)
+        const int lim = cs.outside ? tris / 400 : tris / 100;
+        check(flipped <= lim, std::format("{}: umgeklappte Dreiecke {} (Grenze {})", cs.name, flipped, lim));
+        check(worst < (cs.outside ? 3.0f : 6.5f), std::format("{}: staerkste Dehnung {:.2f}", cs.name, worst));
+        worstAll = std::max(worstAll, cs.outside ? worst : 0.0f);
+        if (cs.outside)
+            check(b.pose().elbow[0].z < b.pose().shoulder[0].z - 0.12f,
+                  std::format("{}: von aussen haengt der Ellbogen unter der Schulter ({:.2f} m)", cs.name, b.pose().shoulder[0].z - b.pose().elbow[0].z));
+    }
+    (void)worstAll;
+}
+
 int main(int argc, char** argv) {
     if (argc < 2) {
         std::printf("Aufruf: gameplay_test <data-Ordner>\n");
@@ -2109,6 +2316,7 @@ int main(int argc, char** argv) {
     testV12Viewmodel(argv[1]);  // V12: Hand und Lampe aus Blender
     testV11SoundField();        // V11: Schallausbreitung
     testV12Glb(argv[1]);        // V12: Modelle aus Blender
+    testB001Sleeve(argv[1]);    // V13.2: Kapuzenjacke am gebeugten Ellbogen
     std::printf("%s: %d Pruefungen, %d Fehler\n", gFails ? "FEHLGESCHLAGEN" : "OK", gChecks, gFails);
     return gFails ? 1 : 0;
 }

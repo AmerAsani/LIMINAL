@@ -4,7 +4,7 @@ Stand 26.10.2026. Reihenfolge der Bearbeitung: Abstürze und Blocker zuerst, dan
 
 | Nr. | Bereich | Schwere | Befund | Stand |
 |---|---|---|---|---|
-| B-001 | Spielerfigur (Schulteransicht) | gering | Die Kapuzenjacke reißt am stark gebeugten Ellbogen auf (Skinning der Figur). Nur in der Schulteransicht (F5) sichtbar. | offen |
+| B-001 | Spielerfigur, Kapuzenjacke | mittel | Bei gebeugtem Arm (Lampe gehoben) riss der Ärmel am Ellbogen auf; von außen gesehen hing unter dem Arm ein Flügel aus Stoff mit gezacktem Rand, innen am hängenden Arm dunkle Zacken. Ursachen: (1) In der Ruhepose (Arm 24 Grad abgespreizt) verschmolzen Ärmel und Rumpf beim Vernetzen (Brust mit 7,5 cm Rundung) – Rumpffläche lag im Ärmel und riss beim Bewegen auf. (2) Lineares Mischen der Knochen ließ Punkte an Ellbogen und Schulter zusammenfallen und umklappen (Innenseite des Stoffs sichtbar). (3) Von außen hielt der Körper die Lampe wie im Ego-Bild (Hand unter dem Auge, Ellbogen über dem Kopf). | **behoben (V13.2)**: Ruhepose mit 54 Grad, Dual-Quaternion-Skinning für Menschen, eigene Lampenhaltung für die Ansicht von außen (Schulteransicht, Mitspieler), Arme im Stand 13 statt 7 Grad abgespreizt, Hose unter dem Saum schlanker. Nachweis im Abschnitt „B-001: Nachweis“. |
 | B-002 | Speicher beim Start | gering | Beim Laden stieg der Arbeitsspeicher kurz auf rund 3,1 GB (bei Texturgröße 2048: 11,1 GB). Ursache: alle 91 Texturebenen lagen mit Mip-Stufen unkomprimiert im Speicher, dazu Höhen und Normalen aller Ebenen als float und je Thread Zwischenpuffer; hochgeladen wurde erst am Ende. | **behoben (V13.2)**: Ebene für Ebene erzeugen, sofort komprimieren, über eine wiederverwendete Zwischenablage auf die GPU kopieren und freigeben; höchstens drei bis vier Ebenen gleichzeitig. Spitze 672–682 MB je Ebene (vorher 3 088–3 116 MB), bei 2048 px 1,25–1,31 GB (vorher 11,07 GB). Messung im Abschnitt „B-002: Messung“. |
 | B-003 | Starter (`LIMINAL.exe`) | Sicherheit, mittel | Die Signaturprüfung des heruntergeladenen Visual-C++-Pakets akzeptierte jede gültige Signatur, nicht nur die von Microsoft. Das Paket wird mit Administratorrechten ausgeführt. | **behoben** (E-023): Unterzeichner muss „Microsoft Corporation“ sein, Widerrufsprüfung der Kette. Nachweis `MULTIPLAYER_TESTS.md` Abschnitt 4. |
 | B-004 | Protokoll | gering | Bei jedem ersten Start zwölf Warnungen „JSON-Datei nicht gefunden“ für Dateien, die fehlen dürfen (ältere Einstellungsversionen, die absichtlich entfernte `world.json` der alten Welt). Echte Warnungen gingen darin unter. | **behoben**: `loadJsonFile(path, optional)` schweigt bei fehlenden optionalen Dateien. |
@@ -46,3 +46,26 @@ Texturgröße 2048 (Qualität 3), Level 0 und Level 5: Spitze vorher 11 074 / 11
 - **Bild unverändert:** Bildschirmfoto Level 1 vorher gegen nachher (gleicher Seed, feste Bildzeit): 231 von 1 440 000 Pixeln weichen um mehr als 4 Stufen ab, verstreut (schwebender Staub, zufällig je Lauf); mittlere Abweichung 0,04 Stufen.
 - **Zwischenschritt verworfen:** Ebenen einzeln mit `UpdateSubresource` hochladen senkte die Spitze, ließ aber im Spiel rund 350 MB mehr Arbeitsspeicher stehen (Hochladepuffer des Treibers). Deshalb eine eigene Zwischenablage (`D3D11_USAGE_STAGING`, zwei im Wechsel) und `CopySubresourceRegion`.
 - **Zeitverlauf** (Abtastung alle 50 ms, `mem_trace.ps1`): vorher Sprung auf rund 1 GB mit dem Anlegen der Ergebnisfelder, danach bis 3,1 GB; nachher gleichmäßig 500–700 MB während des Erzeugens.
+
+
+## B-001: Nachweis (V13.2)
+
+Test `gameplay_test` („Kapuzenjacke am gebeugten Ellbogen“). Er häutet die Jacke auf der CPU wie der Shader (Dual Quaternions) in sechs Haltungen und misst die Dehnung jeder Kante gegen die Ruhepose sowie die umgeklappten Dreiecke (Fläche zeigt gegen ihre Normalen; so wurde die Innenseite des Stoffs sichtbar). 7 662–7 684 Dreiecke.
+
+| Haltung | Ellbogen gebeugt | vorher: Dehnung / umgeklappt | Zwischenstand (37 Grad, lineares Mischen + Gewichtsregel) | nachher: Dehnung / umgeklappt |
+|---|---|---|---|---|
+| Ego geradeaus | 59 Grad | 15,9 / – (Flügel) | 6,4 / 45 | 3,4 / 1 |
+| Ego nach unten | 60 Grad | 13,7 / – | 5,7 / 39 | 2,7 / 0 |
+| Ego nach oben | 56 Grad | 15,9 / – | 7,0 / 45 | 3,6 / 10 |
+| Ego dicht an der Wand (stärkste Beugung) | 161 Grad | 15,2 / – | 6,6 / 92 | 3,4 / 48 |
+| außen geradeaus | 67 Grad | (Ellbogen über dem Kopf) | 4,1 / 41 | 2,0 / 1 |
+| außen nach unten | 78 Grad | – | 2,4 / 25 | 1,7 / 2 |
+
+„Vorher“: Stand V13 (Ruhepose 24 Grad, lineares Mischen, Ego-Haltung auch von außen); die umgeklappten Dreiecke wurden erst ab dem Zwischenstand gezählt. Die 48 umgeklappten Dreiecke bei 161 Grad liegen in der Ellbogenbeuge, wo der Unterarm auf dem Oberarm liegt (verdeckt); die übrigen in der Achsel. Grenzen im Test: von außen höchstens 0,25 % umgeklappt und Dehnung unter 3; Ego-Haltung höchstens 1 % und unter 6,5.
+
+Verworfener Weg: eine Gewichtsregel (Ärmelpunkte ab dem Deltamuskel ohne Rumpfanteil) beseitigte zuerst den Flügel, verschob aber die Faltung an die Schulternaht (mehr umgeklappte Dreiecke). Nach der weiteren Ruhepose war sie überflüssig und ist entfernt.
+
+Bilder (je 12 Richtungen, Kamera um den Spieler bzw. um die Hand), `docs/screens/b001/`:
+- `vorher_schulter_12_seiten.jpg` / `nachher_schulter_12_seiten.jpg` – Schulteransicht, Lampe gehoben
+- `nachher_egohaltung_von_aussen_12_seiten.jpg` – die Ego-Haltung (stärkere Beugung) von außen (Skriptbefehl `egopose 1`)
+- `vorher_ego_kamera_um_hand.jpg` / `nachher_ego_kamera_um_hand.jpg` – Kamera um die Hand (`vmcam`)

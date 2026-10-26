@@ -136,6 +136,7 @@ struct MeshDraw {
     float cullRadius = 0.0f;
     int material = -1;       // >= 0: statt der Materialien der Teile (das Trugbild)
     vec4 clip{0, 0, 0, 0};   // V13: Schnittkugel (w > 0: Pixel darin verwerfen)
+    bool dualQuat = false;   // V13.2 (B-001): Dual-Quaternion-Skinning (Bit 31 des Knochenversatzes im Shader)
 };
 
 struct RenderStats {

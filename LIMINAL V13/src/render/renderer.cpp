@@ -506,7 +506,7 @@ void Renderer::gbufferPass(const Frustum& frustum, vec3 camPos, const std::vecto
             oc.material = d.material >= 0 ? (u32)d.material : m.material;
             oc.highlight = d.highlight;
             oc.attached = d.attached ? 1.0f : (d.dynamic ? 1.0f / 3.0f : 0.0f);
-            oc.boneOffset = m.skinned ? (u32)d.bones * 3u : 0u;
+            oc.boneOffset = m.skinned ? ((u32)d.bones * 3u | (d.dualQuat ? 0x80000000u : 0u)) : 0u;
             oc.clip = d.clip;
             gpu_.update(objectCb_, &oc, sizeof(oc));
             UINT stride = m.skinned ? (UINT)sizeof(SkinVertex) : (UINT)sizeof(MeshVertex), offset = 0;

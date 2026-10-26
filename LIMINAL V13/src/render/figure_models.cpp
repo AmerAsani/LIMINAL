@@ -545,7 +545,9 @@ void shoes(Assembly& as, int lod, u32 mat, float bulk, bool sneaker) {
     }
 }
 
-void trousers(Assembly& as, int lod, u32 mat, float g, float hemZ, float waistUp, bool ragged, unsigned seed) {
+// coverZ: darueber liegt ein Oberteil (V13.2: dort ist die Hose 12 mm schlanker - sie stach sonst am Saum der Jacke
+// zackig heraus, Rauschen und Gewichte beider Teile verschieden)
+void trousers(Assembly& as, int lod, u32 mat, float g, float hemZ, float waistUp, bool ragged, unsigned seed, float coverZ = 1e9f) {
     Ctx& c = as.c;
     Shape s;
     // Becken und Beine
@@ -563,9 +565,10 @@ void trousers(Assembly& as, int lod, u32 mat, float g, float hemZ, float waistUp
         if (ragged) hem += 0.03f * sculpt::fbm3(vec3{p.x * 40.0f, p.y * 40.0f, 0.0f}, 2, seed) + 0.015f;
         return std::max(p.z - waistZ, hem - p.z);
     };
-    s.displace = [seed](vec3 p) {
+    s.displace = [seed, coverZ](vec3 p) {
+        const float under = std::clamp((p.z - (coverZ - 0.04f)) / 0.03f, 0.0f, 1.0f);  // positiv: nach innen
         return 0.0035f * sculpt::fbm3(vec3{p.x * 30.0f, p.y * 30.0f, p.z * 9.0f}, 3, seed) +
-               0.0015f * sculpt::fbm3(p * 70.0f, 2, seed + 5);
+               0.0015f * sculpt::fbm3(p * 70.0f, 2, seed + 5) + 0.012f * under * under * (3.0f - 2.0f * under);
     };
     as.m.lods[(size_t)lod].push_back(
         meshPart(c, s, kBodyH[lod], mat, kLegBones | bit(B_PELVIS) | bit(B_SPINE) | kFootBones, 0.4f));
@@ -659,7 +662,7 @@ void buildPlayer(Assembly& as) {
             };
         }
         parts.push_back(meshPart(c, hoodie, kBodyH[lod], FM_HOODIE, kTorsoBones | kArmBones, 0.4f));
-        trousers(as, lod, FM_JEANS, 0.014f, c.LJ(J_ANKLE_L, 0).z + 0.045f, 0.0f, false, 107);
+        trousers(as, lod, FM_JEANS, 0.014f, c.LJ(J_ANKLE_L, 0).z + 0.045f, 0.0f, false, 107, c.J(J_PELVIS).z - 0.02f);
         shoes(as, lod, FM_SNEAKER, 0.004f, true);
     }
 }

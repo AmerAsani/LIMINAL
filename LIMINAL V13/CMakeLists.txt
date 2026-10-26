@@ -136,7 +136,7 @@ set_target_properties(supply_balance_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "$
 
 # V6: Erkundungskarte, Sprung/Treppen und Koerperanimation ohne Grafik pruefen
 add_executable(gameplay_test tests/gameplay_test.cpp)
-target_link_libraries(gameplay_test PRIVATE lim_gameplay)
+target_link_libraries(gameplay_test PRIVATE lim_gameplay lim_render)  # V13.2: buildFigure (B-001)
 set_target_properties(gameplay_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
 
 # V6: Klangerzeugung und raeumliches Mischen (Richtung, Verdeckung, Nachhall, Pegel) ohne Audiogeraet

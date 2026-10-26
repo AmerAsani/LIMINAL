@@ -92,6 +92,10 @@ public:
     // V12: Hand im Faustgriff aus Blender zur Lampe zeichnen (nur realistischer Koerper; das Skelett blendet
     // seine eigene linke Hand dann aus)
     void setViewmodelHand(bool on, bool skinned = false) { vmHand_ = on, vmSkinned_ = skinned; }
+    // V13.2 (B-001): von aussen gesehen haelt der Koerper die Lampe vor der Brust (Ellbogen unten), nicht in der
+    // Haltung fuer das Ego-Bild (Hand knapp unter dem Auge, Ellbogen hoch)
+    void setOutsideView(bool outside) { outside_ = outside; }
+    bool outsideView() const { return outside_; }
     bool viewmodelHand() const { return vmHand_ && pr_.gripOut > 0.0f; }
     // V13: Geometrie der Hand im Rahmen der Lampe (aus dem Skelett, data/models/vm_hand_l.glb): Handgelenk, Richtung
     // des Unterarms (Ellbogen -> Handgelenk), Handrichtung (Handgelenk -> Knoechel), Handflaeche
@@ -160,6 +164,7 @@ private:
     std::string mFlash_ = "flashlight", mFlashLit_ = "flashlight_on";
     int idFlash_ = -2, idFlashLit_ = -2;
     bool vmHand_ = false;  // V12
+    bool outside_ = false;  // V13.2: von aussen gesehen (Schulteransicht, Mitspieler)
     bool vmSkinned_ = false, carry_ = false;  // V13
     double pressT_ = -1.0;
     vec3 vmWrist_{-0.0246f, -0.0633f, 0.0077f}, vmForearm_{0.8891f, 0.4574f, 0.0155f};  // V12-Werte, bis das Skelett sie setzt

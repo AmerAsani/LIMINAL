@@ -169,6 +169,7 @@ private:
         bool on = false;
         float az = 0, el = 0, dist = 2.0f, h = 0.6f, ahead = 0.0f;
     } figCam_;
+    bool egoPose_ = false;  // V13.2 (Tests): Ego-Lampenhaltung auch von aussen zeigen
     bool scriptFailed_ = false;
 };
 
