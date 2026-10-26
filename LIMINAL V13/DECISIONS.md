@@ -397,3 +397,31 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
 - **Death Rat:** Hausratte mit langem Körper (Modell 32 cm Rumpf und Kopf), schwarzes Fell, braune Hörner mit rot glühenden Spitzen; haarlos in Level 2 (Entity 24). Meist harmlos; „Reaktion unbekannt“ (Wiki) → **eigene Auslegung:** sie stieben davon, bedrängt beißt eine (6 Health). Das „Screaming Event“ (Ratten fallen über andere Wesen her, das Licht flackert, bis es vorbei ist) als Ereignis außer Sicht in Level 5. Die Fallen und die menschliche Klugheit der Level-3-Ratten (Ebenenseite) sind **nicht umgesetzt** (eigenes Fallensystem nötig).
 - **Fensterwesen:** in drei dunklen Fenstern (ohne Jalousie) im Erdgeschoss des Hofs von Level 188; einmal je Ebene gesetzt, bleiben dort (Wiki: bleiben, bis sie vergehen). Lockt mit Flüstern (Wiki: tröstend) und Handzeichen; unter 1,9 m vor der Öffnung fährt ein Arm heraus (Wiki: 1–2 m), nach 0,7 s zieht er hinein (tödlich) – wer sofort zurücktritt, entkommt. **Level 2** (Ebenenseite: Fensterwesen am Gangende) ist **nicht umgesetzt**: die Rohrgänge haben keine Fenster; ein eigenes Fenster an Gangenden wäre ein neues Ausstattungsstück (Rang 2 bleibt dafür offen).
 - **Regie:** je Wesen eine Gruppe zur Zeit, außer Sicht, 14–30 m Weg (weiter, wenn die erlaubten Räume weiter liegen), erster Auftritt nach 25–150 s; Abstand je Ebene (`every`) mal Schwierigkeit (`stalker_pause`). Schaden der Schläge mal `stalker_hit / 35`.
+
+## E-032 Koop: Verbindung ohne Router-Einstellungen über WebRTC-Datenkanäle (27.10.2026)
+- **Auftrag:** Jeder Spieler soll ohne Portfreigabe beitreten können. Keine eigene Kryptografie, kein eigenes Transportprotokoll, wenn es Bewährtes gibt. Recherche: `MULTIPLAYER_RECHERCHE.md`.
+- **Gewählt:**
+  - libdatachannel 0.24.6 (WebRTC-Datenkanäle) mit libjuice 1.7.4 (ICE, STUN, TURN), Mbed TLS 3.6.7 LTS (DTLS 1.2) und usrsctp (SCTP);
+  - dazu ein kleiner eigener Lobby-Server (Beitrittscodes, Signalisierung) mit dem STUN/TURN-Server aus libjuice.
+  - Alles Netz bleibt in `liminal_net.dll` und im Lobby-Programm.
+- **Warum:**
+  - NAT-Durchdringung mit automatischem Relay-Rückfall.
+  - Verschlüsselung (DTLS mit Vorwärtsgeheimnis) und Echtheit der Gegenstelle (Zertifikats-Fingerabdruck) macht die Bibliothek.
+  - Ohne Konto und ohne Kosten nutzbar; Relay und Lobby lassen sich selbst betreiben.
+  - Baut mit llvm-mingw. Selbst geprüft mit `tests/webrtc_smoke.cpp`: direkt, nur Relay, WebSocket.
+- **Verworfen:**
+  - Steam Networking Sockets und EOS: Konto, SDK nur mit Konto; Spieler bräuchten Steam bzw. ein Epic-Produkt. Die DLL-Schnittstelle lässt Steam später als zweiten Weg zu.
+  - GameNetworkingSockets (Open Source): ohne eigene Zertifizierungsstelle keine Authentisierung; dazu Protobuf mit Abseil und bekannte Linkprobleme mit LLVM.
+  - netcode/yojimbo: keine NAT-Durchdringung; Connect-Tokens brauchen ein eigenes Backend.
+  - Photon und PlayFab Party: Konto, laufende Kosten, aller Verkehr bei einem Dritten.
+  - ENet mit eigenem Handshake und AES (V13.2): eigene Kryptografie, keine NAT-Durchdringung. **ENet, der Handshake und die AES-Schicht sind entfernt.**
+- **Eigener Code bleibt klein:**
+  - die Lobby: Räume, Codes, Weiterreichen der Beschreibungen, Raten, Sperren – keine Kryptografie;
+  - eine Rahmung in der DLL: Hallo mit Version und Geheimteil des Codes, Ping für die Verbindungsqualität, Nutzdaten;
+  - Spielprotokoll, Autorität und Prüfung wie bisher.
+- **Bausteine statt eigener Kryptografie:**
+  - Der Beitrittscode besteht aus Raumnummer und Geheimteil. Die Lobby sieht nur die Raumnummer. Das Geheimteil prüft der Host erst im DTLS-Kanal (Passwortprüfung über einen authentisierten Kanal).
+  - Die lange Form des Codes enthält zusätzlich 60 Bit des Zertifikats-Fingerabdrucks des Hosts (Pinning). Der Gast prüft ihn, bevor er etwas sendet.
+  - Damit kann weder eine kompromittierte Lobby noch ein Angreifer im lokalen Netz den Host vortäuschen.
+- **Einstellungen am Bau von Mbed TLS** (`src/netdll/config/liminal_mbedtls_config.h`): DTLS-SRTP an (ohne baut libdatachannel nicht), Threads an (PSA-Zustand), Sockets aus.
+- **Quellen unverändert:** Fehlende Includes in libdatachannel (`std::transform` ohne `<algorithm>`) werden beim Bau über `-include algorithm` ergänzt, nicht im Quelltext.
