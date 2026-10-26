@@ -1,0 +1,8 @@
+# Build-Ausgaben und lokale Werkzeuge (werden von tools\*.ps1 erzeugt)
+/build/
+/Release/
+/.toolchain/
+*.dmp
+# Python-Zwischenstaende (Blender- und Level-Werkzeuge)
+__pycache__/
+*.pyc

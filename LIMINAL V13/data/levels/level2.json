@@ -1,0 +1,162 @@
+// LIMINAL V12 - Level 2: "Die Versorgungsgaenge" (LEVELSPEC_2.md, LOOK_2.md; Wikidot Level 2, Revision 93).
+//
+// Wartungstunnel im 10-m-Raster mit 45-Grad-Ecken, Maschinen und Rohren an den Waenden, verschlossenen Tueren,
+// Roehren in Reihenschaltung (ganze Gruppen tot) und violetten Notlichtern; Gleistunnel, Anlage, Packlager,
+// Bueroschleife, Leerraum. Karte data/maps/level2.json aus tools/levels/level2.py.
+// Stromkreise: 1 Gleis, 2 Tunnel, 3 Hallen, 4 Buerogang (fallen beim Flackern aus), 5 Raeume (bleiben hell).
+// Wesen nach Wiki: Smiler (an Dunkelheit gebunden), Clumps an Kreuzungen, Hounds.
+{
+  "id": "level2",
+  "name": "Level 2",
+  "title": "Die Versorgungsgänge",
+  "display_title": "Die Versorgungsgänge",
+  "generator": "map",
+  "map": "level2",
+  "presence_region": 1,
+  "presence": { "hound": true, "smiler": true, "gestalt": false, "blackout": true, "clump": 0.45 },
+  "next_level": "level3",
+  "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0 },
+
+  "zones": [
+    { "key": "beton", "fixture": "tube", "name": "Tunnel",
+      "wall": [0.70, 0.67, 0.62], "floor": [0.40, 0.39, 0.37], "ceil": [0.52, 0.50, 0.47],
+      "trim": [0.26, 0.25, 0.23], "lamp": [1.00, 0.98, 0.94], "fog": [0.022, 0.021, 0.019],
+      "fog_density": 0.045, "ambient": 0.045, "light_style": "authored",
+      "wall_pattern": "concrete", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.1,
+      "wall_tex": "concrete_chalky", "floor_tex": "concrete_floor", "ceil_tex": "concrete_cast", "damp_band": [0.0, 0.9, 0.7] },
+    { "key": "ziegel", "fixture": "tube", "name": "Ziegeltunnel",
+      "wall": [0.44, 0.40, 0.36], "floor": [0.38, 0.36, 0.33], "ceil": [0.46, 0.44, 0.41],
+      "trim": [0.26, 0.22, 0.18], "lamp": [1.00, 0.90, 0.78], "fog": [0.024, 0.019, 0.015],
+      "fog_density": 0.045, "ambient": 0.04, "light_style": "authored",
+      "wall_pattern": "bricks", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.1,
+      "wall_tex": "bricks_dirty_brown", "floor_tex": "concrete_floor", "ceil_tex": "concrete_cast", "damp_band": [0.0, 0.7, 0.68] },
+    { "key": "heiss", "fixture": "tube", "name": "Heiße Tunnel",
+      "wall": [0.62, 0.55, 0.47], "floor": [0.36, 0.33, 0.30], "ceil": [0.34, 0.31, 0.28],
+      "trim": [0.22, 0.18, 0.14], "lamp": [1.00, 0.72, 0.42], "fog": [0.060, 0.034, 0.016],
+      "fog_density": 0.075, "ambient": 0.05, "light_style": "authored",
+      "wall_pattern": "concrete", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.1,
+      "wall_tex": "concrete_wall_old", "floor_tex": "concrete_floor", "ceil_tex": "concrete_cast", "damp_band": [0.0, 1.6, 0.6] },
+    { "key": "gleis", "fixture": "tube", "name": "Gleistunnel",
+      "wall": [0.68, 0.66, 0.62], "floor": [0.40, 0.38, 0.36], "ceil": [0.48, 0.47, 0.45],
+      "trim": [0.26, 0.25, 0.23], "lamp": [1.00, 0.98, 0.94], "fog": [0.020, 0.019, 0.022],
+      "fog_density": 0.045, "ambient": 0.03, "light_style": "authored",
+      "wall_pattern": "concrete", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.1,
+      "wall_tex": "concrete_wall_old", "floor_tex": "concrete_floor", "ceil_tex": "concrete_cast", "damp_band": [0.0, 0.8, 0.72] },
+    { "key": "kammer", "fixture": "tube", "name": "Kammer",
+      "wall": [0.70, 0.67, 0.62], "floor": [0.42, 0.41, 0.39], "ceil": [0.55, 0.53, 0.50],
+      "trim": [0.26, 0.25, 0.23], "lamp": [1.00, 0.98, 0.94], "fog": [0.02, 0.02, 0.018],
+      "fog_density": 0.04, "ambient": 0.04, "light_style": "authored",
+      "wall_pattern": "concrete", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.1,
+      "wall_tex": "concrete_chalky", "floor_tex": "concrete_floor", "ceil_tex": "concrete_cast" },
+    { "key": "maschine", "fixture": "tube", "name": "Maschinenraum",
+      "wall": [0.66, 0.65, 0.62], "floor": [0.40, 0.40, 0.39], "ceil": [0.50, 0.50, 0.48],
+      "trim": [0.24, 0.24, 0.23], "lamp": [1.00, 0.98, 0.94], "fog": [0.02, 0.02, 0.02],
+      "fog_density": 0.045, "ambient": 0.035, "light_style": "authored",
+      "wall_pattern": "concrete", "floor_pattern": "grate", "ceil_pattern": "none", "door_height": 2.1,
+      "wall_tex": "concrete_wall_old", "ceil_tex": "concrete_cast" },
+    { "key": "anlage", "name": "Anlage",
+      "wall": [0.66, 0.65, 0.62], "floor": [0.44, 0.43, 0.41], "ceil": [0.50, 0.50, 0.48],
+      "trim": [0.24, 0.24, 0.23], "lamp": [1.00, 0.86, 0.66], "fog": [0.026, 0.024, 0.021],
+      "fog_density": 0.035, "ambient": 0.04, "light_style": "authored",
+      "wall_pattern": "concrete", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.4,
+      "wall_tex": "concrete_wall_old", "floor_tex": "concrete_floor", "ceil_tex": "concrete_cast", "damp_band": [0.0, 1.0, 0.72] },
+    { "key": "lager", "name": "Packlager",
+      "wall": [0.70, 0.69, 0.66], "floor": [0.46, 0.45, 0.43], "ceil": [0.52, 0.52, 0.50],
+      "trim": [0.24, 0.24, 0.23], "lamp": [1.00, 0.86, 0.66], "fog": [0.026, 0.024, 0.021],
+      "fog_density": 0.03, "ambient": 0.035, "light_style": "authored",
+      "wall_pattern": "concrete", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.4,
+      "wall_tex": "concrete_chalky", "floor_tex": "concrete_floor", "ceil_tex": "concrete_cast" },
+    { "key": "buero_flur", "fixture": "tube", "name": "Bürogang",
+      "wall": [0.80, 0.78, 0.72], "floor": [0.50, 0.50, 0.46], "ceil": [0.78, 0.77, 0.74],
+      "trim": [0.30, 0.29, 0.26], "lamp": [1.00, 0.98, 0.94], "fog": [0.02, 0.02, 0.018],
+      "fog_density": 0.03, "ambient": 0.05, "light_style": "authored",
+      "wall_pattern": "plain", "floor_pattern": "tiles", "ceil_pattern": "tiles", "baseboard": true, "door_height": 2.1,
+      "wall_tex": "plaster_white", "ceil_tex": "ceiling_office" },
+    { "key": "buero", "fixture": "tube", "name": "Büro",
+      "wall": [0.78, 0.76, 0.70], "floor": [0.48, 0.48, 0.44], "ceil": [0.78, 0.77, 0.74],
+      "trim": [0.30, 0.29, 0.26], "lamp": [1.00, 0.95, 0.85], "fog": [0.02, 0.02, 0.018],
+      "fog_density": 0.03, "ambient": 0.05, "light_style": "authored",
+      "wall_pattern": "plain", "floor_pattern": "tiles", "ceil_pattern": "tiles", "baseboard": true, "door_height": 2.1,
+      "wall_tex": "plaster_white", "ceil_tex": "ceiling_office" },
+    { "key": "leere", "name": "Leerraum",
+      "wall": [0.004, 0.004, 0.004], "floor": [0.004, 0.004, 0.004], "ceil": [0.004, 0.004, 0.004],
+      "trim": [0.004, 0.004, 0.004], "lamp": [0.0, 0.0, 0.0], "fog": [0.0, 0.0, 0.0],
+      "fog_density": 0.35, "ambient": 0.0, "light_style": "dark",
+      "wall_pattern": "plain", "floor_pattern": "none", "ceil_pattern": "none", "door_height": 2.1 },
+    { "key": "vorraum3", "fixture": "tube", "name": "Tür nach Level 3",
+      "wall": [0.62, 0.52, 0.42], "floor": [0.38, 0.36, 0.33], "ceil": [0.46, 0.44, 0.41],
+      "trim": [0.26, 0.22, 0.18], "lamp": [1.00, 0.98, 0.94], "fog": [0.024, 0.019, 0.015],
+      "fog_density": 0.05, "ambient": 0.04, "light_style": "authored",
+      "wall_pattern": "bricks", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.1,
+      "wall_tex": "bricks_dark_grey", "floor_tex": "concrete_floor", "ceil_tex": "concrete_cast" }
+  ],
+
+  "light_styles": {
+    "authored": { "extra": 0.25, "intensity": 0.75, "hum": 1 },
+    "dark":     { "extra": 0.0, "intensity": 0.0, "ambient": 0.0, "dark_fog": true }
+  },
+  "dark_fog": [0.0, 0.0, 0.0],
+
+  "room_types": [
+    { "key": "gleistunnel", "label": "Gleistunnel", "category": "corridor" },
+    { "key": "tunnel", "label": "Tunnel", "category": "corridor" },
+    { "key": "tunnel_heiss", "label": "Heißer Tunnel", "category": "corridor" },
+    { "key": "kammer", "label": "Kammer", "category": "normal" },
+    { "key": "maschinenraum", "label": "Maschinenraum", "category": "normal" },
+    { "key": "lagerraum", "label": "Lagerraum", "category": "normal" },
+    { "key": "anlage", "label": "Anlage", "category": "large" },
+    { "key": "packlager", "label": "Packlager", "category": "large" },
+    { "key": "bueroflur", "label": "Bürogang", "category": "corridor" },
+    { "key": "buero", "label": "Büro", "category": "normal" },
+    { "key": "leerraum", "label": "Leerraum", "category": "large" },
+    { "key": "vorraum", "label": "Vorraum", "category": "normal" }
+  ],
+  "corridor_types": ["tunnel"],
+  "endless_type": "tunnel",
+  "default_corridor_type": "tunnel",
+  "fallback_type": "kammer",
+  "supply_fallback_type": "kammer",
+  "spawn_preferred_types": ["gleistunnel"],
+  "supply_items": [ { "item": "almond", "weight": 0.5 }, { "item": "energy", "weight": 0.25 }, { "item": "battery", "weight": 0.25 } ],
+
+  // Wiki: Vorraete sind knapp. Wenige Funde in Kammern, Bueros und Tunneln
+  "spawn_rules": {
+    "item":    { "count": [6, 9], "spacing": 16, "table": { "almond": 0.45, "energy": 0.25, "battery": 0.3 }, "first_within": 60 },
+    "note":    { "count": [3, 4], "spacing": 30 },
+    "crate":   { "count": [0, 0] },
+    "deco":    { "chance": 0.6 },
+    "fusebox": { "count": [0, 0] }
+  },
+
+  // Klang (Wiki: leises Surren kaputter Maschinen, Rohre, die lecken oder platzen; der Leerraum ist still)
+  "audio": {
+    "beds": [
+      { "sound": "bed_l2_flow", "gain": 0.85, "not": ["leerraum"] },
+      { "sound": "bed_l2_warm", "gain": 0.8, "only": ["tunnel_heiss"] },
+      { "sound": "bed_l1_pipes", "gain": 0.4, "not": ["leerraum", "buero", "bueroflur"] }
+    ],
+    "spots": {
+      "pipes":   { "sound": "pipe_flow", "radius": 5, "gain": 0.35, "voices": 2 },
+      "machine": { "sound": "machine", "radius": 6, "gain": 0.35, "voices": 3 }
+    },
+    "events": [
+      { "sound": "pipe_knock", "every": [10, 30], "dist": [4, 25], "height": [2.3, 2.6], "gain": 0.6 },
+      { "sound": "pipe_groan", "every": [25, 70], "dist": [8, 35], "height": [2.3, 2.6], "gain": 0.6 },
+      { "sound": "steam_hiss", "every": [20, 60], "dist": [3, 18], "height": [2.0, 2.5], "gain": 0.5 },
+      { "sound": "dist_clank", "every": [40, 100], "dist": [20, 50], "gain": 0.65 }
+    ],
+    "acoustics": {
+      "tunnel":        { "t60": 1.2, "t60_low": 1.1, "t60_high": 0.7, "size": 0.8, "wet": 0.2, "early": 1.0, "absorption": 0.04 },
+      "tunnel_heiss":  { "t60": 1.2, "t60_low": 1.1, "t60_high": 0.6, "size": 0.8, "wet": 0.22, "early": 1.0, "absorption": 0.05 },
+      "gleistunnel":   { "t60": 1.6, "t60_low": 1.5, "t60_high": 0.8, "size": 1.0, "wet": 0.22, "early": 1.0, "absorption": 0.04 },
+      "maschinenraum": { "t60": 0.9, "t60_low": 1.0, "t60_high": 0.5, "size": 0.7, "wet": 0.16, "early": 0.8, "absorption": 0.05 },
+      "anlage":        { "t60": 2.6, "t60_low": 3.0, "t60_high": 1.1, "size": 2.3, "wet": 0.25, "early": 0.45, "absorption": 0.06 },
+      "packlager":     { "t60": 3.2, "t60_low": 3.6, "t60_high": 1.4, "size": 2.6, "wet": 0.3, "early": 0.4, "absorption": 0.04 },
+      "bueroflur":     { "t60": 0.7, "t60_low": 0.8, "t60_high": 0.35, "size": 0.7, "wet": 0.12, "early": 0.8, "absorption": 0.12 },
+      "buero":         { "t60": 0.5, "t60_low": 0.6, "t60_high": 0.25, "size": 0.6, "wet": 0.1, "early": 0.7, "absorption": 0.15 },
+      "leerraum":      { "t60": 0.15, "t60_low": 0.2, "t60_high": 0.08, "size": 0.4, "wet": 0.02, "early": 0.1, "absorption": 0.8 },
+      "default":       { "t60": 0.9, "t60_low": 1.0, "t60_high": 0.5, "size": 0.7, "wet": 0.16, "early": 0.8, "absorption": 0.06 }
+    },
+    "blackout": { "every": [120, 220], "duration": [20, 35], "wave": "breaker_far" }
+  }
+}

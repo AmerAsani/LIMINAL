@@ -1,0 +1,65 @@
+// LIMINAL V12 - Level 903: "The Metro" (LEVELSPEC_903.md, LOOK_903.md; Wikidot Level 903, Revision 60).
+//
+// Lange U-Bahn-Station: Mittelsteig aus grauen Ziegeln zwischen zwei Gleisen, lange duenne Leuchtstoffroehren,
+// Leuchtschilder in unbekannter Schrift, zugemauerte Treppen. Rechts ein ruhender Zug ueber die ganze Laenge (ein Wagen
+// bewohnt), links haelt ein fahrender Wagen; er nimmt Ziele an (vorn Level 37, hinten Level 36). Bewohnbar, keine
+// feindlichen Wesen. Karte data/maps/level903.json aus tools/levels/level903.py.
+{
+  "id": "level903",
+  "name": "Level 903",
+  "title": "Die Metro",
+  "display_title": "Die Metro",
+  "generator": "map",
+  "map": "level903",
+  "presence_region": 0,
+  "presence": { "hound": false, "smiler": false, "gestalt": false, "blackout": false },
+  "next_level": "level36",
+  "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0 },
+
+  "zones": [
+    { "key": "station", "name": "Station",
+      "wall": [0.86, 0.84, 0.78], "floor": [0.80, 0.80, 0.80], "ceil": [0.42, 0.42, 0.42],
+      "trim": [0.3, 0.3, 0.3], "lamp": [0.95, 1.00, 1.00], "fog": [0.020, 0.022, 0.024],
+      "fog_density": 0.03, "ambient": 0.05, "light_style": "authored",
+      "wall_pattern": "tiles", "floor_pattern": "none", "ceil_pattern": "none", "door_height": 2.2,
+      "wall_tex": "tiles_white", "floor_tex": "bricks_grey_black", "ceil_tex": "concrete_cast" }
+  ],
+
+  "light_styles": { "authored": { "extra": 0.2, "intensity": 0.8, "hum": 1 } },
+  "dark_fog": [0.01, 0.011, 0.012],
+
+  // Wiki: bewohnbar, keine Gefahren - hier beruhigt man sich ein wenig
+  "room_types": [
+    { "key": "station", "label": "Station", "category": "large", "sanity_drain": -0.1 }
+  ],
+  "corridor_types": ["station"],
+  "endless_type": "station",
+  "default_corridor_type": "station",
+  "fallback_type": "station",
+  "supply_fallback_type": "station",
+  "spawn_preferred_types": ["station"],
+  "supply_items": [ { "item": "almond", "weight": 0.6 }, { "item": "energy", "weight": 0.25 }, { "item": "battery", "weight": 0.15 } ],
+
+  "spawn_rules": {
+    "item":    { "count": [2, 3], "spacing": 4, "table": { "almond": 0.6, "energy": 0.25, "battery": 0.15 }, "first_within": 20 },
+    "note":    { "count": [1, 1], "spacing": 10 },
+    "crate":   { "count": [0, 0] },
+    "deco":    { "chance": 0.7 },
+    "fusebox": { "count": [0, 0] }
+  },
+
+  // Klang: Lueftung, Brummen der Roehren; selten ein ferner Wagen (eigene Ergaenzung: die Seite beschreibt keine Geraeusche)
+  "audio": {
+    "beds": [
+      { "sound": "bed_l1_vent", "gain": 0.55 }
+    ],
+    "spots": {},
+    "events": [
+      { "sound": "dist_rumble", "every": [60, 150], "dist": [30, 80], "height": [0.0, 1.0], "gain": 0.5 }
+    ],
+    "acoustics": {
+      "station": { "t60": 1.9, "t60_low": 2.1, "t60_high": 1.0, "size": 2.2, "wet": 0.24, "early": 0.6, "absorption": 0.06 },
+      "default": { "t60": 1.9, "t60_low": 2.1, "t60_high": 1.0, "size": 2.2, "wet": 0.24, "early": 0.6, "absorption": 0.06 }
+    }
+  }
+}
