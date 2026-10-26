@@ -87,9 +87,13 @@ Wiedereinstieg: diese Datei zuerst lesen, dann `DECISIONS.md`.
 - [x] **Alle zehn Level gebaut; Reiseprüfung grün (Tests 351/0).**
 - [x] Oberfläche V12 „Beschilderung“: Seitenleisten mit Streckenplan, Ankunftstafeln mit Wiki-Quelle, Abspann mit den Ebenen und Autoren, deutsche Begriffe, neue Hilfe. Geprüft bei fünf Auflösungen (`docs/screens/ui/`). Entscheidung E-018.
 
-## Als Nächstes
-1. `LICENSES.md` (Texturen, eigene Texturen, Schrift, Blender, Wikidot je Seite, offene Rechtsfragen), `MULTIPLAYER.md`, `REPORT.md`.
-2. Schlussprüfung: V10- und V11-Manifeste, alle Tests, Build.
+- [x] `LICENSES.md`, `MULTIPLAYER.md`, `REPORT.md`. Schlussprüfung: Tests grün (gameplay 351/0, audio 106/0, worldgen 29 658/0, supply OK); V10 unverändert (git), V11 unverändert (Manifest: 18 687 Dateien, 0 Abweichungen); Bildzeiten aller Ebenen gemessen (GPU 1,7–6,8 ms).
+
+## Als Nächstes (nach dem Auftrag, siehe `REPORT.md` Abschnitt 7)
+1. Vollständigen Durchlauf 0 → 36 spielen und abstimmen.
+2. Lizenzentscheidung, `OFL.txt` ins Paket, Markenrecherche.
+3. Wesen mit Skelett aus Blender (Hound zuerst), Fensterwesen, Facelings.
+4. Inventar, Karte, Notizblatt im Aufbau an die neue Oberfläche angleichen.
 
 ## Bekannte Fehler / offen
 - Einmalig hing in V11 ein Testlauf beim Start (Protokoll endete nach dem Laden der Level). In vier Wiederholungen nicht wieder aufgetreten. Ursache unbekannt; beobachten.
