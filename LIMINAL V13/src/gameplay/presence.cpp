@@ -514,6 +514,15 @@ void Presence::showcase(int kind, vec3 pos, float yaw, float walkSpeed) {
     agents_.push_back(std::move(a));
 }
 
+bool Presence::showcasePos(vec3& pos, float& yaw) const {
+    for (auto it = agents_.rbegin(); it != agents_.rend(); ++it)
+        if ((*it)->showcase) {
+            pos = (*it)->pos, yaw = (*it)->yaw;
+            return true;
+        }
+    return false;
+}
+
 void Presence::clearShowcase() {
     std::erase_if(agents_, [](const auto& a) { return a->showcase; });
 }

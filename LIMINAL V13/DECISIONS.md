@@ -310,3 +310,12 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
   - Folge: Das Licht kommt etwa 0,25 s nach dem Tastendruck statt sofort. Bewusst so (Lampe und Lichtkegel passen immer zusammen).
 - **Spielerfigur:** In der Ego- und Schulteransicht wird ein Netz ohne die linke Hand gezeichnet (`_nh1`). Das Ärmelende ist gerundet.
 - **Haut:** eigenes Material mit Durchscheinen (Licht-Shader, Glanzkanal des G-Buffers); Rötung an Knöcheln und Kuppen je Punkt.
+
+## E-021 Kreaturen neu gebaut statt nachgestellt (26.10.2026)
+- **Befund:** siehe `KREATUREN_ANALYSE.md`. Die Wesen waren Vereinigungen grober Grundkörper aus `render/entity_models.cpp`; kleine Parameteränderungen hätten am Verfahren nichts geändert (der Auftrag schließt sie ausdrücklich aus).
+- **Methode:** Formen in Blender als Distanzfeld aus Dutzenden anatomischer Teile (`tools/blender/creatures/`), Hautdetail als Verschiebung, Vernetzung mit OpenVDB, drei Stufen durch Reduzieren, Export als glb mit Skin.
+- **Skelett:** dieselben Knochen wie die prozedurale Bewegung des Spiels (`--dump-skeletons`). So bleiben Gang, Atmung und Zustandswechsel erhalten und treiben die neuen Körper an; die Bewegung wird je Wesen nachgeschärft.
+- **Nachweis:** Das Spiel schreibt je Wesen ins Protokoll, woher das Netz stammt (`Quelle Blender: ent_<name>_l0.glb (FNV …)` oder `Quelle prozedural`). Fehlt eine Stufe, fällt es auf den alten Bau zurück und meldet das.
+- **Abwägung gegen Sculpting von Hand:** Ohne Grafiktablett und ohne Sicht in Blender ist reproduzierbarer Code der verlässlichere Weg. Jede Form ist im Quelltext begründet und kann neu erzeugt werden.
+- **Smiler ohne Arme:** Die angedeuteten Arme der ersten Fassung lasen sich im Licht als Strichmännchen-Arme. Die Seite nennt sie nur als unbestätigtes Gerücht; der Körper bleibt deshalb eine formlose Masse.
+- **Neues Formteil `tube`:** Strecke mit ellipsenförmigem Querschnitt. Ketten aus einzelnen Ellipsoiden ergaben an Lippen und Maulspalt eine Perlenschnur.

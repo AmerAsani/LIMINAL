@@ -35,6 +35,7 @@ enum FixedMaterial : u32 {
     FM_ENT_CLUMP_A, FM_ENT_CLUMP_B, FM_ENT_CLUMP_C, FM_ENT_CLUMP_CORE,  // V11: Buendel - Hauttoene, Kern
     FM_FLASH_BEZEL, FM_FLASH_RUBBER, FM_FLASH_GLASS, FM_NAIL,  // V12: Viewmodel (Lampe aus Blender, Fingernaegel)
     FM_HAND_SKIN, FM_HAND_NAIL,  // V13: Hand mit Skelett (data/models/vm_hand_l.glb) - Haut mit Durchscheinen, Nagel
+    FM_ENT_DARKSKIN,             // V13: dunkle, feuchte Haut (Kopf des Smilers)
     FM_FIG_END,
 };
 static_assert(FM_FIG_END <= kFixedMaterials);

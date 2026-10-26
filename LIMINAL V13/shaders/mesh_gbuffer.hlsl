@@ -334,6 +334,9 @@ GBufferOut PSMain(VSOut i, bool front : SV_IsFrontFace)
     {
         GBufferOut g = shadeEntity(m, i.bindPos, i.bindN, N, i.uv);
         g.normal.w = gAttached;
+        // V13: Haut der Wesen laesst Licht eindringen (in Ritzen weniger)
+        if ((m.layers >> 30) & 1u)
+            g.misc.a = 1.0 - 0.7 * (1.0 - 0.6 * saturate(i.uv.x));
         return g;
     }
     if ((m.layers >> 25) & 1u)  // V10: Figuren (Haut, Stoff, Haar)

@@ -164,6 +164,11 @@ private:
         bool on = false;
         float az = 0, el = 0, dist = 0.5f;
     } vmCam_;
+    // V13 (Tests): Kamera um die zuletzt gezeigte Vorfuehrung (figure): Winkel relativ zu ihrer Blickrichtung, Abstand, Hoehe
+    struct FigCam {
+        bool on = false;
+        float az = 0, el = 0, dist = 2.0f, h = 0.6f, ahead = 0.0f;
+    } figCam_;
     bool scriptFailed_ = false;
 };
 

@@ -178,13 +178,16 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     // V10: die Entities - Farbe, Rauheit und Hoehe stecken in den Texturen; variation = Staub/Schmutz.
     // Leuchten (emissive > 0): Farbe = Textur x albedo, Staerke je Bild aus ObjectCB.highlight
     auto ent = [](u32 layer, u32 micro) { return layer | (micro << 8) | kMatFlagEntity; };
-    materialData_[FM_ENT_SKIN] = GpuMaterial{{1, 1, 1}, 0, ent(EL_SKIN, ML_PORES), 1.0f, 0, 0.3f};
+    materialData_[FM_ENT_SKIN] = GpuMaterial{{1, 1, 1}, 0, ent(EL_SKIN, ML_PORES) | kMatFlagSkin, 1.0f, 0, 0.3f};
+    // V13: Kopf des Smilers - fast schwarz, feucht glaenzend an den Wulsten, kaum Durchscheinen
+    materialData_[FM_ENT_DARKSKIN] = GpuMaterial{{0.045f, 0.040f, 0.042f}, 0, ent(EL_SKIN, ML_PORES), 0.55f, 0, 0.1f};
     materialData_[FM_ENT_HAIR] = GpuMaterial{{1, 1, 1}, 0, ent(EL_HAIR, ML_FIBER), 0.6f, 0, 0.12f};  // V11: nass, glaenzt
     materialData_[FM_ENT_HORN] = GpuMaterial{{1, 1, 1}, 0, ent(EL_HORN, ML_CRAZE), 1.0f, 0, 0.15f};
-    materialData_[FM_ENT_TOOTH] = GpuMaterial{{1, 1, 1}, 0, ent(EL_TOOTH, ML_CRAZE), 1.0f, 0, 0.0f};
-    materialData_[FM_ENT_MOUTH] = GpuMaterial{{0.62f, 0.34f, 0.32f}, 0, ent(EL_SKIN, ML_PORES), 0.55f, 0, 0.0f};
+    materialData_[FM_ENT_TOOTH] = GpuMaterial{{0.92f, 0.86f, 0.72f}, 0, ent(EL_TOOTH, ML_CRAZE), 1.0f, 0, 0.0f};  // V13: vergilbt
+    materialData_[FM_ENT_MOUTH] = GpuMaterial{{0.62f, 0.34f, 0.32f}, 0, ent(EL_SKIN, ML_PORES) | kMatFlagSkin, 0.55f, 0, 0.0f};
     // Hound: weisse Augen ohne Farbstoff, im Dunkeln von weitem zu sehen (Fandom) - ein schwacher Schein
-    materialData_[FM_ENT_EYESHINE] = GpuMaterial{{0.9f, 0.93f, 0.9f}, 1.6f, ent(EL_TOOTH, ML_PORES), 0.3f, 0, 0.0f};
+    // V13: nur ein schwacher Schimmer (Wikidot beschreibt die Augen nicht; das Haar verdeckt sie meist)
+    materialData_[FM_ENT_EYESHINE] = GpuMaterial{{0.55f, 0.57f, 0.52f}, 0.35f, ent(EL_TOOTH, ML_PORES), 0.15f, 0, 0.0f};
     // Smiler: Augen und Zaehne aus leuchtender Substanz (Fandom), weiss (Wikidot)
     // V11: die Zaehne leuchten schwach und ungleich (zwei Staerken), die Augen kalt weiss
     materialData_[FM_ENT_GLOW] = GpuMaterial{{1.0f, 0.99f, 0.94f}, 5.0f, ent(EL_TOOTH, ML_CRAZE), 0.6f, 0, 0.0f};
@@ -192,10 +195,10 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     materialData_[FM_ENT_GLOW_EYE] = GpuMaterial{{0.8f, 0.92f, 1.0f}, 7.5f, ent(EL_TOOTH, ML_PORES), 0.4f, 0, 0.0f};
     // V11: Buendel - Haut klebrig-feucht (wenig Rauheit), Arme in verschiedenen Hauttoenen (verschiedene
     // Menschen), der Kern in Blutergussfarben, wo alles verwachsen ist. Toenung x Hauttextur (grau-gelb)
-    materialData_[FM_ENT_CLUMP_A] = GpuMaterial{{1.9f, 1.55f, 1.45f}, 0, ent(EL_SKIN, ML_PORES), 0.42f, 0, 0.15f};
-    materialData_[FM_ENT_CLUMP_B] = GpuMaterial{{1.45f, 1.15f, 0.98f}, 0, ent(EL_SKIN, ML_PORES), 0.45f, 0, 0.15f};
-    materialData_[FM_ENT_CLUMP_C] = GpuMaterial{{0.9f, 0.66f, 0.56f}, 0, ent(EL_SKIN, ML_PORES), 0.45f, 0, 0.15f};
-    materialData_[FM_ENT_CLUMP_CORE] = GpuMaterial{{1.3f, 0.82f, 0.98f}, 0, ent(EL_SKIN, ML_PORES), 0.4f, 0, 0.2f};
+    materialData_[FM_ENT_CLUMP_A] = GpuMaterial{{1.9f, 1.55f, 1.45f}, 0, ent(EL_SKIN, ML_PORES) | kMatFlagSkin, 0.42f, 0, 0.15f};
+    materialData_[FM_ENT_CLUMP_B] = GpuMaterial{{1.45f, 1.15f, 0.98f}, 0, ent(EL_SKIN, ML_PORES) | kMatFlagSkin, 0.45f, 0, 0.15f};
+    materialData_[FM_ENT_CLUMP_C] = GpuMaterial{{0.9f, 0.66f, 0.56f}, 0, ent(EL_SKIN, ML_PORES) | kMatFlagSkin, 0.45f, 0, 0.15f};
+    materialData_[FM_ENT_CLUMP_CORE] = GpuMaterial{{1.3f, 0.82f, 0.98f}, 0, ent(EL_SKIN, ML_PORES) | kMatFlagSkin, 0.4f, 0, 0.2f};
     // Smiler-Koerper und die Gestalt: schwarz und matt wie ein Schatten, V11: mit rauchigem Rand. Metall = 1
     // macht auch den Glanz so dunkel wie die Farbe (f0 = Albedo statt 4 %) - die Lampe macht es nicht grau
     materialData_[FM_ENT_SHADOW] = GpuMaterial{{0.006f, 0.006f, 0.007f}, 0, tri(L_SKIN) | kMatFlagSmoke, 1.4f, 1.0f, 0.0f};

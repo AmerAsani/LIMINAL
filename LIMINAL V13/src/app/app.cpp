@@ -341,6 +341,11 @@ void App::scriptStep() {
             session_->stats().sanity = std::clamp(std::atof(arg.c_str()), 0.0, 100.0);
         } else if (cmd == "vmdebug" && session_) {  // V13 (Tests): Teile ausblenden (1 Hand, 2 Koerper, 4 Lampe)
             session_->debugDraw = std::atoi(arg.c_str());
+        } else if (cmd == "figcam") {  // V13 (Tests): figcam <az> <el> <abstand> [hoehe] [vor] | figcam off
+            float az = 0, el = 0, d = 2.0f, h = 0.6f, ahead = 0.0f;
+            if (arg == "off") figCam_.on = false;
+            else if (std::sscanf(arg.c_str(), "%f %f %f %f %f", &az, &el, &d, &h, &ahead) >= 3) figCam_ = {true, az, el, d, h, ahead};
+            resetHistory_ = true;
         } else if (cmd == "vmcam") {  // V13 (Tests): vmcam <az> <el> <abstand> | vmcam off - Kamera um die Hand
             float az = 0, el = 0, d = 0.5f;
             if (arg == "off") vmCam_.on = false;
@@ -1395,7 +1400,19 @@ void App::renderWorld(double dt, bool clean) {
             cam.pitch = vc.pitch;
             cam.roll = vc.roll;
             cam.fovY = fovY(vc.fovMul);
-            if (vmCam_.on && s.body().flashlightHeld()) {
+            vec3 fp;
+            float fyaw = 0.0f;
+            if (figCam_.on && s.presence().showcasePos(fp, fyaw)) {
+                // V13: um das Wesen, az = 0 vor ihm (in seiner Blickrichtung), Blick auf die Hoehe h
+                const vec3 tgt = fp + vec3{std::cos(fyaw) * figCam_.ahead, std::sin(fyaw) * figCam_.ahead, figCam_.h};
+                const float a = fyaw + figCam_.az * 0.0174533f, e = figCam_.el * 0.0174533f;
+                const vec3 d{std::cos(e) * std::cos(a), std::cos(e) * std::sin(a), std::sin(e)};
+                cam.pos = tgt + d * figCam_.dist;
+                cam.yaw = std::atan2(-d.y, -d.x);
+                cam.pitch = std::asin(std::clamp(-d.z, -1.0f, 1.0f));
+                cam.roll = 0.0f;
+                cam.fovY = fovY(1.0f) * 0.75f;
+            } else if (vmCam_.on && s.body().flashlightHeld()) {
                 // V13: im Rahmen der Lampe (x zum Glas, z oben, y links) um die Griffmitte, Blick auf sie
                 const vec3 x = s.body().flashlightDir(), z = s.body().flashUp(), y = cross(z, x);
                 const float a = vmCam_.az * 0.0174533f, e = vmCam_.el * 0.0174533f;

@@ -41,7 +41,7 @@ Quelle: [backrooms-wiki.wikidot.com/entity-3](https://backrooms-wiki.wikidot.com
 
 **Körper:**
 - Dunkle Masse, die sich nach unten verliert, als Rauch mit Rand.
-- Sie trägt Andeutungen langer, geknickter Glieder (die unbestätigten Gerüchte der Seite): im Licht schwach sichtbar, im Dunkeln unsichtbar.
+- ~~Andeutungen langer, geknickter Glieder~~ – in Runde 2 gestrichen (E-021): im Licht lasen sie sich als Strichmännchen-Arme. Statt dessen steigen dünne Rauchzungen aus dem Hinterkopf.
 - Kein vollständiger Körper, keine Beine.
 
 **Material:**
@@ -61,3 +61,19 @@ Quelle: [backrooms-wiki.wikidot.com/entity-3](https://backrooms-wiki.wikidot.com
 - Im Dunkeln: zwei ungleiche, leuchtende Augen und eine ungleichmäßige Zahnreihe – unheimlich, nicht lustig.
 - Im Lampenlicht: ein Schädel mit Maul, Lippen und Zahnfleisch erkennbar; der Körper als dunkle, zerfasernde Masse.
 - Aus der Nähe: Zähne einzeln, ungleich, mit Tiefe (zwei Reihen), keine flache Scheibe.
+
+## Kritikrunden (Spielkamera und Vorführkamera)
+
+Bilder: `docs/screens/creatures/smiler/` (vorher: `docs/screens/creatures/vorher/smiler_*`). „feste Kameras“ = dieselben Kameras wie vorher (nah, mittel, fern, Seite, bewegt, Lampe, dunkel); „nah“ = Vorführkamera (vorn, Kopf, Seite, hinten, oben, unten, Lauf, Lampe).
+
+| Runde | Befund | Änderung |
+|---|---|---|
+| 1 | Im Spiel sah der Smiler unverändert aus. Das Protokoll zeigte `Quelle prozedural`: Die neuen glb lagen nicht im Laufverzeichnis. | Bauskript kopiert die Daten nach jedem Export; Prüfung der Quelle im Protokoll vor jeder Bewertung. |
+| 2 | Erste echte Fassung wirkte wie ein Comic: glänzendes Ei als Kopf, riesige ovale Augen, dünner Lächel-Strich, Arme wie ein Strichmännchen. | Kopf aus Rauchmaterial, eigene nasse Lippen, Maul weiter geöffnet, größere Zähne, schmalere Augen, Arme gestrichen. |
+| 3 | Noch zu nah am bekannten Bild: Grinsen symmetrisch, Zähne zu regelmäßig. | Schiefe Mundlinie (links deutlich höher), Lücken (13 %), mehr lange Nadeln, Zähne stärker geneigt. |
+| 4 | Augen als flache ovale Scheiben; Zahnfleisch als Perlenschnur; Maulspalt mit Zacken; eine Rauchzunge neben dem Kopf las sich als Ohr oder erhobene Hand. | Formteil `tube` für Lippen, Zahnfleisch und Spalt; Mandelaugen mit spitzen Winkeln; Lippen laufen zu den Winkeln aus; Zungen dünner; Hinterkopf mit groben Beulen. |
+| 5 | Im Dunkeln und im Lampenlicht stimmig: ungleiche Mandelaugen, nasses Zahnfleisch, zwei Reihen ungleicher Zähne. Abgenommen. | – |
+
+**Bleibt offen:**
+- Im hellen Licht ist der Kopf von hinten noch recht rund.
+- Aus manchen Winkeln liest sich eine Rauchzunge kurz als erhobene Hand. Im Dunkeln, wo der Smiler lebt, ist das nicht zu sehen.

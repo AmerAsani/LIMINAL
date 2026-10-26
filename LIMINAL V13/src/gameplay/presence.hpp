@@ -140,6 +140,7 @@ public:
     // kind 0..5: die Entities (anim::Entity), 6: Mensch (der Spieler)
     void showcase(int kind, vec3 pos, float yaw, float walkSpeed = 0.0f);
     void clearShowcase();  // V13 (Tests): alle Vorfuehrungen entfernen
+    bool showcasePos(vec3& pos, float& yaw) const;  // V13 (Tests): Lage der zuletzt gezeigten Vorfuehrung
 
 private:
     struct Agent;

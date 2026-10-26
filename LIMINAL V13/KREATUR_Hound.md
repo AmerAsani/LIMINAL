@@ -67,3 +67,18 @@ Quelle: [backrooms-wiki.wikidot.com/entity-8](https://backrooms-wiki.wikidot.com
 - Gelenke knotig; Hände mit Krallen, die den Boden berühren; Füße auf den Ballen.
 - Haar deckt das Gesicht, im Lampenlicht nass glänzend.
 - In Bewegung: keine Durchdringungen, keine Knicke an Schultern und Hüfte.
+
+## Kritikrunden (Spielkamera und Vorführkamera)
+
+Bilder: `docs/screens/creatures/hound/` (vorher: `docs/screens/creatures/vorher/hound_*`).
+
+| Runde | Befund | Änderung |
+|---|---|---|
+| 1 | Im Spiel fast schwarz; Konturen mit Stufen; Rippenmuster flimmerte. | Umlaufsinn aus OpenVDB umgedreht (die Höhlung war überall 1); Toleranz beim Übertragen ins VDB-Gitter auf 1e-6 (Stufen); Frequenzen der Verschiebung unter die Gittergrenze. |
+| 2 | Gesicht zu lang, Maulspalt zu schmal; Hände wie Paddel; Haar auch über den ganzen Rücken (die Seite nennt Haar nur am Kopf). | Kürzeres Gesicht, Maul bis unter die Wangen, Zähne auf einem Bogen; Hände mit Mittelhandgraten und gebogenen Fingern mit Krallen; Rückenhaar nur noch den Nacken hinab. |
+| 3 | Strähnen zu gleichmäßig; Zähne weiß und gleich; Oberschenkel zu dünn; Augenschimmer zu hell. | 22 Strähnen je Bündel; Zähne ungleich und vergilbt; Oberschenkel kräftiger; Augenschimmer gedämpft. |
+| 4 | Strähnen dick wie Seile (1,7 cm). | 34 dünnere Strähnen je Bündel (Grund 1,1 cm, zur Spitze auslaufend); Haarnetz 1,6 mm. |
+| 5 | Das freie Auge las sich als Glubschauge. | Auge kleiner und tiefer, schweres Ober- und Unterlid über der halben Iris. |
+| 6 | Mensch auf allen vieren, abgemagert, Räude, nasse Strähnen vor dem Gesicht, halb geschlossene Augen. Abgenommen. | – |
+
+**Bleibt offen:** Aus der Nähe wirkt die vordere Zahnreihe noch etwas wie ein Gebiss.
