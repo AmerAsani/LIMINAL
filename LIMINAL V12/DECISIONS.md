@@ -115,3 +115,16 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
 - **Tests:** Die V11-Tests der Begegnungen (Smiler, Treffer, Sicherungspunkt) laufen jetzt in der Halle Aquila.
   - Statt der Autos und des Bodenlochs wird geprüft: Regal, Kisten und Säule haben Kollision.
   - Kisten auf Kisten gelten als gehalten.
+
+## E-010 Level 2 (26.10.2026)
+- **Quelle:** Wikidot „Level 2“, Revision 93 (`LEVELSPEC_2.md`), Bild in `LOOK_2.md`. Drei QA-Runden (`docs/screens/level2/`).
+- **Neu statt V11:** Die V11-Gänge waren leere, rote Klinkergänge. Neu:
+  - ein Tunnelnetz im 10-m-Raster (Wiki: Längen in Vielfachen von 5 m), an dem Wände entlang Maschinen und Rohrbündel stehen, meist an einer Seite;
+  - verschlossene Türen in den Arten der Seite;
+  - Röhren in Gruppen, von denen ganze Gruppen tot sind (Reihenschaltung);
+  - violette Notlichter, ein Gleistunnel mit verrottender Schmalspur und entgleistem Wagen (B.N.T.G.);
+  - Anlage, leeres Packlager, Bürogang als Schleife, Leerraum;
+  - eine Stahltür mit „3“ nach Level 3.
+- **45-Grad-Knicke:** In der Kachelwelt nicht als echte Diagonale möglich. An 28 Knicken schrägt ein Modell die Außenecke ab; Kollision passend (Ecke gesperrt). Siehe `LEVELSPEC_2.md` Abschnitt 2.
+- **Clumps:** lauern in Deckenschächten an Kreuzungen (Wiki: Ecken und Kreuzungen), auch dort, wo das Netz in den Gleistunnel mündet.
+- **Fehler gefunden und behoben:** Die Ziffer „3“ wirkte in Runde 1 gespiegelt. Tatsächlich war sie eine korrekte Segmentziffer; die Korrektur in Runde 2 spiegelte sie wirklich. In Runde 3 ist sie zurückgenommen und der Mittelstrich gekürzt, damit sie eindeutig als 3 lesbar ist.

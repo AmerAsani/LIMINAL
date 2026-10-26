@@ -30,6 +30,13 @@ Wiedereinstieg: diese Datei zuerst lesen, dann `DECISIONS.md`.
   - Drei QA-Runden, Bilder in `docs/screens/level1/`.
   - Platzierung: 1451 Objekte, 0 ohne Halt; Tests 357/0. Entscheidung E-009.
 
+- [x] Level 2 „Die Versorgungsgänge“:
+  - `LEVELSPEC_2.md`, `LOOK_2.md`.
+  - Tunnelnetz mit Maschinen, Rohren und verschlossenen Türen; Röhrengruppen in Reihenschaltung, violette Notlichter.
+  - Gleistunnel, Anlage, Packlager, Bürogang als Schleife, Leerraum, Tür nach Level 3.
+  - 28 Blender-Modelle; drei QA-Runden, Bilder in `docs/screens/level2/`.
+  - Platzierung 0 ohne Halt; Tests 354/0. Entscheidung E-010.
+
 ## Als Nächstes
 1. Wesen-Pipeline (gestellte oder gerigte Modelle aus Blender); zuerst die dunkle Gestalt von Level 0.
 2. Level der Reihe nach (1, 2, 3, 5, 5.3, 188, 903, 37, 36): Spec → Look → Bau → Platzierung → Items → Wesen → Klang → Qualitätsschleife → Commit.
