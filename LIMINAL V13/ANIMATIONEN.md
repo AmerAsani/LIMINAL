@@ -93,3 +93,21 @@ Die Gestalt verändert sich nie, solange man sie ansieht (Level 0: unbestätigte
 | 2 | Wahrnehmen erkennbar, aber der Hals geht nach hinten (Hohlkreuz statt Vorbeugen) | Kopf nach vorn |
 | 3 | Lauernd vorgebeugt, aber eine Hand ragt hinter der Hüfte heraus (Arme ohne eigene Knochen drehen mit) | Verschieben statt Drehen |
 | 4 | Vorgebeugt, Arme hängen, nur eine leichte Wölbung an der Hüfte. Abgenommen. | – |
+
+## Deathmoth
+
+| Zustand | Bewegung | Wiki-Bezug |
+|---|---|---|
+| Fliegen / Schweben | zwei Flügelpaare, das hintere später; Körper wippt gegen den Schlag, legt sich in Kurven | – |
+| Sitzen | Flügel flach, Vorderflügel über den Hinterflügeln; ab und zu öffnen sie sich langsam; Hinterleib atmet; Fühler tasten | Weibchen bleiben in den Nestern |
+| Aufwärmen | Flügel halb gehoben, deutliches Zittern (vorher 0,13 rad, im Bild nicht zu sehen) | – |
+| Wahrnehmen | Fühler zeigen nach vorn zum Reiz, die Flügel heben sich etwas. Im Spiel: sitzend, wenn man näher als 5,5 m kommt. | – |
+| Licht | Nase zur Lampe, schnellerer Schlag, Fühler vor, unruhiges Zucken hin und her | „helles Licht zieht sie an“ (Entity 4) |
+| Stich | Sturz mit der Nase voran, Flügel flacher und nach hinten gelegt, Beine vorgestreckt, Hinterleib unter den Leib gekrümmt | Weibchen jagen in Schwärmen |
+
+| Runde | Befund | Änderung |
+|---|---|---|
+| 0 (vorher) | Flug gut; Aufwärmen kaum sichtbar; Wahrnehmen wie Sitzen; Licht und Stich wie Schweben | – |
+| 1 | Alle Zustände unterscheidbar (Ausschnitte `moth_r1_detail`) | Zucken am Licht; Flügel im Sturz nach hinten |
+| 2 | Licht: hoher, schneller Schlag; Stich wie ein Wespenstoß | Gesamtprüfung |
+| 3 | Sieben Zustände eindeutig, keine Durchdringung von Flügeln und Leib. Abgenommen. | – |

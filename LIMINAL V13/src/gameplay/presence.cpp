@@ -931,6 +931,12 @@ void Presence::thinkMoth(Agent& a, double dt, const Context& c, std::vector<Even
     a.stateT += dt;
     a.cool -= dt;
     a.shiver = 0.0f;
+    // V13.2: Bewegung - sitzend nimmt sie dich wahr (Fuehler vor), fliegend zieht die Lampe sie an, beim Zustossen Sturzflug
+    a.reach = 0.0f;
+    a.perceive = hdist(a.pos, eye) < 5.5f ? 1.0f : 0.0f;
+    a.perceiveAt = eye;
+    a.light = c.view.flashOn && hdist(a.pos, eye) < 8.0f ? 1.0f : 0.0f;
+    a.lightFrom = c.view.flashPos;
     auto openAt = [&](vec3 p) {
         const world::Tile* t = c.world->tileIfLoaded(ifloor(p.x), ifloor(p.y));
         return t && t->open() && t->clearance() > 0.6f;
@@ -976,6 +982,7 @@ void Presence::thinkMoth(Agent& a, double dt, const Context& c, std::vector<Even
             vec3 tgt = hive_.hasTarget ? hive_.target : hive_.nest + vec3{0, 0, 1.6f};
             tgt = steer(tgt, hive_.hasTarget && c.view.flashOn ? playerField_ : hive_.home);
             if (a.state == 3) {  // stoesst zu
+                a.reach = 1.0f;
                 tgt = eye - vec3{0, 0, 0.25f};
                 const vec3 to = tgt - a.pos;
                 const float dl = length(to);

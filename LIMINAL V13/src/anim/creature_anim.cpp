@@ -894,10 +894,17 @@ void CreatureAnimator::updateMoth(float dt, const Input& in) {
     if (!chainInit_) fly_ = in.fly, flyV_ = 0.0f;
     spring(fly_, flyV_, in.fly, 4.0f, dt);
     fly_ = std::clamp(fly_, 0.0f, 1.0f);
+    // V13.2: wahrnehmen (Fuehler vor, Fluegel heben sich), Licht (zieht an: Nase zur Lampe, schnellerer Schlag),
+    // Stich (Sturz mit der Nase voran, Beine vor, Hinterleib unter den Leib gekrummt)
+    spring(perc_, percV_, in.perceive, 3.0f, dt);
+    spring(light_, lightV_, in.light, 3.0f, dt);
+    spring(reach_, reachV_, in.reach, 6.0f, dt);
     // Ausrichtung: im Flug Nase in Flugrichtung (steigt sie, hebt sich die Nase), Querneigung in
     // Kurven; sitzend auf der Flaeche (in.up)
     vec3 fwd = length(in.fwd) > 0.1f ? normalize(in.fwd) : dirYaw(yaw_);
     if (fly_ > 0.01f) fwd = safeNorm(fwd + U * (std::clamp(vel_.z * 0.5f, -0.5f, 0.5f) * fly_), fwd);
+    if (light_ > 0.01f && fly_ > 0.3f) fwd = safeNorm(fwd + (safeNorm(in.lightFrom - pos_, fwd) - fwd) * (0.8f * light_), fwd);
+    if (reach_ > 0.01f) fwd = safeNorm(fwd - U * (0.9f * reach_), fwd);
     const vec3 upFly = rotateAround(U, safeNorm(vec3{fwd.x, fwd.y, 0.0f}, {1, 0, 0}), bank_);
     const vec3 upWant = safeNorm(lerp(safeNorm(in.up, U), upFly, fly_), U);
     if (!chainInit_) bodyUp_ = upWant, bodyUpV_ = {};
@@ -908,25 +915,34 @@ void CreatureAnimator::updateMoth(float dt, const Input& in) {
     bodyFwd_ = Fw;
     const M3 Mb{Fw, Lw, bodyUp_};
     // Fluegelschlag: ~9 Hz; das hintere Paar spaeter und schwaecher; sitzend flach an der Flaeche
-    flap_ += dt * (8.5f + 1.5f * fly_);
+    flap_ += dt * (8.5f + 1.5f * fly_ + 4.0f * light_ + 3.0f * reach_);
     flap_ -= std::floor(flap_);
     flapAmp_ = fly_;
     shiverPh_ += dt * 27.0f;
     shiverPh_ -= std::floor(shiverPh_);
     const float ph = kTau * flap_;
     const float restA = -0.2f;
-    const float shiver = std::clamp(in.shiver, 0.0f, 1.0f) * 0.13f * std::sin(kTau * shiverPh_);
-    const float aF = restA + (0.32f + 0.85f * std::sin(ph) - restA) * fly_ + shiver;
-    const float aH = restA + (0.26f + 0.72f * std::sin(ph - 0.65f) - restA) * fly_ + shiver * 0.8f;
+    // Aufwaermen: deutliches Zittern mit halb gehobenen Fluegeln (vorher 0,13 rad, im Bild kaum zu sehen)
+    const float shivW = std::clamp(in.shiver, 0.0f, 1.0f);
+    const float shiver = shivW * (0.24f * std::sin(kTau * shiverPh_) + 0.22f);
+    // sitzend oeffnen sich die Fluegel ab und zu langsam (wie ruhende Motten), wahrnehmend heben sie sich
+    const float restOpen = (1.0f - fly_) * (0.3f * std::pow(std::max(0.0f, std::sin(time_ * 0.7f + 1.0f)), 6.0f) + 0.25f * perc_);
+    // im Sturz (Stich) schlagen die Fluegel flacher und legen sich nach hinten
+    const float dive = 1.0f - 0.55f * reach_;
+    const float aF = restA + (0.32f + 0.85f * std::sin(ph) * dive - restA) * fly_ + shiver + restOpen;
+    const float aH = restA + (0.26f + 0.72f * std::sin(ph - 0.65f) * dive - restA) * fly_ + shiver * 0.8f + restOpen * 0.8f;
     // sitzend schieben sich die Vorderfluegel nach hinten ueber die Hinterfluegel
-    const float sweepF = fly_ * 0.22f * std::cos(ph) + (1.0f - fly_) * 0.38f, sweepH = fly_ * 0.16f * std::cos(ph - 0.65f) + (1.0f - fly_) * 0.1f;
+    const float sweepF = fly_ * 0.22f * std::cos(ph) + (1.0f - fly_) * 0.38f + 0.35f * reach_,
+                sweepH = fly_ * 0.16f * std::cos(ph - 0.65f) + (1.0f - fly_) * 0.1f + 0.2f * reach_;
     const float bob = -0.007f * std::sin(ph) * fly_;
-    auto W = [&](vec3 l) { return pos_ + Mb * l + bodyUp_ * bob; };
+    // V13.2: am Licht zuckt sie unruhig hin und her (Motten taumeln um Lampen)
+    const vec3 jit = (Lw * std::sin(time_ * 13.0f) + bodyUp_ * std::sin(time_ * 17.0f + 1.0f)) * (0.018f * light_ * fly_);
+    auto W = [&](vec3 l) { return pos_ + Mb * l + bodyUp_ * bob + jit; };
     J[ROOT] = W(B[ROOT]);
     J[HEAD] = W(B[HEAD]);
     J[PROB] = W(B[PROB]);
     // Hinterleib: im Flug pendelt er mit dem Schlag, sitzend atmet er
-    const float curlA = fly_ * (0.1f * std::sin(ph + 1.0f) + 0.08f) + (1.0f - fly_) * 0.03f * std::sin(time_ * 1.7f);
+    const float curlA = fly_ * (0.1f * std::sin(ph + 1.0f) + 0.08f) + (1.0f - fly_) * 0.03f * std::sin(time_ * 1.7f) + 0.5f * reach_;
     J[ABD0] = W(B[ABD0]);
     const M3 r1 = axisAngle({0, 1, 0}, -curlA), r2 = r1 * r1, r3 = r2 * r1;
     J[ABD1] = J[ABD0] + Mb * (r1 * (B[ABD1] - B[ABD0]));
@@ -945,7 +961,9 @@ void CreatureAnimator::updateMoth(float dt, const Input& in) {
         spring(ant_[s], antV_[s], antTg_[s], 9.0f, dt);
         const int b = s == 0 ? ANTB_L : ANTB_R, t = s == 0 ? ANTT_L : ANTT_R;
         J[b] = W(B[b]);
-        const vec3 v = rotateAround(B[t] - B[b], {0, s == 0 ? 1.0f : -1.0f, 0}, ant_[s] + fly_ * 0.45f);
+        // wahrnehmend und im Licht zeigen die Fuehler nach vorn (nicht im Flug nach hinten gelegt)
+        const float fwdAnt = std::max(perc_, light_);
+        const vec3 v = rotateAround(B[t] - B[b], {0, s == 0 ? 1.0f : -1.0f, 0}, (ant_[s] + fly_ * 0.45f) * (1.0f - fwdAnt) - 0.35f * fwdAnt);
         J[t] = J[b] + Mb * v;
     }
     // Fluegel: Platten, die um die Laengsachse schlagen und dabei vor und zurueck schwingen
@@ -969,7 +987,10 @@ void CreatureAnimator::updateMoth(float dt, const Input& in) {
         const vec3 tuck[3] = {base + vec3{fx * 0.5f, sg * 0.016f, -0.004f}, base + vec3{fx * 0.25f - 0.012f, sg * 0.011f, -0.017f},
                               base + vec3{-0.016f, sg * 0.005f, -0.021f}};
         J[legJ(l, 0)] = W(base);
-        for (int i = 1; i < 4; ++i) J[legJ(l, i)] = W(lerp(B[legJ(l, i)], tuck[i - 1], fly_));
+        // Stich: die Beine strecken sich vor und unter den Kopf (greifen)
+        const vec3 strike[3] = {base + vec3{0.012f, sg * 0.012f, -0.012f}, base + vec3{0.026f, sg * 0.01f, -0.026f},
+                                base + vec3{0.04f, sg * 0.006f, -0.034f}};
+        for (int i = 1; i < 4; ++i) J[legJ(l, i)] = W(lerp(lerp(B[legJ(l, i)], tuck[i - 1], fly_), strike[i - 1], reach_));
     }
     // Knochen-oben: alles im Koerperrahmen (sie sitzt auch an Waenden und Decken)
     for (size_t b = 0; b < sk_->bones.size(); ++b) pose_.up[b] = Mb * sk_->bindUp[b];
