@@ -1,0 +1,70 @@
+// LIMINAL V11 - Level 19: "Der Dachboden" (LEVEL_SELECTION.md Abschnitt 3.9), Nebenweg.
+//
+// Unter einem Satteldach: in der Mitte hoch, zu den Traufen stufenweise niedriger. Dielen, Sparren,
+// rosa Daemmwolle, alte Moebel, Kisten mit Essbarem. Licht nur als warmes Gluehen durch Spalten im
+// Boden; dort erholt sich der Verstand. Ankunft durch das Bodenloch aus Level 1, Ausgang durch eine
+// beschaedigte Tuer ins Hotel (Level 5). Keine Entity.
+// Feste Karte: data/maps/level19.json (Entwurf tools/levels/level19.py).
+{
+  "id": "level19",
+  "name": "Level 19",
+  "title": "Der Dachboden",
+  "display_title": "Der Dachboden",
+  "generator": "map",
+  "map": "level19",
+  "presence_region": 0,
+  "presence": { "hound": false, "smiler": false, "gestalt": false, "blackout": false },
+  "next_level": "level5",
+  "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0 },
+
+  "zones": [
+    { "key": "dachboden", "name": "Dachboden",
+      "wall": [0.50, 0.44, 0.37], "floor": [0.50, 0.41, 0.31], "ceil": [0.40, 0.34, 0.27],
+      "trim": [0.30, 0.22, 0.14], "lamp": [1.00, 0.62, 0.32], "fog": [0.03, 0.022, 0.014],
+      "fog_density": 0.06, "ambient": 0.035, "light_style": "authored",
+      "wall_pattern": "boards", "floor_pattern": "planks", "ceil_pattern": "planks", "door_height": 1.9 }
+  ],
+  "light_styles": {
+    "authored": { "extra": 0.2, "intensity": 0.8, "hum": 0 }
+  },
+  "dark_fog": [0.02, 0.012, 0.006],
+  "room_types": [
+    { "key": "dachraum", "label": "Dachraum", "category": "normal" },
+    { "key": "dachkammer", "label": "Dachkammer", "category": "normal" },
+    { "key": "glutraum", "label": "Raum mit Glut", "category": "normal", "sanity_drain": -0.5 }
+  ],
+  "corridor_types": ["dachkammer"],
+  "endless_type": "dachkammer",
+  "default_corridor_type": "dachkammer",
+  "fallback_type": "dachraum",
+  "supply_fallback_type": "dachraum",
+  "spawn_preferred_types": ["glutraum"],
+  "supply_items": [ { "item": "almond", "weight": 0.4 }, { "item": "energy", "weight": 0.6 } ],
+  "spawn_rules": {
+    "item":    { "count": [8, 12], "spacing": 10, "table": { "almond": 0.4, "energy": 0.45, "battery": 0.15 }, "first_within": 30 },
+    "note":    { "count": [2, 3], "spacing": 25 },
+    "crate":   { "count": [5, 8], "spacing": 10 },
+    "deco":    { "chance": 0.7 },
+    "fusebox": { "count": [0, 0] }
+  },
+  "audio": {
+    "beds": [
+      { "sound": "bed_l19_wind", "gain": 0.8 },
+      { "sound": "bed_l19_glow", "gain": 0.5, "only": ["glutraum"] }
+    ],
+    "spots": {
+      "glow": { "sound": "bed_l19_glow", "radius": 6, "gain": 0.5, "voices": 3 }
+    },
+    "events": [
+      { "sound": "wood_creak", "every": [8, 25], "dist": [3, 18], "height": [0.0, 2.0], "gain": 0.6 },
+      { "sound": "music_box", "every": [140, 300], "dist": [10, 25], "height": [0.0, 0.3], "gain": 0.35 },
+      { "sound": "hal_voices", "every": [180, 360], "dist": [12, 30], "gain": 0.3 }
+    ],
+    "acoustics": {
+      "dachraum":   { "t60": 0.5, "t60_low": 0.6, "t60_high": 0.25, "size": 0.6, "wet": 0.1, "early": 0.8, "absorption": 0.15 },
+      "dachkammer": { "t60": 0.35, "t60_low": 0.45, "t60_high": 0.18, "size": 0.45, "wet": 0.08, "early": 0.8, "absorption": 0.2 },
+      "glutraum":   { "t60": 0.5, "t60_low": 0.6, "t60_high": 0.25, "size": 0.6, "wet": 0.1, "early": 0.8, "absorption": 0.15 },
+      "default":    { "t60": 0.45, "t60_low": 0.55, "t60_high": 0.22, "size": 0.55, "wet": 0.09, "early": 0.8, "absorption": 0.17 }
+    }
+  }
+}

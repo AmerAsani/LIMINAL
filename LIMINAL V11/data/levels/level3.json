@@ -1,0 +1,124 @@
+// LIMINAL V11 - Level 3: "Das Umspannwerk" (LEVEL_SELECTION.md Abschnitt 3.4).
+//
+// Ziegelgaenge in drei Farben, Kabelpritschen, Schaltraeume mit Sicherungskaesten, Raeume, in denen
+// Stimmen zu hoeren sind, stille Andachtsraeume mit einer Statue (Sicherungspunkte), zwei
+// Transformatorhallen mit einem Kern hinter Gittern. Ziel: eine Sicherung fuer den Aufzug -> Level 4.
+// Gefahr: Hund und das Laecheln im Stromausfall.
+// Feste Karte: data/maps/level3.json (Entwurf tools/levels/level3.py).
+{
+  "id": "level3",
+  "name": "Level 3",
+  "title": "Das Umspannwerk",
+  "display_title": "Das Umspannwerk",
+  "generator": "map",
+  "map": "level3",
+  "presence_region": 1,
+  "presence": { "hound": true, "smiler": true, "gestalt": false, "blackout": true, "clump": true },
+  "next_level": "level4",
+  "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0 },
+
+  "zones": [
+    { "key": "ziegel_rot", "fixture": "hanging", "name": "Rote Ziegel",
+      "wall": [0.54, 0.30, 0.24], "floor": [0.34, 0.33, 0.31], "ceil": [0.36, 0.35, 0.33],
+      "trim": [0.28, 0.24, 0.2], "lamp": [1.00, 0.95, 0.84], "fog": [0.03, 0.026, 0.022],
+      "fog_density": 0.05, "ambient": 0.05, "light_style": "authored",
+      "wall_pattern": "bricks", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.1 },
+    { "key": "ziegel_gelb", "fixture": "hanging", "name": "Gelbe Ziegel",
+      "wall": [0.66, 0.56, 0.36], "floor": [0.34, 0.33, 0.31], "ceil": [0.38, 0.37, 0.34],
+      "trim": [0.30, 0.26, 0.2], "lamp": [1.00, 0.95, 0.84], "fog": [0.03, 0.028, 0.022],
+      "fog_density": 0.05, "ambient": 0.05, "light_style": "authored",
+      "wall_pattern": "bricks", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.1 },
+    { "key": "ziegel_grau", "fixture": "hanging", "name": "Graue Ziegel",
+      "wall": [0.48, 0.47, 0.45], "floor": [0.33, 0.33, 0.32], "ceil": [0.36, 0.36, 0.35],
+      "trim": [0.26, 0.26, 0.25], "lamp": [0.94, 0.98, 1.00], "fog": [0.026, 0.027, 0.028],
+      "fog_density": 0.05, "ambient": 0.05, "light_style": "authored",
+      "wall_pattern": "bricks", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.1 },
+    { "key": "schalt", "fixture": "hanging", "name": "Schalträume",
+      "wall": [0.58, 0.58, 0.56], "floor": [0.36, 0.37, 0.37], "ceil": [0.44, 0.44, 0.43],
+      "trim": [0.2, 0.2, 0.2], "lamp": [0.95, 1.00, 1.00], "fog": [0.025, 0.026, 0.027],
+      "fog_density": 0.04, "ambient": 0.07, "light_style": "authored",
+      "wall_pattern": "blocks", "floor_pattern": "grate", "ceil_pattern": "none", "door_height": 2.1 },
+    { "key": "stimmen", "fixture": "hanging", "name": "Raum der Stimmen",
+      "wall": [0.44, 0.36, 0.32], "floor": [0.30, 0.28, 0.27], "ceil": [0.34, 0.32, 0.30],
+      "trim": [0.2, 0.18, 0.16], "lamp": [1.00, 0.82, 0.70], "fog": [0.03, 0.022, 0.02],
+      "fog_density": 0.07, "ambient": 0.04, "light_style": "authored",
+      "wall_pattern": "bricks", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.1 },
+    { "key": "andacht", "fixture": "hanging", "name": "Andachtsraum",
+      "wall": [0.70, 0.66, 0.58], "floor": [0.46, 0.43, 0.38], "ceil": [0.66, 0.63, 0.56],
+      "trim": [0.36, 0.3, 0.22], "lamp": [1.00, 0.88, 0.70], "fog": [0.03, 0.026, 0.02],
+      "fog_density": 0.02, "ambient": 0.12, "light_style": "authored",
+      "wall_pattern": "plain", "floor_pattern": "bigtiles", "ceil_pattern": "none", "door_height": 2.2 },
+    { "key": "halle", "name": "Transformatorhalle",
+      "wall": [0.50, 0.49, 0.47], "floor": [0.40, 0.40, 0.39], "ceil": [0.34, 0.34, 0.34],
+      "trim": [0.24, 0.24, 0.24], "lamp": [1.00, 0.86, 0.66], "fog": [0.035, 0.032, 0.028],
+      "fog_density": 0.04, "ambient": 0.08, "light_style": "authored",
+      "wall_pattern": "blocks", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.6 },
+    { "key": "aufzug", "name": "Aufzug",
+      "wall": [0.54, 0.56, 0.58], "floor": [0.30, 0.31, 0.32], "ceil": [0.60, 0.61, 0.62],
+      "trim": [0.18, 0.18, 0.18], "lamp": [0.96, 1.00, 1.00], "fog": [0.02, 0.021, 0.022],
+      "fog_density": 0.02, "ambient": 0.12, "light_style": "authored",
+      "wall_pattern": "panels", "floor_pattern": "grate", "ceil_pattern": "none", "door_height": 2.2 },
+    { "key": "naht2", "fixture": "hanging", "name": "Ziegel und Kabel",
+      "wall": [0.50, 0.30, 0.24], "floor": [0.30, 0.29, 0.28], "ceil": [0.34, 0.33, 0.32],
+      "trim": [0.20, 0.20, 0.20], "lamp": [0.92, 0.96, 1.00], "fog": [0.025, 0.022, 0.02],
+      "fog_density": 0.05, "ambient": 0.05, "light_style": "authored",
+      "wall_pattern": "bricks", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.1 }
+  ],
+  "light_styles": {
+    "authored": { "extra": 0.25, "intensity": 0.75, "hum": 1 }
+  },
+  "dark_fog": [0.006, 0.006, 0.006],
+  "room_types": [
+    { "key": "gang3", "label": "Ziegelgang", "category": "corridor" },
+    { "key": "schaltraum", "label": "Schaltraum", "category": "normal" },
+    { "key": "lager3", "label": "Lagerraum", "category": "normal" },
+    { "key": "stimmenraum", "label": "Raum der Stimmen", "category": "normal", "sanity_drain": 0.25 },
+    { "key": "andachtsraum", "label": "Andachtsraum", "category": "normal", "sanity_drain": -0.3 },
+    { "key": "trafohalle", "label": "Transformatorhalle", "category": "large" },
+    { "key": "aufzugsvorraum", "label": "Aufzugsvorraum", "category": "normal" },
+    { "key": "kabine", "label": "Aufzugskabine", "category": "normal" },
+    { "key": "naht", "label": "Naht", "category": "corridor" }
+  ],
+  "corridor_types": ["gang3"],
+  "endless_type": "gang3",
+  "default_corridor_type": "gang3",
+  "fallback_type": "lager3",
+  "supply_fallback_type": "lager3",
+  "spawn_preferred_types": ["naht"],
+  "supply_items": [ { "item": "almond", "weight": 0.6 }, { "item": "energy", "weight": 0.4 } ],
+  "spawn_rules": {
+    "item":    { "count": [8, 11], "spacing": 14, "table": { "almond": 0.5, "energy": 0.25, "battery": 0.25 }, "first_within": 50 },
+    "note":    { "count": [3, 4], "spacing": 25 },
+    "crate":   { "count": [2, 3], "spacing": 20 },
+    "deco":    { "chance": 0.7 },
+    "fusebox": { "count": [2, 3], "spacing": 30 }
+  },
+  "audio": {
+    "beds": [
+      { "sound": "bed_l3_mains", "gain": 0.9 },
+      { "sound": "bed_l3_fans", "gain": 0.6, "only": ["trafohalle", "schaltraum", "aufzugsvorraum"] },
+      { "sound": "hal_voices", "gain": 0.7, "only": ["stimmenraum"] }
+    ],
+    "spots": {
+      "machine": { "sound": "transformer", "radius": 10, "gain": 0.5, "voices": 3 },
+      "fence":   { "sound": "arc_loop", "radius": 4, "gain": 0.15, "voices": 1 }
+    },
+    "events": [
+      { "sound": "spark", "every": [15, 45], "dist": [2, 16], "gain": 0.6, "where": "machine" },
+      { "sound": "lamp_pop", "every": [60, 160], "dist": [6, 22], "height": [2.6, 2.9], "gain": 0.6 },
+      { "sound": "dist_clank", "every": [40, 100], "dist": [20, 50], "gain": 0.65 },
+      { "sound": "pipe_groan", "every": [40, 110], "dist": [10, 35], "height": [2.4, 2.9], "gain": 0.5 }
+    ],
+    "acoustics": {
+      "gang3":          { "t60": 1.0, "t60_low": 1.1, "t60_high": 0.5, "size": 0.8, "wet": 0.18, "early": 0.9, "absorption": 0.05 },
+      "schaltraum":     { "t60": 0.8, "t60_low": 0.9, "t60_high": 0.45, "size": 0.7, "wet": 0.15, "early": 0.8, "absorption": 0.06 },
+      "stimmenraum":    { "t60": 1.4, "t60_low": 1.6, "t60_high": 0.7, "size": 0.9, "wet": 0.25, "early": 0.6, "absorption": 0.05 },
+      "andachtsraum":   { "t60": 1.6, "t60_low": 1.8, "t60_high": 0.8, "size": 1.0, "wet": 0.22, "early": 0.5, "absorption": 0.05 },
+      "trafohalle":     { "t60": 2.6, "t60_low": 3.0, "t60_high": 1.0, "size": 2.3, "wet": 0.26, "early": 0.4, "absorption": 0.06 },
+      "aufzugsvorraum": { "t60": 0.9, "t60_low": 1.0, "t60_high": 0.5, "size": 0.8, "wet": 0.15, "early": 0.8, "absorption": 0.06 },
+      "kabine":         { "t60": 0.3, "t60_low": 0.35, "t60_high": 0.2, "size": 0.4, "wet": 0.08, "early": 1.0, "absorption": 0.1 },
+      "default":        { "t60": 1.0, "t60_low": 1.1, "t60_high": 0.5, "size": 0.8, "wet": 0.17, "early": 0.9, "absorption": 0.06 }
+    },
+    "blackout": { "every": [150, 260], "duration": [20, 35], "wave": "breaker_far" }
+  }
+}

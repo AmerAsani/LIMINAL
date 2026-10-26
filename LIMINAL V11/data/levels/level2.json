@@ -1,0 +1,114 @@
+// LIMINAL V11 - Level 2: "Die Rohrgaenge" (LEVEL_SELECTION.md Abschnitt 3.3).
+//
+// Enge Versorgungstunnel aus kreidigem Beton, Rohrbuendel unter der Decke, verschlossene Stahltueren.
+// Die Leuchtstoffroehren sind in Reihe verdrahtet: jedes Feld (Streifen von 30 m) haengt an einem
+// Stromkreis (20-24) und faellt als Ganzes aus - im Dunkel des Feldes das Laecheln. In der Mitte
+// heisse Abschnitte (Dampf, kosten Ausdauer). Nach Osten nehmen Ziegel und Kabel zu: Naht zu Level 3.
+// Feste Karte: data/maps/level2.json (Entwurf tools/levels/level2.py).
+{
+  "id": "level2",
+  "name": "Level 2",
+  "title": "Die Rohrgänge",
+  "display_title": "Die Rohrgänge",
+  "generator": "map",
+  "map": "level2",
+  "presence_region": 1,
+  "presence": { "hound": false, "smiler": true, "gestalt": false, "blackout": true, "clump": true },
+  "next_level": "level3",
+  "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0 },
+
+  "zones": [
+    { "key": "rohr", "fixture": "tube", "name": "Versorgungstunnel",
+      "wall": [0.56, 0.55, 0.51], "floor": [0.36, 0.35, 0.33], "ceil": [0.42, 0.41, 0.39],
+      "trim": [0.30, 0.28, 0.24], "lamp": [1.00, 0.95, 0.82], "fog": [0.03, 0.028, 0.022],
+      "fog_density": 0.05, "ambient": 0.05, "light_style": "authored",
+      "wall_pattern": "concrete", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.1 },
+    { "key": "heiss", "fixture": "tube", "name": "Heiße Abschnitte",
+      "wall": [0.58, 0.50, 0.42], "floor": [0.38, 0.33, 0.28], "ceil": [0.44, 0.38, 0.32],
+      "trim": [0.36, 0.26, 0.18], "lamp": [1.00, 0.80, 0.56], "fog": [0.06, 0.04, 0.024],
+      "fog_density": 0.08, "ambient": 0.06, "light_style": "authored",
+      "wall_pattern": "concrete", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.1 },
+    { "key": "ziegel", "fixture": "tube", "name": "Ziegelgänge",
+      "wall": [0.52, 0.34, 0.27], "floor": [0.33, 0.31, 0.29], "ceil": [0.38, 0.36, 0.34],
+      "trim": [0.30, 0.24, 0.18], "lamp": [1.00, 0.92, 0.76], "fog": [0.03, 0.024, 0.02],
+      "fog_density": 0.05, "ambient": 0.05, "light_style": "authored",
+      "wall_pattern": "bricks", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.1 },
+    { "key": "kammer", "fixture": "tube", "name": "Kammern",
+      "wall": [0.50, 0.50, 0.48], "floor": [0.34, 0.34, 0.33], "ceil": [0.40, 0.40, 0.39],
+      "trim": [0.26, 0.26, 0.25], "lamp": [1.00, 0.96, 0.86], "fog": [0.025, 0.025, 0.022],
+      "fog_density": 0.04, "ambient": 0.07, "light_style": "authored",
+      "wall_pattern": "blocks", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.1 },
+    { "key": "leer", "name": "Stilles Dunkel",
+      "wall": [0.26, 0.26, 0.25], "floor": [0.20, 0.20, 0.19], "ceil": [0.22, 0.22, 0.21],
+      "trim": [0.15, 0.15, 0.15], "lamp": [1.0, 1.0, 1.0], "fog": [0.004, 0.004, 0.004],
+      "fog_density": 0.09, "ambient": 0.004, "light_style": "unlit",
+      "wall_pattern": "concrete", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.1 },
+    { "key": "naht2", "name": "Rohrgang",
+      "wall": [0.40, 0.38, 0.33], "floor": [0.30, 0.29, 0.27], "ceil": [0.32, 0.31, 0.29],
+      "trim": [0.36, 0.30, 0.20], "lamp": [1.00, 0.88, 0.66], "fog": [0.03, 0.026, 0.02],
+      "fog_density": 0.055, "ambient": 0.05, "light_style": "authored",
+      "wall_pattern": "concrete", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.1 },
+    { "key": "naht3", "name": "Ziegel und Kabel",
+      "wall": [0.50, 0.30, 0.24], "floor": [0.30, 0.29, 0.28], "ceil": [0.34, 0.33, 0.32],
+      "trim": [0.20, 0.20, 0.20], "lamp": [0.92, 0.96, 1.00], "fog": [0.025, 0.022, 0.02],
+      "fog_density": 0.05, "ambient": 0.05, "light_style": "authored",
+      "wall_pattern": "bricks", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.1 }
+  ],
+  "light_styles": {
+    "authored": { "extra": 0.25, "intensity": 0.8, "hum": 1 },
+    "unlit":    { "extra": 0.0, "intensity": 0.0, "ambient": 0.004, "dark_fog": true }
+  },
+  "dark_fog": [0.004, 0.004, 0.004],
+  "room_types": [
+    { "key": "tunnel", "label": "Versorgungstunnel", "category": "corridor" },
+    { "key": "tunnel_heiss", "label": "Heißer Tunnel", "category": "corridor", "stamina_drain": 4.0 },
+    { "key": "pumpenraum", "label": "Pumpenkammer", "category": "normal" },
+    { "key": "maschinenraum", "label": "Maschinenkammer", "category": "normal" },
+    { "key": "lagerkammer", "label": "Lagerkammer", "category": "normal" },
+    { "key": "leerraum", "label": "Stilles Dunkel", "category": "normal", "sanity_drain": 0.3 },
+    { "key": "naht", "label": "Naht", "category": "corridor" }
+  ],
+  "corridor_types": ["tunnel"],
+  "endless_type": "tunnel",
+  "default_corridor_type": "tunnel",
+  "fallback_type": "lagerkammer",
+  "supply_fallback_type": "lagerkammer",
+  "spawn_preferred_types": ["naht"],
+  "supply_items": [ { "item": "almond", "weight": 0.6 }, { "item": "energy", "weight": 0.4 } ],
+  "spawn_rules": {
+    "item":    { "count": [8, 11], "spacing": 14, "table": { "almond": 0.5, "energy": 0.25, "battery": 0.25 }, "first_within": 50 },
+    "note":    { "count": [3, 4], "spacing": 25 },
+    "crate":   { "count": [2, 4], "spacing": 20 },
+    "deco":    { "chance": 0.7 },
+    "fusebox": { "count": [0, 0] }
+  },
+  "audio": {
+    "beds": [
+      { "sound": "bed_l2_flow", "gain": 0.9, "not": ["leerraum"] },
+      { "sound": "bed_l2_warm", "gain": 0.8, "only": ["tunnel_heiss"] },
+      { "sound": "bed_l1_pipes", "gain": 0.4, "not": ["leerraum"] }
+    ],
+    "spots": {
+      "pipes":   { "sound": "pipe_flow", "radius": 5, "gain": 0.35, "voices": 2 },
+      "steam":   { "sound": "steam_loop", "radius": 7, "gain": 0.45, "voices": 2 },
+      "machine": { "sound": "machine", "radius": 8, "gain": 0.5, "voices": 2 }
+    },
+    "events": [
+      { "sound": "pipe_knock", "every": [10, 30], "dist": [4, 25], "height": [2.4, 2.9], "gain": 0.6 },
+      { "sound": "pipe_groan", "every": [25, 70], "dist": [8, 35], "height": [2.4, 2.9], "gain": 0.6 },
+      { "sound": "steam_hiss", "every": [12, 40], "dist": [3, 18], "height": [2.2, 2.8], "gain": 0.55 },
+      { "sound": "quake", "every": [160, 340], "dist": [0, 5], "gain": 0.7 },
+      { "sound": "dist_clank", "every": [40, 100], "dist": [20, 50], "gain": 0.65 }
+    ],
+    "acoustics": {
+      "tunnel":        { "t60": 1.2, "t60_low": 1.1, "t60_high": 0.7, "size": 0.8, "wet": 0.2, "early": 1.0, "absorption": 0.04 },
+      "tunnel_heiss":  { "t60": 1.2, "t60_low": 1.1, "t60_high": 0.6, "size": 0.8, "wet": 0.22, "early": 1.0, "absorption": 0.05 },
+      "pumpenraum":    { "t60": 0.9, "t60_low": 1.0, "t60_high": 0.5, "size": 0.7, "wet": 0.16, "early": 0.8, "absorption": 0.05 },
+      "maschinenraum": { "t60": 0.9, "t60_low": 1.0, "t60_high": 0.5, "size": 0.7, "wet": 0.16, "early": 0.8, "absorption": 0.05 },
+      "leerraum":      { "t60": 0.15, "t60_low": 0.2, "t60_high": 0.08, "size": 0.4, "wet": 0.02, "early": 0.1, "absorption": 0.8 },
+      "naht":          { "t60": 1.3, "t60_low": 1.2, "t60_high": 0.8, "size": 0.7, "wet": 0.2, "early": 1.0, "absorption": 0.04 },
+      "default":       { "t60": 0.9, "t60_low": 1.0, "t60_high": 0.5, "size": 0.7, "wet": 0.16, "early": 0.8, "absorption": 0.06 }
+    },
+    "blackout": { "every": [120, 220], "duration": [20, 35], "wave": "breaker_far" }
+  }
+}

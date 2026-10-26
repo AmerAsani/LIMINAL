@@ -1,0 +1,128 @@
+// LIMINAL V11 - Level 0: "Die Vorzimmer" (LEVEL_SELECTION.md Abschnitt 3.1).
+//
+// Hinterzimmer ohne Ende: gelbliche Tapete, feuchter Teppich, Rasterdecke mit Leuchtfeldern, die
+// einzeln summen. Dazu ein Saeulenfeld (Weite), die Boegen (ruhig, kaum Summen), eine Dunkelzone mit
+// nassem Teppich und rote Raeume, die am Verstand zehren. Keine Entity - nur die Gestalt, die nie
+// angreift. Im Osten die Naht: die Tapete bekommt Flecken, dann kommt Beton durch -> Level 1.
+// Feste Karte: data/maps/level0.json (Entwurf tools/levels/level0.py).
+{
+  "id": "level0",
+  "name": "Level 0",
+  "title": "Die Vorzimmer",
+  "display_title": "Die Vorzimmer",
+  "generator": "map",
+  "map": "level0",
+  "presence_region": 0,
+  "next_level": "level1",
+  "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0 },
+
+  "zones": [
+    { "key": "vorzimmer", "name": "Vorzimmer",
+      "wall": [0.84, 0.78, 0.52], "floor": [0.54, 0.47, 0.30], "ceil": [0.82, 0.80, 0.70],
+      "trim": [0.42, 0.30, 0.18], "lamp": [1.00, 0.97, 0.84], "fog": [0.16, 0.145, 0.08],
+      "fog_density": 0.045, "ambient": 0.30, "light_style": "panels",
+      "wall_pattern": "wallpaper", "floor_pattern": "carpet", "ceil_pattern": "tiles", "baseboard": true, "door_height": 2.2 },
+    { "key": "saeulen", "name": "Säulenfeld",
+      "wall": [0.82, 0.77, 0.53], "floor": [0.52, 0.46, 0.31], "ceil": [0.80, 0.78, 0.70],
+      "trim": [0.40, 0.30, 0.18], "lamp": [1.00, 0.97, 0.86], "fog": [0.15, 0.14, 0.08],
+      "fog_density": 0.05, "ambient": 0.28, "light_style": "panels",
+      "wall_pattern": "wallpaper", "floor_pattern": "carpet", "ceil_pattern": "tiles", "baseboard": true, "door_height": 2.4 },
+    // Bogenraeume (Wikidot): blasse, glatte Waende statt Tapete, Bogen-Durchgaenge (Modell "arch")
+    { "key": "boegen", "name": "Bögen",
+      "wall": [0.80, 0.74, 0.57], "floor": [0.50, 0.43, 0.30], "ceil": [0.80, 0.77, 0.67],
+      "trim": [0.50, 0.40, 0.28], "lamp": [1.00, 0.92, 0.76], "fog": [0.13, 0.11, 0.06],
+      "fog_density": 0.035, "ambient": 0.26, "light_style": "panels_wide",
+      "wall_pattern": "plain", "floor_pattern": "carpet", "ceil_pattern": "tiles", "baseboard": true, "door_height": 2.35 },
+    // Manila: ein seltener kleiner Raum in den Farben von Aktendeckeln (Wikidot: "Manila Room"). V11: im Spiel
+    // ohne den Wiki-Namen (LICENSE_REVIEW.md, Weg B)
+    { "key": "manila", "name": "Vergilbtes Zimmer",
+      "wall": [0.82, 0.75, 0.52], "floor": [0.55, 0.47, 0.32], "ceil": [0.84, 0.79, 0.66],
+      "trim": [0.55, 0.42, 0.28], "lamp": [1.00, 0.93, 0.80], "fog": [0.14, 0.12, 0.08],
+      "fog_density": 0.03, "ambient": 0.3, "light_style": "panels",
+      "wall_pattern": "plain", "floor_pattern": "carpet", "ceil_pattern": "tiles", "baseboard": true, "door_height": 2.2 },
+    // Lochfeld: Gruben im Raster, deren Boden niemand kennt (Wikidot: "Holes")
+    { "key": "loecher", "name": "Lochfeld",
+      "wall": [0.82, 0.76, 0.52], "floor": [0.52, 0.45, 0.30], "ceil": [0.80, 0.78, 0.68],
+      "trim": [0.40, 0.30, 0.18], "lamp": [1.00, 0.96, 0.84], "fog": [0.15, 0.135, 0.08],
+      "fog_density": 0.05, "ambient": 0.26, "light_style": "panels_wide",
+      "wall_pattern": "wallpaper", "floor_pattern": "carpet", "ceil_pattern": "tiles", "baseboard": true, "door_height": 2.2 },
+    { "key": "dunkel", "name": "Dunkelzone",
+      "wall": [0.42, 0.40, 0.33], "floor": [0.26, 0.24, 0.18], "ceil": [0.36, 0.35, 0.30],
+      "trim": [0.22, 0.20, 0.15], "lamp": [0.90, 0.86, 0.70], "fog": [0.01, 0.01, 0.008],
+      "fog_density": 0.06, "ambient": 0.012, "light_style": "unlit",
+      "wall_pattern": "concrete", "floor_pattern": "carpet", "ceil_pattern": "tiles", "door_height": 2.2 },
+    { "key": "rot", "name": "Rote Räume",
+      "wall": [0.70, 0.30, 0.24], "floor": [0.40, 0.18, 0.15], "ceil": [0.62, 0.36, 0.30],
+      "trim": [0.30, 0.10, 0.08], "lamp": [1.00, 0.20, 0.14], "fog": [0.12, 0.02, 0.015],
+      "fog_density": 0.05, "ambient": 0.06, "light_style": "authored",
+      "wall_pattern": "wallpaper", "floor_pattern": "carpet", "ceil_pattern": "tiles", "baseboard": true, "door_height": 2.2 },
+    { "key": "naht0", "name": "Flecken in der Tapete",
+      "wall": [0.66, 0.60, 0.40], "floor": [0.46, 0.40, 0.28], "ceil": [0.72, 0.70, 0.60],
+      "trim": [0.40, 0.33, 0.20], "lamp": [1.00, 0.95, 0.80], "fog": [0.06, 0.055, 0.035],
+      "fog_density": 0.04, "ambient": 0.14, "light_style": "authored",
+      "wall_pattern": "wallpaper", "floor_pattern": "carpet", "ceil_pattern": "tiles", "baseboard": true, "door_height": 2.2 },
+    { "key": "naht1", "name": "Beton kommt durch",
+      "wall": [0.44, 0.43, 0.40], "floor": [0.33, 0.33, 0.31], "ceil": [0.40, 0.40, 0.38],
+      "trim": [0.30, 0.30, 0.29], "lamp": [0.90, 1.00, 0.90], "fog": [0.03, 0.032, 0.03],
+      "fog_density": 0.045, "ambient": 0.06, "light_style": "authored",
+      "wall_pattern": "concrete", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.2 }
+  ],
+  // Lichtstile: panels = Leuchtfelder in der Rasterdecke (Raster aus dem Raum, einige tot), summen einzeln
+  "light_styles": {
+    "panels":      { "extra": 0.35, "intensity": 0.6, "hum": 1 },
+    "panels_wide": { "extra": 0.30, "intensity": 0.45, "hum": 0 },
+    "authored":    { "extra": 0.25, "intensity": 0.7, "hum": 1 },
+    "unlit":       { "extra": 0.0, "intensity": 0.0, "ambient": 0.01, "dark_fog": true }
+  },
+  "dark_fog": [0.008, 0.008, 0.006],
+  "room_types": [
+    { "key": "zimmer", "label": "Vorzimmer", "category": "normal" },
+    { "key": "flur", "label": "Flur", "category": "corridor" },
+    { "key": "halle", "label": "Großes Zimmer", "category": "normal" },
+    { "key": "saeulenhalle", "label": "Säulenfeld", "category": "large" },
+    { "key": "bogen", "label": "Bogenraum", "category": "normal" },
+    { "key": "dunkelraum", "label": "Dunkles Zimmer", "category": "normal" },
+    { "key": "lochfeld", "label": "Lochfeld", "category": "large" },
+    { "key": "manila", "label": "Vergilbtes Zimmer", "category": "normal", "sanity_drain": -0.35 },
+    { "key": "roter_raum", "label": "Rotes Zimmer", "category": "normal", "sanity_drain": 0.6 },
+    { "key": "naht", "label": "Naht", "category": "corridor" }
+  ],
+  "corridor_types": ["flur"],
+  "endless_type": "flur",
+  "default_corridor_type": "flur",
+  "fallback_type": "zimmer",
+  "supply_fallback_type": "zimmer",
+  "spawn_preferred_types": ["zimmer"],
+  "supply_items": [ { "item": "almond", "weight": 0.7 }, { "item": "energy", "weight": 0.3 } ],
+  "spawn_rules": {
+    "item":    { "count": [4, 6], "spacing": 22, "table": { "almond": 0.8, "battery": 0.2 }, "first_within": 45 },
+    "note":    { "count": [3, 4], "spacing": 25 },
+    "crate":   { "count": [0, 0] },
+    "deco":    { "chance": 0.7 },
+    "fusebox": { "count": [0, 0] }
+  },
+  "audio": {
+    "beds": [
+      { "sound": "bed_l0_room", "gain": 0.9, "not": ["dunkelraum"] },
+      { "sound": "bed_l0_air", "gain": 0.6 }
+    ],
+    "spots": {},
+    "events": [
+      { "sound": "hal_scratch", "every": [70, 170], "dist": [3, 7], "height": [0.9, 1.6], "gain": 0.4 },
+      { "sound": "dist_knock", "every": [90, 200], "dist": [20, 45], "gain": 0.6 },
+      { "sound": "dist_door", "every": [80, 190], "dist": [25, 55], "gain": 0.6 },
+      { "sound": "drip", "every": [3, 8], "dist": [2, 12], "height": [0.0, 0.1], "gain": 0.45, "where": "puddle" }
+    ],
+    "acoustics": {
+      "zimmer":       { "t60": 0.45, "t60_low": 0.55, "t60_high": 0.22, "size": 0.5, "wet": 0.1, "early": 0.7, "absorption": 0.25 },
+      "flur":         { "t60": 0.6, "t60_low": 0.7, "t60_high": 0.3, "size": 0.7, "wet": 0.12, "early": 0.9, "absorption": 0.22 },
+      "halle":        { "t60": 0.8, "t60_low": 0.95, "t60_high": 0.35, "size": 1.0, "wet": 0.14, "early": 0.6, "absorption": 0.22 },
+      "saeulenhalle": { "t60": 1.4, "t60_low": 1.6, "t60_high": 0.6, "size": 1.8, "wet": 0.2, "early": 0.5, "absorption": 0.18 },
+      "bogen":        { "t60": 0.7, "t60_low": 0.8, "t60_high": 0.3, "size": 0.8, "wet": 0.12, "early": 0.6, "absorption": 0.3 },
+      "dunkelraum":   { "t60": 1.1, "t60_low": 1.3, "t60_high": 0.5, "size": 0.9, "wet": 0.18, "early": 0.8, "absorption": 0.08 },
+      "roter_raum":   { "t60": 0.35, "t60_low": 0.45, "t60_high": 0.18, "size": 0.5, "wet": 0.08, "early": 0.5, "absorption": 0.3 },
+      "naht":         { "t60": 0.9, "t60_low": 1.1, "t60_high": 0.45, "size": 0.8, "wet": 0.16, "early": 0.9, "absorption": 0.06 },
+      "default":      { "t60": 0.5, "t60_low": 0.6, "t60_high": 0.25, "size": 0.6, "wet": 0.11, "early": 0.7, "absorption": 0.22 }
+    }
+  }
+}

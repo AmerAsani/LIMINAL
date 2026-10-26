@@ -1,0 +1,66 @@
+// LIMINAL V11 - Level 37: "Die Becken" (LEVEL_SELECTION.md Abschnitt 3.10), Ziel der Reise.
+//
+// Raeume und Gaenge aus makellos weissen Fliesen, grossteils geflutet (lauwarm, blaugruen), tiefe Becken
+// mit Licht von unten, Saeulen im Wasser. Kurzer Hall, der abrupt abbricht. Keine Entity; das Wasser
+// entspannt. Wer in das letzte Becken taucht, in dem das Licht von unten kommt, ist angekommen.
+// Feste Karte: data/maps/level37.json (Entwurf tools/levels/level37.py).
+{
+  "id": "level37",
+  "name": "Level 37",
+  "title": "Die Becken",
+  "display_title": "Die Becken",
+  "generator": "map",
+  "map": "level37",
+  "presence_region": 0,
+  "presence": { "hound": false, "smiler": false, "gestalt": false, "blackout": false },
+  "next_level": "",
+  "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0 },
+  "zones": [
+    { "key": "fliesen", "name": "Die Becken",
+      "wall": [0.90, 0.92, 0.92], "floor": [0.86, 0.90, 0.90], "ceil": [0.90, 0.92, 0.92],
+      "trim": [0.7, 0.75, 0.76], "lamp": [0.92, 1.00, 1.00], "fog": [0.20, 0.27, 0.28],
+      "fog_density": 0.03, "ambient": 0.2, "light_style": "authored",
+      "wall_pattern": "tiles", "floor_pattern": "tiles", "ceil_pattern": "tiles", "door_height": 2.4 },
+    { "key": "ende", "name": "Das letzte Becken",
+      "wall": [0.92, 0.94, 0.94], "floor": [0.86, 0.92, 0.92], "ceil": [0.92, 0.94, 0.94],
+      "trim": [0.7, 0.75, 0.76], "lamp": [0.92, 1.00, 1.00], "fog": [0.26, 0.33, 0.34],
+      "fog_density": 0.03, "ambient": 0.24, "light_style": "authored",
+      "wall_pattern": "tiles", "floor_pattern": "tiles", "ceil_pattern": "tiles", "door_height": 3.0 }
+  ],
+  "light_styles": { "authored": { "extra": 0.3, "intensity": 0.75, "hum": 0 } },
+  "dark_fog": [0.05, 0.07, 0.07],
+  "room_types": [
+    { "key": "fliesengang", "label": "Gang", "category": "corridor", "sanity_drain": -0.3 },
+    { "key": "fliesenraum", "label": "Raum", "category": "normal", "sanity_drain": -0.3 },
+    { "key": "beckenraum", "label": "Beckenraum", "category": "normal", "sanity_drain": -0.3 },
+    { "key": "becken", "label": "Becken", "category": "normal", "sanity_drain": -0.5 },
+    { "key": "endbecken", "label": "Das letzte Becken", "category": "large", "sanity_drain": -0.6 }
+  ],
+  "corridor_types": ["fliesengang"],
+  "endless_type": "fliesengang",
+  "default_corridor_type": "fliesengang",
+  "fallback_type": "fliesenraum",
+  "supply_fallback_type": "fliesenraum",
+  "spawn_preferred_types": ["fliesenraum"],
+  "supply_items": [ { "item": "almond", "weight": 1.0 } ],
+  "spawn_rules": {
+    "item":    { "count": [0, 0] },
+    "note":    { "count": [2, 3], "spacing": 25 },
+    "crate":   { "count": [0, 0] },
+    "deco":    { "chance": 0.0 },
+    "fusebox": { "count": [0, 0] }
+  },
+  "audio": {
+    "beds": [
+      { "sound": "pool_loop", "gain": 0.8 },
+      { "sound": "bed_l37_air", "gain": 0.7 }
+    ],
+    "spots": {},
+    "events": [
+      { "sound": "drip", "every": [3, 9], "dist": [2, 12], "height": [0.2, 0.4], "gain": 0.4 }
+    ],
+    "acoustics": {
+      "default": { "t60": 1.2, "t60_low": 1.3, "t60_high": 0.8, "size": 1.0, "wet": 0.2, "early": 0.8, "absorption": 0.03, "gate": 0.45 }
+    }
+  }
+}
