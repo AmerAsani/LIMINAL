@@ -336,3 +336,9 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
 - **Begründung:** `MULTIPLAYER_ENTSCHEIDUNG.md` – die Spielsysteme sind für einen Spieler gebaut; „nachweislich sicher“ ist ohne vollständige Umsetzung, verschlüsselten Netzweg, Prozesstests und Durchsicht nicht belegbar; bei Unklarheit gilt höhere Sicherheit und Stabilität.
 - **Geliefert:** Bedrohungsmodell mit Architekturregeln, Prüfschicht `src/net` (vom Spiel nicht gebunden) mit 72 Prüfungen, 1 000 000 Fuzz-Runden, Sanitizer-Lauf (`MULTIPLAYER_TESTS.md`).
 
+## E-025 GitHub-Sicherung: nicht ins öffentliche Remote, lokal vollständig vorbereitet (26.10.2026)
+- **Befund:** Das vorhandene Remote `origin` (`AmerAsani/LIMINAL`) ist **öffentlich** und enthält V1–V10. Der Auftrag verlangt für V11–V13 ein **privates** Repository, solange die Lizenzfrage offen ist. Die GitHub CLI ist nicht installiert; ein Repository anzulegen ginge nur mit einem Zugangstoken, und Zugangsdaten werden weder ausgelesen noch eingegeben. Der Name `liminal` ist zudem belegt (GitHub unterscheidet nicht nach Groß- und Kleinschreibung).
+- **Entscheidung:** Kein Push nach `origin` (würde veröffentlichen), keine Änderung der Sichtbarkeit von `origin` (Kontoeinstellung, würde V1–V10 verbergen). Stattdessen alles lokal vorbereitet: V11 erstmals committet (Branch `liminal-v11`), README und `.gitignore` je Branch, Tags `v11`, `v12` (und `v13` am Ende), Geheimnis- und Größenprüfung. Die exakten Befehle für ein privates Repository `liminal-privat` stehen in `GITHUB_UPLOAD.md`.
+- **Historie:** nur angehängt, nichts umgeschrieben. V10 bleibt Teil der gemeinsamen Historie (seit Langem öffentlich); er wird nicht neu hochgeladen.
+- **LFS:** nur für ZIP-Dateien; die Assets aus der Historie in LFS zu verschieben, hieße umschreiben (ausgeschlossen), bei höchstens 6,8 MB je Datei auch unnötig.
+
