@@ -145,6 +145,7 @@ int App::run(const std::vector<std::string>& args) {
         saveGame();
     if (!testRun() && opt_.overrides.size() == 0) settings_.save();
     if (!opt_.script.empty()) log::info("Skript: {}", scriptFailed_ ? "FEHLGESCHLAGEN" : "OK");
+    if (audio_) log::info("Audio beim Beenden: {}", audio_->statsLine());  // V13.3 (AUDIO_BUG.md)
     log::info("Beendet");
     log::shutdown();
     return scriptFailed_ ? 7 : 0;
@@ -384,6 +385,27 @@ void App::scriptStep() {
             log::info("Audio: Leuchten {} Betten {} Stellen {} Brummen x{:.2f} | Raum t60 {:.2f} wet {:.2f} early {:.2f} Masse {:.0f}x{:.0f}x{:.1f} Hoerer {:.1f},{:.1f},{:.1f}",
                       soundscape_.activeLamps(), soundscape_.activeBeds(), soundscape_.activeSpots(), soundscape_.humSurge(), ac.t60, ac.wet,
                       ac.early, ac.roomW, ac.roomD, ac.roomH, ac.lx, ac.ly, ac.lz);
+            if (audio_) log::info("Audio-Status: {}", audio_->statsLine());
+        } else if (cmd == "audiostat") {  // V13.3 (Tests): Geraet, Stimmen, Pegel am Master-Ausgang ins Protokoll
+            if (audio_) log::info("Audio-Status: {}", audio_->statsLine());
+        } else if (cmd == "audiolog") {  // V13.3 (Tests): audiolog <s> - Audio-Status alle s Sekunden (0 aus)
+            audioLogEvery_ = std::max(0.0, std::atof(arg.c_str()));
+            audioLogNext_ = time_ + audioLogEvery_;
+        } else if (cmd == "level" && session_) {  // V13.3 (Tests): level <id> [anker] - Ebenenwechsel wie durch einen Ausgang
+            char id[64] = {}, anchor[64] = {};
+            std::sscanf(arg.c_str(), "%63s %63s", id, anchor);
+            changeLevel(id, anchor);
+            return;  // die neue Sitzung erst ein Bild laufen lassen
+        } else if (cmd == "focus") {  // V13.3 (Tests): focus off|on - Fokusverlust (Alt+Tab) ueber WM_ACTIVATE nachstellen
+            const bool on = arg != "off" && arg != "0";
+            simFocus_ = true;
+            SendMessageW(window_.hwnd(), WM_ACTIVATE, on ? WA_ACTIVE : WA_INACTIVE, 0);
+            log::info("Skript: Fokus {}", on ? "zurueck" : "verloren");
+        } else if (cmd == "minimize" || cmd == "restore") {  // V13.3 (Tests): Fenster minimieren / wiederherstellen
+            ShowWindow(window_.hwnd(), cmd == "minimize" ? SW_MINIMIZE : SW_RESTORE);
+            if (cmd == "restore") SendMessageW(window_.hwnd(), WM_ACTIVATE, WA_ACTIVE, 0);
+        } else if (cmd == "resume") {  // V13.3 (Tests): Pausenmenue schliessen (wie "Weiter")
+            if (ui_.mode() == ui::Mode::Pause) ui_.setMode(ui::Mode::Hud);
         } else if (cmd == "perf") {  // V10 (Tests): Zeiten und Dreiecke dieses Bildes ins Protokoll
             const auto& rs = renderer_->stats();
             u64 vramUse = 0, vramBudget = 0;  // V13: belegter Grafikspeicher (DXGI 1.4) und Arbeitsspeicher des Prozesses
@@ -569,6 +591,7 @@ void App::startTitleWorld() {
 }
 
 void App::enterPlaying(std::unique_ptr<game::GameSession> s) {
+    if (audio_ && session_) log::info("Audio vor dem Wechsel: {}", audio_->statsLine());  // V13.3 (AUDIO_BUG.md)
     if (audio_) audio_->stopAll();
     ++audioGen_;
     session_ = std::move(s);
@@ -824,6 +847,10 @@ void App::mainLoop() {
             continue;
         }
         frame(dt);
+        if (audioLogEvery_ > 0.0 && time_ >= audioLogNext_ && audio_) {  // V13.3 (Tests)
+            audioLogNext_ = time_ + audioLogEvery_;
+            log::info("Audio-Status: {}", audio_->statsLine());
+        }
         // V6: Grafik-Automatik (Messung, dynamische Aufloesung)
         if (state_ != State::Loading && !testRun()) {
             std::string msg = autoTune_.update(dt, settings_, *renderer_, true, renderer_->gpuTimer().totalMs(),
@@ -1027,7 +1054,7 @@ void App::updatePlaying(double dt) {
     }
     // Fenster verlassen (Alt+Tab, Klick daneben): Spiel pausieren, damit die Sanity nicht im
     // Hintergrund weiter sinkt
-    if (!window_.focused() && ui_.mode() == ui::Mode::Hud && !testRun() && !pilot_)
+    if (!window_.focused() && ui_.mode() == ui::Mode::Hud && (!testRun() || simFocus_) && !pilot_)
         ui_.openPause();
     bool paused = ui_.pausesGame() && !coop();  // V13.2: im Koop laeuft die Welt weiter (Menues bremsen nur die Eingabe)
     // Spieltasten (nur ohne offenes Menue)

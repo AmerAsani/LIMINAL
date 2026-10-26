@@ -179,6 +179,9 @@ private:
     } figCam_;
     bool egoPose_ = false;  // V13.2 (Tests): Ego-Lampenhaltung auch von aussen zeigen
     bool scriptFailed_ = false;
+    // V13.3 (Audio-Tests, AUDIO_BUG.md): Audiozustand regelmaessig ins Protokoll; Fokusverlust nachstellen
+    double audioLogEvery_ = 0.0, audioLogNext_ = 0.0;
+    bool simFocus_ = false;  // Skript "focus": die Pause bei Fokusverlust auch im Testlauf
 
     // --- V13.2 Koop (Beta, MULTIPLAYER_ARCHITEKTUR.md) ----------------------------------------------
     coop::NetApi netApi_;

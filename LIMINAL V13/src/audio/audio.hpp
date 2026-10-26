@@ -83,6 +83,24 @@ struct PlayOpts {
     int priority = 1;      // hoeher = wird spaeter verdraengt
 };
 
+// V13.3 (AUDIO_BUG.md): Zustand des Audiosystems fuer Protokoll, Watchdog und Tests
+struct AudioStats {
+    bool ready = false;       // Klaenge erzeugt
+    bool deviceOpen = false;  // WASAPI-Strom laeuft
+    std::string device;       // Name des Geraets
+    int deviceRate = 0, deviceChannels = 0, deviceBits = 0;  // Mischformat des Geraets
+    int streamRate = 0;
+    unsigned bufferFrames = 0;
+    float periodMs = 0.0f;
+    unsigned opens = 0, openFailures = 0, losses = 0, restarts = 0;
+    long lastHr = 0;  // letzter Fehlercode (HRESULT)
+    int voices = 0, loops = 0, stopping = 0, stuck = 0, peakVoices = 0;
+    unsigned long long plays = 0, allocFails = 0, dropped = 0, reclaimed = 0;
+    unsigned long long frames = 0, underruns = 0, timeouts = 0, nonFinite = 0, silenceAlarms = 0;
+    float outPeak = 0.0f, outRms = 0.0f, expectedRms = 0.0f;  // Master-Ausgang, letzte Sekunde (linear)
+    float mixMsMax = 0.0f;
+};
+
 class AudioSystem {
 public:
     AudioSystem();
@@ -134,6 +152,9 @@ public:
     void mixForTest(float* out, int frames) { mix(out, frames); }
     // V11: Reduktion des Begrenzers im letzten Block (Tests: 1 = keine)
     float limiterGain() const { return limiter_.reduction(); }
+    // V13.3: Zustand (Stimmen, Geraet, Pegel am Master-Ausgang) und eine Zeile fuers Protokoll
+    AudioStats stats();
+    std::string statsLine();
 
 private:
     struct Voice {
@@ -161,6 +182,7 @@ private:
         float send = 0.0f, sendCur = 0.0f;
         float fadeIn = 1.0f, fadeInStep = 0.0f;
         float audible = 0.0f;  // fuer das Verdraengen
+        unsigned stopFrames = 0;  // V13.3: so lange schon "stopping" (Bilder)
     };
     void thread();
     void mix(float* out, int frames);
@@ -199,6 +221,23 @@ private:
     float duckEnv_ = 0.0f, duck_ = 1.0f;
     float dcZ_[2] = {0, 0}, dcX_[2] = {0, 0};
     dsp::Limiter limiter_;
+
+    // V13.3: Messwerte (unter mutex_), Geraeteangaben (unter statMutex_)
+    void measureOutput(const float* out, int frames);
+    AudioStats st_;
+    std::mutex statMutex_;
+    struct DeviceInfo {
+        std::string device;
+        int deviceRate = 0, deviceChannels = 0, deviceBits = 0, streamRate = 0;
+        unsigned bufferFrames = 0;
+        float periodMs = 0.0f;
+        unsigned opens = 0, openFailures = 0, losses = 0, restarts = 0;
+        long lastHr = 0;
+        unsigned long long underruns = 0, timeouts = 0;
+        float mixMsMax = 0.0f;
+    } dev_;
+    double winPeak_ = 0.0, winSq_ = 0.0, winExpSq_ = 0.0;
+    long long winFrames_ = 0;
 };
 
 // Klangerzeugung (auch fuer Tests nutzbar)

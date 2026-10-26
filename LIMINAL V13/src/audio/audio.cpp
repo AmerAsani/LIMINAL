@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstring>
+#include <format>
 
 #include "core/com_ptr.hpp"
 #include "core/jobs.hpp"
@@ -13,6 +14,8 @@
 #include <audioclient.h>
 #include <mmdeviceapi.h>
 #include <objbase.h>
+#include <propidl.h>
+#include <propsys.h>
 
 namespace lim::audio {
 
@@ -176,6 +179,7 @@ int AudioSystem::allocVoice(int priority) {
         const float a = v.audible * (float)v.priority;
         if (a < bestA) bestA = a, best = (int)i;
     }
+    if (best < 0) ++st_.allocFails;  // V13.3: alle Stimmen belegt (Schleifen werden nie verdraengt)
     return best;
 }
 
@@ -189,6 +193,7 @@ void AudioSystem::startVoice(Voice& vo, const Sound* s, float volume, float pitc
     vo.priority = priority;
     vo.active = true;
     vo.audible = volume;
+    ++st_.plays;
 }
 
 void AudioSystem::play(const std::string& name, float volume, float pitch, Bus bus) {
@@ -198,7 +203,11 @@ void AudioSystem::play(const std::string& name, float volume, float pitch, Bus b
 }
 
 void AudioSystem::play2d(const std::string& name, const PlayOpts& o) {
-    if (!running_) return;
+    if (!running_) {
+        std::lock_guard lock(mutex_);
+        ++st_.dropped;
+        return;
+    }
     std::lock_guard lock(mutex_);
     const Sound* s = pick(name);
     if (!s || s->samples.empty()) return;
@@ -220,7 +229,11 @@ void AudioSystem::playAt(const std::string& name, vec3 pos, float volume, float 
 }
 
 void AudioSystem::play3d(const std::string& name, const Spatial& sp, const PlayOpts& o) {
-    if (!running_) return;
+    if (!running_) {
+        std::lock_guard lock(mutex_);
+        ++st_.dropped;
+        return;
+    }
     std::lock_guard lock(mutex_);
     // Quellen jenseits der Reichweite gar nicht erst starten
     if (length(sp.pos - listener_) + sp.pathExtra > sp.radius) return;
@@ -406,6 +419,7 @@ void AudioSystem::mix(float* out, int frames) {
     const float shadowA = dsp::onePoleCoef(1700.0f, rate);
     for (auto& v : voices_) {
         if (!v.active || !v.sound || v.sound->samples.empty()) continue;
+        if (v.stopping) v.stopFrames += (unsigned)frames;  // V13.3: Diagnose (haengt eine Stimme im Ausblenden?)
         const bool world = v.bus != Bus::Ui;
         const float pauseMul = (paused_ && world) ? 0.3f : 1.0f;
         float gain = v.volume * pauseMul;
@@ -473,6 +487,7 @@ void AudioSystem::mix(float* out, int frames) {
         float* oL = busL_[(int)v.bus].data();
         float* oR = busR_[(int)v.bus].data();
         const float inv = 1.0f / (float)frames;
+        double vsq = 0.0;  // V13.3: Energie der Stimme (erwarteter Pegel am Ausgang)
         for (int i = 0; i < frames; ++i) {
             const float t = (float)i * inv;
             if (v.stopping) {
@@ -496,6 +511,7 @@ void AudioSystem::mix(float* out, int frames) {
                 v.lp2 = v.lp1 + (v.lp2 - v.lp1) * v.lpCoefCur;
                 x = v.lp2;
             }
+            vsq += (double)x * x;
             // Hall: mono
             v.sendCur += (sendTarget - v.sendCur) * 0.002f;
             send_[(size_t)i] += x * v.sendCur;
@@ -535,6 +551,10 @@ void AudioSystem::mix(float* out, int frames) {
                     break;
                 }
             }
+        }
+        {
+            const double gm = (double)std::max(gl, gr) * bus_[(int)v.bus] * master_;
+            winExpSq_ += vsq * gm * gm;
         }
         v.curGainL = gl, v.curGainR = gr;
         v.curItdL = v.itdL, v.curItdR = v.itdR, v.curHfL = v.hfL, v.curHfR = v.hfR;
@@ -596,22 +616,121 @@ void AudioSystem::mix(float* out, int frames) {
         out[i * 2 + 1] = R - dcZ_[1];
     }
     limiter_.process(out, frames);
+    measureOutput(out, frames);
+}
+
+// V13.3: Pegel am Master-Ausgang (Spitze und RMS je Sekunde) und Stimmenzahl
+void AudioSystem::measureOutput(const float* out, int frames) {
+    int active = 0;
+    for (const auto& v : voices_) active += v.active ? 1 : 0;
+    st_.peakVoices = std::max(st_.peakVoices, active);
+    st_.frames += (unsigned long long)frames;
+    for (int i = 0; i < frames * 2; ++i) {
+        const double x = out[i];
+        if (!std::isfinite(x)) {
+            ++st_.nonFinite;
+            continue;
+        }
+        winPeak_ = std::max(winPeak_, std::fabs(x));
+        winSq_ += x * x;
+    }
+    winFrames_ += frames;
+    if (winFrames_ >= sampleRate_) {
+        st_.outPeak = (float)winPeak_;
+        st_.outRms = (float)std::sqrt(winSq_ / (2.0 * (double)winFrames_));
+        st_.expectedRms = (float)std::sqrt(winExpSq_ / (double)winFrames_);
+        winPeak_ = winSq_ = winExpSq_ = 0.0;
+        winFrames_ = 0;
+    }
+}
+
+AudioStats AudioSystem::stats() {
+    AudioStats s;
+    {
+        std::lock_guard lock(mutex_);
+        s = st_;
+        s.voices = s.loops = s.stopping = s.stuck = 0;
+        for (const auto& v : voices_) {
+            if (!v.active) continue;
+            ++s.voices;
+            s.loops += v.loop ? 1 : 0;
+            s.stopping += v.stopping ? 1 : 0;
+            // das Ausblenden dauert 50 ms; wer nach 250 ms noch "stopping" ist, haengt
+            s.stuck += v.stopping && v.stopFrames > (unsigned)(sampleRate_ / 4) ? 1 : 0;
+        }
+        s.ready = !sounds_.empty();
+    }
+    std::lock_guard lock(statMutex_);
+    s.deviceOpen = running_;
+    s.device = dev_.device;
+    s.deviceRate = dev_.deviceRate, s.deviceChannels = dev_.deviceChannels, s.deviceBits = dev_.deviceBits;
+    s.streamRate = dev_.streamRate, s.bufferFrames = dev_.bufferFrames, s.periodMs = dev_.periodMs;
+    s.opens = dev_.opens, s.openFailures = dev_.openFailures, s.losses = dev_.losses, s.restarts = dev_.restarts;
+    s.lastHr = dev_.lastHr;
+    s.underruns = dev_.underruns, s.timeouts = dev_.timeouts, s.mixMsMax = dev_.mixMsMax;
+    return s;
+}
+
+static float toDb(float x) { return x > 1e-9f ? 20.0f * std::log10(x) : -180.0f; }
+
+std::string AudioSystem::statsLine() {
+    const AudioStats s = stats();
+    return std::format(
+        "Geraet {} '{}' ({} Hz/{} Kan./{} Bit, Strom {} Hz, Puffer {} Bilder, Periode {:.1f} ms) | geoeffnet {} fehlgeschl. {} verloren {} "
+        "Neustarts {} letzter Fehler 0x{:08X} | Stimmen {}/{} (Schleifen {}, stopping {}, haengend {}, Spitze {}) | gestartet {} "
+        "abgewiesen {} (belegt) verworfen {} (ohne Geraet) zurueckgeholt {} | Ausgang Spitze {:.1f} dBFS RMS {:.1f} dBFS erwartet {:.1f} dBFS | "
+        "Bilder {} Unterlaeufe {} Zeitueberschr. {} ungueltig {} Stille-Alarme {} Mischen max {:.2f} ms",
+        s.deviceOpen ? "offen" : "ZU", s.device, s.deviceRate, s.deviceChannels, s.deviceBits, s.streamRate, s.bufferFrames, s.periodMs,
+        s.opens, s.openFailures, s.losses, s.restarts, (unsigned long)s.lastHr, s.voices, (int)voices_.size(), s.loops, s.stopping, s.stuck,
+        s.peakVoices, s.plays, s.allocFails, s.dropped, s.reclaimed, toDb(s.outPeak), toDb(s.outRms), toDb(s.expectedRms), s.frames,
+        s.underruns, s.timeouts, s.nonFinite, s.silenceAlarms, s.mixMsMax);
+}
+
+// V13.3: Name eines Endpunkts (PKEY_Device_FriendlyName)
+static std::string deviceName(IMMDevice* dev) {
+    static const PROPERTYKEY kFriendlyName = {{0xa45c254e, 0xdf1c, 0x4efd, {0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0}}, 14};
+    std::string name = "?";
+    Com<IPropertyStore> ps;
+    if (dev && SUCCEEDED(dev->OpenPropertyStore(STGM_READ, ps.put()))) {
+        PROPVARIANT pv;
+        PropVariantInit(&pv);
+        if (SUCCEEDED(ps->GetValue(kFriendlyName, &pv)) && pv.vt == VT_LPWSTR && pv.pwszVal) name = paths::narrow(pv.pwszVal);
+        PropVariantClear(&pv);
+    }
+    return name;
 }
 
 void AudioSystem::thread() {
     CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+    long lastLoggedHr = 0;
     while (!stop_) {
         Com<IMMDeviceEnumerator> en;
         Com<IMMDevice> dev;
         Com<IAudioClient> client;
         Com<IAudioRenderClient> render;
         HANDLE ev = CreateEventW(nullptr, FALSE, FALSE, nullptr);
-        bool ok = SUCCEEDED(CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL,
-                                             __uuidof(IMMDeviceEnumerator), (void**)en.put())) &&
-                  SUCCEEDED(en->GetDefaultAudioEndpoint(eRender, eConsole, dev.put())) &&
-                  SUCCEEDED(dev->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, (void**)client.put()));
+        // V13.3: jeden Schritt einzeln pruefen und den Fehlercode protokollieren
+        HRESULT hr = S_OK;
+        const char* step = "";
+        auto call = [&](const char* what, HRESULT h) {
+            if (FAILED(hr)) return false;
+            hr = h, step = what;
+            return SUCCEEDED(h);
+        };
+        bool ok = call("CoCreateInstance", CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator),
+                                                            (void**)en.put())) &&
+                  call("GetDefaultAudioEndpoint", en->GetDefaultAudioEndpoint(eRender, eConsole, dev.put())) &&
+                  call("Activate", dev->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, (void**)client.put()));
         UINT32 bufFrames = 0;
+        int mixRate = 0, mixCh = 0, mixBits = 0;
+        REFERENCE_TIME period = 0;
         if (ok) {
+            WAVEFORMATEX* mf = nullptr;
+            if (SUCCEEDED(client->GetMixFormat(&mf)) && mf) {
+                mixRate = (int)mf->nSamplesPerSec, mixCh = mf->nChannels, mixBits = mf->wBitsPerSample;
+                CoTaskMemFree(mf);
+            }
+            client->GetDevicePeriod(&period, nullptr);
             WAVEFORMATEXTENSIBLE wf{};
             wf.Format.wFormatTag = WAVE_FORMAT_EXTENSIBLE;
             wf.Format.nChannels = 2;
@@ -626,33 +745,70 @@ void AudioSystem::thread() {
             // Windows rechnet in das Geraeteformat um (Win7+)
             DWORD flags = AUDCLNT_STREAMFLAGS_EVENTCALLBACK | AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM |
                           AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY;
-            ok = SUCCEEDED(client->Initialize(AUDCLNT_SHAREMODE_SHARED, flags, 400000, 0, &wf.Format, nullptr)) &&
-                 SUCCEEDED(client->SetEventHandle(ev)) && SUCCEEDED(client->GetBufferSize(&bufFrames)) &&
-                 SUCCEEDED(client->GetService(__uuidof(IAudioRenderClient), (void**)render.put())) &&
-                 SUCCEEDED(client->Start());
+            ok = call("Initialize", client->Initialize(AUDCLNT_SHAREMODE_SHARED, flags, 400000, 0, &wf.Format, nullptr)) &&
+                 call("SetEventHandle", client->SetEventHandle(ev)) && call("GetBufferSize", client->GetBufferSize(&bufFrames)) &&
+                 call("GetService", client->GetService(__uuidof(IAudioRenderClient), (void**)render.put())) &&
+                 call("Start", client->Start());
         }
         if (!ok) {
             running_ = false;
             CloseHandle(ev);
+            {
+                std::lock_guard lock(statMutex_);
+                ++dev_.openFailures;
+                dev_.lastHr = (long)hr;
+            }
+            if ((long)hr != lastLoggedHr) log::warn("Audio: Geraet nicht verfuegbar ({}: 0x{:08X}) - neuer Versuch alle 2 s", step, (unsigned long)hr);
+            lastLoggedHr = (long)hr;
             // spaeter erneut versuchen (Geraet eingesteckt ...)
             for (int i = 0; i < 20 && !stop_; ++i) std::this_thread::sleep_for(std::chrono::milliseconds(100));
             continue;
         }
-        if (!running_) log::info("Audio: WASAPI, {} Hz Stereo, Puffer {} Bilder", sampleRate_, bufFrames);
+        lastLoggedHr = 0;
+        const std::string name = deviceName(dev.get());
+        {
+            std::lock_guard lock(statMutex_);
+            ++dev_.opens;
+            dev_.device = name;
+            dev_.deviceRate = mixRate, dev_.deviceChannels = mixCh, dev_.deviceBits = mixBits;
+            dev_.streamRate = sampleRate_, dev_.bufferFrames = bufFrames, dev_.periodMs = (float)period / 10000.0f;
+        }
+        log::info("Audio: WASAPI '{}' (Geraet {} Hz, {} Kanaele, {} Bit; Periode {:.1f} ms), Strom {} Hz Stereo float, Puffer {} Bilder ({:.1f} ms)",
+                  name, mixRate, mixCh, mixBits, (double)period / 10000.0, sampleRate_, bufFrames, 1000.0 * bufFrames / sampleRate_);
         running_ = true;
         std::vector<float> tmp;
+        bool first = true;
         while (!stop_) {
-            if (WaitForSingleObject(ev, 200) != WAIT_OBJECT_0) continue;
+            if (WaitForSingleObject(ev, 200) != WAIT_OBJECT_0) {
+                std::lock_guard lock(statMutex_);
+                ++dev_.timeouts;
+                continue;
+            }
             UINT32 padding = 0;
-            if (FAILED(client->GetCurrentPadding(&padding))) break;  // Geraet weg -> neu verbinden
+            if (FAILED(hr = client->GetCurrentPadding(&padding))) break;  // Geraet weg -> neu verbinden
+            if (padding == 0 && !first) {
+                std::lock_guard lock(statMutex_);
+                ++dev_.underruns;  // Puffer leergelaufen
+            }
+            first = false;
             UINT32 frames = bufFrames - padding;
             if (!frames) continue;
             BYTE* data = nullptr;
-            if (FAILED(render->GetBuffer(frames, &data))) break;
+            if (FAILED(hr = render->GetBuffer(frames, &data))) break;
             tmp.resize((size_t)frames * 2);
+            const auto t0 = std::chrono::steady_clock::now();
             mix(tmp.data(), (int)frames);
+            const float ms = std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - t0).count();
             std::memcpy(data, tmp.data(), tmp.size() * sizeof(float));
             render->ReleaseBuffer(frames, 0);
+            std::lock_guard lock(statMutex_);
+            dev_.mixMsMax = std::max(dev_.mixMsMax, ms);
+        }
+        if (!stop_) {
+            std::lock_guard lock(statMutex_);
+            ++dev_.losses;
+            dev_.lastHr = (long)hr;
+            log::warn("Audio: Strom unterbrochen (0x{:08X}) - verbinde neu", (unsigned long)hr);
         }
         client->Stop();
         CloseHandle(ev);
