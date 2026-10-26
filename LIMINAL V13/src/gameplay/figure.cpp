@@ -1,5 +1,9 @@
 #include "gameplay/figure.hpp"
 
+#include <set>
+
+#include "core/log.hpp"
+
 #include <algorithm>
 #include <cmath>
 

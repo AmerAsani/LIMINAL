@@ -26,6 +26,7 @@ struct Renderer::FigJob {
     std::atomic<bool> done{false};
     std::vector<FigureModel> models;     // Menschen (anim::Figure)
     std::vector<FigureModel> entities;   // Wesen (anim::Entity)
+    std::vector<std::string> entitySource;  // V13: Herkunft je Wesen (Protokoll)
     double seconds = 0.0;
 };
 struct Renderer::EntTexJob {
@@ -157,7 +158,14 @@ void Renderer::startFigureGeneration() {
     jobs_->submit([job, js] {
         auto t0 = std::chrono::steady_clock::now();
         for (int f = 0; f < anim::kFigureCount; ++f) job->models.push_back(buildFigure((anim::Figure)f, js));
-        for (int e = 0; e < anim::kEntityCount; ++e) job->entities.push_back(buildEntity((anim::Entity)e, js));
+        for (int e = 0; e < anim::kEntityCount; ++e) {
+            // V13: Modell aus Blender, wenn alle Stufen da sind; sonst das prozedurale aus V10/V11
+            FigureModel m;
+            std::string info;
+            if (!entityFromGlb((anim::Entity)e, m, info)) m = buildEntity((anim::Entity)e, js), info = "prozedural (render/entity_models.cpp)";
+            job->entities.push_back(std::move(m));
+            job->entitySource.push_back(info);
+        }
         job->seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
         job->done = true;
     });
@@ -186,7 +194,8 @@ void Renderer::uploadFigures() {
         const FigureModel& m = figJob_->entities[(size_t)e];
         for (int l = 0; l < anim::kFigureLods; ++l)
             meshes_.addSkinned(gpu_, std::string(anim::entityModel((anim::Entity)e)) + "_l" + std::to_string(l), m.lods[(size_t)l]);
-        log::info("Wesen {}: {}", anim::entityName((anim::Entity)e), figureStats(m));
+        log::info("Wesen {}: {} | Quelle {} | Inhalt {:016x}", anim::entityName((anim::Entity)e), figureStats(m),
+                  e < (int)figJob_->entitySource.size() ? figJob_->entitySource[(size_t)e] : std::string("?"), modelHash(m));
     }
     figJob_->entities.clear();
     log::info("Figuren modelliert in {:.2f} s", figJob_->seconds);

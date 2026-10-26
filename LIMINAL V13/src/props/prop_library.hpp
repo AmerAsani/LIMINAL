@@ -74,6 +74,8 @@ struct Model {
     std::vector<Part> parts;
     Aabb bounds;
     std::shared_ptr<const Skin> skin;  // V13: nullptr = starr
+    std::string file;                  // V13: Quelldatei (leer: im Code gebaut)
+    u64 fileHash = 0;                  // V13: FNV-1a (64 Bit) der Datei - beweist im Protokoll, welche Fassung geladen ist
 };
 
 // V13: Skinning-Matrizen (Spielkoordinaten, Modellraum) fuer eine Mischung von Posen: weights[i] gehoert zu

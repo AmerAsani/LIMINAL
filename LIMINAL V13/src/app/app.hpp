@@ -41,6 +41,7 @@ struct Options {
     double quitAfter = 0.0;
     double yaw = 1e9, pitch = 1e9, posX = 1e9, posY = 1e9;
     std::string saveFile;       // bestimmten Spielstand laden
+    std::string dumpSkeletons;  // V13: Skelette der Wesen als JSON schreiben und beenden (Blender-Pipeline)
     std::string room;           // Test: im naechsten Raum dieses Typs beginnen
     std::string shotUi;         // Test: Oberflaeche vor der Aufnahme oeffnen (title, pause, inventory, dead, help, graphics, new, load)
     Json overrides = Json::object();  // --set schluessel=wert (Einstellungen fuer diese Sitzung)

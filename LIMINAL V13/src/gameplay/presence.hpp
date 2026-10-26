@@ -139,6 +139,7 @@ public:
     // Vorfuehrung: Entity steht an pos (walkSpeed > 0: geht/fliegt mit diesem Tempo im Kreis).
     // kind 0..5: die Entities (anim::Entity), 6: Mensch (der Spieler)
     void showcase(int kind, vec3 pos, float yaw, float walkSpeed = 0.0f);
+    void clearShowcase();  // V13 (Tests): alle Vorfuehrungen entfernen
 
 private:
     struct Agent;

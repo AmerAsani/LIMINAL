@@ -514,6 +514,10 @@ void Presence::showcase(int kind, vec3 pos, float yaw, float walkSpeed) {
     agents_.push_back(std::move(a));
 }
 
+void Presence::clearShowcase() {
+    std::erase_if(agents_, [](const auto& a) { return a->showcase; });
+}
+
 // --- Bewegung ----------------------------------------------------------------------------------
 // Ein Stueck dem Feld folgen (koerperlich, mit Tempo); false: kein Weg
 bool Presence::walkTo(Agent& a, const NavField& f, double speed, double dt, const Context& c) {

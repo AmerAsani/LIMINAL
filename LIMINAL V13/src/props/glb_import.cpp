@@ -464,6 +464,12 @@ int loadModelDirectory(const std::string& dir) {
             log::warn("Modell {}: {}", name, err);
             continue;
         }
+        m.file = file;
+        if (auto bytes = paths::readFile(file)) {
+            u64 h = 1469598103934665603ull;
+            for (unsigned char ch : *bytes) h = (h ^ ch) * 1099511628211ull;
+            m.fileHash = h;
+        }
         size_t tris = 0;
         for (const auto& p : m.parts) tris += p.mesh.tris();
         const int parts = (int)m.parts.size();

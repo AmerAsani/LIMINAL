@@ -6,6 +6,7 @@
 #include <ctime>
 #include <format>
 #include <random>
+#include <set>
 #include <thread>
 
 #include "core/log.hpp"
@@ -67,6 +68,7 @@ bool App::parseArgs(const std::vector<std::string>& a) {
             size_t c = v.find(',');
             if (c != std::string::npos) opt_.posX = std::atof(v.c_str()), opt_.posY = std::atof(v.c_str() + c + 1);
         } else if (k == "--save-file") opt_.saveFile = next();
+        else if (k == "--dump-skeletons") opt_.dumpSkeletons = next();
         else if (k == "--room") opt_.room = next();
         else if (k == "--shot-ui") opt_.shotUi = next();
         else if (k == "--set") {
@@ -85,8 +87,46 @@ bool App::parseArgs(const std::vector<std::string>& a) {
 }
 
 // --- Start ---------------------------------------------------------------------------------------
+// V13: Ruhepose und Knochenrahmen aller Wesen (Modellraum des Spiels: x vorn, y Seite 0, z oben) fuer
+// tools/blender/creatures - die Modelle aus Blender werden um genau diese Knochen gebaut
+static bool dumpSkeletons(const std::string& path) {
+    Json root = Json::object();
+    for (int e = 0; e < anim::kEntityCount; ++e) {
+        const anim::CreatureSkeleton& sk = anim::entitySkeleton((anim::Entity)e);
+        std::vector<mat4> frames;
+        anim::creatureFrames(sk, anim::bindPose(sk), frames);
+        Json ent = Json::object();
+        ent.set("name", anim::entityName((anim::Entity)e));
+        ent.set("height", (double)sk.height);
+        ent.set("reach", (double)sk.reach);
+        Json joints = Json::array();
+        for (const vec3& j : sk.bind) {
+            Json a = Json::array();
+            a.push((double)j.x), a.push((double)j.y), a.push((double)j.z);
+            joints.push(a);
+        }
+        ent.set("joints", joints);
+        Json bones = Json::array();
+        for (size_t b = 0; b < sk.bones.size(); ++b) {
+            const anim::CBone& cb = sk.bones[b];
+            Json o = Json::object();
+            o.set("a", (double)cb.a), o.set("b", (double)cb.b), o.set("parent", (double)cb.parent);
+            o.set("radius", (double)cb.radius), o.set("shadow", cb.shadow);
+            Json f = Json::array();  // Rahmen spaltenweise (x, y, z, Ursprung)
+            for (int c = 0; c < 4; ++c)
+                for (int r = 0; r < 3; ++r) f.push((double)frames[b].at(r, c));
+            o.set("frame", f);
+            bones.push(o);
+        }
+        ent.set("bones", bones);
+        root.set(anim::entityModel((anim::Entity)e), ent);
+    }
+    return paths::writeFileAtomic(path, root.dump(true), false);
+}
+
 int App::run(const std::vector<std::string>& args) {
     parseArgs(args);
+    if (!opt_.dumpSkeletons.empty()) return dumpSkeletons(opt_.dumpSkeletons) ? 0 : 1;
     // eigenes Protokoll: V5 und V6 koennen nebeneinander installiert sein
     log::init(paths::join(paths::join(paths::localDataDir(), "logs"), "liminal_v13.log"));
     log::info("LIMINAL {} startet ({})", LIM_VERSION, paths::exeDir());
@@ -268,6 +308,8 @@ void App::scriptStep() {
             vec3 at{(float)(pl.x + std::cos(pl.angle) * dist), (float)(pl.y + std::sin(pl.angle) * dist), 0.0f};
             at.z = session_->world().tile(ifloor(at.x), ifloor(at.y)).floor;
             session_->presence().showcase(kind, at, (float)(pl.angle + kPi + turn), (float)(walk > 0.0 && walk < 1.01 ? 1.2 : walk));
+        } else if (cmd == "figclear" && session_) {  // V13 (Tests): Vorfuehrungen entfernen
+            session_->presence().clearShowcase();
         } else if (cmd == "presence" && session_) {  // V10: Entity erscheinen lassen: presence <smiler|hound|moth|gestalt|blackout> [abstand]
             using R = game::Presence::Role;
             char name[32] = {};
@@ -1423,7 +1465,14 @@ void App::renderWorld(double dt, bool clean) {
         }
         draws_.clear();
         for (auto& v : visible_) {
-            if (*v.meshId == -2) *v.meshId = renderer_->meshId(*v.model);
+            if (*v.meshId == -2) {
+                *v.meshId = renderer_->meshId(*v.model);
+                // V13: Nachweis, welches Netz fuer ein Wesen gezeichnet wird (einmal je Name; Quelle steht beim Hochladen)
+                if (v.model->rfind("ent_", 0) == 0) {
+                    static std::set<std::string> logged;
+                    if (logged.insert(*v.model).second) log::info("Wesen im Bild: Netz {} = ID {}", *v.model, *v.meshId);
+                }
+            }
             if (*v.meshId >= 0) {
                 gfx::MeshDraw md{*v.meshId, v.world, v.highlight, v.attached};
                 md.bones = v.bones;

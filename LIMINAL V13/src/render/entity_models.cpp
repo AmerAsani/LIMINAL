@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <format>
 #include <functional>
 #include <initializer_list>
 #include <memory>
@@ -13,6 +14,7 @@
 #include "anim/creature.hpp"
 #include "anim/skeleton.hpp"
 #include "core/jobs.hpp"
+#include "props/prop_library.hpp"
 #include "render/figure_models.hpp"
 #include "render/moth_wing.hpp"
 #include "render/sculpt.hpp"
@@ -1319,6 +1321,84 @@ void buildClump(ECtx& c, FigureModel& m) {
 }
 
 }  // namespace
+
+bool entityFromGlb(Entity e, FigureModel& out, std::string& info) {
+    static const std::pair<const char*, u32> kMat[] = {
+        {"ent_skin", FM_ENT_SKIN},     {"ent_hair", FM_ENT_HAIR},         {"ent_horn", FM_ENT_HORN},
+        {"ent_tooth", FM_ENT_TOOTH},   {"ent_mouth", FM_ENT_MOUTH},       {"ent_eyeshine", FM_ENT_EYESHINE},
+        {"ent_glow", FM_ENT_GLOW},     {"ent_glow_dim", FM_ENT_GLOW_DIM}, {"ent_glow_eye", FM_ENT_GLOW_EYE},
+        {"ent_shadow", FM_ENT_SHADOW}, {"ent_wing", FM_ENT_WING},         {"ent_chitin", FM_ENT_CHITIN},
+        {"ent_fur", FM_ENT_FUR},       {"ent_motheye", FM_ENT_MOTHEYE},   {"ent_nest", FM_ENT_NEST},
+        {"clump_a", FM_ENT_CLUMP_A},   {"clump_b", FM_ENT_CLUMP_B},       {"clump_c", FM_ENT_CLUMP_C},
+        {"clump_core", FM_ENT_CLUMP_CORE}};
+    const CreatureSkeleton& sk = entitySkeleton(e);
+    FigureModel m;
+    std::vector<mat4> frames;
+    creatureFrames(sk, bindPose(sk), frames);
+    m.bindInv.resize(frames.size());
+    for (size_t b = 0; b < frames.size(); ++b) m.bindInv[b] = rigidInverse(frames[b]);
+    m.radius = sk.reach;
+    std::string files;
+    for (int l = 0; l < kFigureLods; ++l) {
+        const std::string name = std::string(entityModel(e)) + "_l" + std::to_string(l);
+        const props::Model* pm = props::model(name);
+        if (!pm || !pm->skin) return false;
+        // Gelenk der Datei -> Knochen des Skeletts ("B07" = Knochen 7)
+        std::vector<int> map(pm->skin->joints.size(), -1);
+        for (size_t j = 0; j < map.size(); ++j) {
+            const std::string& jn = pm->skin->joints[j].name;
+            if (jn.size() >= 2 && jn[0] == 'B') {
+                const int b = std::atoi(jn.c_str() + 1);
+                if (b >= 0 && b < sk.boneCount()) map[j] = b;
+            }
+        }
+        for (const props::Part& p : pm->parts) {
+            if (p.joints.size() != p.mesh.v.size()) return false;
+            SkinPart sp;
+            sp.material = FM_ENT_SKIN;
+            for (const auto& [k, v] : kMat)
+                if (p.mat.fm == k) sp.material = v;
+            sp.v.reserve(p.mesh.v.size());
+            for (size_t i = 0; i < p.mesh.v.size(); ++i) {
+                const props::Vtx& v = p.mesh.v[i];
+                SkinVertex sv{};
+                sv.pos = v.p, sv.normal = v.n, sv.tangent = vec4(v.n, 1.0f), sv.uv = v.uv, sv.bind = v.p;
+                int sum = 0, big = 0;
+                for (int k = 0; k < 4; ++k) {
+                    const int b = map[p.joints[i][(size_t)k]];
+                    const float w = b >= 0 ? p.weights[i][(size_t)k] : 0.0f;
+                    sv.bones[k] = (u8)std::max(b, 0);
+                    sv.weights[k] = (u8)std::clamp((int)std::lround(w * 255.0f), 0, 255);
+                    sum += sv.weights[k];
+                    if (sv.weights[k] > sv.weights[big]) big = k;
+                }
+                if (sum == 0) return false;  // Punkt ohne gueltigen Knochen
+                sv.weights[big] = (u8)std::clamp((int)sv.weights[big] + 255 - sum, 0, 255);
+                sp.v.push_back(sv);
+            }
+            sp.idx.assign(p.mesh.i.begin(), p.mesh.i.end());
+            m.lods[(size_t)l].push_back(std::move(sp));
+        }
+        files += std::format("{}{} (FNV {:016x})", l ? ", " : "", pm->file.substr(pm->file.find_last_of("/\\") + 1), pm->fileHash);
+    }
+    out = std::move(m);
+    info = "Blender: " + files;
+    return true;
+}
+
+u64 modelHash(const FigureModel& m) {
+    u64 h = 1469598103934665603ull;
+    auto mix = [&](const void* p, size_t n) {
+        const unsigned char* c = (const unsigned char*)p;
+        for (size_t i = 0; i < n; ++i) h = (h ^ c[i]) * 1099511628211ull;
+    };
+    for (const auto& lod : m.lods)
+        for (const auto& p : lod) {
+            for (const auto& v : p.v) mix(&v.pos, sizeof(v.pos));
+            mix(p.idx.data(), p.idx.size() * sizeof(u32));
+        }
+    return h;
+}
 
 FigureModel buildEntity(Entity e, JobSystem* jobs) {
     FigureModel m;
