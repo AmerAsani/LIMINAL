@@ -698,6 +698,8 @@ void Room::planLights(Rng& rng) {
     bw_ = floorDiv(x1 - 1, kBucket) + 2 - bx0_;
     bh_ = floorDiv(y1 - 1, kBucket) + 2 - by0_;
     buckets_.assign((size_t)(bw_ * bh_), {});
+    bucketReach_ = 1;
+    for (const Fixture& f : fixtures_) bucketReach_ = std::max<i64>(bucketReach_, (i64)std::ceil(f.radius / (double)kBucket));
     for (int i = 0; i < (int)fixtures_.size(); ++i) {
         const Fixture& f = fixtures_[(size_t)i];
         i64 bx = floorDiv(ifloor(f.x), kBucket) - bx0_;
@@ -731,8 +733,8 @@ double Room::lightAt(i64 x, i64 y) const {
     double cx = (double)x + 0.5, cy = (double)y + 0.5;
     double lum = ambient;
     i64 bx = floorDiv(x, kBucket), by = floorDiv(y, kBucket);
-    for (i64 kx = bx - 1; kx <= bx + 1; ++kx)
-        for (i64 ky = by - 1; ky <= by + 1; ++ky) {
+    for (i64 kx = bx - bucketReach_; kx <= bx + bucketReach_; ++kx)
+        for (i64 ky = by - bucketReach_; ky <= by + bucketReach_; ++ky) {
             i64 ix = kx - bx0_, iy = ky - by0_;
             if (ix < 0 || iy < 0 || ix >= bw_ || iy >= bh_) continue;
             for (int fi : buckets_[(size_t)(iy * bw_ + ix)]) {

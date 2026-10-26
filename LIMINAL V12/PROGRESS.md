@@ -44,11 +44,22 @@ Wiedereinstieg: diese Datei zuerst lesen, dann `DECISIONS.md`.
   - Platzierung 0 ohne Halt. Entscheidung E-011.
 - [x] Level 4, 6, 19 aus V12 entfernt (nicht in der Auswahl).
 
+- [x] Level 5 „Das Hotel“:
+  - `LEVELSPEC_5.md`, `LOOK_5.md`.
+  - Aufzugshalle, Hauptgang mit Flügeln, 58 Zimmer, Beverly Room, Kesselraum, Gang nach 5.3, Fenster nach 188, Metro-Halt nach 903.
+  - Eigene Damasttapete; 21 Blender-Modelle (Türen mit Nummern, Aufzüge, Kronleuchter, Mahjong-Tisch, Grammophon, Kessel, Ofen, Bett, Gesims, Laterne, Bildnis, Metro-Wagen, Fenster).
+  - Funde nur auf Beistelltischen (9 von 9). Vier QA-Runden, Bilder in `docs/screens/level5/`.
+  - Platzierung: 2253 Objekte, 0 ohne Halt. Engine: Lichtsuche nach Radius. Entscheidung E-012.
+
 ## Als Nächstes
 1. Wesen-Pipeline (gestellte oder gerigte Modelle aus Blender); zuerst die dunkle Gestalt von Level 0.
 2. Level der Reihe nach (1, 2, 3, 5, 5.3, 188, 903, 37, 36): Spec → Look → Bau → Platzierung → Items → Wesen → Klang → Qualitätsschleife → Commit.
 3. Oberfläche neu, geprüft bei mehreren Auflösungen.
 
 ## Bekannte Fehler / offen
-- **Reiseprüfung rot (gameplay_test, 6 Fehler):** Level 5 (noch V11) und Level 7 zeigen auf entfernte Level; Level 3 → 5 hat noch kein Gegenstück. Wird mit dem Neubau von Level 5 und 37 behoben.
+- **Reiseprüfung rot (gameplay_test, 5 Fehler):**
+  - Level 5 zeigt auf 5.3, 188 und 903, die noch nicht gebaut sind.
+  - Level 7 zeigt auf das entfernte Level 6.
+  - Die Prüfung „9 Ausgänge, 1 Ende“ erwartet das Ende noch in Level 37 statt am Tor von Level 36.
+  - Wird mit 5.3, 188, 903, 37 und 36 behoben.
 - Einmalig hing in V11 ein Testlauf beim Start (Protokoll endete nach dem Laden der Level). In vier Wiederholungen nicht wieder aufgetreten. Ursache unbekannt; beobachten.

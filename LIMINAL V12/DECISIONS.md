@@ -144,3 +144,22 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
 - **Levelliste:** Die V11-Level 4, 6 und 19 gehören nicht zur Auswahl (`LEVELAUSWAHL.md`) und sind aus V12 entfernt, samt ihrer Notizen; in V11 bleiben sie erhalten.
   - Level 7 bleibt vorerst, weil der Schwimmtest es braucht, bis Level 37 Wasser hat.
   - Solange Level 5 und 37 nicht neu gebaut sind, schlägt die Reiseprüfung fehl (Anker zu entfernten Leveln). Das ist absichtlich offen und steht in `PROGRESS.md`.
+
+## E-012 Level 5 (26.10.2026)
+- **Quelle:** Wikidot „Level 5“, Revision 184 (`LEVELSPEC_5.md`), Bild in `LOOK_5.md`. Vier QA-Runden (`docs/screens/level5/`).
+- **Neu statt V11:** Die V11-Fassung war ein rot getöntes Gangsystem. Neu:
+  - Aufzugshalle mit Marmor, Kronleuchter und drei Aufzügen (zwei mit Kupfergitter, einer modern; Wiki);
+  - Hauptgang und Flügel mit Damasttapete über Nussbaumvertäfelung, Stuckgesims, Kerzenwandleuchtern, Bildnissen, Möbeln;
+  - Zimmertüren mit Nummern ohne Muster; 42 % der Zimmer verschlossen, die übrigen dunkel, eingerichtet oder leer;
+  - Beverly Room (42 × 34 m) mit Türen ringsum, Mahjong-Tisch unter dem großen Kronleuchter, Grammophon, Silberschild an den Eingängen;
+  - Kesselraum mit Flammrohrkesseln (meist) und Öfen (einige), Rohren, Dampf und Lecks;
+  - Übergänge: Gang nach 5.3, Fenster nach 188, Metro-Halt nach 903.
+- **Tapete:** Kein CC0-Set bei ambientCG passt (mahagonirot mit Gold). Eigene, prozedurale Damasttapete (`tools/textures/generate.py`).
+  - Runde 1 zeigte, dass das erste Ornament wie ein Insekt las. Neu gezeichnet: Ogee-Gitter mit Palmette, Kelch, Voluten und Rosetten.
+- **Sicherungspunkte:** Im Hotel hängt eine Laterne mit grünem Glas statt des modernen Notlichtschilds. Das Grün bleibt das Zeichen; die Form passt in die 1930er.
+- **Engine-Fehler behoben (`room.cpp`):** Die Lichtsuche für die Kachelhelligkeit sah nur Leuchten in den benachbarten 8-m-Feldern.
+  - Folge: Leuchten mit großem Radius (Ballsaal, 11–16 m) brachen hart ab. Decke und Boden zeigten dunkle Flecken.
+  - Jetzt richtet sich die Suchweite nach dem größten Radius im Raum.
+  - V4-Referenz (worldgen 29 658) unverändert grün, weil alte Leuchten höchstens 8 m reichen.
+- **Wesen:** Deathmoths mit Nestern an den Türen dunkler Zimmer (Wiki: häufigste Wesen, zentraler Stock), selten Hounds in den Gängen.
+- **Offen:** Bewohner und Gruppen (Homely Hotel, Originals, Housekeeping), Tippen auf die Schulter, sich selbst öffnende Türen – nicht umgesetzt (`LEVELSPEC_5.md` Abschnitt 3).

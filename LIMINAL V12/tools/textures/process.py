@@ -10,8 +10,11 @@ Aufruf: python -I tools/textures/process.py   (braucht Pillow)
 """
 import json
 import os
+import sys
 
 from PIL import Image
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SEL = os.path.join(ROOT, 'tools', 'textures', 'selection.json')
@@ -48,6 +51,14 @@ def main():
         xdir = os.path.join(DL, aid, 'x')
         dst = os.path.join(OUT, name)
         os.makedirs(dst, exist_ok=True)
+        if t.get('generator'):  # V12: eigene, prozedurale Textur (keine fremde Quelle)
+            import generate  # noqa: E402 (liegt neben diesem Skript)
+            generate.GENERATORS[t['generator']](dst, SIZE)
+            manifest.append({'name': name, 'dir': name, 'source': 'eigen:' + t['generator'], 'meters': t.get('meters', 1.0),
+                             'normal_strength': t.get('normal_strength', 1.0), 'rough_bias': t.get('rough_bias', 0.0),
+                             'variation': t.get('variation', 0.25), 'levels': t.get('levels', [])})
+            print('ok', name, 'eigen', t['generator'], flush=True)
+            continue
         color = find(xdir, aid, 'Color')
         normal = find(xdir, aid, 'NormalDX')
         rough = find(xdir, aid, 'Roughness')

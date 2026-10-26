@@ -1,11 +1,9 @@
-// LIMINAL V11 - Level 5: "Das Hotel" (LEVEL_SELECTION.md Abschnitt 3.6).
+// LIMINAL V12 - Level 5: "Das Hotel" (LEVELSPEC_5.md, LOOK_5.md; Wikidot Level 5, Revision 184).
 //
-// Ein Hotel der 1920/30er: Haupthalle mit mahagoniroter und goldener Tapete, Marmor, Kronleuchter;
-// Ballsaal mit einem Spieltisch, an dem eine Partie nie zu Ende gespielt wurde; Flure mit Messingnummern,
-// Portraets und Moebeln, die unverrueckbar im Weg stehen; Jazz aus alten Lautsprechern. In offenen, dunklen
-// Zimmern Motten-Nester. Der Kesselraum ist heiss und fuehrt tiefer (Level 6). Treppenhaus hinauf ins Buero
-// (Level 4), eine beschaedigte Tuer zurueck auf den Dachboden (Level 19).
-// Feste Karte: data/maps/level5.json (Entwurf tools/levels/level5.py).
+// Hotel der 1930er: Hauptgaenge mit mahagoniroter Tapete und Gold (eigene Damasttextur), Nussbaum, Marmor, rot-goldener
+// Teppich, Kerzenwandleuchter, Zimmertueren mit Messingnummer; Beverly Room mit Kronleuchter und Mahjong-Tisch; Kesselraum
+// mit Oefen und Dampf. Ankunft mit dem Aufzug aus Level 3; Gang nach 5.3, Fenster nach 188, Metro-Halt nach 903.
+// Karte data/maps/level5.json aus tools/levels/level5.py. Wesen: Deathmoths mit Nestern in dunklen Zimmern, selten Hounds.
 {
   "id": "level5",
   "name": "Level 5",
@@ -15,107 +13,121 @@
   "map": "level5",
   "presence_region": 2,
   "presence": { "hound": true, "smiler": false, "gestalt": false, "blackout": false },
-  "next_level": "level6",
+  "next_level": "level5_3",
   "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0 },
 
   "zones": [
-    { "key": "halle", "name": "Haupthalle",
-      "wall": [0.50, 0.12, 0.10], "floor": [0.80, 0.78, 0.74], "ceil": [0.86, 0.80, 0.66],
-      "trim": [0.78, 0.60, 0.26], "lamp": [1.00, 0.84, 0.60], "fog": [0.08, 0.05, 0.03],
-      "fog_density": 0.025, "ambient": 0.14, "light_style": "authored",
-      "wall_pattern": "wallpaper", "floor_pattern": "bigtiles", "ceil_pattern": "none", "baseboard": true,
-      "band": [0.0, 1.05], "door_height": 2.6 },
-    { "key": "ballsaal", "name": "Ballsaal",
-      "wall": [0.70, 0.56, 0.30], "floor": [0.42, 0.26, 0.15], "ceil": [0.82, 0.76, 0.62],
-      "trim": [0.40, 0.18, 0.12], "lamp": [1.00, 0.84, 0.60], "fog": [0.07, 0.05, 0.03],
-      "fog_density": 0.025, "ambient": 0.12, "light_style": "authored",
-      "wall_pattern": "wallpaper", "floor_pattern": "planks", "ceil_pattern": "none", "baseboard": true, "door_height": 2.6 },
+    { "key": "halle", "name": "Aufzugshalle",
+      "wall": [0.92, 0.90, 0.88], "floor": [0.50, 0.48, 0.46], "ceil": [0.72, 0.68, 0.62],
+      "trim": [0.30, 0.18, 0.11], "lamp": [1.00, 0.86, 0.66], "fog": [0.03, 0.024, 0.018],
+      "fog_density": 0.02, "ambient": 0.06, "light_style": "authored",
+      "wall_pattern": "wallpaper", "floor_pattern": "bigtiles", "ceil_pattern": "none", "door_height": 2.3,
+      "wall_tex": "wallpaper_damask_red", "floor_tex": "marble_white", "ceil_tex": "plaster_white" },
+    { "key": "flur", "name": "Hauptgang",
+      "wall": [0.92, 0.90, 0.88], "floor": [0.86, 0.80, 0.76], "ceil": [0.86, 0.82, 0.74],
+      "trim": [0.30, 0.18, 0.11], "lamp": [1.00, 0.80, 0.55], "fog": [0.026, 0.018, 0.014],
+      "fog_density": 0.025, "ambient": 0.05, "light_style": "authored",
+      "wall_pattern": "wallpaper", "floor_pattern": "carpet", "ceil_pattern": "none", "door_height": 2.2,
+      "wall_tex": "wallpaper_damask_red", "floor_tex": "carpet_red_pattern", "ceil_tex": "plaster_white" },
+    { "key": "flur_alt", "name": "Gang zu 5.3",
+      "wall": [0.78, 0.74, 0.70], "floor": [0.80, 0.74, 0.70], "ceil": [0.80, 0.76, 0.68],
+      "trim": [0.26, 0.16, 0.10], "lamp": [1.00, 0.80, 0.55], "fog": [0.022, 0.016, 0.012],
+      "fog_density": 0.035, "ambient": 0.04, "light_style": "authored",
+      "wall_pattern": "wallpaper", "floor_pattern": "planks", "ceil_pattern": "none", "door_height": 2.2,
+      "wall_tex": "wallpaper_damask_red", "floor_tex": "wood_walnut_floor", "ceil_tex": "plaster_white" },
     { "key": "zimmer", "name": "Zimmer",
-      "wall": [0.48, 0.16, 0.13], "floor": [0.46, 0.12, 0.10], "ceil": [0.80, 0.74, 0.62],
-      "trim": [0.30, 0.16, 0.08], "lamp": [1.00, 0.84, 0.60], "fog": [0.05, 0.03, 0.02],
-      "fog_density": 0.03, "ambient": 0.09, "light_style": "authored",
-      "wall_pattern": "wallpaper", "floor_pattern": "carpet", "ceil_pattern": "none", "baseboard": true, "door_height": 2.25 },
-    { "key": "flur", "name": "Flure",
-      "wall": [0.56, 0.42, 0.22], "floor": [0.50, 0.12, 0.10], "ceil": [0.80, 0.74, 0.62],
-      "trim": [0.32, 0.16, 0.08], "lamp": [1.00, 0.82, 0.56], "fog": [0.05, 0.035, 0.02],
-      "fog_density": 0.035, "ambient": 0.08, "light_style": "authored",
-      "wall_pattern": "wallpaper", "floor_pattern": "carpet", "ceil_pattern": "none", "baseboard": true,
-      "band": [0.0, 0.95], "door_height": 2.25 },
-    { "key": "wartung", "fixture": "tube", "name": "Wartungsflure",
-      "wall": [0.60, 0.60, 0.58], "floor": [0.40, 0.40, 0.39], "ceil": [0.62, 0.62, 0.60],
-      "trim": [0.30, 0.30, 0.30], "lamp": [1.00, 0.90, 0.72], "fog": [0.03, 0.03, 0.028],
-      "fog_density": 0.03, "ambient": 0.07, "light_style": "authored",
-      "wall_pattern": "plain", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.1 },
+      "wall": [0.90, 0.86, 0.84], "floor": [0.80, 0.74, 0.70], "ceil": [0.84, 0.80, 0.72],
+      "trim": [0.30, 0.18, 0.11], "lamp": [1.00, 0.80, 0.55], "fog": [0.018, 0.013, 0.010],
+      "fog_density": 0.03, "ambient": 0.02, "light_style": "authored",
+      "wall_pattern": "wallpaper", "floor_pattern": "planks", "ceil_pattern": "none", "baseboard": true, "door_height": 2.15,
+      "wall_tex": "wallpaper_damask_red", "floor_tex": "wood_walnut_floor", "ceil_tex": "plaster_white" },
+    { "key": "ballsaal", "name": "Beverly Room",
+      "wall": [0.92, 0.90, 0.88], "floor": [0.86, 0.82, 0.78], "ceil": [0.88, 0.84, 0.76],
+      "trim": [0.30, 0.18, 0.11], "lamp": [1.00, 0.86, 0.66], "fog": [0.03, 0.024, 0.018],
+      "fog_density": 0.02, "ambient": 0.06, "light_style": "authored",
+      "wall_pattern": "wallpaper", "floor_pattern": "planks", "ceil_pattern": "none", "door_height": 2.6,
+      "wall_tex": "wallpaper_damask_red", "floor_tex": "wood_herringbone_dark", "ceil_tex": "plaster_white" },
+    { "key": "kabine", "name": "Aufzug",
+      "wall": [0.70, 0.46, 0.32], "floor": [0.20, 0.18, 0.16], "ceil": [0.60, 0.50, 0.40],
+      "trim": [0.4, 0.3, 0.2], "lamp": [1.00, 0.86, 0.66], "fog": [0.02, 0.02, 0.02],
+      "fog_density": 0.01, "ambient": 0.04, "light_style": "authored",
+      "wall_pattern": "panels", "floor_pattern": "none", "ceil_pattern": "none", "door_height": 2.2,
+      "wall_tex": "wood_walnut_floor" },
     { "key": "kessel", "name": "Kesselraum",
-      "wall": [0.44, 0.40, 0.36], "floor": [0.30, 0.28, 0.26], "ceil": [0.30, 0.28, 0.26],
-      "trim": [0.24, 0.20, 0.16], "lamp": [1.00, 0.62, 0.30], "fog": [0.07, 0.04, 0.02],
-      "fog_density": 0.08, "ambient": 0.06, "light_style": "authored",
-      "wall_pattern": "bricks", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.2 },
-    { "key": "dunkel", "name": "Hinab",
-      "wall": [0.28, 0.27, 0.26], "floor": [0.22, 0.22, 0.21], "ceil": [0.24, 0.24, 0.23],
-      "trim": [0.16, 0.16, 0.16], "lamp": [1.00, 0.60, 0.30], "fog": [0.01, 0.008, 0.006],
-      "fog_density": 0.08, "ambient": 0.01, "light_style": "authored",
-      "wall_pattern": "concrete", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.2 }
+      "wall": [0.62, 0.50, 0.42], "floor": [0.42, 0.40, 0.37], "ceil": [0.30, 0.28, 0.26],
+      "trim": [0.26, 0.21, 0.16], "lamp": [1.00, 0.82, 0.58], "fog": [0.060, 0.040, 0.026],
+      "fog_density": 0.07, "ambient": 0.04, "light_style": "authored",
+      "wall_pattern": "bricks", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.2,
+      "wall_tex": "bricks_brown_old", "floor_tex": "concrete_rough", "ceil_tex": "concrete_cast", "damp_band": [0.0, 0.5, 0.7] },
+    { "key": "metro", "name": "Metro-Halt",
+      "wall": [0.78, 0.78, 0.76], "floor": [0.50, 0.48, 0.46], "ceil": [0.40, 0.40, 0.40],
+      "trim": [0.3, 0.3, 0.3], "lamp": [1.00, 0.98, 0.90], "fog": [0.03, 0.03, 0.03],
+      "fog_density": 0.03, "ambient": 0.05, "light_style": "authored",
+      "wall_pattern": "tiles", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.2,
+      "wall_tex": "tiles_white", "floor_tex": "paving_dark_blocks", "ceil_tex": "concrete_cast" }
   ],
+
   "light_styles": {
-    "authored": { "extra": 0.25, "intensity": 0.75, "hum": 0 },
-    "unlit":    { "extra": 0.0, "intensity": 0.0, "ambient": 0.01, "dark_fog": true }
+    "authored": { "extra": 0.2, "intensity": 0.75, "hum": 1 },
+    "dark":     { "extra": 0.02, "intensity": 0.0, "ambient": 0.015, "dark_fog": true }
   },
-  "dark_fog": [0.006, 0.004, 0.003],
+  "dark_fog": [0.006, 0.005, 0.004],
+
   "room_types": [
-    { "key": "haupthalle", "label": "Haupthalle", "category": "large" },
-    { "key": "ballsaal", "label": "Ballsaal", "category": "large" },
-    { "key": "restaurant", "label": "Restaurant", "category": "normal" },
-    { "key": "lounge", "label": "Lounge", "category": "normal" },
-    { "key": "kesselraum", "label": "Kesselraum", "category": "large", "stamina_drain": 3.0 },
-    { "key": "treppe", "label": "Treppe", "category": "normal", "stair_step": 0.18 },
-    { "key": "treppenhaus", "label": "Treppenhaus", "category": "normal" },
-    { "key": "flur5", "label": "Flur", "category": "corridor" },
-    { "key": "wartung", "label": "Wartungsflur", "category": "corridor" },
-    { "key": "durchgang", "label": "Durchgang", "category": "corridor" },
-    { "key": "hotelzimmer", "label": "Zimmer", "category": "normal" },
-    { "key": "dunkles_zimmer", "label": "Dunkles Zimmer", "category": "normal" },
-    { "key": "abstellkammer", "label": "Abstellkammer", "category": "normal" }
+    { "key": "aufzugshalle", "label": "Aufzugshalle", "category": "large" },
+    { "key": "kabine", "label": "Aufzug", "category": "normal" },
+    { "key": "flur", "label": "Hauptgang", "category": "corridor" },
+    { "key": "zimmer", "label": "Zimmer", "category": "normal" },
+    { "key": "ballsaal", "label": "Beverly Room", "category": "large" },
+    { "key": "kesselgang", "label": "Kesselgang", "category": "corridor" },
+    { "key": "kesselraum", "label": "Kesselraum", "category": "normal" },
+    { "key": "metro", "label": "Metro-Halt", "category": "normal" },
+    { "key": "fensternische", "label": "Fensternische", "category": "normal" }
   ],
-  "corridor_types": ["flur5"],
-  "endless_type": "flur5",
-  "default_corridor_type": "flur5",
-  "fallback_type": "hotelzimmer",
-  "supply_fallback_type": "hotelzimmer",
-  "spawn_preferred_types": ["treppenhaus"],
-  "supply_items": [ { "item": "almond", "weight": 0.5 }, { "item": "energy", "weight": 0.5 } ],
+  "corridor_types": ["flur"],
+  "endless_type": "flur",
+  "default_corridor_type": "flur",
+  "fallback_type": "zimmer",
+  "supply_fallback_type": "zimmer",
+  "spawn_preferred_types": ["aufzugshalle"],
+  "supply_items": [ { "item": "almond", "weight": 0.6 }, { "item": "energy", "weight": 0.25 }, { "item": "battery", "weight": 0.15 } ],
+
+  // Wiki: die eingerichteten Zimmer erhalten Leben; die meisten Dinge findet man im Hauptgang
   "spawn_rules": {
-    "item":    { "count": [10, 14], "spacing": 10, "table": { "almond": 0.45, "energy": 0.35, "battery": 0.2 }, "first_within": 40 },
+    "item":    { "count": [7, 10], "spacing": 14, "table": { "almond": 0.6, "energy": 0.25, "battery": 0.15 }, "first_within": 50 },
     "note":    { "count": [3, 4], "spacing": 25 },
     "crate":   { "count": [0, 0] },
     "deco":    { "chance": 0.7 },
     "fusebox": { "count": [0, 0] }
   },
+
+  // Klang (Wiki: Jazz von alten Plattenspielern, Partygemurmel hinter Waenden, Fluestern; im Kesselraum Maschinen,
+  // Tropfen, Fluestern aus den Oefen)
   "audio": {
     "beds": [
-      { "sound": "bed_l5_room", "gain": 0.9 },
-      { "sound": "party_murmur", "gain": 0.25, "only": ["flur5", "hotelzimmer", "lounge"] }
+      { "sound": "bed_l5_room", "gain": 0.85, "not": ["kesselgang", "kesselraum", "metro"] },
+      { "sound": "party_murmur", "gain": 0.28, "only": ["flur", "zimmer", "aufzugshalle"] },
+      { "sound": "bed_l2_warm", "gain": 0.7, "only": ["kesselgang", "kesselraum"] }
     ],
     "spots": {
-      "music":   { "sound": "hotel_music", "radius": 16, "gain": 0.45, "voices": 2 },
+      "music":   { "sound": "hotel_music", "radius": 18, "gain": 0.5, "voices": 1 },
       "steam":   { "sound": "steam_loop", "radius": 8, "gain": 0.5, "voices": 2 },
-      "machine": { "sound": "machine", "radius": 12, "gain": 0.5, "voices": 2 }
+      "machine": { "sound": "machine", "radius": 10, "gain": 0.5, "voices": 2 }
     },
     "events": [
-      { "sound": "dist_door", "every": [50, 140], "dist": [15, 40], "gain": 0.6 },
       { "sound": "wood_creak", "every": [20, 60], "dist": [4, 15], "height": [0.0, 2.5], "gain": 0.45 },
-      { "sound": "hal_whisper", "every": [120, 260], "dist": [3, 8], "height": [1.2, 1.7], "gain": 0.3 }
+      { "sound": "hal_whisper", "every": [120, 260], "dist": [3, 8], "height": [1.2, 1.7], "gain": 0.3 },
+      { "sound": "hal_whisper", "every": [25, 60], "dist": [2, 6], "height": [0.4, 1.2], "gain": 0.3, "only": ["kesselraum"] },
+      { "sound": "drip", "every": [3, 9], "dist": [2, 12], "height": [0.0, 0.1], "gain": 0.5, "where": "puddle" }
     ],
     "acoustics": {
-      "haupthalle":   { "t60": 2.2, "t60_low": 2.4, "t60_high": 1.1, "size": 2.0, "wet": 0.24, "early": 0.5, "absorption": 0.06 },
-      "ballsaal":     { "t60": 2.0, "t60_low": 2.2, "t60_high": 0.9, "size": 1.9, "wet": 0.22, "early": 0.5, "absorption": 0.08 },
-      "restaurant":   { "t60": 0.7, "t60_low": 0.8, "t60_high": 0.3, "size": 0.9, "wet": 0.12, "early": 0.6, "absorption": 0.2 },
-      "lounge":       { "t60": 0.6, "t60_low": 0.7, "t60_high": 0.25, "size": 0.9, "wet": 0.11, "early": 0.6, "absorption": 0.28 },
-      "kesselraum":   { "t60": 1.8, "t60_low": 1.9, "t60_high": 0.9, "size": 1.5, "wet": 0.22, "early": 0.8, "absorption": 0.04 },
-      "flur5":        { "t60": 0.5, "t60_low": 0.6, "t60_high": 0.22, "size": 0.8, "wet": 0.1, "early": 0.8, "absorption": 0.3 },
-      "hotelzimmer":  { "t60": 0.35, "t60_low": 0.45, "t60_high": 0.16, "size": 0.5, "wet": 0.08, "early": 0.6, "absorption": 0.35 },
-      "treppe":       { "t60": 1.4, "t60_low": 1.6, "t60_high": 0.7, "size": 1.0, "wet": 0.2, "early": 0.8, "absorption": 0.05 },
-      "default":      { "t60": 0.6, "t60_low": 0.7, "t60_high": 0.28, "size": 0.7, "wet": 0.12, "early": 0.7, "absorption": 0.22 }
+      "aufzugshalle": { "t60": 1.4, "t60_low": 1.6, "t60_high": 0.7, "size": 1.4, "wet": 0.2, "early": 0.5, "absorption": 0.08 },
+      "flur":         { "t60": 0.9, "t60_low": 1.0, "t60_high": 0.4, "size": 0.9, "wet": 0.14, "early": 0.7, "absorption": 0.25 },
+      "zimmer":       { "t60": 0.5, "t60_low": 0.6, "t60_high": 0.25, "size": 0.6, "wet": 0.1, "early": 0.6, "absorption": 0.3 },
+      "ballsaal":     { "t60": 2.2, "t60_low": 2.4, "t60_high": 1.0, "size": 2.1, "wet": 0.24, "early": 0.5, "absorption": 0.08 },
+      "kesselgang":   { "t60": 1.2, "t60_low": 1.3, "t60_high": 0.6, "size": 0.8, "wet": 0.2, "early": 0.9, "absorption": 0.04 },
+      "kesselraum":   { "t60": 1.6, "t60_low": 1.8, "t60_high": 0.8, "size": 1.2, "wet": 0.22, "early": 0.8, "absorption": 0.04 },
+      "default":      { "t60": 0.8, "t60_low": 0.9, "t60_high": 0.4, "size": 0.8, "wet": 0.14, "early": 0.7, "absorption": 0.2 }
     }
   }
 }

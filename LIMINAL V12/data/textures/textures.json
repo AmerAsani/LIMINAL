@@ -211,6 +211,18 @@
    ]
   },
   {
+   "name": "wallpaper_damask_red",
+   "dir": "wallpaper_damask_red",
+   "source": "eigen:damask",
+   "meters": 0.7,
+   "normal_strength": 1.5,
+   "rough_bias": 0.0,
+   "variation": 0.2,
+   "levels": [
+    "5"
+   ]
+  },
+  {
    "name": "bricks_brown_old",
    "dir": "bricks_brown_old",
    "source": "Bricks094",

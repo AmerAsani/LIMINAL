@@ -240,6 +240,7 @@ private:
     std::vector<Fixture> fixtures_;
     // Suchraster fuer Leuchten (8 x 8 Kacheln je Zelle)
     i64 bx0_ = 0, by0_ = 0, bw_ = 0, bh_ = 0;
+    i64 bucketReach_ = 1;  // V12: Suchweite in Rasterfeldern (grosse Leuchten im Ballsaal reichen ueber 8 m)
     std::vector<std::vector<int>> buckets_;
     bool hasOccluders_ = false;
     int elevWall_ = -1;  // V8: Wand des Aufzugskerns (0 y0, 1 y1, 2 x0, 3 x1; -1 keiner)

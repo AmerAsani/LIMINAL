@@ -1648,17 +1648,19 @@ static Mount mountOf(const std::string& m) {
                                  "painting_a", "painting_b", "painting_c", "painting_d", "painting_e", "painting_f",
                                  "painting_lean_a", "painting_lean_b", "painting_lean_c", "exit_sign_green",
                                  "junction_box", "violet_lamp", "door_steel_white", "door_steel_grey", "door_steel_cream", "door_window", "door_plywood", "door_wood_old", "door_oversize", "door_level3",  // V12 Level 2
-                                 "window_brick", "painting_angel", "painting_angel_scribbled", "sign_warning", "canvas_wall", "elevator_door"};  // V12 Level 3
+                                 "window_brick", "painting_angel", "painting_angel_scribbled", "sign_warning", "canvas_wall", "elevator_door",  // V12 Level 3
+                                 "wainscot", "hotel_door_a", "hotel_door_b", "hotel_door_c", "hotel_door_d", "hotel_door_e", "hotel_door_f", "placard_beverly", "candle_sconce", "painting_portrait", "window_bright", "elevator_cage", "cornice"};  // V12 Level 5
     static const char* ceil[] = {"batten", "highbay", "chandelier", "safety_light", "ceiling_vent",
                                  "troffer", "troffer_off", "troffer_red", "ceiling_diffuser", "hanging_bulb",  // V12
-                                 "tube_white", "tube_orange", "tube_dead"};
+                                 "tube_white", "tube_orange", "tube_dead", "chandelier_grand", "lantern_green"};
     static const char* floor[] = {"chair", "rack", "bed", "barrel", "cart", "pump", "wardrobe", "trunk", "water_cooler", "armchair", "sofa",
                                   "side_table", "game_table", "boiler", "statue", "transformer", "fence_panel", "rubble", "barrier", "camp",
                                   "desk_crt", "crate", "pallet", "switch_cabinet", "stall_line", "arrow", "floor_glow", "car",
                                   "crate_a", "crate_b", "crate_c", "debris_a", "debris_b", "hospital_bed", "work_table",
                                   "column_round",  // V12 Level 1
                                   "mach_cabinet", "mach_pump", "mach_tank", "pipe_riser", "pipe_bundle_a", "pipe_bundle_b", "trolley_flatbed", "toolbox", "stepladder", "cable_reel", "folding_chair", "hopper_wagon", "rail_track", "chamfer_26", "chamfer_32",  // V12 Level 2
-                                  "generator", "conveyor", "sludge_pool", "skull", "train_bogie", "greek_torso", "angel_statue", "canvas_drape_a", "canvas_drape_b", "grate_stair", "pipe_black", "column_greek"};  // V12 Level 3
+                                  "generator", "conveyor", "sludge_pool", "skull", "train_bogie", "greek_torso", "angel_statue", "canvas_drape_a", "canvas_drape_b", "grate_stair", "pipe_black", "column_greek",  // V12 Level 3
+                                  "mahjong_table", "gramophone", "furnace", "metro_car_end", "hotel_bed", "boiler_tank"};  // V12 Level 5
     for (const char* w : wall)
         if (m == w) return Mount::Wall;
     for (const char* c : ceil)
@@ -1696,7 +1698,7 @@ static void testV11Placement() {
             std::string why;
             const bool isDoor = o.model == "steel_door" || o.model == "hotel_door" || o.model == "damaged_door" ||
                                 o.model.rfind("arch", 0) == 0 || o.model.rfind("swing_door", 0) == 0 ||
-                                o.model == "door_level3" || o.model == "elevator_door";  // V12: im Durchbruch
+                                o.model == "door_level3" || o.model == "elevator_door" || o.model == "elevator_cage";  // V12: im Durchbruch
             if (o.model == "pillar_label") {  // Ursprung in der Stuetze: die Kachel muss fest sein
                 if (!here.solid()) why = "keine Stuetze";
             } else if (isDoor && (here.flags & world::TF_DOOR)) {

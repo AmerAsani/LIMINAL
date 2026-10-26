@@ -40,6 +40,8 @@ def main():
     lock = json.load(open(LOCK, encoding='utf-8')) if os.path.exists(LOCK) else {'assets': {}}
     today = datetime.date.today().isoformat()
     for t in sel:
+        if t.get('generator'):  # V12: eigene Textur (tools/textures/generate.py), nichts herunterzuladen
+            continue
         aid = t['id']
         folder = os.path.join(DL, aid)
         os.makedirs(folder, exist_ok=True)
