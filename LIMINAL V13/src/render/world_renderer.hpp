@@ -86,7 +86,7 @@ public:
     // maxLights (V6): Obergrenze gleichzeitig gerechneter Leuchten (die naechsten zuerst)
     u32 updateLights(Gpu& gpu, const mat4& view, const Frustum& frustum, vec3 camPos, float maxDist, float time,
                      float intensityScale, bool shadows, u32 maxLights = 2048,
-                     const std::vector<ExtraLight>* extra = nullptr);
+                     const std::vector<ExtraLight>* extra = nullptr, float worldScale = 1.0f);
     // V7: Stromausfall - Leuchten mit diesem Flacker-Seed abdunkeln (-1 keiner)
     void setBlackout(int seed, float amount, vec3 origin = {}, float front = -1.0f) {
         blackoutSeed_ = seed, blackoutAmount_ = amount, blackoutOrigin_ = origin, blackoutFront_ = front;

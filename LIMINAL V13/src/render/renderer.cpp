@@ -580,7 +580,7 @@ void Renderer::renderScene(const CameraState& cam, const SceneParams& p, const s
     // Nebel leuchtet etwas: er traegt das Licht der Raeume
     const float fb = settings_.fogBrightness;
     f.fogColor = {fogLin.x * fb, fogLin.y * fb, fogLin.z * fb, p.fogDensity};
-    f.fogParams = {p.viewDistance, 0.72f, settings_.ambientStrength, 1.0f};
+    f.fogParams = {p.viewDistance, 0.72f, settings_.ambientStrength * std::max(p.worldLightScale, 0.0f), 1.0f};
     f.proj = {proj.at(0, 0), proj.at(1, 1), nearZ, 0};
     f.ringParams = {(float)world_.ringSize(), 1.0f / (float)world_.ringSize(), (float)(frame_ % 1024), nearZ};
     f.post = {p.redEdge, p.redPulse, p.menuDim, p.desaturate};
@@ -612,7 +612,8 @@ void Renderer::renderScene(const CameraState& cam, const SceneParams& p, const s
     static const float kLightDist[4] = {0.6f, 0.8f, 1.0f, 1.0f};
     const int lq = std::clamp(settings_.lightQuality, 0, 3);
     u32 nLights = world_.updateLights(gpu_, view, frustum, cam.pos, p.viewDistance * kLightDist[lq], f.cameraPos.w,
-                                      settings_.lightIntensity, settings_.shadows > 0, kMaxLights[lq], &p.extraLights);
+                                      settings_.lightIntensity, settings_.shadows > 0, kMaxLights[lq], &p.extraLights,
+                                      p.worldLightScale);
     f.lightParams = {(float)nLights, settings_.lightIntensity, (float)settings_.shadows, settings_.ssao ? 1.0f : 0.0f};
     stats_.lights = nLights;
     gpu_.update(frameCb_, &f, sizeof(f));

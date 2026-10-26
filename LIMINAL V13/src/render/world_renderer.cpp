@@ -99,6 +99,8 @@ GpuMaterial toGpuMaterial(const world::Material& m) {
         case Surface::PropCeramic: all(L_PLASTER); g.roughness = 0.3f; break;
         default: break;
     }
+    if (m.roughMul >= 0.0f) g.roughness = m.roughMul;  // V13.3: aus Blender
+    if (m.metalAdd >= 0.0f) g.metalness = m.metalAdd;
     if (m.emissive) {
         if (m.surface == Surface::Default) all(L_DIFFUSER);
         g.emissive = m.surface == Surface::Vending ? 3.2f : 11.0f;
@@ -365,7 +367,7 @@ void WorldRenderer::removeChunk(Gpu& gpu, const world::ChunkData& cd) {
 
 u32 WorldRenderer::updateLights(Gpu& gpu, const mat4& view, const Frustum& frustum, vec3 camPos, float maxDist,
                                 float time, float intensityScale, bool shadows, u32 maxLights,
-                                const std::vector<ExtraLight>* extra) {
+                                const std::vector<ExtraLight>* extra, float worldScale) {
     struct Cand {
         float d2;
         const world::ChunkLight* l;
@@ -397,7 +399,7 @@ u32 WorldRenderer::updateLights(Gpu& gpu, const mat4& view, const Frustum& frust
     // V7: zusaetzliche Leuchten (Taschenlampe, Schilder) stehen vorn - sie sind nah und wichtig
     const size_t ne = extra ? std::min<size_t>(extra->size(), 16) : 0;
     const size_t cap = std::min<size_t>(lights_.count, maxLights);
-    size_t n = std::min<size_t>(cands.size(), cap > ne ? cap - ne : 0);
+    size_t n = worldScale > 0.0f ? std::min<size_t>(cands.size(), cap > ne ? cap - ne : 0) : 0;  // V13.3: 0 = Welt dunkel
     lightData_.resize(ne + n);
     for (size_t i = 0; i < ne; ++i) {
         const ExtraLight& e = (*extra)[i];
@@ -425,7 +427,7 @@ u32 WorldRenderer::updateLights(Gpu& gpu, const mat4& view, const Frustum& frust
             (blackoutFront_ < 0.0f || std::hypot(L.pos.x - blackoutOrigin_.x, L.pos.y - blackoutOrigin_.y) < blackoutFront_))
             fl *= 1.0f - blackoutAmount_;  // V7, V11: Welle
         vec3 lin{srgbToLinear(L.color.x), srgbToLinear(L.color.y), srgbToLinear(L.color.z)};
-        float power = L.intensity * intensityScale * fl;
+        float power = L.intensity * intensityScale * worldScale * fl;
         vec3 dir{0, 0, -1};
         float over = overOf(L);
         float boost = 1.0f + over / 3.0f;
@@ -442,7 +444,7 @@ u32 WorldRenderer::updateLights(Gpu& gpu, const mat4& view, const Frustum& frust
             au = side * (L.area.x * 0.5f);
             av = vec3{0, 0, L.area.y * 0.5f};
             spill = L.kind == world::ChunkLight::Wall ? 0.25f : 0.12f;
-            if (L.kind == world::ChunkLight::Machine) power = L.intensity * intensityScale * 0.75f * fl;
+            if (L.kind == world::ChunkLight::Machine) power = L.intensity * intensityScale * worldScale * 0.75f * fl;
         }
         g.posRange = {L.pos, range};
         g.colorRadius = {lin * power, std::max(L.area.x, L.area.y) * 0.5f};

@@ -111,6 +111,8 @@ struct SceneParams {
     // V6: Bewegung des Spielers seit dem letzten Bild (Welt -> Welt), fuer mitbewegte Objekte
     mat4 attachedReproject = mat4::identity();
     std::vector<ExtraLight> extraLights;  // V7
+    // V13.3 (Kontaktboegen): Leuchten der Welt und Umgebungslicht skalieren (0 = nur Zusatzlichter, z. B. Testlampe)
+    float worldLightScale = 1.0f;
     // V7: Stromausfall (Halluzination) - Leuchten, Leuchtflaechen und Umgebungslicht der Raeume
     // mit diesem Flacker-Seed (0..31, -1 keiner) um amount (0..1) abdunkeln
     int blackoutSeed = -1;

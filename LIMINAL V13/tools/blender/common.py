@@ -28,12 +28,16 @@ def srgb_to_lin(c):
     return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
 
 
-def material(name, rgb=(0.8, 0.8, 0.8), look='paint', tex=None, glow=0.0, rough=0.6, metal=0.0, fm=None):
+def material(name, rgb=(0.8, 0.8, 0.8), look='paint', tex=None, glow=0.0, rough=0.6, metal=0.0, fm=None, r=None, m=None):
     """Material mit Namen nach Konvention; rgb in sRGB (wie in den Level-Daten). fm: festes Material des
-    Renderers (Viewmodel, render/world_renderer.hpp), dann zaehlen look/tex/glow im Spiel nicht."""
+    Renderers (Viewmodel, render/world_renderer.hpp), dann zaehlen look/tex/glow im Spiel nicht.
+    V13.3: r = Faktor auf die Rauheit der Textur im Spiel (0,3 glaenzend .. 1,5 stumpf), m = Metall-Zuschlag (0..1);
+    ohne Angabe gilt der Look (props/glb_import.hpp). rough/metal wirken nur in Blender."""
     key = (f'fm={fm} ' if fm else '') + f'look={look}' + (f' tex={tex}' if tex else '') + \
-        (f' glow={glow:g}' if glow > 0 else '') + f' #{name}'
-    m = bpy.data.materials.get(key) or bpy.data.materials.new(key)
+        (f' glow={glow:g}' if glow > 0 else '') + (f' r={r:g}' if r is not None else '') + \
+        (f' m={m:g}' if m is not None else '') + f' #{name}'
+    mat = bpy.data.materials.get(key) or bpy.data.materials.new(key)
+    m = mat
     m.use_nodes = True
     bsdf = m.node_tree.nodes.get('Principled BSDF')
     lin = [srgb_to_lin(c) for c in rgb]
