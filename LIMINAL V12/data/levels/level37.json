@@ -1,55 +1,55 @@
-// LIMINAL V11 - Level 37: "Die Becken" (LEVEL_SELECTION.md Abschnitt 3.10), Ziel der Reise.
+// LIMINAL V12 - Level 37: "Sublimity" (LEVELSPEC_37.md, LOOK_37.md; Wikidot Level 37, Revision 52).
 //
-// Raeume und Gaenge aus makellos weissen Fliesen, grossteils geflutet (lauwarm, blaugruen), tiefe Becken
-// mit Licht von unten, Saeulen im Wasser. Kurzer Hall, der abrupt abbricht. Keine Entity; das Wasser
-// entspannt. Wer in das letzte Becken taucht, in dem das Licht von unten kommt, ist angekommen.
-// Feste Karte: data/maps/level37.json (Entwurf tools/levels/level37.py).
+// Raeume und Gaenge aus makellos weissen Fliesen, knoecheltief mit lauwarmem, blaugruenem Wasser geflutet; Hallen mit
+// zu vielen Saeulen; Gruben, in die Treppen direkt ins tiefe Wasser fuehren (meist dunkel); Licht aus seltsamen
+// Winkeln, manche Bereiche ganz dunkel. Gedaempfter, abbrechender Hall. Keine Wesen; das Wasser entspannt, das Dunkel
+// beunruhigt. Ankunft und Rueckweg mit dem Metro-Wagen (Level 903). Karte data/maps/level37.json aus tools/levels/level37.py.
 {
   "id": "level37",
   "name": "Level 37",
-  "title": "Die Becken",
-  "display_title": "Die Becken",
+  "title": "Sublimity",
+  "display_title": "Sublimity",
   "generator": "map",
   "map": "level37",
   "presence_region": 0,
   "presence": { "hound": false, "smiler": false, "gestalt": false, "blackout": false },
-  "next_level": "",
+  "next_level": "level903",
   "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0 },
   "zones": [
     { "key": "fliesen", "name": "Die Becken",
-      "wall": [0.90, 0.92, 0.92], "floor": [0.86, 0.90, 0.90], "ceil": [0.90, 0.92, 0.92],
-      "trim": [0.7, 0.75, 0.76], "lamp": [0.92, 1.00, 1.00], "fog": [0.20, 0.27, 0.28],
-      "fog_density": 0.03, "ambient": 0.2, "light_style": "authored",
-      "wall_pattern": "tiles", "floor_pattern": "tiles", "ceil_pattern": "tiles", "door_height": 2.4 },
-    { "key": "ende", "name": "Das letzte Becken",
-      "wall": [0.92, 0.94, 0.94], "floor": [0.86, 0.92, 0.92], "ceil": [0.92, 0.94, 0.94],
-      "trim": [0.7, 0.75, 0.76], "lamp": [0.92, 1.00, 1.00], "fog": [0.26, 0.33, 0.34],
-      "fog_density": 0.03, "ambient": 0.24, "light_style": "authored",
-      "wall_pattern": "tiles", "floor_pattern": "tiles", "ceil_pattern": "tiles", "door_height": 3.0 }
+      "wall": [0.92, 0.94, 0.94], "floor": [0.88, 0.92, 0.92], "ceil": [0.92, 0.94, 0.94],
+      "trim": [0.7, 0.75, 0.76], "lamp": [1.00, 0.99, 0.94], "fog": [0.18, 0.26, 0.27],
+      "fog_density": 0.025, "ambient": 0.17, "light_style": "authored",
+      "wall_pattern": "tiles", "floor_pattern": "tiles", "ceil_pattern": "tiles", "door_height": 2.4,
+      "wall_tex": "tiles_white_bath", "floor_tex": "tiles_white_bath", "ceil_tex": "tiles_white_bath" }
   ],
   "light_styles": { "authored": { "extra": 0.3, "intensity": 0.75, "hum": 0 } },
-  "dark_fog": [0.05, 0.07, 0.07],
+  "dark_fog": [0.03, 0.045, 0.048],
+  // Wiki: das Wasser entspannt (Bittersalz, unbekannte Stoffe); nahe den dunklen Ecken Furcht
   "room_types": [
-    { "key": "fliesengang", "label": "Gang", "category": "corridor", "sanity_drain": -0.3 },
+    { "key": "tunnel", "label": "Tunnel", "category": "corridor", "sanity_drain": -0.2 },
+    { "key": "fliesengang", "label": "Gang", "category": "corridor", "sanity_drain": -0.25 },
     { "key": "fliesenraum", "label": "Raum", "category": "normal", "sanity_drain": -0.3 },
-    { "key": "beckenraum", "label": "Beckenraum", "category": "normal", "sanity_drain": -0.3 },
-    { "key": "becken", "label": "Becken", "category": "normal", "sanity_drain": -0.5 },
-    { "key": "endbecken", "label": "Das letzte Becken", "category": "large", "sanity_drain": -0.6 }
+    { "key": "saeulenhalle", "label": "Saeulenhalle", "category": "large", "sanity_drain": -0.35 },
+    { "key": "grube", "label": "Grube", "category": "normal", "sanity_drain": 0.15 },
+    { "key": "dunkelgang", "label": "Dunkler Gang", "category": "corridor", "sanity_drain": 0.2 },
+    { "key": "dunkelraum", "label": "Dunkler Raum", "category": "normal", "sanity_drain": 0.2 }
   ],
   "corridor_types": ["fliesengang"],
   "endless_type": "fliesengang",
   "default_corridor_type": "fliesengang",
   "fallback_type": "fliesenraum",
   "supply_fallback_type": "fliesenraum",
-  "spawn_preferred_types": ["fliesenraum"],
+  "spawn_preferred_types": ["tunnel"],
   "supply_items": [ { "item": "almond", "weight": 1.0 } ],
   "spawn_rules": {
     "item":    { "count": [0, 0] },
-    "note":    { "count": [2, 3], "spacing": 25 },
+    "note":    { "count": [1, 1], "spacing": 25 },
     "crate":   { "count": [0, 0] },
     "deco":    { "chance": 0.0 },
     "fusebox": { "count": [0, 0] }
   },
+  // Klang (Wiki: Laerm verstummt ploetzlich, kaum Nachhall, Sprache gedaempft; das Wasser meist leise, selten laut)
   "audio": {
     "beds": [
       { "sound": "pool_loop", "gain": 0.8 },

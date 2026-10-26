@@ -77,7 +77,7 @@ FLOOR_MOUNT = {'chair', 'rack', 'bed', 'barrel', 'cart', 'pump', 'wardrobe', 'tr
                'mahjong_table', 'gramophone', 'furnace', 'metro_car_end', 'hotel_bed', 'boiler_tank',  # V12 L5
                'column_tuff', 'candelabrum', 'books_fallen',  # V12 L5.3
                'paving_strip', 'birch_circle', 'table_188', 'pillar_188',  # V12 L188
-               'metro_car_903', 'track_metro', 'platform_edge', 'stairs_barricaded'}  # V12 L903
+               'metro_car_903', 'metro_car_37', 'track_metro', 'platform_edge', 'stairs_barricaded'}  # V12 L903
 
 
 class Map:
@@ -457,7 +457,7 @@ class Map:
             kw.pop('sealed', None)
             if 'pillars' in kw:
                 o['pillars'] = list(kw.pop('pillars'))
-            for k in ('light', 'circuit', 'flicker', 'ambient', 'label', 'tags', 'seed', 'beams', 'water'):
+            for k in ('light', 'circuit', 'flicker', 'ambient', 'label', 'tags', 'seed', 'beams', 'water', 'water_look'):
                 if k in kw:
                     o[k] = kw.pop(k)
             if r.lights:

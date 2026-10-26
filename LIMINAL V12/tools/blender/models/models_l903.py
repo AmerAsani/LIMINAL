@@ -70,6 +70,20 @@ def _pictogram(name, kind, x, cz, M, sign=1):
         if f.normal.x * sign < 0:
             f.normal_flip()
         common.obj_from_bmesh(name, bm, white)
+    if kind == 'train':  # Wagen von vorn: Kasten, zwei Fenster, Raeder (zurueck zur Metro)
+        poly([(-0.16, cz - 0.16), (0.16, cz - 0.16), (0.16, cz + 0.18), (-0.16, cz + 0.18)])
+        dark = common.material('anzeige_dunkel', (0.02, 0.02, 0.02), look='paint', rough=0.6)
+        for wy in (-0.1, 0.03):
+            bm = bmesh.new()
+            pts = [(wy, cz + 0.02), (wy + 0.07, cz + 0.02), (wy + 0.07, cz + 0.12), (wy, cz + 0.12)]
+            f = bm.faces.new([bm.verts.new((x - sign * 0.002, y * 1.7, cz + (z - cz) * 1.7)) for (y, z) in pts])
+            f.normal_update()
+            if f.normal.x * sign < 0:
+                f.normal_flip()
+            common.obj_from_bmesh(name + '_fenster', bm, dark)
+        for wy in (-0.1, 0.1):
+            poly([(wy + 0.04 * math.cos(a), cz - 0.22 + 0.04 * math.sin(a)) for a in [k * 2 * math.pi / 12 for k in range(12)]])
+        return
     if kind == 'wave':
         for r in range(2):
             z0 = cz + 0.04 - r * 0.09
@@ -84,7 +98,12 @@ def _pictogram(name, kind, x, cz, M, sign=1):
         poly([(-0.25, cz), (-0.2, cz), (-0.26, cz + 0.08), (-0.29, cz + 0.08)])  # Leitwerk
 
 
-def build_metro_car_903():
+def build_metro_car_37():
+    """Derselbe Wagen, wie er in Level 37 haelt: vorn dunkle Anzeige, hinten ein Wagen-Bildzeichen (zurueck zur Metro)."""
+    build_metro_car_903(minus=None, plus='train')
+
+
+def build_metro_car_903(minus='wave', plus='plane'):
     """Fahrender Metro-Wagen (Boden, Ursprung Mitte Wagenboden, 18 x 3 m, entlang x): Kasten mit Streifen, Fenster,
     je Seite drei offene Tueren, Innenraum mit Baenken, Stangen, Licht; an den Stirnseiten innen Zielanzeigen mit
     Bildzeichen (-x: Wellen = Level 37, +x: Flugzeug = Level 36). Wiki: der Wagen nimmt Ziele an."""
@@ -114,7 +133,9 @@ def build_metro_car_903():
         common.box(f'stirn{s}', (x0, -WID / 2, -0.6), (x1, WID / 2, H), M['body'])
         xi = x0 - 0.002 if s > 0 else x1 + 0.002
         common.box(f'anzeige{s}', (min(xi, xi - s * 0.03), -0.6, 1.72), (max(xi, xi - s * 0.03), 0.6, 2.42), M['dark'])
-        _pictogram(f'zeichen{s}', 'plane' if s > 0 else 'wave', xi - s * 0.032, 2.07, M, sign=-s)
+        kind = plus if s > 0 else minus
+        if kind:
+            _pictogram(f'zeichen{s}', kind, xi - s * 0.032, 2.07, M, sign=-s)
     # Innenraum: Laengsbaenke, Stangen, Lichtband
     for s in (-1, 1):
         for (a, b) in ((-L / 2 + 0.3, -6.8), (-5.2, -0.8), (0.8, 5.2), (6.8, L / 2 - 0.3)):

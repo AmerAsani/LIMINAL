@@ -92,6 +92,7 @@ std::optional<MapDef> MapDef::fromJson(const Json& j, std::string* error) {
         for (const auto& b : r["blocks"].items())
             R.blocks.push_back({b[0].asInt(), b[1].asInt(), b[2].asInt(), b[3].asInt(), b[4].asNumber(1.0), b[5].asInt(1) != 0});
         R.water = r["water"].asNumber(-999.0);  // V11
+        R.waterLook = (int)r["water_look"].asNumber(0.0);  // V12
         R.label = r["label"].asString("");
         R.tags = strings(r["tags"]);
         if (R.x0 < 1 || R.y0 < 1 || R.x1 > M.w - 1 || R.y1 > M.h - 1) return fail(std::format("Karte {}: Raum {} ragt aus der Karte", M.id, M.rooms.size()));

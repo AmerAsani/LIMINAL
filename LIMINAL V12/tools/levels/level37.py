@@ -1,11 +1,13 @@
-"""Level 37 - "Die Becken": Entwurf der festen Karte (LEVEL_SELECTION.md, Abschnitt 3.10). Ziel der Reise.
+"""Level 37 - "Sublimity" (V12, LEVELSPEC_37.md / LOOK_37.md; Wikidot Level 37, Revision 52).
 
-Raeume und Gaenge aus makellos weissen Fliesen, grossteils geflutet: knoecheltief in den Gaengen, tiefe
-Becken mit Treppen hinab, Saeulen im Wasser. Licht aus seltsamen Winkeln, manches kommt von unten aus dem
-Wasser, manche Bereiche sind dunkel. Kurzer Hall, der abrupt abbricht. Keine Entity; das Wasser entspannt.
+Draufsicht (x nach rechts, y nach unten):
 
-Ankunft: aufgetaucht in einem Becken (aus dem Meer von Level 7). Ende: das Becken, in dem das Licht von
-unten kommt - wer hineintaucht, ist angekommen (Abspann).
+   ##[Wagen (halb in der Wand)]~~~~~~~~ Tunnel mit Wasser ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   Raeume und Gaenge aus weissen Fliesen, knoecheltief geflutet; Hallen voller Saeulen; Gruben, in die Treppen
+   direkt ins tiefe Wasser fuehren (oft dunkel); Licht aus seltsamen Winkeln, manche Bereiche ganz dunkel.
+
+Ankunft: der Metro-Wagen aus Level 903 haelt im Tunnel, sein vorderes Ende steckt in der Wand (er faehrt durch feste
+Materie, Wiki 903). Rueckweg: hinteres Wagenende (Bildzeichen Wagen) -> Level 903.
 """
 import math
 import os
@@ -17,65 +19,92 @@ from mapkit import Map, partition_rooms, link_regions  # noqa: E402
 m = Map('level37', 150, 120, seed=3737)
 rng = m.rng
 WATER = 0.3  # knoecheltief ueber dem Fliesenboden
+PLAT = 1.1
+POOL = (0.70, 0.95, 1.0)
+CALM = (0.92, 1.0, 1.0)
+
+# --- Tunnel mit dem haltenden Wagen ---------------------------------------------------------------------------------------
+T = m.room(4, 4, 60, 11, 'tunnel', 'fliesen', 0.0, 4.2, water=WATER, label='Tunnel')
+CX, CY = 12.5, 6.0
+m.block(T, 4, 5, 21, 7, PLAT, hidden=False)  # Wagenboden (der Wagen steckt vorn in der Westwand)
+for (x0, y0, x1, y1) in ((4, 4, 22, 5), (21, 5, 22, 8)):
+    m.block(T, x0, y0, x1, y1, 3.6, hidden=True)
+DOORS = (6, 12, 18)
+xs = [4] + [v for d in DOORS for v in (d, d + 1)] + [21]
+for k in range(0, len(xs), 2):
+    m.block(T, xs[k], 7, xs[k + 1], 8, 3.6, hidden=True)
+for d in DOORS:
+    m.block(T, d, 7, d + 1, 8, PLAT, hidden=False)
+    m.block(T, d, 8, d + 1, 9, 0.55, hidden=False)  # Stufe aus dem Wasser
+m.obj('metro_car_37', CX, CY, PLAT + 0.01, 0.0, tag='light')
+for x in (7.0, 12.5, 18.0):
+    m.light(T, x, CY, 0, 0.6, 6.0, z=PLAT + 2.3, panel=False, color=(1.0, 0.98, 0.92))
+m.start = (CX, CY, math.pi / 2)
+m.transition('l903_37', 'door', '', CX, CY, math.pi / 2)  # Ankunft im Wagen aus Level 903
+m.transition('l37_903', 'door', 'level903', 19.6, CY, 0.0, rect=[19, 5, 21, 7])
+TR = m.R(T)
+for x in range(TR.x0 + 3, TR.x1 - 1, 7):  # Licht aus seltsamen Winkeln: tief an der Suedwand
+    m.light(T, x + 0.5, TR.y1 - 0.6, 1, 0.55, 6.0, 0, -1, z=0.7, panel=False, color=CALM)
 
 
-def tile_type(w, h, r):
-    if min(w, h) <= 3 and max(w, h) >= 8:
+# --- Becken: Raeume und Gaenge, geflutet ----------------------------------------------------------------------------------
+def pick(w, h, r):
+    if min(w, h) <= 3 and max(w, h) >= 7:
         return 'fliesengang'
-    return 'beckenraum' if w * h >= 60 else 'fliesenraum'
+    return 'saeulenhalle' if w * h >= 130 else 'fliesenraum'
 
 
-rooms = partition_rooms(m, 2, 2, 120, 118, 'fliesen', tile_type, min_leaf=4, max_leaf=16, height=(3.0, 4.6),
-                        stop_chance=0.35, loop_chance=0.45, width=(2, 3))
-pools = []
+rooms = partition_rooms(m, 4, 12, 146, 118, 'fliesen', pick, min_leaf=3, max_leaf=16, height=(3.0, 5.0),
+                        stop_chance=0.35, loop_chance=0.45, width=(2, 3), water=WATER)
+link_regions(m, [T], rooms, 3, width=(2, 3))
+pits, halls, lit_rooms = [], [], []
 for r in rooms:
     R = m.R(r)
-    R.kw['water'] = WATER
-    if R.type == 'beckenraum' and rng.random() < 0.6:
-        # tiefes Becken: Boden 3,5 m tiefer, Rand als Laufsteg (Block auf Bodenhoehe)
-        R.floor = -3.5
-        R.height = R.height + 3.5
-        R.type = 'becken'
-        pools.append(r)
-        m.block(r, R.x0, R.y0, R.x1, R.y0 + 1, 3.5, hidden=False)
-        m.block(r, R.x0, R.y1 - 1, R.x1, R.y1, 3.5, hidden=False)
-        m.block(r, R.x0, R.y0 + 1, R.x0 + 1, R.y1 - 1, 3.5, hidden=False)
-        m.block(r, R.x1 - 1, R.y0 + 1, R.x1, R.y1 - 1, 3.5, hidden=False)
-        # Licht von unten (manche Becken)
-        if rng.random() < 0.6:
-            m.light(r, R.cx, R.cy, 3, 1.0, 9.0, z=-3.3, panel=False, color=(0.7, 0.95, 1.0))
-    else:
-        # Licht aus seltsamen Winkeln: Wandleuchten tief unten oder gar keins
-        roll = rng.random()
-        if roll < 0.55:
-            m.light(r, R.x0 + 0.6, R.cy, 1, 0.7, 6.0, 1, 0)
-        elif roll < 0.8:
-            m.light(r, R.cx, R.cy, 0, 0.6, 5.0, color=(0.92, 1.0, 1.0))
-
-# Das Ende: ein grosses Becken im Osten, Licht von unten, eine breite Treppe hinab
-ende = m.room(121, 30, 148, 90, 'endbecken', 'ende', -4.0, 9.0, water=WATER, label='Das letzte Becken')
-m.block(ende, 121, 30, 148, 40, 4.0, hidden=False)  # Rand am Eingang
-for k, y in enumerate(range(40, 46)):  # Stufen hinab
-    m.block(ende, 121, y, 148, y + 1, 4.0 - 0.6 * (k + 1), hidden=False)
-for x in (128, 135, 142):
-    for y in (52, 64, 76):
-        m.block(ende, x, y, x + 1, y + 1, 12.0, hidden=False)  # Saeulen im Wasser
-m.light(ende, 135.0, 70.0, 3, 3.0, 26.0, z=-3.8, panel=False, color=(0.85, 0.97, 1.0))
-m.light(ende, 135.0, 34.0, 0, 0.5, 6.0, z=4.6, panel=False, color=(0.9, 1.0, 1.0))
-link_regions(m, rooms, [ende], 2, width=(3, 4))
-m.transition('l37_ende', 'end', '', 135.0, 72.0, 0.0, rect=[124, 56, 146, 88])
-
-# Ankunft: aufgetaucht in einem Becken nahe dem Westrand
-arrive = min(pools, key=lambda r: math.hypot(m.R(r).cx - 25, m.R(r).cy - 60)) if pools else rooms[0]
-AR = m.R(arrive)
-m.transition('l7_l37', 'dive', '', AR.cx, AR.cy, 0.0)
-m.start = (AR.cx, AR.cy, 0.0)
-
-for r in rng.sample(rooms, 6):
+    area = R.w * R.h
+    u = rng.random()
+    if R.type == 'saeulenhalle':
+        R.kw['pillars'] = [3, 3, 1, 1 + rng.randrange(2), 1 + rng.randrange(2)]  # Wiki: zu viele Saeulen fuer einen Zweck
+        halls.append(r)
+    elif R.type == 'fliesenraum' and 30 <= area <= 160 and u < 0.33:
+        # Grube: Treppen fuehren direkt ins tiefe Wasser (die Engine legt sie an den Durchgaengen an)
+        R.floor, R.height = -4.2, R.height + 4.2
+        R.type = 'grube'
+        pits.append(r)
+    roll = rng.random()
+    if R.type == 'grube':
+        if roll < 0.4:  # Wiki: tiefe Bereiche meist schlecht beleuchtet
+            m.light(r, R.cx, R.cy, 3, 1.0, 8.0, z=R.floor + 0.2, panel=False, color=POOL)
+            lit_rooms.append(r)
+    elif R.type == 'fliesengang' and roll < 0.2:
+        R.type = 'dunkelgang'  # dunkle, geschlossene Gaenge
+    elif roll < 0.12:
+        R.type = 'dunkelraum'
+    elif roll < 0.55:  # Wandlicht tief ueber dem Wasser, schraeg in den Raum
+        side = rng.randrange(4)
+        lx, ly, dx, dy = ((R.x0 + 0.4, R.cy, 1, 0), (R.x1 - 0.4, R.cy, -1, 0), (R.cx, R.y0 + 0.4, 0, 1), (R.cx, R.y1 - 0.4, 0, -1))[side]
+        m.light(r, lx, ly, 1, 0.7, 7.0, dx, dy, z=0.6 + rng.random() * 0.8, panel=False, color=CALM)
+        lit_rooms.append(r)
+    elif roll < 0.8:  # Deckenlicht aus einer Ecke
+        m.light(r, R.x0 + 1.5 + rng.random() * (R.w - 3), R.y0 + 1.5 + rng.random() * (R.h - 3), 0, 0.6, 6.0, color=CALM)
+        lit_rooms.append(r)
+    else:  # Licht von unten aus dem Wasser
+        m.light(r, R.cx, R.cy, 3, 0.8, 7.0, z=R.floor + 0.05, panel=False, color=POOL)
+        lit_rooms.append(r)
+for r in rooms + [T]:  # Wasser: flach und klar ueber den Fliesen, in den Gruben tief (V12 water_look)
+    m.R(r).kw['water_look'] = 2 if m.R(r).type == 'grube' else 1
+for r in halls:  # Saeulenhallen: zwei weiche Lichter von unten
     R = m.R(r)
-    if R.type != 'becken':
-        m.spawn('note', R.cx, R.cy, 0.0, tags=['floor'])
+    for (fx, fy) in ((0.3, 0.3), (0.7, 0.7)):
+        m.light(r, R.x0 + R.w * fx + 0.5, R.y0 + R.h * fy + 0.5, 3, 0.8, 10.0, z=R.floor + 0.05, panel=False, color=POOL)
+    lit_rooms.append(r)
 
-m.checkpoint('ankunft', AR.x0 + 0.5, AR.y0 + 0.5, 0.0, 'Aufgetaucht', lit_by_style=True)
-m.checkpoint('ende', 135.0, 35.0, math.pi / 2, 'Am letzten Becken')
+# --- Notiz, Sicherungspunkte ------------------------------------------------------------------------------------------------
+m.spawn('note', 18.5, 8.5, 0.55, 0.0, tags=['surface', 'step'])
+m.checkpoint('tunnel', 14.5, 9.5, 0.0, 'Am Wagen')
+m.obj('safety_light', 14.5, 9.5, TR.floor + TR.height, 0.0, tag='emergency')
+for k, r in enumerate(sorted([h for h in halls if h in lit_rooms], key=lambda r: m.R(r).cx)[:2]):
+    R = m.R(r)
+    x, y = R.x0 + 0.5, R.y0 + 0.5
+    if not m.blocked(x, y):
+        m.checkpoint(f'halle{k}', x, y, 0.0, 'Saeulenhalle')
 m.save()

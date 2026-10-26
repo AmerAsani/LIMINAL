@@ -72,15 +72,20 @@ Wiedereinstieg: diese Datei zuerst lesen, dann `DECISIONS.md`.
   - 12 Blender-Modelle. Drei QA-Runden, Bilder in `docs/screens/level903/`.
   - Platzierung: 553 Objekte, 0 ohne Halt. Entscheidung E-015.
 
+- [x] Level 37 „Sublimity“:
+  - `LEVELSPEC_37.md`, `LOOK_37.md`.
+  - Geflutete Fliesenräume, Säulenhallen, Gruben mit Treppen ins Tiefe, dunkle Bereiche.
+  - Metro-Wagen halb in der Wand (Ankunft aus 903, Rückweg nach 903).
+  - Engine: Wasservarianten, Wasser in Durchgängen. Drei QA-Runden, Bilder in `docs/screens/level37/`. Entscheidung E-016.
+- [x] Level 7 aus V12 entfernt; Schwimmtest in Level 37.
+
 ## Als Nächstes
 1. Wesen-Pipeline (gestellte oder gerigte Modelle aus Blender); zuerst die dunkle Gestalt von Level 0.
 2. Level der Reihe nach (1, 2, 3, 5, 5.3, 188, 903, 37, 36): Spec → Look → Bau → Platzierung → Items → Wesen → Klang → Qualitätsschleife → Commit.
 3. Oberfläche neu, geprüft bei mehreren Auflösungen.
 
 ## Bekannte Fehler / offen
-- **Reiseprüfung rot (gameplay_test, 3 Fehler):**
-  - Level 903 zeigt auf 37 und 36 (Anker `l903_37`, `l903_36` fehlen dort noch).
-  - Level 7 zeigt auf das entfernte Level 6.
-  - Das Ende liegt noch in Level 37 (aus V11); es soll ans Tor von Level 36 wandern. Die Prüfung auf ein Ende ist dann anzupassen.
-  - Wird mit 37 und 36 behoben.
+- **Reiseprüfung rot (gameplay_test, 2 Fehler):**
+  - Level 903 zeigt auf 36 (Anker `l903_36` fehlt dort noch); das Ende (Tor in 36) fehlt noch.
+  - Wird mit Level 36 behoben.
 - Einmalig hing in V11 ein Testlauf beim Start (Protokoll endete nach dem Laden der Level). In vier Wiederholungen nicht wieder aufgetreten. Ursache unbekannt; beobachten.

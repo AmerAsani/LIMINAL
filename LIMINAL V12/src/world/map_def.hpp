@@ -52,6 +52,7 @@ struct MapRoom {
     };
     std::vector<Block> blocks;
     double water = -999.0;        // V11: Wasserspiegel (absolute Hoehe; < -900 kein Wasser)
+    int waterLook = 0;            // V12: Aussehen des Wassers (0 dunkles Meer, 1 flaches Becken, 2 tiefes Becken)
     std::string label;            // Anzeige/Pruefung (z. B. "Deck C")
     std::vector<std::string> tags;
     bool hasTag(const std::string& t) const;

@@ -674,8 +674,12 @@ Model ceilingVent(int v) {
 }
 
 // V11: Wasseroberflaeche: 1 x 1 m (mit scale auf den Raum gezogen), beidseitig (auch von unten zu sehen)
-Model waterSurface(int) {
-    return finish({part(quad({-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0, 0}, {1, 1}, true), Look::Water, 0.1f, 0.22f, 0.24f)});
+// v 0: dunkles Meer (Level 7, V11); V12 Level 37: 1 flaches, klares Becken ueber weissen Fliesen (tuerkis, hell),
+// 2 tiefes Becken (dunkleres Blaugruen). Die Flaeche ist undurchsichtig; die Farbe steht fuer das, was man durch sie sieht.
+Model waterSurface(int v) {
+    const float c[3][3] = {{0.1f, 0.22f, 0.24f}, {0.46f, 0.76f, 0.76f}, {0.10f, 0.36f, 0.40f}};
+    const int k = v < 0 || v > 2 ? 0 : v;
+    return finish({part(quad({-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0, 0}, {1, 1}, true), Look::Water, c[k][0], c[k][1], c[k][2])});
 }
 
 // Drehung um x (rx), danach um y (ry)
@@ -1356,7 +1360,7 @@ const std::map<std::string, Entry>& registry() {
         {"game_table", {1, gameTable}},
         {"boiler", {1, boiler}},
         {"speaker", {1, speaker}},
-        {"water_surface", {1, waterSurface}},
+        {"water_surface", {3, waterSurface}},
         {"barrier", {2, barrier}},
         {"rubble", {4, rubble}},
         {"slab_edge", {4, slabEdge}},

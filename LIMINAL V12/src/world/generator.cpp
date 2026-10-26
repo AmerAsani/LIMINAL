@@ -1113,8 +1113,17 @@ std::unique_ptr<Sector> Generator::mapSector(i64 sx, i64 sy) const {
     // V11: Wasseroberflaechen (je Raum mit Wasser eine Flaeche auf dem Spiegel, von beiden Seiten sichtbar)
     for (const MapRoom& mr : M.rooms)
         if (mr.water > -900.0)
-            addProp(*sec, props::model("water_surface", 0), (float)(mr.x0 + mr.x1) * 0.5f, (float)(mr.y0 + mr.y1) * 0.5f, (float)mr.water, 0.0f,
+            addProp(*sec, props::model("water_surface", mr.waterLook), (float)(mr.x0 + mr.x1) * 0.5f, (float)(mr.y0 + mr.y1) * 0.5f, (float)mr.water, 0.0f,
                     (float)(mr.x1 - mr.x0), (float)(mr.y1 - mr.y0), 1.0f);
+    // V12: auch in den Durchgaengen zwischen gefluteten Raeumen (sonst bleibt in jeder Oeffnung ein trockener Streifen)
+    for (const MapDoor& md : M.doors) {
+        const MapRoom& ra = M.rooms[(size_t)md.a];
+        const MapRoom& rb = M.rooms[(size_t)md.b];
+        if (ra.water < -900.0 || rb.water < -900.0) continue;
+        const MapRoom& hi = ra.floor >= rb.floor ? ra : rb;
+        addProp(*sec, props::model("water_surface", hi.waterLook), (float)(md.x0 + md.x1) * 0.5f, (float)(md.y0 + md.y1) * 0.5f,
+                (float)std::max(ra.water, rb.water), 0.0f, (float)(md.x1 - md.x0), (float)(md.y1 - md.y0), 1.0f);
+    }
     // Ausstattung: feste Objekte der Karte
     for (const MapObject& o : M.objects) {
         addProp(*sec, props::model(o.model, o.variant), (float)o.x, (float)o.y, (float)o.z, (float)o.yaw, (float)o.sx, (float)o.sy,

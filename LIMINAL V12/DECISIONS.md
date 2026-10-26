@@ -219,3 +219,16 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
 - **Fehler gefunden und behoben:**
   - Runde 1: Bildzeichen zu klein, Fenster des bewohnten Wagens flächig orange, Bodentextur wie Bruchstein.
   - Runde 2: Vorhänge mit Falten und einem leuchtenden Spalt; Boden aus schwarzgrauen Ziegeln.
+
+## E-016 Level 37 und Abschied von Level 7 (26.10.2026)
+- **Quelle:** Wikidot „Level 37“, Revision 52 (`LEVELSPEC_37.md`), Bild in `LOOK_37.md`. Drei QA-Runden (`docs/screens/level37/`).
+- **Neu statt V11:**
+  - Level 37 ist nicht mehr das Ende (das liegt jetzt am Tor von Level 36).
+  - Ankunft und Rückweg mit dem Metro-Wagen, der halb in einer Fliesenwand steht.
+  - 338 Räume: Säulenhallen, Gruben mit Treppen ins tiefe Wasser (meist dunkel), Gänge, dunkle Bereiche, Licht aus seltsamen Winkeln.
+- **Engine:**
+  - Wasserflächen haben jetzt Varianten (`water_look`: 0 Meer, 1 flaches, 2 tiefes Becken). Flaches Wasser ist helles Türkis, weil die Engine keine durchsichtigen Flächen kennt.
+  - In Durchgängen zwischen gefluteten Räumen liegt ebenfalls Wasser; vorher blieb in jeder Öffnung ein trockener Streifen.
+  - V4-Referenz unverändert grün.
+- **Level 7 entfernt:** Es gehört nicht zur Auswahl. Der Schwimm- und Ertrink-Test läuft jetzt in einer Grube von Level 37. Die Notiz von Level 7 ist entfernt; in V11 bleibt alles erhalten.
+- **Test:** Die Reiseprüfung erwartet das Ende jetzt in Level 36.

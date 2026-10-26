@@ -1510,7 +1510,7 @@ static void testV11Creatures(const std::string& dataDir) {
 static void testV11Journey(const std::string& dataDir) {
     std::printf("V11: Uebergaenge der Reise, Wasser\n");
     const game::Content& content = *gContent11;
-    static const char* kLevels[] = {"level0", "level1", "level2", "level3", "level5", "level5_3", "level188", "level903", "level7", "level37"};
+    static const char* kLevels[] = {"level0", "level1", "level2", "level3", "level5", "level5_3", "level188", "level903", "level37", "level36"};
     int exits = 0, ends = 0;
     for (const char* id : kLevels) {
         const auto L = content.level(id, world::kLayoutV6);
@@ -1519,7 +1519,7 @@ static void testV11Journey(const std::string& dataDir) {
         for (const world::MapTransition& t : L->map->transitions) {
             if (t.kind == "end") {
                 ++ends;
-                check(std::string(id) == "level37", "das Ende liegt in Level 37");
+                check(std::string(id) == "level36", "das Ende liegt in Level 36 (Gate-Tuer)");
                 continue;
             }
             if (t.target.empty()) continue;  // kommt hier nur an
@@ -1535,24 +1535,31 @@ static void testV11Journey(const std::string& dataDir) {
     }
     check(exits >= 11 && ends == 1, std::format("{} Ausgaenge, {} Ende", exits, ends));
 
-    // Wasser: Level 7 - im Meer schwimmen; unter Wasser geht die Luft aus
+    // Wasser: Level 37 - in einer Grube (Treppe ins tiefe Wasser) schwimmen; unter Wasser geht die Luft aus
     game::PrefabLibrary prefabs;
     prefabs.loadDirectory(dataDir + "/prefabs");
     JobSystem jobs(2);
-    auto s = std::make_unique<game::GameSession>(content, prefabs, content.level("level7", world::kLayoutV6), 4242, "medium", "Test", jobs, 3);
+    auto s = std::make_unique<game::GameSession>(content, prefabs, content.level("level37", world::kLayoutV6), 4242, "medium", "Test", jobs, 3);
     s->placeAtSpawn();
     s->preload();
     for (int i = 0; i < 20; ++i) s->update(1.0 / 60.0, {}, false), s->events().clear();
     world::World& ww = s->world();
-    // eine Kachel im Meer suchen (Raumtyp "meer"), weit weg von der Treppe
+    // eine tiefe Kachel in einer Grube (Raumtyp "grube") suchen: die groesste Grube, nahe ihrer Mitte, keine Stufe
     i64 sx = 0, sy = 0;
     bool found = false;
-    for (i64 y = 10; y < 200 && !found; y += 5)
-        for (i64 x = 10; x < 200 && !found; x += 5) {
-            const world::Tile& t = ww.tile(x, y);
-            if (t.open() && t.room && t.room->type && t.room->type->key == "meer" && t.room->water > t.floor + 3.0) sx = x, sy = y, found = true;
-        }
-    check(found, "Level 7: tiefes Meer gefunden");
+    const world::MapRoom* best = nullptr;
+    for (const world::MapRoom& r : content.level("level37", world::kLayoutV6)->map->rooms)
+        if (r.type == "grube" && (!best || (r.x1 - r.x0) * (r.y1 - r.y0) > (best->x1 - best->x0) * (best->y1 - best->y0))) best = &r;
+    if (best) {
+        s->player().x = (best->x0 + best->x1) * 0.5, s->player().y = (best->y0 + best->y1) * 0.5;
+        s->preload();
+        for (i64 y = best->y0 + 1; y < best->y1 - 1 && !found; ++y)
+            for (i64 x = best->x0 + 1; x < best->x1 - 1 && !found; ++x) {
+                const world::Tile& t = ww.tile(x, y);
+                if (t.open() && t.room && t.room->water > t.floor + 3.0 && !(t.flags & world::TF_STAIR)) sx = x, sy = y, found = true;
+            }
+    }
+    check(found, "Level 37: tiefe Grube gefunden");
     if (!found) return;
     {
         auto& pl = s->player();
@@ -1617,7 +1624,7 @@ static SupplyStats countSupplies(const std::string& level, u64 seed) {
 
 static void testV11Supplies() {
     std::printf("V11: Vorraete je Ebene (Spawnplan)\n");
-    static const char* kLevels[] = {"level0", "level1", "level2", "level3", "level5", "level5_3", "level188", "level903", "level7", "level37"};
+    static const char* kLevels[] = {"level0", "level1", "level2", "level3", "level5", "level5_3", "level188", "level903", "level37", "level36"};
     for (const char* id : kLevels) {
         for (u64 seed : {3ull, 4242ull}) {
             const SupplyStats st = countSupplies(id, seed);
@@ -1629,7 +1636,7 @@ static void testV11Supplies() {
             if (std::string(id) == "level0")
                 check(st.total >= 3 && st.total <= 6 && st.kinds.count("energy") == 0 && st.minSame > 20.0f,
                       std::format("Level 0: wenige Vorraete ({}), keine Energy Bars, gleiche weit auseinander", st.total));
-            if (std::string(id) == "level5" || std::string(id) == "level5_3" || std::string(id) == "level188" || std::string(id) == "level903" || std::string(id) == "level7")
+            if (std::string(id) == "level5" || std::string(id) == "level5_3" || std::string(id) == "level188" || std::string(id) == "level903")
                 check(st.onFloor == 0, std::format("{}: Funde liegen auf Ablagen, nicht auf dem Boden", id));
         }
     }
@@ -1667,7 +1674,7 @@ static Mount mountOf(const std::string& m) {
                                   "mahjong_table", "gramophone", "furnace", "metro_car_end", "hotel_bed", "boiler_tank",  // V12 Level 5
                                   "column_tuff", "candelabrum", "books_fallen",  // V12 Level 5.3
                                   "paving_strip", "birch_circle", "table_188", "pillar_188",  // V12 Level 188
-                                  "metro_car_903", "track_metro", "platform_edge", "stairs_barricaded"};  // V12 Level 903
+                                  "metro_car_903", "metro_car_37", "track_metro", "platform_edge", "stairs_barricaded"};  // V12 Level 903
     for (const char* w : wall)
         if (m == w) return Mount::Wall;
     for (const char* c : ceil)
@@ -1686,7 +1693,7 @@ static bool solidAt(world::World& w, double x, double y, double z) {
 static void testV11Placement() {
     using namespace placement;
     std::printf("V11: Halt der Ausstattung (Wand, Boden, Decke)\n");
-    static const char* kLevels[] = {"level0", "level1", "level2", "level3", "level5", "level5_3", "level188", "level903", "level7", "level37"};
+    static const char* kLevels[] = {"level0", "level1", "level2", "level3", "level5", "level5_3", "level188", "level903", "level37", "level36"};
     const game::Content& content = *gContent11;
     int total = 0, bad = 0;
     for (const char* id : kLevels) {
