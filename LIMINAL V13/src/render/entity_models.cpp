@@ -1330,7 +1330,8 @@ bool entityFromGlb(Entity e, FigureModel& out, std::string& info) {
         {"ent_shadow", FM_ENT_SHADOW}, {"ent_wing", FM_ENT_WING},         {"ent_chitin", FM_ENT_CHITIN},
         {"ent_fur", FM_ENT_FUR},       {"ent_motheye", FM_ENT_MOTHEYE},   {"ent_nest", FM_ENT_NEST},
         {"clump_a", FM_ENT_CLUMP_A},   {"clump_b", FM_ENT_CLUMP_B},       {"clump_c", FM_ENT_CLUMP_C},
-        {"clump_core", FM_ENT_CLUMP_CORE}, {"ent_darkskin", FM_ENT_DARKSKIN}};
+        {"clump_core", FM_ENT_CLUMP_CORE}, {"ent_darkskin", FM_ENT_DARKSKIN},
+        {"ent_silhouette", FM_ENT_SILHOUETTE}, {"ent_resin", FM_ENT_RESIN}};
     const CreatureSkeleton& sk = entitySkeleton(e);
     FigureModel m;
     std::vector<mat4> frames;

@@ -47,7 +47,8 @@ PREVIEW_RGB = {'ent_skin': (0.55, 0.47, 0.40), 'ent_hair': (0.03, 0.03, 0.03), '
                'ent_wing': (0.35, 0.30, 0.25), 'ent_chitin': (0.20, 0.15, 0.10), 'ent_fur': (0.45, 0.40, 0.35),
                'ent_motheye': (0.05, 0.05, 0.05), 'ent_nest': (0.45, 0.25, 0.15), 'ent_horn': (0.4, 0.35, 0.3),
                'clump_a': (0.75, 0.58, 0.50), 'clump_b': (0.55, 0.40, 0.32), 'clump_c': (0.36, 0.25, 0.20),
-               'clump_core': (0.55, 0.35, 0.40), 'ent_darkskin': (0.06, 0.05, 0.05)}
+               'clump_core': (0.55, 0.35, 0.40), 'ent_darkskin': (0.06, 0.05, 0.05),
+               'ent_silhouette': (0.03, 0.03, 0.03), 'ent_resin': (0.7, 0.42, 0.12)}
 
 
 def build_group(g, nb):
@@ -57,7 +58,8 @@ def build_group(g, nb):
     V, T = sdf.polygonize(F, lo, g['h'], g.get('adapt', 0.0))
     del F
     N = sdf.vertex_normals(V, T)
-    cav, edge = sdf.cavity_edge(g['parts'], V, N, g.get('disp'), g.get('cav_scale', 0.012))
+    # Hoehlung auch aus Nachbargruppen (cav_extra): wo zwei Netze ineinanderwachsen, liegt eine Falte
+    cav, edge = sdf.cavity_edge(g['parts'] + g.get('cav_extra', []), V, N, g.get('disp'), g.get('cav_scale', 0.012))
     W = sdf.weights(g['parts'], V, nb, s=g.get('wsoft', 0.004))
     log(f'  Gruppe {g["name"]}: {len(V)} Punkte, {len(T)} Dreiecke, {time.time() - t0:.1f} s')
     return V, T, W, cav, edge
@@ -170,7 +172,7 @@ def preview(objs, arm, out, name, views=None):
     for vn, d in views:
         cd = bpy.data.cameras.new(vn)
         cd.type = 'ORTHO'
-        cd.ortho_scale = size
+        cd.ortho_scale = size * 1.4  # Bild ist breiter als hoch - sonst schneidet es hohe Wesen ab
         cd.clip_end = 100
         c = bpy.data.objects.new(vn, cd)
         sc.collection.objects.link(c)
@@ -197,11 +199,26 @@ def main():
     if coarse:
         for g in groups:
             g['h'] *= 2.0
-    objs = []
+    # Gruppen mit gleichem 'merge' werden nach dem Vernetzen zu einem Netz (ein Zeichenaufruf) - so koennen weit
+    # verstreute Teile (Naegel an zwoelf Haenden) je fuer sich auf kleinem Gitter entstehen
+    built = []
     for g in groups:
         V, T, W, cav, edge = build_group(g, nb)
-        mat = make_material(g['fm'], PREVIEW_RGB.get(g['fm'], (0.5, 0.5, 0.5)))
-        objs.append(to_object(g['name'], V, T, W, cav, edge, mat, nb))
+        key = g.get('merge')
+        tgt = next((b for b in built if key and b['key'] == key), None)
+        if tgt is None:
+            built.append({'key': key, 'name': key or g['name'], 'fm': g['fm'], 'V': V, 'T': T, 'W': W, 'cav': cav, 'edge': edge})
+            continue
+        assert tgt['fm'] == g['fm'], f'{g["name"]}: anderes Material als {key}'
+        tgt['T'] = np.vstack([tgt['T'], T + len(tgt['V'])])
+        tgt['V'] = np.vstack([tgt['V'], V])
+        tgt['W'] = np.vstack([tgt['W'], W])
+        tgt['cav'] = np.concatenate([tgt['cav'], cav])
+        tgt['edge'] = np.concatenate([tgt['edge'], edge])
+    objs = []
+    for b in built:
+        mat = make_material(b['fm'], PREVIEW_RGB.get(b['fm'], (0.5, 0.5, 0.5)))
+        objs.append(to_object(b['name'], b['V'], b['T'], b['W'], b['cav'], b['edge'], mat, nb))
     arm = make_armature(J, bones)
     for o in objs:
         o.parent = arm
@@ -211,8 +228,14 @@ def main():
     if prev:
         os.makedirs(prev, exist_ok=True)
         preview(objs, arm, prev, model)
-    # Stufen: Anteil der Dreiecke je Gruppe nach ihrem Anteil am Ganzen
-    total = sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in objs)
+    # Stufen: Anteil der Dreiecke je Gruppe nach ihrem Anteil am Ganzen, gewichtet mit 'lod_weight' (flache Teile wie
+    # Fluegel brauchen wenig, feine wie Augen, Haar und Beine mehr)
+    lw = {}
+    for g in groups:
+        k = g.get('merge') or g['name']
+        lw[k] = max(lw.get(k, 0.0), g.get('lod_weight', 1.0))
+    tri_of = lambda o: sum(len(p.vertices) - 2 for p in o.data.polygons) * lw.get(o.name, 1.0)
+    total = sum(tri_of(o) for o in objs)
     for lod, budget in enumerate(mod.LODS):
         copies = []
         tri = 0
@@ -220,7 +243,7 @@ def main():
             c = o.copy()
             c.data = o.data.copy()
             bpy.context.scene.collection.objects.link(c)
-            share = sum(len(p.vertices) - 2 for p in o.data.polygons) / total
+            share = tri_of(o) / total
             tri += decimate(c, max(64, int(budget * share)))
             c.name = f'{o.name}_l{lod}'
             copies.append(c)

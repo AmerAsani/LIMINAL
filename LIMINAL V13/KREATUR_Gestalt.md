@@ -43,3 +43,14 @@ Quelle: [backrooms-wiki.wikidot.com/level-0](https://backrooms-wiki.wikidot.com/
 - Aus der Ferne sofort „da steht jemand“, nicht „da steht eine Puppe“.
 - Keine Blockformen: Schultern, Arme und Kopf mit natürlicher Masse und Neigung.
 - Rand weich, kein hartes Schwarz-auf-Gelb.
+
+## Kritikrunden (Vorschau in Blender und Spielkamera)
+
+Bilder: `docs/screens/creatures/gestalt/` (vorher: `docs/screens/creatures/vorher/gestalt_*`). Modell: `tools/blender/creatures/gestalt.py`, Material `ent_silhouette` (E-021).
+
+| Runde | Befund | Änderung |
+|---|---|---|
+| 1 (Blender) | Neu gebaut: Mensch im Kontrapost (Gewicht rechts, linkes Knie locker), lange Arme, langer Hals, schiefer Kopf mit Hinterkopf, Kinn und Profil; Schlüsselbeine, Rippenbogen, Becken. Mängel: Schlüsselbeine und Kopfnicker standen wie Stäbe ab, der Brustkorb war ein Ei, die Fasern unten sahen aus wie Wurzeln. | Hals kräftiger, Schlüsselbeine und Kopfnicker weich eingebettet, Brustkorb flacher, neun dünnere, ungleich lange Fasern je Strang. |
+| 2 (Spiel) | „Da steht jemand“ – auch aus der Ferne. Aber: der Unterkörper wurde wie beim Smiler ausgedünnt (das Rauchmaterial dünnt mit dem Abstand vom Smiler-Gesicht aus), unter den Armen Lücken, im Lampenlicht rotbraune Haut sichtbar. | Eigenes Material `ent_silhouette`: Rauchrand ohne das Ausdünnen um das Smiler-Gesicht; Albedo 0,25 % (schluckt Licht); Füllung unter den Achseln. |
+| 3 (Spiel) | Im Lampenlicht kaum heller, Umriss eines Menschen. Falten an Schlüsselbein und Achsel erschienen als Löcher (der Rauchrand dünnte auch innere Flächen mit seitlicher Neigung aus). | Für `ent_silhouette` dünnt der Rand nur bei streifendem Blick aus. |
+| 4 (Spiel) | Obere Brust geschlossen: keine Lücken mehr. Aus der Ferne „da steht jemand“, aus der Nähe ein Mensch ohne Gesicht im Gegenlicht, im Lampenlicht kaum heller, unten in Fasern aufgelöst. Abgenommen. | – |

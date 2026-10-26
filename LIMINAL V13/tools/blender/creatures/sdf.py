@@ -231,19 +231,23 @@ def evaluate(parts, h, disp=None, band=None):
     for p in parts:
         i0 = np.clip(np.floor((p.lo - lo) / h).astype(int), 0, n - 1)
         i1 = np.clip(np.ceil((p.hi - lo) / h).astype(int) + 1, 1, n)
-        xs = lo[0] + h * np.arange(i0[0], i1[0])
         ys = lo[1] + h * np.arange(i0[1], i1[1])
         zs = lo[2] + h * np.arange(i0[2], i1[2])
-        X, Y, Z = np.meshgrid(xs, ys, zs, indexing='ij')
-        P = np.stack([X.ravel(), Y.ravel(), Z.ravel()], axis=1)
-        d = p.dist(P).reshape(X.shape).astype(np.float32)
-        blk = F[i0[0]:i1[0], i0[1]:i1[1], i0[2]:i1[2]]
-        if p.op == 'add':
-            blk[...] = smin(blk, d, p.k)
-        elif p.op == 'sub':
-            blk[...] = smax(blk, -d, p.k)
-        else:  # 'int': nur in diesem Bereich, sonst leer - selten gebraucht
-            blk[...] = smax(blk, d, p.k)
+        # in Scheiben entlang x (lange, schraege Glieder haben riesige Kaesten - sonst Gigabytes an Punkten)
+        step = max(1, int(3_000_000 // max(1, len(ys) * len(zs))))
+        for x0 in range(i0[0], i1[0], step):
+            x1 = min(i1[0], x0 + step)
+            xs = lo[0] + h * np.arange(x0, x1)
+            X, Y, Z = np.meshgrid(xs, ys, zs, indexing='ij')
+            P = np.stack([X.ravel(), Y.ravel(), Z.ravel()], axis=1)
+            d = p.dist(P).reshape(X.shape).astype(np.float32)
+            blk = F[x0:x1, i0[1]:i1[1], i0[2]:i1[2]]
+            if p.op == 'add':
+                blk[...] = smin(blk, d, p.k)
+            elif p.op == 'sub':
+                blk[...] = smax(blk, -d, p.k)
+            else:  # 'int': nur in diesem Bereich, sonst leer - selten gebraucht
+                blk[...] = smax(blk, d, p.k)
     if disp is not None:
         bw = band if band is not None else 6 * h
         idx = np.nonzero(np.abs(F) < bw)
@@ -293,19 +297,17 @@ def sample(parts, P, disp=None):
 
 
 def weights(parts, P, nbones, s=0.004, cut=4.0):
-    """Gewichte je Punkt aus den formenden Teilen (nur 'add'): w_i ~ exp(-(d_i - d_min)/s), je Knochen summiert."""
+    """Gewichte je Punkt aus den formenden Teilen (nur 'add'): je Knochen der kleinste Abstand seiner Teile,
+    w_b ~ exp(-(d_b - d_min)/s). Speicher n x Knochen (nicht n x Teile - die Motte hat Hunderte Haarbueschel)."""
     adds = [p for p in parts if p.op == 'add' and p.bone >= 0]
-    D = np.full((len(P), len(adds)), 9.0)
-    for i, p in enumerate(adds):
+    D = np.full((len(P), nbones), 9.0)
+    for p in adds:
         m = np.all((P >= p.lo - 0.02) & (P <= p.hi + 0.02), axis=1)
         if m.any():
-            D[m, i] = p.dist(P[m])
+            D[m, p.bone] = np.minimum(D[m, p.bone], p.dist(P[m]))
     dmin = D.min(axis=1, keepdims=True)
-    E = np.exp(-np.minimum((D - dmin) / s, cut * 3))
-    E[(D - dmin) > cut * s] = 0.0
-    W = np.zeros((len(P), nbones))
-    for i, p in enumerate(adds):
-        W[:, p.bone] += E[:, i]
+    W = np.exp(-np.minimum((D - dmin) / s, cut * 3))
+    W[(D - dmin) > cut * s] = 0.0
     W /= np.maximum(W.sum(axis=1, keepdims=True), 1e-12)
     return W
 

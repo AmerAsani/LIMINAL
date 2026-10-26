@@ -54,3 +54,21 @@ Quelle: [backrooms-wiki.wikidot.com/entity-5](https://backrooms-wiki.wikidot.com
 - Verschiedene Hauttöne und Muskeln je Glied.
 - Kern verwachsen, mit Spalte, Augen, Ohr.
 - Feucht glänzend im Licht.
+
+## Kritikrunden (Vorschau in Blender und Spielkamera)
+
+Bilder: `docs/screens/creatures/clump/` (vorher: `docs/screens/creatures/vorher/clump_*`). Modell: `tools/blender/creatures/clump.py` (Skelett des Spiels: Kern, sieben Arme, zwei Beine).
+
+| Runde | Befund | Änderung |
+|---|---|---|
+| 1 (Blender) | Erste Fassung: Füllmasse als Kugel mit zehn halb versunkenen Gliedern, sieben lebende Arme mit Muskeln, Händen (fünf Finger, Nägel, Daumenballen), zwei nachschleifende Beine mit Füßen auf dem Rücken, drei schiefe Augen, ein Ohr, Maulspalte mit zwei Zahnreihen. Las sich als Kugel mit dünnen Gliederpuppen-Armen; die Nähte auf der Masse wirkten wie ein Fußballmuster. | Masse kleiner, doppelt so viele tote Glieder (dicker), Arme fleischiger, Hände 15 % größer, keine Zellnähte mehr. |
+| 2 (Blender) | Ein Knäuel aus Gliedern – aber an den Schultern standen Kugeln aus der Füllmasse ab, Ellbogen wie Kugelgelenke, ein nackter Bauch unter dem Knäuel. | Schulterwülste weg, Unterarm flacher mit Oberarmspeichenmuskel, Elle und Griffelfortsatz; vier Glieder unten herum. |
+| 3 (Blender) | Tote Glieder als Kegelketten lasen sich wie Würste. | Tote Glieder mit derselben Anatomie wie die lebenden: die Schulter steckt in der Masse, der Ellbogen liegt auf ihr, die Hand krallt sich hinein; Beine mit herausragendem Fuß; Muskeln weich verschmolzen. |
+| 4 (Spiel) | Erstmals im Spiel: drei Hauttöne, feucht glänzend im Lampenlicht, Hände und Füße lesbar. Mängel: runde Gesäßformen an toten Armen; Augen und Ohr unter Gliedern begraben. | Deltamuskel nur an lebenden Armen; Augen und Ohr auf der äußersten Fläche in fleischigen Wülsten (Strahltest am fertigen Feld); Falten strahlen vom Maul aus. |
+| 5 (Spiel) | Die Gesäßform blieb. | Schultern der lebenden Arme flacher und länger. |
+| 6 (Spiel) | Unverändert – also nicht die Schultern. Ein Strahltest vom Kamerapunkt fand die Ursache: zwei tote Arme mit prallen Oberarmen nebeneinander. | Tote Glieder ausgezehrt (sehnig, flache Muskeln, Strangsehnen) und schmaler. |
+| 7 (Spiel) | Ein Knäuel aus verwachsenen menschlichen Gliedern in drei Hauttönen: lebende Arme mit Händen, die sich aufstützen, tote Arme und Beine, die sich um die Masse legen und in sie krallen, Füße, die herausragen; feucht glänzend im Lampenlicht; Maul unten verborgen. Abgenommen. | – |
+
+**Bleibt offen:**
+- Die Gliedlängen kommen aus dem Skelett des Spiels (Arme bis 1,3 m, der Köder 2,6 m). Dadurch wirkt der Clump von weitem weiter wie ein Wesen auf vielen Beinen. Eine andere Grundhaltung hieße, die Bewegung in `anim/creature.cpp` neu zu entwerfen; nicht in V13.
+- Die Augen sitzen in Wülsten zwischen den Gliedern und sind aus der Nähe zu sehen, aus der Ferne kaum.

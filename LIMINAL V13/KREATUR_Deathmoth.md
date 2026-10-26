@@ -72,3 +72,26 @@ Quelle: [backrooms-wiki.wikidot.com/entity-4](https://backrooms-wiki.wikidot.com
 - Nah (unter 1 m): Facettenaugen, Fühlerkämme, Mandibeln, Beinglieder und Dornen erkennbar; Flügeladern und Muster.
 - Im Lampenlicht: Flügel leicht durchscheinend, Körperhaar heller.
 - Nest: Schichten, Harz, Reste, Gelege; keine Blasenwülste.
+
+## Kritikrunden (Vorschau in Blender und Spielkamera)
+
+Bilder: `docs/screens/creatures/moth/` und `docs/screens/creatures/nest/` (vorher: `docs/screens/creatures/vorher/moth_*`, `nest_*`). Modelle: `tools/blender/creatures/moth.py`, `nest.py`.
+
+### Motte
+
+| Runde | Befund | Änderung |
+|---|---|---|
+| 1 (Blender + Spiel) | Neu gebaut: Brust mit Haarbüscheln, Kopf mit gewölbten Facettenaugen (Facetten als Geometrie) und zwei Punktaugen, gekreuzte Mandibeln mit Innenzähnen, behaarte Taster, doppelt gekämmte Fühler, dicker Hinterleib mit Haarsäumen und eingezogenem Legebohrer, Beine mit Hüfte, Schenkel, Schiene mit Dornen und Spornen, fünfgliedrigem Fuß und Doppelkralle. Flügel als gewölbte Platten mit erhabenen Adern; der Umriss folgt genau `render/moth_wing.hpp` – im Spiel sitzt das Flügelmuster (Binden, Augenfleck, heller Saum) genau auf der neuen Form. Mängel: Flügel wie Fächer gefaltet, Hinterleib wie eine Raupe aus Ringen, Brustpelz stachelig; bei der Reduktion fraßen die großen Flügel den Großteil der Dreiecke, Augen und Pelz wurden grob. | Falten auf ein Drittel, Ringe weicher, Pelz dichter (700 Büschel), kürzer und nach hinten gekämmt, Haarsäume anliegend; neue Gewichtung der Stufen (`lod_weight`: Flügel 0,12, Fühler 2, Pelz 1,6, Augen 1,5). Nahkamera auf den Boden (die Motte sitzt dort). |
+| 2 | siehe unten | |
+
+### Nest
+
+| Runde | Befund | Änderung |
+|---|---|---|
+| 1 (Blender) | Neu gebaut statt Blasenwülsten: Masse aus übereinander gegossenen Lagen über einem Türrahmen, am Sturz am dicksten, auf Wand und Boden ausgelaufen; darin Knochen mit Gelenkenden, Rippen, Stofffetzen, Pflanzenfasern; Wabe mit Eiern am inneren Pfosten; Harztropfen und -fäden; fleischige Wucherung über der Öffnung, zerrissene Haut darunter. Die Lagen sahen aus wie ein Stapel Teller. | Kern in den Pfosten, Lagen überlappen, verschmelzen und neigen sich. |
+| 2 (Blender) | Organischer, aber die Haut unter dem Sturz wirkte wie gelochte Platten. | Risse statt runder Löcher, ausgefranste Ränder. |
+| 3 (Spiel) | Im Spiel feucht, rotbraun, glänzend im Lampenlicht. Die Pfosten wirkten wie Schrauben (zu gleichmäßige Lippen), die Hautreste wie rechteckige Pappe. | Flachere Lippen, senkrechte Läufe über die Lagen, Hautreste als dunkle, zum Ende auslaufende Lappen (`ent_mouth`). |
+| 4 (Spiel) | Herabhängende Lappen und Tropfen wie Harz und Fleisch, Lagen weicher. Abgenommen. | – |
+
+**Bleibt offen:** Die Schichtung der Pfosten bleibt deutlich gleichmäßiger als gewachsene Masse. In der Ebene (an einer Tür zwischen Wänden) fällt das weniger auf als frei stehend in der Vorführung.
+

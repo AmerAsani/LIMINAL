@@ -202,6 +202,9 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     // Smiler-Koerper und die Gestalt: schwarz und matt wie ein Schatten, V11: mit rauchigem Rand. Metall = 1
     // macht auch den Glanz so dunkel wie die Farbe (f0 = Albedo statt 4 %) - die Lampe macht es nicht grau
     materialData_[FM_ENT_SHADOW] = GpuMaterial{{0.006f, 0.006f, 0.007f}, 0, tri(L_SKIN) | kMatFlagSmoke, 1.4f, 1.0f, 0.0f};
+    materialData_[FM_ENT_RESIN] = GpuMaterial{{0.78f, 0.46f, 0.14f}, 0, ent(EL_HORN, ML_PORES), 0.28f, 0, 0.05f};
+    materialData_[FM_ENT_SILHOUETTE] =
+        GpuMaterial{{0.0025f, 0.0025f, 0.003f}, 0, tri(L_SKIN) | kMatFlagSmoke | kMatFlagSilhouette, 1.4f, 1.0f, 0.0f};  // schluckt Licht
     materialData_[FM_ENT_WING] = GpuMaterial{{1, 1, 1}, 0, ent(EL_WING, ML_SCALE), 1.0f, 0, 0.1f};
     materialData_[FM_ENT_CHITIN] = GpuMaterial{{1, 1, 1}, 0, ent(EL_CHITIN, ML_CRAZE), 1.0f, 0, 0.1f};
     materialData_[FM_ENT_FUR] = GpuMaterial{{1, 1, 1}, 0, ent(EL_FUR, ML_FIBER), 1.0f, 0, 0.1f};

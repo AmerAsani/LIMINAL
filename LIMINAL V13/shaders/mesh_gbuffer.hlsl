@@ -318,11 +318,14 @@ GBufferOut PSMain(VSOut i, bool front : SV_IsFrontFace)
         const float3 bp = i.bindPos;
         const float facing = abs(dot(N, normalize(gCameraPos.xyz - i.wpos)));
         const float n = smokeNoise(bp * float3(6.0, 6.0, 2.4) - float3(0.0, 0.0, gCameraPos.w * 0.45));
-        const float rim = 1.0 - smoothstep(0.06, 0.6, facing);
+        // V13: die Gestalt (Bit 31) bleibt im Koerper dicht - ein Mensch im Gegenlicht; nur Rand, Saum und Fasern duennen
+        // aus, und der Rand nur bei streifendem Blick (sonst schienen Falten an Schluesselbein und Achsel als Loecher)
+        const bool silhouette = (m.layers >> 31) != 0u;
+        const float rim = silhouette ? 1.0 - smoothstep(0.02, 0.28, facing) : 1.0 - smoothstep(0.06, 0.6, facing);
         const float hem = 1.0 - smoothstep(0.08, 0.7, bp.z);
         const float crown = smoothstep(1.98, 2.22, bp.z);
         const float stray = smoothstep(0.3, 0.55, length(bp.xy));
-        const float body = 0.42 * smoothstep(0.28, 0.75, length((bp - float3(0.12, 0.0, 1.83)) * float3(1.0, 0.75, 1.0)));
+        const float body = silhouette ? 0.0 : 0.42 * smoothstep(0.28, 0.75, length((bp - float3(0.12, 0.0, 1.83)) * float3(1.0, 0.75, 1.0)));
         const float thin = saturate(max(max(rim * 0.95, body), max(max(hem, crown), stray)) * (0.55 + 0.9 * n) - 0.06);
         if (ign(i.svpos.xy, gRingParams.z) < thin)
             discard;
