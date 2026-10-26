@@ -1510,7 +1510,7 @@ static void testV11Creatures(const std::string& dataDir) {
 static void testV11Journey(const std::string& dataDir) {
     std::printf("V11: Uebergaenge der Reise, Wasser\n");
     const game::Content& content = *gContent11;
-    static const char* kLevels[] = {"level0", "level1", "level2", "level3", "level5", "level5_3", "level188", "level7", "level37"};
+    static const char* kLevels[] = {"level0", "level1", "level2", "level3", "level5", "level5_3", "level188", "level903", "level7", "level37"};
     int exits = 0, ends = 0;
     for (const char* id : kLevels) {
         const auto L = content.level(id, world::kLayoutV6);
@@ -1617,7 +1617,7 @@ static SupplyStats countSupplies(const std::string& level, u64 seed) {
 
 static void testV11Supplies() {
     std::printf("V11: Vorraete je Ebene (Spawnplan)\n");
-    static const char* kLevels[] = {"level0", "level1", "level2", "level3", "level5", "level5_3", "level188", "level7", "level37"};
+    static const char* kLevels[] = {"level0", "level1", "level2", "level3", "level5", "level5_3", "level188", "level903", "level7", "level37"};
     for (const char* id : kLevels) {
         for (u64 seed : {3ull, 4242ull}) {
             const SupplyStats st = countSupplies(id, seed);
@@ -1629,7 +1629,7 @@ static void testV11Supplies() {
             if (std::string(id) == "level0")
                 check(st.total >= 3 && st.total <= 6 && st.kinds.count("energy") == 0 && st.minSame > 20.0f,
                       std::format("Level 0: wenige Vorraete ({}), keine Energy Bars, gleiche weit auseinander", st.total));
-            if (std::string(id) == "level5" || std::string(id) == "level5_3" || std::string(id) == "level188" || std::string(id) == "level7")
+            if (std::string(id) == "level5" || std::string(id) == "level5_3" || std::string(id) == "level188" || std::string(id) == "level903" || std::string(id) == "level7")
                 check(st.onFloor == 0, std::format("{}: Funde liegen auf Ablagen, nicht auf dem Boden", id));
         }
     }
@@ -1652,10 +1652,11 @@ static Mount mountOf(const std::string& m) {
                                  "wainscot", "hotel_door_a", "hotel_door_b", "hotel_door_c", "hotel_door_d", "hotel_door_e", "hotel_door_f", "placard_beverly", "candle_sconce", "painting_portrait", "window_bright", "elevator_cage", "cornice",  // V12 Level 5
                                  "library_wall", "library_wall_lamp", "library_wall_upper", "bookcase_end", "bookcase_aisle", "bookcase_aisle_b", "painting_renaissance_a", "painting_renaissance_b",
                                  "inscription_bibliotheca", "wallpaper_peel", "door_old_open",  // V12 Level 5.3
-                                 "window_188_a", "window_188_b", "window_188_c", "window_188_fig", "window_188_lit", "window_entry_188", "door_mahogany", "walkway_glass", "door_mahogany_open"};  // V12 Level 188
+                                 "window_188_a", "window_188_b", "window_188_c", "window_188_fig", "window_188_lit", "window_entry_188", "door_mahogany", "walkway_glass", "door_mahogany_open",  // V12 Level 188
+                                 "metro_dormant_a", "metro_dormant_b", "metro_dormant_home", "metro_dormant_coupling", "sign_903_wall"};  // V12 Level 903
     static const char* ceil[] = {"batten", "highbay", "chandelier", "safety_light", "ceiling_vent",
                                  "troffer", "troffer_off", "troffer_red", "ceiling_diffuser", "hanging_bulb",  // V12
-                                 "tube_white", "tube_orange", "tube_dead", "chandelier_grand", "lantern_green", "chandelier_iron", "ceiling_arms", "skylight_188"};
+                                 "tube_white", "tube_orange", "tube_dead", "chandelier_grand", "lantern_green", "chandelier_iron", "ceiling_arms", "skylight_188", "tube_long", "sign_903_a", "sign_903_b"};
     static const char* floor[] = {"chair", "rack", "bed", "barrel", "cart", "pump", "wardrobe", "trunk", "water_cooler", "armchair", "sofa",
                                   "side_table", "game_table", "boiler", "statue", "transformer", "fence_panel", "rubble", "barrier", "camp",
                                   "desk_crt", "crate", "pallet", "switch_cabinet", "stall_line", "arrow", "floor_glow", "car",
@@ -1665,7 +1666,8 @@ static Mount mountOf(const std::string& m) {
                                   "generator", "conveyor", "sludge_pool", "skull", "train_bogie", "greek_torso", "angel_statue", "canvas_drape_a", "canvas_drape_b", "grate_stair", "pipe_black", "column_greek",  // V12 Level 3
                                   "mahjong_table", "gramophone", "furnace", "metro_car_end", "hotel_bed", "boiler_tank",  // V12 Level 5
                                   "column_tuff", "candelabrum", "books_fallen",  // V12 Level 5.3
-                                  "paving_strip", "birch_circle", "table_188", "pillar_188"};  // V12 Level 188
+                                  "paving_strip", "birch_circle", "table_188", "pillar_188",  // V12 Level 188
+                                  "metro_car_903", "track_metro", "platform_edge", "stairs_barricaded"};  // V12 Level 903
     for (const char* w : wall)
         if (m == w) return Mount::Wall;
     for (const char* c : ceil)
@@ -1684,7 +1686,7 @@ static bool solidAt(world::World& w, double x, double y, double z) {
 static void testV11Placement() {
     using namespace placement;
     std::printf("V11: Halt der Ausstattung (Wand, Boden, Decke)\n");
-    static const char* kLevels[] = {"level0", "level1", "level2", "level3", "level5", "level5_3", "level188", "level7", "level37"};
+    static const char* kLevels[] = {"level0", "level1", "level2", "level3", "level5", "level5_3", "level188", "level903", "level7", "level37"};
     const game::Content& content = *gContent11;
     int total = 0, bad = 0;
     for (const char* id : kLevels) {

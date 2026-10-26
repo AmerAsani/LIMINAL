@@ -88,6 +88,7 @@
     {"title": "Der Tausch", "maps": ["level5_3"], "priority": 2, "text": "Ich habe nachgeschlagen, wie man hier herauskommt, und es stand da: Im Osten endet ein Gang an einer alten Holztür. Wofür ich bezahlt habe, weiß ich nicht mehr. Irgendetwas fehlt."},
     {"title": "Wenn Bücher fallen", "maps": ["level5_3"], "text": "Wenn irgendwo Bücher herunterfallen, war das kein Zufall. Hier ist man nicht allein, auch wenn niemand da ist. Wer etwas sucht, um jemandem zu schaden, bekommt es nicht. Nur die Kopfschmerzen."},
     {"title": "Nicht hinsehen", "maps": ["level188"], "priority": 1, "text": "In manchen Fenstern brennt Licht, und in manchen davon steht jemand. Sieh nicht hin. Geh dorthin zurück, wo du hereingekommen bist, solange das warme Fenster noch da ist."},
-    {"title": "Musik", "maps": ["level188"], "priority": 2, "text": "Am Tisch spielt ein Grammophon, obwohl niemand es aufgezogen hat. Wenn du die Musik hörst, bist du schon zu nah. Nichts anfassen. Nicht auf den Holzkreis treten."}
+    {"title": "Musik", "maps": ["level188"], "priority": 2, "text": "Am Tisch spielt ein Grammophon, obwohl niemand es aufgezogen hat. Wenn du die Musik hörst, bist du schon zu nah. Nichts anfassen. Nicht auf den Holzkreis treten."},
+    {"title": "Ziele", "maps": ["level903"], "priority": 1, "text": "Der Wagen nimmt Ziele an. Ich konnte die Schrift nicht lesen, aber an den Enden leuchten Bilder: vorn Wellen, hinten ein Flugzeug. Ich bin bis nach vorn gegangen, und als ich wieder hinsah, war draußen Wasser."}
   ]
 }

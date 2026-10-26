@@ -204,3 +204,18 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
 - **Fehler gefunden und behoben:**
   - Runde 1: Die Scheibe vor den Fenstern war undurchsichtig und verdeckte Jalousien, Umrisse und das warme Eingangslicht. Die Scheibe ist entfernt; der Hintergrund selbst glänzt.
   - Sichtbare Blöcke zählen in mapkit als begehbares Podest; Fenster landeten dadurch in den Vorsprüngen. Eigene Blockprüfung in `level188.py`.
+
+## E-015 Level 903 (26.10.2026)
+- **Quelle:** Wikidot „Level 903“, Revision 60 (`LEVELSPEC_903.md`), Bild in `LOOK_903.md`. Drei QA-Runden (`docs/screens/level903/`).
+- **Aufbau:** Eine Halle, 196 m lang.
+  - Der Mittelsteig ist ein begehbarer Block 1,1 m über dem Gleisbett; links das offene Gleis.
+  - Rechts der ruhende Zug als Block mit Wagenwänden als Wandteile.
+  - Der fahrende Wagen steht am linken Gleis: Boden und Wände als Blöcke, Türen als Lücken in der Wand.
+- **Ziele im Wagen:**
+  - Das vordere Wagenende führt nach Level 37, das hintere nach Level 36. Bildzeichen (Wellen, Flugzeug) statt Schrift.
+  - Level 36 nennt die Metro als Eingang; Level 37 als Ziel ist eigene Ergänzung (`LEVELAUSWAHL.md`).
+- **Ohne Wartezeit:** Der Wagen steht immer da (Wiki: alle paar Stunden, zehn Minuten).
+- **Zugemauerte Treppen:** Ursprung des Modells am Fuß der Treppe, dahinter sperrt ein Block. So bleibt die Bodenprüfung gültig.
+- **Fehler gefunden und behoben:**
+  - Runde 1: Bildzeichen zu klein, Fenster des bewohnten Wagens flächig orange, Bodentextur wie Bruchstein.
+  - Runde 2: Vorhänge mit Falten und einem leuchtenden Spalt; Boden aus schwarzgrauen Ziegeln.

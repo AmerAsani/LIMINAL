@@ -60,11 +60,12 @@ WALL_MOUNT = {'outlet', 'vent_grille', 'painting', 'power_box', 'wall_sconce', '
               'window_brick', 'painting_angel', 'painting_angel_scribbled', 'sign_warning', 'canvas_wall',  # V12 L3
               'wainscot', 'hotel_door_a', 'hotel_door_b', 'hotel_door_c', 'hotel_door_d', 'hotel_door_e', 'hotel_door_f', 'placard_beverly', 'candle_sconce', 'painting_portrait', 'window_bright', 'cornice',  # V12 L5
               'library_wall', 'library_wall_lamp', 'library_wall_upper', 'bookcase_end', 'bookcase_aisle', 'bookcase_aisle_b', 'painting_renaissance_a', 'painting_renaissance_b', 'inscription_bibliotheca', 'wallpaper_peel',  # V12 L5.3
-              'window_188_a', 'window_188_b', 'window_188_c', 'window_188_fig', 'window_188_lit', 'window_entry_188', 'door_mahogany', 'walkway_glass'}  # V12 L188
+              'window_188_a', 'window_188_b', 'window_188_c', 'window_188_fig', 'window_188_lit', 'window_entry_188', 'door_mahogany', 'walkway_glass',  # V12 L188
+              'metro_dormant_a', 'metro_dormant_b', 'metro_dormant_home', 'metro_dormant_coupling', 'sign_903_wall'}  # V12 L903
 DOOR_MODELS = {'steel_door', 'hotel_door', 'damaged_door'}
 CEILING_MOUNT = {'batten', 'highbay', 'chandelier', 'safety_light', 'ceiling_vent',
                  'troffer', 'troffer_off', 'troffer_red', 'ceiling_diffuser', 'hanging_bulb',  # V12: Blender-Modelle
-                 'tube_white', 'tube_orange', 'tube_dead', 'chandelier_grand', 'lantern_green', 'chandelier_iron', 'ceiling_arms', 'skylight_188'}
+                 'tube_white', 'tube_orange', 'tube_dead', 'chandelier_grand', 'lantern_green', 'chandelier_iron', 'ceiling_arms', 'skylight_188', 'tube_long', 'sign_903_a', 'sign_903_b'}
 # V12: Modelle, die in einem Durchbruch stehen (Bogen mit Laibung): Mitte muss in einer Tuer/Oeffnung liegen
 IN_OPENING = {'arch2', 'arch3', 'arch4', 'arch_tall3', 'arch_tall4', 'swing_door1', 'swing_door2', 'door_level3', 'elevator_door', 'elevator_cage', 'door_old_open', 'door_mahogany_open'}
 FLOOR_MOUNT = {'chair', 'rack', 'bed', 'barrel', 'cart', 'pump', 'wardrobe', 'trunk', 'water_cooler', 'armchair', 'sofa',
@@ -75,7 +76,8 @@ FLOOR_MOUNT = {'chair', 'rack', 'bed', 'barrel', 'cart', 'pump', 'wardrobe', 'tr
                'generator', 'conveyor', 'sludge_pool', 'skull', 'train_bogie', 'greek_torso', 'angel_statue', 'canvas_drape_a', 'canvas_drape_b', 'grate_stair', 'pipe_black', 'column_greek',  # V12 L3
                'mahjong_table', 'gramophone', 'furnace', 'metro_car_end', 'hotel_bed', 'boiler_tank',  # V12 L5
                'column_tuff', 'candelabrum', 'books_fallen',  # V12 L5.3
-               'paving_strip', 'birch_circle', 'table_188', 'pillar_188'}  # V12 L188
+               'paving_strip', 'birch_circle', 'table_188', 'pillar_188',  # V12 L188
+               'metro_car_903', 'track_metro', 'platform_edge', 'stairs_barricaded'}  # V12 L903
 
 
 class Map:

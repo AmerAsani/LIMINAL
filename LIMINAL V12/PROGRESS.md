@@ -66,15 +66,21 @@ Wiedereinstieg: diese Datei zuerst lesen, dann `DECISIONS.md`.
   - 14 Blender-Modelle; Umrisse in Fenstern und die Gestalt als Fensterwesen.
   - Drei QA-Runden, Bilder in `docs/screens/level188/`. Platzierung: 315 Objekte, 0 ohne Halt. Entscheidung E-014.
 
+- [x] Level 903 „Die Metro“:
+  - `LEVELSPEC_903.md`, `LOOK_903.md`.
+  - 196 m lange Station: Mittelsteig, Gleis mit Schotter, ruhender Zug (ein Wagen bewohnt), fahrender Wagen mit Zielen 37 und 36, Röhren, Leuchtschilder, zugemauerte Treppen.
+  - 12 Blender-Modelle. Drei QA-Runden, Bilder in `docs/screens/level903/`.
+  - Platzierung: 553 Objekte, 0 ohne Halt. Entscheidung E-015.
+
 ## Als Nächstes
 1. Wesen-Pipeline (gestellte oder gerigte Modelle aus Blender); zuerst die dunkle Gestalt von Level 0.
 2. Level der Reihe nach (1, 2, 3, 5, 5.3, 188, 903, 37, 36): Spec → Look → Bau → Platzierung → Items → Wesen → Klang → Qualitätsschleife → Commit.
 3. Oberfläche neu, geprüft bei mehreren Auflösungen.
 
 ## Bekannte Fehler / offen
-- **Reiseprüfung rot (gameplay_test, 2 Fehler):**
-  - Level 5 zeigt auf 903, das noch nicht gebaut ist.
+- **Reiseprüfung rot (gameplay_test, 3 Fehler):**
+  - Level 903 zeigt auf 37 und 36 (Anker `l903_37`, `l903_36` fehlen dort noch).
   - Level 7 zeigt auf das entfernte Level 6.
   - Das Ende liegt noch in Level 37 (aus V11); es soll ans Tor von Level 36 wandern. Die Prüfung auf ein Ende ist dann anzupassen.
-  - Wird mit 903, 37 und 36 behoben.
+  - Wird mit 37 und 36 behoben.
 - Einmalig hing in V11 ein Testlauf beim Start (Protokoll endete nach dem Laden der Level). In vier Wiederholungen nicht wieder aufgetreten. Ursache unbekannt; beobachten.
