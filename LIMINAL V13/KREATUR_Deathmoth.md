@@ -82,7 +82,10 @@ Bilder: `docs/screens/creatures/moth/` und `docs/screens/creatures/nest/` (vorhe
 | Runde | Befund | Änderung |
 |---|---|---|
 | 1 (Blender + Spiel) | Neu gebaut: Brust mit Haarbüscheln, Kopf mit gewölbten Facettenaugen (Facetten als Geometrie) und zwei Punktaugen, gekreuzte Mandibeln mit Innenzähnen, behaarte Taster, doppelt gekämmte Fühler, dicker Hinterleib mit Haarsäumen und eingezogenem Legebohrer, Beine mit Hüfte, Schenkel, Schiene mit Dornen und Spornen, fünfgliedrigem Fuß und Doppelkralle. Flügel als gewölbte Platten mit erhabenen Adern; der Umriss folgt genau `render/moth_wing.hpp` – im Spiel sitzt das Flügelmuster (Binden, Augenfleck, heller Saum) genau auf der neuen Form. Mängel: Flügel wie Fächer gefaltet, Hinterleib wie eine Raupe aus Ringen, Brustpelz stachelig; bei der Reduktion fraßen die großen Flügel den Großteil der Dreiecke, Augen und Pelz wurden grob. | Falten auf ein Drittel, Ringe weicher, Pelz dichter (700 Büschel), kürzer und nach hinten gekämmt, Haarsäume anliegend; neue Gewichtung der Stufen (`lod_weight`: Flügel 0,12, Fühler 2, Pelz 1,6, Augen 1,5). Nahkamera auf den Boden (die Motte sitzt dort). |
-| 2 | siehe unten | |
+| 2 (Spiel) | Im Spiel richtig gerahmt: eine echte Motte – Muster mit Binden und Augenfleck auf den Flügeln, Fühler mit sichtbarem Kamm, Taster, Mandibeln, gegliederte Beine mit Dornen, pelzige Brust, im Lampenlicht hell. Mängel: die Facettenaugen wirkten wie Brillengläser in einer Fassung aus Kopfhaar; zwei dunkle Punkte oben bildeten mit den Augen ein Gesicht. | Augen weiter nach außen gewölbt und etwas größer, Punktaugen winzig. |
+| 3 (Spiel) | Augen als dunkle, glänzende Kuppeln. Die beiden Punkte oben sind die Fühleransätze (anatomisch richtig). Abgenommen. | – |
+
+**Bleibt offen:** Im Lampenlicht aus nächster Nähe wirkt der Brustpelz fast weiß (Pelztextur der Wesen); aus Spielerabstand stimmig.
 
 ### Nest
 

@@ -1,7 +1,8 @@
-# LIMINAL V12 – Lizenzen, Quellen, Namensnennung
+# LIMINAL V13 – Lizenzen, Quellen, Namensnennung
 
 Stand: 26.10.2026. **Das ist keine Rechtsberatung, und die Rechtslage ist nicht abschließend geklärt** (siehe Abschnitt 8).
-Diese Datei listet jedes fremde Material, das in V12 steckt oder als Grundlage diente, mit Quelle, Autorinnen und Autoren und Lizenz.
+Diese Datei listet jedes fremde Material, das in V13 steckt oder als Grundlage diente, mit Quelle, Autorinnen und Autoren und Lizenz.
+**V13 fügt kein fremdes Material hinzu:** keine neuen Texturen, Modelle, Klänge oder Schriften. Neu sind eigene Modelle (Hand, sechs Wesen) und eigener Code (Abschnitte 3 und 9).
 Ältere Überlegungen: `LICENSE_REVIEW.md`, `ATTRIBUTION.md` (beide aus V11).
 
 ---
@@ -91,7 +92,9 @@ Fandom-Seiten wurden für V12 **nicht** verwendet (Auftrag: nur Wikidot).
 
 - **Alle Modelle sind eigene Arbeit:** Python-Skripte für Blender in `tools/blender/models/models_*.py`, exportiert als `.glb` nach `data/models/`.
   - Es gibt keine heruntergeladenen Modelle.
-  - Die Wesen (Gestalt, Smiler, Hound, Deathmoth, Nest, Clump) sind prozedural im Programmcode modelliert (aus V10/V11).
+  - V13: Die linke Hand (`models_hand.py`) und alle sechs Wesen (Hound, Smiler, Clump, Gestalt, Deathmoth, Nest) sind neu in Blender gebaut – eigene Skripte in `tools/blender/creatures/`, ohne Vorlage, ohne Scan, ohne fremdes Modell (E-021). Die Wesen folgen den Wikidot-Seiten nur in eigenen Worten (`KREATUR_<Name>.md`); es wurde kein Bild der Seiten und kein anderes Backrooms-Spiel als Vorlage benutzt.
+  - Der alte prozedurale Bau der Wesen (aus V10/V11, `render/entity_models.cpp`) bleibt nur als Rückfall, falls eine `.glb` fehlt.
+  - OpenVDB (in Blender enthalten, Mozilla Public License 2.0) dient beim Bau nur als Werkzeug zur Vernetzung; nichts davon liegt im Spiel.
 - **Blender 4.5.14 LTS:** GPL-2.0-or-later, https://www.blender.org. Nur Werkzeug; nicht im Spielpaket, liegt unter `.toolchain/`.
   - Was man mit Blender erzeugt, gehört den Urhebern, nicht der Blender Foundation (Blender-Lizenzseite).
 
@@ -128,3 +131,10 @@ Notizen (`data/notes.json`), Hilfe, Abspann und alle Beschriftungen sind selbst 
 3. **Inter als Geometrie:** Ob die Lizenztext-Pflicht der OFL auch für in Modelle umgewandelte Glyphen gilt, ist nicht geprüft. Vorsorglich sollte `OFL.txt` ins Paket.
 4. **Namen und Kennungen aus dem Wiki** (Abschnitt 1): kurze Namen sind in der Regel nicht urheberrechtlich geschützt. Zusammen mit genauen Beschreibungen können sie aber eine Bearbeitung darstellen. Abgedeckt ist das nur durch die CC-Lizenz und diese Namensnennung.
 5. **Bildnachweise der Wiki-Seiten:** Die Bilder wurden nicht verwendet. Ihre Lizenzen (teils CC BY-SA, CC BY 2.0) betreffen V12 deshalb nicht.
+
+## 9. Verfahren aus Veröffentlichungen (kein fremder Code)
+
+| Verfahren | Quelle | Verwendung |
+|---|---|---|
+| Kachelbruch, „texture repetition“, Variante 3 | Inigo Quilez, Artikel auf https://iquilezles.org/articles/texturerepetition/ | Idee nachprogrammiert in `shaders/gbuffer.hlsli` (E-022); kein Code übernommen |
+| Abstandsfunktionen für Kapsel mit zwei Radien und Ellipsoid | Inigo Quilez, „distance functions“, https://iquilezles.org/articles/distfunctions/ | Formeln in `tools/blender/creatures/sdf.py` (Bau der Wesen, nicht im Spiel) |

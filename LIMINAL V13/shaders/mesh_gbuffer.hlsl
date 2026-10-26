@@ -319,9 +319,9 @@ GBufferOut PSMain(VSOut i, bool front : SV_IsFrontFace)
         const float facing = abs(dot(N, normalize(gCameraPos.xyz - i.wpos)));
         const float n = smokeNoise(bp * float3(6.0, 6.0, 2.4) - float3(0.0, 0.0, gCameraPos.w * 0.45));
         // V13: die Gestalt (Bit 31) bleibt im Koerper dicht - ein Mensch im Gegenlicht; nur Rand, Saum und Fasern duennen
-        // aus, und der Rand nur bei streifendem Blick (sonst schienen Falten an Schluesselbein und Achsel als Loecher)
+        // aus, und der Rand etwas schmaler als beim Smiler (die Loecher an Schluesselbein und Achsel waren Luecken im Modell)
         const bool silhouette = (m.layers >> 31) != 0u;
-        const float rim = silhouette ? 1.0 - smoothstep(0.02, 0.28, facing) : 1.0 - smoothstep(0.06, 0.6, facing);
+        const float rim = silhouette ? 1.0 - smoothstep(0.04, 0.45, facing) : 1.0 - smoothstep(0.06, 0.6, facing);  // weicher Rand, innen dicht
         const float hem = 1.0 - smoothstep(0.08, 0.7, bp.z);
         const float crown = smoothstep(1.98, 2.22, bp.z);
         const float stray = smoothstep(0.3, 0.55, length(bp.xy));

@@ -65,9 +65,27 @@ Wesen im Bild: Netz ent_hound_l0 = ID 133 ...
 - **Gewichte:** Jedes Formteil gehört zu einem Knochen. Ein Punkt erhält die Gewichte der Teile, die ihn formen, gemischt nach ihrem Abstand. So bleibt die Haut an der Anatomie, nicht am nächsten Knochen.
 - **Skelett:**
   - Die Knochen sind genau die Knochen des Spiels (`--dump-skeletons` → `skeletons.json`, Namen `B00`…).
-  - Die prozedurale Bewegung des Spiels treibt die neuen Körper weiter an. Sie wird je Wesen nachgeschärft (Haltung, Atmung, Gewichtsverlagerung).
+  - Die prozedurale Bewegung des Spiels (Gang, Atmung, Gewichtsverlagerung, Kopfbewegung, Zustandswechsel aus V11/V12, `anim/creature.cpp`) treibt die neuen Körper an. Ergebnis siehe Abschnitt 5.
 - **Material:**
   - Je Punkt Höhlung, Kante und Feuchte.
   - Die Wesen-Haut bekommt das Durchscheinen der Hand (Shader) und eine nasse, glänzende Variante.
 - **Import:** `ent_<name>_l0..l2.glb` mit Skin. Das Spiel nimmt sie, wenn alle drei Stufen da sind, sonst das alte Modell. Das Protokoll weist die Quelle nach.
 - **Briefings:** `KREATUR_<Name>.md` aus den Wikidot-Seiten (Stand 26.10.2026), in eigenen Worten.
+
+## 5. Ergebnis (26.10.2026)
+
+| Wesen | Runden | Modell (Dreiecke L0 / L1 / L2) | Quelle im Protokoll | Briefing mit Kritikrunden |
+|---|---|---|---|---|
+| Hound | 6 | 56 000 / 16 000 / 4 660 | `Quelle Blender: ent_hound_l0.glb` | `KREATUR_Hound.md` |
+| Smiler | 5 | 42 000 / 13 000 / 3 800 | `Quelle Blender: ent_smiler_l0.glb` | `KREATUR_Smiler.md` |
+| Clump | 7 | 80 000 / 22 000 / 6 670 | `Quelle Blender: ent_clump_l0.glb` | `KREATUR_Clump.md` |
+| Gestalt | 5 | 24 000 / 8 000 / 2 500 | `Quelle Blender: ent_gestalt_l0.glb` | `KREATUR_Gestalt.md` |
+| Deathmoth | 4 (zwei in der Vorschau, drei im Spiel) | 34 000 / 10 000 / 3 000 | `Quelle Blender: ent_moth_l0.glb` | `KREATUR_Deathmoth.md` |
+| Nest | 4 | 38 000 / 11 000 / 3 190 | `Quelle Blender: ent_nest_l0.glb` | `KREATUR_Deathmoth.md` (Abschnitt Nest) |
+
+- **Neubau, keine Parameteränderung:** Jedes Wesen ist ein neues Modell aus `tools/blender/creatures/<wesen>.py`; der alte Bau in `render/entity_models.cpp` wird nur noch genutzt, wenn eine `.glb` fehlt (Nachweis im Protokoll je Start).
+- **Silhouetten:** Mensch auf allen vieren (Hound), Kopf ohne Körper in Rauch (Smiler), Knäuel aus Gliedern (Clump), stehender Mensch ohne Gesicht (Gestalt), Insekt (Motte), gewachsene Masse an einer Tür (Nest) – keine gemeinsame Grundanatomie.
+- **Material:** Haut der Wesen mit Durchscheinen (Shader wie die Hand), Höhlung und Kanten je Punkt, nasse Glanzstellen; neu `ent_silhouette` (Gestalt, schluckt Licht), `ent_darkskin` (Smiler), `ent_resin` (Nest).
+- **Bewegung:** Die neuen Körper laufen mit der bestehenden prozeduralen Bewegung; in den Aufnahmen im Gang (`lauf1`, `lauf2` je Wesen) keine Durchdringung und kein Reißen gesehen. **Nicht neu geschrieben** wurde die Bewegung selbst (Gang, Atmung, Gewichtsverlagerung, Zustandswechsel stammen aus V11/V12). Das ist ein offener Punkt für eine spätere Version: die Bewegungen auf die neue Anatomie abstimmen (z. B. Fingerbewegung beim Clump, Lidschlag der Hound-Lider).
+- **Vorher/Nachher aus denselben Kameras:** `docs/screens/creatures/vorher/` und `docs/screens/creatures/<wesen>/nachher_*.jpg`; die Wesen in ihren Ebenen: `docs/screens/level_wesen.jpg`.
+
