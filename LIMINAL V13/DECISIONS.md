@@ -342,3 +342,14 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
 - **Historie:** nur angehängt, nichts umgeschrieben. V10 bleibt Teil der gemeinsamen Historie (seit Langem öffentlich); er wird nicht neu hochgeladen.
 - **LFS:** nur für ZIP-Dateien; die Assets aus der Historie in LFS zu verschieben, hieße umschreiben (ausgeschlossen), bei höchstens 6,8 MB je Datei auch unnötig.
 
+
+## E-026 Mottennest: im Wiki belegt – Neuentwurf statt Entfernen (26.10.2026)
+- **Prüfung:** Die Seite der Motte (Entity 4, Revision 6 vom 31.01.2026) beschreibt Nester ausführlich: in vorhandener Architektur, in Räumen mit wenigen Zugängen; Schichten aus verdautem Material, Pflanzenfasern und konservierendem Harz, 60–100 cm dick, feucht und halb organisch; Säulen aus unverdaulichen Resten (Knochen, Hartholz, Metall), mit demselben Material überzogen; Eier an der Auskleidung, in Säulen gestapelt; Larven fressen die obere Schicht und verpuppen sich in den Wänden; Skelettreste rund um den Stock; Warnzeichen „fleischige Wucherungen über Türen“ und Gruppen von Weibchen. Die Seite von Level 5 (Revision 184) nennt Nester „überall auf der Ebene“ und die Ebene einen der zentralen Stöcke, ohne Aussehen.
+- **Entscheidung:** Das Nest bleibt und wird neu entworfen (Teil 1.6 des Auftrags), streng nach Entity 4: Wucherung über und in der Tür, Schichten, überzogene Säulen aus Resten, Eier in Säulen, Larven in der Wand, Knochen davor, Weibchen am Nest. Entfernen wäre nur bei fehlendem Beleg vorgesehen.
+
+## E-027 Fehlende Wiki-Wesen: Reihenfolge und Umfang (26.10.2026)
+- **Grundlage:** `ENTITY_ABGLEICH.md` (alle zehn Ebenenseiten, Entity-Übersicht und Entity-Seiten am 26.10.2026 auf Wikidot gelesen).
+- **Reihenfolge:** Faceling (vier Ebenen, je Ebene anderes Verhalten), Fensterwesen (Level 188 als prägendes Merkmal, Level 2), Skin-Stealer (vier Ebenen), Wretch (drei), Death Rat (drei). Danach Duller, Nguithr'xurh, Growler, Arms, Wrangler und weitere.
+- **Umfang je Wesen:** Briefing, eigenes Blender-Modell (keine fremde Grundanatomie), Rig, eigene Bewegung je Zustand, Verhalten nach Wiki, Klang, Gleichgewicht, Kritikrunden mit Bildern, Server-KI im Mehrspieler.
+- **Bewusst weggelassen**, jeweils mit Grund in der Tabelle: Menschen und Gruppen; Krankheitserreger ohne Gestalt; unbestätigte oder ausgestorbene Wesen; Wesen, die nur in Erzählungen vorkommen; Wesen, deren Ebenenseite nur den Namen nennt.
+- **Smiler:** Die Entity-3-Seite nennt neben Panik auch lauten Lärm als Auslöser. Ergänzt: Eine harte Landung oder ein Aufprall in seiner Nähe löst die Ankündigung aus. Stillstehen und Hinsehen beruhigt ihn wieder; die Ankündigung bleibt dafür mindestens 0,6 s sichtbar. Test in `gameplay_test`.

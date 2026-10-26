@@ -634,7 +634,12 @@ void Presence::thinkSmiler(Agent& a, double dt, const Context& c, std::vector<Ev
     if (a.state < 1) return;
     // Panik: wer in seiner Naehe rennt, wird angegriffen (Wikidot). V11 (F2): erst oeffnet es sich weit,
     // der Ton steigt - 1,5 s Zeit, stehen zu bleiben und den Blick zu halten (F3)
-    const bool panic = c.player->sprinting && d < 10.0f;
+    // V13.2 (Entity-3-Seite: Panik "oder lauter Laerm"): eine harte Landung oder der Aufprall eines geworfenen
+    // Dings in seiner Naehe wirkt wie Rennen
+    bool loud = c.noise >= 0.7 && d < 10.0f;
+    if (c.pings)
+        for (const auto& [where, vol] : *c.pings) loud = loud || (vol >= 0.5f && hdist(where, a.pos) < 8.0f);
+    const bool panic = (c.player->sprinting && d < 10.0f) || loud;
     if (panic && a.stage < 2) {
         a.stage = 2;
         a.timer2 = 1.5;
@@ -645,7 +650,8 @@ void Presence::thinkSmiler(Agent& a, double dt, const Context& c, std::vector<Ev
         a.jaw = 1.0f;
         a.glow = 1.0f;
         a.timer2 -= dt;
-        const bool calm = !c.player->sprinting && c.player->groundSpeed < 0.6 && a.contact;
+        // V13.2: es bleibt mindestens 0,6 s weit offen (sichtbar), auch wenn man schon stillsteht
+        const bool calm = !c.player->sprinting && c.player->groundSpeed < 0.6 && a.contact && a.timer2 < 0.9;
         if (calm) {
             a.stage = 1;
             out.push_back({Event::Calm, Role::Smiler, face});

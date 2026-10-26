@@ -1137,6 +1137,25 @@ static void testV9(const game::Content& content, const std::string& dataDir) {
         }
         check(tAnnounce >= 0.0 && tCalm > tAnnounce, "stehen bleiben und hinsehen: es schliesst sich wieder");
         check(!hit, "wer sich beruhigt, wird nicht getroffen (F3)");
+        // c) V13.2 (Entity-3-Seite: Panik oder lauter Laerm): stillstehen, hinsehen, aber etwas fallen lassen -
+        // der Aufprall loest die Ankuendigung aus; wer den Blick haelt, beruhigt es wieder
+        run(*s, 6.0);
+        ready = appear();
+        tAnnounce = -1.0, tCalm = -1.0, hit = false, t = 0.0;
+        bool thrown = false;
+        for (int i = 0; ready && i < 60 * 6; ++i, t += 1.0 / 60.0) {
+            if (P.has(Role::Smiler)) lookAt(*s, P.posOf(Role::Smiler), 0.0, 1.7);
+            if (!thrown && i == 30) s->dropStack("battery", 1), thrown = true;
+            s->update(1.0 / 60.0, {}, false);
+            for (const auto& e : s->events()) {
+                if (e.type == game::GameEvent::Figure && e.index == (int)PE::Announce && tAnnounce < 0.0) tAnnounce = t;
+                if (e.type == game::GameEvent::Figure && e.index == (int)PE::Calm && tCalm < 0.0) tCalm = t;
+                if (e.type == game::GameEvent::StalkerHit) hit = true;
+            }
+            s->events().clear();
+        }
+        check(ready && tAnnounce >= 0.5, std::format("V13.2: Aufprall in seiner Naehe - es oeffnet sich ({:.2f} s)", tAnnounce));
+        check(tCalm >= tAnnounce + 0.55 && !hit, std::format("V13.2: wer danach stillsteht und hinsieht, wird nicht getroffen (Ankuendigung {:.2f} s, Ruhe {:.2f} s, Treffer {}, Stufe {})", tAnnounce, tCalm, hit, P.stageOf(Role::Smiler)));
     }
     // Deathmoths (Entity 4): Nest an der Tuer eines dunklen Zimmers, Schwarm fliegt im Licht auf
     {
