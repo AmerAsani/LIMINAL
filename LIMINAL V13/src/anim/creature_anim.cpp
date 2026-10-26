@@ -990,17 +990,29 @@ void CreatureAnimator::updateGestalt(float dt, const Input& in) {
     auto& J = pose_.j;
     const vec3 F = dirYaw(yaw_), Lw{-F.y, F.x, 0.0f}, U{0, 0, 1};
     const M3 Mb{F, Lw, U};
-    const float s1 = 0.008f * std::sin(time_ * 0.41f), s2 = 0.006f * std::sin(time_ * 0.29f + 1.3f);
+    // V13.2: wahrnehmen - der Kopf wendet sich ganz zum Beobachter, die Gestalt beugt sich ihm entgegen, die Schultern
+    // heben sich (lauernd). Es geschieht nur ungesehen (Presence friert sie im Blick ein): beim naechsten Blick steht sie so da.
+    spring(perc_, percV_, in.perceive, 1.2f, dt);
+    // Gewicht verlagern (Huefte zur Seite, Gegenneigung) und Atem in Brust und Schultern
+    const float shift = std::sin(time_ * 0.33f + 0.7f);
+    const float s1 = 0.008f * std::sin(time_ * 0.41f) + 0.07f * perc_, s2 = 0.006f * std::sin(time_ * 0.29f + 1.3f) - 0.025f * shift;
     const M3 Rs = axisAngle({0, 1, 0}, s1) * axisAngle({1, 0, 0}, s2);
-    spring(tilt_, tiltV_, in.tilt, 0.7f, dt);
+    spring(tilt_, tiltV_, in.tilt + 0.32f * perc_, 0.7f, dt);  // wahrnehmend legt sie den Kopf schief
     float wantYaw = 0.0f;
     if (in.look) {
         const vec3 dl = in.lookAt - J[NECK];
-        wantYaw = std::clamp(std::atan2(dot(dl, Lw), dot(dl, F)), -0.4f, 0.4f);
+        const float lim = 0.4f + 0.7f * perc_;
+        wantYaw = std::clamp(std::atan2(dot(dl, Lw), dot(dl, F)), -lim, lim);
     }
-    spring(headYaw_, headYawV_, wantYaw, 0.6f, dt);
+    spring(headYaw_, headYawV_, wantYaw, 0.6f + 0.6f * perc_, dt);
     const int body[5] = {ROOT, LOW, MID, CHEST, NECK};
     for (int k : body) J[k] = pos_ + Mb * (Rs * B[k]);
+    const float breath = std::sin(time_ * 1.25f);
+    J[LOW] = J[LOW] + Lw * (0.035f * shift);
+    J[MID] = J[MID] + Lw * (0.022f * shift);
+    // vorgebeugt durch Verschieben statt Drehen: die Arme haben keine eigenen Knochen und haengen so weiter senkrecht
+    J[CHEST] = J[CHEST] + U * (0.007f * breath + 0.04f * perc_) + Lw * (0.008f * shift) + F * (0.06f * perc_);
+    J[NECK] = J[NECK] + U * (0.005f * breath + 0.05f * perc_) + F * (0.12f * perc_);  // Schultern hoch, Kopf vorgeschoben
     const M3 Rh = Rs * axisAngle({0, 0, 1}, headYaw_) * axisAngle({1, 0, 0}, tilt_);
     J[HEAD] = J[NECK] + Mb * (Rh * (B[HEAD] - B[NECK]));
     J[TOP] = J[NECK] + Mb * (Rh * (B[TOP] - B[NECK]));

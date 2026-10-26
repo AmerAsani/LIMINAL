@@ -74,3 +74,22 @@ Kritikrunden (Bilder `hound_r0` bis `hound_r3`):
 | 1 | Ausholen und Zugriff deutlich, Lauschen hebt den Kern; der lange Arm steht weiter steil (Ellbogen nach oben). | Ellbogen des langen Arms zum Boden; lauschend alle Ellbogen flach, Kern höher |
 | 2 | Langer Arm liegt; Lauschen klar anders als Ruhe; Licht ohne Wirkung. | Prüfung unter niedriger Decke (Level 0) |
 | 3 | Alle Zustände einschließlich Schacht und Abstieg sichtbar und unterscheidbar. Abgenommen. | – |
+
+## Gestalt
+
+Die Gestalt verändert sich nie, solange man sie ansieht (Level 0: unbestätigte dunkle Gestalten, das Gefühl, verfolgt zu werden). Jede Bewegung geschieht also ungesehen und zeigt sich erst beim nächsten Blick. Für die Bildfolgen ist die Vorführung davon ausgenommen; im Spiel bleibt sie im Blick erstarrt.
+
+| Zustand | Bewegung | Wiki-Bezug |
+|---|---|---|
+| Ruhe | Atem in Brust und Schultern, Gewicht wandert langsam von Hüfte zu Hüfte, Fasern treiben | – |
+| Wahrnehmen | Vorgebeugt (der Oberkörper wird verschoben, nicht gedreht: die Arme haben keine eigenen Knochen und hängen so weiter senkrecht), Schultern hoch, Kopf vorgeschoben und schief, ganz zum Beobachter gewandt. Im Spiel, solange man wegsieht: beim nächsten Blick steht sie so da. | verfolgt einen, Skopophobie |
+| Licht | erstarrt (wie bei jedem Blick) | – |
+| Gehen, Rennen, Angriff | gibt es nicht: sie wechselt den Ort nur ungesehen und greift nie an | unbestätigt, daher harmlos |
+
+| Runde | Befund | Änderung |
+|---|---|---|
+| 0 (vorher) | Vorführung im Blick erstarrt: alle Bilder gleich | Vorführung bewegt sich; Atem, Gewicht, Wahrnehmen |
+| 1 | Unterschiede bei frontaler Kamera kaum sichtbar | deutlichere Haltung, Kamera von der Seite |
+| 2 | Wahrnehmen erkennbar, aber der Hals geht nach hinten (Hohlkreuz statt Vorbeugen) | Kopf nach vorn |
+| 3 | Lauernd vorgebeugt, aber eine Hand ragt hinter der Hüfte heraus (Arme ohne eigene Knochen drehen mit) | Verschieben statt Drehen |
+| 4 | Vorgebeugt, Arme hängen, nur eine leichte Wölbung an der Hüfte. Abgenommen. | – |

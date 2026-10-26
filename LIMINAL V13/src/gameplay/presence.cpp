@@ -1032,6 +1032,9 @@ void Presence::thinkGestalt(Agent& a, double dt, const Context& c, std::vector<E
         out.push_back({Event::Vision, Role::Gestalt, a.pos + vec3{0, 0, 1.6f}});
     }
     if (seen) return;
+    // V13.2: ungesehen nimmt sie den Beobachter wahr - Kopf zu ihm, vorgebeugt (sichtbar erst beim naechsten Blick)
+    a.perceive = d < 26.0f ? 1.0f : 0.0f;
+    a.perceiveAt = c.view.eye;
     // kurz weggesehen: der Kopf ist anders geneigt; laenger: fort - manchmal steht sie spaeter woanders
     if (a.wasSeen && a.unseenT > 0.25 && a.unseenT < 0.25 + dt * 1.5) a.tilt = (float)rng_.uniform(-0.3, 0.3);
     if ((a.wasSeen && a.unseenT > 0.8) || d < 11.0f || a.age > 75.0) {
@@ -1481,7 +1484,7 @@ void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
             a.rig.setGlow(a.glow * (0.74f + 0.26f * (float)(0.5 + 0.5 * std::sin(ph))) * (1.0f + 0.5f * a.light));
         }
         // die Gestalt veraendert sich nicht, solange man sie sieht
-        a.frozen = a.role == Role::Gestalt && seen;
+        a.frozen = a.role == Role::Gestalt && seen && !a.showcase;  // V13.2: die Vorfuehrung bewegt sich (Bildfolgen)
         if (a.showcase && a.walkShow) {  // Vorfuehrung: im Kreis (3 m Radius)
             const float speed = (float)a.speed, w = speed / 3.0f;
             a.yaw += (float)dt * w;
