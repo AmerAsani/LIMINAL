@@ -297,6 +297,13 @@ void App::scriptStep() {
             session_->stats().health = std::clamp(std::atof(arg.c_str()), 1.0, 100.0);
         } else if (cmd == "sanity" && session_) {  // V7: Sanity setzen (Tests)
             session_->stats().sanity = std::clamp(std::atof(arg.c_str()), 0.0, 100.0);
+        } else if (cmd == "vmdebug" && session_) {  // V13 (Tests): Teile ausblenden (1 Hand, 2 Koerper, 4 Lampe)
+            session_->debugDraw = std::atoi(arg.c_str());
+        } else if (cmd == "vmcam") {  // V13 (Tests): vmcam <az> <el> <abstand> | vmcam off - Kamera um die Hand
+            float az = 0, el = 0, d = 0.5f;
+            if (arg == "off") vmCam_.on = false;
+            else if (std::sscanf(arg.c_str(), "%f %f %f", &az, &el, &d) >= 2) vmCam_ = {true, az, el, d};
+            resetHistory_ = true;
         } else if (cmd == "quit") {
             quit_ = true;
             return;
@@ -1346,6 +1353,17 @@ void App::renderWorld(double dt, bool clean) {
             cam.pitch = vc.pitch;
             cam.roll = vc.roll;
             cam.fovY = fovY(vc.fovMul);
+            if (vmCam_.on && s.body().flashlightHeld()) {
+                // V13: im Rahmen der Lampe (x zum Glas, z oben, y links) um die Griffmitte, Blick auf sie
+                const vec3 x = s.body().flashlightDir(), z = s.body().flashUp(), y = cross(z, x);
+                const float a = vmCam_.az * 0.0174533f, e = vmCam_.el * 0.0174533f;
+                const vec3 d = x * (std::cos(e) * std::cos(a)) + y * (std::cos(e) * std::sin(a)) + z * std::sin(e);
+                cam.pos = s.body().flashGrip() + d * vmCam_.dist;
+                cam.yaw = std::atan2(-d.y, -d.x);
+                cam.pitch = std::asin(std::clamp(-d.z, -1.0f, 1.0f));
+                cam.roll = 0.0f;
+                cam.fovY = fovY(1.0f) * 0.6f;
+            }
         } else {
             cam.pos = {(float)p.x, (float)p.y, (float)p.eye()};
             cam.yaw = (float)(p.angle + p.sway());
@@ -1412,6 +1430,7 @@ void App::renderWorld(double dt, bool clean) {
                 md.cullCenter = v.cullCenter;
                 md.cullRadius = v.cullRadius;
                 md.material = v.material == game::kShadowLook ? (int)gfx::FM_ENT_SHADOW : v.material;  // V10
+                md.clip = v.clip;  // V13
                 draws_.push_back(md);
             }
         }

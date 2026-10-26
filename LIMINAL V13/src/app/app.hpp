@@ -158,6 +158,11 @@ private:
     std::vector<int> scriptRelease_;
     std::vector<std::pair<int, int>> scriptHold_;  // V11: gehaltene Tasten (Code, verbleibende Bilder)
     std::string scriptShot_;
+    // V13 (Tests): Debug-Kamera um die Hand mit der Lampe: Winkel um die Lampenachse (az, el in Grad) und Abstand
+    struct VmCam {
+        bool on = false;
+        float az = 0, el = 0, dist = 0.5f;
+    } vmCam_;
     bool scriptFailed_ = false;
 };
 

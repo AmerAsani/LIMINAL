@@ -803,7 +803,18 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
     player_.breathless = stats_.breathless();
     applyBodyStyle();  // V10
     world_->update(player_.x, player_.y);
-    body_.setFlashlight(flash_.on, flash_.output(stats_.playTime) > 0.05f);
+    // V13: Schaltfolge der Lampe (siehe toggleFlashlight). Ist sie an, ist sie gehoben (auch wenn ein Spielstand oder
+    // ein Test sie direkt einschaltet); ging sie ohne Daumen aus (Batterie leer), sinkt sie kurz danach
+    if (flash_.on && flashPending_ == 0) flashRaise_ = true, flashLowerT_ = -1.0;
+    if (!flash_.on && flashPending_ == 0 && flashRaise_ && flashLowerT_ < 0.0) flashLowerT_ = 0.6;
+    if (flashPending_ == 1 && !body_.pressing() && (body_.flashWeight() > 0.9f || !body_.viewmodelHand())) {
+        body_.pressSwitch();
+        flashPending_ = 2;
+        flashClickT_ = 0.07;
+    }
+    if (flashClickT_ >= 0.0 && (flashClickT_ -= dt) < 0.0) flashClick();
+    if (flashLowerT_ >= 0.0 && (flashLowerT_ -= dt) < 0.0 && !flash_.on && flashPending_ == 0) flashRaise_ = false;
+    body_.setFlashlight(flashRaise_, flash_.on && flash_.output(stats_.playTime) > 0.05f);
     {
         // V11: freier Raum vor der Lampe - vom Auge und von der Hoehe der Lampe aus in Blickrichtung abgetastet
         const float ca = (float)std::cos(player_.angle), sa = (float)std::sin(player_.angle);
@@ -1180,14 +1191,46 @@ void GameSession::useSlot(int idx) {
     body_.gesture(Body::Gesture::Use, {}, d->model, (float)d->holdOffset, (float)d->scale);
 }
 
+// V13: Ein- und Ausschalten mit der Hand: zum Einschalten hebt der Arm die Lampe, der Daumen drueckt den Schalter,
+// erst dann geht das Licht an (Klick und Licht zugleich). Zum Ausschalten drueckt der Daumen zuerst, das Licht geht
+// aus, danach sinkt der Arm. Nochmal druecken waehrend des Hebens bricht ab.
 void GameSession::toggleFlashlight() {
-    if (!world_->level().flashlight && !flash_.on) {  // V11: Level 6 - hier gibt die Lampe kein Licht
+    if (flashPending_ == -1 || flashPending_ == 2) return;  // der Daumen drueckt gerade
+    if (flashPending_ == 1) {
+        flashPending_ = 0, flashRaise_ = false;
+        return;
+    }
+    if (flash_.on) {
+        flashPending_ = -1;
+        body_.pressSwitch();
+        flashClickT_ = 0.07;
+        return;
+    }
+    flashRaise_ = true, flashPending_ = 1, flashLowerT_ = -1.0;
+}
+
+void GameSession::flashClick() {
+    const int what = flashPending_;
+    flashPending_ = 0;
+    if (what == -1) {
+        flash_.on = false;
+        GameEvent ev{GameEvent::FlashToggle};
+        ev.intensity = 0.0f;
+        events_.push_back(ev);
+        flashLowerT_ = 0.12;
+        return;
+    }
+    if (what != 2) return;
+    if (!world_->level().flashlight) {  // V11: Level 6 - hier gibt die Lampe kein Licht
         events_.push_back({GameEvent::Toast, "Die Lampe klickt. Kein Licht.", 2.4f});
         events_.push_back({GameEvent::FlashEmpty, "", 0.0f});
+        flashLowerT_ = 0.5;
         return;
     }
     if (!flash_.toggle()) {
         events_.push_back({GameEvent::Toast, "Die Batterie ist leer – vielleicht liegt irgendwo eine.", 2.8f});
+        events_.push_back({GameEvent::FlashEmpty, "", 0.0f});
+        flashLowerT_ = 0.5;
         return;
     }
     GameEvent ev{GameEvent::FlashToggle};
@@ -1418,6 +1461,7 @@ void GameSession::fromJson(const Json& j) {
     }
     nextDrop_ = std::max<long long>(1, j["drop_next"].asInt(1));
     flash_.fromJson(j["flashlight"]);  // V7 (aeltere Staende: Lampe mit Startladung)
+    flashRaise_ = flash_.on, flashPending_ = 0, flashClickT_ = flashLowerT_ = -1.0;  // V13
     journal_.clear();
     for (const auto& n : j["journal"].items())
         if (n.asInt(-1) >= 0 && n.asInt(-1) < (long long)content_.notes().size()) journal_.push_back((int)n.asInt());
@@ -1599,6 +1643,11 @@ void GameSession::applyBodyStyle() {
         pr.gripFwd = hand * 0.45f - 0.027f;
         pr.gripOut = 0.0165f + 0.0135f;
         playerRig_.init(anim::Figure::Player);
+        // V13: Lage der Hand am Schaft aus ihrem Skelett
+        if (const props::Model* hm = vmHandModel() ? props::model("vm_hand_l") : nullptr; hm && hm->skin) {
+            vec3 wr, fa, hd, pa;
+            if (vmGeometryFromSkin(*hm->skin, wr, fa, hd, pa)) body_.setViewmodelGeometry(wr, fa, hd, pa);
+        }
     }
     body_.setProportions(pr);
     body_.reset();
@@ -1609,6 +1658,22 @@ void GameSession::applyBodyStyle() {
 bool GameSession::vmHandModel() {
     static const bool has = props::model("vm_hand_l") != nullptr;
     return has;
+}
+
+// V13: Geometrie der Hand aus ihrem Skelett (Lampenrahmen): Handgelenk, Ellbogenseite, Knoechel, Handflaeche.
+// false, wenn das Modell kein Skelett hat (dann bleiben die Werte von V12)
+bool vmGeometryFromSkin(const props::Skin& sk, vec3& wrist, vec3& forearm, vec3& handDir, vec3& palm) {
+    vec3 elbow, mcp, index, little;
+    if (!props::skinJointRest(sk, "hand", wrist) || !props::skinJointRest(sk, "elbow", elbow) ||
+        !props::skinJointRest(sk, "f1_1", mcp) || !props::skinJointRest(sk, "f0_1", index) ||
+        !props::skinJointRest(sk, "f3_1", little))
+        return false;
+    forearm = normalize(wrist - elbow);
+    handDir = normalize(mcp - wrist);
+    // Handflaeche: senkrecht zur Ebene Handgelenk - Zeige- - Kleinfinger-Grundgelenk, zur Beugeseite. Das Spiel ist
+    // gespiegelt (linkshaendig): fuer die linke Hand zeigt cross(Zeige, Klein) hier zur Beugeseite
+    palm = normalize(cross(index - wrist, little - wrist));
+    return true;
 }
 
 // V10: realistischer Koerper - die Gelenke des Koerpers (Body) auf das Skelett der Spielerfigur
@@ -1686,11 +1751,46 @@ void GameSession::collectBody(std::vector<VisibleMesh>& out, bool firstPerson) {
     }
     playerRig_.setPose(jp);
     // V12: haelt die Hand die Lampe, kommt die Hand aus Blender (Body::collectProps); die des Skeletts (Seite 1 =
-    // linke Hand des Koerpers) schrumpft ins Handgelenk
-    body_.setViewmodelHand(vmHandModel());
-    playerRig_.hideHand(body_.viewmodelHand() && body_.flashlightHeld() ? 1 : -1);
-    playerRig_.collect(out, palette_, body_.eye(), figureDetail, false, true, firstPerson);
-    body_.collectProps(out);
+    // linke Hand des Koerpers) schrumpft ins Handgelenk. V13: die Lampe bleibt immer in der Hand - mit Skelett zeichnet
+    // die Sitzung die Hand (Griff, Daumendruck als Mischung der Posen aus Blender)
+    const props::Model* hm = vmHandModel() ? props::model("vm_hand_l") : nullptr;
+    const props::Skin* sk = hm ? hm->skin.get() : nullptr;
+    body_.setViewmodelHand(hm != nullptr, sk != nullptr);
+    body_.setCarryLamp(sk != nullptr);
+    playerRig_.hideHand(body_.viewmodelHand() && body_.lampVisible() ? 1 : -1);
+    const size_t figFirst = out.size();
+    if (!(debugDraw & 2)) playerRig_.collect(out, palette_, body_.eye(), figureDetail, false, true, firstPerson);
+    if (sk && body_.viewmodelHand() && body_.lampVisible()) {
+        // V13: was vom Aermel in die Hand aus Blender ragt, wegschneiden (Kugel 2 cm vor dem Handgelenk, Radius 2,5 cm)
+        const vec3 wr = body_.pose().hand[0], hd = body_.flashHandDir();
+        for (size_t i = figFirst; i < out.size(); ++i) out[i].clip = vec4(wr + hd * 0.02f, 0.025f);
+    }
+    if (!(debugDraw & 4)) body_.collectProps(out);
+    if (sk && body_.viewmodelHand() && body_.lampVisible() && !(debugDraw & 1)) {
+        static const int grip = sk->pose("grip"), press = sk->pose("press");
+        std::vector<float> w(sk->poses.size(), 0.0f);
+        const float p = body_.thumbPress();
+        if (grip >= 0) w[(size_t)grip] = 1.0f - p;
+        if (press >= 0) w[(size_t)press] = p;
+        props::skinMatrices(*sk, w, vmHandBones_);
+        const mat4 L = body_.lampFrame();
+        const vec3 o = body_.flashGrip();
+        const size_t off = palette_.size();
+        for (const mat4& s : vmHandBones_) {
+            mat4 m = L * s;
+            m.c[3] = vec4(m.c[3].xyz() - o, 1.0f);
+            palette_.push_back(m);
+        }
+        VisibleMesh v;
+        v.model = &vmHandMesh_;
+        v.meshId = &vmHandId_;
+        v.world = mat4::translation(o);
+        v.bones = (int)off;
+        v.attached = true;
+        v.cullCenter = o;
+        v.cullRadius = 0.0f;
+        out.push_back(v);
+    }
 }
 
 void GameSession::collectShadows(std::vector<ShadowCaster>& out) {

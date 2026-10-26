@@ -61,8 +61,9 @@ struct ObjectConstants {
     float highlight;
     float attached;  // V6: 1 = bewegt sich mit dem Spieler (Markierung im G-Buffer fuer TAA), V10: 1/3 = bewegte Figur
     u32 boneOffset;  // V10: erste Zeile der Knochenmatrizen (Skinning)
+    vec4 clip;       // V13: Schnittkugel (xyz Mitte, w Radius; 0 = keine) - Pixel darin werden verworfen
 };
-static_assert(sizeof(ObjectConstants) == 80);
+static_assert(sizeof(ObjectConstants) == 96);
 
 // Vertex fuer frei platzierte Objekte (Items, Requisiten)
 struct MeshVertex {

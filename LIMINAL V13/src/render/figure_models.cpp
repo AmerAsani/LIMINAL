@@ -481,6 +481,7 @@ void addHandParts(Assembly& as, int lod, u32 skinMat) {
     Shape s;
     hands(s, c, lod);
     as.m.lods[(size_t)lod].push_back(meshPart(c, s, kFineH[lod], skinMat, kHandBones | bit(B_FARM_L) | bit(B_FARM_R), 0.3f));
+    as.m.lods[(size_t)lod].back().hands = true;
 }
 
 // kurzes Haar: Schale ueber dem Schaedel oberhalb des Haaransatzes
@@ -635,6 +636,34 @@ void buildPlayer(Assembly& as) {
 }
 
 }  // namespace
+
+std::vector<SkinPart> withoutHand(const std::vector<SkinPart>& parts, int side) {
+    std::vector<SkinPart> out;
+    const u8 drop[4] = {(u8)sideBone(B_HAND_L, side), (u8)sideBone(B_FING_L, side), (u8)sideBone(B_THUMB_L, side),
+                        (u8)sideBone(B_FARM_L, side)};
+    for (const SkinPart& p : parts) {
+        if (!p.hands) {
+            out.push_back(p);
+            continue;
+        }
+        auto gone = [&](u32 i) {
+            const SkinVertex& v = p.v[i];
+            int best = 0;
+            for (int k = 1; k < 4; ++k)
+                if (v.weights[k] > v.weights[best]) best = k;
+            for (u8 b : drop)
+                if (v.bones[best] == b) return true;
+            return false;
+        };
+        SkinPart q = p;
+        q.idx.clear();
+        for (size_t t = 0; t + 2 < p.idx.size(); t += 3)
+            if (!gone(p.idx[t]) && !gone(p.idx[t + 1]) && !gone(p.idx[t + 2]))
+                q.idx.insert(q.idx.end(), {p.idx[t], p.idx[t + 1], p.idx[t + 2]});
+        if (!q.idx.empty()) out.push_back(std::move(q));
+    }
+    return out;
+}
 
 FigureModel buildFigure(Figure f, JobSystem* jobs) {
     Assembly as;

@@ -14,13 +14,9 @@ constexpr double kPiD = 3.141592653589793;
 // Strichstaerke des Strichmaennchens (Radius). Die Proportionen stehen in BodyProportions (V10).
 constexpr float kLine = 0.02f;
 
-// V12: Hand im Faustgriff (data/models/vm_hand_l.glb) im Rahmen der Lampe (x Achse zum Glas, y rechts, z oben;
-// Ursprung Griffmitte). Werte gibt tools/blender/models/models_vm.py beim Bau aus (dort y links, hier gespiegelt):
-// Handgelenk, Richtung des Unterarms (Ellbogen -> Handgelenk), Handrichtung (Handgelenk -> Knoechel), Handflaeche.
-constexpr vec3 kVmWrist{-0.0246f, -0.0633f, 0.0077f};
-constexpr vec3 kVmForearm{0.8891f, 0.4574f, 0.0155f};
-constexpr vec3 kVmHandDir{0.5592f, 0.6992f, -0.4454f};
-constexpr vec3 kVmPalm{0.0f, 0.5373f, 0.8434f};
+// V12/V13: Hand im Griff (data/models/vm_hand_l.glb) im Rahmen der Lampe (x Achse zum Glas, y rechts, z oben;
+// Ursprung Griffmitte). V13: die Werte (Handgelenk, Unterarm, Handrichtung, Handflaeche) kommen zur Laufzeit aus dem
+// Skelett der Hand (Body::setViewmodelGeometry), die Voreinstellung sind die Werte von V12.
 
 float smoothT(float t) {
     t = saturate(t);
@@ -72,6 +68,19 @@ mat4 sphere(vec3 c, float r) { return mat4::translation(c) * mat4::scale(vec3(r)
 void follow(double& v, double target, double rate, double dt) { v += (target - v) * std::min(1.0, dt * rate); }
 
 }  // namespace
+
+void Body::setViewmodelGeometry(vec3 wrist, vec3 forearm, vec3 handDir, vec3 palm) {
+    vmWrist_ = wrist, vmForearm_ = normalize(forearm), vmHandDir_ = normalize(handDir), vmPalm_ = normalize(palm);
+}
+
+float Body::thumbPress() const {
+    if (pressT_ < 0.0) return 0.0f;
+    const float t = (float)pressT_;
+    // schnell hinunter (70 ms), kurz halten, langsamer zurueck
+    return t < 0.07f ? smoothT(t / 0.07f) : (t < 0.11f ? 1.0f : smoothT(1.0f - (t - 0.11f) / 0.13f));
+}
+
+mat4 Body::lampFrame() const { return columns(flashDir_, cross(flashUp_, flashDir_), flashUp_, flashGrip_); }
 
 void Body::gesture(Gesture g, vec3 target, const std::string& itemModel, float holdOffset, float scale) {
     gesture_ = g;
@@ -249,6 +258,7 @@ void Body::update(double dt, const Player& p) {
     // Die Hand hebt die Lampe vor die Brust und folgt dem Blick; Schritte lassen sie leicht
     // pendeln. Der Lichtkegel geht vom Lampenkopf aus - in der Ego-Perspektive unten links im Bild.
     follow(flashHold_, flashWant_ ? 1.0 : 0.0, 7.0, dt);
+    if (pressT_ >= 0.0 && (pressT_ += dt) > 0.24) pressT_ = -1.0;  // V13: Daumendruck
     {
         float cp = (float)std::cos(p.pitch), spc = (float)std::sin(p.pitch);
         vec3 hf = F * cp + U * spc, hu = U * cp - F * spc;
@@ -283,15 +293,15 @@ void Body::update(double dt, const Player& p) {
             // Lampe wird danach aus dem tatsaechlich erreichten Handgelenk gesetzt - sie steckt immer in der Hand,
             // der Kegel ist die Achse des Modells und folgt dem Blick.
             auto ortho = [](vec3 v, vec3 ax) { return v - ax * dot(v, ax); };
-            // Die Hand gleitet entlang der Lampenachse (8 cm zurueck bis 3 cm vor), bis der Unterarm des Modells zu
+            // Die Hand gleitet entlang der Lampenachse (8 cm zurueck bis 4,5 cm vor), bis der Unterarm des Modells zu
             // einem Ellbogen fuehrt, den der Oberarm erreicht - sonst stuende der Aermel schief zum Handgelenk.
             // Rollen um die Achse hilft nicht: die Schulter liegt fast auf ihr.
             const vec3 up = normalize(ortho(hu, aim)), side = cross(up, aim);
             {
-                const vec3 wr0 = target + aim * kVmWrist.x + side * kVmWrist.y + up * kVmWrist.z;
-                const vec3 fw = aim * kVmForearm.x + side * kVmForearm.y + up * kVmForearm.z;
+                const vec3 wr0 = target + aim * vmWrist_.x + side * vmWrist_.y + up * vmWrist_.z;
+                const vec3 fw = aim * vmForearm_.x + side * vmForearm_.y + up * vmForearm_.z;
                 float slideWant = 0.0f, bestErr = 1e9f;
-                for (int k = -16; k <= 6; ++k) {
+                for (int k = -16; k <= 9; ++k) {  // V13: bis 4,5 cm vor (Blick nach unten)
                     const float sl = (float)k * 0.005f;
                     const vec3 el = wr0 + aim * sl - fw * pr_.forearm;
                     const float err = std::fabs(length(el - pose_.shoulder[0]) - pr_.upperArm) + 0.1f * std::fabs(sl);
@@ -301,22 +311,33 @@ void Body::update(double dt, const Player& p) {
                 if (dt <= 0.0) vmSlide_ = slideWant;
                 target = target + aim * vmSlide_;
             }
-            auto toWorld = [&](vec3 m) { return aim * m.x + side * m.y + up * m.z; };
-            const vec3 wristWant = target + toWorld(kVmWrist);
+            auto toRaised = [&](vec3 m) { return aim * m.x + side * m.y + up * m.z; };
+            const vec3 wristWant = target + toRaised(vmWrist_);
             if (w > 0.001f) {
-                const vec3 elbowWant = wristWant - toWorld(kVmForearm) * pr_.forearm;
+                const vec3 elbowWant = wristWant - toRaised(vmForearm_) * pr_.forearm;
                 const vec3 pole = elbowWant - (pose_.shoulder[0] + wristWant) * 0.5f;
                 solveArm(0, lerp(pose_.hand[0], wristWant, w), normalize(pole));
             }
             const vec3 fa = normalize(pose_.hand[0] - pose_.elbow[0]);
-            vmForearmErr_ = std::acos(std::clamp(dot(fa, toWorld(kVmForearm)), -1.0f, 1.0f));
-            flashHandDir_ = normalize(lerp(fa, toWorld(kVmHandDir), w));
-            const vec3 relaxed = normalize(ortho(R, flashHandDir_));  // entspannt: Handflaeche zur Koerpermitte
-            flashPalm_ = normalize(ortho(lerp(relaxed, toWorld(kVmPalm), w), flashHandDir_));
-            flashDir_ = aim;
-            flashUp_ = up;
-            flashGrip_ = pose_.hand[0] - toWorld(kVmWrist);  // Modell: Griffmitte bei x = 0
-            flashPos_ = flashGrip_ + aim * 0.19f;             // Glas bei x = 0,17; Licht 2 cm davor
+            // V13: gesenkt haengt die Lampe in der Hand - ihr Rahmen folgt dem Unterarm (Unterarm des Modells = Unterarm
+            // des Koerpers, Handflaeche zum Oberschenkel); beim Heben dreht er in den Rahmen des Blicks
+            vec3 xL = aim, zL = up;
+            if (w < 0.999f) {
+                const vec3 fm = vmForearm_, pm = normalize(ortho(vmPalm_, fm)), qm = cross(fm, pm);
+                const vec3 pw = normalize(ortho(R - F * 0.3f, fa)), qw = cross(fa, pw);
+                auto toHang = [&](vec3 m) { return fa * dot(m, fm) + pw * dot(m, pm) + qw * dot(m, qm); };
+                xL = normalize(lerp(toHang(vec3{1, 0, 0}), aim, w));
+                zL = normalize(ortho(lerp(toHang(vec3{0, 0, 1}), up, w), xL));
+            }
+            const vec3 yL = cross(zL, xL);
+            auto toWorld = [&](vec3 m) { return xL * m.x + yL * m.y + zL * m.z; };
+            vmForearmErr_ = std::acos(std::clamp(dot(fa, toWorld(vmForearm_)), -1.0f, 1.0f));
+            flashHandDir_ = toWorld(vmHandDir_);
+            flashPalm_ = normalize(ortho(toWorld(vmPalm_), flashHandDir_));
+            flashDir_ = xL;
+            flashUp_ = zL;
+            flashGrip_ = pose_.hand[0] - toWorld(vmWrist_);  // Modell: Griffmitte bei x = 0
+            flashPos_ = flashGrip_ + xL * 0.19f;             // Glas bei x = 0,17; Licht 2 cm davor
             // Sicherung: die Lichtquelle liegt nie hinter der Wandflaeche (Schatten werden nur gegen die Welt
             // verfolgt - das Zuruecksetzen erzeugt keinen Selbstschatten an der Lampe)
             const float over = dot(flashPos_ - eye_, hf) - (flashClear_ - 0.04f);
@@ -456,11 +477,12 @@ void Body::collectProps(std::vector<VisibleMesh>& out) {
         v.attached = true;
         out.push_back(v);
     };
-    if (flashHold_ > 0.5) {
+    if (lampVisible()) {
         vec3 x = flashDir_, z = flashUp_, y = cross(z, x);
         if (flashLit_) add(&mFlashLit_, &idFlashLit_, columns(x, y, z, flashGrip_));
         else add(&mFlash_, &idFlash_, columns(x, y, z, flashGrip_));
-        if (vmHand_) add(&mHand_, &idHand_, columns(x, y, z, flashGrip_));  // V12: Hand im Faustgriff
+        // V12: Hand im Faustgriff (starr); V13: mit Skelett zeichnet sie die Sitzung (Knochen im Bildpuffer)
+        if (vmHand_ && !vmSkinned_) add(&mHand_, &idHand_, columns(x, y, z, flashGrip_));
     }
     if (showHeld_ && !heldModel_.empty()) {
         mat4 m = heldRot_;

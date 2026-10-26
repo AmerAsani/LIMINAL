@@ -24,6 +24,8 @@ void FigureRig::init(Figure f) {
     }
     fpModel_ = std::string(figureModel(f)) + "_fp";
     fpId_ = -2;
+    for (int l = 0; l < kFigureLods; ++l) modelNh_[l] = model_[l] + "_nh1", meshIdNh_[l] = -2;  // V13
+    fpModelNh_ = fpModel_ + "_nh1", fpIdNh_ = -2;
     pose_ = bind;
     posed_ = false;
 }
@@ -94,7 +96,10 @@ void FigureRig::collect(std::vector<VisibleMesh>& out, std::vector<mat4>& palett
         // V12: Hand, Finger und Daumen folgen starr dem Unterarm (sonst schwenkt das hintere Ende der Handgelenk-
         // Kapsel bei abgeknickter Hand durch den Aermel) und schrumpfen auf 2 % ums Handgelenk (nicht 0 - die
         // Normalen bleiben gueltig)
-        const vec3 w = pose_.j[anim::sideJoint(anim::J_WRIST_L, hiddenHand_)] - origin_;
+        // V13: der Punkt liegt 2 cm im Aermel (vom Handgelenk zum Ellbogen); die Haut der Hand fehlt im Netz ohnehin
+        // (Variante _nh1), nur die LOD-2-Haut haengt noch an diesen Knochen
+        const vec3 wj = pose_.j[anim::sideJoint(anim::J_WRIST_L, hiddenHand_)], ej = pose_.j[anim::sideJoint(anim::J_ELBOW_L, hiddenHand_)];
+        const vec3 w = wj - normalize(wj - ej) * 0.02f - origin_;
         const mat4 fore = palette[off + (size_t)anim::sideBone(anim::B_FARM_L, hiddenHand_)];
         for (anim::Bone bn : {anim::B_HAND_L, anim::B_FING_L, anim::B_THUMB_L}) {
             mat4& m = palette[off + (size_t)anim::sideBone(bn, hiddenHand_)];
@@ -104,12 +109,13 @@ void FigureRig::collect(std::vector<VisibleMesh>& out, std::vector<mat4>& palett
         }
     }
     VisibleMesh v;
+    const bool nh = hiddenHand_ == 1 && !creature_;  // V13: Netz ohne diese Hand
     if (firstPerson && !creature_) {
-        v.model = &fpModel_;
-        v.meshId = &fpId_;
+        v.model = nh ? &fpModelNh_ : &fpModel_;
+        v.meshId = nh ? &fpIdNh_ : &fpId_;
     } else {
-        v.model = &model_[lod];
-        v.meshId = &meshId_[lod];
+        v.model = nh ? &modelNh_[lod] : &model_[lod];
+        v.meshId = nh ? &meshIdNh_[lod] : &meshId_[lod];
     }
     v.world = mat4::translation(origin_);
     v.bones = (int)off;  // Index der ersten Matrix

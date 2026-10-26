@@ -403,6 +403,11 @@ void CSMain(uint3 gid : SV_GroupID, uint3 dtid : SV_DispatchThreadID, uint gi : 
     float4 misc = gMiscBuf[px];
     float rough = max(misc.r, 0.045);
     float metal = misc.g;
+    // V13: Haut (mesh_gbuffer: Glanzkanal < 1) - Licht dringt ein und tritt versetzt wieder aus. Naeherung: je Farbe
+    // gewickeltes Lambert (Rot reicht am weitesten ueber den Schattenrand, Gruen und Blau weniger), dazu ein
+    // schwaches Durchleuchten duenner Stellen gegen das Licht (Finger vor der Lampe)
+    float sss = saturate(1.0 - misc.a);
+    const float3 kSkinWrap = float3(0.55, 0.26, 0.18);
     uint flick = (uint)(misc.b * 255.0 + 0.5);
     float3 albedo = alb.rgb;
     float matAO = alb.a;
@@ -441,7 +446,7 @@ void CSMain(uint3 gid : SV_GroupID, uint3 dtid : SV_DispatchThreadID, uint gi : 
         float d = sqrt(d2);
         float3 l = toL / d;
         float NoL = dot(N, l);
-        if (NoL <= 0.0)
+        if (NoL <= -kSkinWrap.r * sss)
             continue;
         // Lambert-Strahler mit etwas Streulicht zur Seite
         float emit = lightEmission(L.dirSpill, L.areaV.w, asuint(L.viewPosFlags.w), l);
@@ -449,7 +454,7 @@ void CSMain(uint3 gid : SV_GroupID, uint3 dtid : SV_DispatchThreadID, uint gi : 
         float window = saturate(1.0 - x * x * x * x);
         float atten = window * window / (d2 + 0.25 + L.areaU.w);
         float3 radiance = L.colorRadius.rgb * (atten * emit);
-        if (max(radiance.r, max(radiance.g, radiance.b)) * NoL < 2e-4)
+        if (max(radiance.r, max(radiance.g, radiance.b)) * max(NoL, 0.25 * sss) < 2e-4)
             continue;
         if ((asuint(L.viewPosFlags.w) & 1u) != 0 && gLightParams.z > 0.0)
         {
@@ -474,6 +479,14 @@ void CSMain(uint3 gid : SV_GroupID, uint3 dtid : SV_DispatchThreadID, uint gi : 
             if (max(radiance.r, max(radiance.g, radiance.b)) <= 0.0)
                 continue;
         }
+        float3 diffK = saturate(NoL).xxx;
+        if (sss > 0.0)
+        {
+            float3 w = kSkinWrap * sss;
+            float3 wrapped = saturate((NoL + w) / ((1.0 + w) * (1.0 + w)));
+            float back = pow(saturate(dot(V, -l)), 6.0) * saturate(-NoL + 0.3) * 0.18 * sss;
+            diffK = wrapped + back * float3(1.0, 0.32, 0.18);
+        }
         NoL = saturate(NoL);
         float3 h = normalize(l + V);
         float NoH = saturate(dot(N, h));
@@ -484,7 +497,7 @@ void CSMain(uint3 gid : SV_GroupID, uint3 dtid : SV_DispatchThreadID, uint gi : 
         float3 F = F_Schlick(f0, VoH);
         float3 spec = D_GGX(NoH, aL) * V_Smith(NoV, NoL, a) * F * norm;
         float3 diff = diffColor * (1.0 / PI) * (1.0 - F);
-        direct += (diff + spec) * radiance * NoL;
+        direct += (diff * diffK + spec * NoL) * radiance;
     }
 
     // Umgebungslicht (vorberechnet je Kachelecke, weich interpoliert)

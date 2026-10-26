@@ -53,6 +53,8 @@ private:
     vec3 origin_;
     float height_ = 1.8f, reach_ = 1.2f, glow_ = 0.0f;
     int hiddenHand_ = -1;  // V12
+    std::string modelNh_[anim::kFigureLods], fpModelNh_;  // V13: Netze ohne die verborgene Hand (Seite 1)
+    int meshIdNh_[anim::kFigureLods] = {-2, -2, -2}, fpIdNh_ = -2;
     std::string model_[anim::kFigureLods], fpModel_;
     int meshId_[anim::kFigureLods] = {-2, -2, -2};
     int fpId_ = -2;

@@ -30,6 +30,10 @@
 #include "gameplay/visible.hpp"
 #include "world/world.hpp"
 
+namespace lim::props {
+struct Skin;
+}
+
 namespace lim::game {
 
 enum class Surface { Carpet, Concrete, Tile, Metal, Wood, Puddle };  // V11: Puddle (Pfuetze auf Beton)
@@ -81,6 +85,10 @@ struct SoundSource {
     float volume, radius;
     int* voice;
 };
+
+// V13: Geometrie der Hand aus dem Skelett von vm_hand_l (Lampenrahmen): Handgelenk, Unterarm (Ellbogen -> Handgelenk),
+// Handrichtung, Handflaeche. false ohne passende Gelenke
+bool vmGeometryFromSkin(const props::Skin& sk, vec3& wrist, vec3& forearm, vec3& handDir, vec3& palm);
 
 class GameSession {
 public:
@@ -300,6 +308,18 @@ private:
     long long nextDrop_ = 1;
     // V7
     Flashlight flash_;
+    // V13: Schaltfolge - an: Arm hebt die Lampe, der Daumen drueckt, dann Licht; aus: Daumen drueckt, Licht aus, dann
+    // senken. pending 1 = heben fuer an, 2 = Druck fuer an laeuft, -1 = Druck fuer aus laeuft
+    bool flashRaise_ = false;
+    int flashPending_ = 0;
+    double flashClickT_ = -1.0, flashLowerT_ = -1.0;
+    void flashClick();
+    std::string vmHandMesh_ = "vm_hand_l";
+    int vmHandId_ = -2;
+    std::vector<mat4> vmHandBones_;
+public:
+    int debugDraw = 0;  // V13 (Tests): Bit 0 Hand mit Skelett aus, Bit 1 Koerper des Spielers aus, Bit 2 Lampe aus
+private:
     std::vector<int> journal_;
     std::vector<KnownExit> knownExits_;
     double exitScan_ = 0.0;

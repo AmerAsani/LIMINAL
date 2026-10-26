@@ -34,6 +34,7 @@ enum FixedMaterial : u32 {
     FM_ENT_GLOW_EYE, FM_ENT_GLOW_DIM,  // V11: Smiler - kalte Augen, matter leuchtende Zaehne
     FM_ENT_CLUMP_A, FM_ENT_CLUMP_B, FM_ENT_CLUMP_C, FM_ENT_CLUMP_CORE,  // V11: Buendel - Hauttoene, Kern
     FM_FLASH_BEZEL, FM_FLASH_RUBBER, FM_FLASH_GLASS, FM_NAIL,  // V12: Viewmodel (Lampe aus Blender, Fingernaegel)
+    FM_HAND_SKIN, FM_HAND_NAIL,  // V13: Hand mit Skelett (data/models/vm_hand_l.glb) - Haut mit Durchscheinen, Nagel
     FM_FIG_END,
 };
 static_assert(FM_FIG_END <= kFixedMaterials);
@@ -48,6 +49,9 @@ constexpr u32 kMatFlagAtlas = 1u << 27;
 constexpr u32 kMatFlagCutout = 1u << 28;
 // V11: Rauchrand (Smiler, Gestalt) - Umriss, Saum und Scheitel gerastert ausduennen (mesh_gbuffer.hlsl)
 constexpr u32 kMatFlagSmoke = 1u << 29;
+// V13: Haut - Licht dringt ein (lighting.hlsl: gewickeltes, roetliches Streulicht, Durchleuchten duenner Stellen).
+// Der Mesh-Shader schreibt 1 - Anteil in den Glanzkanal (misc.a); 1 = kein Durchscheinen
+constexpr u32 kMatFlagSkin = 1u << 30;
 
 struct LightStats {
     u32 total = 0, visible = 0;

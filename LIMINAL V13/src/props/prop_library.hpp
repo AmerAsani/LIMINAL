@@ -6,6 +6,8 @@
 // tragen Atlaskoordinaten der Texturebene L_SIGNS (render/texture_v11.cpp).
 #pragma once
 
+#include <array>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -44,12 +46,41 @@ struct MatDesc {
 struct Part {
     Mesh mesh;
     MatDesc mat;
+    // V13: Skinning (nur Modelle mit Skelett, props/glb_import): je Punkt vier Gelenke und Gewichte
+    std::vector<std::array<u8, 4>> joints;
+    std::vector<std::array<float, 4>> weights;
+};
+
+// V13: Skelett eines Modells aus Blender (glTF-Skin). Alles in glTF-Koordinaten (y oben); props::skinMatrices
+// rechnet ins Spiel um. Posen sind Animationen mit einem Schluessel (Name wie die Aktion in Blender).
+struct SkinJoint {
+    std::string name;
+    int parent = -1;   // Gelenk-Index, -1: Wurzel (darueber liegt rootPre)
+    float t[3] = {0, 0, 0}, r[4] = {0, 0, 0, 1}, s[3] = {1, 1, 1};  // Ruhe: lokale Lage
+    float ibm[16] = {};  // inverse Bindematrix (spaltenweise)
+};
+struct SkinPose {
+    std::string name;
+    std::vector<std::array<float, 10>> trs;  // je Gelenk t(3), r(4), s(3)
+};
+struct Skin {
+    std::vector<SkinJoint> joints;
+    float rootPre[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+    std::vector<SkinPose> poses;
+    int pose(const std::string& name) const;  // Index oder -1
 };
 
 struct Model {
     std::vector<Part> parts;
     Aabb bounds;
+    std::shared_ptr<const Skin> skin;  // V13: nullptr = starr
 };
+
+// V13: Skinning-Matrizen (Spielkoordinaten, Modellraum) fuer eine Mischung von Posen: weights[i] gehoert zu
+// skin.poses[i] (Summe beliebig > 0; Rotationen werden normiert gemischt). Ergebnis je Gelenk.
+void skinMatrices(const Skin& skin, const std::vector<float>& weights, std::vector<mat4>& out);
+// V13: Lage eines Gelenks in Ruhe (Spielkoordinaten, Modellraum); false, wenn es fehlt
+bool skinJointRest(const Skin& skin, const std::string& name, vec3& out);
 
 // Modell nach Name und Variante (nullptr: unbekannt). Varianten ausserhalb des Bereichs werden
 // auf den Bereich abgebildet.

@@ -10,6 +10,7 @@ cbuffer ObjectCB : register(b2)
     float gAttached;    // V6: 1 = bewegt sich mit dem Spieler (TAA projiziert diese Pixel anders zurueck),
                         // V10: 1/3 = bewegte Figur (TAA nimmt weniger Verlauf)
     uint gBoneOffset;   // V10: erste Zeile der Knochenmatrizen dieser Figur
+    float4 gClip;       // V13: Schnittkugel (xyz Mitte, w Radius; 0 = keine)
 };
 
 // V10: Knochenmatrizen aller Figuren dieses Bildes (je Matrix 3 Zeilen, float3x4)
@@ -302,6 +303,9 @@ GBufferOut PSMain(VSOut i, bool front : SV_IsFrontFace)
         if (ign(i.svpos.xy, gRingParams.z) >= fade)
             discard;
     }
+    // V13: Haut und Aermel des Koerpers in der Kugel ums Handgelenk der Hand mit Skelett (die Hand deckt dort)
+    if (gClip.w > 0.0 && dot(i.wpos - gClip.xyz, i.wpos - gClip.xyz) < gClip.w * gClip.w)
+        discard;
     GpuMaterial m = gMaterials[gMaterial];
     float3 N = normalize(i.n);
     // V11: Rauch (Smiler, Gestalt): eine Saeule tieferer Dunkelheit, die den Hintergrund nur teilweise
@@ -336,6 +340,9 @@ GBufferOut PSMain(VSOut i, bool front : SV_IsFrontFace)
     {
         GBufferOut g = shadeTriplanar(m, layer, i.bindPos, i.bindN, N, i.uv);
         g.normal.w = smoke ? 0.0 : gAttached;  // V11: Rauch mit langem Verlauf (zieht leicht nach)
+        // V13: Haut laesst Licht eindringen (Anteil im Glanzkanal, lighting.hlsl); in Falten und Ritzen weniger
+        if ((m.layers >> 30) & 1u)
+            g.misc.a = 1.0 - 0.8 * (1.0 - 0.5 * saturate(i.uv.y));
         return g;
     }
     if ((m.layers >> 24) & 1u)  // V6: Glasfront mit Faechern (Automat)

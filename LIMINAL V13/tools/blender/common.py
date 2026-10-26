@@ -15,7 +15,12 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 OUT = os.path.join(ROOT, 'data', 'models')
 
 
+EXPORT_EXTRA = {}  # V13: zusaetzliche Exportoptionen eines Modells (z. B. Skelett und Posen der Hand)
+
+
 def reset():
+    global EXPORT_EXTRA
+    EXPORT_EXTRA = {}
     bpy.ops.wm.read_factory_settings(use_empty=True)
 
 
@@ -106,9 +111,11 @@ def export(name):
     """Alles in der Szene als data/models/<name>.glb (Modifikatoren angewendet, +Y oben wie glTF)."""
     os.makedirs(OUT, exist_ok=True)
     path = os.path.join(OUT, name + '.glb')
-    bpy.ops.export_scene.gltf(filepath=path, export_format='GLB', export_apply=True, export_yup=True,
-                              export_texcoords=True, export_normals=True, export_materials='EXPORT',
-                              export_cameras=False, export_lights=False, export_animations=False)
+    opts = dict(filepath=path, export_format='GLB', export_apply=True, export_yup=True,
+                export_texcoords=True, export_normals=True, export_materials='EXPORT',
+                export_cameras=False, export_lights=False, export_animations=False)
+    opts.update(EXPORT_EXTRA)
+    bpy.ops.export_scene.gltf(**opts)
     tris = 0
     for ob in bpy.context.scene.objects:
         if ob.type == 'MESH':

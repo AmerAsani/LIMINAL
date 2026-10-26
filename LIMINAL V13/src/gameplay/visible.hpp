@@ -20,6 +20,7 @@ struct VisibleMesh {
     vec3 cullCenter;        // Huellkugel (cullRadius > 0: ausserhalb des Bildes nicht zeichnen)
     float cullRadius = 0.0f;
     int material = -1;      // >= 0: alle Teile mit diesem Material; kShadowLook: das Trugbild
+    vec4 clip{0, 0, 0, 0};  // V13: Schnittkugel (w > 0): Pixel darin verwerfen (Haut des Koerpers am Handgelenk)
 };
 constexpr int kShadowLook = 1000;  // die Anwendung setzt dafuer das Schattenmaterial
 

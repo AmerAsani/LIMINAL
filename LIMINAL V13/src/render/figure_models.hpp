@@ -37,7 +37,11 @@ struct SkinPart {
     std::vector<u32> idx;
     u32 material = 0;
     bool head = false;  // Kopf, Haare, Augen (fehlen im Ego-Modell des Spielers)
+    bool hands = false; // V13: die Haende (fuer Varianten ohne eine Hand)
 };
+// V13: Teile ohne die Hand einer Seite (Dreiecke, deren Punkte vor allem an Hand, Fingern, Daumen oder Unterarm dieser
+// Seite haengen, entfallen) - die Hand aus Blender ersetzt sie
+std::vector<SkinPart> withoutHand(const std::vector<SkinPart>& parts, int side);
 
 struct FigureModel {
     std::array<std::vector<SkinPart>, anim::kFigureLods> lods;

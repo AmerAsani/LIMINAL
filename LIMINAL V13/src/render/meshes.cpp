@@ -2,6 +2,7 @@
 
 #include "render/figure_models.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <string>
 
@@ -54,10 +55,51 @@ void MeshLibrary::addViewmodel(Gpu& gpu) {
     static const std::pair<const char*, u32> kFm[] = {
         {"flash_body", FM_FLASH_BODY},     {"flash_lens", FM_FLASH_LENS}, {"flash_bezel", FM_FLASH_BEZEL},
         {"flash_rubber", FM_FLASH_RUBBER}, {"flash_glass", FM_FLASH_GLASS}, {"skin_player", FM_SKIN_PLAYER},
-        {"nail", FM_NAIL},                 {"hoodie", FM_HOODIE}};
+        {"nail", FM_NAIL},                 {"hoodie", FM_HOODIE},          {"hand_skin", FM_HAND_SKIN},
+        {"hand_nail", FM_HAND_NAIL}};
     auto load = [&](const char* name, const char* alias) {
         const props::Model* m = props::model(name);
         if (!m || m->parts.empty()) return;
+        if (m->skin) {
+            // V13: mit Skelett - ueber den Skinning-Pfad der Figuren (Ruhepose = Griff; triplanare Haut in der
+            // Ruhelage, uv = Toenung: x Roete, y Dunkel)
+            std::vector<SkinPart> parts;
+            for (const props::Part& p : m->parts) {
+                if (p.joints.size() != p.mesh.v.size()) {
+                    log::warn("Viewmodel {}: Teil ohne Gewichte - uebersprungen", name);
+                    continue;
+                }
+                SkinPart sp;
+                sp.material = FM_HAND_SKIN;
+                bool known = false;
+                for (const auto& [k, v] : kFm)
+                    if (p.mat.fm == k) sp.material = v, known = true;
+                if (!known) log::warn("Viewmodel {}: unbekanntes Material fm='{}'", name, p.mat.fm);
+                sp.v.reserve(p.mesh.v.size());
+                for (size_t i = 0; i < p.mesh.v.size(); ++i) {
+                    const props::Vtx& v = p.mesh.v[i];
+                    SkinVertex sv{};
+                    sv.pos = v.p, sv.normal = v.n, sv.tangent = vec4(v.n, 1.0f), sv.uv = v.uv, sv.bind = v.p;
+                    // Gewichte auf 8 Bit, Summe genau 255
+                    int sum = 0, big = 0;
+                    for (int k = 0; k < 4; ++k) {
+                        sv.bones[k] = p.joints[i][(size_t)k];
+                        sv.weights[k] = (u8)std::clamp((int)std::lround(p.weights[i][(size_t)k] * 255.0f), 0, 255);
+                        sum += sv.weights[k];
+                        if (sv.weights[k] > sv.weights[big]) big = k;
+                    }
+                    sv.weights[big] = (u8)std::clamp((int)sv.weights[big] + 255 - sum, 0, 255);
+                    sp.v.push_back(sv);
+                }
+                sp.idx.assign(p.mesh.i.begin(), p.mesh.i.end());
+                parts.push_back(std::move(sp));
+            }
+            if (parts.empty()) return;
+            addSkinned(gpu, name, parts);
+            log::info("Viewmodel: {} mit Skelett ({} Teile, {} Gelenke, {} Posen)", name, parts.size(), m->skin->joints.size(),
+                      m->skin->poses.size());
+            return;
+        }
         std::vector<std::pair<MeshData, u32>> parts;
         for (const props::Part& p : m->parts) {
             if (p.mesh.v.size() > 65535) {

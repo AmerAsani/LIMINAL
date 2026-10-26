@@ -165,6 +165,10 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     auto tri = [&](u32 l) { return all(l) | kMatFlagTriplanar; };
     materialData_[FM_SKIN_PLAYER] = GpuMaterial{{0.95f, 0.86f, 0.8f}, 0, tri(L_SKIN), 1.0f, 0, 0.3f};
     materialData_[FM_NAIL] = GpuMaterial{{1.0f, 0.86f, 0.82f}, 0, tri(L_SKIN), 0.45f, 0, 0.1f};  // V12
+    // V13: Hand aus Blender - etwas waermer als die Koerperhaut, Rauheit wie trockene Haut (Glanz nur an Knoecheln
+    // durch die Textur), Durchscheinen; Nagel glatter und heller, kaum Durchscheinen
+    materialData_[FM_HAND_SKIN] = GpuMaterial{{0.98f, 0.84f, 0.76f}, 0, tri(L_SKIN) | kMatFlagSkin, 0.92f, 0, 0.25f};
+    materialData_[FM_HAND_NAIL] = GpuMaterial{{1.05f, 0.90f, 0.86f}, 0, tri(L_SKIN), 0.38f, 0, 0.05f};
     materialData_[FM_EYE] = GpuMaterial{{0.8f, 0.78f, 0.76f}, 0, all(L_FIGDETAIL), 1.0f, 0, 0.0f};
     materialData_[FM_HAIR_SHORT] = GpuMaterial{{0.2f, 0.16f, 0.13f}, 0, tri(L_HAIR), 1.0f, 0, 0.2f};
     materialData_[FM_HOODIE] = GpuMaterial{{0.15f, 0.18f, 0.15f}, 0, tri(L_WOOL), 1.0f, 0, 0.35f};

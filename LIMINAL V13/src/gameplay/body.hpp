@@ -91,8 +91,21 @@ public:
     void collectProps(std::vector<VisibleMesh>& out);
     // V12: Hand im Faustgriff aus Blender zur Lampe zeichnen (nur realistischer Koerper; das Skelett blendet
     // seine eigene linke Hand dann aus)
-    void setViewmodelHand(bool on) { vmHand_ = on; }
+    void setViewmodelHand(bool on, bool skinned = false) { vmHand_ = on, vmSkinned_ = skinned; }
     bool viewmodelHand() const { return vmHand_ && pr_.gripOut > 0.0f; }
+    // V13: Geometrie der Hand im Rahmen der Lampe (aus dem Skelett, data/models/vm_hand_l.glb): Handgelenk, Richtung
+    // des Unterarms (Ellbogen -> Handgelenk), Handrichtung (Handgelenk -> Knoechel), Handflaeche
+    void setViewmodelGeometry(vec3 wrist, vec3 forearm, vec3 handDir, vec3 palm);
+    // V13: die Lampe bleibt in der Hand, auch ausgeschaltet (gesenkt; Rahmen dann aus dem Unterarm)
+    void setCarryLamp(bool on) { carry_ = on; }
+    bool lampVisible() const { return carry_ ? true : flashHold_ > 0.5; }
+    // V13: Daumen drueckt den Schalter (0..1 ueber 0,24 s); Rahmen der Lampe (x Glas, z oben, Ursprung Griffmitte)
+    void pressSwitch() { pressT_ = 0.0; }
+    bool pressing() const { return pressT_ >= 0.0; }
+    float thumbPress() const;
+    mat4 lampFrame() const;
+    vec3 flashGrip() const { return flashGrip_; }
+    vec3 flashUp() const { return flashUp_; }
     // V12 (Tests): Winkel zwischen Unterarm des Skeletts und Unterarm des Handmodells (rad), Gleiten der Hand
     // entlang der Lampenachse (m)
     float vmForearmError() const { return vmForearmErr_; }
@@ -147,6 +160,10 @@ private:
     std::string mFlash_ = "flashlight", mFlashLit_ = "flashlight_on";
     int idFlash_ = -2, idFlashLit_ = -2;
     bool vmHand_ = false;  // V12
+    bool vmSkinned_ = false, carry_ = false;  // V13
+    double pressT_ = -1.0;
+    vec3 vmWrist_{-0.0246f, -0.0633f, 0.0077f}, vmForearm_{0.8891f, 0.4574f, 0.0155f};  // V12-Werte, bis das Skelett sie setzt
+    vec3 vmHandDir_{0.5592f, 0.6992f, -0.4454f}, vmPalm_{0.0f, 0.5373f, 0.8434f};
     float vmSlide_ = 0.0f, vmForearmErr_ = 0.0f;
     std::string mHand_ = "vm_hand_l";
     int idHand_ = -2;

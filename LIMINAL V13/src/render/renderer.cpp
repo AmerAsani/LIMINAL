@@ -174,6 +174,11 @@ void Renderer::uploadFigures() {
             for (const auto& p : m.lods[0])
                 if (!p.head) fp.push_back(p);
             meshes_.addSkinned(gpu_, std::string(anim::figureModel((anim::Figure)f)) + "_fp", fp);
+            // V13: ohne die linke Hand (Skelettseite 1) - die Hand aus Blender haelt die Lampe
+            meshes_.addSkinned(gpu_, std::string(anim::figureModel((anim::Figure)f)) + "_fp_nh1", withoutHand(fp, 1));
+            for (int l = 0; l < anim::kFigureLods; ++l)
+                meshes_.addSkinned(gpu_, std::string(anim::figureModel((anim::Figure)f)) + "_l" + std::to_string(l) + "_nh1",
+                                   withoutHand(m.lods[(size_t)l], 1));
         }
         log::info("Figur {}: {}", anim::figureName((anim::Figure)f), figureStats(m));
     }
@@ -426,6 +431,7 @@ void Renderer::gbufferPass(const Frustum& frustum, vec3 camPos, const std::vecto
             oc.highlight = d.highlight;
             oc.attached = d.attached ? 1.0f : (d.dynamic ? 1.0f / 3.0f : 0.0f);
             oc.boneOffset = m.skinned ? (u32)d.bones * 3u : 0u;
+            oc.clip = d.clip;
             gpu_.update(objectCb_, &oc, sizeof(oc));
             UINT stride = m.skinned ? (UINT)sizeof(SkinVertex) : (UINT)sizeof(MeshVertex), offset = 0;
             ctx->IASetVertexBuffers(0, 1, m.vb.buf.addr(), &stride, &offset);

@@ -1859,6 +1859,51 @@ static void testV12Viewmodel(const std::string& dataDir) {
     b.setProportions(pr);
     b.setFlashlight(true, true);
     b.setViewmodelHand(true);
+    // V13: Hand mit Skelett - Geometrie aus den Gelenken; sie muss zu den Werten passen, die der Bau in Blender
+    // ausgibt (prueft die Achsen-Umrechnung glTF -> Spiel)
+    {
+        props::Model hm;
+        std::string err;
+        const bool ok = props::loadGlb(dataDir + "/models/vm_hand_l.glb", hm, err);
+        check(ok && hm.skin && hm.skin->joints.size() >= 21, std::format("vm_hand_l: Skelett mit {} Gelenken", ok && hm.skin ? hm.skin->joints.size() : 0));
+        check(ok && hm.skin && hm.skin->pose("grip") >= 0 && hm.skin->pose("press") >= 0, "vm_hand_l: Posen grip und press");
+        vec3 wr, fa, hd, pa;
+        const bool geo = ok && hm.skin && game::vmGeometryFromSkin(*hm.skin, wr, fa, hd, pa);
+        check(geo, "vm_hand_l: Handgelenk, Ellbogen, Grundgelenke vorhanden");
+        if (geo) {
+            b.setViewmodelGeometry(wr, fa, hd, pa);
+            auto j = loadJsonFile(dataDir + "/../../../../tools/blender/models/vm_grip.json");
+            if (!j) j = loadJsonFile(dataDir + "/../tools/blender/models/vm_grip.json");
+            if (j) {
+                auto v3 = [&](const char* k) {
+                    const auto& a = (*j)["kvm"][k].items();
+                    return vec3{(float)a[0].asNumber(), (float)a[1].asNumber(), (float)a[2].asNumber()};
+                };
+                const float e = std::max({length(wr - v3("wrist")), length(fa - v3("forearm")), length(hd - v3("hand_dir")),
+                                          length(pa - v3("palm"))});
+                if (e >= 2e-3f)
+                    std::printf("  Skelett: Handgelenk %.4f %.4f %.4f, Unterarm %.4f %.4f %.4f, Hand %.4f %.4f %.4f, Flaeche %.4f %.4f %.4f\n",
+                                wr.x, wr.y, wr.z, fa.x, fa.y, fa.z, hd.x, hd.y, hd.z, pa.x, pa.y, pa.z);
+                check(e < 2e-3f, std::format("Geometrie aus dem Skelett = Werte des Baus (Abweichung {:.4f})", e));
+            }
+            // Pose-Mischung: Griff = Ruhe (Einheitsmatrizen), Druck bewegt nur den Daumen
+            std::vector<mat4> g0, g1;
+            props::skinMatrices(*hm.skin, {1.0f, 0.0f}, g0);
+            float rest = 0.0f, other = 0.0f, thumb = 0.0f;
+            std::vector<float> wp(hm.skin->poses.size(), 0.0f);
+            wp[(size_t)hm.skin->pose("press")] = 1.0f;
+            props::skinMatrices(*hm.skin, wp, g1);
+            for (size_t k = 0; k < g0.size(); ++k) {
+                for (int c = 0; c < 4; ++c)
+                    rest = std::max(rest, length(g0[k].c[c].xyz() - mat4::identity().c[c].xyz()));
+                const float d = length(g1[k].c[3].xyz() - g0[k].c[3].xyz()) + length(g1[k].c[0].xyz() - g0[k].c[0].xyz());
+                if (hm.skin->joints[k].name.rfind("th_", 0) == 0) thumb = std::max(thumb, d);
+                else other = std::max(other, d);
+            }
+            check(rest < 1e-3f, std::format("Griff = Ruhepose (Abweichung {:.5f})", rest));
+            check(thumb > 0.01f && other < 1e-4f, std::format("Druck bewegt nur den Daumen ({:.4f} / {:.5f})", thumb, other));
+        }
+    }
     auto run = [&](int n, game::PlayerControl c) {
         for (int i = 0; i < n; ++i) {
             p.update(1.0 / 60.0, c, flat);
@@ -1885,7 +1930,7 @@ static void testV12Viewmodel(const std::string& dataDir) {
     check(worstArm < 0.21f, std::format("Unterarm passt zum Handmodell (groesste Abweichung {:.1f} Grad)", worstArm * 57.3f));
     check(worstAim < 0.09f, std::format("Kegel folgt dem Blick ({:.1f} Grad)", worstAim * 57.3f));
     check(worstScreen < 0.54f, std::format("Faust bleibt im Bild ({:.1f} Grad vom Blick)", worstScreen * 57.3f));
-    check(b.vmSlide() >= -0.081f && b.vmSlide() <= 0.031f, std::format("Hand gleitet hoechstens 8 cm ({:.3f} m)", b.vmSlide()));
+    check(b.vmSlide() >= -0.081f && b.vmSlide() <= 0.046f, std::format("Hand gleitet hoechstens 8 cm ({:.3f} m)", b.vmSlide()));
 }
 
 // V11: Schallausbreitung - eine Quelle hinter einer Wand, neben der eine Tuer liegt, kommt durch die Tuer: aus
