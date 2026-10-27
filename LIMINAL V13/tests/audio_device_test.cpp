@@ -160,10 +160,17 @@ int main(int argc, char** argv) {
                 a.injectFault(c.f, c.param);
                 if (c.f == Fault::InitFails) a.requestRestart("Test");
                 // erholt: (je nach Art) neu geoeffnet bzw. Alarm/NaN gezaehlt, Geraet offen, Klang am Ausgang
+                const bool windowed = c.f == Fault::StallEvents || c.f == Fault::ExclusiveOverride || c.f == Fault::DeviceRemoved;
+                unsigned long long lastFrames = before.frames;
                 auto done = [&] {
                     const AudioStats s = a.stats();
+                    // es wird wirklich gemischt (der Pegel allein koennte vom letzten Block vor einem Stillstand stammen)
+                    const bool flowing = s.frames != lastFrames;
+                    lastFrames = s.frames;
+                    if (!flowing || (windowed && msSince(t0) < c.param)) return false;
                     bool event = s.restarts > before.restarts;
                     if (c.f == Fault::NanOutput) event = s.nonFinite > before.nonFinite;
+                    if (c.f == Fault::MuteOutput) event = s.silenceAlarms > before.silenceAlarms;  // nur die Stille-Erkennung zaehlt
                     return event && s.deviceOpen && dbOf(s.outRmsFast) > -50.0;
                 };
                 // vor der Pruefung kurz warten, damit der alte Pegel nicht als "erholt" zaehlt
@@ -178,6 +185,12 @@ int main(int argc, char** argv) {
                 }
                 if (!a.loopActive(loop)) ++loopLost;
                 if (c.f == Fault::FormatChanged) check(a.stats().streamRate == c.param && a.mixRate() == c.param, std::string(c.name) + ": Strom und Mischer in der neuen Rate");
+                // Fehler mit Zeitfenster: erst nach dessen Ende weiter (sonst zaehlt ein Nachlaeufer fuer den naechsten Fall)
+                if (c.f == Fault::StallEvents || c.f == Fault::ExclusiveOverride || c.f == Fault::DeviceRemoved) {
+                    const double rest = c.param + 300.0 - msSince(t0);
+                    if (rest > 0) waitFor(a, [] { return false; }, rest);
+                    waitFor(a, [&] { return audible(a); }, 5000.0);
+                }
             }
             const AudioStats s = a.stats();
             std::printf("%-58s %2d/%d erholt, Dauer bis Klang Median %5.0f ms, max %5.0f ms | Strom %d Hz, geoeffnet %u, Neustarts %u, Stille-Alarme %llu, NaN %llu\n",
