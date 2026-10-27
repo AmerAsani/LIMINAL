@@ -1537,6 +1537,7 @@ void GameSession::updatePresence(double dt) {
     // V11: Buendel - Lager aus der Karte (einmal je Ebene), Laerm des Spielers (ENTITY_BEHAVIOR 1)
     c.allowClump = L.allowClump, c.clumpRate = L.clumpRate;
     c.kin = L.kin.data();  // V13.2: neue Wesen der Ebene
+    if (const auto& sl = inventory_.slots[(size_t)inventory_.selected]; sl && sl->kind == "almond") c.almond = true;  // V13.3: Duller
     if (L.allowClump && !lairsRead_ && L.mapped())
         if (const world::Sector* sec = world_->sectorIfReady(player_.x, player_.y)) {
             lairsRead_ = true;
@@ -1642,7 +1643,9 @@ void GameSession::updatePresence(double dt) {
                                  e.type == PE::TakeOff || e.type == PE::Knock || e.type == PE::Drop || e.type == PE::Drag ||
                                  e.type == PE::Flicker || e.type == PE::Breath || e.type == PE::Mimic || e.type == PE::Plead ||
                                  e.type == PE::Gurgle || e.type == PE::Hum || e.type == PE::Squeak || e.type == PE::Scream ||
-                                 e.type == PE::Swing || e.type == PE::Pull || e.type == PE::Whisper;  // V13.2
+                                 e.type == PE::Swing || e.type == PE::Pull || e.type == PE::Whisper ||  // V13.2
+                                 e.type == PE::Scrape || e.type == PE::Bulge || e.type == PE::Burst || e.type == PE::Burn || e.type == PE::Retract ||
+                                 (e.type == PE::Windup && e.role == Presence::Role::Arms);  // V13.3
             if (!audible) continue;
             if (e.type == PE::Flicker)
                 if (const world::Tile* t = world_->tileIfLoaded(ifloor(e.pos.x), ifloor(e.pos.y)); t && t->room) haunt_.flicker(t->room);
@@ -1659,7 +1662,9 @@ void GameSession::updatePresence(double dt) {
         if (netRole == NetRole::Host && (e.type == PE::Step || e.type == PE::Growl || e.type == PE::Bark || e.type == PE::TakeOff ||
                                          e.type == PE::Knock || e.type == PE::Drop || e.type == PE::Drag || e.type == PE::Flicker ||
                                          e.type == PE::Mimic || e.type == PE::Plead || e.type == PE::Gurgle || e.type == PE::Hum ||
-                                         e.type == PE::Squeak || e.type == PE::Scream || e.type == PE::Swing || e.type == PE::Pull))
+                                         e.type == PE::Squeak || e.type == PE::Scream || e.type == PE::Swing || e.type == PE::Pull ||
+                                         e.type == PE::Scrape || e.type == PE::Bulge || e.type == PE::Burst || e.type == PE::Burn ||
+                                         e.type == PE::Retract || (e.type == PE::Windup && e.role == Presence::Role::Arms)))  // V13.3
             netFigureOut.push_back(e);  // auch die Gaeste hoeren es
         GameEvent ev;
         ev.type = GameEvent::Figure;
