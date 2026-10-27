@@ -1,0 +1,64 @@
+{
+ "level": "level3",
+ "rooms": 71,
+ "corridors": 51,
+ "area_total": 7763.0,
+ "ceiling_rooms": {
+  "min": 2.6,
+  "p10": 2.89,
+  "median": 3.0
+ },
+ "ceiling_corridors": {
+  "min": 2.3,
+  "median": 2.8
+ },
+ "corridor_width": {
+  "min": 1.0,
+  "p10": 2.0,
+  "median": 2.0
+ },
+ "room_area": {
+  "p10": 25.0,
+  "median": 82.0,
+  "p90": 900.8000000000012,
+  "max": 2400.0
+ },
+ "hierarchy": {
+  "large_rooms": 7,
+  "share_large": 0.7914466056936751,
+  "max_over_median": 29.26829268292683
+ },
+ "sight": {
+  "median": 32.5,
+  "p90": 53.5,
+  "points": 470
+ },
+ "pillar_wall_gaps": {
+  "count": 0,
+  "narrow": 0,
+  "min": 0
+ },
+ "furniture": {
+  "rooms_checked": 9,
+  "blocked": [
+   {
+    "room": [
+     30,
+     46,
+     32,
+     70
+    ],
+    "type": "gang"
+   },
+   {
+    "room": [
+     111,
+     24,
+     119,
+     26
+    ],
+    "type": "gang"
+   }
+  ]
+ }
+}

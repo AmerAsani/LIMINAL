@@ -1,0 +1,45 @@
+{
+ "level": "level1",
+ "rooms": 545,
+ "corridors": 407,
+ "area_total": 29818.0,
+ "ceiling_rooms": {
+  "min": 2.6,
+  "p10": 2.7,
+  "median": 2.7
+ },
+ "ceiling_corridors": {
+  "min": 2.5,
+  "median": 2.6
+ },
+ "corridor_width": {
+  "min": 2.0,
+  "p10": 2.0,
+  "median": 2.0
+ },
+ "room_area": {
+  "p10": 25.0,
+  "median": 25.0,
+  "p90": 111.59999999999997,
+  "max": 4366.0
+ },
+ "hierarchy": {
+  "large_rooms": 11,
+  "share_large": 0.7627272117512912,
+  "max_over_median": 174.64
+ },
+ "sight": {
+  "median": 31.5,
+  "p90": 87.90000000000003,
+  "points": 925
+ },
+ "pillar_wall_gaps": {
+  "count": 12,
+  "narrow": 0,
+  "min": 1.0
+ },
+ "furniture": {
+  "rooms_checked": 17,
+  "blocked": []
+ }
+}
