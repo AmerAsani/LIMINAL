@@ -26,6 +26,63 @@ Texture2DArray gOrmTex : register(t3);   // r: AO, g: Rauheit, b: Metall, a: Hoe
 Texture2D gMacroTex : register(t4);      // grossflaechiges Rauschen (r, g, b)
 SamplerState gAniso : register(s0);
 SamplerState gLinearWrap : register(s1);
+StructuredBuffer<float4> gPuddles : register(t11);  // V13.3: je Pfuetze (x, y, Boden z, Radius), (Streckung, Winkel, Zufall, Hof)
+
+// V13.3: Pfuetzen als Abziehbild auf Boeden. Unregelmaessiger, weich auslaufender Rand ohne Polygonkante, ein nasser, dunklerer
+// Hof, eine spiegelglatte Wasserflaeche (Fresnel und Spiegelung kommen aus Beleuchtung und SSR), zur Mitte dunkler (Tiefe) und
+// Ringe von Tropfen, die alle paar Sekunden an wechselnden Stellen einschlagen.
+void applyPuddles(float3 wpos, float3 N, inout float3 albedo, inout float3 n, inout float rough, inout float metal)
+{
+    const uint count = (uint)gExtra.x;
+    if (count == 0 || N.z < 0.9)
+        return;
+    float water = 0.0, wet = 0.0, depth = 0.0;
+    float2 ripple = 0.0;
+    for (uint i = 0; i < count; ++i)
+    {
+        const float4 a = gPuddles[i * 2], b = gPuddles[i * 2 + 1];
+        if (abs(wpos.z - a.z) > 0.12)
+            continue;
+        const float2 d = wpos.xy - a.xy;
+        const float reach = a.w * max(b.w, 1.0) * 1.15;
+        if (dot(d, d) > reach * reach)
+            continue;
+        const float c = cos(-b.y), s = sin(-b.y);
+        float2 q = float2(d.x * c - d.y * s, d.x * s + d.y * c);
+        q.y /= max(b.x, 0.3);
+        const float r = length(q);
+        const float ang = atan2(q.y, q.x);
+        const float nz = gMacroTex.SampleLevel(gLinearWrap, wpos.xy * 0.45 + b.z * 3.1, 0).r - 0.5;
+        const float edge = a.w * (0.80 + 0.11 * sin(ang * 3.0 + b.z * 6.28) + 0.06 * sin(ang * 7.0 + b.z * 17.0) + 0.3 * nz);
+        const float w = 1.0 - smoothstep(edge * 0.84, edge, r);
+        const float h = 1.0 - smoothstep(edge * 0.95, edge * b.w, r);
+        water = max(water, w);
+        wet = max(wet, h);
+        depth = max(depth, w * saturate(1.0 - r / max(edge, 1e-3)));
+        [unroll] for (int k = 0; k < 2; ++k)
+        {
+            const float period = 2.4 + 1.9 * frac(b.z * 13.7 + k * 0.37);
+            const float tt = gCameraPos.w + period * frac(b.z * 7.3 + k * 0.61);
+            const float age = fmod(tt, period);
+            const uint slot = (uint)(tt / period);
+            const uint sd = slot * 7919u + (uint)k * 104729u + (uint)(b.z * 65536.0);
+            const float2 at = a.xy + (float2(hash01(sd), hash01(sd ^ 0x9E3779B9u)) - 0.5) * a.w * 0.9;
+            const float2 dd = wpos.xy - at;
+            const float dr = length(dd);
+            const float x = (dr - age * 0.30) * 40.0;
+            const float wave = 0.32 * exp(-age * 1.5) * sin(x) * exp(-x * x * 0.015);
+            ripple += (dr > 1e-4 ? dd / dr : float2(0.0, 0.0)) * wave * w;
+        }
+    }
+    if (wet <= 0.0)
+        return;
+    albedo *= lerp(1.0, 0.6, wet);                       // nasser Hof: poroese Flaechen dunkler
+    rough = lerp(rough, rough * 0.5, wet);
+    albedo *= lerp(1.0, 0.55 - 0.2 * depth, water);      // Wasser: dunkler zur Mitte
+    rough = lerp(rough, 0.03, water);
+    metal = lerp(metal, 0.0, water);
+    n = normalize(lerp(n, normalize(float3(ripple, 1.0)), water));
+}
 
 struct GBufferOut
 {
@@ -42,6 +99,22 @@ struct GBufferOut
 GBufferOut shadeSurface(GpuMaterial m, uint layer, float2 uvMeters, float2 uvGradMeters, float3 wpos, float3 N, float3 T,
                         float3 B, uint flickMode, uint flickSeed, float emissiveScale)
 {
+    // V13.3: Wasserflaeche (Rauheitsfaktor 0,02 nur bei Wasser): sanfte, wandernde Wellen; der Boden darunter (Textur der
+    // Flaeche) wirkt durch die Brechung leicht verzogen
+    const bool water = m.roughness < 0.025 && N.z > 0.5;
+    float3 waveN = float3(0.0, 0.0, 1.0);
+    if (water)
+    {
+        const float t = gCameraPos.w;
+        const float2 p1 = wpos.xy * 0.07 + float2(t * 0.006, t * 0.004);
+        const float2 p2 = wpos.xy * 0.19 - float2(t * 0.009, -t * 0.005);
+        const float e = 0.015;
+        const float h0 = gMacroTex.SampleLevel(gLinearWrap, p1, 0).g + 0.45 * gMacroTex.SampleLevel(gLinearWrap, p2, 0).b;
+        const float hx = gMacroTex.SampleLevel(gLinearWrap, p1 + float2(e, 0.0), 0).g + 0.45 * gMacroTex.SampleLevel(gLinearWrap, p2 + float2(e, 0.0), 0).b;
+        const float hy = gMacroTex.SampleLevel(gLinearWrap, p1 + float2(0.0, e), 0).g + 0.45 * gMacroTex.SampleLevel(gLinearWrap, p2 + float2(0.0, e), 0).b;
+        waveN = normalize(float3(-(hx - h0) / e * 0.014, -(hy - h0) / e * 0.014, 1.0));
+        uvMeters += waveN.xy * 0.12;
+    }
     float4 li = gLayer[layer];
     float2 uv = uvMeters / li.x;
     float2 gx = ddx(uvGradMeters) / li.x, gy = ddy(uvGradMeters) / li.x;
@@ -82,12 +155,21 @@ GBufferOut shadeSurface(GpuMaterial m, uint layer, float2 uvMeters, float2 uvGra
     float tint = lerp(1.0, 0.86 + 0.26 * mac.r, v) * lerp(1.0, 0.94 + 0.12 * mac2.g, v);
     float3 albedo = saturate(alb.rgb * m.albedo * tint);
     float rough = saturate(orm.g * m.roughness + li.z + (mac.b - 0.5) * 0.18 * v);
+    float metal = saturate(orm.b + m.metalness);
+    applyPuddles(wpos, N, albedo, n, rough, metal);  // V13.3
+    if (water)
+    {
+        n = waveN;
+        rough = 0.025;
+        metal = 0.0;
+        orm.r = 1.0;
+    }
 
     uint flickCode = flickMode * 32u + flickSeed;
     GBufferOut o;
     o.albedo = float4(albedo, orm.r);
     o.normal = float4(n * 0.5 + 0.5, 0.0);
-    o.misc = float4(rough, saturate(orm.b + m.metalness), (float)flickCode / 255.0, 1.0);
+    o.misc = float4(rough, metal, (float)flickCode / 255.0, 1.0);
     float fl = flickerFactor(flickMode, flickSeed, gCameraPos.w) * blackoutFactorAt(flickSeed, wpos);
     o.emissive = m.emissive > 0.0 ? m.albedo * alb.rgb * (m.emissive * emissiveScale * fl * gFogParams.w) : 0.0;
     return o;

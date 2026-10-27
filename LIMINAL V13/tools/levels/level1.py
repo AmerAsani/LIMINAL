@@ -30,10 +30,11 @@ from mapkit import Map, corridor_maze  # noqa: E402
 m = Map('level1', 252, 212, seed=1201)
 rng = m.rng
 
-HALL_H, GOTH_H, GILD_H, GANG_H = 4.2, 5.6, 6.0, 2.6
+HALL_H, GOTH_H, GILD_H, GANG_H = 4.2, 5.6, 6.0, 2.8  # V13.3: Gaenge 2,8 m (Raummetrik: Decke >= 2,7 m)
 COOL, WARM, GILDL, BULB = (1.0, 0.98, 0.92), (1.0, 0.91, 0.78), (1.0, 0.93, 0.80), (1.0, 0.84, 0.62)
 C_AQUILA, C_GOTHIC, C_GILD, C_GANG, C_ROOMS = 1, 2, 3, 4, 5
-m.blackout_circuits = {C_AQUILA, C_GOTHIC, C_GILD, C_GANG}
+C_OURO, C_GARDEN, C_FABLED = 6, 7, 8  # V13.3: Sektoren
+m.blackout_circuits = {C_AQUILA, C_GOTHIC, C_GILD, C_GANG, C_OURO, C_GARDEN, C_FABLED}
 
 # --- Hallen: Aquila ----------------------------------------------------------------------------------------------
 a1 = m.room(2, 2, 70, 58, 'halle', 'aquila', 0.0, HALL_H, pillars=[12, 12, 1, 8, 8], beams=0.55, circuit=C_AQUILA,
@@ -157,7 +158,7 @@ GANG_ROOMS = ['buero', 'buero', 'ziegelraum', 'gummizelle', 'zimmer', 'zimmer', 
 ZONE_OF = {'buero': 'buero', 'ziegelraum': 'ziegel', 'gummizelle': 'polster', 'zimmer': 'zimmer', 'krankenzimmer': 'kranken',
            'bilderraum': 'bilder'}
 J, S, C = corridor_maze(m, 2, 110, 140, 209, 9, 2, 'gang', 'gaenge', GANG_ROOMS, lambda t: ZONE_OF[t], height=GANG_H,
-                        density=0.78, room_chance=0.8, circuit=C_GANG, light_every=7)
+                        density=0.86, room_chance=0.8, circuit=C_GANG, light_every=7)  # V13.3: laengere gerade Gaenge
 maze = list(J.values()) + list(S.values())
 maze = [r for r in maze if r is not None]
 cells = list(C.values())
@@ -177,7 +178,7 @@ G = m.R(gate)
 pipe_segs = []
 x, y = G.x1 + 1, int(G.cy) - 1
 # (Laenge, Versatz quer, Breite, Hoehe): der Gang verspringt, wird schmaler und niedriger
-specs = [(16, 0, 3, 2.9), (14, 1, 3, 2.8), (12, 0, 3, 2.7), (12, 1, 2, 2.6), (14, 1, 2, 2.6), (12, 1, 2, 2.5)]
+specs = [(16, 0, 3, 3.0), (14, 1, 3, 2.9), (12, 0, 3, 2.85), (12, 1, 2, 2.8), (14, 1, 2, 2.75), (12, 1, 2, 2.7)]  # V13.3: >= 2,7 m
 prev = gate
 for (L, dy, w, h) in specs:
     seg = m.room(x, y + dy, x + L, y + dy + w, 'rohrgang', 'rohr', 0.0, h, circuit=C_GANG, tags=['pipes'])
@@ -324,6 +325,16 @@ for r in rooms_all:
         m.light(r, R.cx, R.cy, 0, 0.45, 3.2, z=top - 0.05, panel=True, color=WARM)
 
 # --- Rohrgang: Rohre unter der Decke und an den Waenden, Messuhren; je weiter, desto dichter --------------------
+def pipe_line(r, x0, x1, y, z, variant, walls=(True, True)):
+    """V13.3: Rohr aus 1-m-Stuecken von x0 bis x1 (Kachelgrenzen) in Hoehe z; an Waenden eine Durchfuehrung."""
+    for x in range(int(x0), int(x1)):
+        m.obj('pipe_run', x + 0.5, y, z, 0.0, variant=variant, tag='pipes')
+    if walls[0]:
+        m.obj('pipe_wall', x0 + 0.004, y, z, 0.0, variant=variant, tag='pipes')
+    if walls[1]:
+        m.obj('pipe_wall', x1 - 0.004, y, z, math.pi, variant=variant, tag='pipes')
+
+
 for k, s in enumerate(pipe_segs):
     R = m.R(s)
     top = R.floor + R.height
@@ -331,7 +342,7 @@ for k, s in enumerate(pipe_segs):
     for j in range(1 + int(dens * 4)):
         y = R.y0 + 0.3 + (j % max(1, R.h)) * 0.35 if R.h > 1 else R.y0 + 0.3
         z = top - 0.12 - 0.17 * (j // max(1, R.h))
-        m.obj('pipe_run', R.cx, min(R.y1 - 0.3, y), z, 0.0, scale=[R.w, 1, 1], variant=j % 2, tag='pipes')
+        pipe_line(s, R.x0, R.x1, min(R.y1 - 0.3, y), z, j % 2, walls=(False, False))
     for (fx, fy, fyaw) in m.wall_faces(s, margin=1):
         if rng.random() < 0.08 + 0.25 * dens:
             m.obj('gauge', fx, fy, R.floor + 1.5 + rng.random() * 0.3, fyaw, variant=rng.randrange(2))
@@ -346,8 +357,14 @@ for r in aquila:
     y = R.y0 + 5
     while y < R.y1 - 3:
         L = R.w - 2
-        m.obj('pipe_run', R.cx, y + 0.3, top - 0.62, 0.0, scale=[L, 1, 1], variant=0, tag='pipes')
-        m.obj('pipe_run', R.cx, y + 0.55, top - 0.68, 0.0, scale=[L, 1, 1], variant=1, tag='pipes')
+        # V13.3: Reihe so legen, dass beide Enden in fester Wand stecken (nicht in einer Oeffnung zur Nachbarhalle)
+        for dy in (0, 1, -1, 2, -2, 3, 4):
+            if all(m.wall_ok(xw, y + dy + q, yw, top - 0.65) for (xw, yw) in ((R.x0 + 0.05, 0.0), (R.x1 - 0.05, math.pi))
+                   for q in (0.3, 0.55)):
+                y += dy
+                break
+        pipe_line(r, R.x0, R.x1, y + 0.3, top - 0.62, 0)
+        pipe_line(r, R.x0, R.x1, y + 0.55, top - 0.68, 1)
         # undichte Stellen: Pfuetzen darunter (Wiki: Aquila)
         for k in range(int(L / 9)):
             px = R.x0 + 2 + rng.random() * (L - 2)
@@ -373,6 +390,8 @@ for r in aquila:
 def crate_stack(r, px, py, yaw):
     """Zwei bis vier Kisten, zum Teil gestapelt. Gibt True zurueck, wenn gesetzt."""
     if any(m.blocked(px + dx, py + dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1)):
+        return False
+    if any(abs(sp['pos'][0] - px) < 1.8 and abs(sp['pos'][1] - py) < 1.8 for sp in m.spawns):  # V13.3: nicht auf Pfuetzen
         return False
     R = m.R(r)
     c, s = math.cos(yaw), math.sin(yaw)
@@ -408,6 +427,120 @@ for r in aquila:
                     name = 'pillar_band' if th == 1 else 'pillar_band2'
                     m.obj(f'{name}_{rng.choice(colors)}', tx + th / 2, ty + th / 2, R.floor, 0.0, tag='deco')
 
+
+# --- V13.3: Sektoren Ouroboros, Garden, Fabled (Wikidot Level 1, Abschnitt Sectors) --------------------------------
+# Ouroboros: kleinster Sektor, ewige Baustelle (Geruest, halbe Waende, Baumaterial, Baustrahler; schattenhafte Arbeiter).
+# Garden: ueppig ueberwuchert (Ranken, Moos, Farne, Wurzeln, junge Baeume durch den Beton); nach etwa einer Stunde beginnt
+# die Verwandlung in eine Pflanze (Spielmechanik in der Sitzung, Zone 'garden').
+# Fabled: alte Hochburg mit Holz und Zinnoberrot, heute Neon und farbige Kabel.
+OURO_H, GARDEN_H, FABLED_H = 5.0, 6.0, 4.4
+ouro = m.room(150, 99, 184, 122, 'ouroboros', 'ouroboros', 0.0, OURO_H, pillars=[8, 8, 1, 154, 103], beams=0.4,
+              circuit=C_OURO, label='Ouroboros', tags=['hall'])
+garden = [m.room(187, 99, 249, 124, 'garden', 'garden', 0.0, GARDEN_H, pillars=[12, 12, 1, 192, 104], circuit=C_GARDEN,
+                 label='Garden', tags=['hall']),
+          m.room(187, 125, 249, 144, 'garden', 'garden', 0.0, GARDEN_H, pillars=[12, 12, 1, 192, 129], circuit=C_GARDEN,
+                 tags=['hall'])]
+m.opening(garden[0], garden[1], width=10, at=206)
+m.opening(garden[0], garden[1], width=8, at=236)
+m.opening(g3, ouro, width=4, at=166)
+m.opening(ouro, garden[0], width=4, at=110)
+m.opening(gd[2], garden[0], width=6, at=200)
+m.opening(gd[3], garden[0], width=6, at=232)
+# Fabled: eine Halle mit alten Kammern (Holz, Zinnoberrot) unter Neon, angebunden an den Rohrgang
+fab_y0 = max(m.R(s_).y1 for s_ in pipe_segs) + 2
+fabled = m.room(150, fab_y0, 226, fab_y0 + 26, 'fabled', 'fabled', 0.0, FABLED_H, pillars=[10, 9, 1, 155, fab_y0 + 4],
+                circuit=C_FABLED, label='Fabled', tags=['hall'])
+fab_rooms = []
+x = 150
+for w in (9, 12, 8, 11, 10, 9, 12):
+    if x + w > 226:
+        break
+    fab_rooms.append(m.room(x, fab_y0 + 27, x + w, fab_y0 + 36, 'fabled_kammer', 'fabled', 0.0, 3.4, circuit=C_FABLED))
+    m.door(fabled, fab_rooms[-1], 'door', 2)
+    x += w + 1
+for a_, b_ in zip(fab_rooms, fab_rooms[1:]):
+    if m.rng.random() < 0.6:
+        m.door(a_, b_, 'door', 1)
+seg_f = min(pipe_segs, key=lambda s_: abs(m.R(s_).cx - 180))
+m.door(seg_f, fabled, 'door', 2, top=2.4)
+
+# Baustelle: Geruestfelder an den Waenden, halbe Waende frei im Raum, Material in Gruppen, Baustrahler
+R = m.R(ouro)
+for (fx, fy, fyaw) in m.wall_faces(ouro, margin=2)[::5]:
+    c, s_ = math.cos(fyaw), math.sin(fyaw)
+    if not m.blocked(fx + c * 0.6, fy + s_ * 0.6):
+        m.obj('scaffold', fx + c * 0.45, fy + s_ * 0.45, R.floor, fyaw + math.pi / 2, variant=m.rng.randrange(3))
+for (x0, y0, x1, y1) in ((158, 108, 167, 109), (171, 112, 172, 119), (160, 116, 166, 117)):
+    m.block(ouro, x0, y0, x1, y1, 1.4 + m.rng.random() * 1.2, hidden=False)  # halb gemauert
+for name, n in (('cement_bags', 3), ('rebar_bundle', 2), ('cement_mixer', 1), ('wheelbarrow', 2), ('sawhorse', 3),
+                ('site_barrier', 4), ('tarp_pile', 2)):
+    for _ in range(n):
+        for _t in range(12):
+            px, py = R.x0 + 3 + m.rng.random() * (R.w - 6), R.y0 + 3 + m.rng.random() * (R.h - 6)
+            if not any(m.blocked(px + dx, py + dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1)):
+                m.obj(name, px, py, R.floor, m.rng.random() * 6.28)
+                break
+for (fx, fy, fyaw) in m.wall_faces(ouro, margin=1)[2::9]:
+    m.obj('formwork', fx, fy, R.floor, fyaw, tag='deco')
+for k in range(6):
+    px, py = R.x0 + 4 + (k % 3) * (R.w - 8) / 2, R.y0 + 5 + (k // 3) * (R.h - 10)
+    if not m.blocked(px, py):
+        m.obj('work_light', px, py, R.floor, m.rng.random() * 6.28, tag='light')
+        if m.rng.random() < 0.8:
+            m.light(ouro, px, py, 0, 1.1, 9.0, z=R.floor + 1.9, panel=False, color=(1.0, 0.88, 0.70))
+battens(ouro, 6, 6, 0.6, 6.0, COOL, 0.45)
+
+# Garden: Ranken an der Decke, Efeu an Waenden und Stuetzen, Moos, Farne, Wurzeln, junge Baeume; wenig, gruenliches Licht
+for r in garden:
+    R = m.R(r)
+    top = R.floor + R.height
+    for _ in range(int(R.w * R.h / 45)):
+        px, py = R.x0 + 1.5 + m.rng.random() * (R.w - 3), R.y0 + 1.5 + m.rng.random() * (R.h - 3)
+        if not m.blocked(px, py):
+            m.obj('vines_ceiling', px, py, top, m.rng.random() * 6.28, variant=m.rng.randrange(3), tag='deco')
+    for (fx, fy, fyaw) in m.wall_faces(r, margin=0):
+        if m.rng.random() < 0.35:
+            m.obj('ivy_wall', fx, fy, R.floor, fyaw, variant=m.rng.randrange(2), tag='deco')
+    for name, dens in (('moss_patch', 22), ('fern_cluster', 30), ('roots_floor', 70), ('shrub_concrete', 60), ('sapling', 140),
+                       ('overgrown_crate', 160)):
+        for _ in range(int(R.w * R.h / dens)):
+            px, py = R.x0 + 2 + m.rng.random() * (R.w - 4), R.y0 + 2 + m.rng.random() * (R.h - 4)
+            if not any(m.blocked(px + dx, py + dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1)):
+                m.obj(name, px, py, R.floor, m.rng.random() * 6.28, variant=m.rng.randrange(3) if name == 'moss_patch' else 0)
+    battens(r, 7, 7, 0.75, 7.0, (0.92, 1.0, 0.86), 0.35)
+
+# Fabled: Holzvertaefelung und Moebel in Zinnoberrot, Neon an Waenden und Stuetzen, farbige Kabel von der Decke
+for r in [fabled] + fab_rooms:
+    R = m.R(r)
+    top = R.floor + R.height
+    for (fx, fy, fyaw) in m.wall_faces(r, margin=0):
+        if m.rng.random() < 0.55:
+            m.obj('panel_vermilion', fx, fy, R.floor, fyaw, tag='deco')
+        elif m.rng.random() < 0.18:
+            v = m.rng.randrange(4)
+            m.obj('neon_tube', fx, fy, R.floor + 2.4, fyaw, variant=v, tag='light')
+            col = [(1.0, 0.25, 0.3), (0.3, 1.0, 0.45), (0.35, 0.5, 1.0), (0.75, 0.35, 1.0)][v]
+            m.light(r, fx + math.cos(fyaw) * 0.3, fy + math.sin(fyaw) * 0.3, 1, 0.55, 5.0, int(round(math.cos(fyaw))),
+                    int(round(math.sin(fyaw))), z=R.floor + 2.4, panel=False, color=col)
+        elif m.rng.random() < 0.06:
+            m.obj('neon_sign', fx, fy, R.floor + 2.0, fyaw, variant=m.rng.randrange(2), tag='light')
+    for _ in range(int(R.w * R.h / 30)):
+        px, py = R.x0 + 1.5 + m.rng.random() * (R.w - 3), R.y0 + 1.5 + m.rng.random() * (R.h - 3)
+        if not m.blocked(px, py):
+            m.obj('cable_hang', px, py, top, m.rng.random() * 6.28, variant=m.rng.randrange(2), tag='deco')
+    for name, dens in (('cabinet_vermilion', 60), ('table_vermilion', 70), ('bench_vermilion', 80), ('screen_vermilion', 120)):
+        for _ in range(max(1 if r != fabled else 2, int(R.w * R.h / dens))):
+            p = wall_spot(r, 0.45) if name != 'table_vermilion' else None
+            if p is None:
+                px, py, a_ = R.x0 + 2 + m.rng.random() * (R.w - 4), R.y0 + 2 + m.rng.random() * (R.h - 4), m.rng.random() * 6.28
+            else:
+                px, py, a_ = p[0], p[1], p[2]
+            if not any(m.blocked(px + dx, py + dy) for dx in (-0.6, 0, 0.6) for dy in (-0.6, 0, 0.6)):
+                m.obj(name, px, py, R.floor, a_)
+    if r != fabled:
+        bulb(r, inten=0.45, radius=3.6)
+battens(fabled, 8, 8, 0.45, 6.0, WARM, 0.5)
+
 # --- Funde, Notizen, Wesen, Sicherungspunkte ------------------------------------------------------------------------
 for (r, px, py) in crate_spots[::2]:
     a = rng.random() * 6.28
@@ -423,17 +556,6 @@ for r in rng.sample(cells + band, 12):
     p = wall_spot(r, 0.5)
     if p and not m.blocked(p[0], p[1]):
         m.spawn('note', p[0], p[1], m.R(r).floor, p[2], tags=['floor'])
-# Hounds und Clumps streifen durch die Hallen (Wiki); Smiler kommen mit dem Flackern (Regie)
-for r in aquila + gothic + gd:
-    R = m.R(r)
-    for _ in range(2):
-        for _try in range(10):
-            px, py = R.x0 + 4 + rng.random() * (R.w - 8), R.y0 + 4 + rng.random() * (R.h - 8)
-            if not m.blocked(px, py) and math.hypot(px - m.start[0], py - m.start[1]) > 30:
-                m.spawn('entity', px, py, R.floor, role=rng.choice(['hound', 'hound', 'clump']), tags=['hall'])
-                break
-
-
 def safe_point(cid, r, label, at=None):
     R = m.R(r)
     x, y = at if at else (R.cx, R.cy)
@@ -452,4 +574,15 @@ safe_point('rohr', near, 'Vor dem Rohrgang')
 last.kw['circuit'] = C_ROOMS
 m.checkpoint('l2_tor', last.x0 + 2.5, last.cy, 0.0, 'Rohre und Messuhren')
 m.obj('safety_light', last.x0 + 2.5, last.cy, last.floor + last.height, 0.0, tag='emergency')
+# V13.3: Wesen nach den Sicherungspunkten setzen (Abstand >= 17 m)
+# Hounds und Clumps streifen durch die Hallen (Wiki); Smiler kommen mit dem Flackern (Regie)
+for r in aquila + gothic + gd + [ouro, fabled] + garden:
+    R = m.R(r)
+    for _ in range(2):
+        for _try in range(10):
+            px, py = R.x0 + 4 + rng.random() * (R.w - 8), R.y0 + 4 + rng.random() * (R.h - 8)
+            far = all(math.hypot(px - c_['pos'][0], py - c_['pos'][1]) > 17 for c_ in m.checkpoints)  # V13.3: Abstand zu Sicherungspunkten
+            if not m.blocked(px, py) and math.hypot(px - m.start[0], py - m.start[1]) > 30 and far:
+                m.spawn('entity', px, py, R.floor, role=rng.choice(['hound', 'hound', 'clump']), tags=['hall'])
+                break
 m.save()

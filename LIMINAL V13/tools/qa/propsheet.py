@@ -326,7 +326,7 @@ def compose(level, rnd, booths, plan):
         U.paste(im.resize((320, 180)), (x, y))
         d.rectangle([x, y + 180, x + 320, y + 200], fill=(0, 0, 0))
         d.text((x + 4, y + 184), k, fill=(255, 255, 255))
-    od = os.path.join(ROOT, 'docs', 'screens', level.replace('level', 'level_'))
+    od = os.path.join(ROOT, 'docs', 'screens', level)
     os.makedirs(od, exist_ok=True)
     U.save(os.path.join(od, f'props_uebersicht_{rnd}.jpg'), quality=82)
     print(f'{len(booths)} Klassen -> {out}')

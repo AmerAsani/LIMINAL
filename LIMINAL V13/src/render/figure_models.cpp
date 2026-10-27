@@ -120,11 +120,11 @@ SkinPart toPart(const Ctx& c, const sculpt::RawMesh& m, u32 material, u32 allowe
 }
 
 SkinPart meshPart(const Ctx& c, const Shape& s, float h, u32 material, u32 allowed, float sigma = 0.35f, const Policy& policy = nullptr,
-                  Aabb box = Aabb{}, const Tint& tint = nullptr) {
+                  Aabb box = Aabb{}, const Tint& tint = nullptr, float keep = -1.0f) {
     if (!box.valid()) box = s.bounds();
     sculpt::RawMesh m = sculpt::mesh(s, box, h, c.jobs);
     const size_t tris = m.idx.size() / 3;
-    const size_t target = std::max<size_t>(64, (size_t)((float)tris * kKeep[c.lod]));
+    const size_t target = std::max<size_t>(64, (size_t)((float)tris * (keep > 0.0f ? keep : kKeep[c.lod])));
     if (target < tris) {
         sculpt::simplify(m, target);
         sculpt::reproject(m, s, h, c.jobs);
@@ -150,10 +150,12 @@ void torso(Shape& s, const Ctx& c, float g, bool detail) {
         const float sg = c.sg(sd);
         vec3 sh = c.SJ(J_SHOULDER_L, sd);
         s.cone(c.J(J_NECK) + U * (0.005f * hk) - F * 0.015f, sh - U * 0.004f - F * 0.008f, b.neckR * 0.8f + g, 0.026f + g, 0.045f);
-        // Deltamuskel
+        // Deltamuskel. V13.3: unter Kleidung nur das halbe Aufmass - der Aermel (sleeveDist) liegt darueber; mit vollem
+        // Aufmass wurde die Schulter beim gehobenen Arm von hinten eine dicke Kugel
         vec3 armDir = normalize(c.SJ(J_ELBOW_L, sd) - sh);
+        const float gd = g * 0.5f;
         s.ellipsoidAx(sh + armDir * (0.04f * hk) + L * (sg * 0.002f), armDir, F,
-                      {0.065f * hk + g, b.upperArmR * (0.98f + 0.15f * b.muscle) + g, b.upperArmR * (1.02f + 0.15f * b.muscle) + g}, 0.03f);
+                      {0.065f * hk + gd, b.upperArmR * (0.98f + 0.15f * b.muscle) + gd, b.upperArmR * (1.02f + 0.15f * b.muscle) + gd}, 0.03f);
         // Gesaess
         s.ellipsoid(c.J(J_PELVIS) - F * (b.hipsD * 0.5f) + L * (sg * 0.064f) - U * (0.055f * hk),
                     {0.072f + g, 0.074f + g, 0.088f * hk + g}, 0.05f);
@@ -574,52 +576,168 @@ void trousers(Assembly& as, int lod, u32 mat, float g, float hemZ, float waistUp
         meshPart(c, s, kBodyH[lod], mat, kLegBones | bit(B_PELVIS) | bit(B_SPINE) | kFootBones, 0.4f));
 }
 
-// Oberteil: Rumpf + Aermel bis sleeveT (0 Schulter .. 1 Ellbogen .. 2 Handgelenk)
-Shape topShape(const Ctx& c, float g, float sleeveT, float hemZ, float collarUp) {
+// --- V13.3: Aermel der Kapuzenjacke ----------------------------------------------------------------
+// Der Aermel ist ein Schlauch entlang der Armkette der Ruhepose (Schulter - Ellbogen - Handgelenk) mit dem Querschnitt
+// einer echten Kapuzenjacke (Groesse M): am Oberarm locker (Umfang ~37 cm), zum Ellbogen enger (~31 cm), am Unterarm
+// anliegend (~28 cm), vor dem Buendchen gerafft (~24 cm), das Buendchen eng am Handgelenk (~19 cm) mit Kante
+// (Stoffstaerke 3-4 mm) und Oeffnung, in der das Handgelenk steckt.
+// Vorher (bis V13.2): abgerundete Kegel mit 2,2 cm Aufmass, am Unterarm bis 5 cm vor dem Handgelenk 11-12 cm dick
+// (aufgeblasener Schlauch), danach ein Sprung auf das Buendchen; das Ende war eine geschlossene Halbkugel.
+struct SleeveGeo {
+    vec3 S, E, W;    // Schulter, Ellbogen, Handgelenk (Ruhepose)
+    vec3 ad, fd;     // Richtung Oberarm, Unterarm
+    vec3 bis;        // Winkelhalbierende am Ellbogen (Ebene des Gelenks)
+    vec3 crook;      // Ellbogenbeuge (Innenseite, senkrecht zur Winkelhalbierenden)
+    float ua = 0, fa = 0;
+};
+constexpr float kCuffLen = 0.058f;  // Buendchen (Rippstrick)
+constexpr float kCuffOut = 0.006f;  // Kante des Buendchens so weit hinter dem Handgelenk (Richtung Hand)
+constexpr float kGather = 0.011f;   // Raffung Aermel -> Buendchen (Naht)
+constexpr float kDish = 0.004f;     // Mulde der Oeffnung am Ende des Buendchens
+
+SleeveGeo sleeveGeo(const Ctx& c, int sd) {
+    SleeveGeo g;
+    g.S = c.SJ(J_SHOULDER_L, sd), g.E = c.SJ(J_ELBOW_L, sd), g.W = c.SJ(J_WRIST_L, sd);
+    g.ad = normalize(g.E - g.S), g.fd = normalize(g.W - g.E);
+    g.ua = length(g.E - g.S), g.fa = length(g.W - g.E);
+    g.bis = normalize(g.ad + g.fd);
+    g.crook = normalize(orthoTo(c.bp.armPole[sd] * -1.0f, g.bis));  // Gegenseite der Ellbogenspitze
+    return g;
+}
+
+// monotone kubische Interpolation durch Stuetzstellen (keine Wuelste zwischen den Stellen, kein Knick)
+float monotone(const float* xs, const float* ys, int n, float x) {
+    if (x <= xs[0]) return ys[0];
+    if (x >= xs[n - 1]) return ys[n - 1];
+    int i = 0;
+    while (i < n - 2 && x > xs[i + 1]) ++i;
+    auto sec = [&](int k) { return (ys[k + 1] - ys[k]) / (xs[k + 1] - xs[k]); };
+    auto tan = [&](int k) {
+        if (k == 0) return sec(0);
+        if (k == n - 1) return sec(n - 2);
+        const float a = sec(k - 1), b = sec(k);
+        return a * b <= 0.0f ? 0.0f : 2.0f / (1.0f / a + 1.0f / b);  // harmonisches Mittel: monoton
+    };
+    const float h = xs[i + 1] - xs[i], t = (x - xs[i]) / h, t2 = t * t, t3 = t2 * t;
+    return (2 * t3 - 3 * t2 + 1) * ys[i] + (t3 - 2 * t2 + t) * h * tan(i) + (-2 * t3 + 3 * t2) * ys[i + 1] + (t3 - t2) * h * tan(i + 1);
+}
+
+// Radius des Aermels; s = Weg vom Ellbogen (negativ am Oberarm, bis -ua an der Schulter)
+float sleeveRadius(const Ctx& c, const SleeveGeo& g, float s) {
+    const Build& b = c.b;
+    const float end = g.fa + kCuffOut, seam = end - kCuffLen;
+    const float xs[] = {-g.ua, -0.55f * g.ua, 0.0f, 0.35f * g.fa, seam - kGather, seam, end};
+    const float ys[] = {b.upperArmR + 0.011f, b.upperArmR + 0.010f, b.forearmR + 0.0125f, b.forearmR + 0.0075f,
+                        b.wristR + 0.0125f, b.wristR + 0.0058f, b.wristR + 0.0046f};
+    return monotone(xs, ys, 7, s);
+}
+
+// Stofffalten des Aermels (Verschiebung, positiv = nach innen); groove: Anteil einer Rinne 0..1 (Faerbung)
+float sleeveFolds(const SleeveGeo& g, vec3 p, float* groove) {
+    float v = 0.0f, gr = 0.0f;
+    const vec3 q = p - g.E;
+    // Armbeuge: drei bis vier Querfalten auf der Innenseite des Ellbogens, schraeg zu den Seiten auslaufend
+    {
+        const float u = dot(q, g.bis);
+        const vec3 rv = orthoTo(q, g.bis);
+        const float rl = length(rv);
+        if (std::fabs(u) < 0.11f && rl > 0.02f && rl < 0.075f) {
+            const vec3 n = rv / rl;
+            const float cr = dot(n, g.crook), lat = dot(n, cross(g.bis, g.crook));
+            const float m = std::exp(-(u / 0.045f) * (u / 0.045f)) * smoothstep(-0.2f, 0.65f, cr);
+            const float ph = 2.0f * kPi * (u - 0.008f * lat) / 0.028f + 1.3f * sculpt::noise3(p * 30.0f, 211);
+            const float f = 0.0026f * m * std::sin(ph);
+            v += f;
+            gr = std::max(gr, std::max(0.0f, f) / 0.0026f);
+        }
+    }
+    // Stau ueber dem Buendchen: der Aermel ist laenger als der Arm und schiebt sich vor der Raffung in Ringen zusammen
+    {
+        const float tf = dot(q, g.fd), rl = length(orthoTo(q, g.fd));
+        const float w = tf - (g.fa + kCuffOut - kCuffLen - kGather);
+        if (w > -0.15f && w < 0.0f && rl < 0.07f) {
+            // Runde 5: Beginn der Zone weich und je Seite verschieden - eine dort abbrechende Rinne wirkte als Kerbe
+            const float w0 = -0.13f + 0.015f * sculpt::noise3(p * 9.0f, 231);
+            const float m0 = smoothstep(w0, w0 + 0.07f, w), m = m0 * m0 * (1.0f - smoothstep(-0.012f, -0.003f, w));
+            // Runde 4: Ringe ungleich - Phase grossraeumig verbogen (schraeg, wellig), Tiefe stark wechselnd, einzelne
+            // Falten laufen aus (Runde 3: gleichmaessige Ringe wie eine Ziehharmonika)
+            const float am = std::clamp(0.55f + 0.75f * sculpt::noise3(p * 24.0f, 223), 0.0f, 1.0f);
+            // Runde 5: um den Arm herum im Zickzack (gestauter Stoff legt sich schraeg, nicht als Ring)
+            const vec3 e1 = normalize(orthoTo(g.crook, g.fd)), e2 = cross(g.fd, e1), rv = orthoTo(q, g.fd);
+            const float th = std::atan2(dot(rv, e2), dot(rv, e1));
+            const float ph = 2.0f * kPi * w / 0.021f + 1.6f * sculpt::noise3(p * 11.0f, 227) + 0.5f * sculpt::noise3(p * 37.0f, 229) +
+                             1.6f * std::sin(th + 0.7f) + 0.8f * std::sin(2.0f * th + 2.1f);
+            const float f = 0.0023f * m * am * std::sin(ph);
+            v += f - 0.0012f * m;  // gerafft etwas weiter
+            gr = std::max(gr, std::max(0.0f, f) / 0.0023f);
+        }
+    }
+    if (groove) *groove = gr;
+    return v;
+}
+
+// Abstand zum Aermel (Stoff ist innen negativ)
+float sleeveDist(const Ctx& c, const SleeveGeo& g, vec3 p) {
+    const vec3 pu = p - g.S;
+    // V13.3: der Schlauch beginnt im Deltamuskel (Runde 3: 2 cm, Runde 5: 5 cm) - die Kappe an der Schulter trug sonst auf
+    const float tu = std::clamp(dot(pu, g.ad), 0.05f, g.ua);
+    const float du = length(pu - g.ad * tu) - sleeveRadius(c, g, tu - g.ua);
+    const float end = g.fa + kCuffOut;
+    const vec3 pf = p - g.E;
+    const float tfr = dot(pf, g.fd), tf = std::clamp(tfr, 0.0f, end);
+    const float df = length(pf - g.fd * tf) - sleeveRadius(c, g, tf);
+    float d = sculpt::smin(du, df, 0.012f);
+    // Kante des Buendchens senkrecht zum Unterarm, gerundet wie ein umgeschlagener Strickrand
+    d = sculpt::smax(d, tfr - end, 0.009f);  // Runde 4: 9 mm (6 mm zeigte Facetten)
+    // Oeffnung: flache Mulde so weit wie das Handgelenk, dunkel gefaerbt (hoodieTint); das Handgelenk steckt darin.
+    // Runde 1 hatte eine 2 cm tiefe Oeffnung - die 3-4 mm starke Wand liess sich im 6,5-mm-Netz nur zerfranst abbilden
+    const float rad = length(pf - g.fd * tfr), rH = c.b.wristR + 0.0012f;
+    const float dish = std::max(rad - rH, (end - kDish) - tfr);
+    return sculpt::smax(d, -dish, 0.004f);
+}
+
+// Faerbung der Jacke je Punkt (y = Dunkelheit): Oeffnung des Buendchens dunkel, Naht der Raffung, Buendchen etwas
+// dunkler (Schatten der Rippen)
+vec2 hoodieTint(const Ctx& c, const SleeveGeo* sl, vec3 p) {
+    float dark = 0.0f;
+    for (int sd = 0; sd < 2; ++sd) {
+        const SleeveGeo& g = sl[sd];
+        const vec3 pf = p - g.E;
+        const float tf = dot(pf, g.fd), rad = length(orthoTo(pf, g.fd));
+        if (rad > 0.07f || tf < 0.0f || tf > g.fa + 0.03f) continue;
+        const float end = g.fa + kCuffOut, seam = end - kCuffLen, rH = c.b.wristR + 0.0012f;
+        dark = std::max(dark, 0.9f * smoothstep(end - kDish - 0.004f, end - kDish + 0.001f, tf) * (1.0f - smoothstep(rH - 0.001f, rH + 0.003f, rad)));
+        dark = std::max(dark, 0.12f * smoothstep(seam - 0.002f, seam + 0.004f, tf));
+        dark = std::max(dark, 0.35f * std::exp(-((tf - seam) / 0.004f) * ((tf - seam) / 0.004f)));
+    }
+    // Rinnen der Falten etwas dunkler (Hohlraum; Runde 5: 22 statt 30 %)
+    for (int sd = 0; sd < 2; ++sd) {
+        float gr = 0.0f;
+        sleeveFolds(sl[sd], p, &gr);
+        dark = std::max(dark, 0.22f * gr);
+    }
+    return vec2{0.0f, std::clamp(dark, 0.0f, 1.0f)};
+}
+
+// Oberteil (Kapuzenjacke): Rumpf, Hals und Aermel mit Buendchen
+Shape topShape(const Ctx& c, float g, float hemZ, float collarUp) {
     Shape s;
     torso(s, c, g, false);
     neckShape(s, c, g * 0.7f, 0.0f);
     for (int sd = 0; sd < 2; ++sd) {
-        vec3 S = c.SJ(J_SHOULDER_L, sd), E = c.SJ(J_ELBOW_L, sd), W = c.SJ(J_WRIST_L, sd);
-        vec3 ad = normalize(E - S);
-        s.cone(S + ad * 0.025f, E, c.b.upperArmR * 0.95f + g * 0.75f, c.b.upperArmR * 0.82f + g, 0.03f);
-        if (sleeveT > 2.0f) {
-            // V13: der weite Aermel endet 5 cm vor dem Handgelenk und laeuft in ein enges Buendchen aus (Strickbund) -
-            // keine Schnittkante; die Hand kommt aus dem gerundeten Ende des Bundes
-            const vec3 d = normalize(W - E), C0 = W - d * 0.05f;
-            s.cone(E, C0, c.b.forearmR * 1.05f + g, c.b.wristR * 1.2f + g + 0.004f, 0.025f);
-            s.cone(C0, W + d * 0.004f, c.b.wristR * 1.2f + g + 0.004f, c.b.wristR + 0.0065f, 0.022f);
-        } else if (sleeveT > 1.0f) {
-            s.cone(E, W + normalize(W - E) * 0.01f, c.b.forearmR * 1.05f + g, c.b.wristR * 1.2f + g, 0.025f);
+        const SleeveGeo sg = sleeveGeo(c, sd);
+        Aabb box;
+        for (vec3 q : {sg.S, sg.E, sg.W + sg.fd * 0.02f}) {
+            box.add(q - vec3(0.085f));
+            box.add(q + vec3(0.085f));
         }
+        const Ctx* cp = &c;
+        s.custom([cp, sg](vec3 p) { return sleeveDist(*cp, sg, p); }, box, 0.03f);
     }
-    const vec3 neck = c.J(J_NECK), U = c.U;
+    const vec3 neck = c.J(J_NECK);
     const float collarZ = neck.z + collarUp;
-    // Aermelenden als Ebenen senkrecht zum Arm
-    struct Cut {
-        vec3 o, n;
-    };
-    std::vector<Cut> cuts;
-    for (int sd = 0; sd < 2; ++sd) {
-        vec3 S = c.SJ(J_SHOULDER_L, sd), E = c.SJ(J_ELBOW_L, sd), W = c.SJ(J_WRIST_L, sd);
-        vec3 o, n;
-        if (sleeveT <= 1.0f) o = lerp(S, E, sleeveT), n = normalize(E - S);
-        else if (sleeveT > 2.0f) o = W + normalize(W - E) * 0.5f, n = normalize(W - E);  // V13: kein Schnitt (Buendchen)
-        else o = lerp(E, W, sleeveT - 1.0f), n = normalize(W - E);
-        cuts.push_back({o, n});
-    }
-    s.clip = [cuts, hemZ, collarZ, neck](vec3 p) {
-        float d = std::max(hemZ - p.z, p.z - collarZ);
-        for (const Cut& k : cuts) {
-            // nur auf der Seite des Arms schneiden
-            vec3 r = p - k.o;
-            if (dot(r, k.n) > 0.0f && length(orthoTo(r, k.n)) < 0.12f) d = std::max(d, dot(r, k.n));
-        }
-        (void)neck;
-        return d;
-    };
-    // V13: Saum, Kragen und Aermelende gerundet - eine scharfe Schnittkante wird beim Vernetzen zur Treppe (seit die
-    // Hand aus Blender das Aermelende freilegt, sichtbar)
+    s.clip = [hemZ, collarZ](vec3 p) { return std::max(hemZ - p.z, p.z - collarZ); };
+    // V13: Saum und Kragen gerundet - eine scharfe Schnittkante wird beim Vernetzen zur Treppe
     s.clipRound = 0.008f;
     return s;
 }
@@ -640,28 +758,44 @@ void buildPlayer(Assembly& as) {
             parts.push_back(meshPart(c, h, 0.02f, FM_SKIN_PLAYER, kHeadBones | bit(B_NECK) | kHandBones | kArmBones, 0.3f));
         }
         shortHair(as, lod, 13);
-        // Kapuzenjacke: lange Aermel mit Buendchen, Kapuze im Nacken. V13: der Aermel endet nicht mit einem Schnitt,
-        // sondern laeuft in einen engen Strickbund aus; im Bund ist der Stoff gespannt (keine Knitter). Rippen waeren
-        // feiner als das Netz (1 cm) - die Stofftextur traegt sie
-        Shape hoodie = topShape(c, 0.022f, 2.1f, c.J(J_PELVIS).z - 0.02f, 0.02f);
+        // Kapuzenjacke: lange Aermel mit Buendchen, Kapuze im Nacken. V13.3: Aermel als Schlauch mit dem Querschnitt
+        // einer echten Jacke (topShape); im Bund ist der Stoff gespannt (keine Knitter). Rippen waeren feiner als das
+        // Netz - die Stofftextur traegt sie
+        Shape hoodie = topShape(c, 0.022f, c.J(J_PELVIS).z - 0.02f, 0.02f);
         hoodie.ellipsoid(c.J(J_NECK) - c.F * (c.b.neckR + 0.035f) + c.U * 0.0f, {0.05f, 0.11f, 0.075f}, 0.05f);
+        const SleeveGeo sl[2] = {sleeveGeo(c, 0), sleeveGeo(c, 1)};
         {
-            vec3 Wr[2], Dr[2];
-            for (int sd = 0; sd < 2; ++sd) {
-                const vec3 E = c.SJ(J_ELBOW_L, sd), W = c.SJ(J_WRIST_L, sd);
-                Wr[sd] = W, Dr[sd] = normalize(W - E);
-            }
-            hoodie.displace = [Wr, Dr](vec3 p) {
+            // Stoffknitter am Rumpf; am Aermel schwaecher (er liegt an), im Buendchen keine
+            hoodie.displace = [sl](vec3 p) {
                 float v = 0.0042f * sculpt::fbm3(vec3{p.x * 20.0f, p.y * 20.0f, p.z * 12.0f}, 3, 101) + 0.001f * sculpt::fbm3(p * 70.0f, 2, 103);
-                for (int sd = 0; sd < 2; ++sd) {
-                    const float along = dot(p - Wr[sd], Dr[sd]);
-                    if (along > -0.045f && along < 0.03f && length(p - Wr[sd]) < 0.09f)
-                        v *= 1.0f - 0.85f * std::clamp((along + 0.045f) / 0.012f, 0.0f, 1.0f);
+                for (const SleeveGeo& g : sl) {
+                    const float tu = dot(p - g.S, g.ad);
+                    if (tu < 0.05f || length(orthoTo(p - g.S, g.ad)) > 0.11f) continue;
+                    v *= 1.0f - 0.65f * smoothstep(0.05f, 0.12f, tu);  // am Arm
+                    const float tf = dot(p - g.E, g.fd), seam = g.fa + kCuffOut - kCuffLen;
+                    v *= 1.0f - smoothstep(seam - kGather - 0.004f, seam - kGather + 0.004f, tf);  // Buendchen glatt
                 }
+                for (const SleeveGeo& g : sl) v += sleeveFolds(g, p, nullptr);  // V13.3 Runde 3
                 return v;
             };
         }
-        parts.push_back(meshPart(c, hoodie, kBodyH[lod], FM_HOODIE, kTorsoBones | kArmBones, 0.4f));
+        // V13.3: Ober- und Unterarm teilen sich den Aermel an der Ebene des Ellbogens (+-4,5 cm); der Abstand zu den
+        // Knochen allein mischte breit und ungleich (der duennere Unterarm bekam erst hinter dem Gelenk Gewicht)
+        Policy sleeveWeights = [sl](vec3 p, float* w) {
+            for (int sd = 0; sd < 2; ++sd) {
+                const int bu = sideBone(B_UARM_L, sd), bf = sideBone(B_FARM_L, sd);
+                const float arm = w[bu] + w[bf];
+                if (arm < 0.05f) continue;
+                const float t = smoothstep(-0.045f, 0.045f, dot(p - sl[sd].E, sl[sd].bis));
+                w[bu] = arm * (1.0f - t), w[bf] = arm * t;
+            }
+        };
+        // V13.3: Stufe 0 feiner vernetzt (Ego-Bild: der Aermel ist 30-50 cm vor dem Auge)
+        const float hoodH = lod == 0 ? 0.0065f : kBodyH[lod];
+        const Ctx* cp = &c;
+        Tint hoodTint = [cp, sl](vec3 p) { return hoodieTint(*cp, sl, p); };
+        // Stufe 0: 40 % der Dreiecke behalten (Kante des Buendchens und Falten), sonst wie alle Teile
+        parts.push_back(meshPart(c, hoodie, hoodH, FM_HOODIE, kTorsoBones | kArmBones, 0.4f, sleeveWeights, Aabb{}, hoodTint, lod == 0 ? 0.4f : -1.0f));
         trousers(as, lod, FM_JEANS, 0.014f, c.LJ(J_ANKLE_L, 0).z + 0.045f, 0.0f, false, 107, c.J(J_PELVIS).z - 0.02f);
         shoes(as, lod, FM_SNEAKER, 0.004f, true);
     }

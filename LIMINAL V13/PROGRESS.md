@@ -41,6 +41,13 @@ Wiedereinstieg: diesen Abschnitt lesen, dann `DECISIONS.md` ab E-025.
 
 Hilfsskripte (Scratchpad `v13`): `b.sh [gameplay|all]` (bauen + Tests), `mem_sweep.ps1` / `mem_trace.ps1` (Speicher), `elbow_tp.ps1` (Kamera um den Spieler, Skriptbefehle `figcam` ohne Vorführung in der Schulteransicht, `egopose 1`), `elbow_shots.ps1` (`vmcam`), `crop.py`.
 
+## V13.3 Teil 3 – Arm der Lampenhand
+- [x] Analyse und fünf Kritikrunden in `HAND_ANALYSE.md` (Abschnitt „V13.3: Arm“), Entscheidung E-032, Bilder `docs/screens/viewmodel/v13_3_*` (je Runde Spielerkamera in 12–13 Zuständen, Debug-Kamera um den Arm, Nahansichten der Hand, Armkette von außen; Vergleiche `v13_3_vergleich_*.jpg`).
+  - Unterarm 27 cm, Handgelenk 30° gestreckt (Finger punktgleich), Faust im Ego-Bild 43° gedreht: Ellbogen auf statt 16 cm über Schulterhöhe.
+  - Ärmel mit dem Querschnitt einer Jacke, Raffung, Bündchen mit Kante, Falten; Jacke in Stufe 0 feiner.
+  - Tests: gameplay 446/0 (B-001 grün), audio 106/0.
+  - Hilfen (Scratchpad `v13_3arm`): `armgeo.py`/`armtable.py` (Rechnung der Armkette), `arm_shots.ps1 -P rN [-Wand]` (Ego und Debug), `fig_shots.ps1 -P fN [-Ego 0]` (von außen), `glbdiff.py` (Punktvergleich der glb), `vergleich.py`.
+
 ## Als Nächstes (Vorschläge für V14)
 - Bewegung der Wesen auf die neue Anatomie abstimmen.
 - ORM-Texturen komprimieren (≈ 360 MB VRAM), Ladespitze senken (B-002).
@@ -48,3 +55,22 @@ Hilfsskripte (Scratchpad `v13`): `b.sh [gameplay|all]` (bauen + Tests), `mem_swe
 
 ## Bekannte Fehler
 - Rechte Hand (Gesten) ist weiter die prozedurale Hand.
+
+## V13.3 (PROMPT_V13_3.md) – Stand 27.10.2026, unterbrochen (Nutzungsgrenze)
+
+Fertig:
+- Werkzeuge: `tools/qa/` (game.py, propdump.py, propsheet.py Kontaktboegen 4 Winkel x 50 cm/2 m x Licht/Lampe, validate_models.py); Engine: freie Kamera (cam/camat), testlight, worldlight, propdump, --level-file, --script @datei, Varianten name@N.glb, r=/m= je Material.
+- Praesenz aufgeteilt (presence_agent.hpp, presence_kin.cpp), feste Materialien 160, Koop kRoles 40, Ereignisarten im Koop bis 127 (Fehler: Scream/Swing/Pull kamen als Squeak an).
+- Wiki-Recherche (nur Wikidot) aller Ebenen und Wesen: Notizen im Scratchpad wiki/ (noch in STRUKTURTYP.md/ENTITY_ABGLEICH.md zu uebertragen).
+
+Laeuft in eigenen Worktree-Branches (Agenten): Mehrspieler (Teil 5), Audio-Fehler (Teil 6), Arm (Teil 3), Ausstattung je Ebene (Level 1 A/B, 2, 3, 0+Fundstuecke, 5, 5.3+188, 903+37, 36). Ergebnisse pruefen und zusammenfuehren.
+
+Als Naechstes: Raummetrik-, Schilder-, Aehnlichkeits- und Wegbilder-Werkzeuge; STRUKTURTYP.md, BIOM_AUDIT.md, LEVEL0_STANDARD.md; Pfuetzen/Wasser im Shader; pipe_run-Verlauf in den Karten (1-m-Stuecke, Boegen); Wesen-Agenten (Duller, Arms, Growler, Nguithr'xurh, Wrangler, Hound-Rudel, grosser Clump, Praetorian/Motten L2/L3, Smiler-Leuchtstab, Cannibal Cuisine, Fenster L2, Samantha+Fleisch, Ants, Woodlins/Watchers als Interpretation, Ratten-Fallen, purpurne Wesen, Faceling-Varianten, Randwesen); dann Abnahmeschranke je Ebene (1, 2, 3, 0, 5, 5.3, 188, 903, 37, 36), AUFWAND.md, Tests, Upload, REPORT_V13_3.md, SELBSTKONTROLLE.md.
+
+Bekannte Fehler: coop_test --quick meldete unter hoher Last (20 parallele Agenten) einmal „zu schnelle Uhr: 32 Eingaben verworfen“ – ohne Last erneut pruefen. 52 GLB mit Befunden in validate_models.py (werden von den Ausstattungs-/Wesen-Arbeiten behoben).
+
+### V13.3 Zwischenstand 2 (27.10.2026, erneut Nutzungsgrenze)
+Fertig seit Stand 1: Raummetrik/Schilder/Aehnlichkeit/Laufweg/Kartenbild/Spot-Werkzeuge (`tools/qa/`), `LEVEL0_STANDARD.md`, `STRUKTURTYP.md`, `BIOM_AUDIT.md`; Level 1: Sektoren Ouroboros, Garden, Fabled, Decken >= 2,8 m, Sichtachsen 36,8 m, Rohre aus 1-m-Stuecken; Pfuetzen als Boden-Abziehbild, Deckenspiegelung im SSR, klares Wasser (Vorher/Nachher `docs/screens/props/wasser/`); Arm (Teil 3) zusammengefuehrt (E-032).
+Laufen/unterbrochen (Worktrees, mit SendMessage fortsetzen): Mehrspieler, Audio, Ausstattung L1 A/B, L2, L3, L0+Fundstuecke, L5, L5.3+188, 903+37, 36, L1-Sektoren; Wesen Duller+Arms, Growler+Nguithr'xurh, Wrangler, Smiler-Leuchtstab+Skin-Stealer-Ruf, Level-1-Erscheinungen (Garden, Ouroboros-Arbeiter, Crawler, Jerry).
+Als Naechstes: Ergebnisse pruefen und zusammenfuehren; Level-1-Abnahme (Kritikrunden, Laufweg nachher, AUFWAND.md); weitere Wesen (Hound-Rudel, grosser Clump, Praetorian/Motten L2/L3, Cannibal Cuisine, Fenster L2, Samantha, Ants, Woodlins/Watchers, Ratten-Fallen, purpurne Wesen, Faceling-Varianten); Level 2, 3, 0, 5, 5.3, 188, 903, 37, 36.
+

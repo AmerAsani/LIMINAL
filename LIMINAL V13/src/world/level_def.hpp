@@ -15,7 +15,7 @@
 
 namespace lim::world {
 
-constexpr int kMaxZones = 16;  // V8: die zusammenhaengende Welt traegt die Zonen aller Ebenen
+constexpr int kMaxZones = 24;  // V8: die zusammenhaengende Welt traegt die Zonen aller Ebenen (V13.3: 16 -> 24, Sektoren von Level 1)
 using Rgb = std::array<double, 3>;
 using ZoneWeights = std::array<double, kMaxZones>;
 

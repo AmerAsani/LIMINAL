@@ -81,3 +81,5 @@ Bilder (je 12 Richtungen, Kamera um den Spieler bzw. um die Hand), `docs/screens
 - `vorher_schulter_12_seiten.jpg` / `nachher_schulter_12_seiten.jpg` – Schulteransicht, Lampe gehoben
 - `nachher_egohaltung_von_aussen_12_seiten.jpg` – die Ego-Haltung (stärkere Beugung) von außen (Skriptbefehl `egopose 1`)
 - `vorher_ego_kamera_um_hand.jpg` / `nachher_ego_kamera_um_hand.jpg` – Kamera um die Hand (`vmcam`)
+
+**V13.3 (Arm, E-032):** Ärmel, Gewichte am Ellbogen und Ego-Haltung sind neu; der Test bleibt grün. Ego geradeaus jetzt Dehnung 2,82 und 5 von 27 416 Dreiecken umgeklappt, an der Wand 266 (Grenze 274; Stichprobe: 62 von 67 auf der Beugeseite, wo der Unterarm auf dem Oberarm liegt), von außen 8 bzw. 21 (Grenze 68). Die Jacke ist in Stufe 0 feiner vernetzt (3,6-mal so viele Dreiecke); die Grenzen sind Anteile. Werte je Haltung in `HAND_ANALYSE.md`, Abschnitt „V13.3: Arm“.
