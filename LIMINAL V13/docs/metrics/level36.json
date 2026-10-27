@@ -1,11 +1,11 @@
 {
  "level": "level36",
- "rooms": 16,
+ "rooms": 20,
  "corridors": 6,
- "area_total": 6350.0,
+ "area_total": 7816.0,
  "ceiling_rooms": {
-  "min": 4.5,
-  "p10": 4.5,
+  "min": 4.0,
+  "p10": 4.0,
   "median": 4.5
  },
  "ceiling_corridors": {
@@ -18,20 +18,20 @@
   "median": 6.0
  },
  "room_area": {
-  "p10": 186.4,
-  "median": 272.0,
-  "p90": 1010.9999999999999,
+  "p10": 110.2,
+  "median": 281.0,
+  "p90": 952.2000000000002,
   "max": 1200.0
  },
  "hierarchy": {
-  "large_rooms": 12,
-  "share_large": 0.9360629921259842,
-  "max_over_median": 4.411764705882353
+  "large_rooms": 15,
+  "share_large": 0.9390992835209826,
+  "max_over_median": 4.270462633451957
  },
  "sight": {
-  "median": 49.875,
-  "p90": 95.25,
-  "points": 416
+  "median": 43.25,
+  "p90": 84.67500000000004,
+  "points": 420
  },
  "pillar_wall_gaps": {
   "count": 0,
@@ -39,7 +39,7 @@
   "min": 0
  },
  "furniture": {
-  "rooms_checked": 3,
+  "rooms_checked": 4,
   "blocked": []
  }
 }
