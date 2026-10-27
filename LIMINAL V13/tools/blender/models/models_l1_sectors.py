@@ -353,9 +353,9 @@ def mats_site():
         'steel_dark': material('stahl_dunkel', (0.20, 0.20, 0.21), look='metal', rough=0.6, metal=0.8, r=1.15, m=0.55),
         'mortar': material('moertel', (0.68, 0.67, 0.64), look='concrete', tex='concrete_chalky', rough=0.95, r=1.35),
         'concrete_crust': material('betonkruste', (0.66, 0.65, 0.62), look='concrete', tex='concrete_rough', rough=0.95, r=1.4),
-        'plank': material('bohle', (0.74, 0.64, 0.48), look='wood', tex='wood_birch', rough=0.85, r=1.25),
-        'plank_old': material('bohle_alt', (0.56, 0.52, 0.44), look='wood', tex='wood_birch', rough=0.9, r=1.4),
-        'timber': material('kantholz', (0.70, 0.58, 0.42), look='wood', tex='wood_birch', rough=0.85, r=1.3),
+        'plank': material('bohle', (0.62, 0.55, 0.44), look='wood', rough=0.85, r=1.25),
+        'plank_old': material('bohle_alt', (0.47, 0.45, 0.40), look='wood', rough=0.9, r=1.4),
+        'timber': material('kantholz', (0.60, 0.52, 0.40), look='wood', rough=0.85, r=1.3),
         'red': material('rot_lack', (0.66, 0.10, 0.07), look='paint', rough=0.5, r=0.8),
         'red_worn': material('rot_matt', (0.52, 0.12, 0.09), look='paint', rough=0.7, r=1.15),
         'white': material('weiss_lack', (0.86, 0.86, 0.83), look='paint', rough=0.5, r=0.85),
@@ -363,20 +363,20 @@ def mats_site():
         'orange': material('orange_lack', (0.86, 0.38, 0.07), look='paint', rough=0.5, r=0.85),
         'black_rubber': material('gummi', (0.045, 0.045, 0.045), look='rubber', rough=0.9, r=1.2),
         'black_plastic': material('kunststoff_schwarz', (0.06, 0.06, 0.065), look='plastic', rough=0.6, r=1.0),
-        'paper': material('papiersack', (0.74, 0.66, 0.52), look='cardboard', rough=0.95, r=1.4),
-        'paper_dirty': material('papiersack_alt', (0.60, 0.56, 0.48), look='cardboard', rough=0.95, r=1.45),
-        'print_red': material('aufdruck_rot', (0.62, 0.14, 0.10), look='paint', rough=0.8, r=1.3),
-        'print_grey': material('aufdruck_grau', (0.34, 0.36, 0.38), look='paint', rough=0.8, r=1.3),
+        'paper': material('papiersack', (0.50, 0.42, 0.30), look='cardboard', rough=0.95, r=1.4),
+        'paper_dirty': material('papiersack_alt', (0.42, 0.38, 0.32), look='cardboard', rough=0.95, r=1.45),
+        'print_red': material('aufdruck_rot', (0.46, 0.13, 0.10), look='paint', rough=0.8, r=1.3),
+        'print_grey': material('aufdruck_grau', (0.42, 0.42, 0.42), look='paint', rough=0.8, r=1.3),
         'cement': material('zementstaub', (0.70, 0.70, 0.68), look='concrete', tex='concrete_chalky', rough=1.0, r=1.5),
-        'pallet': material('palette', (0.70, 0.60, 0.45), look='wood', tex='wood_birch', rough=0.9, r=1.3),
-        'tarp_blue': material('plane_blau', (0.13, 0.27, 0.50), look='plastic', rough=0.7, r=0.95),
+        'pallet': material('palette', (0.60, 0.53, 0.42), look='wood', rough=0.9, r=1.3),
+        'tarp_blue': material('plane_blau', (0.12, 0.23, 0.40), look='plastic', rough=0.7, r=1.05),
         'tarp_green': material('plane_gruen', (0.20, 0.30, 0.20), look='plastic', rough=0.75, r=1.05),
-        'tarp_white': material('plane_weiss', (0.78, 0.79, 0.77), look='plastic', rough=0.7, r=1.0),
+        'tarp_white': material('plane_weiss', (0.58, 0.60, 0.57), look='plastic', rough=0.7, r=1.15),
         'tarp_hem': material('plane_saum', (0.85, 0.86, 0.84), look='plastic', rough=0.75, r=1.1),
         'zinc': material('zink', (0.70, 0.70, 0.68), look='metal', rough=0.45, metal=0.9, r=0.8, m=0.75),
         'brick': material('ziegel', (0.86, 0.56, 0.44), look='concrete', tex='bricks_red_factory', rough=0.9, r=1.3),
-        'clay': material('hochlochziegel', (0.72, 0.40, 0.28), look='concrete', tex='concrete_rough', rough=0.9, r=1.35),
-        'clay2': material('hochlochziegel_hell', (0.80, 0.48, 0.34), look='concrete', tex='concrete_rough', rough=0.9, r=1.35),
+        'clay': material('hochlochziegel', (0.60, 0.34, 0.24), look='concrete', tex='concrete_rough', rough=0.9, r=1.4),
+        'clay2': material('hochlochziegel_hell', (0.68, 0.42, 0.30), look='concrete', tex='concrete_rough', rough=0.9, r=1.4),
         'block': material('betonstein', (0.70, 0.70, 0.68), look='concrete', tex='concrete_rough', rough=0.95, r=1.4),
         'block2': material('betonstein_dunkel', (0.58, 0.58, 0.57), look='concrete', tex='concrete_rough', rough=0.95, r=1.4),
         'bitumen': material('bitumenbahn', (0.07, 0.07, 0.07), look='rubber', rough=0.8, r=1.0),
@@ -603,7 +603,7 @@ def _sheet(k, mat, x, y0, y1, z0, z1, rng, torn=False):
             u, v = i / ny, j / nz
             y = y0 + (y1 - y0) * u
             z = z0 + (z1 - z0) * v
-            fold = 0.025 * math.sin(u * 23.0 + 0.7 * math.sin(v * 3.0)) * (0.4 + 0.6 * math.sin(math.pi * v))
+            fold = 0.045 * math.sin(u * 23.0 + 0.7 * math.sin(v * 3.0)) * (0.4 + 0.6 * math.sin(math.pi * v))
             belly = 0.05 * math.sin(math.pi * v) * math.sin(math.pi * u) * 0.8
             row.append(V((x + fold + belly, y, z - 0.04 * math.sin(math.pi * u) * (1 - v))))
         grid.append(row)
@@ -889,7 +889,7 @@ def build_rebar_bundle():
     k = Kit()
     rust = m['rust']
     rust2 = material('rost_dunkel', (0.42, 0.28, 0.20), look='metal', tex='metal_rusty_iron', rough=0.9, metal=0.3, r=1.4, m=0.1)
-    timber = material('kantholz_alt', (0.50, 0.44, 0.36), look='wood', tex='wood_birch', rough=0.9, r=1.4)
+    timber = material('kantholz_alt', (0.42, 0.39, 0.34), look='wood', rough=0.9, r=1.4)
     # Kanthoelzer quer (entlang y)
     for x in (-1.0, 0.0, 1.0):
         blk(k(timber), (0.10, 1.05, 0.10), (x + jitter(rng, 0.04), jitter(rng, 0.04), 0.05), rz=jitter(rng, 0.08), bevel=0.006)
@@ -951,7 +951,7 @@ def build_formwork():
     yel = material('dreischicht_gelb', (0.88, 0.70, 0.30), look='wood', tex='wood_birch', rough=0.7, r=1.0)
     yel_old = material('dreischicht_alt', (0.72, 0.60, 0.34), look='wood', tex='wood_birch', rough=0.8, r=1.2)
     edge_red = material('kante_rot', (0.62, 0.16, 0.10), look='paint', rough=0.6, r=1.0)
-    frame_c = material('rahmen_rot', (0.70, 0.13, 0.08), look='paint', rough=0.5, r=0.85)
+    frame_c = material('rahmen_rot', (0.54, 0.12, 0.08), look='paint', rough=0.55, r=1.0)
     film = material('schalhaut', (0.30, 0.19, 0.12), look='wood', tex='wood_walnut_floor', rough=0.5, r=0.75)
     crust = m['concrete_crust']
     # Fuenf Dreischichtplatten 0,5 x 2,0 m, gestaffelt angelehnt (Fuss bei x = 0,32 .. 0,48)
@@ -1107,7 +1107,7 @@ def build_cement_mixer():
     rng = random.Random(121)
     m = mats_site()
     k = Kit()
-    drum_c = material('trommel_orange', (0.84, 0.36, 0.06), look='paint', rough=0.45, r=0.8)
+    drum_c = material('trommel_orange', (0.72, 0.30, 0.06), look='paint', rough=0.5, r=0.95)
     drum_worn = material('trommel_matt', (0.62, 0.30, 0.10), look='paint', rough=0.7, r=1.2)
     frame_c = material('gestell_grau', (0.28, 0.30, 0.31), look='paint', rough=0.6, r=1.05)
     crust = m['concrete_crust']
@@ -1248,7 +1248,7 @@ def build_wheelbarrow():
     rng = random.Random(131)
     m = mats_site()
     k = Kit()
-    tub_c = m['galv']
+    tub_c = m['galv_old']
     frame_c = material('karre_gruen', (0.10, 0.24, 0.14), look='paint', rough=0.5, r=0.9)
     crust = m['concrete_crust']
     # Mulde: Ringe von unten (klein) nach oben (gross), Vorderwand flach geneigt
@@ -1318,8 +1318,8 @@ def build_sawhorse():
     rng = random.Random(141)
     m = mats_site()
     k = Kit()
-    wood = material('bock_holz', (0.66, 0.54, 0.38), look='wood', tex='wood_birch', rough=0.85, r=1.25)
-    wood_d = material('bock_holz_alt', (0.50, 0.42, 0.32), look='wood', tex='wood_birch', rough=0.9, r=1.35)
+    wood = material('bock_holz', (0.58, 0.50, 0.38), look='wood', rough=0.85, r=1.25)
+    wood_d = material('bock_holz_alt', (0.44, 0.40, 0.33), look='wood', rough=0.9, r=1.35)
     zb = 0.66
     # Balken (entlang y), vier gespreizte Beine, Stirnbretter, Winkelbeschlaege
     blk(k(wood), (0.09, 1.0, 0.09), (0.0, 0.0, zb - 0.045), bevel=0.004)
@@ -1347,7 +1347,7 @@ def build_sawhorse():
     pitch = math.atan2(zb + 0.0, math.hypot(d.x, d.y))
     Lb = math.hypot(d.x, d.y) / math.cos(pitch) + 0.5
     Mb = tr(*p_floor) @ rot(0, 0, ang) @ rot(0, -pitch, 0)
-    cube(k(material('brett_frisch', (0.80, 0.68, 0.50), look='wood', tex='wood_birch', rough=0.8, r=1.2)),
+    cube(k(material('brett_frisch', (0.70, 0.62, 0.48), look='wood', rough=0.8, r=1.2)),
          (0.0, -0.10, 0.0), (Lb, 0.10, 0.028), Mb, bevel=0.002)
     # Saegeschnitt am oberen Ende: Kerbe
     cube(k(m['steel_dark']), (Lb - 0.25, -0.10, 0.012), (Lb - 0.247, -0.02, 0.0285), Mb)
@@ -1359,7 +1359,7 @@ def build_sawhorse():
     poly_prism(k(material('griff_rot', (0.60, 0.08, 0.06), look='plastic', rough=0.5, r=0.9)), handle, -0.008, 0.012, Ms)
     poly_prism(k(m['black_plastic']), [(-0.10, -0.02), (-0.03, -0.03), (-0.03, 0.03), (-0.10, 0.025)], -0.0085, 0.0125, Ms)
     # Saegemehl und Abschnitte am Boden
-    dust = material('saegemehl', (0.82, 0.70, 0.50), look='fabric', rough=1.0, r=1.5)
+    dust = material('saegemehl', (0.62, 0.53, 0.40), look='fabric', rough=1.0, r=1.5)
     for (x, y, r_) in ((0.30, 0.55, 0.16), (0.20, 0.35, 0.09), (0.45, 0.75, 0.07)):
         blob(k(dust, 35), (x, y, 0.0), (0, 0, 1), r_, 0.012, rng, nseg=11, rough=0.4)
     blk(k(wood), (0.25, 0.10, 0.028), (0.45, 0.15, 0.014), rz=0.7, bevel=0.002)
@@ -1510,10 +1510,10 @@ def build_tarp_pile():
 # =====================================================================================================================
 def mats_plant():
     return {
-        'leaf_dark': material('blatt_dunkel', (0.13, 0.22, 0.09), look='paint', rough=0.45, r=0.75),
+        'leaf_dark': material('blatt_dunkel', (0.13, 0.22, 0.09), look='paint', rough=0.5, r=0.95),
         'leaf_mid': material('blatt_mittel', (0.20, 0.31, 0.11), look='paint', rough=0.55, r=0.9),
         'leaf_light': material('blatt_hell', (0.30, 0.41, 0.15), look='paint', rough=0.6, r=1.0),
-        'leaf_yellow': material('blatt_gelb', (0.46, 0.44, 0.17), look='paint', rough=0.7, r=1.15),
+        'leaf_yellow': material('blatt_gelb', (0.38, 0.38, 0.16), look='paint', rough=0.7, r=1.15),
         'leaf_brown': material('blatt_braun', (0.34, 0.24, 0.13), look='paint', rough=0.85, r=1.35),
         'fern': material('farn', (0.24, 0.36, 0.13), look='paint', rough=0.7, r=1.1),
         'fern_dark': material('farn_dunkel', (0.17, 0.27, 0.10), look='paint', rough=0.7, r=1.1),
@@ -1526,9 +1526,9 @@ def mats_plant():
         'twig': material('zweig', (0.32, 0.20, 0.15), look='wood', rough=0.75, r=1.2),
         'root': material('wurzel', (0.40, 0.31, 0.22), look='wood', tex='concrete_rough', rough=0.9, r=1.35),
         'soil': material('erde_feucht', (0.40, 0.31, 0.24), look='concrete', tex='concrete_rough', rough=0.9, r=1.15),
-        'moss': material('moos', (0.86, 0.92, 0.78), look='fabric', tex='moss', rough=0.9, r=1.05),
-        'moss_dry': material('moos_trocken', (0.82, 0.74, 0.52), look='fabric', tex='moss', rough=0.95, r=1.3),
-        'wet': material('beton_nass', (0.34, 0.34, 0.33), look='concrete', tex='concrete_floor', rough=0.3, r=0.45),
+        'moss': material('moos', (0.70, 0.62, 0.48), look='fabric', tex='moss', rough=0.9, r=1.05),
+        'moss_dry': material('moos_trocken', (0.74, 0.56, 0.38), look='fabric', tex='moss', rough=0.95, r=1.3),
+        'wet': material('beton_nass', (0.44, 0.44, 0.42), look='concrete', tex='concrete_floor', rough=0.3, r=0.5),
         'slab': material('estrich', (0.68, 0.68, 0.66), look='concrete', tex='concrete_floor', rough=0.9, r=1.2),
         'slab_edge': material('estrich_bruch', (0.62, 0.61, 0.58), look='concrete', tex='concrete_rough', rough=0.95, r=1.4),
         'grass': material('gras', (0.30, 0.40, 0.15), look='paint', rough=0.7, r=1.1),
@@ -1582,7 +1582,7 @@ def _crack_base(k, P, rng, rx=0.45, ry=0.10, chunks=4, lift=0.03, soil_r=None):
     for _ in range(8):
         a = rng.uniform(0, TAU)
         blk(k(P['slab_edge']), (rng.uniform(0.015, 0.04), rng.uniform(0.012, 0.03), rng.uniform(0.008, 0.02)),
-            (rx * 1.1 * math.cos(a), (ry + 0.15) * math.sin(a), 0.006), rx=jitter(rng, 0.4), ry=jitter(rng, 0.4), rz=a, bevel=0.002)
+            (rx * 1.1 * math.cos(a), (ry + 0.15) * math.sin(a), 0.006), rx=jitter(rng, 0.4), ry=jitter(rng, 0.4), rz=a)
 
 
 # --- haengende Ranken (Deckenmodell) -------------------------------------------------------------------------------------
@@ -1667,9 +1667,9 @@ def _vines(variant):
     k = Kit()
     if variant == 0:      # dichter Vorhang
         _ceiling_mat(k, P, rng, 0.7, 0.45, 6)
-        for i in range(11):
+        for i in range(10):
             top = V((rng.uniform(-0.6, 0.6), rng.uniform(-0.38, 0.38), -0.01))
-            _strand(k, P, rng, top, rng.uniform(0.45, 1.4), 0.005, 0.10, 0.09)
+            _strand(k, P, rng, top, rng.uniform(0.45, 1.4), 0.005, 0.105, 0.11)
     elif variant == 1:    # wenige lange, duenne Ranken, teils vertrocknet
         _ceiling_mat(k, P, rng, 0.5, 0.3, 4)
         for i in range(7):
@@ -1730,7 +1730,7 @@ def _ivy_leaf(k, P, rng, base, outward, size, mat=None):
     if lift > 0:  # Blatt nicht in die Wand stecken lassen
         c = c + V((lift, 0, 0))
         pts = [q + V((lift, 0, 0)) for q in pts]
-    leaf_fan(k(mat or _pick_leaf(P, rng, (('leaf_dark', 0.55), ('leaf_mid', 0.3), ('leaf_light', 0.1), ('leaf_yellow', 0.05))), 0),
+    leaf_fan(k(mat or _pick_leaf(P, rng, (('leaf_dark', 0.55), ('leaf_mid', 0.32), ('leaf_light', 0.1), ('leaf_yellow', 0.03))), 55, weld=True),
              c + t * size * 0.35, pts, nrm, cup=size * 0.08)
 
 
@@ -1753,8 +1753,9 @@ def _ivy_stem(k, P, rng, start, height, width, r0, depth, step=0.11, max_z=2.4, 
         cyl(k(P['stem_brown'], 0), p + V((-rs[i] * 0.5, 0, 0)), V((0.001, p.y + jitter(rng, 0.01), p.z - 0.012)), 0.0012, 3, caps=False)
     for i in range(1, n + 1):
         p = pts[i]
-        q = p + V((0, jitter(rng, 0.04), jitter(rng, 0.03)))
-        _ivy_leaf(k, P, rng, q, (1, jitter(rng, 0.35), 0), rng.uniform(*size))
+        side = 1 if i % 2 else -1
+        q = p + V((0, side * rng.uniform(0.03, 0.08), jitter(rng, 0.03)))
+        _ivy_leaf(k, P, rng, q, (1, side * rng.uniform(0.1, 0.45), 0), rng.uniform(*size))
     if depth > 0:
         for i in range(2, n - 1, 3):
             if rng.random() < kid_p:
@@ -1769,10 +1770,10 @@ def _ivy(variant):
     k = Kit()
     if variant == 0:
         for (y, h, w) in ((-0.45, 2.3, 0.35), (-0.12, 2.0, 0.4), (0.2, 2.35, 0.4), (0.48, 1.7, 0.3)):
-            _ivy_stem(k, P, rng, (0, y, 0.0), h, w, 0.011, 1, step=0.14, size=(0.10, 0.145), kid_p=0.35)
+            _ivy_stem(k, P, rng, (0, y, 0.0), h, w * 1.5, 0.011, 1, step=0.15, size=(0.10, 0.145), kid_p=0.4)
     else:
         for (y, h, w) in ((-0.25, 1.6, 0.35), (0.0, 1.2, 0.3), (0.25, 1.4, 0.4)):
-            _ivy_stem(k, P, rng, (0, y, 0.0), h, w, 0.009, 1, max_z=1.7, step=0.15, size=(0.09, 0.13), kid_p=0.25)
+            _ivy_stem(k, P, rng, (0, y, 0.0), h, w * 1.5, 0.009, 1, max_z=1.7, step=0.16, size=(0.09, 0.13), kid_p=0.3)
         # Auslaeufer auf dem Boden
         for s in (-1, 1):
             pts = catmull([(0.03, s * 0.2, 0.006), (0.18, s * 0.45, 0.008), (0.30, s * 0.70, 0.006), (0.36, s * 0.95, 0.006)], 3)
@@ -1796,7 +1797,7 @@ def build_ivy_wall__v1():
 
 
 # --- Moospolster (Boden, flach, weiche Raender) ------------------------------------------------------------------------
-def _cushion(k, P, rng, cx, cy, rx, ry, h, rings=7, segs=28, a0=0.0, z0=0.0, wet_ring=True, dry=True):
+def _cushion(k, P, rng, cx, cy, rx, ry, h, rings=6, segs=26, a0=0.0, z0=0.0, wet_ring=True, dry=True):
     """Moospolster: Polarnetz mit welligem Rand, Hoehe zum Rand weich auslaufend, kleine Buckel; feuchter Hof.
     z0: Hoehe der Unterlage (Boden 0, Kistendeckel ...)."""
     ph = [rng.uniform(0, TAU) for _ in range(4)]
@@ -1849,7 +1850,7 @@ def _cushion(k, P, rng, cx, cy, rx, ry, h, rings=7, segs=28, a0=0.0, z0=0.0, wet
         a = a0 + TAU * si / segs
         r1 = rad(a)
         inner.append(V((cx + r1 * 0.97 * math.cos(a) * rx, cy + r1 * 0.97 * math.sin(a) * ry, 0.0012)))
-        r2 = r1 * (1.08 + 0.05 * math.sin(4 * a + ph[3]))
+        r2 = r1 * (1.05 + 0.035 * math.sin(4 * a + ph[3]))
         outer.append(V((cx + r2 * math.cos(a) * rx, cy + r2 * math.sin(a) * ry, 0.0008)))
     wet = k(P['wet'], 0)
     for si in range(segs):
@@ -1910,7 +1911,7 @@ def build_moss_patch__v2():
 
 
 # --- Farne aus Betonrissen ------------------------------------------------------------------------------------------------
-def _frond(k, P, rng, base, out_dir, length, rise, pairs=11, mat=None, dead=False):
+def _frond(k, P, rng, base, out_dir, length, rise, pairs=9, mat=None, dead=False):
     """Farnwedel: gebogene Spindel, Fiederblaetter paarweise, zur Spitze kleiner."""
     out_dir = V(out_dir).normalized()
     pts = []
@@ -1938,7 +1939,7 @@ def _frond(k, P, rng, base, out_dir, length, rise, pairs=11, mat=None, dead=Fals
         size = length * 0.16 * math.sin(math.pi * (0.18 + 0.72 * t)) * rng.uniform(0.9, 1.1)
         for s in (-1, 1):
             d = (side * s * 0.85 + tang * 0.45).normalized()
-            leaf(k(mat, 0), p, d, nrm, size, size * 0.28, stations=((0.35, 1.0),), droop=0.4, fold=0.2)
+            leaf(k(mat, 0), p, d, nrm, size, size * 0.34, stations=((0.35, 1.0),), droop=0.4, fold=0.2)
 
 
 def _fiddlehead(k, P, base, h, d):
@@ -1960,11 +1961,11 @@ def build_fern_cluster():
     P = mats_plant()
     k = Kit()
     _crack_base(k, P, rng, rx=0.42, ry=0.08, chunks=4)
-    for i in range(9):
-        a = TAU * i / 9 + jitter(rng, 0.25)
+    for i in range(8):
+        a = TAU * i / 8 + jitter(rng, 0.3)
         b = V((0.08 * math.cos(a) + jitter(rng, 0.05), 0.04 * math.sin(a), 0.004))
         _frond(k, P, rng, b, (math.cos(a), math.sin(a), 0), rng.uniform(0.5, 0.85), rng.uniform(0.35, 0.6))
-    for a in (0.4, 3.6):
+    for a in (0.4,):
         _frond(k, P, rng, (0.05 * math.cos(a), 0.05 * math.sin(a), 0.004), (math.cos(a), math.sin(a), 0), 0.55, 0.0, dead=True)
     _fiddlehead(k, P, (0.02, -0.02, 0.004), 0.12, (0.7, 0.7))
     _fiddlehead(k, P, (-0.04, 0.02, 0.004), 0.09, (-0.8, 0.5))
@@ -1985,7 +1986,7 @@ def build_roots_floor():
     humps = []
     for mi, ctrl in enumerate(mains):
         pts = catmull([V(p) for p in ctrl], 5)
-        r0 = 0.075 - mi * 0.015
+        r0 = 0.10 - mi * 0.02
         rs = [r0 * (1.0 - 0.75 * i / (len(pts) - 1)) for i in range(len(pts))]
         prof = [(math.cos(TAU * i / 9) * (1.0 + 0.12 * math.sin(i * 2.3)), math.sin(TAU * i / 9) * 0.8) for i in range(9)]
         sweep(k(P['root'], 60), pts, rs, profile=prof, up=(0, 0, 1))
@@ -2026,7 +2027,7 @@ def build_roots_floor():
         x, y = rng.uniform(-1.1, 1.0), rng.uniform(-0.8, 0.8)
         s = rng.uniform(0.02, 0.07)
         blk(k(P['slab_edge']), (s, s * rng.uniform(0.5, 0.9), s * rng.uniform(0.25, 0.45)), (x, y, s * 0.12), rx=jitter(rng, 0.25),
-            ry=jitter(rng, 0.25), rz=rng.uniform(0, 3), bevel=0.003)
+            ry=jitter(rng, 0.25), rz=rng.uniform(0, 3))
     k.finish()
 
 
@@ -2041,7 +2042,7 @@ def _branch(k, P, rng, start, d, length, r0, depth, leaf_fn, bark, twig_mat, gra
         pts.append(pts[-1] + d * seg)
     r1 = r0 * 0.35
     rs = [r0 + (r1 - r0) * i / segs for i in range(segs + 1)]
-    sweep(k(bark if r0 > 0.008 else twig_mat, 70), pts, rs, 6 if r0 > 0.012 else 4)
+    sweep(k(bark if r0 > 0.008 else twig_mat, 70), pts, rs, 5 if r0 > 0.012 else 3)
     if depth > 0:
         for c in range(kids):
             t = rng.uniform(0.35, 0.8)
@@ -2069,7 +2070,7 @@ def build_shrub_concrete():
         for _ in range(rng.randint(4, 6)):
             side = Matrix.Rotation(rng.uniform(0, TAU), 3, tang) @ tang.orthogonal().normalized()
             d = (side * 0.8 + tang * 0.45 + V((0, 0, -0.05))).normalized()
-            L = rng.uniform(0.07, 0.10)
+            L = rng.uniform(0.075, 0.11)
             leaf(k(_pick_leaf(P, rng), 0), p + side * 0.01, d, (0, 0, 1), L, L * 0.52, stations=((0.4, 1.0),), droop=0.4, fold=0.15)
     for i in range(7):
         a = TAU * i / 7 + jitter(rng, 0.3)
@@ -2152,9 +2153,9 @@ def build_overgrown_crate():
     rng = random.Random(341)
     P = mats_plant()
     k = Kit()
-    wood = material('kiste_verwittert', (0.52, 0.50, 0.44), look='wood', tex='wood_birch', rough=0.9, r=1.35)
-    wood_g = material('kiste_algen', (0.40, 0.44, 0.34), look='wood', tex='wood_birch', rough=0.9, r=1.4)
-    batten = material('kiste_leiste_alt', (0.38, 0.34, 0.28), look='wood', tex='wood_birch', rough=0.9, r=1.4)
+    wood = material('kiste_verwittert', (0.46, 0.45, 0.41), look='wood', rough=0.9, r=1.35)
+    wood_g = material('kiste_algen', (0.34, 0.38, 0.30), look='wood', rough=0.9, r=1.4)
+    batten = material('kiste_leiste_alt', (0.33, 0.31, 0.27), look='wood', rough=0.9, r=1.4)
     L, W, H = 1.0, 0.7, 0.62
     t, gap = 0.02, 0.006
     n = 5
@@ -2236,9 +2237,9 @@ def build_overgrown_crate():
 # =====================================================================================================================
 def mats_fabled():
     return {
-        'lac': material('zinnober', (0.70, 0.17, 0.10), look='paint', rough=0.4, r=0.62),
-        'lac_dark': material('zinnober_dunkel', (0.46, 0.11, 0.07), look='paint', rough=0.55, r=0.85),
-        'lac_worn': material('zinnober_matt', (0.60, 0.22, 0.14), look='paint', rough=0.7, r=1.15),
+        'lac': material('zinnober', (0.40, 0.10, 0.06), look='paint', rough=0.45, r=0.8),
+        'lac_dark': material('zinnober_dunkel', (0.24, 0.06, 0.04), look='paint', rough=0.6, r=0.95),
+        'lac_worn': material('zinnober_matt', (0.36, 0.13, 0.09), look='paint', rough=0.7, r=1.2),
         'lac_black': material('lack_schwarz', (0.045, 0.035, 0.03), look='paint', rough=0.4, r=0.6),
         'wood': material('holz_bloss', (0.36, 0.22, 0.13), look='wood', tex='wood_walnut_floor', rough=0.8, r=1.15),
         'wood_dark': material('holz_dunkel', (0.20, 0.12, 0.08), look='wood', tex='wood_walnut_floor', rough=0.85, r=1.25),
@@ -2249,7 +2250,7 @@ def mats_fabled():
         'interior': material('innen_dunkel', (0.08, 0.05, 0.035), look='wood', rough=0.9, r=1.3),
         'steel_dark': material('stahl_dunkel', (0.20, 0.20, 0.21), look='metal', rough=0.6, metal=0.8, r=1.15, m=0.55),
         'black_plastic': material('kunststoff_schwarz', (0.06, 0.06, 0.065), look='plastic', rough=0.6, r=1.0),
-        'grey_box': material('trafo_grau', (0.46, 0.47, 0.47), look='paint', rough=0.55, r=0.95),
+        'grey_box': material('trafo_grau', (0.30, 0.31, 0.31), look='paint', rough=0.55, r=1.0),
         'glass_dark': material('elektrode_glas', (0.14, 0.13, 0.13), look='glass', rough=0.2, r=0.4),
         'clear': material('halter_klar', (0.62, 0.64, 0.64), look='plastic', rough=0.3, r=0.6),
         'copper': material('kupfer', (0.80, 0.45, 0.25), look='metal', rough=0.35, metal=0.9, r=0.6, m=0.85),
@@ -2354,6 +2355,11 @@ def build_panel_vermilion():
     _box_chips(k, F, rng, (0.0, -0.5, 0.0), (0.040, 0.5, 0.10), Matrix.Identity(4), '+x', 4, 0.025, mats=('wood_dark', 'wood', 'grime'))
     _box_chips(k, F, rng, (0.012, -0.5, 0.12), (0.034, -0.455, 2.08), Matrix.Identity(4), '+x', 2, 0.015)
     _box_chips(k, F, rng, (0.012, -0.035, 0.12), (0.034, 0.035, 2.08), Matrix.Identity(4), '+x', 2, 0.015)
+    for (y0, y1) in ((-0.41, -0.08), (0.08, 0.41)):
+        _chips_rect(k, F, rng, Matrix.Identity(4), 0, 1, y0, y1, 0.29, 0.65, 0.0285, 2, 0.07, edge_bias=0.3,
+                    mats=('lac_worn', 'lac_worn', 'grime'))
+        _chips_rect(k, F, rng, Matrix.Identity(4), 0, 1, y0, y1, 0.84, 1.79, 0.0285, 2, 0.09, edge_bias=0.2,
+                    mats=('lac_worn', 'lac_dark'))
     for _ in range(3):  # Kratzer: helle, duenne Striche in der unteren Fuellung
         y, z = rng.uniform(-0.4, 0.4), rng.uniform(0.3, 0.62)
         a = rng.uniform(-0.6, 0.6)
@@ -2679,12 +2685,17 @@ def build_cabinet_vermilion():
         _chips_rect(k, F, rng, Md, 0, 1, yy - 0.06, yy + 0.06, (z0 + z1) / 2 - 0.05, (z0 + z1) / 2 + 0.15, xf + 0.004, 4, 0.03,
                     edge_bias=0.0, mats=('wood_dark', 'wood'))
         _box_chips(k, F, rng, (xf - 0.02, y0, z0), (xf + 0.004, y1, z1), Md, '+x', 6, 0.025)
+        _box_chips(k, F, rng, (xf - 0.02, y0, z0), (xf + 0.0045, y1, z1), Md, '+x', 2, 0.09, edge_bias=0.1,
+                   mats=('lac_worn', 'lac_dark'))
     # Schloss mit Rosette in der Mitte
     Ml = tr(xf + 0.005, 0.0, 1.05) @ rot(0, math.pi / 2, 0)
     lathe(k(F['brass_dark'], 40), [(0.0, 0.0), (0.03, 0.0), (0.028, 0.003), (0.0, 0.004)], 12, Ml)
     cube(k(F['interior']), (xf + 0.009, -0.003, 1.035), (xf + 0.0095, 0.003, 1.06))
     # Abplatzer: Seiten, Kranz, Sockel; Staub auf dem Deckel
     _box_chips(k, F, rng, (x0, -W / 2, 0.11), (x1, -W / 2 + 0.025, H - 0.06), I, '-y', 8, 0.03)
+    for sgn in (-1, 1):
+        lo_, hi_ = ((x0, -W / 2, 0.15), (x1, -W / 2 + 0.025, H - 0.1)) if sgn < 0 else ((x0, W / 2 - 0.025, 0.15), (x1, W / 2, H - 0.1))
+        _box_chips(k, F, rng, lo_, hi_, I, '-y' if sgn < 0 else '+y', 4, 0.11, edge_bias=0.2, mats=('lac_worn', 'lac_worn', 'lac_dark'))
     _box_chips(k, F, rng, (x0, W / 2 - 0.025, 0.11), (x1, W / 2, H - 0.06), I, '+y', 8, 0.03)
     _box_chips(k, F, rng, (x0 - 0.02, -W / 2 - 0.03, H - 0.06), (x1 + 0.035, W / 2 + 0.03, H - 0.03), I, '+x', 5, 0.02)
     _box_chips(k, F, rng, (x0, -W / 2, 0.0), (x1, W / 2, 0.11), I, '+x -y +y', 3, 0.03, mats=('wood_dark', 'grime'))
@@ -2843,6 +2854,8 @@ def build_screen_vermilion():
                 continue
             cube(sl, (-0.008, y - 0.007, 0.67), (0.008, y + 0.007, h - 0.05), M)
         _box_chips(k, F, rng, (-tk / 2, 0.0, 0.03), (tk / 2, w, h), M, '+x -x', 4, 0.02)
+        _box_chips(k, F, rng, (-0.0065, 0.04, 0.13), (0.0065, w - 0.04, 0.62), M, '+x -x', 1, 0.08, edge_bias=0.2,
+                   mats=('lac_worn', 'grime'))
         # Scharniere zum naechsten Fluegel
         if i < 3:
             for zh in (0.3, 1.0, 1.6):
