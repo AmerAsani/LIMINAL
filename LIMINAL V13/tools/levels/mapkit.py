@@ -62,10 +62,12 @@ WALL_MOUNT = {'outlet', 'vent_grille', 'painting', 'power_box', 'wall_sconce', '
               'library_wall', 'library_wall_lamp', 'library_wall_upper', 'bookcase_end', 'bookcase_aisle', 'bookcase_aisle_b', 'painting_renaissance_a', 'painting_renaissance_b', 'inscription_bibliotheca', 'wallpaper_peel',  # V12 L5.3
               'window_188_a', 'window_188_b', 'window_188_c', 'window_188_fig', 'window_188_lit', 'window_entry_188', 'door_mahogany', 'walkway_glass',  # V12 L188
               'metro_dormant_a', 'metro_dormant_b', 'metro_dormant_home', 'metro_dormant_coupling', 'sign_903_wall',  # V12 L903
+              'formwork', 'ivy_wall', 'neon_tube', 'neon_sign', 'panel_vermilion', 'pipe_wall',  # V13.3 L1-Sektoren
               'departure_board', 'exit_sign_36', 'storefront_a', 'storefront_b', 'storefront_c', 'storefront_closed', 'gate_sign_c30', 'gate_sign_c31', 'gate_sign_c32', 'gate_sign_c33', 'gate_sign_c34', 'gate_door_closed', 'gate_door_boarding', 'clock_36', 'clock_36_b', 'water_fountain', 'restroom_sign'}  # V12 L36
 DOOR_MODELS = {'steel_door', 'hotel_door', 'damaged_door'}
 CEILING_MOUNT = {'batten', 'highbay', 'chandelier', 'safety_light', 'ceiling_vent',
                  'troffer', 'troffer_off', 'troffer_red', 'ceiling_diffuser', 'hanging_bulb',  # V12: Blender-Modelle
+                 'vines_ceiling', 'cable_hang',  # V13.3 L1-Sektoren
                  'tube_white', 'tube_orange', 'tube_dead', 'chandelier_grand', 'lantern_green', 'chandelier_iron', 'ceiling_arms', 'skylight_188', 'tube_long', 'sign_903_a', 'sign_903_b', 'sign_36_a', 'sign_36_b', 'sign_36_empty'}
 # V12: Modelle, die in einem Durchbruch stehen (Bogen mit Laibung): Mitte muss in einer Tuer/Oeffnung liegen
 IN_OPENING = {'arch2', 'arch3', 'arch4', 'arch_tall3', 'arch_tall4', 'swing_door1', 'swing_door2', 'door_level3', 'elevator_door', 'elevator_cage', 'door_old_open', 'door_mahogany_open'}
@@ -79,6 +81,9 @@ FLOOR_MOUNT = {'chair', 'rack', 'bed', 'barrel', 'cart', 'pump', 'wardrobe', 'tr
                'column_tuff', 'candelabrum', 'books_fallen',  # V12 L5.3
                'paving_strip', 'birch_circle', 'table_188', 'pillar_188',  # V12 L188
                'metro_car_903', 'metro_car_37', 'track_metro', 'platform_edge', 'stairs_barricaded',  # V12 L903
+               'scaffold', 'wall_unfinished', 'cement_bags', 'rebar_bundle', 'work_light', 'cement_mixer', 'wheelbarrow', 'sawhorse', 'site_barrier', 'tarp_pile',  # V13.3 L1 Ouroboros
+               'moss_patch', 'fern_cluster', 'roots_floor', 'shrub_concrete', 'sapling', 'overgrown_crate',  # V13.3 L1 Garden
+               'cabinet_vermilion', 'table_vermilion', 'bench_vermilion', 'screen_vermilion',  # V13.3 L1 Fabled
                'carousel_36', 'luggage_pile', 'checkin_counter', 'bta_booth', 'travelator', 'travelator_stopped', 'seats_row', 'gate_counter', 'camp_c32'}  # V12 L36
 
 

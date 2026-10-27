@@ -685,6 +685,24 @@ static void testWorld(const game::Content& content, const std::string& dataDir) 
 }
 
 // --- V9 ------------------------------------------------------------------------------------------
+// V13.3: freie Stelle mitten in einer Aquila-Halle nahe (38, 26) - die Karte aendert sich (Kisten, Rohre), feste Koordinaten nicht
+static std::pair<int, int> hallSpot(world::World& w) {
+    for (int r = 0; r < 12; ++r)
+        for (int dy = -r; dy <= r; ++dy)
+            for (int dx = -r; dx <= r; ++dx) {
+                if (std::max(std::abs(dx), std::abs(dy)) != r) continue;
+                const int x = 38 + dx, y = 26 + dy;
+                bool ok = true;
+                for (int ey = -1; ey <= 1 && ok; ++ey)
+                    for (int ex = -1; ex <= 1 && ok; ++ex) {
+                        const world::Tile& t = w.tile(x + ex, y + ey);
+                        ok = t.open() && t.room && t.room->type && t.room->type->key == "halle" && t.floor < 0.05f;
+                    }
+                if (ok) return {x, y};
+            }
+    return {38, 26};
+}
+
 static void testV9(const game::Content& content, const std::string& dataDir) {
     std::printf("V9: Sicherungen, der Andere, der Weg hinaus\n");
     auto W = content.world();
@@ -857,12 +875,14 @@ static void testV9(const game::Content& content, const std::string& dataDir) {
         world::World& ww = s->world();
         {
             auto& pl = s->player();
-            pl.x = 38.5, pl.y = 26.5, pl.z = ww.tile(38, 26).floor;
+            const auto [hx, hy] = hallSpot(ww);
+            pl.x = hx + 0.5, pl.y = hy + 0.5, pl.z = ww.tile(hx, hy).floor;
             s->body().reset();
         }
         s->preload();
         run(*s, 0.5);
-        const world::Tile& deckT = ww.tile(38, 26);
+        const auto [hx2, hy2] = hallSpot(ww);
+        const world::Tile& deckT = ww.tile(hx2, hy2);
         const bool placed = deckT.open() && deckT.room && deckT.room->type && deckT.room->type->key == "halle";
         check(placed, "mitten in der Halle Aquila (Level 1)");
         std::vector<game::GameEvent> ev;
@@ -908,7 +928,8 @@ static void testV9(const game::Content& content, const std::string& dataDir) {
         {  // V11: Wiedereinstieg, dann zurueck in die Halle
             s->respawnAtCheckpoint();
             auto& pl = s->player();
-            pl.x = 38.5, pl.y = 26.5, pl.z = ww.tile(38, 26).floor;
+            const auto [hx, hy] = hallSpot(ww);
+            pl.x = hx + 0.5, pl.y = hy + 0.5, pl.z = ww.tile(hx, hy).floor;
             s->body().reset();
             s->preload();
             run(*s, 0.3);
@@ -947,12 +968,14 @@ static void testV9(const game::Content& content, const std::string& dataDir) {
         world::World& ww = s->world();
         {
             auto& pl = s->player();
-            pl.x = 38.5, pl.y = 26.5, pl.z = ww.tile(38, 26).floor;
+            const auto [hx, hy] = hallSpot(ww);
+            pl.x = hx + 0.5, pl.y = hy + 0.5, pl.z = ww.tile(hx, hy).floor;
             s->body().reset();
         }
         s->preload();
         run(*s, 0.5);
-        const world::Tile& deckT = ww.tile(38, 26);
+        const auto [hx2, hy2] = hallSpot(ww);
+        const world::Tile& deckT = ww.tile(hx2, hy2);
         const bool placed = deckT.open() && deckT.room && deckT.room->type && deckT.room->type->key == "halle";
         // vor das Laecheln stellen: 6 m entfernt, freie Sicht, dahinter 14 m freier Boden zum Wegrennen
         auto standNear = [&]() {
@@ -1016,7 +1039,8 @@ static void testV9(const game::Content& content, const std::string& dataDir) {
                     }
             check(n == 3 && solid == n, std::format("Regal, Kisten und Saeule mit Kollision ({} von {})", solid, n));
             auto& pl = s->player();
-            pl.x = 38.5, pl.y = 26.5, pl.z = ww.tile(38, 26).floor;
+            const auto [hx, hy] = hallSpot(ww);
+            pl.x = hx + 0.5, pl.y = hy + 0.5, pl.z = ww.tile(hx, hy).floor;
             s->body().reset();
             s->preload();
         }
@@ -1110,7 +1134,8 @@ static void testV9(const game::Content& content, const std::string& dataDir) {
         {  // V11: Wiedereinstieg, dann zurueck in die Halle
             s->respawnAtCheckpoint();
             auto& pl = s->player();
-            pl.x = 38.5, pl.y = 26.5, pl.z = ww.tile(38, 26).floor;
+            const auto [hx, hy] = hallSpot(ww);
+            pl.x = hx + 0.5, pl.y = hy + 0.5, pl.z = ww.tile(hx, hy).floor;
             s->body().reset();
             s->preload();
             run(*s, 0.3);
