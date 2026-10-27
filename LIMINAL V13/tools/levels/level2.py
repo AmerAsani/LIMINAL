@@ -314,7 +314,8 @@ def furnish_tunnel(r):
     width = min(R.w, R.h)
     other_ok = width >= 3
     max_depth = width - 1.0 - 0.37 - (0.6 if other_ok else 0.0)
-    for yaw, rl in runs.items():
+    # V13.3: Maschinenseite zuerst, damit Tueren gegenueber ihren Platz pruefen koennen
+    for yaw, rl in sorted(runs.items(), key=lambda kv: kv[0] != mach_side):
         c, s = math.cos(yaw), math.sin(yaw)
         for run in rl:
             k = 0
@@ -335,6 +336,11 @@ def furnish_tunnel(r):
                     k += n + 1
                     continue
                 if u < 0.22 and yaw != mach_side:
+                    # V13.3 (Kritikrunde 1): keine Tuer gegenueber einer Maschine in engen Tunneln (Weg < 0,9 m)
+                    if width < 3 and any(m.blocked(fx + c * (width - 0.5) - s * d, fy + s * (width - 0.5) + c * d)
+                                         for d in (-0.7, 0.0, 0.7)):
+                        k += 1
+                        continue
                     m.obj(rng.choice(DOORS), fx, fy, R.floor, yaw, tag='deco')
                     k += 3
                     continue

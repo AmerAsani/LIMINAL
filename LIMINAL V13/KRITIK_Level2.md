@@ -18,3 +18,8 @@ Befunde:
 Änderungen:
 - Brownout-Röhren 0,35 → 0,45, tote Gruppen 55 % → 45 %, Flackern bleibt.
 - Violette Notlampen in Brownout-Kreuzungen mit 50 % statt 12 %.
+
+Nachtrag Runde 1 (Prüfung):
+- Nach der Änderung meldete die Raummetrik 3 und dann 58 verstellte Tunnel. Ursache war ein veralteter Ausstattungs-Abzug (`build/qa/props_level2.json` von 16:22, die Karte von 17:45).
+- `room_metrics.py` erzeugt den Abzug jetzt selbst neu, wenn die Karte neuer ist. Mit frischem Abzug: 0 von 181 verstellt.
+- Zusätzlich setzt `furnish_tunnel` in Tunneln unter 3 m keine Tür mehr gegenüber einer Maschine.
