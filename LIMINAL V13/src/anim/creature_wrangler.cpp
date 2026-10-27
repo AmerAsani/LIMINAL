@@ -185,7 +185,8 @@ void CreatureAnimator::updateWrangler(float dt, const Input& in) {
             const vec3 d1 = nrm(-U * 1.0f + n * (0.55f + 0.2f * std::sin(ph * 0.7f)) + side * sw * 0.6f, -U);
             const vec3 m = root + d1 * 0.36f;
             const vec3 d2 = nrm(d1 + n * (0.3f * sw2) + side * (0.5f * sw2) - U * 0.4f, -U);
-            J[(size_t)ringA(2 * y)] = root, J[(size_t)ringA(2 * y) + 1] = m;
+            // Ruhepose (wrangler_brood.py): das Junge liegt von x0 + 0,19 bis x0 + 0,91 m - Knochen 2y traegt die ersten 0,36 m
+            J[(size_t)ringA(2 * y)] = root - d1 * 0.19f, J[(size_t)ringA(2 * y) + 1] = m;
             J[(size_t)ringA(2 * y + 1)] = m, J[(size_t)ringA(2 * y + 1) + 1] = m + d2 * 0.36f;
             Up[(size_t)B_RING0 + 2 * y] = nrm(cross(d1, side), n);
             Up[(size_t)B_RING0 + 2 * y + 1] = nrm(cross(d2, side), n);
@@ -199,7 +200,7 @@ void CreatureAnimator::updateWrangler(float dt, const Input& in) {
     const float sgn = H < 0.0f ? -1.0f : 1.0f;
     const float base = H < 0.0f ? std::min(in.clearance, 12.0f) : 0.0f;  // Boden bzw. Decke (relativ zu pos)
     const float D = 3.6f;
-    springW(jaw_, jawV_, in.hang, 1.4f, dt);  // jaw_ dient hier als Hoehe des Leibs (sanft)
+    springW(jaw_, jawV_, in.hang, 2.6f, dt);  // jaw_ dient hier als Hoehe des Leibs (bricht in gut einer Sekunde heraus)
     const float pres = sat(jaw_);
     const float Hc = -1.8f + (std::fabs(H) + 1.8f) * pres;
     springW(crouch_, crouchV_, in.alert, 3.0f, dt);  // angehalten (gespannt)

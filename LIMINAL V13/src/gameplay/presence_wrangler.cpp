@@ -125,7 +125,7 @@ bool Presence::spawnWrangler(const Context& c, std::vector<Event>& out, int mode
                 s.yaw = std::atan2(to.y, to.x) + kPiF * 0.5f + (float)rng_.uniform(-0.4, 0.4);
                 const vec3 f{std::cos(s.yaw), std::sin(s.yaw), 0.0f};
                 if (freeRun(c, p, f, 3.0f) < 2.75f || freeRun(c, p, f * -1.0f, 3.0f) < 2.75f) continue;
-                s.W = 1.4f, s.S = 6.8f, s.H = 0.95f;
+                s.W = 1.4f, s.S = 6.8f, s.H = std::min(1.45f, t->clearance() - 1.0f);  // ein hoher Buckel wie ein auftauchender Wal
                 if (c.kin && c.kin[world::KIN_WRANGLER].mode == "mixed" && t->clearance() > 3.7f && rng_.uniform(0.0, 1.0) < 0.35)
                     s.H = -(t->clearance() - 1.65f) / 1.0f;  // von der Decke herab (die Seite, Level 1: die Decke bebt)
             }
@@ -299,6 +299,16 @@ void Presence::thinkWrangler(Agent& a, double dt, const Context& c, std::vector<
                 break;
             }
             if (a.stateT >= a.timer) {
+                // nie auf jemandem durchbrechen: steht einer auf der Bahn, wartet es (es bebt weiter) und zieht sonst woanders durch
+                const vec3 f = dirYaw(a.yaw), rel = flat(P - a.pos);
+                const float W = 10.0f * a.crouch + 1.0f, along = dot(rel, f), across = std::fabs(dot(rel, vec3{-f.y, f.x, 0.0f}));
+                const bool onPath = std::fabs(along) < W && across < 2.0f;
+                if (onPath && a.stateT < a.timer + 6.0) break;
+                if (onPath) {
+                    setState(4);
+                    out.push_back({Event::Sink, Role::Wrangler, a.pos, 0.5f});
+                    break;
+                }
                 setState(1);
                 a.hang = 1.0f;
                 out.push_back({Event::Breach, Role::Wrangler, a.pos + vec3{0, 0, 0.3f}, 1.0f});
@@ -486,6 +496,23 @@ void Presence::thinkBrood(Agent& a, double dt, const Context& c, std::vector<Eve
         if (spawnWrangler(c, out, kFemale, &at)) log::info("Praesenz: die Jungen wurden beruehrt - die Mutter kommt");
     }
     a.rig.setGlow(a.glow);
+}
+
+// --- Klangquellen (app/wrangler_audio.cpp): der naechste Wrangler ---------------------------------------------------------
+bool Presence::wranglerSound(vec3 ear, vec3& rumbleAt, float& rumble, vec3& bodyAt, float& body) const {
+    const Agent* best = nullptr;
+    for (const auto& a : agents_)
+        if (a->role == Role::Wrangler && a->mode != kBrood && (!best || length(a->pos - ear) < length(best->pos - ear))) best = a.get();
+    if (!best) return false;
+    const Agent& a = *best;
+    const vec3 Hp = a.pos + nrmF(a.fwd, {1, 0, 0}) * (kBreakScale * a.bait);
+    // das Rumpeln kommt aus der Tiefe unter der Bahn; spuert es einen, von der Durchbruchstelle
+    rumbleAt = a.reach > 0.05f ? Hp : a.pos - vec3{0, 0, 1.5f};
+    rumble = a.growl;
+    bodyAt = a.pos + vec3{0, 0, 1.0f};
+    if (a.hang > 0.25f) bodyDist(a, ear, &bodyAt);
+    body = a.hang * (1.0f - 0.85f * a.alert) * std::clamp(a.fly * 2.5f, 0.0f, 1.0f);
+    return true;
 }
 
 // --- Beben und Sog am eigenen Spieler (Host und Gast: aus Lage und Kanaelen der Wesen) -------------------------------------

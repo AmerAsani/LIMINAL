@@ -21,5 +21,6 @@ void addCreatureSounds(std::vector<SoundDef>& d, int rate);  // synth_creatures.
 void addLevelSounds(std::vector<SoundDef>& d, int rate);     // synth_levels.cpp: Klangbetten, ferne Ereignisse, Musik
 void addDullerSounds(std::vector<SoundDef>& d, int rate);    // V13.3 synth_duller.cpp: Duller (Wand, Gelenke)
 void addArmsSounds(std::vector<SoundDef>& d, int rate);      // V13.3 synth_arms.cpp: Arms (Schacht, Schrei im Licht)
+void addWranglerSounds(std::vector<SoundDef>& d, int rate);  // V13.3 synth_wrangler.cpp: Wrangler (Beben, Leib, Kopf, Jungtiere)
 
 }  // namespace lim::audio

@@ -555,57 +555,80 @@ def item_groups(rng):
 
 # --- Kraenze -----------------------------------------------------------------------------------------------------
 def collar_groups(rng):
-    """Kranz 0 bei (-12, 0, 0) flach am Boden (die Flaeche ist z = 0), geklont auf die Kraenze 1 und 2."""
+    """Kranz 0 bei (-12, 0, 0) flach am Boden (die Flaeche ist z = 0), geklont auf die Kraenze 1 und 2. Wo der Leib durchbricht:
+    aufgeworfene Platten der Flaeche (schraeg vom Loch weg gekippt), ein dunkler Spalt um den Leib, Risse, Brocken, nasse
+    Flecken und Schleimfaeden, Haeufchen aus Staub und Splitt."""
     c = np.array([-12.0, 0.0, 0.0])
     b = B_COL0
     clones = [((-3.0 * k, 0.0, 0.0), B_COL0 + k) for k in (1, 2)]
-    slime = [Part_torus(b, c + Z * 0.004, Z, 0.84, 0.05, k=0.0), A.ell(b, c, X, (1.0, 1.0, 0.012), k=0.04)]
-    slime.append(A.ell(b, c, X, (0.72, 0.72, 0.05), op='sub', k=0.02))
-    # Faeden und Tropfen vom Rand
-    for i in range(10):
+    # Platten: Stuecke der Flaeche, vom Loch weg schraeg aufgestellt (der Leib hat sie hochgedrueckt)
+    slabs = []
+    n = 8
+    a0 = rng.uniform(0, 2 * math.pi)
+    for i in range(n):
+        a = a0 + 2 * math.pi * i / n + rng.uniform(-0.25, 0.25)
+        rad = rng.uniform(0.95, 1.2)
+        d = np.array([math.cos(a), math.sin(a), 0.0])
+        tilt = rng.uniform(0.18, 0.55)
+        size = rng.uniform(0.22, 0.34)
+        up = A.unit(Z * math.cos(tilt) - d * math.sin(tilt))  # innere Kante hoch
+        p = c + d * rad + Z * (math.sin(tilt) * size * 0.6 - 0.02)
+        side = np.cross(Z, d)
+        slabs.append(A.box(b, p, A.unit(d * math.cos(tilt) + Z * math.sin(tilt)), (size, size * rng.uniform(0.6, 0.9), 0.035), 0.008,
+                           up=up, k=0.0))
+    # Brocken
+    for i in range(22):
         a = rng.uniform(0, 2 * math.pi)
-        p = c + np.array([math.cos(a), math.sin(a), 0]) * rng.uniform(0.85, 1.2)
-        slime.append(A.ell(b, p + Z * 0.004, X, (rng.uniform(0.04, 0.12), rng.uniform(0.04, 0.1), 0.01), k=0.03))
-    debris, cracks, dust = [], [], []
-    for i in range(34):
-        a = rng.uniform(0, 2 * math.pi)
-        r = min(1.75, 0.78 + abs(rng.normal(0, 0.28)))
+        r = min(1.75, 0.82 + abs(rng.normal(0, 0.32)))
         p = c + np.array([math.cos(a), math.sin(a), 0]) * r
-        s = rng.uniform(0.025, 0.09) * (1.3 if r < 1.0 else 1.0)
-        ax = A.unit(rng.normal(0, 1, 3))
-        debris.append(A.box(b, p + Z * (s * 0.2), ax, (s, s * rng.uniform(0.5, 1.0), s * rng.uniform(0.3, 0.7)), s * 0.15,
-                            up=A.unit(rng.normal(0, 1, 3)), k=0.0))
-    # Risse: duenne dunkle Baender, zackig nach aussen (2 mm ueber der Flaeche)
-    for i in range(11):
+        s = rng.uniform(0.02, 0.07)
+        slabs.append(A.box(b, p + Z * (s * 0.25), A.unit(rng.normal(0, 1, 3)), (s, s * rng.uniform(0.5, 1.0), s * rng.uniform(0.35, 0.7)), s * 0.15,
+                           up=A.unit(rng.normal(0, 1, 3)), k=0.0))
+    # dunkler Spalt rund um den Leib
+    gap = [A.ell(b, c + Z * 0.003, X, (0.9, 0.9, 0.006), k=0.0), A.ell(b, c, X, (0.7, 0.7, 0.03), op='sub', k=0.01)]
+    # Risse: duenne dunkle Baender, zackig nach aussen
+    for i in range(12):
         a = rng.uniform(0, 2 * math.pi)
-        r0 = 0.75
-        p = c + np.array([math.cos(a), math.sin(a), 0]) * r0
-        L = rng.uniform(0.45, 1.1)
-        nseg = 5
-        for j in range(nseg):
-            a += rng.normal(0, 0.18)
-            q = p + np.array([math.cos(a), math.sin(a), 0]) * (L / nseg)
-            w = 0.012 * (1 - j / nseg) + 0.003
-            cracks.append(A.box(b, 0.5 * (p + q) + Z * 0.002, A.unit(q - p), (np.linalg.norm(q - p) * 0.5 + 0.005, w, 0.004), 0.0,
-                                k=0.0))
-            if rng.random() < 0.35:  # Verzweigung
+        p = c + np.array([math.cos(a), math.sin(a), 0]) * 0.85
+        L = rng.uniform(0.5, 1.2)
+        for j in range(5):
+            a += rng.normal(0, 0.2)
+            q = p + np.array([math.cos(a), math.sin(a), 0]) * (L / 5)
+            w = 0.012 * (1 - j / 5) + 0.003
+            gap.append(A.box(b, 0.5 * (p + q) + Z * 0.002, A.unit(q - p), (np.linalg.norm(q - p) * 0.5 + 0.005, w, 0.004), 0.0))
+            if rng.random() < 0.35:
                 a2 = a + rng.choice([-1, 1]) * rng.uniform(0.5, 1.0)
-                q2 = q + np.array([math.cos(a2), math.sin(a2), 0]) * L / nseg * 0.8
-                cracks.append(A.box(b, 0.5 * (q + q2) + Z * 0.002, A.unit(q2 - q), (np.linalg.norm(q2 - q) * 0.5, w * 0.6, 0.004), 0.0))
+                q2 = q + np.array([math.cos(a2), math.sin(a2), 0]) * L / 5 * 0.8
+                gap.append(A.box(b, 0.5 * (q + q2) + Z * 0.002, A.unit(q2 - q), (np.linalg.norm(q2 - q) * 0.5, w * 0.6, 0.004), 0.0))
             p = q
-    # Staub: flacher, unruhiger Wall aus Mehl und Splitt ringsum
-    dust.append(Part_torus(b, c, Z, 1.05, 0.12, k=0.0))
-    dust.append(A.box(b, c - Z * 0.2, X, (2.0, 2.0, 0.2), 0.0, op='sub', k=0.02))
+    # nasse Flecken und Faeden (Schleim), unregelmaessig
+    slime = []
+    for i in range(9):
+        a = rng.uniform(0, 2 * math.pi)
+        p = c + np.array([math.cos(a), math.sin(a), 0]) * rng.uniform(0.72, 1.05)
+        slime.append(A.ell(b, p + Z * 0.004, (math.cos(a), math.sin(a), 0), (rng.uniform(0.1, 0.22), rng.uniform(0.06, 0.14), 0.01), k=0.05))
+    for i in range(5):  # Faeden vom Leib zum Boden
+        a = rng.uniform(0, 2 * math.pi)
+        p0 = c + np.array([math.cos(a), math.sin(a), 0]) * 0.74 + Z * rng.uniform(0.15, 0.4)
+        p1 = c + np.array([math.cos(a), math.sin(a), 0]) * rng.uniform(0.9, 1.1)
+        slime += A.chain(lambda i: b, [p0, 0.5 * (p0 + p1) - Z * 0.05, p1], [0.008, 0.005, 0.012], k=0.01)
+    # Staub und Splitt: flache, unruhige Haeufchen
+    dust = []
+    for i in range(7):
+        a = rng.uniform(0, 2 * math.pi)
+        p = c + np.array([math.cos(a), math.sin(a), 0]) * rng.uniform(0.95, 1.5)
+        dust.append(A.ell(b, p, (math.cos(a), math.sin(a), 0), (rng.uniform(0.15, 0.3), rng.uniform(0.1, 0.2), rng.uniform(0.02, 0.05)), k=0.06))
+    dust.append(A.box(b, c - Z * 0.2, X, (2.0, 2.0, 0.2), 0.0, op='sub', k=0.0))
 
     def dust_disp(P):
-        return -0.03 * sdf.fbm(P, 6, 3, seed=7611) - 0.01 * sdf.fbm(P, 25, 2, seed=7612)
+        return -0.012 * sdf.fbm(P, 9, 3, seed=7611) - 0.005 * sdf.fbm(P, 30, 2, seed=7612)
 
     return [
-        {'name': 'kranz_schleim', 'fm': 'ent_wr_slime', 'parts': slime, 'disp': None, 'h': 0.006, 'tris': 1400, 'clones': clones},
-        {'name': 'kranz_schutt', 'fm': 'ent_wr_debris', 'parts': debris, 'disp': lambda P: -0.004 * sdf.fbm(P, 40, 2, seed=7613),
-         'h': 0.005, 'tris': 2600, 'clones': clones},
-        {'name': 'kranz_risse', 'fm': 'ent_wr_crack', 'parts': cracks, 'disp': None, 'h': 0.003, 'tris': 1200, 'clones': clones},
-        {'name': 'kranz_staub', 'fm': 'ent_wr_dust', 'parts': dust, 'disp': dust_disp, 'h': 0.012, 'tris': 900, 'clones': clones},
+        {'name': 'kranz_platten', 'fm': 'ent_wr_debris', 'parts': slabs, 'disp': lambda P: -0.004 * sdf.fbm(P, 30, 2, seed=7613),
+         'h': 0.006, 'tris': 2600, 'clones': clones},
+        {'name': 'kranz_spalt', 'fm': 'ent_wr_crack', 'parts': gap, 'disp': None, 'h': 0.003, 'tris': 1400, 'clones': clones},
+        {'name': 'kranz_schleim', 'fm': 'ent_wr_slime', 'parts': slime, 'disp': None, 'h': 0.005, 'tris': 1200, 'clones': clones},
+        {'name': 'kranz_staub', 'fm': 'ent_wr_dust', 'parts': dust, 'disp': dust_disp, 'h': 0.008, 'tris': 900, 'clones': clones},
     ]
 
 

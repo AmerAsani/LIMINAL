@@ -176,6 +176,8 @@ public:
     double netTime() const { return time_; }
     // V13.3 Wrangler: Beben am eigenen Spieler (0..1; Kamera, Staub) und der Sog des Leibs (0..1; wohin er den Blick zieht)
     float quake() const { return quake_; }
+    // V13.3: Klangquellen des naechsten Wranglers (app/wrangler_audio.cpp): Rumpeln und Leib (Ort, Staerke 0..1); false: keiner
+    bool wranglerSound(vec3 ear, vec3& rumbleAt, float& rumble, vec3& bodyAt, float& body) const;
     float trance(vec3* at = nullptr) const {
         if (at) *at = tranceAt_;
         return trance_;

@@ -406,7 +406,7 @@ GBufferOut PSMain(VSOut i, bool front : SV_IsFrontFace)
         const float facing = abs(dot(N, normalize(gCameraPos.xyz - i.wpos)));
         // duenne Stellen ("Fenster", ~30 cm, an der Haut haftend): dort sieht man klar hinein
         membWin = smoothstep(0.56, 0.72, smokeNoise(i.bindPos * 3.1 + 17.0));
-        const float op = lerp(1.0, (memb / 255.0) * (1.0 - 0.55 * membWin), smoothstep(0.12, 0.7, facing));
+        const float op = lerp(1.0, (memb / 255.0) * (1.0 - 0.62 * membWin), smoothstep(0.12, 0.7, facing));
         if (ign(i.svpos.xy, gRingParams.z) >= op)
             discard;
     }

@@ -1340,6 +1340,8 @@ void App::handleEvents() {
                     audio_->play("duller_grab", 1.0f, 1.0f, audio::Bus::Effects);
                 } else if (e.role == (int)game::Presence::Role::Arms) {  // V13.3: Krallen, dann Schlaege im Schacht, die sich entfernen
                     audio_->play("arms_take", 1.0f, 1.0f, audio::Bus::Effects);
+                } else if (e.role == (int)game::Presence::Role::Wrangler) {  // V13.3: aus dem Gang geschnappt
+                    audio_->play("wrangler_snatch", 1.0f, 1.0f, audio::Bus::Effects);
                 } else {
                     audio_->play(e.role == (int)game::Presence::Role::Smiler ? "scare_smiler" : "scare_hound", 1.0f, 1.0f, audio::Bus::Effects);
                 }
@@ -1403,7 +1405,10 @@ void App::handleEvents() {
                     case PE::Vision: audio_->play("gestalt_sight", 0.4f); break;
                     // V11 (F2): das Laecheln oeffnet sich - Ankuendigung des Zugriffs; beruhigt: es verklingt
                     case PE::Announce: at("smiler_open", e.pos, 1.0f, 30.0f); break;
-                    case PE::Calm: at("smiler_fade", e.pos, 0.4f, 20.0f); break;
+                    case PE::Calm:
+                        if (role == Role::Wrangler) at("wrangler_settle", e.pos, 0.8f, 30.0f);  // V13.3: es hat einen verloren
+                        else at("smiler_fade", e.pos, 0.4f, 20.0f);
+                        break;
                     case PE::Lost: break;
                     // V13.2: neue Wesen
                     case PE::Hit:
@@ -1421,7 +1426,10 @@ void App::handleEvents() {
                         if (e.intensity > 0.75f) at(std::format("faceling_outburst_{}", n % 2), e.pos, 0.8f, 24.0f, 0.95f + 0.1f * var);
                         else at(std::format("faceling_hum_{}", n % 4), e.pos, 0.4f + 0.4f * e.intensity, 14.0f, 0.95f + 0.1f * var);
                         break;
-                    case PE::Squeak: at(std::format("rat_squeak_{}", n % 4), e.pos, 0.25f + 0.5f * e.intensity, 12.0f, 0.95f + 0.1f * var); break;
+                    case PE::Squeak:
+                        if (role == Role::Wrangler) at(std::format("wrangler_young_{}", n % 4), e.pos, 0.3f + 0.6f * e.intensity, 12.0f, 0.95f + 0.1f * var);  // V13.3
+                        else at(std::format("rat_squeak_{}", n % 4), e.pos, 0.25f + 0.5f * e.intensity, 12.0f, 0.95f + 0.1f * var);
+                        break;
                     case PE::Scream: at("rat_scream", e.pos, 1.0f, 40.0f); break;
                     case PE::Swing: at("stone_swing", e.pos, 0.8f, 12.0f, 0.95f + 0.1f * var); break;
                     case PE::Pull: at("window_pull", e.pos, 0.9f, 14.0f); break;
@@ -1433,10 +1441,23 @@ void App::handleEvents() {
                     case PE::Bulge: at(std::format("duller_bulge_{}", n % 2), e.pos, 0.6f + 0.4f * e.intensity, 14.0f); break;
                     case PE::Burst:
                         if (role == Role::Duller) at("duller_burst", e.pos, 1.0f, 30.0f);
+                        else if (role == Role::Wrangler) at(std::format("wrangler_burst_{}{}", e.intensity > 0.75f ? 'm' : 'f', n % 2), e.pos, 1.0f, 40.0f);  // V13.3
                         else at("arms_vent", e.pos, 0.35f, 9.0f);
                         break;
                     case PE::Burn: at("arms_burn", e.pos, 1.0f, 30.0f); break;
                     case PE::Retract: at(role == Role::Duller ? "duller_retract" : "arms_retract", e.pos, 0.7f * e.intensity + 0.2f, 16.0f); break;
+                    // V13.3: Wrangler - Stoesse in der Tiefe, Durchbruch, Gleiten und Stoehnen, Ankuendigung, Versinken
+                    case PE::Tremor: at(std::format("wrangler_tremor_{}", n % 3), e.pos, 0.45f + 0.55f * e.intensity, 60.0f, 0.92f + 0.12f * var); break;
+                    case PE::Breach: at(std::format("wrangler_breach_{}", n % 2), e.pos, 1.0f, 50.0f); break;
+                    case PE::Slither:
+                        if (e.intensity > 0.75f) at(std::format("wrangler_groan_{}", n % 3), e.pos, 0.9f, 60.0f, 0.95f + 0.08f * var);
+                        else at(std::format("wrangler_squelch_{}", n % 4), e.pos, 0.6f, 22.0f, 0.9f + 0.2f * var);
+                        break;
+                    case PE::Sense:
+                        at(std::format("wrangler_sense_{}", n % 2), e.pos, 1.0f, 30.0f);
+                        if (e.intensity < 0.75f) at(std::format("wrangler_clack_{}", n % 3), e.pos, 0.8f, 20.0f);
+                        break;
+                    case PE::Sink: at(std::format("wrangler_sink_{}", n % 2), e.pos, 0.9f, 50.0f); break;
                     default: break;
                 }
                 break;
@@ -1592,6 +1613,7 @@ void App::updateAudio(double dt) {
         soundscape_.setBedDuck(outside || st.dead ? 1.0f
                                                   : std::max({std::clamp(s.blackout().amount * 0.7f, 0.0f, 0.7f), prox * 0.5f, hushAmt * 0.75f}));
     }
+    app::wranglerLoops(*audio_, soundscape_, s, ear, audioGen_, st.dead);  // V13.3: Rumpeln, Leib, Sog (app/wrangler_audio.cpp)
     // V6: Keuchen nach dem Sprinten. V11: einzelne Atemzuege (Ein- und Ausatmen), je atemloser desto
     // schneller und lauter
     float puff = (float)st.breathless();
@@ -1900,6 +1922,9 @@ void App::renderWorld(double dt, bool clean) {
         sp.blackoutAmount = s.blackout().amount;
         sp.blackoutOrigin = s.blackout().origin;  // V11: Welle
         sp.blackoutFront = s.blackout().front;
+        // V13.3: Beben (Wrangler) - Staub rieselt
+        dustFall_ += (float)dt * (0.9f * s.presence().quake());
+        sp.dustFall = dustFall_, sp.dustBoost = s.presence().quake();
         // V7: Notausgaenge - das gruene Schild faerbt Wand und Boden davor
         exitSigns_.clear();
         s.exitSigns(exitSigns_, 40.0f);

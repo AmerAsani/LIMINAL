@@ -448,7 +448,7 @@ void Presence::showcase(int kind, vec3 pos, float yaw, float walkSpeed) {
     if (a->ent == Entity::Arms) pos.z += 2.8f, a->up = {0, 0, -1};  // V13.3: Oeffnung in der Decke (Gang in Level 1: 2,8 m)
     if (a->ent == Entity::Wrangler) {  // V13.3: quer vor dem Betrachter, ein Bogen aus dem Boden; der Kopf bricht links 2 m daneben heraus
         yaw += 1.5708f;
-        a->lean = 6.8f / 16.0f, a->crouch = 0.14f, a->tilt = 0.95f / 4.0f, a->hang = 1.0f, a->fly = 0.35f;
+        a->lean = 6.8f / 16.0f, a->crouch = 0.14f, a->tilt = 1.45f / 4.0f, a->hang = 1.0f, a->fly = 0.35f;
         const vec3 side{std::cos(yaw + 3.14159f), std::sin(yaw + 3.14159f), 0.0f};
         a->fwd = side, a->bait = 2.2f / 32.0f, a->up = {0, 0, 1};
     }

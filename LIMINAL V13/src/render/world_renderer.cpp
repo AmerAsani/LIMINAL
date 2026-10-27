@@ -242,8 +242,8 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     // rauer und grauer, dichter (die Seite: mit dem Alter grauer und undurchsichtiger), das Weibchen blass rosa und klarer.
     // Innen: dunkelroter Darm, pflanzenartige Faserstraenge (olivbraun), Knochen; Schleim glaenzt, Staub und Schutt matt
     auto memb = [](u32 op) { return op << kMatMembraneShift; };
-    materialData_[FM_ENT_WR_MEMBRANE] = GpuMaterial{{1.42f, 1.3f, 1.36f}, 0, ent(EL_SKIN, ML_PORES) | kMatFlagSkin | memb(222), 0.3f, 0, 0.04f};
-    materialData_[FM_ENT_WR_MEMBRANE_F] = GpuMaterial{{1.38f, 1.1f, 1.28f}, 0, ent(EL_HUMAN, ML_PORES) | kMatFlagSkin | memb(205), 0.24f, 0, 0.02f};
+    materialData_[FM_ENT_WR_MEMBRANE] = GpuMaterial{{0.95f, 0.98f, 1.06f}, 0, ent(EL_HUMAN, ML_CRAZE) | kMatFlagSkin | memb(212), 0.38f, 0, 0.05f};
+    materialData_[FM_ENT_WR_MEMBRANE_F] = GpuMaterial{{1.3f, 1.06f, 1.24f}, 0, ent(EL_HUMAN, ML_PORES) | kMatFlagSkin | memb(178), 0.22f, 0, 0.02f};
     materialData_[FM_ENT_WR_HIDE] = GpuMaterial{{1.38f, 1.4f, 1.44f}, 0, ent(EL_SKIN, ML_CRAZE) | kMatFlagSkin, 0.88f, 0, 0.2f};
     materialData_[FM_ENT_WR_GUT] = GpuMaterial{{1.5f, 0.62f, 0.72f}, 0, ent(EL_NEST, ML_PORES) | kMatFlagSkin, 0.3f, 0, 0.0f};
     materialData_[FM_ENT_WR_PITH] = GpuMaterial{{1.8f, 1.95f, 1.45f}, 0, ent(EL_NEST, ML_FIBER), 0.62f, 0, 0.0f};
