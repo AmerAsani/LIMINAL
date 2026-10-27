@@ -65,10 +65,10 @@ std::string hrText(long hr) {
 
 const char* stepName(int s) {
     static const char* names[] = {"-", "Oeffnen", "Warten auf den Treiber", "GetCurrentPadding", "GetBuffer", "Mischen", "ReleaseBuffer",
-                                  "Schliessen", "Ersatztakt (ohne Geraet)"};
-    return s >= 0 && s < 9 ? names[s] : "?";
+                                  "Schliessen", "Ersatztakt (ohne Geraet)", "Anlaufen (COM, MMCSS)"};
+    return s >= 0 && s < 10 ? names[s] : "?";
 }
-enum Step { kIdle, kOpen, kWait, kPadding, kGetBuffer, kMix, kRelease, kClose, kNull };
+enum Step { kIdle, kOpen, kWait, kPadding, kGetBuffer, kMix, kRelease, kClose, kNull, kStart };
 
 const char* disconnectText(int r) {
     switch (r) {
@@ -321,6 +321,7 @@ void AudioSystem::initShared(const AudioSystem& other) {
 void AudioSystem::startDevice() {
     if (thread_.joinable()) return;
     stop_ = false;
+    startMs_ = nowMs();
     thread_ = std::thread([this] { thread(); });
 }
 
@@ -1144,9 +1145,10 @@ void AudioSystem::watchdog() {
     } else if (now - wdBeatT_ > 3000 && !hung_) {
         hung_ = true;
         const int s = step_;
-        if (s == kOpen || s == kClose) {
+        if (hb == 0 || s == kStart || s == kOpen || s == kClose) {
             // steckt in einem Aufruf von Windows (Initialize, Stop): ein Neustart haelfe nicht, er folgt ohnehin danach
-            log::warn("Audio-Watchdog: Audiogeraet antwortet seit {} ms nicht (Schritt: {})", now - wdBeatT_, stepName(s));
+            log::warn("Audio-Watchdog: Audiothread {} seit {} ms (Schritt: {})", hb == 0 ? "noch nicht angelaufen" : "wartet auf Windows",
+                      now - wdBeatT_, hb == 0 ? "Thread-Start" : stepName(s));
         } else {
             log::error("Audio-Watchdog: Audiothread reagiert seit {} ms nicht (Schritt: {}) - Neustart angefordert", now - wdBeatT_, stepName(s));
             requestRestart("Audiothread reagierte nicht (Watchdog)");
@@ -1225,6 +1227,7 @@ struct DeviceThread {
     std::string step;
     bool simRemoved = false;
     std::wstring removedId;
+    std::thread aux;  // V13.3: Sitzungsmeldungen/Lautstaerke (blockiert den Strom nicht)
 
     explicit DeviceThread(AudioSystem& s) : a(s) {}
 
@@ -1324,27 +1327,6 @@ struct DeviceThread {
         if (FAILED(h = client->SetEventHandle(ev))) return fail("SetEventHandle", h);
         if (FAILED(h = client->GetBufferSize(&buf))) return fail("GetBufferSize", h);
         if (FAILED(h = client->GetService(__uuidof(IAudioRenderClient), (void**)render.put()))) return fail("GetService(IAudioRenderClient)", h);
-        // Sitzung: Trennung (Formatwechsel, exklusiver Modus, Geraet entfernt, Dienst beendet) melden lassen
-        if (SUCCEEDED(client->GetService(__uuidof(IAudioSessionControl), (void**)session.put()))) {
-            events = new SessionEvents(&a);
-            if (FAILED(session->RegisterAudioSessionNotification(events))) log::warn("Audio: Sitzungsbenachrichtigung nicht verfuegbar");
-            std::lock_guard lock(a.statMutex_);
-            a.sessionEvents_ = events;
-        }
-        // Windows-Lautstaerke: stumm geschaltete Sitzung oder Geraet ist keine Stoerung des Spiels, erklaert aber Stille
-        {
-            Com<ISimpleAudioVolume> sv;
-            float v = 1.0f;
-            BOOL m = FALSE;
-            if (SUCCEEDED(client->GetService(__uuidof(ISimpleAudioVolume), (void**)sv.put())) && SUCCEEDED(sv->GetMasterVolume(&v)) &&
-                SUCCEEDED(sv->GetMute(&m)) && (m || v < 0.05f))
-                log::warn("Audio: Windows-Lautstaerke dieses Spiels {:.0f} %{}", v * 100.0f, m ? ", STUMM geschaltet" : "");
-            Com<IAudioEndpointVolume> epv;
-            if (SUCCEEDED(dev->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_ALL, nullptr, (void**)epv.put())) &&
-                SUCCEEDED(epv->GetMute(&m)) && SUCCEEDED(epv->GetMasterVolumeLevelScalar(&v)) && (m || v < 0.05f))
-                log::warn("Audio: Geraet '{}' ist {} (Lautstaerke {:.0f} %)", name, m ? "STUMM geschaltet" : "fast auf null", v * 100.0f);
-        }
-        lap("Dienste/Lautstaerke");
         {
             std::lock_guard lock(a.mutex_);
             a.setMixRate(rate);
@@ -1354,6 +1336,43 @@ struct DeviceThread {
         if (SUCCEEDED(render->GetBuffer(buf, &d))) render->ReleaseBuffer(buf, AUDCLNT_BUFFERFLAGS_SILENT);
         if (FAILED(h = client->Start())) return fail("Start", h);
         lap("Start");
+        // V13.3: Sitzungsmeldungen und Lautstaerke-Hinweise in einem Hilfsthread: unter Last brauchten diese Aufrufe an den
+        // Audiodienst bis 4,4 s - im Audiothread waere es so lange still geblieben (der Puffer wird nicht gefuellt)
+        {
+            Com<IAudioClient> c2 = client;
+            Com<IMMDevice> d2 = dev;
+            aux = std::thread([this, c2, d2, name] {
+                CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+                const long long ta = nowMs();
+                // Trennung der Sitzung (Formatwechsel, exklusiver Modus, Geraet entfernt, Dienst beendet) melden lassen
+                Com<IAudioSessionControl> sc;
+                if (SUCCEEDED(c2->GetService(__uuidof(IAudioSessionControl), (void**)sc.put()))) {
+                    auto* ev = new SessionEvents(&a);
+                    if (SUCCEEDED(sc->RegisterAudioSessionNotification(ev))) {
+                        std::lock_guard lock(a.statMutex_);
+                        session = sc, events = ev;
+                        a.sessionEvents_ = ev;
+                    } else {
+                        log::warn("Audio: Sitzungsbenachrichtigung nicht verfuegbar");
+                        ev->Release();
+                    }
+                }
+                // Windows-Lautstaerke: stumm geschaltete Sitzung oder Geraet ist keine Stoerung des Spiels, erklaert aber Stille
+                Com<ISimpleAudioVolume> sv;
+                float v = 1.0f;
+                BOOL m = FALSE;
+                if (SUCCEEDED(c2->GetService(__uuidof(ISimpleAudioVolume), (void**)sv.put())) && SUCCEEDED(sv->GetMasterVolume(&v)) &&
+                    SUCCEEDED(sv->GetMute(&m)) && (m || v < 0.05f))
+                    log::warn("Audio: Windows-Lautstaerke dieses Spiels {:.0f} %{}", v * 100.0f, m ? ", STUMM geschaltet" : "");
+                Com<IAudioEndpointVolume> epv;
+                if (SUCCEEDED(d2->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_ALL, nullptr, (void**)epv.put())) &&
+                    SUCCEEDED(epv->GetMute(&m)) && SUCCEEDED(epv->GetMasterVolumeLevelScalar(&v)) && (m || v < 0.05f))
+                    log::warn("Audio: Geraet '{}' ist {} (Lautstaerke {:.0f} %)", name, m ? "STUMM geschaltet" : "fast auf null", v * 100.0f);
+                const long long dt = nowMs() - ta;
+                if (dt > 500) log::info("Audio: Sitzungsmeldungen und Lautstaerke abgefragt in {} ms (Hilfsthread)", dt);
+                CoUninitialize();
+            });
+        }
         {
             std::lock_guard lock(a.statMutex_);
             ++a.dev_.opens;
@@ -1485,6 +1504,7 @@ struct DeviceThread {
     void close() {
         a.step_ = kClose;
         a.running_ = false;
+        if (aux.joinable()) aux.join();
         {
             std::lock_guard lock(a.mutex_);
             a.silenceCheck_ = false;
@@ -1537,13 +1557,21 @@ struct DeviceThread {
 };
 
 void AudioSystem::thread() {
+    // V13.3: Echtzeit-Prioritaet - sonst verdraengen die Arbeitsthreads (Welt, Texturen) den Mischer und der Puffer laeuft
+    // leer (Unterlaeufe, Knacken, Aussetzer). Zuerst TIME_CRITICAL (sofort), dann MMCSS "Pro Audio" (falls verfuegbar).
+    const long long t0 = nowMs();
+    step_ = kStart;
+    ++heartbeat_;
+    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
     CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-    // V13.3: Echtzeit-Prioritaet ueber MMCSS - sonst verdraengen die Arbeitsthreads (Welt, Texturen) den Mischer und
-    // der Puffer laeuft leer (Unterlaeufe, Knacken, Aussetzer)
+    const long long t1 = nowMs();
+    ++heartbeat_;
     DWORD task = 0;
     HANDLE mm = AvSetMmThreadCharacteristicsW(L"Pro Audio", &task);
-    if (!mm) SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
-    log::info("Audio: Thread-Prioritaet {}", mm ? "MMCSS 'Pro Audio'" : "TIME_CRITICAL (MMCSS nicht verfuegbar)");
+    const long long t2 = nowMs();
+    ++heartbeat_;
+    log::info("Audio: Thread-Prioritaet {} (angelaufen nach {} ms, COM {} ms, MMCSS {} ms)",
+              mm ? "MMCSS 'Pro Audio'" : "TIME_CRITICAL (MMCSS nicht verfuegbar)", t0 - startMs_, t1 - t0, t2 - t1);
     DeviceThread d(*this);
     int fails = 0;
     long lastHr = 1;

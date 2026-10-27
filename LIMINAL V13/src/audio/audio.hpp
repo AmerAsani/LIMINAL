@@ -318,6 +318,7 @@ private:
     std::atomic<int> step_{0};
     std::atomic<bool> hung_{false};
     std::atomic<int> sessMute_{0};
+    long long startMs_ = 0;  // Zeitpunkt von startDevice (Anlaufzeit des Threads)
     // Watchdog (nur Hauptthread)
     unsigned long long wdBeat_ = 0, wdFrames_ = 0;
     long long wdBeatT_ = 0, wdFramesT_ = 0;
