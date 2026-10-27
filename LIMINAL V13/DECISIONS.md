@@ -397,3 +397,20 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
 - **Death Rat:** Hausratte mit langem Körper (Modell 32 cm Rumpf und Kopf), schwarzes Fell, braune Hörner mit rot glühenden Spitzen; haarlos in Level 2 (Entity 24). Meist harmlos; „Reaktion unbekannt“ (Wiki) → **eigene Auslegung:** sie stieben davon, bedrängt beißt eine (6 Health). Das „Screaming Event“ (Ratten fallen über andere Wesen her, das Licht flackert, bis es vorbei ist) als Ereignis außer Sicht in Level 5. Die Fallen und die menschliche Klugheit der Level-3-Ratten (Ebenenseite) sind **nicht umgesetzt** (eigenes Fallensystem nötig).
 - **Fensterwesen:** in drei dunklen Fenstern (ohne Jalousie) im Erdgeschoss des Hofs von Level 188; einmal je Ebene gesetzt, bleiben dort (Wiki: bleiben, bis sie vergehen). Lockt mit Flüstern (Wiki: tröstend) und Handzeichen; unter 1,9 m vor der Öffnung fährt ein Arm heraus (Wiki: 1–2 m), nach 0,7 s zieht er hinein (tödlich) – wer sofort zurücktritt, entkommt. **Level 2** (Ebenenseite: Fensterwesen am Gangende) ist **nicht umgesetzt**: die Rohrgänge haben keine Fenster; ein eigenes Fenster an Gangenden wäre ein neues Ausstattungsstück (Rang 2 bleibt dafür offen).
 - **Regie:** je Wesen eine Gruppe zur Zeit, außer Sicht, 14–30 m Weg (weiter, wenn die erlaubten Räume weiter liegen), erster Auftritt nach 25–150 s; Abstand je Ebene (`every`) mal Schwierigkeit (`stalker_pause`). Schaden der Schläge mal `stalker_hit / 35`.
+
+## E-032 Arm der Lampenhand: Kette, Handgelenk, gedrehte Faust, Ärmel (V13.3, 27.10.2026)
+- **Befund:** siehe `HAND_ANALYSE.md`, Abschnitt „V13.3: Arm“. Der Ärmel war die Körperform plus 2,2 cm rundum (Unterarm 11–12 cm dick); mit dem Daumen genau oben verlangte das Handmodell einen Ellbogen 16 cm über der Schulter.
+- **Entscheidung:**
+  - Unterarm 27 cm (`figures.cpp`), Oberarm bleibt 29,9 cm.
+  - Handgelenk im Handmodell 30° statt 14° gestreckt (übliche Stellung im Kraftgriff). Finger, Nägel und Lampe bleiben punktgleich.
+  - Im Ego-Bild ist die Faust 43° um die Lampenachse gedreht (Daumen nach außen, leicht von unten gehalten), Griff 18 cm unter und 13 cm links vom Auge. Der Ellbogen hängt dann auf statt über Schulterhöhe, der Unterarm steigt zur Hand. Die Haltung von außen (E-028) bleibt.
+  - Ärmel als eigener Schlauch entlang der Armkette mit dem Querschnitt einer Jacke, Raffung, Bündchen mit gerundeter Kante und dunkler Öffnung, Falten in der Armbeuge und Stau über dem Bündchen, Ober-/Unterarm-Gewichte an der Ebene des Ellbogens (±4,5 cm). Stufe 0 der Jacke feiner vernetzt (6,5 mm, 40 % der Dreiecke).
+- **Abwägung:**
+  - Mit Daumen oben gibt es keine Haltung, in der der Ellbogen tiefer liegt und die Faust im Bild bleibt (gerechnet: Ellbogen 20 cm unter der Schulter → Faust rund 50° unter dem Blick, das Bild reicht 31°).
+  - Mehr Ellenabknickung (über 33°) wäre am Rand der Beweglichkeit.
+  - Die Lampe nicht genau in Blickrichtung zu halten, hätte Licht und Wesen-Reaktionen verändert.
+  - Die Drehung um die Lampenachse ändert nur die Lage der ganzen Faust, nicht den Griff. Rollen um 90° und mehr (Handfläche nach oben) wurde verworfen.
+- **Verworfen:**
+  - eine 2 cm tiefe Öffnung im Bündchen (Wand 3–4 mm, im Netz zerfranst);
+  - Beugefalten mit 3,4 mm Tiefe (zu viele umgeklappte Dreiecke bei 160° Beugung, Test B-001);
+  - eine Mischzone am Ellbogen von ±3 cm (48 umgeklappte Dreiecke von außen, Grenze 46).

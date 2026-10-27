@@ -41,6 +41,13 @@ Wiedereinstieg: diesen Abschnitt lesen, dann `DECISIONS.md` ab E-025.
 
 Hilfsskripte (Scratchpad `v13`): `b.sh [gameplay|all]` (bauen + Tests), `mem_sweep.ps1` / `mem_trace.ps1` (Speicher), `elbow_tp.ps1` (Kamera um den Spieler, Skriptbefehle `figcam` ohne Vorführung in der Schulteransicht, `egopose 1`), `elbow_shots.ps1` (`vmcam`), `crop.py`.
 
+## V13.3 Teil 3 – Arm der Lampenhand
+- [x] Analyse und fünf Kritikrunden in `HAND_ANALYSE.md` (Abschnitt „V13.3: Arm“), Entscheidung E-032, Bilder `docs/screens/viewmodel/v13_3_*` (je Runde Spielerkamera in 12–13 Zuständen, Debug-Kamera um den Arm, Nahansichten der Hand, Armkette von außen; Vergleiche `v13_3_vergleich_*.jpg`).
+  - Unterarm 27 cm, Handgelenk 30° gestreckt (Finger punktgleich), Faust im Ego-Bild 43° gedreht: Ellbogen auf statt 16 cm über Schulterhöhe.
+  - Ärmel mit dem Querschnitt einer Jacke, Raffung, Bündchen mit Kante, Falten; Jacke in Stufe 0 feiner.
+  - Tests: gameplay 446/0 (B-001 grün), audio 106/0.
+  - Hilfen (Scratchpad `v13_3arm`): `armgeo.py`/`armtable.py` (Rechnung der Armkette), `arm_shots.ps1 -P rN [-Wand]` (Ego und Debug), `fig_shots.ps1 -P fN [-Ego 0]` (von außen), `glbdiff.py` (Punktvergleich der glb), `vergleich.py`.
+
 ## Als Nächstes (Vorschläge für V14)
 - Bewegung der Wesen auf die neue Anatomie abstimmen.
 - ORM-Texturen komprimieren (≈ 360 MB VRAM), Ladespitze senken (B-002).
