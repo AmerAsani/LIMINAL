@@ -1306,8 +1306,8 @@ void CoopClient::applyEvent(const nc::Event& e) {
         case nc::EventKind::Figure: {
             GameEvent ev;
             ev.type = GameEvent::Figure;
-            ev.index = std::clamp(e.a, 0, 30);
-            ev.role = std::clamp(e.b, 0, 5);
+            ev.index = std::clamp(e.a, 0, 127);  // V13.3: alle Ereignisarten (vorher bis 30 - Scream, Swing, Pull kamen als Squeak an)
+            ev.role = std::clamp(e.b, 0, nc::kRoles - 1);  // V13.3: alle Wesen (vorher 0..5)
             ev.pos = pos;
             s.events().push_back(ev);
             break;

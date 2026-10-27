@@ -30,7 +30,7 @@ constexpr int kLevelMax = 24;       // Kennung einer Ebene oder eines Uebergangs
 constexpr int kTextMax = 96;        // Meldungen (UTF-8, darstellbar)
 constexpr int kNameMax = 16;
 constexpr int kAnimN = 18;          // Eingaben der Animation eines Wesens (V13.2: + wave talk plea strike)
-constexpr int kRoles = 11;          // Presence::Role
+constexpr int kRoles = 40;          // Presence::Role (V13.3: Platz fuer weitere Wesen ohne Protokollaenderung)
 constexpr i32 kCoordMax = 100'000'000;  // mm (100 km)
 constexpr u8 kButtonMask = 0x0F;        // Rennen, Springen, Sprung gehalten, Schleichen
 
