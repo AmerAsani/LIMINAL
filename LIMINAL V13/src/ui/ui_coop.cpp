@@ -119,7 +119,8 @@ void Ui::titleCoop(Host& h, float x, float y, float w) {
             info = {std::format("Lobby: {}. Ohne Router-Einstellungen: ein direkter Weg wird gesucht, sonst geht es über das Relay.", lobby),
                     coopJoin_ ? "Den Code nennt dir der Host (Pausenmenü → Mitspieler)."
                               : "Bis zu vier Spieler. Der Code steht nach dem Start im Pausenmenü unter »Mitspieler«.",
-                    "Übertragen werden Spielername und Spielzustand – verschlüsselt (DTLS). Die Lobby sieht deine IP-Adresse, nicht das Spiel."};
+                    "Übertragen werden Spielername und Spielzustand, verschlüsselt (DTLS).",
+                    "Die Lobby sieht deine IP-Adresse, aber nicht den Spielverkehr."};
     } else {
         info = coopJoin_ ? std::vector<std::string>{"Adresse und der lange Code (24 Zeichen) kommen vom Host. Im LAN genügt das; übers Internet",
                                                     "braucht der Host eine Portfreigabe (TCP und UDP, Standard 27500)."}
@@ -180,11 +181,13 @@ void Ui::coopPlayersPage(Host& h, float x, float y, float w) {
                     r_->text(x + 46 * s, dy, kFsBody * s, std::format("Adresse: IP dieses Rechners (ipconfig), Port {} (TCP und UDP)", v.port), kText);
                     dy += 28 * s;
                 }
-                r_->text(x + 46 * s, dy, kFsSmall * s,
-                         "Strg+C kopiert den Code. Gib ihn nur Leuten, die mitspielen sollen; er gilt nur für diese Sitzung." +
-                             std::string(v.direct ? "" : " Lange Form (prüft zusätzlich den Host): " + v.codeLong),
-                         kMuted);
-                dy += 36 * s;
+                r_->text(x + 46 * s, dy, kFsSmall * s, "Strg+C kopiert den Code. Nur an Mitspieler geben; er gilt nur für diese Sitzung.", kMuted);
+                dy += 22 * s;
+                if (!v.direct) {
+                    r_->text(x + 46 * s, dy, kFsSmall * s, "Lange Form (prüft zusätzlich den Host): " + v.codeLong, kMuted);
+                    dy += 22 * s;
+                }
+                dy += 14 * s;
                 if (in_->down(VK_CONTROL) && in_->pressed('C')) {
                     h.copyText(shown);
                     h.playSound("ui_select");
