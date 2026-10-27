@@ -60,6 +60,7 @@ def run(args, script, userdir, size='1600x900', quality=2, hud=False, timeout=36
         cmd.append('--no-hud')
     cmd += args.split() if isinstance(args, str) else list(args)
     code = None
+    t0 = time.time()
     for attempt in range(4):
         try:
             code = subprocess.run(cmd, env=env, timeout=timeout).returncode
@@ -69,9 +70,11 @@ def run(args, script, userdir, size='1600x900', quality=2, hud=False, timeout=36
             time.sleep(20)
     text = ''
     if os.path.isdir(logdir):
-        new = sorted(set(os.listdir(logdir)) - before)
-        if new:
-            with open(os.path.join(logdir, new[-1]), encoding='utf-8', errors='replace') as fh:
+        # das Spiel schreibt immer dieselbe Datei: die nach dem Start geaenderte(n) lesen
+        files = [os.path.join(logdir, f) for f in os.listdir(logdir)]
+        fresh = [f for f in files if os.path.getmtime(f) >= t0 - 1]
+        if fresh:
+            with open(max(fresh, key=os.path.getmtime), encoding='utf-8', errors='replace') as fh:
                 text = fh.read()
     return code, text
 
