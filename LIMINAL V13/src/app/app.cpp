@@ -855,7 +855,10 @@ void App::mainLoop() {
         if (opt_.quitAfter > 0 && time_ > opt_.quitAfter) quit_ = true;
 
         input_.beginFrame();
-        if (!window_.pump() || window_.closeRequested()) quit_ = true;
+        if (!window_.pump() || window_.closeRequested()) {
+            if (!quit_) log::info("Fenster geschlossen (WM_CLOSE/WM_QUIT)");  // V13.3: Grund des Beendens im Protokoll
+            quit_ = true;
+        }
         input_.pollGamepad();
         if (!opt_.shot.empty() || !opt_.script.empty()) {
             // Aufnahmen/Tests: keine echten Eingaben, nur die des Skripts

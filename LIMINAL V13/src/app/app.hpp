@@ -13,6 +13,7 @@
 #include "coop/coop.hpp"
 #include "coop/netapi.hpp"
 #include "core/jobs.hpp"
+#include "core/log.hpp"
 #include "core/paths.hpp"
 #include "gameplay/autopilot.hpp"
 #include "gameplay/content.hpp"
@@ -70,7 +71,10 @@ public:
     bool loadGame(const game::SaveEntry& e) override;
     void saveGame() override;
     void toTitle() override;
-    void quit() override { quit_ = true; }
+    void quit() override {
+        if (!quit_) log::info("Beenden ueber das Menue");  // V13.3: Grund des Beendens im Protokoll
+        quit_ = true;
+    }
     void playSound(const std::string& name, float volume = 1.0f) override;
     double time() const override { return time_; }
     bool hasSave() const override { return !currentSlotPath_.empty(); }
