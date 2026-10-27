@@ -627,7 +627,7 @@ float sleeveRadius(const Ctx& c, const SleeveGeo& g, float s) {
     const Build& b = c.b;
     const float end = g.fa + kCuffOut, seam = end - kCuffLen;
     const float xs[] = {-g.ua, -0.55f * g.ua, 0.0f, 0.35f * g.fa, seam - kGather, seam, end};
-    const float ys[] = {b.upperArmR + 0.013f, b.upperArmR + 0.010f, b.forearmR + 0.0125f, b.forearmR + 0.0075f,
+    const float ys[] = {b.upperArmR + 0.011f, b.upperArmR + 0.010f, b.forearmR + 0.0125f, b.forearmR + 0.0075f,
                         b.wristR + 0.0125f, b.wristR + 0.0058f, b.wristR + 0.0046f};
     return monotone(xs, ys, 7, s);
 }
@@ -655,12 +655,18 @@ float sleeveFolds(const SleeveGeo& g, vec3 p, float* groove) {
     {
         const float tf = dot(q, g.fd), rl = length(orthoTo(q, g.fd));
         const float w = tf - (g.fa + kCuffOut - kCuffLen - kGather);
-        if (w > -0.12f && w < 0.0f && rl < 0.07f) {
-            const float m = smoothstep(-0.11f, -0.07f, w) * (1.0f - smoothstep(-0.012f, -0.003f, w));
+        if (w > -0.15f && w < 0.0f && rl < 0.07f) {
+            // Runde 5: Beginn der Zone weich und je Seite verschieden - eine dort abbrechende Rinne wirkte als Kerbe
+            const float w0 = -0.13f + 0.015f * sculpt::noise3(p * 9.0f, 231);
+            const float m0 = smoothstep(w0, w0 + 0.07f, w), m = m0 * m0 * (1.0f - smoothstep(-0.012f, -0.003f, w));
             // Runde 4: Ringe ungleich - Phase grossraeumig verbogen (schraeg, wellig), Tiefe stark wechselnd, einzelne
             // Falten laufen aus (Runde 3: gleichmaessige Ringe wie eine Ziehharmonika)
             const float am = std::clamp(0.55f + 0.75f * sculpt::noise3(p * 24.0f, 223), 0.0f, 1.0f);
-            const float ph = 2.0f * kPi * w / 0.021f + 3.2f * sculpt::noise3(p * 11.0f, 227) + 1.0f * sculpt::noise3(p * 37.0f, 229);
+            // Runde 5: um den Arm herum im Zickzack (gestauter Stoff legt sich schraeg, nicht als Ring)
+            const vec3 e1 = normalize(orthoTo(g.crook, g.fd)), e2 = cross(g.fd, e1), rv = orthoTo(q, g.fd);
+            const float th = std::atan2(dot(rv, e2), dot(rv, e1));
+            const float ph = 2.0f * kPi * w / 0.021f + 1.6f * sculpt::noise3(p * 11.0f, 227) + 0.5f * sculpt::noise3(p * 37.0f, 229) +
+                             1.6f * std::sin(th + 0.7f) + 0.8f * std::sin(2.0f * th + 2.1f);
             const float f = 0.0023f * m * am * std::sin(ph);
             v += f - 0.0012f * m;  // gerafft etwas weiter
             gr = std::max(gr, std::max(0.0f, f) / 0.0023f);
@@ -673,8 +679,8 @@ float sleeveFolds(const SleeveGeo& g, vec3 p, float* groove) {
 // Abstand zum Aermel (Stoff ist innen negativ)
 float sleeveDist(const Ctx& c, const SleeveGeo& g, vec3 p) {
     const vec3 pu = p - g.S;
-    // V13.3 Runde 3: der Schlauch beginnt 2 cm im Deltamuskel (die Kappe an der Schulter trug sonst auf)
-    const float tu = std::clamp(dot(pu, g.ad), 0.02f, g.ua);
+    // V13.3: der Schlauch beginnt im Deltamuskel (Runde 3: 2 cm, Runde 5: 5 cm) - die Kappe an der Schulter trug sonst auf
+    const float tu = std::clamp(dot(pu, g.ad), 0.05f, g.ua);
     const float du = length(pu - g.ad * tu) - sleeveRadius(c, g, tu - g.ua);
     const float end = g.fa + kCuffOut;
     const vec3 pf = p - g.E;
@@ -704,11 +710,11 @@ vec2 hoodieTint(const Ctx& c, const SleeveGeo* sl, vec3 p) {
         dark = std::max(dark, 0.12f * smoothstep(seam - 0.002f, seam + 0.004f, tf));
         dark = std::max(dark, 0.35f * std::exp(-((tf - seam) / 0.004f) * ((tf - seam) / 0.004f)));
     }
-    // Rinnen der Falten etwas dunkler (Hohlraum)
+    // Rinnen der Falten etwas dunkler (Hohlraum; Runde 5: 22 statt 30 %)
     for (int sd = 0; sd < 2; ++sd) {
         float gr = 0.0f;
         sleeveFolds(sl[sd], p, &gr);
-        dark = std::max(dark, 0.3f * gr);
+        dark = std::max(dark, 0.22f * gr);
     }
     return vec2{0.0f, std::clamp(dark, 0.0f, 1.0f)};
 }
