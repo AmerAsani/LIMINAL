@@ -147,7 +147,7 @@ Keine eigene Kryptografie. Verschlüsselung und Echtheit der Gegenstelle macht D
 
   Verstöße trennen die Verbindung; die Lobby läuft weiter.
 - **Eingebaute Lobby (Direkt):**
-  - Der Host startet denselben Server in seiner DLL: ein Raum, ohne Relay; „Host“ nur über die eigene Loopback-Adresse.
+  - Der Host startet denselben Server in seiner DLL: ein Raum, ohne Relay; „Host“ nur über die eigene Loopback-Adresse; höchstens 32 Verbindungen, 8 je Adresse.
   - Alle Gäste-Verbindungen nutzen einen festen UDP-Port (ICE-Mux), Standard 27500; damit ist eine Portfreigabe (TCP und UDP 27500) möglich.
   - Der Gast nimmt die eingegebene Adresse zusätzlich als ICE-Kandidaten.
 - **Verbindung des Spiels zur Lobby** über **WinHTTP** (`src/netdll/lobby_client.*`):

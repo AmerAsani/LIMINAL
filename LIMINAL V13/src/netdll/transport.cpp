@@ -156,6 +156,15 @@ void initLibrary() {
         const char* env = std::getenv("LIMINAL_NET_LOG");
         if (env && *env == '1') rtc::InitLogger(rtc::LogLevel::Warning, [](rtc::LogLevel, std::string msg) { std::fprintf(stderr, "[rtc] %s\n", msg.c_str()); });
         else rtc::InitLogger(rtc::LogLevel::None);
+        // SCTP fuer ein Echtzeitspiel: libdatachannel laesst die Wartezeit bis zur Wiederholung bis 10 s wachsen und gibt
+        // nach 5 Versuchen auf. Auf verlustreichen Wegen (Relay, zwei gestoerte Strecken) stand der Verkehr dann bis zu
+        // 10 s still (auch der unzuverlaessige Kanal wartet im Staufenster) und die Stille-Erkennung trennte nach 37 min im
+        // Langlauf. Hoechstens 2 s Wartezeit, 12 Versuche; ob eine Verbindung tot ist, entscheidet die Stille (10 s).
+        rtc::SctpSettings ss;
+        ss.maxRetransmitTimeout = std::chrono::milliseconds(2000);
+        ss.initialRetransmitTimeout = std::chrono::milliseconds(1000);
+        ss.maxRetransmitAttempts = 12;
+        rtc::SetSctpSettings(ss);
     });
 }
 
