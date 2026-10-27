@@ -1877,8 +1877,13 @@ def _carton(K, Rm, c, L, W, H, rot, rng, state='zu', detail=1, body=None, face=(
         for i in range(4):
             ta, tb = top[i], top[(i + 1) % 4]
             out = (tb - ta).cross(up).normalized()
-            psi = rng.uniform(0.25, 2.0)
-            d = (out * math.sin(psi) + up * math.cos(psi)) * f
+            # Laschen bleiben in den Grenzen des Regals (Gasse frei, unter 5,45 m): sonst steiler, weiter nach
+            # aussen geklappt oder nach innen gefallen
+            for psi in (rng.uniform(0.25, 2.0), 0.25, 1.7, 2.3, -1.3):
+                d = (out * math.sin(psi) + up * math.cos(psi)) * f
+                ends = (xp(ta + d), xp(tb + d))
+                if all(abs(e.y) <= 1.205 and e.z <= 5.42 for e in ends):
+                    break
             K.poly(body, [xp(ta), xp(tb), xp(tb + d), xp(ta + d)], two=True)
         return
     if cover:
