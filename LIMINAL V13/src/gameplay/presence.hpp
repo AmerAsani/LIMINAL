@@ -229,6 +229,11 @@ public:
     void addDose(int target, float d);
     float slowFor(int target, vec3 feet) const;  // auch: Gewirr einer Growler-Leiche
     vec3 webOf(int i = 0) const;  // Mitte der i-ten Netzkolonie an der Decke (Tests, Skripte); 0: keine
+    // V13.3 (Tests, Skripte): i-te Spinne (Lage, Zustand); i-tes Wesen der Rolle versetzen; Werte setzen (Growler: scale,
+    // state; Netz: hungry; Spieler: stupor)
+    vec3 spiderOf(int i, int* state = nullptr) const;
+    bool placeAgent(Role r, int i, vec3 p);
+    bool gnSet(Role r, const std::string& key, double v);
 
 private:
     struct Agent;
@@ -319,7 +324,7 @@ private:
     double forcedDist_ = 0.0;
     Hive hive_;
     // V13.3: Growler, Nguithr'xurh - naechster Auftritt, Rauschen beim Spieler, Betaeubung je Spieler
-    double nextGrowler_ = 60.0, nextNguithr_ = 20.0, corpseT_ = 0.0;
+    double nextGrowler_ = 60.0, nextNguithr_ = 20.0, corpseT_ = 45.0;
     float static_ = 0.0f;
     vec3 selfEye_;
     std::array<float, 4> stupor_{};

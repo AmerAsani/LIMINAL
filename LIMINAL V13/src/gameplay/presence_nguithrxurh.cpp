@@ -110,6 +110,24 @@ float Presence::slowFor(int target, vec3 feet) const {
     return k;
 }
 
+vec3 Presence::spiderOf(int i, int* state) const {
+    for (const auto& a : agents_)
+        if (a->role == Role::Nguithr && !isWeb(*a) && !a->showcase && i-- == 0) {
+            if (state) *state = a->state;
+            return a->pos;
+        }
+    return {};
+}
+
+bool Presence::placeAgent(Role r, int i, vec3 p) {
+    for (auto& a : agents_)
+        if (a->role == r && !a->showcase && i-- == 0) {
+            a->snapBody(p, a->yaw);
+            return true;
+        }
+    return false;
+}
+
 vec3 Presence::webOf(int i) const {
     for (const auto& a : agents_)
         if (a->role == Role::Nguithr && isWeb(*a) && !a->showcase && i-- == 0) return a->pos;

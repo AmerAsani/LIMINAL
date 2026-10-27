@@ -53,6 +53,21 @@ float Presence::growlerScale(int i) const {
     return 0.0f;
 }
 
+bool Presence::gnSet(Role r, const std::string& key, double v) {
+    if (key == "stupor") {
+        stupor_[0] = (float)v;
+        stuporHold_[0] = 0.0;
+        return true;
+    }
+    for (auto& a : agents_) {
+        if (a->role != r || a->showcase) continue;
+        if (r == Role::Nguithr && (a->variant == 1 || a->variant == 2) && key == "hungry") return a->hungry = v > 0.5, true;
+        if (r == Role::Growler && key == "scale") return gag(*a).scale = gag(*a).scaleT = (float)v, true;
+        if (r == Role::Growler && key == "state") return a->state = (int)v, a->stateT = 0.0, a->hang = v == kCorpse ? 1.0f : 0.0f, true;
+    }
+    return false;
+}
+
 // Groesse, Leuchten (Junge im Dunkeln), Rauschen beim eigenen Spieler; Netz der Spinnen: presence_nguithrxurh.cpp
 void Presence::prepGN(Agent& a, const Context& c) {
     if (a.role == Role::Nguithr) {
