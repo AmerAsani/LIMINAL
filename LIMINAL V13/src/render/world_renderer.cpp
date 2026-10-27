@@ -239,9 +239,11 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     // Ausfluss (Wretch: rotbrauner Saft aus den Pusteln, brauner Schlamm aus dem Mund)
     materialData_[FM_ENT_OOZE] = GpuMaterial{{0.42f, 0.20f, 0.11f}, 0, ent(EL_HORN, ML_PORES), 0.22f, 0, 0.05f};
     // V13.3: Duller - dunkelgrau, trocken und matt, Haarrisse; an Knochenkanten etwas Glanz (Textur); kein roetliches Durchscheinen
-    materialData_[FM_ENT_DULLERSKIN] = GpuMaterial{{0.40f, 0.40f, 0.43f}, 0, ent(EL_SKIN, ML_CRAZE), 0.9f, 0, 0.25f};
+    materialData_[FM_ENT_DULLERSKIN] = GpuMaterial{{0.62f, 0.62f, 0.66f}, 0, ent(EL_SKIN, ML_CRAZE), 1.0f, 0, 0.25f};
     // V13.3: Arms - verwesende, graue Haut mit gruenlichem Stich, speckig-feucht (wenig Rauheit)
     materialData_[FM_ENT_ROTSKIN] = GpuMaterial{{0.78f, 0.82f, 0.70f}, 0, ent(EL_SKIN, ML_CRAZE) | kMatFlagSkin, 0.55f, 0, 0.3f};
+    // V13.3: frisch gebrochener Beton und Putz (Bruchstelle des Dullers, Riss der Arms): hell, stumpf, fleckig, Haarrisse
+    materialData_[FM_ENT_CONCRETE] = GpuMaterial{{0.78f, 0.78f, 0.76f}, 0, ent(EL_TOOTH, ML_CRAZE), 1.7f, 0, 0.35f};
     materialData_[FM_ENT_SMOKE] = GpuMaterial{{0.32f, 0.31f, 0.30f}, 0, tri(L_SKIN) | kMatFlagSmoke, 1.0f, 0, 0.0f};  // Rauch verbrannter Haut
     writeMaterials(gpu);
     lights_ = gpu.createStructured(sizeof(GpuLight), 2048, true, false);

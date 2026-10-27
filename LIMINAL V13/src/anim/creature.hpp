@@ -335,7 +335,7 @@ inline int bLeg(int s, int i) { return B_LEG0 + s * 3 + i; }
 // Masse (m): Koerper; Glied k ist kSegLen - k * kSegShrink lang und steckt kSegOverlap im vorigen; Bruchstelle der Ruhepose
 constexpr float kHip = 1.10f, kWaist = 1.29f, kChest = 1.52f, kShoulder = 1.80f, kNeckTop = 1.93f, kHeadTop = 2.19f;
 constexpr float kShoulderW = 0.165f, kHipW = 0.095f, kUpper = 0.44f, kSegLen = 0.47f, kSegShrink = 0.01f, kSegOverlap = 0.07f;
-constexpr float kHand = 0.12f, kThigh = 0.53f, kShin = 0.52f, kAnkle = 0.06f, kFoot = 0.21f, kArmOut = 0.45f;
+constexpr float kHand = 0.13f, kThigh = 0.50f, kShin = 0.49f, kAnkle = 0.06f, kFoot = 0.21f, kArmOut = 0.45f;
 constexpr float kBreachX = 1.5f, kBreachZ = 1.45f, kBreachH = 1.45f;  // Ruhepose: Mitte der Bruchstelle; Hoehe ueber dem Boden
 inline float segLen(int k) { return kSegLen - kSegShrink * (float)k; }
 float extendedLen();  // Unterarm ganz ausgefahren (Ellbogen bis Handgelenk)

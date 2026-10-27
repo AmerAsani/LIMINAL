@@ -113,7 +113,7 @@ CreatureSkeleton du::skeleton() {
     J(HEAD, {0.02f, 0, kNeckTop});
     J(HEADTOP, {0.03f, 0, kHeadTop});
     // Fingerlaengen (Grundglied, Endglied): Daumen, Zeige-, Mittel-, Ring-, kleiner Finger - lang und duenn
-    static const float fl[kFing][2] = {{0.055f, 0.05f}, {0.088f, 0.078f}, {0.098f, 0.088f}, {0.088f, 0.078f}, {0.068f, 0.058f}};
+    static const float fl[kFing][2] = {{0.07f, 0.06f}, {0.115f, 0.1f}, {0.13f, 0.11f}, {0.115f, 0.1f}, {0.09f, 0.075f}};
     for (int sd = 0; sd < 2; ++sd) {
         const float sg = sd == 0 ? 1.0f : -1.0f;
         const vec3 S{0.0f, sg * kShoulderW, kShoulder};
@@ -136,7 +136,7 @@ CreatureSkeleton du::skeleton() {
                 base = W + d * 0.035f + F * 0.032f;
                 dir = normalize(d + F * 0.75f);
             } else {
-                base = s.bind[(size_t)kn(sd)] + F * (0.033f - 0.022f * (float)(f - 1));
+                base = s.bind[(size_t)kn(sd)] + F * (0.039f - 0.026f * (float)(f - 1));
             }
             J(fin(sd, f, 0), base);
             J(fin(sd, f, 1), base + dir * fl[f][0]);
@@ -258,7 +258,7 @@ void CreatureAnimator::updateDuller(float dt, const Input& in) {
     const float sway = std::sin(swayPh_) + 0.4f * std::sin(swayPh_ * 2.3f + 1.0f);
 
     // --- Rumpf --------------------------------------------------------------------------------------------------------
-    float bend = 0.3f + 0.25f * mv + 0.45f * flee + 0.35f * crouch_ + 0.18f * scrape - 0.12f * perc_;
+    float bend = 0.48f + 0.2f * mv + 0.45f * flee + 0.35f * crouch_ + 0.18f * scrape - 0.12f * perc_;
     bend += 0.15f * ext;  // greift: er lehnt sich in die Wand
     const float roll = -0.07f * c1 * mv * (run_ ? 0.6f : 1.0f) + 0.035f * sway * idleW_ + 0.5f * stumble * (moving ? 1.0f : 0.0f);
     vec3 P = pos_ + Lw * (0.06f * mv * std::cos(kTau * (phase_ - 0.25f)) * (run_ ? 0.3f : 1.0f) + 0.025f * sway * idleW_);
@@ -299,7 +299,7 @@ void CreatureAnimator::updateDuller(float dt, const Input& in) {
     J[CHEST] = J[SPINE] + Mb * (Rsp * (B[CHEST] - B[SPINE]));
     J[NECK] = J[CHEST] + Mb * (Rch * (B[NECK] - B[CHEST])) + U * (0.004f * breath);
     // Hals: der Kopf haengt vor (gebeugte, lauernde Haltung)
-    const M3 Rnk = Rch * axisAngle({0, 1, 0}, 0.42f + 0.25f * flee - 0.2f * perc_);
+    const M3 Rnk = Rch * axisAngle({0, 1, 0}, 0.62f + 0.25f * flee - 0.25f * perc_);
     J[HEAD] = J[NECK] + Mb * (Rnk * (B[HEAD] - B[NECK]));
     // Kopf: ohne Gesicht - er "sieht" trotzdem hin; lauschend legt er ihn schief an die Wand
     float wy = 0.0f, wp = -0.25f;
@@ -337,7 +337,7 @@ void CreatureAnimator::updateDuller(float dt, const Input& in) {
     headDir_ = Mb * (Rh * vec3{1, 0, 0});
 
     // --- Arme ---------------------------------------------------------------------------------------------------------
-    static const float fl[kFing][2] = {{0.055f, 0.05f}, {0.088f, 0.078f}, {0.098f, 0.088f}, {0.088f, 0.078f}, {0.068f, 0.058f}};
+    static const float fl[kFing][2] = {{0.07f, 0.06f}, {0.115f, 0.1f}, {0.13f, 0.11f}, {0.115f, 0.1f}, {0.09f, 0.075f}};
     const float L0 = segLen(0), Lmax = extendedLen();
     spring(X[X_ARMPH], X[X_ARMPHV], (float)(moving ? 1 : 0), 2.0f, dt);
     vec3 handC = headPos_;
@@ -431,7 +431,7 @@ void CreatureAnimator::updateDuller(float dt, const Input& in) {
         if (sd == 1 && reaching) curl = 0.05f + 1.25f * grip;                       // offen, dann zu
         if (scrape > 0.01f && !reaching) curl += (0.6f + 0.45f * std::sin(time_ * 13.0f + (float)sd * 1.7f) - curl) * scrape;  // schaben
         for (int fi = 0; fi < kFing; ++fi) {
-            const vec3 base = fi == 0 ? W + hdir * 0.035f + across * 0.032f : J[(size_t)kn(sd)] + across * (0.033f - 0.022f * (float)(fi - 1));
+            const vec3 base = fi == 0 ? W + hdir * 0.035f + across * 0.032f : J[(size_t)kn(sd)] + across * (0.039f - 0.026f * (float)(fi - 1));
             vec3 d0 = fi == 0 ? safeNorm(hdir + across * 0.75f, hdir) : safeNorm(hdir + across * (0.06f * (2.0f - (float)fi)), hdir);
             if (sd == 1 && reaching) d0 = safeNorm(d0 + across * (0.25f * (2.0f - (float)fi)) * (1.0f - grip), d0);  // gespreizt
             const float c = curl * (fi == 0 ? 0.6f : 1.0f) * (0.85f + 0.3f * hash1((unsigned)(fi * 3 + sd)));
@@ -461,8 +461,9 @@ void CreatureAnimator::updateDuller(float dt, const Input& in) {
     const bool shown = in.shiver > 0.5f && wall;
     const float bulge = std::clamp(X[X_BULGE], 0.0f, 1.0f);
     const vec3 Bb{kBreachX, 0.0f, kBreachZ};  // Mitte in der Ruhepose
-    auto toWall = [&](vec3 bindP, float depth) {  // Ruhepose (Ebene x = kBreachX) -> Wandflaeche
+    auto toWall = [&](vec3 bindP, float depth) {  // Ruhepose (Ebene x = kBreachX) -> Wandflaeche; ohne Bruchstelle unter dem Boden
         const vec3 r = bindP - Bb;
+        if (!shown) return pos_ - U * 3.0f + n * r.x + t1 * r.y + U * r.z;
         return breach + n * (r.x + depth) + t1 * r.y + U * r.z;
     };
     const float crackD = shown ? -0.04f + 0.0415f * sm01((bulge - 0.2f) / 0.25f) : -0.3f;

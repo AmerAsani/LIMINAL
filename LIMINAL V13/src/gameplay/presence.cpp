@@ -50,6 +50,7 @@ void Presence::setGrace(double s) {
     nextHive_ = std::max(nextHive_, s * 0.4);
     nextGestalt_ = std::max(nextGestalt_, s * 0.6);
     for (double& k : nextKin_) k = std::max(k, s * 0.5);  // V13.2
+    nextDuller_ = std::max(nextDuller_, s * 0.6), nextArms_ = std::max(nextArms_, s * 0.3);  // V13.3
 }
 
 void Presence::remove(size_t i) { agents_.erase(agents_.begin() + (std::ptrdiff_t)i); }
