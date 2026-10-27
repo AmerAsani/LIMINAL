@@ -501,7 +501,7 @@ def mats():
         'grime': M_('schmutz', (0.19, 0.16, 0.12), 'paint', r=1.45),
         'water': M_('tropfen', (0.10, 0.10, 0.09), 'water'),
         'paper': M_('papier', (0.94, 0.93, 0.88), 'sign'),
-        'ink': M_('druck', (0.07, 0.06, 0.05), 'stencil'),
+        'ink': M_('druck', (0.20, 0.18, 0.16), 'stencil'),
     }
 
 
@@ -574,14 +574,14 @@ def _batten(dead):
     cp = [(0.0540, -0.4170), (0.0690, -0.4170), (0.0690, -0.3920), (0.0665, -0.3920), (0.0665, -0.4145), (0.0540, -0.4145)]
     cm = [(-y, z) for (y, z) in reversed(cp)]
     for x in (-0.46, 0.46):
-        K.prism(clip, cp, x - 0.011, x + 0.011, axis='x')
-        K.prism(clip, cm, x - 0.011, x + 0.011, axis='x')
+        K.prism(clip, cp, x - 0.011, x + 0.011, axis='x', caps=(False, False))
+        K.prism(clip, cm, x - 0.011, x + 0.011, axis='x', caps=(False, False))
     # Montagebuegel, Seilhalter, Seile, Deckenhaken
     for x in (-0.6, 0.6):
         K.box(C['galv'], (x - 0.02, -0.045, -0.3505), (x + 0.02, 0.045, -0.346), skip=('-z',))
         K.cyl(clip, (x, 0, -0.346), (x, 0, -0.318), 0.0055, seg=6, caps=(False, True))
         K.cyl(clip, (x, 0, -0.318), (x + 0.002, 0.001, -0.004), 0.0016, seg=4, caps=(False, False))
-        K.lathe(C['galv'], [(0.0, -0.009), (0.012, -0.0075), (0.017, -0.003), (0.017, 0.0)], 6, T(x, 0, 0), smooth=True)
+        K.lathe(C['galv'], [(0.0, -0.009), (0.015, -0.006), (0.017, 0.0)], 6, T(x, 0, 0), smooth=True)
     # Kabelverschraubung an der Kappe, Anschlusskabel zur Decke
     K.cyl(C['black'], (0.758, 0.0, -0.384), (0.772, 0.0, -0.384), 0.0075, seg=6, caps=(False, True))
     path = [(0.772, 0.0, -0.384), (0.795, 0.004, -0.376), (0.812, 0.010, -0.340), (0.815, 0.016, -0.24), (0.806, 0.02, -0.11),
@@ -636,8 +636,8 @@ def build_highbay():
     body = [(0.0105, -0.588), (0.032, -0.590), (0.066, -0.598), (0.084, -0.610), (0.090, -0.626), (0.090, -0.712),
             (0.098, -0.716), (0.100, -0.728)]
     K.lathe(housing, list(reversed(body)), 16, smooth=True, sharp=35)
-    for k in range(12):
-        a = TAU * k / 12 + 0.13
+    for k in range(10):
+        a = TAU * k / 10 + 0.13
         K.prism(housing, [(0.088, -0.0022), (0.110, -0.0018), (0.110, 0.0018), (0.088, 0.0022)], -0.708, -0.630, R('z', a),
                 caps=(False, True))
     # Klemmkasten seitlich, Typschild, Kabelverschraubung
@@ -647,9 +647,9 @@ def build_highbay():
             frame((0.0, 0.118, -0.69), (0, 1, 0)), smooth=False)
     # Reflektor: aussen (vom Rand zum Hals -> Normale nach aussen), innen (Hals -> Rand, facettiert)
     rp = [(0.112, -0.728), (0.128, -0.758), (0.158, -0.808), (0.196, -0.866), (0.228, -0.918), (0.248, -0.954), (0.256, -0.972)]
-    K.lathe(refl_out, [(r + 0.002, z) for (r, z) in reversed(rp[3:])], 20, smooth=True, sharp=60)
-    K.lathe(refl_dust, [(r + 0.002, z) for (r, z) in reversed(rp[:4])], 20, smooth=True, sharp=60)
-    K.lathe(refl_in, rp, 20, smooth=False)
+    K.lathe(refl_out, [(r + 0.002, z) for (r, z) in reversed(rp[3:])], 18, smooth=True, sharp=60)
+    K.lathe(refl_dust, [(r + 0.002, z) for (r, z) in reversed(rp[:4])], 18, smooth=True, sharp=60)
+    K.lathe(refl_in, rp, 18, smooth=False)
     # Rollrand und Klemmring
     K.lathe(C['galv'], [(0.262, -0.986), (0.266, -0.981), (0.264, -0.975), (0.256, -0.972)], 20, smooth=True, sharp=60)
     K.lathe(C['galv_dark'], [(0.247, -0.9955), (0.2615, -0.9955), (0.2625, -0.9875), (0.2585, -0.9850)], 20, smooth=True, sharp=50)
@@ -762,6 +762,11 @@ def _ceiling_vent(v):
         sx, sy = math.cos(a), math.sin(a)
         m = max(abs(sx), abs(sy))
         K.blob(C['grime'], (0.316 * sx / m, 0.316 * sy / m, -0.0093), (1, 0, 0), (0, -1, 0), rng.uniform(0.03, 0.07), 0.009, 6, rng)
+    # Russ- und Staubhof an der Decke um den Rahmen (Luft streicht aus dem Schacht), unregelmaessig
+    halo = M_('deckenschmutz', (0.17, 0.16, 0.14), 'concrete', r=1.4)
+    for (cx, cy, rx, ry) in ((0.0, -0.345, 0.22, 0.02), (0.345, 0.05, 0.02, 0.18), (-0.1, 0.345, 0.15, 0.015),
+                             (-0.345, -0.12, 0.016, 0.12)):
+        K.blob(halo, (cx, cy, -0.0006), (1, 0, 0), (0, -1, 0), rx * rng.uniform(0.8, 1.1), ry, 8, rng, irr=0.25)
     # Gitter (eigenes Kit): lokal y 0 .. 2w (Scharnierkante y = 0), schraege Lamellen, Unterseite = -z
     G = Kit()
     t = 0.012
@@ -819,9 +824,9 @@ def _chair(v):
     rng = random.Random(16 + v)
     K = Kit()
     C = mats()
-    wood = M_('buche_lack', (0.43, 0.31, 0.21), 'wood', r=0.8)
-    worn = M_('buche_abgegriffen', (0.49, 0.37, 0.26), 'wood', r=1.15)
-    foot = M_('holz_fuss', (0.24, 0.18, 0.12), 'wood', r=1.25)
+    wood = M_('buche_lack', (0.92, 0.80, 0.66), 'wood', tex='wood_walnut_floor', r=0.8)
+    worn = M_('buche_abgegriffen', (1.0, 0.90, 0.76), 'wood', tex='wood_walnut_floor', r=1.15)
+    foot = M_('holz_fuss', (0.50, 0.42, 0.34), 'wood', tex='wood_walnut_floor', r=1.25)
     glide = M_('gleiter', (0.08, 0.08, 0.08), 'plastic', r=0.9)
     felt = M_('filz', (0.36, 0.30, 0.24), 'fabric')
     leg = rrect(0.017, 0.017, 0.005, n=1)
@@ -940,10 +945,10 @@ def _desk(v):
     rng = random.Random(230 + v)
     K = Kit()
     C = mats()
-    top = M_('tischplatte', (0.40, 0.32, 0.24), 'wood', r=0.75)
-    edge = M_('umleimer', (0.24, 0.18, 0.13), 'wood', r=0.85)
+    top = M_('tischplatte', (0.60, 0.57, 0.50), 'plastic', r=1.1)
+    edge = M_('umleimer', (0.22, 0.17, 0.12), 'plastic', r=0.9)
     steel = M_('tischgestell', (0.27, 0.27, 0.28), 'paint', r=1.1)
-    drawer = M_('schublade', (0.38, 0.30, 0.22), 'wood', r=0.8)
+    drawer = M_('schublade', (0.50, 0.50, 0.48), 'paint', r=1.1)
     crt = M_('roehre_gehaeuse', (0.66, 0.62, 0.52), 'plastic', r=1.15)
     bez = M_('roehre_rahmen', (0.70, 0.66, 0.56), 'plastic', r=1.1)
     scr = M_('bildschirm', (0.07, 0.085, 0.08), 'glass', r=0.35)
@@ -954,7 +959,7 @@ def _desk(v):
     sheet = M_('papier_blank', (0.88, 0.87, 0.82), 'plastic', r=1.45)
     mug = M_('tasse', (0.84, 0.83, 0.79), 'ceramic', r=0.8)
     coffee = M_('kaffee', (0.16, 0.09, 0.05), 'plastic', r=0.6)
-    ring = M_('kaffeerand', (0.26, 0.18, 0.12), 'wood', r=1.1)
+    ring = M_('kaffeerand', (0.36, 0.27, 0.18), 'plastic', r=1.0)
     folder = M_('ordner', (0.13, 0.20, 0.36), 'plastic', r=1.2)
     # Platte
     K.poly(top, [(-0.35, -0.7, 0.75), (0.35, -0.7, 0.75), (0.35, 0.7, 0.75), (-0.35, 0.7, 0.75)])
@@ -1087,9 +1092,9 @@ def _side_table(v):
     rng = random.Random(1198 + v)
     K = Kit()
     C = mats()
-    wood = M_('nussbaum_poliert', (0.34, 0.19, 0.11), 'wood', r=0.6)
-    wood_d = M_('nussbaum_dunkel', (0.26, 0.14, 0.08), 'wood', r=0.7)
-    worn = M_('nussbaum_abgerieben', (0.48, 0.31, 0.19), 'wood', r=1.0)
+    wood = M_('nussbaum_poliert', (0.78, 0.62, 0.50), 'wood', tex='wood_walnut_floor', r=0.55)
+    wood_d = M_('nussbaum_dunkel', (0.58, 0.46, 0.38), 'wood', tex='wood_walnut_floor', r=0.7)
+    worn = M_('nussbaum_abgerieben', (0.95, 0.80, 0.66), 'wood', tex='wood_walnut_floor', r=1.0)
     water = M_('wasserrand', (0.56, 0.50, 0.42), 'wood', r=1.3)
     brass = M_('messing', (0.62, 0.46, 0.22), 'metal', r=0.7, m=0.8)
     # Platte: Unterseite -> Kante -> Oberseite (gegen den Uhrzeigersinn), Kante abgerieben
@@ -1174,8 +1179,8 @@ def _gauge(v):
     dial = M_('zifferblatt', (0.88, 0.86, 0.78) if v != 2 else (0.80, 0.76, 0.62), 'paint', r=1.15)
     tick = M_('teilung', (0.04, 0.04, 0.04), 'paint', r=1.0)
     redz = M_('rot_bereich', (0.70, 0.08, 0.05), 'paint', r=1.0)
-    ink = M_('ziffern', (0.05, 0.05, 0.05), 'stencil')
-    grease = M_('fett', (0.62, 0.55, 0.40), 'plastic', r=0.45)
+    ink = M_('ziffern', (0.19, 0.19, 0.19), 'stencil')
+    grease = M_('fett', (0.76, 0.72, 0.60), 'plastic', r=0.4)
     # Gehaeuse (Achse x)
     K.lathe(case, [(0.0, 0.004), (0.066, 0.004)], 20, axis='x', smooth=False)
     K.lathe(case, [(0.066, 0.004), (0.0715, 0.010), (0.072, 0.047)], 20, axis='x', smooth=True, sharp=50)
@@ -1235,7 +1240,7 @@ def _gauge(v):
         a = -math.pi / 2 + rng.uniform(-0.6, 0.6)
         w0 = rng.uniform(0.012, 0.035)
         K.tube_patch(C['rust'], Mx, 0.0726, w0, w0 + rng.uniform(0.006, 0.014), a, a + rng.uniform(0.15, 0.4), rng, 2, 2)
-    K.blob(grease, (0.0534, 0.018, -0.047), (0, 1, 0), (0, 0, 1), 0.014, 0.006, 8, rng)
+    K.blob(grease, (0.0534, 0.020, -0.050), (0, 1, 0), (0, 0, 1), 0.010, 0.004, 8, rng)
     if v == 3:
         K.blob(M_('wasserrand_braun', (0.55, 0.45, 0.30), 'paint', r=1.2), (0.05335, -0.01, -0.03), (0, 1, 0), (0, 0, 1),
                0.04, 0.022, 10, rng)
@@ -1264,7 +1269,7 @@ def build_gauge__v3():
 def build_power_box():
     """Stahlblech-Schaltkasten 600 x 900 x 240 mm (Wand, Rueckseite x = 0): Tuer mit Kanten, Scharniere, Vierkant-
     verschluesse, Warnschild, Schildhalter, Kiemen, Kabelverschraubungen, Stahlpanzerrohr mit Muffen und Abstands-
-    schellen bis zur Decke (2,75 m ueber dem Ursprung), Leitung an Clips, abgeschnittenes Kabel unten; Rostlaeufer,
+    schelle bis zur Abzweigdose, Leitungen in die Wand (bis 1,6 m wie das Code-Modell), abgeschnittenes Kabel; Rostlaeufer,
     Abplatzer, Staub."""
     rng = random.Random(308)
     K = Kit()
@@ -1292,25 +1297,36 @@ def build_power_box():
             K.prism(paint, tri, 0.05, 0.16, axis='x', caps=(True, True))
             K.poly(C['black'], [(0.05, 0.3 * s + 0.0005 * s, z0 - 0.0005), (0.16, 0.3 * s + 0.0005 * s, z0 - 0.0005),
                                 (0.16, 0.3065 * s, z0 - 0.0005), (0.05, 0.3065 * s, z0 - 0.0005)], n=(0, 0, -1))
-    # Verschraubungen oben, Panzerrohr bis zur Decke mit Muffen und Abstandsschellen
+    # Verschraubung oben, Panzerrohr mit Muffe und Abstandsschelle bis zur Abzweigdose (1,0-1,17 m ueber dem
+    # Ursprung), von dort Leitung in die Wand; zweite Leitung an Clips bis 1,6 m, dann in die Wand (Huelse)
     K.hexnut(C['steel'], (0.12, 0.0, 0.45), (0, 0, 1), 0.024, 0.012)
     K.lathe(C['steel'], [(0.024, 0.462), (0.022, 0.47), (0.02, 0.474)], 10, smooth=True, sharp=60)
-    K.cyl(C['galv'], (0.12, 0.0, 0.474), (0.12, 0.0, 2.75), 0.020, seg=10, caps=(False, False))
-    for zc in (1.25, 2.15):
-        K.lathe(C['galv_dark'], [(0.02, zc - 0.03), (0.0235, zc - 0.028), (0.0235, zc + 0.028), (0.02, zc + 0.03)], 10,
-                T(0.12, 0, 0), smooth=True, sharp=50)
-    for zc in (0.95, 1.75, 2.5):
-        K.lathe(C['galv'], [(0.0205, zc - 0.011), (0.0228, zc - 0.011), (0.0228, zc + 0.011), (0.0205, zc + 0.011)], 10,
-                T(0.12, 0, 0), smooth=True, sharp=50)
-        K.box(C['galv'], (0.003, -0.008, zc - 0.009), (0.0975, 0.008, zc + 0.009))
-        K.box(C['galv'], (0.0, -0.026, zc - 0.026), (0.004, 0.026, zc + 0.026), skip=('-x',))
-        dull_screw(K, C['steel_dark'], (0.004, 0.017, zc + 0.016), (1, 0, 0), 0.005, slot_mat=C['black'])
-        K.streak(C['rust_stain'], (0.0008, 0.0, zc - 0.026), (0, 1, 0), (0, 0, -1), 0.03, rng.uniform(0.08, 0.2), rng)
-    # zweite Leitung an Clips an der Wand
+    K.cyl(C['galv'], (0.12, 0.0, 0.474), (0.12, 0.0, 1.0), 0.020, seg=10, caps=(False, False))
+    zc = 0.72
+    K.lathe(C['galv_dark'], [(0.02, zc - 0.03), (0.0235, zc - 0.028), (0.0235, zc + 0.028), (0.02, zc + 0.03)], 10,
+            T(0.12, 0, 0), smooth=True, sharp=50)
+    zc = 0.88
+    K.lathe(C['galv'], [(0.0205, zc - 0.011), (0.0228, zc - 0.011), (0.0228, zc + 0.011), (0.0205, zc + 0.011)], 10,
+            T(0.12, 0, 0), smooth=True, sharp=50)
+    K.box(C['galv'], (0.003, -0.008, zc - 0.009), (0.0975, 0.008, zc + 0.009))
+    K.box(C['galv'], (0.0, -0.026, zc - 0.026), (0.004, 0.026, zc + 0.026), skip=('-x',))
+    dull_screw(K, C['steel_dark'], (0.004, 0.017, zc + 0.016), (1, 0, 0), 0.005, slot_mat=C['black'])
+    K.streak(C['rust_stain'], (0.0008, 0.0, zc - 0.026), (0, 1, 0), (0, 0, -1), 0.03, rng.uniform(0.08, 0.2), rng)
+    jb = M_('abzweigdose', (0.50, 0.51, 0.49), 'plastic', r=1.2)
+    K.bbox(jb, (0.0, -0.07, 1.0), (0.165, 0.07, 1.17), 0.008, seg=2)
+    K.bbox(jb, (0.165, -0.064, 1.006), (0.172, 0.064, 1.164), 0.003)
+    for (y, z) in ((-0.052, 1.018), (0.052, 1.018), (-0.052, 1.152), (0.052, 1.152)):
+        dull_screw(K, C['steel'], (0.172, y, z), (1, 0, 0), 0.0045, slot_mat=C['black'])
+    K.blob(C['grime'], (0.1722, 0.0, 1.03), (0, 1, 0), (0, 0, 1), 0.05, 0.012, 8, rng)
+    K.sweep(C['black'], [(0.06, 0.07, 1.12), (0.06, 0.11, 1.125), (0.035, 0.15, 1.13), (0.004, 0.16, 1.13)], circle(0.0065, 6),
+            smooth=True, sharp=89)
+    K.lathe(C['galv_dark'], [(0.014, 0.0), (0.014, 0.004), (0.0075, 0.006)], 8, frame((0.0, 0.16, 1.13), (1, 0, 0)), smooth=True, sharp=50)
     K.hexnut(C['black'], (0.07, -0.18, 0.45), (0, 0, 1), 0.012, 0.012)
     K.sweep(C['black'], [(0.07, -0.18, 0.462), (0.07, -0.18, 0.52), (0.045, -0.18, 0.585), (0.014, -0.18, 0.66),
-                         (0.012, -0.18, 2.75)], circle(0.0075, 6), smooth=True, sharp=89)
-    for zc in (1.0, 1.6, 2.2):
+                         (0.012, -0.18, 1.52), (0.016, -0.18, 1.565), (0.004, -0.18, 1.585)], circle(0.0075, 6), smooth=True, sharp=89)
+    K.lathe(C['galv_dark'], [(0.015, 0.0), (0.015, 0.004), (0.0085, 0.006)], 8, frame((0.0, -0.18, 1.585), (1, 0, 0)), smooth=True,
+            sharp=50)
+    for zc in (0.9, 1.3):
         K.box(M_('clip', (0.82, 0.82, 0.80), 'plastic', r=1.0), (0.0, -0.192, zc - 0.008), (0.022, -0.168, zc + 0.008), skip=('-x',))
     # unten: abgeschnittenes Kabel mit blanken Adern
     K.hexnut(C['steel'], (0.12, 0.12, -0.45), (0, 0, -1), 0.016, 0.012)
@@ -1345,8 +1361,8 @@ ROD_TOP = 0.75   # Gewindestange der Haengeschelle bis 0,75 m ueber der Rohrachs
 
 def pipe_mats():
     return {
-        'alu': M_('alu_mantel', (0.66, 0.67, 0.65), 'metal', tex='metal_aluminum', r=1.45, m=0.3),
-        'alu_dirty': M_('alu_mantel_schmutzig', (0.55, 0.54, 0.50), 'metal', tex='metal_aluminum', r=1.5, m=0.2),
+        'alu': M_('alu_mantel', (0.72, 0.73, 0.71), 'galvanized', r=1.3, m=0.25),
+        'alu_dirty': M_('alu_mantel_schmutzig', (0.58, 0.57, 0.53), 'galvanized', r=1.45, m=0.15),
         'wool': M_('mineralwolle', (0.60, 0.56, 0.44), 'fabric'),
         'dust': M_('staub_rohr', (0.50, 0.48, 0.44), 'concrete', r=1.5),
         'iron': M_('temperguss', (0.30, 0.30, 0.29), 'metal', r=1.2, m=0.6),
@@ -1397,10 +1413,8 @@ def pipe_clamp(K, C, M, r, rod_top=None, rng=None):
     zb = r + 0.015
     K.hexnut(C['steel_dark'], _xp(M, (0, -0.0068, zb)), _xn(M, (0, -1, 0)), 0.0065, 0.0045, caps=(False, True))
     K.hexnut(C['steel_dark'], _xp(M, (0, 0.0068, zb)), _xn(M, (0, 1, 0)), 0.0065, 0.0055, caps=(False, True))
-    K.cyl(C['steel_dark'], _xp(M, (0, 0.012, zb)), _xp(M, (0, 0.016, zb)), 0.0034, seg=6, caps=(False, True))
     K.hexnut(C['galv'], _xp(M, (0, 0, zt)), _xn(M, (0, 0, 1)), 0.0085, 0.014, caps=(False, False))
     if rod_top is not None:
-        K.hexnut(C['galv_dark'], _xp(M, (0, 0, zt + 0.019)), _xn(M, (0, 0, 1)), 0.0085, 0.008)
         K.cyl(C['steel_dark'], _xp(M, (0, 0, zt + 0.014)), _xp(M, (0, 0, rod_top)), 0.0048, seg=6, caps=(False, False))
 
 
@@ -1459,8 +1473,8 @@ def _pipe_run(v):
         K.tube_patch(C['rust'], None, r + 0.0066, -0.02, 0.022, -2.3, -0.9, rng, 2, 2)
         drip(K, C, None, 0.04, r)
     elif v == 1:
-        xs = [-0.5, -0.0255, 0.0255, 0.25, 0.45]
-        dent = {(3, 3): 0.93, (3, 4): 0.95}
+        xs = [-0.5, -0.0255, 0.0255, 0.45]
+        dent = {}
         tube_zones(K, None, r, xs, _ins_matf(C, P, xs, rng), rf=lambda i, k: dent.get((i, k), 1.0))
         pipe_clamp(K, C, None, r, rod_top=ROD_TOP)
     else:
@@ -1479,7 +1493,7 @@ def _pipe_run(v):
         K.poly(P['alu'], [p0, p1, p1 + out * 0.06 + Vector((0.01, 0, -0.01)), p0 + out * 0.075], two=True)
     if not steel:
         K.lathe(P['alu'], [(0.0700, 0.4500), (0.0712, 0.4520), (0.0712, 0.5000)], PSEG, axis='x', smooth=True, sharp=50)
-        for a in (-1.2, 0.35, 2.8):
+        for a in (-1.0, 2.6):
             rivet(K, C['steel'], (0.475, 0.0713 * math.cos(a), 0.0713 * math.sin(a)), (0, math.cos(a), math.sin(a)), 0.0042)
         K.tube_patch(P['alu'], None, 0.0704, -0.5, 0.45, -0.75, -0.55, rng, 1, 1)
     # Staub oben (durchgehend, damit die Stuecke nahtlos aneinanderpassen)
@@ -1728,8 +1742,8 @@ def rack_mats():
         'crate': M_('kiste_kiefer', (0.48, 0.41, 0.32), 'wood', r=1.35),
         'crate_d': M_('kiste_leiste', (0.34, 0.28, 0.21), 'wood', r=1.4),
         'crate_in': M_('kiste_innen', (0.16, 0.12, 0.08), 'wood', r=1.5),
-        'ink': M_('karton_druck', (0.10, 0.07, 0.05), 'stencil'),
-        'ink_w': M_('kiste_schablone', (0.06, 0.06, 0.07), 'stencil'),
+        'ink': M_('karton_druck', (0.22, 0.17, 0.12), 'stencil'),
+        'ink_w': M_('kiste_schablone', (0.21, 0.21, 0.22), 'stencil'),
     }
 
 
@@ -1755,6 +1769,10 @@ def _pallet(K, Rm, xc, yc, z0, rng, loaded=True, under=True, wet=False, face=0, 
                        n=(0, face, 0))
             K.poly(wood, [(xc - 0.4, y + face * 0.0003, z0 + 0.1), (xc + 0.4, y + face * 0.0003, z0 + 0.1),
                           (xc + 0.4, y + face * 0.0003, z0 + 0.144), (xc - 0.4, y + face * 0.0003, z0 + 0.144)], n=(0, face, 0))
+            for gx in (-0.2335, -0.093, 0.093, 0.2335):
+                K.poly(dark, [(xc + gx - 0.019, y + face * 0.0006, z0 + 0.122), (xc + gx + 0.019, y + face * 0.0006, z0 + 0.122),
+                              (xc + gx + 0.019, y + face * 0.0006, z0 + 0.144), (xc + gx - 0.019, y + face * 0.0006, z0 + 0.144)],
+                       n=(0, face, 0))
         return
     for (bx, bw) in ((-0.35, 0.10), (0.0, 0.145), (0.35, 0.10)):
         K.box(wood, (xc + bx - bw / 2 + j(), yc - 0.6, z0), (xc + bx + bw / 2 + j(), yc + 0.6, z0 + 0.022),
@@ -1840,7 +1858,7 @@ def _carton(K, Rm, c, L, W, H, rot, rng, state='zu', detail=1, body=None, face=(
                     cc = sp(t0, rng.uniform(0.4, 0.62), 0.0015)
                     K.cell(Rm['paper_l'] if 'paper_l' in Rm else mats()['paper'], xp(cc), (M.to_3x3() @ (b - a).normalized()) * 0.055,
                            (M.to_3x3() @ up) * 0.04, 56 + rng.randrange(4))
-                if rng.random() < 0.7:
+                if rng.random() < 0.45:
                     code = rng.choice(('A7', 'B12', '04', 'K3', '217', 'X', 'L1', '09'))
                     cc = sp(rng.uniform(0.2, 0.35) if Lside > 0.5 else 0.5, rng.uniform(0.72, 0.85), 0.0014)
                     K.text(Rm['ink'], code, xp(cc), M.to_3x3() @ (b - a).normalized(), M.to_3x3() @ up,
@@ -2020,7 +2038,7 @@ def _rack(v):
                 aisle = (ri == 0 and sgn > 0) or (ri == 1 and sgn < 0)
                 if aisle:
                     for sx in (-1, 1):
-                        for k in range(20):
+                        for k in range(14):
                             z = 0.16 + k * 0.1
                             yy = yc - sgn * 0.016
                             K.poly(Rm['slot'], [(xf + sx * 0.0453, yy - 0.004, z), (xf + sx * 0.0453, yy + 0.004, z),
@@ -2123,9 +2141,9 @@ def _rack(v):
                                 loaded=k < n - 1, under=under or k > 0, face=face[1])
                     continue
                 _pallet(K, Rm, xj, yc, zl, rng, loaded=True, under=under, wet=(kind == 'G' and rng.random() < 0.7), face=face[1],
-                        lod=li >= 2)
+                        lod=li >= 1)
                 if kind == 'A':
-                    lay = rng.choice(('mix', 'mix', '1', '2', '4'))
+                    lay = rng.choice(('mix', 'mix', '1', '2', '4')) if li <= 1 else rng.choice(('1', '2', '2'))
                     _carton_load(K, Rm, xj, yc, z0, hmax * rng.uniform(0.6, 1.0), rng, layout=lay, detail=detail, face=face)
                 elif kind == 'B':
                     _wrapped(K, Rm, xj, yc, z0, hmax, rng, face)
