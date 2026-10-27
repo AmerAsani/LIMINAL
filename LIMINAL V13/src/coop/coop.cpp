@@ -73,6 +73,7 @@ const char* reasonText(int reason) {
         case LN_R_CERT: return "Zertifikat passt nicht (Code falsch abgeschrieben oder fremde Lobby)";
         case LN_R_BADCODE: return "Code hat das falsche Format (direkt: der lange Code mit 24 Zeichen)";
         case LN_R_HOSTGONE: return "Host hat die Sitzung beendet";
+        case LN_R_BUSY: return "Host nimmt gerade andere Gäste auf – bitte gleich noch einmal versuchen";
         default: return "getrennt";
     }
 }
@@ -310,7 +311,13 @@ void CoopHost::onMessage(int peer, int channel, const u8* data, int len) {
         if (++g->invalid > kMaxInvalid) {
             log::warn("Koop: {} sendet ungueltige Nachrichten ({}) - getrennt", g->name, nc::rejectName(r));
             api_.drop(ctx_, peer, LN_R_PROTOCOL, 0);
-            onDisconnected(peer, LN_R_PROTOCOL);  // ln_drop meldet selbst keine Trennung
+            // V13.3: kein Platz zum Wiederverbinden fuer Regelbrecher (sonst belegen sie 120 s lang einen Platz)
+            const int gid = g->id;
+            remember(*g);
+            std::erase_if(guests_, [&](const auto& q) { return q.get() == g; });
+            if (gid) eventAll(nc::EventKind::Left, gid, LN_R_PROTOCOL, {}, "");
+            rosterDirty_ = true;
+            rebuildPawnList();
             ++counters.kicked;
         }
         return;

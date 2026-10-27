@@ -50,7 +50,8 @@ enum LnReason {
     LN_R_ICE = 13,           /* kein Weg zur Gegenstelle (NAT/Firewall, Relay nicht erreichbar) */
     LN_R_CERT = 14,          /* Zertifikat passt nicht (Pruefteil des Codes oder TLS der Lobby) */
     LN_R_BADCODE = 15,       /* Code hat das falsche Format (oder direkt ohne Pruefteil) */
-    LN_R_HOSTGONE = 16       /* Host hat die Sitzung beendet */
+    LN_R_HOSTGONE = 16,      /* Host hat die Sitzung beendet */
+    LN_R_BUSY = 17           /* Host nimmt gerade andere Gaeste auf (halbe Beitritte voll) */
 };
 enum LnProgress { LN_P_LOBBY = 1, LN_P_SIGNALING = 2, LN_P_CONNECTING = 3, LN_P_HELLO = 4 };
 enum LnPath { LN_PATH_UNKNOWN = 0, LN_PATH_DIRECT = 1, LN_PATH_NAT = 2, LN_PATH_RELAY = 3 };

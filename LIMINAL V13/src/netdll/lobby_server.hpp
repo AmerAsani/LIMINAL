@@ -26,6 +26,7 @@ struct LobbyConfig {
     bool turn = true;              // STUN/TURN-Server (libjuice) starten
     uint16_t turnPort = 3478;      // UDP; 0: vom System vergeben
     std::string publicHost;        // so erreichen Spieler STUN/TURN; leer: derselbe Rechner wie die Lobby
+    uint16_t publicTurnPort = 0;   // so erreichen Spieler den TURN-Port (Weiterleitung auf einen anderen Port); 0: turnPort
     std::string externalAddress;   // oeffentliche IP fuer die Relay-Adressen (wenn der Server hinter NAT steht)
     uint16_t relayPortBegin = 0, relayPortEnd = 0;  // UDP-Ports der Relay-Zuteilungen (0: beliebig)
     std::vector<IceEntry> extraIce;  // weitere Server (z. B. TURN eines Anbieters), werden durchgereicht

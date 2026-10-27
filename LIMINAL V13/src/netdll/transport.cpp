@@ -337,7 +337,8 @@ void lobbyClose(LnContext* c) {
 
 int reasonOfErr(const std::string& e) {
     if (e == "noroom") return LN_R_NOROOM;
-    if (e == "full" || e == "busy") return LN_R_FULL;
+    if (e == "full") return LN_R_FULL;
+    if (e == "busy") return LN_R_BUSY;
     if (e == "banned") return LN_R_BANNED;
     if (e == "rate") return LN_R_RATE;
     if (e == "version") return LN_R_VERSION;
@@ -472,7 +473,7 @@ void hostAdmit(LnContext* c, const LMsg& m, double now) {
         if (p.phase != Peer::Free && p.lobbyId == m.id) return;  // doppelt
     }
     if (open >= c->lim.maxPeers) return refuse("full");
-    if (freeSlot < 0 || half >= c->lim.maxHalfOpen || halfHere >= 2) return refuse("busy");
+    if (freeSlot < 0 || half >= c->lim.maxHalfOpen || halfHere >= 3) return refuse("busy");  // 3: drei Freunde hinter einem Router
     Peer& p = c->peers[(size_t)freeSlot];
     const uint32_t gen = p.gen;
     p = Peer{};
@@ -765,10 +766,10 @@ void guestFrame(LnContext* c, int channel, const u8* d, size_t n, double now) {
             lobbyClose(c);
             return;
         }
-        if (channel == LN_RELIABLE && n == 2 && d[0] == F_REFUSE) return guestFail(c, d[1] >= 1 && d[1] <= LN_R_HOSTGONE ? d[1] : LN_R_PROTOCOL);
+        if (channel == LN_RELIABLE && n == 2 && d[0] == F_REFUSE) return guestFail(c, d[1] >= 1 && d[1] <= LN_R_BUSY ? d[1] : LN_R_PROTOCOL);
         return countInvalid(c, 0, now);
     }
-    if (channel == LN_RELIABLE && n == 2 && d[0] == F_REFUSE) return guestFail(c, d[1] >= 1 && d[1] <= LN_R_HOSTGONE ? d[1] : LN_R_PROTOCOL);
+    if (channel == LN_RELIABLE && n == 2 && d[0] == F_REFUSE) return guestFail(c, d[1] >= 1 && d[1] <= LN_R_BUSY ? d[1] : LN_R_PROTOCOL);
     if (!openFrame(c, 0, channel, d, n, now)) countInvalid(c, 0, now);
 }
 

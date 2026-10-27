@@ -204,8 +204,9 @@ struct LobbyServer::Impl {
             user = "l" + r.id + tail;
             juice_server_credentials_t cr{user.c_str(), pass.c_str(), 4 * (r.max + 1)};
             if (juice_server_add_credentials(turn, &cr, (unsigned long)ttl * 1000ul) < 0) return refuse(c, "busy");
-            r.ice.push_back({false, cfg.publicHost, turnPortV, "", ""});
-            r.ice.push_back({true, cfg.publicHost, turnPortV, user, pass});
+            const uint16_t tp = cfg.publicTurnPort ? cfg.publicTurnPort : turnPortV;
+            r.ice.push_back({false, cfg.publicHost, tp, "", ""});
+            r.ice.push_back({true, cfg.publicHost, tp, user, pass});
         }
         for (const IceEntry& e : cfg.extraIce)
             if ((int)r.ice.size() < kMaxIce) r.ice.push_back(e);
