@@ -283,3 +283,19 @@ Hinweis: `vmcam` kreist im Rahmen der Lampe. Ab Runde 2 ist dieser Rahmen im Ego
 - Schlecht: Die Ringe sind zu gleichmäßig (Ziehharmonika). An einer Stelle entsteht eine scharfe dunkle Kerbe.
 - Schlecht: Die Falten der Armbeuge sind kaum zu sehen. Im Ego-Bild liegt die Beuge ohnehin außerhalb, von außen ist sie bei gebeugtem Arm verdeckt.
 - Unklar: Die Schulter von hinten ist nur wenig schlanker (`schulter_hinten_r0_r2_r3`: Runde 0, 2, 3).
+
+### Runde 4 – ungleiche Falten, Kante, Oberarm (`v13_3_r4_*`)
+
+**Geändert** (`figure_models.cpp`):
+- Stau über dem Bündchen: Phase der Ringe großräumig verbogen (schräg, wellig), Tiefe stark wechselnd (0–100 %), einzelne Falten laufen aus; Tiefe 2,3 statt 2,6 mm.
+- Kante des Bündchens mit 9 statt 6 mm gerundet.
+- Oberarm schlanker: an der Schulter 5,8 cm (vorher 6,1), Mitte 5,5 cm (Umfang 34,5 cm, vorher 5,75 cm).
+- Neue Spielerkamera-Ansicht „Wand“ (dicht vor einer Wand, stärkste Beugung).
+
+**Befund:**
+- Besser: Die Kante des Bündchens ist auch aus 26 cm glatt und rund (`buendchen_kante_r2_r3_r4`: Runde 2, 3, 4).
+- Besser: Die Ringe sind ungleicher, die scharfe Kerbe ist zu einer flachen Delle geworden (`falten_r3_r4`).
+- Ego (`ego_unterarm_nah`): Der Ärmel liest sich als Stoff – schlank, Stau vor der Raffung, Bündchen, Handgelenk kommt heraus.
+- Wand: Die Lampe zieht wie bisher zurück und kippt; der Arm stört nicht.
+- Schlecht: Die Ringe laufen von außen gesehen (`aussen_armkette` „vr“) noch fast parallel um den Arm.
+- Offen: Schulter von hinten (siehe Restmängel).

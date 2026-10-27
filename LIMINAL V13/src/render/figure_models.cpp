@@ -627,7 +627,7 @@ float sleeveRadius(const Ctx& c, const SleeveGeo& g, float s) {
     const Build& b = c.b;
     const float end = g.fa + kCuffOut, seam = end - kCuffLen;
     const float xs[] = {-g.ua, -0.55f * g.ua, 0.0f, 0.35f * g.fa, seam - kGather, seam, end};
-    const float ys[] = {b.upperArmR + 0.016f, b.upperArmR + 0.0125f, b.forearmR + 0.0125f, b.forearmR + 0.0075f,
+    const float ys[] = {b.upperArmR + 0.013f, b.upperArmR + 0.010f, b.forearmR + 0.0125f, b.forearmR + 0.0075f,
                         b.wristR + 0.0125f, b.wristR + 0.0058f, b.wristR + 0.0046f};
     return monotone(xs, ys, 7, s);
 }
@@ -657,11 +657,13 @@ float sleeveFolds(const SleeveGeo& g, vec3 p, float* groove) {
         const float w = tf - (g.fa + kCuffOut - kCuffLen - kGather);
         if (w > -0.12f && w < 0.0f && rl < 0.07f) {
             const float m = smoothstep(-0.11f, -0.07f, w) * (1.0f - smoothstep(-0.012f, -0.003f, w));
-            const float am = 0.6f + 0.4f * sculpt::noise3(p * 28.0f, 223);
-            const float ph = 2.0f * kPi * w / 0.02f + 2.0f * sculpt::noise3(p * 22.0f, 227);
-            const float f = 0.0026f * m * am * std::sin(ph);
+            // Runde 4: Ringe ungleich - Phase grossraeumig verbogen (schraeg, wellig), Tiefe stark wechselnd, einzelne
+            // Falten laufen aus (Runde 3: gleichmaessige Ringe wie eine Ziehharmonika)
+            const float am = std::clamp(0.55f + 0.75f * sculpt::noise3(p * 24.0f, 223), 0.0f, 1.0f);
+            const float ph = 2.0f * kPi * w / 0.021f + 3.2f * sculpt::noise3(p * 11.0f, 227) + 1.0f * sculpt::noise3(p * 37.0f, 229);
+            const float f = 0.0023f * m * am * std::sin(ph);
             v += f - 0.0012f * m;  // gerafft etwas weiter
-            gr = std::max(gr, std::max(0.0f, f) / 0.0026f);
+            gr = std::max(gr, std::max(0.0f, f) / 0.0023f);
         }
     }
     if (groove) *groove = gr;
@@ -680,7 +682,7 @@ float sleeveDist(const Ctx& c, const SleeveGeo& g, vec3 p) {
     const float df = length(pf - g.fd * tf) - sleeveRadius(c, g, tf);
     float d = sculpt::smin(du, df, 0.012f);
     // Kante des Buendchens senkrecht zum Unterarm, gerundet wie ein umgeschlagener Strickrand
-    d = sculpt::smax(d, tfr - end, 0.006f);
+    d = sculpt::smax(d, tfr - end, 0.009f);  // Runde 4: 9 mm (6 mm zeigte Facetten)
     // Oeffnung: flache Mulde so weit wie das Handgelenk, dunkel gefaerbt (hoodieTint); das Handgelenk steckt darin.
     // Runde 1 hatte eine 2 cm tiefe Oeffnung - die 3-4 mm starke Wand liess sich im 6,5-mm-Netz nur zerfranst abbilden
     const float rad = length(pf - g.fd * tfr), rH = c.b.wristR + 0.0012f;
