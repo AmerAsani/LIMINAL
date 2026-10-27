@@ -342,7 +342,8 @@ for k, s in enumerate(pipe_segs):
     for j in range(1 + int(dens * 4)):
         y = R.y0 + 0.3 + (j % max(1, R.h)) * 0.35 if R.h > 1 else R.y0 + 0.3
         z = top - 0.12 - 0.17 * (j // max(1, R.h))
-        pipe_line(s, R.x0, R.x1, min(R.y1 - 0.3, y), z, j % 2, walls=(False, False))
+        lower = j // max(1, R.h) >= 1  # V13.3: untere Lage ohne Gewindestange durchs obere Rohr (Varianten 2/3)
+        pipe_line(s, R.x0, R.x1, min(R.y1 - 0.3, y), z, (2 if lower else 0) + j % 2, walls=(False, False))
     for (fx, fy, fyaw) in m.wall_faces(s, margin=1):
         if rng.random() < 0.08 + 0.25 * dens:
             m.obj('gauge', fx, fy, R.floor + 1.5 + rng.random() * 0.3, fyaw, variant=rng.randrange(2))

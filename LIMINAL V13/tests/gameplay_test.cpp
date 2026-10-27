@@ -1723,6 +1723,20 @@ static Mount mountOf(const std::string& m) {
                                   "paving_strip", "birch_circle", "table_188", "pillar_188",  // V12 Level 188
                                   "metro_car_903", "metro_car_37", "track_metro", "platform_edge", "stairs_barricaded",  // V12 Level 903
                                   "carousel_36", "luggage_pile", "checkin_counter", "bta_booth", "travelator", "travelator_stopped", "seats_row", "gate_counter", "camp_c32"};  // V12 Level 36
+    // V13.3: Level-1-Sektoren, Rohrverlauf, Level-2-Werkstatt, Level-36-Bereiche
+    static const char* wall2[] = {"formwork", "ivy_wall", "neon_tube", "neon_sign", "panel_vermilion", "pipe_wall"};
+    static const char* ceil2[] = {"vines_ceiling", "cable_hang"};
+    static const char* floor2[] = {"scaffold", "wall_unfinished", "cement_bags", "rebar_bundle", "work_light", "cement_mixer", "wheelbarrow",
+                                   "sawhorse", "site_barrier", "tarp_pile", "moss_patch", "fern_cluster", "roots_floor", "shrub_concrete",
+                                   "sapling", "overgrown_crate", "cabinet_vermilion", "table_vermilion", "bench_vermilion", "screen_vermilion",
+                                   "macchina_parts", "macchina_tools", "xray_scanner", "security_gate", "tray_stack", "lounge_chair",
+                                   "lounge_table"};
+    for (const char* w : wall2)
+        if (m == w) return Mount::Wall;
+    for (const char* c : ceil2)
+        if (m == c) return Mount::Ceiling;
+    for (const char* f : floor2)
+        if (m == f) return Mount::Floor;
     for (const char* w : wall)
         if (m == w) return Mount::Wall;
     for (const char* c : ceil)
@@ -2416,7 +2430,10 @@ static void testV13Kin(const std::string& dataDir) {
         check(count(ev, PE::Hum, Role::Faceling, 0.9f) > 0, "Level 2: aufgebracht laut (Vokale, stossweise)");
         const double h0 = s->stats().health;
         step(*s, ev, 4.0, [&] { aim(*s, P.headOf(Role::Faceling)); return false; });
-        check(s->stats().health < h0 && s->stats().health > h0 - 50.0, std::format("Level 2: er schlaegt zu - leicht ({:.0f} -> {:.0f})", h0, s->stats().health));
+        // V13.3: leicht = jeder einzelne Schlag (die Summe haengt davon ab, wie viele der Gruppe mitmachen)
+        check(s->stats().health < h0 && count(ev, PE::Hit, Role::Faceling) > 0 && count(ev, PE::Hit, Role::Faceling, 20.5f) == 0,
+              std::format("Level 2: er schlaegt zu - leicht ({:.0f} -> {:.0f}, {} Schlaege, keiner ueber 20)", h0, s->stats().health,
+                          count(ev, PE::Hit, Role::Faceling)));
         check(!s->stats().dead, "Level 2: nicht toedlich");
         // weggehen: er beruhigt sich
         s->flashlight().on = false;

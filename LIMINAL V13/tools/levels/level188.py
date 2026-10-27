@@ -208,7 +208,7 @@ def safe_point(cid, r, label, x, y):
 
 
 m.checkpoint('fenster', 14.5, 33.5, 0.0, 'Am Eingangsfenster')
-m.obj('exit_sign_green', R.x0 + 0.005, 33.5, 3.3, 0.0, tag='emergency')  # ueber dem Eingangsfenster: der einzige Weg hinaus
+# V13.3: kein Notausgangsschild (Wiki nennt keine Schilder; der Weg hinaus ist das Eingangsfenster selbst)
 safe_point('gang', G, 'Weisser Gang', GR.cx, GR.y0 + 4.5)
 
 print('Fenster:', n_win)
