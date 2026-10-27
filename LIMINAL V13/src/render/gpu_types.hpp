@@ -28,8 +28,9 @@ struct FrameConstants {
     vec4 taa;          // Verlauf verwerfen, Mischfaktor, Schaerfen, Zeitschritt
     vec4 debug;        // Debug-Ansicht, AO auf Direktlicht
     vec4 wave;         // V11: Welle des Stromausfalls: xy Ursprung, z Front (m, < 0 keine), w frei
+    vec4 extra;        // V13.3: x Anzahl der Pfuetzen (gPuddles), yzw frei
 };
-static_assert(sizeof(FrameConstants) == 7 * 64 + 14 * 16);
+static_assert(sizeof(FrameConstants) == 7 * 64 + 15 * 16);
 
 struct PassConstants {
     vec4 p0, p1;

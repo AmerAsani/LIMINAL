@@ -481,6 +481,8 @@ void Renderer::gbufferPass(const Frustum& frustum, vec3 camPos, const std::vecto
                                           entAlbedo_.srv.get(),  entNormal_.srv.get(), entOrm_.srv.get(),
                                           entMicro_.srv.get()};  // V10: Wesen
     ctx->PSSetShaderResources(0, 10, srvs);
+    ID3D11ShaderResourceView* pud = world_.puddleSrv();  // V13.3: Pfuetzen (t11)
+    ctx->PSSetShaderResources(11, 1, &pud);
     gpu_.bindCommonSamplers();
 
     ctx->IASetInputLayout(shaders_.worldLayout.get());
@@ -596,6 +598,7 @@ void Renderer::renderScene(const CameraState& cam, const SceneParams& p, const s
                bo ? (float)(p.blackoutSeed + 1) + std::clamp(p.blackoutAmount, 0.0f, 1.0f) * 0.9f : 0.0f};
     f.wave = {p.blackoutOrigin.x, p.blackoutOrigin.y, bo ? p.blackoutFront : -1.0f, p.noNearFade ? 1.0f : 0.0f};
     world_.setBlackout(bo ? p.blackoutSeed : -1, p.blackoutAmount, p.blackoutOrigin, p.blackoutFront);
+    f.extra = {(float)world_.updatePuddles(gpu_, cam.pos, 40.0f), 0, 0, 0};  // V13.3: Pfuetzen
     // V10: Knochen und Schattenkapseln der Figuren
     if (p.bones && !p.bones->empty())
         gpu_.update(bones_, p.bones->data(), (u32)(std::min<size_t>(p.bones->size(), kBoneRows) * sizeof(vec4)));
@@ -727,14 +730,14 @@ void Renderer::renderScene(const CameraState& cam, const SceneParams& p, const s
     // Spiegelungen auf glatten Flaechen
     Texture* litTex = &hdr_;
     if (settings_.ssr && settings_.displayMode == 0) {
-        ID3D11ShaderResourceView* s[5] = {hdr_.srv.get(), depth_.srv.get(), gNormal_.srv.get(), gMisc_.srv.get(),
-                                          gAlbedo_.srv.get()};
-        ctx->CSSetShaderResources(0, 5, s);
+        ID3D11ShaderResourceView* s[8] = {hdr_.srv.get(), depth_.srv.get(), gNormal_.srv.get(), gMisc_.srv.get(),
+                                          gAlbedo_.srv.get(), world_.heightSrv(), world_.ambientSrv(), world_.lightSrv()};  // V13.3
+        ctx->CSSetShaderResources(0, 8, s);
         ctx->CSSetUnorderedAccessViews(0, 1, hdrSsr_.uav.addr(), nullptr);
         ctx->CSSetShader(shaders_.ssrCS.get(), nullptr, 0);
         ctx->Dispatch(gx8, gy8, 1);
         ctx->CSSetUnorderedAccessViews(0, 1, nullUav, nullptr);
-        ctx->CSSetShaderResources(0, 5, nullSrv);
+        ctx->CSSetShaderResources(0, 8, nullSrv);
         litTex = &hdrSsr_;
     }
     mark("SSR");

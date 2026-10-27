@@ -95,6 +95,10 @@ public:
     u32 drawChunks(Gpu& gpu, const Frustum& frustum, vec3 camPos);
     // V11: Ausstattung der Chunks (Shader und Ziele sind gesetzt); liefert Dreiecke
     u64 drawProps(Gpu& gpu, const Frustum& frustum, vec3 camPos, float maxDist);
+    // V13.3: die naechsten Pfuetzen (hoechstens kMaxPuddles) hochladen; liefert die Anzahl
+    static constexpr u32 kMaxPuddles = 32;
+    u32 updatePuddles(Gpu& gpu, vec3 camPos, float maxDist);
+    ID3D11ShaderResourceView* puddleSrv() const { return puddles_.srv.get(); }
 
     ID3D11ShaderResourceView* materialSrv() const { return materials_.srv.get(); }
     ID3D11ShaderResourceView* lightSrv() const { return lights_.srv.get(); }
@@ -114,6 +118,7 @@ private:
         u32 propIndexCount = 0;
         Aabb propBounds;
         std::vector<world::ChunkLight> lights;
+        std::vector<world::PuddleDecal> puddles;  // V13.3
     };
     void writeMaterials(Gpu& gpu);
     // Ring-Bereich auf "unbekannt" (massiv, dunkel) setzen; Rechteck in Ringkoordinaten
@@ -127,6 +132,7 @@ private:
     size_t syncedWorldMaterials_ = 0;
     Buffer materials_;
     Buffer lights_;
+    Buffer puddles_;  // V13.3: je Pfuetze 2 x float4
     std::vector<GpuLight> lightData_;
     Texture height_, ambient_;
     int ringSize_ = 256;

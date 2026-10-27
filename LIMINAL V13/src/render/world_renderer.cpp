@@ -87,7 +87,7 @@ GpuMaterial toGpuMaterial(const world::Material& m) {
         case Surface::PropPlastic: all(L_PLASTER); g.roughness = 0.5f; break;
         case Surface::PropRubber: all(L_RUBBER); break;
         case Surface::PropGlass: all(L_PLASTER); g.roughness = 0.06f; break;
-        case Surface::PropWater: all(L_PLASTER); g.roughness = 0.02f; break;
+        case Surface::PropWater: down = wall = L_PLASTER; g.roughness = 0.02f; break;  // V13.3: oben die Bodenebene (klares Wasser)
         case Surface::PropRoadPaint: all(L_ROADPAINT); break;
         case Surface::PropSign: all(L_SIGNS); break;
         case Surface::PropStencil: all(L_SIGNS); break;
@@ -240,6 +240,7 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     materialData_[FM_ENT_OOZE] = GpuMaterial{{0.42f, 0.20f, 0.11f}, 0, ent(EL_HORN, ML_PORES), 0.22f, 0, 0.05f};
     writeMaterials(gpu);
     lights_ = gpu.createStructured(sizeof(GpuLight), 2048, true, false);
+    puddles_ = gpu.createStructured(sizeof(vec4), kMaxPuddles * 2, true, false);  // V13.3
     return height_.valid() && ambient_.valid() && lights_.valid();
 }
 
@@ -311,6 +312,7 @@ void WorldRenderer::addChunk(Gpu& gpu, const world::ChunkData& cd) {
         c.bounds = mesh.bounds;
     }
     c.lights = cd.lights;
+    c.puddles = cd.puddles;  // V13.3
     // V11: Ausstattung
     if (!cd.props.vertices.empty()) {
         std::vector<world::PropVertex> pv = cd.props.vertices;
@@ -459,6 +461,27 @@ u32 WorldRenderer::updateLights(Gpu& gpu, const mat4& view, const Frustum& frust
     }
     if (ne + n) gpu.update(lights_, lightData_.data(), (u32)((ne + n) * sizeof(GpuLight)));
     return (u32)(ne + n);
+}
+
+u32 WorldRenderer::updatePuddles(Gpu& gpu, vec3 camPos, float maxDist) {
+    static std::vector<std::pair<float, const world::PuddleDecal*>> cand;
+    cand.clear();
+    for (const auto& [k, c] : chunks_)
+        for (const auto& p : c.puddles) {
+            const float d = std::hypot(p.x - camPos.x, p.y - camPos.y);
+            if (d < maxDist + p.radius && std::fabs(p.z - camPos.z) < 6.0f) cand.push_back({d, &p});
+        }
+    std::sort(cand.begin(), cand.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+    const u32 n = (u32)std::min<size_t>(cand.size(), kMaxPuddles);
+    if (n == 0) return 0;
+    vec4 data[kMaxPuddles * 2];
+    for (u32 i = 0; i < n; ++i) {
+        const world::PuddleDecal& p = *cand[i].second;
+        data[i * 2] = {p.x, p.y, p.z, p.radius};
+        data[i * 2 + 1] = {p.stretch, p.angle, p.seed, p.wet};
+    }
+    gpu.update(puddles_, data, n * 2 * (u32)sizeof(vec4));
+    return n;
 }
 
 u64 WorldRenderer::drawProps(Gpu& gpu, const Frustum& frustum, vec3 camPos, float maxDist) {
