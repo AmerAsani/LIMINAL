@@ -5,7 +5,7 @@ Der Weg beginnt am Startpunkt der Karte und geht von Raum zu Raum (Tueren), bevo
 zwischen den Raeumen A* auf begehbaren Kacheln mit Abstand zur Wand. Wesen sind aus (Bilder der Bauten).
 
     python tools/qa/walkway.py <level> [--round vorher] [--step 4] [--rooms 15] [--meters 200] [--seed 1]
-Ausgabe: Einzelbilder build/qa/walk/<level>/<runde>/NNN.png, Kontaktboegen docs/screens/level_<N>/wegbilder_<runde>_<seite>.jpg, Weg als Karte
+Ausgabe: Einzelbilder build/qa/walk/<level>/<runde>/NNN.png, Kontaktboegen docs/screens/<level>/wegbilder_<runde>_<seite>.jpg, Weg als Karte
 wegkarte_<runde>.png und Kennwerte (Laenge, Raeume) in wegbilder_<runde>.json.
 """
 import argparse
@@ -90,7 +90,7 @@ def main():
     g = Grid(a.level)
     pts, seq, length = plan(g, a.rooms, a.meters, a.seed)
     shots = resample(pts, a.step)
-    od = os.path.join(ROOT, 'docs', 'screens', a.level.replace('level', 'level_'), f'wegbilder_{a.round}')
+    od = os.path.join(ROOT, 'docs', 'screens', a.level, f'wegbilder_{a.round}')
     os.makedirs(os.path.dirname(od), exist_ok=True)  # Einzelbilder bleiben in build/qa/walk (nur Boegen ins Repository)
     raw = os.path.join(ROOT, 'build', 'qa', 'walk', a.level, a.round)
     os.makedirs(raw, exist_ok=True)
