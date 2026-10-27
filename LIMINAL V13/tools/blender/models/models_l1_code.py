@@ -493,7 +493,7 @@ def mats():
         'galv_dark': M_('verzinkt_alt', (0.46, 0.47, 0.46), 'galvanized', r=1.4, m=0.5),
         'rust': M_('rost', (0.33, 0.24, 0.17), 'metal', tex='metal_rusty_iron', r=1.4, m=0.2),
         'rust_light': M_('flugrost', (0.47, 0.41, 0.34), 'galvanized', r=1.45, m=0.35),
-        'rust_stain': M_('rostfahne', (0.30, 0.23, 0.17), 'concrete', r=1.3),
+        'rust_stain': M_('rostfahne', (0.36, 0.28, 0.20), 'concrete', r=1.3),
         'steel': M_('stahl', (0.56, 0.56, 0.55), 'metal', r=0.8, m=0.85),
         'steel_dark': M_('stahl_dunkel', (0.28, 0.28, 0.27), 'metal', r=1.0, m=0.7),
         'black': M_('schwarz', (0.05, 0.05, 0.05), 'paint', r=1.1),
@@ -680,7 +680,7 @@ def build_safety_light():
     rng = random.Random(5)
     K = Kit()
     C = mats()
-    hous = M_('notleuchte', (0.86, 0.87, 0.85), 'plastic', r=1.1)
+    hous = M_('notleuchte', (0.84, 0.83, 0.77), 'plastic', r=1.15)
     endp = M_('notleuchte_kappe', (0.80, 0.81, 0.79), 'plastic', r=1.2)
     dif = M_('diffusor_gruen', (0.30, 1.0, 0.50), 'glow', glow=1.4)
     led = M_('led_gruen', (0.4, 1.0, 0.5), 'glow', glow=3.0)
@@ -1209,8 +1209,8 @@ def _gauge(v):
         K.poly(redz, pts, n=(1, 0, 0))
     for i, s in enumerate(('0', '2', '4', '6', '8', '10')):
         th = th0 + (th1 - th0) * i / 5
-        K.text(ink, s, (0.0533, 0.041 * math.sin(th), 0.041 * math.cos(th)), (0, 1, 0), (0, 0, 1), 0.0085)
-    K.text(ink, 'BAR', (0.0533, 0.0, -0.024), (0, 1, 0), (0, 0, 1), 0.0062)
+        K.text(ink, s, (0.0533, 0.0385 * math.sin(th), 0.0385 * math.cos(th)), (0, 1, 0), (0, 0, 1), 0.0125)
+    K.text(ink, 'BAR', (0.0533, 0.0, -0.026), (0, 1, 0), (0, 0, 1), 0.0095)
     # Zeiger, Nabe, Anschlag
     val = {0: 0.38, 1: 0.88, 2: -0.012, 3: 0.55}[v]
     th = th0 + (th1 - th0) * val
@@ -1242,10 +1242,11 @@ def _gauge(v):
         K.tube_patch(C['rust'], Mx, 0.0726, w0, w0 + rng.uniform(0.006, 0.014), a, a + rng.uniform(0.15, 0.4), rng, 2, 2)
     K.blob(grease, (0.0534, 0.020, -0.050), (0, 1, 0), (0, 0, 1), 0.010, 0.004, 8, rng)
     if v == 3:
-        K.blob(M_('wasserrand_braun', (0.55, 0.45, 0.30), 'paint', r=1.2), (0.05335, -0.01, -0.03), (0, 1, 0), (0, 0, 1),
-               0.04, 0.022, 10, rng)
+        K.blob(M_('wasserrand_braun', (0.72, 0.64, 0.50), 'paint', r=1.2), (0.05335, -0.012, -0.034), (0, 1, 0), (0, 0, 1),
+               0.026, 0.012, 10, rng)
     if v == 2:
-        K.blob(C['grime'], (0.05335, -0.02, 0.02), (0, 1, 0), (0, 0, 1), 0.03, 0.02, 9, rng)
+        K.blob(M_('zifferblatt_alt', (0.62, 0.56, 0.42), 'paint', r=1.2), (0.05335, -0.024, 0.026), (0, 1, 0), (0, 0, 1),
+               0.016, 0.01, 9, rng)
     K.xform(R('x', {0: 0.05, 1: -0.035, 2: 0.09, 3: -0.13}[v]))
     K.finish('gauge')
 
@@ -1638,7 +1639,10 @@ def _pipe_wall(v):
         K.tube_patch(P['alu_dirty'], None, r + 0.0004, 0.022, 0.058, -2.6, -0.6, rng, 2, 3)
         wet = (0.17, 0.15)
     # Fahne an der Wand: Feuchte und Rost unter der Durchfuehrung
-    K.blob(M_('feuchte_wand', (0.24, 0.22, 0.19), 'concrete', r=1.2), (0.0004, 0.0, -0.04), (0, 1, 0), (0, 0, 1), wet[0], wet[1], 12, rng)
+    K.blob(M_('feuchte_wand', (0.42, 0.39, 0.34), 'concrete', r=1.2), (0.0004, 0.0, -0.05), (0, 1, 0), (0, 0, 1), wet[0] * 1.15,
+           wet[1] * 1.3, 14, rng, irr=0.2)
+    K.blob(M_('feuchte_wand_kern', (0.33, 0.30, 0.26), 'concrete', r=1.1), (0.0007, 0.0, -0.04), (0, 1, 0), (0, 0, 1), wet[0] * 0.75,
+           wet[1] * 0.8, 12, rng, irr=0.25)
     K.streak(C['rust_stain'], (0.0008, 0.01, -0.07), (0, 1, 0), (0, 0, -1), 0.07, 0.38, rng, n=5)
     K.streak(C['rust_stain'], (0.0009, -0.04, -0.06), (0, 1, 0), (0, 0, -1), 0.03, 0.22, rng, n=4)
     K.finish('pipe_wall')
@@ -1669,7 +1673,7 @@ def _pipe_drop(v):
 
         def f(i, k):
             if k in streaks and i >= 2:
-                return C['rust_light'] if rnd[(i, k)] < 0.7 else C['rust']
+                return C['galv_dark'] if rnd[(i, k)] < 0.7 else C['rust_light']
             if i == 2 and v == 0:
                 return C['rust']
             return C['galv'] if rnd[(i, k)] < 0.8 else C['galv_dark']
@@ -2045,6 +2049,12 @@ def _rack(v):
                                                 (xf + sx * 0.0453, yy + 0.004, z + 0.026), (xf + sx * 0.0453, yy - 0.004, z + 0.026)],
                                    n=(sx, 0, 0))
                 K.box(C['galv_dark'], (xf - 0.065, yc - 0.06, 0.0), (xf + 0.065, yc + 0.06, 0.006), skip=('-z',))
+                if aisle:  # Anfahrspuren am Pfostenfuss (Lack ab, blankes Blech, etwas Rost)
+                    yw = yc - sgn * 0.0358
+                    for k in range(3):
+                        z = rng.uniform(0.08, 0.55)
+                        K.blob(C['steel'] if k else C['rust'], (xf + rng.uniform(-0.025, 0.025), yw, z), (sgn, 0, 0), (0, 0, 1),
+                               rng.uniform(0.008, 0.02), rng.uniform(0.003, 0.012), 6, rng)
                 K.hexnut(C['steel_dark'], (xf + 0.052, yc, 0.006), (0, 0, 1), 0.0085, 0.008)
             # Aussteifung zwischen den Pfosten (Zickzack)
             ya, yb = y0 + 0.06, y1 - 0.06
