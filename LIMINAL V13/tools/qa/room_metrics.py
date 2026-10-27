@@ -78,8 +78,8 @@ def furniture_blocks(g, props):
         if n.startswith(FLOOR_SKIP) or not p['room'] or len(p['room']) < 3 or not p['room'][2]:
             continue
         lo, hi, s = p['lo'], p['hi'], p['s']
-        if (hi[2] - lo[2]) * s[2] < 0.3 or p['p'][2] - p['floor'] > 0.5:
-            continue  # flach oder nicht am Boden (Wand, Decke)
+        if (hi[2] - lo[2]) * s[2] < 0.3 or p['p'][2] - p['floor'] > 0.5 or p['p'][2] + lo[2] * s[2] - p['floor'] > 1.0:
+            continue  # flach, nicht am Boden (Wand, Decke) oder erst ueber 1 m (Rohrbuendel ueber Kopf)
         by_room.setdefault(tuple(p['room'][2]), []).append(p)
     bad, checked = [], 0
     door_rects = [d['rect'] for d in g.m['doors']]

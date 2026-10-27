@@ -80,8 +80,10 @@ Türen kleiner und seltener; **ergänzen:** Brownout-Bereich und ein Macchina-Be
 Ausreißer 36 % → Ziel S ≥ 0,85, Ausreißer ≤ 20 %. Schilder: **0** Exit-Schilder (nur Warnschilder an Türen).
 
 **Maße:** Tunnel 2,0–3,0 m breit (Wiki: eng; Spielbarkeit mit Rohren an der Wand: mindestens 2,0 m), Decke ≥ 2,6 m,
-Flurlängen in 5-m-Schritten, Sichtachsen Median ≥ 18 m (lange Tunnelabschnitte zwischen den Knicken). In 68 von 220 Räumen
-verstellt heute Ausstattung den Weg auf unter 0,9 m → 0.
+Flurlängen in 5-m-Schritten (Netz im 15-m-Raster). Sichtachsen: Median ≥ 15 m, 90-%-Wert ≥ 38 m – das Wiki beschreibt die
+Tunnel als eng und verwinkelt mit 45-Grad-Knicken, lange Fluchten gibt es nur entlang gerader Abschnitte; vorher kamen die
+langen Blicke aus den übergroßen Hallen (16,8 m), nachher aus den Tunneln (16,0 m). Ähnlichkeit: S ≥ 0,80, Ausreißer ≤ 20 %
+(die Räume hinter Türen sind Wiki-Raumtypen). Verstellte Räume (< 0,9 m frei): vorher 68 von 220, nachher 0 von 181.
 
 ## Level 3 – „Electrical Station“ (Mischform)
 

@@ -27,8 +27,26 @@ def reset_settings(userdir):
             json.dump(j, fh, indent=1)
 
 
+def sync_data():
+    """Karten und Level-Dateien in die Kopie des Spiels uebernehmen (das Spiel liest build/Release/bin/data; ohne Neubau
+    blieben neu erzeugte Karten sonst unsichtbar)."""
+    import shutil
+    dst_root = os.path.join(os.path.dirname(EXE), 'data')
+    for sub in ('maps', 'levels'):
+        src = os.path.join(ROOT, 'data', sub)
+        dst = os.path.join(dst_root, sub)
+        if not os.path.isdir(src) or not os.path.isdir(dst):
+            continue
+        for f in os.listdir(src):
+            a, b = os.path.join(src, f), os.path.join(dst, f)
+            if not os.path.exists(b) or os.path.getmtime(a) > os.path.getmtime(b):
+                shutil.copy2(a, b)
+
+
 def run(args, script, userdir, size='1600x900', quality=2, hud=False, timeout=3600, extra_env=None):
     """Startet das Spiel und wartet. Liefert (Exitcode, Text des Protokolls dieses Laufs)."""
+    if 'LIM_EXE' not in os.environ:
+        sync_data()
     os.makedirs(userdir, exist_ok=True)
     reset_settings(userdir)
     logdir = os.path.join(userdir, 'logs')

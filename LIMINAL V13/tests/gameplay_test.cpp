@@ -2416,7 +2416,10 @@ static void testV13Kin(const std::string& dataDir) {
         check(count(ev, PE::Hum, Role::Faceling, 0.9f) > 0, "Level 2: aufgebracht laut (Vokale, stossweise)");
         const double h0 = s->stats().health;
         step(*s, ev, 4.0, [&] { aim(*s, P.headOf(Role::Faceling)); return false; });
-        check(s->stats().health < h0 && s->stats().health > h0 - 50.0, std::format("Level 2: er schlaegt zu - leicht ({:.0f} -> {:.0f})", h0, s->stats().health));
+        // V13.3: leicht = jeder einzelne Schlag (die Summe haengt davon ab, wie viele der Gruppe mitmachen)
+        check(s->stats().health < h0 && count(ev, PE::Hit, Role::Faceling) > 0 && count(ev, PE::Hit, Role::Faceling, 20.5f) == 0,
+              std::format("Level 2: er schlaegt zu - leicht ({:.0f} -> {:.0f}, {} Schlaege, keiner ueber 20)", h0, s->stats().health,
+                          count(ev, PE::Hit, Role::Faceling)));
         check(!s->stats().dead, "Level 2: nicht toedlich");
         // weggehen: er beruhigt sich
         s->flashlight().on = false;

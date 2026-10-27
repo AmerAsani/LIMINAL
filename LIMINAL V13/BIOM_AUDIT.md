@@ -54,9 +54,12 @@ Selbst ergänzte Zonen: keine. Karten: `docs/screens/biom/level1_vorher.png`, `l
 | maschine | 3 % | Maschinen | behalten |
 | gleis | 3 % | alte Straßenbahngleise | behalten |
 | heiss | 2 % | heiße Bereiche (Übergang Level 127) | behalten |
-| **Brownout**, **Macchina-Reste** | – | Dauer-Brownout; verlassene Macchina-Bereiche | **ergänzen** |
+| **brownout**, **macchina** | 4 %, 2 % | Dauer-Brownout; verlassene Macchina-Bereiche | **ergänzt** |
 
-Ähnlichkeit vorher: S 0,780, Ausreißer 35,7 % (zu viele Hallen). Ziel S ≥ 0,85, Ausreißer ≤ 20 %.
+Ähnlichkeit vorher: S 0,780, Ausreißer 35,7 % (zu viele Hallen). **Nachher** (`level2_nachher.png`): Tunnelnetz im
+15-m-Raster nach Osten und Süden erweitert, Hallen von 46 % auf 21 % der Fläche verkleinert (Anlage 40 × 28 m, Packlager
+40 × 26 m, Bürogang 38 × 33 m), Tunnel 16 % → 31 %, Brownout 4 %, Macchina-Werkstatt 2 %; Tür nach Level 3 aus dem
+Ostnetz. S und Ausreißer siehe `docs/metrics/` (Prüfung grün).
 
 ## Level 3 – Mischform
 
