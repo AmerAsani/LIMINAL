@@ -349,7 +349,7 @@ def mats_site():
     return {
         'galv': material('verzinkt', (0.66, 0.67, 0.66), look='galvanized', rough=0.5, metal=0.8, r=1.05, m=0.6),
         'galv_old': material('verzinkt_alt', (0.50, 0.50, 0.48), look='galvanized', rough=0.6, metal=0.7, r=1.4, m=0.45),
-        'rust': material('rost', (0.62, 0.44, 0.32), look='metal', tex='metal_rusty_iron', rough=0.9, metal=0.3, r=1.35, m=0.15),
+        'rust': material('rost', (0.76, 0.50, 0.34), look='metal', tex='metal_rusty_iron', rough=0.9, metal=0.3, r=1.35, m=0.1),
         'steel_dark': material('stahl_dunkel', (0.20, 0.20, 0.21), look='metal', rough=0.6, metal=0.8, r=1.15, m=0.55),
         'mortar': material('moertel', (0.68, 0.67, 0.64), look='concrete', tex='concrete_chalky', rough=0.95, r=1.35),
         'concrete_crust': material('betonkruste', (0.66, 0.65, 0.62), look='concrete', tex='concrete_rough', rough=0.95, r=1.4),
@@ -375,8 +375,8 @@ def mats_site():
         'tarp_hem': material('plane_saum', (0.85, 0.86, 0.84), look='plastic', rough=0.75, r=1.1),
         'zinc': material('zink', (0.70, 0.70, 0.68), look='metal', rough=0.45, metal=0.9, r=0.8, m=0.75),
         'brick': material('ziegel', (0.86, 0.56, 0.44), look='concrete', tex='bricks_red_factory', rough=0.9, r=1.3),
-        'clay': material('hochlochziegel', (0.60, 0.34, 0.24), look='concrete', tex='concrete_rough', rough=0.9, r=1.4),
-        'clay2': material('hochlochziegel_hell', (0.68, 0.42, 0.30), look='concrete', tex='concrete_rough', rough=0.9, r=1.4),
+        'clay': material('hochlochziegel', (0.66, 0.38, 0.25), look='concrete', tex='concrete_cast', rough=0.9, r=1.4),
+        'clay2': material('hochlochziegel_hell', (0.72, 0.45, 0.31), look='concrete', tex='concrete_cast', rough=0.9, r=1.4),
         'block': material('betonstein', (0.70, 0.70, 0.68), look='concrete', tex='concrete_rough', rough=0.95, r=1.4),
         'block2': material('betonstein_dunkel', (0.58, 0.58, 0.57), look='concrete', tex='concrete_rough', rough=0.95, r=1.4),
         'bitumen': material('bitumenbahn', (0.07, 0.07, 0.07), look='rubber', rough=0.8, r=1.0),
@@ -617,10 +617,14 @@ def _sheet(k, mat, x, y0, y1, z0, z1, rng, torn=False):
             if torn and j < 4 and i >= cut[j]:
                 continue  # unten rechts abgerissen, ausgefranster Rand
             faces.append((grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i]))
+    dirty = k(material('plane_schmutzig', (0.50, 0.50, 0.46), look='plastic', rough=0.8, r=1.25), 60, weld=True)
+    runs = {rng.randrange(ny): rng.randint(2, nz - 2) for _ in range(4)}
     for f in faces:
-        vs = [bm.verts.new(p) for p in f]
-        bm.faces.new(vs)  # Normale -x (zum Geruest) ... Rueckseite folgt
-        bm.faces.new([bm.verts.new(p + V((0.0012, 0, 0))) for p in reversed(f)])
+        i = int(round((f[0].y - y0) / (y1 - y0) * ny))
+        j = int(round((f[0].z - z0) / (z1 - z0) * nz))
+        tgt = dirty if (i in runs and j >= nz - runs[i]) else bm
+        tgt.faces.new([tgt.verts.new(p) for p in f])  # Vorderseite (+x, zum Raum)
+        tgt.faces.new([tgt.verts.new(p + V((0.0012, 0, 0))) for p in reversed(f)])
     # Saum oben und Oesen
     hem = k(m_hem(), 0)
     for i in range(ny):
@@ -888,7 +892,7 @@ def build_rebar_bundle():
     m = mats_site()
     k = Kit()
     rust = m['rust']
-    rust2 = material('rost_dunkel', (0.42, 0.28, 0.20), look='metal', tex='metal_rusty_iron', rough=0.9, metal=0.3, r=1.4, m=0.1)
+    rust2 = material('rost_dunkel', (0.58, 0.38, 0.26), look='metal', tex='metal_rusty_iron', rough=0.9, metal=0.3, r=1.4, m=0.05)
     timber = material('kantholz_alt', (0.42, 0.39, 0.34), look='wood', rough=0.9, r=1.4)
     # Kanthoelzer quer (entlang y)
     for x in (-1.0, 0.0, 1.0):
@@ -1339,6 +1343,11 @@ def build_sawhorse():
         cube(k(wood), (-0.27, sy * 0.43 - 0.012, 0.12), (0.27, sy * 0.43 + 0.012, 0.19), bevel=0.003)
         for sx in (-1, 1):  # Nagelkoepfe
             cyl(k(m['steel_dark']), (sx * 0.22, sy * 0.43 + sy * 0.012, 0.155), (sx * 0.22, sy * 0.43 + sy * 0.0135, 0.155), 0.005, 5)
+            # Winkelbeschlag (Lochblech) aussen am Beinkopf, zwei Schrauben
+            xo = sx * 0.0455
+            cube(k(m['galv']), (min(xo, xo + sx * 0.002), sy * 0.40 - 0.045, zb - 0.088), (max(xo, xo + sx * 0.002), sy * 0.40 + 0.045, zb - 0.012))
+            for dz in (-0.068, -0.032):
+                cyl(k(m['steel_dark']), (xo + sx * 0.002, sy * 0.40, zb + dz), (xo + sx * 0.005, sy * 0.40, zb + dz), 0.006, 6)
     # Brett schraeg aufgelegt: ein Ende am Boden, das andere ueber dem Balken
     p_floor = V((-1.05, -0.12, 0.0))
     p_top = V((0.0, 0.06, zb))
@@ -1604,7 +1613,7 @@ def _strand(k, P, rng, top, length, r0, leaf_every, leaf_len, sway=0.12, dry=Fal
         d = V((dx, dy, 0)).normalized() if abs(dx) + abs(dy) > 0.01 else V((1, 0, 0))
         pts += [e + d * 0.025 + V((0, 0, -0.01)), e + d * 0.04 + V((0, 0, 0.012)), e + d * 0.025 + V((0, 0, 0.03))]
     rs = [r0 * (1.0 - 0.6 * i / (len(pts) - 1)) for i in range(len(pts))]
-    sweep(k(P['stem_brown'] if dry else P['stem'], 70), pts, rs, 5)
+    sweep(k(P['stem_brown'] if dry else P['stem'], 70), pts, rs, 4)
     # Blaetter
     s = 0.06
     side = 1
@@ -1633,7 +1642,7 @@ def _strand(k, P, rng, top, length, r0, leaf_every, leaf_len, sway=0.12, dry=Fal
         stalk_end = p + outw * 0.018 + V((0, 0, -0.006))
         cyl(k(P['stem'], 70), p, stalk_end, 0.0015, 3, caps=False)
         fwd = (outw * 0.55 + V((0, 0, -0.85))).normalized()
-        leaf(k(mat, 60), stalk_end, fwd, outw, L, L * 0.62, stations=((0.22, 0.95), (0.55, 0.85)), droop=0.35,
+        leaf(k(mat, 60), stalk_end, fwd, outw, L, L * 0.66, stations=((0.32, 1.0),), droop=0.35,
              fold=0.12, curl=0.06)
         s += leaf_every * rng.uniform(0.75, 1.25)
 
@@ -1770,7 +1779,7 @@ def _ivy(variant):
     k = Kit()
     if variant == 0:
         for (y, h, w) in ((-0.45, 2.3, 0.35), (-0.12, 2.0, 0.4), (0.2, 2.35, 0.4), (0.48, 1.7, 0.3)):
-            _ivy_stem(k, P, rng, (0, y, 0.0), h, w * 1.5, 0.011, 1, step=0.15, size=(0.10, 0.145), kid_p=0.4)
+            _ivy_stem(k, P, rng, (0, y, 0.0), h, w * 1.5, 0.011, 1, step=0.17, size=(0.11, 0.155), kid_p=0.4)
     else:
         for (y, h, w) in ((-0.25, 1.6, 0.35), (0.0, 1.2, 0.3), (0.25, 1.4, 0.4)):
             _ivy_stem(k, P, rng, (0, y, 0.0), h, w * 1.5, 0.009, 1, max_z=1.7, step=0.16, size=(0.09, 0.13), kid_p=0.3)
@@ -1985,10 +1994,10 @@ def build_roots_floor():
     ]
     humps = []
     for mi, ctrl in enumerate(mains):
-        pts = catmull([V(p) for p in ctrl], 5)
+        pts = catmull([V(p) for p in ctrl], 4)
         r0 = 0.10 - mi * 0.02
         rs = [r0 * (1.0 - 0.75 * i / (len(pts) - 1)) for i in range(len(pts))]
-        prof = [(math.cos(TAU * i / 9) * (1.0 + 0.12 * math.sin(i * 2.3)), math.sin(TAU * i / 9) * 0.8) for i in range(9)]
+        prof = [(math.cos(TAU * i / 7) * (1.0 + 0.12 * math.sin(i * 2.3)), math.sin(TAU * i / 7) * 0.8) for i in range(7)]
         sweep(k(P['root'], 60), pts, rs, profile=prof, up=(0, 0, 1))
         for i, p in enumerate(pts):
             if p.z > 0.04 and i % 4 == 0:
@@ -2067,10 +2076,10 @@ def build_shrub_concrete():
     _crack_base(k, P, rng, rx=0.32, ry=0.12, chunks=5, lift=0.04)
 
     def leaves(p, tang):
-        for _ in range(rng.randint(4, 6)):
+        for _ in range(rng.randint(3, 5)):
             side = Matrix.Rotation(rng.uniform(0, TAU), 3, tang) @ tang.orthogonal().normalized()
             d = (side * 0.8 + tang * 0.45 + V((0, 0, -0.05))).normalized()
-            L = rng.uniform(0.075, 0.11)
+            L = rng.uniform(0.085, 0.12)
             leaf(k(_pick_leaf(P, rng), 0), p + side * 0.01, d, (0, 0, 1), L, L * 0.52, stations=((0.4, 1.0),), droop=0.4, fold=0.15)
     for i in range(7):
         a = TAU * i / 7 + jitter(rng, 0.3)
@@ -2089,7 +2098,7 @@ def build_shrub_concrete():
 
 
 def build_sapling():
-    """Junge Birke (2,8 m) aus einem aufgebrochenen Loch im Estrich."""
+    """Junge Birke (knapp 3 m) aus einem aufgebrochenen Loch im Estrich."""
     rng = random.Random(321)
     P = mats_plant()
     k = Kit()
@@ -2102,7 +2111,7 @@ def build_sapling():
         M = tr(0.28 * math.cos(a), 0.28 * math.sin(a), 0.04) @ rot(0, 0, a) @ rot(0, -rng.uniform(0.12, 0.28), 0)
         _slab(k, P, rng, o, 0.07, M)
     # Stamm: leicht geneigt und gebogen, unten dunkle Borke, oben weiss mit Lentizellen
-    H = 2.8
+    H = 2.62
     trunk = []
     for i in range(11):
         t = i / 10
@@ -2125,10 +2134,10 @@ def build_sapling():
                                        c - tg * w + V((0, 0, 0.002))], n)
 
     def leaves(p, tang):
-        for _ in range(rng.randint(5, 7)):
+        for _ in range(rng.randint(4, 5)):
             side = Matrix.Rotation(rng.uniform(0, TAU), 3, tang) @ tang.orthogonal().normalized()
             d = (side * 0.7 + tang * 0.3 + V((0, 0, -0.45))).normalized()
-            L = rng.uniform(0.05, 0.07)
+            L = rng.uniform(0.055, 0.075)
             leaf(k(_pick_leaf(P, rng, (('leaf_mid', 0.45), ('leaf_light', 0.4), ('leaf_yellow', 0.15))), 0), p, d, (0, 0, 1), L,
                  L * 0.7, stations=((0.35, 1.0),), droop=0.3, fold=0.15)
     # Aeste spiralig ab 0,9 m, oben kuerzer; Birkenzweige haengen leicht
@@ -2237,9 +2246,9 @@ def build_overgrown_crate():
 # =====================================================================================================================
 def mats_fabled():
     return {
-        'lac': material('zinnober', (0.40, 0.10, 0.06), look='paint', rough=0.45, r=0.8),
-        'lac_dark': material('zinnober_dunkel', (0.24, 0.06, 0.04), look='paint', rough=0.6, r=0.95),
-        'lac_worn': material('zinnober_matt', (0.36, 0.13, 0.09), look='paint', rough=0.7, r=1.2),
+        'lac': material('zinnober', (0.36, 0.09, 0.05), look='paint', rough=0.6, r=1.05),
+        'lac_dark': material('zinnober_dunkel', (0.22, 0.055, 0.035), look='paint', rough=0.7, r=1.15),
+        'lac_worn': material('zinnober_matt', (0.32, 0.12, 0.08), look='paint', rough=0.8, r=1.3),
         'lac_black': material('lack_schwarz', (0.045, 0.035, 0.03), look='paint', rough=0.4, r=0.6),
         'wood': material('holz_bloss', (0.36, 0.22, 0.13), look='wood', tex='wood_walnut_floor', rough=0.8, r=1.15),
         'wood_dark': material('holz_dunkel', (0.20, 0.12, 0.08), look='wood', tex='wood_walnut_floor', rough=0.85, r=1.25),
@@ -2570,8 +2579,8 @@ def _cable_hang(variant):
             sag = rng.uniform(0.35, 0.95)
             off = V((jitter(rng, 0.035), 0.0, jitter(rng, 0.01)))
             pts = []
-            for j in range(15):
-                t = j / 14
+            for j in range(12):
+                t = j / 11
                 p = A.lerp(B, t) + off * (1 - abs(2 * t - 1))
                 p.z -= sag * (1 - (2 * t - 1) ** 2) ** 1.1
                 p.x += 0.06 * math.sin(t * math.pi * 2 + i) * (1 - abs(2 * t - 1))
@@ -2803,6 +2812,15 @@ def build_bench_vermilion():
     for sx in (-1, 1):
         cube(k(F['lac']), (sx * (W / 2 - 0.06) - 0.012, -L / 2 + 0.14, H - t - 0.07), (sx * (W / 2 - 0.06) + 0.012, L / 2 - 0.14, H - t),
              bevel=0.003)
+        cube(k(F['lac_black']), (sx * (W / 2 - 0.05) - 0.01, -L / 2 + 0.16, 0.06), (sx * (W / 2 - 0.05) + 0.01, L / 2 - 0.16, 0.085),
+             bevel=0.003)
+        for sy in (-1, 1):  # Eckband: Dreieck unter der Zarge zur Mitte
+            p0 = V((sx * (W / 2 - 0.06), sy * (L / 2 - 0.13), H - t - 0.07))
+            q = [p0, p0 + V((0, -sy * 0.14, 0)), p0 + V((0, 0, -0.10))]
+            for off in (0.011, -0.011):
+                quad_n(k(F['lac']), [p + V((off, 0, 0)) for p in q], (1 if off > 0 else -1, 0, 0))
+        _box_chips(k, F, rng, (sx * (W / 2 - 0.06) - 0.012, -L / 2 + 0.14, H - t - 0.07),
+                   (sx * (W / 2 - 0.06) + 0.012, L / 2 - 0.14, H - t), I, '+x' if sx > 0 else '-x', 2, 0.03)
     k.finish()
 
 
