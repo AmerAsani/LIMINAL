@@ -116,8 +116,9 @@ nach Level 4, Aufzug nach Level 3.
 **Im Spiel:** flur, zimmer, ballsaal (Beverly Room), kesselraum/kesselgang, aufzugshalle, metro (Übergang zur Metro, Level 903),
 flur_alt (Zugang zu Level 5.3). Alles belegt. Schilder: Zimmerschilder und das Silberschild; **0** Exit-Schilder.
 
-**Maße:** Hotelflure der 1930er 2,4–3,0 m breit (heute min 2,0 m), Decken ≥ 3,0 m (heute 2,8 m in Zimmern; Grand Hotel
-3,2–3,6 m), Ballsaal 7 m hoch, Sichtachsen Median ≥ 20 m (lange Hauptflure).
+**Maße:** Hotelflure der 1930er 2,4–3,0 m breit, Decken ≥ 3,0 m (Grand Hotel 3,2–3,6 m), Ballsaal 7 m hoch, Sichtachsen
+Median ≥ 20 m (lange Hauptflure). Gemessen: alle Flure ≥ 3 m, Zimmer ≥ 3,0 m. **Ausnahmen** (`exempt_types`): Kesselgänge
+(2 m – Wiki: der Boiler Room ist beengend und vollgestellt) und Aufzugskabinen (2,8 m – übliche Kabinenhöhe).
 
 ## Level 5.3 – „Promethei Bibliotheca“ (Eigener Ort)
 
@@ -133,8 +134,8 @@ mit abgeblätterter Tapete.
 **Wiki:** Atrium ca. 45 m Durchmesser, 30 m hoch, weiße Betonwände mit 100–200 Fenstern, Mittelpfad (Fünfeck, vier Zuwege)
 zum Birkenkreis, Moos; Gänge am Rand über mehrere Etagen, weiß, grell; leere weiße Räume. Keine Schilder.
 
-**Im Spiel:** Hof 46 × 46 m, 30 m hoch; weißer Gang, Treppenhaus, Zellen. Belegt. **Entfernen:** das eine Exit-Schild (Wiki
-nennt keine Schilder) → Grenze 0.
+**Im Spiel:** Hof 46 × 46 m, 30 m hoch; weißer Gang, Treppenhaus, Zellen. Belegt. **Entfernt (V13.3):** das Exit-Schild über
+dem Eingangsfenster (Wiki nennt keine Schilder) → Grenze 0, Prüfung grün.
 
 ## Level 903 – „The Metro“ (Labyrinth, linear)
 
