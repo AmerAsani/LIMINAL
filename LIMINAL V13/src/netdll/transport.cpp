@@ -45,7 +45,7 @@ constexpr size_t kPingLen = 9;
 constexpr uint16_t kDefaultPort = 27500;
 constexpr double kPingInterval = 0.5;
 constexpr size_t kLossWindow = 40;              // 20 s
-constexpr size_t kMaxBufferedUnreliable = 256 * 1024;
+constexpr size_t kMaxBufferedUnreliable = 16 * 1024;  // unzuverlaessig: lieber verwerfen als veraltet zustellen
 constexpr size_t kMaxBufferedReliable = 4 * 1024 * 1024;
 constexpr int kMaxReadPerFrame = 256;           // je Kanal und Bild; der Rest wartet (Gegendruck)
 constexpr int kMaxRemoteCandidates = 40;
@@ -488,9 +488,11 @@ void hostAdmit(LnContext* c, const LMsg& m, double now) {
     try {
         p.pc = makePc(c, freeSlot, gen);
         p.r = p.pc->createDataChannel("r");
+        // unzuverlaessig: ungeordnet, Lebensdauer 150 ms (PR-SCTP). Was bis dahin nicht durch ist, verfaellt - bei
+        // knapper Bandbreite stauen sich so keine veralteten Momentaufnahmen hinter der Staukontrolle
         rtc::DataChannelInit ui;
         ui.reliability.unordered = true;
-        ui.reliability.maxRetransmits = 0;
+        ui.reliability.maxPacketLifeTime = std::chrono::milliseconds(150);
         p.u = p.pc->createDataChannel("u", ui);
     } catch (...) {
         closePeer(c, freeSlot);
@@ -1112,8 +1114,11 @@ LN_API int ln_stats(LnContext* c, int peer, LnStats* out) {
     out->loss = p.ping.loss(now);
     out->path = LN_PATH_UNKNOWN;
     try {
-        if (!p.ping.any)
-            if (auto r = p.pc->rtt()) out->rttMs = (uint32_t)r->count();
+        // Laufzeit: die Messung von SCTP (ohne die Wartezeit bis zum naechsten Bild des Spiels, die im eigenen Ping
+        // steckt); fehlt sie, der Ping
+        if (auto r = p.pc->rtt(); r && r->count() > 0) out->rttMs = (uint32_t)r->count();
+        if (std::getenv("LIMINAL_NET_LOG"))
+            std::fprintf(stderr, "[ln] Laufzeit SCTP %d ms, Ping %.0f ms\n", (int)out->rttMs, p.ping.rtt);
         rtc::Candidate l, r;
         if (p.pc->getSelectedCandidatePair(&l, &r)) {
             if (std::getenv("LIMINAL_NET_LOG")) std::fprintf(stderr, "[ln] Weg: %s <-> %s\n", l.candidate().c_str(), r.candidate().c_str());

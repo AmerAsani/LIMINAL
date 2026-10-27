@@ -500,6 +500,17 @@ struct Game {
         return *bots.back();
     }
     // laufen lassen (Echtzeit); cond: frueher fertig
+    // so viele Bilder (Spielzeit), unabhaengig davon, wie schnell der Rechner sie schafft
+    void runFrames(int frames, const std::function<bool()>& cond = nullptr) {
+        auto next = std::chrono::steady_clock::now();
+        for (int i = 0; i < frames; ++i) {
+            frame(kDt);
+            if (cond && cond()) break;
+            next += std::chrono::microseconds(16667);
+            std::this_thread::sleep_until(next);
+            if (std::chrono::steady_clock::now() > next + std::chrono::milliseconds(200)) next = std::chrono::steady_clock::now();
+        }
+    }
     void run(double seconds, const std::function<bool()>& cond = nullptr) {
         const auto t0 = std::chrono::steady_clock::now();
         auto next = t0;
@@ -1330,13 +1341,13 @@ static void testDeath() {
     g.run(2.0);
     check(!p->alive && b.c->dead() && b.s->stats().dead, "Gast ist tot (Host und Gast)");
     check(b.c->spectate() == 0, "der Tote sieht dem Host zu");
-    g.run(21.0, [&] { return p->alive && !b.c->dead(); });
+    g.runFrames(60 * 23, [&] { return p->alive && !b.c->dead(); });  // 20 s Spielzeit bis zum Wiedereinstieg
     check(p->alive && !b.c->dead() && !b.s->stats().dead, "nach 20 s am Sicherungspunkt zurueck");
     // alle tot: die Gruppe beginnt neu
     p->stats.health = 0.0;
     g.hs->stats().health = 0.0;
     g.hs->stats().dead = true;
-    g.run(9.0, [&] { return p->alive && !g.hs->stats().dead; });
+    g.runFrames(60 * 10, [&] { return p->alive && !g.hs->stats().dead; });
     check(p->alive && !g.hs->stats().dead, "alle tot: Neubeginn am Sicherungspunkt");
     g.stopAll();
 }
