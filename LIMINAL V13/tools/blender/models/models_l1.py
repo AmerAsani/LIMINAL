@@ -45,7 +45,9 @@ class MB:
         return self.mats.index(mat)
 
     def add(self, src, mat, M=None, smooth=None):
-        mi = self.idx(mat)
+        """src (bmesh) uebernehmen; mat ein Material oder eine Liste (dann waehlt material_index der Quelle)."""
+        mis = [self.idx(x) for x in mat] if isinstance(mat, (list, tuple)) else None
+        mi = None if mis else self.idx(mat)
         flip = M is not None and M.to_3x3().determinant() < 0
         vmap = {}
         for v in src.verts:
@@ -58,7 +60,7 @@ class MB:
                 nf = self.bm.faces.new(vs)
             except ValueError:
                 continue
-            nf.material_index = mi
+            nf.material_index = mis[min(f.material_index, len(mis) - 1)] if mis else mi
             nf.smooth = f.smooth if smooth is None else smooth
         src.free()
 
@@ -420,12 +422,12 @@ def rng(seed):
 def _crate_mats():
     m = common.material
     return dict(
-        hell=m('kiste_hell', (0.74, 0.61, 0.44), look='wood', r=1.15),
-        mittel=m('kiste_mittel', (0.64, 0.51, 0.36), look='wood', r=1.2),
-        grau=m('kiste_grau', (0.56, 0.52, 0.45), look='wood', r=1.35),
-        dunkel=m('kiste_schmutz', (0.42, 0.35, 0.27), look='wood', r=1.4),
-        leiste=m('kiste_leiste', (0.60, 0.48, 0.33), look='wood', r=1.2),
-        leiste_grau=m('kiste_leiste_grau', (0.50, 0.46, 0.40), look='wood', r=1.35),
+        hell=m('kiste_hell', (0.72, 0.62, 0.48), look='wood', r=1.15),
+        mittel=m('kiste_mittel', (0.63, 0.54, 0.42), look='wood', r=1.2),
+        grau=m('kiste_grau', (0.56, 0.53, 0.47), look='wood', r=1.35),
+        dunkel=m('kiste_schmutz', (0.43, 0.38, 0.31), look='wood', r=1.4),
+        leiste=m('kiste_leiste', (0.60, 0.50, 0.38), look='wood', r=1.2),
+        leiste_grau=m('kiste_leiste_grau', (0.50, 0.47, 0.42), look='wood', r=1.35),
         innen=m('kiste_innen', (0.10, 0.085, 0.07), look='wood', r=1.5),
         ast=m('kiste_ast', (0.30, 0.20, 0.12), look='wood', r=1.0),
         nagel=m('nagel', (0.33, 0.32, 0.31), look='metal', r=0.9, m=0.7),
@@ -628,7 +630,7 @@ def _crate(L, W, H, seed, style):
         h = 0.12
         on_boards(0, arrow(-0.07, z0 + (H - z0) * 0.55, h) + arrow(0.07, z0 + (H - z0) * 0.55, h), M['farbe'])
         polys = []
-        for i, ch in enumerate('14'):
+        for i, ch in enumerate('27'):
             polys += digit_polys(ch, -L / 2 + 0.13 + i * 0.075, H - 0.24, 0.11)
         on_boards(3, polys, M['farbe'])
     if style == 'b':
@@ -677,9 +679,9 @@ def build_crate_c():
 def _debris_mats():
     m = common.material
     return dict(
-        brett=m('brett', (0.60, 0.48, 0.34), look='wood', r=1.2),
-        brett_alt=m('brett_alt', (0.45, 0.39, 0.31), look='wood', r=1.35),
-        brett_grau=m('brett_grau', (0.52, 0.49, 0.44), look='wood', r=1.4),
+        brett=m('brett', (0.60, 0.51, 0.40), look='wood', r=1.2),
+        brett_alt=m('brett_alt', (0.46, 0.41, 0.35), look='wood', r=1.35),
+        brett_grau=m('brett_grau', (0.52, 0.50, 0.46), look='wood', r=1.4),
         bruch=m('bruch', (0.78, 0.66, 0.48), look='wood', r=1.3),
         karton=m('karton', (0.62, 0.49, 0.33), look='cardboard', r=1.3),
         karton_nass=m('karton_nass', (0.45, 0.35, 0.24), look='cardboard', r=1.1),
@@ -1153,7 +1155,7 @@ def build_hanging_bulb():
     mb = MB()
     # Baldachin: flache Glocke (85 mm), Unterkante gerundet
     mb.add(b_lathe([(0.0, -0.026), (0.008, -0.026), (0.012, -0.024), (0.03, -0.018), (0.04, -0.008), (0.0425, -0.002),
-                    (0.0425, 0.0)], 20), rose)
+                    (0.0425, 0.0)], 16), rose)
     for a in (0.3, 0.3 + math.pi):
         mb.add(b_cyl(0.0035, -0.0105, -0.0095, 8), screw, T(0.031 * math.cos(a), 0.031 * math.sin(a), -0.0) @ R(0.38 if a < 1 else -0.38, 'X' if False else 'Y') @ T(0, 0, 0))
     mb.add(b_lathe([(0.0, -0.0247), (0.009, -0.0247), (0.0, -0.0243)], 10), dust)
@@ -1168,20 +1170,20 @@ def build_hanging_bulb():
     mb.add(b_tube(pts, 0.0033, 8, caps=False), cable)
     # Fassung E27: Kabeltuelle, Mantel mit Rillen, Gewindering
     prof = [(0.0, -0.594), (0.006, -0.594), (0.008, -0.6), (0.016, -0.606), (0.0175, -0.612)]
-    for k in range(5):
-        zz = -0.614 - k * 0.0065
-        prof += [(0.0185, zz), (0.0178, zz - 0.003)]
+    for k in range(3):
+        zz = -0.616 - k * 0.0095
+        prof += [(0.0185, zz), (0.0176, zz - 0.0045)]
     prof += [(0.0185, -0.648), (0.0215, -0.65), (0.0215, -0.656), (0.0185, -0.658), (0.0172, -0.66), (0.0, -0.66)]
-    mb.add(b_lathe(prof, 18), black)
+    mb.add(b_lathe(prof, 14), black)
     mb.add(b_lathe([(0.0135, -0.66), (0.0135, -0.664), (0.0, -0.664)], 14), brass)  # Gewinde der Birne (sichtbar)
     # Birne A60: Hals, Kolben (60 mm), unten leicht abgeplattet
     bp = [(0.0, -0.664), (0.0135, -0.664), (0.0142, -0.672), (0.017, -0.682)]
-    for k in range(1, 12):
-        a = math.pi * k / 12
-        bp.append((0.0305 * math.sin(a) ** 0.95, -0.716 + 0.033 * math.cos(a) * (1.0 if k < 6 else 0.98)))
+    for k in range(1, 9):
+        a = math.pi * k / 9
+        bp.append((0.0305 * math.sin(a) ** 0.95, -0.716 + 0.033 * math.cos(a) * (1.0 if k < 5 else 0.98)))
     bp.append((0.0, -0.75))
-    mb.add(b_lathe(bp[:4], 16), neck)
-    mb.add(b_lathe(bp[3:], 16), bulb)
+    mb.add(b_lathe(bp[:4], 14), neck)
+    mb.add(b_lathe(bp[3:], 14), bulb)
     mb.obj('gluehbirne')
     del rg
 
@@ -1355,9 +1357,22 @@ def build_column_round():
         part = [p for p in prof if cuts[i] - 1e-6 <= p[1] <= cuts[i + 1] + 1e-6 and p[0] > 0]
         if i == 0:
             part = [(0.0, 0.28)] + part
+            # dichtere Ringe am Fuss fuer den Schmutzsaum
+            extra = [(shaft_r(z), z) for z in (0.56, 0.62, 0.68, 0.74, 0.80) if z not in [p[1] for p in part]]
+            part = sorted(part[1:] + extra, key=lambda p: p[1])
+            part = [(0.0, 0.28)] + part
         if i == 3:
             part = part + [(0.0, 5.38)]
-        mb.add(b_lathe(part, seg, smooth=True), mats[i])
+        bm = b_lathe(part, seg, smooth=True)
+        if i == 0:  # Schmutz und Feuchte unten: Oberkante unregelmaessig (je Flaeche)
+            for f in bm.faces:
+                cz_ = f.calc_center_median()
+                a = math.atan2(cz_.y, cz_.x)
+                edge = 0.62 + 0.08 * math.sin(a * 3 + 1.0) + 0.05 * math.sin(a * 7)
+                f.material_index = 1 if cz_.z < edge else 0
+            mb.add(bm, [mats[i], C[3]])
+        else:
+            mb.add(bm, mats[i])
     mb.add(b_prism(rect(-0.575, -0.575, 0.575, 0.575), 5.38, H, ch=0.01), C[1])
     # Schalungsnaehte (Stahlschalung aus zwei Halbschalen): zwei senkrechte Grate
     for a in (0.3, 0.3 + math.pi):
@@ -1584,11 +1599,11 @@ def build_work_table():
     for i in range(n):
         y0 = -W / 2 + W * i / n
         y1 = -W / 2 + W * (i + 1) / n
-        dz = rg.uniform(-0.0004, 0.0004)
+        dz = rg.uniform(-0.00015, 0.00015)
         poly = rect(-L / 2, y0, L / 2, y1)
         if i == 0:  # ausgebrochene Stelle an der Vorderkante
             poly = [(-L / 2, y0), (0.18, y0), (0.2, y0 + 0.012), (0.27, y0 + 0.015), (0.29, y0), (L / 2, y0), (L / 2, y1), (-L / 2, y1)]
-        mb.add(b_prism(poly, H - tt, H + dz, ch=0.0015), beech[rg.randrange(3)])
+        mb.add(b_prism(poly, H - tt, H + dz, ch=0.0005 if 0 < i < n - 1 else 0.003), beech[rg.randrange(3)])
     top = H + 0.0004
     # Gebrauchsspuren auf der Platte
     for _ in range(3):
@@ -1820,10 +1835,12 @@ def build_hospital_bed():
     # Matratze: gerundeter Querschnitt entlang x, ueber dem Knick mitgebogen, Mulde in der Mitte, Naht als Wulst
     my, mz, mr = 0.44, 0.14, 0.035
     sec = []
-    for (cy, cz, a0) in ((my - mr, mr, -math.pi / 2), (my - mr, mz - mr, 0.0), (-my + mr, mz - mr, math.pi / 2), (-my + mr, mr, math.pi)):
+    for ci, (cy, cz, a0) in enumerate(((my - mr, mr, -math.pi / 2), (my - mr, mz - mr, 0.0), (-my + mr, mz - mr, math.pi / 2), (-my + mr, mr, math.pi))):
         for k in range(4):
             a = a0 + math.pi / 2 * k / 3
             sec.append((cy + mr * math.cos(a), cz + mr * math.sin(a)))
+        if ci == 1:  # Oberseite quer unterteilen (Mulde)
+            sec += [((my - mr) * (1 - 2 * k / 6), mz) for k in range(1, 6)]
     nx = 26
     xs = [-xe + 0.02 + (2 * xe - 0.04) * i / nx for i in range(nx + 1)]
 
@@ -1895,13 +1912,18 @@ def build_hospital_bed():
         if not top_side:
             G = [list(reversed(r)) for r in G]
         mb.add(b_grid(G, smooth=True), M['kissen'])
-    # Gefaltete Wolldecke am Fussende (drei Lagen, Kante dunkler)
-    sec = rrect(-0.17, 0.0, 0.17, 0.055, 0.024, 3)
-    bmD = b_prism(sec, -0.41, 0.41)
-    for v in bmD.verts:
-        v.co.y += 0.004 * math.sin(v.co.z * 11 + v.co.x * 30) * (v.co.y / 0.055)
-    mb.add(bmD, M['decke'], frame(Vector((xe - 0.24, 0, zp + mz + 0.009)), Vector((1, 0, 0)), Vector((0, 0, 1)), Vector((0, -1, 0))))
-    mb.add(b_box((xe - 0.415, -0.4115, zp + mz + 0.03), (xe - 0.405, 0.4115, zp + mz + 0.05)), M['decke_rand'])
+    # Gefaltete Wolldecke am Fussende: drei Lagen (je 2 cm) mit runder Bruchkante zum Kopf hin, zwei Webstreifen
+    zb_ = zp + mz + 0.009
+    for k in range(3):
+        d0 = 0.30 - k * 0.012
+        sec = rrect(-d0 / 2, 0.0, d0 / 2, 0.021, 0.0095, 3)
+        bmD = b_prism(sec, -0.41 + k * 0.004, 0.41 - k * 0.004)
+        for v in bmD.verts:
+            v.co.y += 0.003 * math.sin(v.co.z * 13 + k) * (v.co.y / 0.021)
+            v.co.x += 0.006 * math.sin(v.co.z * 7 + k * 2) * (1 if v.co.x < 0 else 0.2)
+        mb.add(bmD, M['decke'], frame(Vector((xe - 0.23 - k * 0.006, 0, zb_ + k * 0.02)), Vector((1, 0, 0)), Vector((0, 0, 1)), Vector((0, -1, 0))))
+    for xs_ in (xe - 0.33, xe - 0.14):
+        mb.add(b_plate(rect(xs_ - 0.012, -0.405, xs_ + 0.012, 0.405), 0.0), M['decke_rand'], T(0, 0, zb_ + 0.0605))
     # Seitengitter: +y hochgeklappt, -y unten
     for sy, up in ((1, True), (-1, False)):
         y = sy * 0.468
@@ -1935,27 +1957,30 @@ def build_padded_panel():
     m = common.material
     pad = m('polster', (0.84, 0.82, 0.75), look='plastic', r=1.25)
     pad_low = m('polster_unten', (0.74, 0.71, 0.63), look='plastic', r=1.35)
-    seam = m('polster_naht', (0.70, 0.68, 0.61), look='plastic', r=1.3)
+    seam = m('polster_naht', (0.76, 0.74, 0.67), look='plastic', r=1.3)
     button = m('polster_knopf', (0.76, 0.74, 0.67), look='plastic', r=1.0)
     trim = m('polster_leiste', (0.55, 0.53, 0.48), look='plastic', r=0.9)
     mb = MB()
     zb, zt = 0.07, 2.36
     cols, rows = 2, 4
-    su, sv = 6, 6
+    ts = [0.0, 0.06, 0.26, 0.5, 0.74, 0.94]  # Teilung je Kissen: schmale Nahtstreifen am Rand
+    su = sv = len(ts)
     nu, nv = cols * su, rows * sv
+    us = [(ci + t) / cols for ci in range(cols) for t in ts] + [1.0]
+    vs = [(cj + t) / rows for cj in range(rows) for t in ts] + [1.0]
     dmin, dmax = 0.026, 0.085
     amp = [[rg.uniform(0.85, 1.0) for _ in range(rows)] for _ in range(cols)]
     shift = [[rg.uniform(0.04, 0.12) for _ in range(rows)] for _ in range(cols)]
 
     def depth(i, j):
         ci, cj = min(cols - 1, i // su), min(rows - 1, j // sv)
-        tu, tv = (i - ci * su) / su, (j - cj * sv) / sv
-        if tu <= 0 or tu >= 1 or tv <= 0 or tv >= 1:
+        tu, tv = us[i] * cols - ci, vs[j] * rows - cj
+        if tu <= 1e-6 or tu >= 1 - 1e-6 or tv <= 1e-6 or tv >= 1 - 1e-6:
             return dmin
         tv2 = min(1.0, max(0.0, tv - shift[ci][cj] * math.sin(math.pi * tv)))
         f = (math.sin(math.pi * tu) ** 0.75) * (math.sin(math.pi * tv2) ** 0.75)
         return dmin + (dmax - dmin) * f * amp[ci][cj]
-    G = [[Vector((depth(i, j), -0.5 + i / nu, zb + (zt - zb) * j / nv)) for j in range(nv + 1)] for i in range(nu + 1)]
+    G = [[Vector((depth(i, j), -0.5 + us[i], zb + (zt - zb) * vs[j])) for j in range(nv + 1)] for i in range(nu + 1)]
     bm = bmesh.new()
     VV = [[bm.verts.new(p) for p in row] for row in G]
     for i in range(nu):
@@ -1983,8 +2008,8 @@ def build_padded_panel():
     # Knoepfe an den inneren Kreuzungen und am linken Rand
     for i in (0, su):
         for j in range(sv, nv, sv):
-            y, z = -0.5 + i / nu, zb + (zt - zb) * j / nv
-            mb.add(b_lathe([(0.0, -0.002), (0.011, -0.002), (0.012, 0.003), (0.008, 0.007), (0.0, 0.008)], 8), button,
+            y, z = -0.5 + us[i], zb + (zt - zb) * vs[j]
+            mb.add(b_lathe([(0.012, -0.002), (0.0105, 0.004), (0.0, 0.008)], 7), button,
                    frame(Vector((dmin, y, z)), Vector((0, 1, 0)), Vector((0, 0, 1)), Vector((1, 0, 0))))
     # Leisten oben und unten (gerundet), seitlich buendig mit dem Feld
     for (z0, z1, d) in ((0.0, zb, 0.07), (zt, 2.4, 0.05)):
@@ -2062,16 +2087,40 @@ class _Canvas:
     def blob(self, cx, cy, r, rgb, squash=1.0, n=12, spike=0.25):
         self.poly(_blob(cx, cy, r, self.rg, n, squash, spike), rgb, 0.0)
 
-    def bands(self, y0, y1, colors, wave=0.01):
-        """Waagrechte Farbbaender von oben (y1) nach unten (y0), Grenzen wellig."""
-        n = len(colors)
+    def bands(self, y0, y1, colors, wave=0.01, strokes=True):
+        """Verlauf aus waagrechten Farbbaendern von oben (y1) nach unten (y0): Stuetzfarben werden je zweimal
+        unterteilt, Grenzen wellig, darueber kurze Pinselstriche in Nachbartoenen."""
+        keys = colors
+        cols = []
+        for i in range(len(keys) - 1):
+            for t in (0.0, 0.34, 0.67):
+                cols.append(tuple(keys[i][k] * (1 - t) + keys[i + 1][k] * t for k in range(3)))
+        cols.append(keys[-1])
+        n = len(cols)
         hw = self.W / 2 + 0.02
-        for i, c in enumerate(colors):
+        for i, c in enumerate(cols):
             top = y1 - (y1 - y0) * i / n
-            bot = y1 - (y1 - y0) * (i + 1) / n - (0.01 if i < n - 1 else 0)
+            bot = y1 - (y1 - y0) * (i + 1) / n - (0.012 if i < n - 1 else 0)
             ph = self.rg.uniform(0, 6)
-            pts = [(-hw, bot)] + [(-hw + 2 * hw * k / 8, bot + wave * math.sin(k * 1.3 + ph)) for k in range(1, 8)] + [(hw, bot), (hw, top), (-hw, top)]
+            pts = [(-hw, bot)] + [(-hw + 2 * hw * k / 10, bot + wave * math.sin(k * 1.1 + ph)) for k in range(1, 10)] + [(hw, bot), (hw, top), (-hw, top)]
             self.poly(pts, c, 0.0)
+        if strokes:
+            for _ in range(int(14 * self.W * (y1 - y0) / max(self.H, 0.1) + 6)):
+                z = self.rg.uniform(y0, y1)
+                i = min(n - 1, int((y1 - z) / (y1 - y0) * n))
+                c = tuple(min(1.0, v * self.rg.uniform(0.94, 1.07)) for v in cols[i])
+                y = self.rg.uniform(-self.W / 2, self.W / 2)
+                ln = self.rg.uniform(0.04, 0.14) * self.W
+                self.stroke([(y, z), (y + ln, z + self.rg.uniform(-0.006, 0.006))], self.rg.uniform(0.006, 0.016), c)
+
+    def texture(self, x0, y0, x1, y1, rgb, count, w=(0.005, 0.014), ang=0.0):
+        """Pinselstruktur: kurze Striche in Nachbartoenen ueber einer Flaeche."""
+        for _ in range(count):
+            y, z = self.rg.uniform(x0, x1), self.rg.uniform(y0, y1)
+            ln = self.rg.uniform(0.02, 0.08)
+            a = ang + self.rg.uniform(-0.3, 0.3)
+            c = tuple(min(1.0, v * self.rg.uniform(0.9, 1.1)) for v in rgb)
+            self.stroke([(y, z), (y + ln * math.cos(a), z + ln * math.sin(a))], self.rg.uniform(*w), c)
 
 
 def _scene_landschaft(c, variant):
@@ -2088,21 +2137,27 @@ def _scene_landschaft(c, variant):
         base = zh - k * H * 0.06
         amp = H * (0.22 if (variant == 'berge' and k == 0) else 0.07)
         ph = rg.uniform(0, 6)
-        pts = [(-hw - 0.02, -hh - 0.02)]
-        for i in range(17):
-            y = -hw - 0.02 + (W + 0.04) * i / 16
-            top = base + amp * (0.5 + 0.5 * math.sin(i * 0.7 + ph)) * (0.6 + 0.4 * math.sin(i * 1.9 + ph * 2))
-            pts.append((y, top))
-        pts.append((hw + 0.02, -hh - 0.02))
-        c.poly(pts, col, 0.002)
-        if variant == 'berge' and k == 0:  # Schnee auf den Gipfeln
-            for i in range(2, 15, 4):
-                y = -hw - 0.02 + (W + 0.04) * i / 16
-                top = base + amp * (0.5 + 0.5 * math.sin(i * 0.7 + ph)) * (0.6 + 0.4 * math.sin(i * 1.9 + ph * 2))
-                c.poly([(y - 0.035 * W, top - 0.03 * H), (y, top + 0.002), (y + 0.03 * W, top - 0.035 * H)], (0.86, 0.86, 0.84), 0.002)
+        ridge = []
+        for i in range(25):
+            y = -hw - 0.02 + (W + 0.04) * i / 24
+            top = base + amp * (0.5 + 0.5 * math.sin(i * 0.47 + ph)) * (0.6 + 0.4 * math.sin(i * 1.27 + ph * 2))
+            ridge.append((y, top))
+        c.poly([(-hw - 0.02, -hh - 0.02)] + ridge + [(hw + 0.02, -hh - 0.02)], col, 0.0)
+        if variant == 'berge' and k == 0:  # Schnee auf den beiden hoechsten Gipfeln, folgt der Kammlinie
+            peaks = [i for i in range(1, 24) if ridge[i][1] >= ridge[i - 1][1] and ridge[i][1] >= ridge[i + 1][1]]
+            for i in sorted(peaks, key=lambda i: -ridge[i][1])[:2]:
+                zc = ridge[i][1]
+                cap = [p for p in ridge[max(0, i - 3):i + 4] if p[1] > zc - H * 0.07]
+                if len(cap) < 2:
+                    continue
+                low = zc - H * 0.07
+                bottom = [(cap[-1][0] - (cap[-1][0] - cap[0][0]) * t, low + H * 0.02 * math.sin(t * 17 + i)) for t in (0.2, 0.4, 0.6, 0.8)]
+                c.poly([(cap[0][0], max(low, cap[0][1] - 0.002))] + cap[1:-1] + [(cap[-1][0], max(low, cap[-1][1] - 0.002))] + bottom,
+                       (0.86, 0.86, 0.84), 0.0)
     # Feld mit Furchen zum Fluchtpunkt
     fz = zh - H * 0.12
     c.poly([(-hw - 0.02, -hh - 0.02), (hw + 0.02, -hh - 0.02), (hw + 0.02, fz), (-hw - 0.02, fz + 0.01)], (0.56, 0.52, 0.30), 0.004)
+    c.texture(-hw, -hh, hw, fz, (0.56, 0.52, 0.30), int(30 * W))
     vp = (W * 0.1, fz + 0.02)
     for i in range(-8, 9):
         c.stroke([(vp[0] + i * 0.01 * W, vp[1] - 0.005), (vp[0] + i * 0.16 * W, -hh - 0.02)], 0.004 + 0.0004 * abs(i),
@@ -2146,6 +2201,7 @@ def _scene_meer(c, variant):
     sea = [(0.30, 0.40, 0.46), (0.26, 0.36, 0.42), (0.22, 0.31, 0.37), (0.18, 0.26, 0.31)] if variant == 'abend' else \
         [(0.26, 0.32, 0.34), (0.22, 0.28, 0.30), (0.18, 0.24, 0.26), (0.15, 0.20, 0.22)]
     c.bands(-hh - 0.02, zh, sea, 0.004)
+    c.texture(-hw, -hh, hw, zh - 0.01, sea[1], int(25 * W), (0.004, 0.01))
     for _ in range(int(40 * W)):
         y, z = rg.uniform(-hw, hw), rg.uniform(-hh, zh - 0.01)
         ln = (0.01 + 0.04 * (zh - z) / H) * W
@@ -2166,6 +2222,7 @@ def _scene_stillleben(c):
     rg, W, H = c.rg, c.W, c.H
     hw, hh = W / 2, H / 2
     c.poly(rect(-hw - 0.02, -hh - 0.02, hw + 0.02, hh + 0.02), (0.20, 0.17, 0.13), 0.0)
+    c.texture(-hw, -hh * 0.3, hw, hh, (0.22, 0.18, 0.14), 30, (0.008, 0.02), 0.8)
     c.blob(-W * 0.05, H * 0.08, W * 0.32, (0.30, 0.25, 0.18), 1.2, 16, 0.15)
     zt = -hh + H * 0.32
     c.poly(rect(-hw - 0.02, -hh - 0.02, hw + 0.02, zt), (0.40, 0.28, 0.18), 0.002)
@@ -2217,6 +2274,7 @@ def _scene_konstrukt(c):
     rg, W, H = c.rg, c.W, c.H
     hw, hh = W / 2, H / 2
     c.poly(rect(-hw - 0.02, -hh - 0.02, hw + 0.02, hh + 0.02), (0.84, 0.80, 0.70), 0.0)
+    c.texture(-hw, -hh, hw, hh, (0.84, 0.80, 0.70), 40, (0.008, 0.02))
     c.poly(rot2(rect(-hw * 0.9, -0.02, hw * 0.6, 0.03), 0.35), (0.12, 0.12, 0.12), 0.003)
     c.poly(rot2(rect(-0.015, -hh * 0.8, 0.02, hh * 0.5), -0.15), (0.12, 0.12, 0.12), 0.003)
     c.blob(W * 0.18, H * 0.2, W * 0.16, (0.72, 0.18, 0.14), 1.0, 24, 0.02)
@@ -2235,6 +2293,8 @@ def _scene_interieur(c):
     c.poly([(-hw - 0.02, -hh - 0.02), (ex0, ez0), (ex1, ez0), (hw + 0.02, -hh - 0.02)], (0.46, 0.38, 0.24), 0.002)     # Boden
     c.poly([(-hw - 0.02, hh + 0.02), (ex0, ez1), (ex0, ez0), (-hw - 0.02, -hh - 0.02)], (0.66, 0.58, 0.36), 0.002)     # links
     c.poly([(hw + 0.02, hh + 0.02), (hw + 0.02, -hh - 0.02), (ex1, ez0), (ex1, ez1)], (0.74, 0.66, 0.42), 0.002)      # rechts
+    c.texture(-hw, ez0, ex0, ez1, (0.66, 0.58, 0.36), 18, (0.004, 0.01), 1.5)
+    c.texture(ex1, ez0, hw, ez1, (0.74, 0.66, 0.42), 18, (0.004, 0.01), 1.5)
     c.poly(rect(ex0, ez0, ex1, ez1), (0.62, 0.56, 0.38), 0.001)                                                       # Stirnwand
     c.poly(rect(vp[0] - W * 0.035, ez0, vp[0] + W * 0.035, ez0 + H * 0.13), (0.16, 0.13, 0.10), 0.001)              # Tuer
     c.stroke([(vp[0] + W * 0.03, ez0 + 0.002), (vp[0] + W * 0.03, ez0 + H * 0.125)], 0.003, (0.95, 0.90, 0.70))
