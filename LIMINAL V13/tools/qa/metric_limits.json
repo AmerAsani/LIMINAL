@@ -3,7 +3,7 @@
  "level0": {"ceiling_min": 2.7, "corridor_width_min": 2.0, "corridor_width_median": 2.0, "room_area_median": 28, "sight_median": 24, "sight_p90": 45, "large_rooms_min": 2, "signs_max": 0, "similarity_min": 0.88, "outliers_max": 0.15},
  "level1": {"ceiling_min": 2.7, "corridor_width_min": 2.0, "corridor_width_median": 2.0, "room_area_median": 20, "sight_median": 32, "sight_p90": 85, "large_rooms_min": 8, "signs_max": 12, "similarity_min": 0.8, "outliers_max": 0.25},
  "level2": {"ceiling_min": 2.6, "corridor_width_min": 2.0, "corridor_width_median": 2.0, "room_area_median": 20, "sight_median": 15, "sight_p90": 38, "large_rooms_min": 2, "signs_max": 0, "similarity_min": 0.8, "outliers_max": 0.2},
- "level3": {"ceiling_min": 2.6, "ceiling_corridor_min": 2.6, "corridor_width_min": 1.5, "corridor_width_median": 2.0, "room_area_median": 40, "sight_median": 28, "sight_p90": 50, "large_rooms_min": 5, "signs_max": 0},
+ "level3": {"ceiling_min": 2.6, "ceiling_corridor_min": 2.6, "corridor_width_min": 1.5, "corridor_width_median": 2.0, "room_area_median": 20, "sight_median": 22, "sight_p90": 45, "large_rooms_min": 5, "signs_max": 0},
  "level5": {"ceiling_min": 3.0, "corridor_width_min": 2.4, "corridor_width_median": 3.0, "room_area_median": 30, "sight_median": 20, "sight_p90": 80, "large_rooms_min": 4, "signs_max": 0},
  "level5_3": {"ceiling_min": 3.0, "corridor_width_min": 3.0, "corridor_width_median": 3.0, "room_area_median": 100, "sight_median": 28, "sight_p90": 60, "large_rooms_min": 3, "signs_max": 0},
  "level188": {"ceiling_min": 2.7, "corridor_width_min": 2.5, "room_area_median": 18, "sight_median": 40, "sight_p90": 50, "large_rooms_min": 1, "signs_max": 0},

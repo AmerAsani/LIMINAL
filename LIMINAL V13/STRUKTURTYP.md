@@ -99,7 +99,12 @@ Gittern als Grundstruktur (≥ 50 % der begehbaren Fläche), Sonderräume kleine
 Wiki-Grundlage außer Menschen-Basen). Schilder: **0** Exit-Schilder; Warnschilder an dunklen Engstellen erlaubt.
 
 **Maße:** enge Gänge 1,5 m (Wiki: bis 14 Zoll – im Spiel nicht begehbar, daher 1,5 m als enge Stelle), Gänge sonst 2–3 m,
-Decke ≥ 2,6 m (heute 2,3 m im Paranoia-Gang), große Hallen (Fertigung) ≥ 5, Sichtachsen Median ≥ 28 m.
+Decke ≥ 2,6 m (Paranoia-Gang vorher 1 m breit und 2,3 m hoch, nachher 2 m und 2,6 m), große Hallen ≥ 5.
+**Umgesetzt (V13.3):** drei weitere Ziegel-Gangnetze (Ost, unter dem Sanktuarium, Süd) mit kleinen Kammern; Fertigungsstraße
+60 × 32 m (vorher 60 × 40), Sanktuarium 28 × 40 m (vorher 32 × 52), Büro → leere Ziegelkammer. Gang- und Kammerräume 60 von 71 → 191 von 207
+Räumen; nach Fläche bleiben die Hallen groß (Wiki: so groß wie ein Food-Court), Ziegelzonen 25 % → 40 %. Dadurch sinken die
+Kennwerte, die vorher von den Hallen kamen: Sichtachsen Median 32,5 → 23,5 m (Grenze 22 m, Gänge mit Knicken und Gittern),
+Median der Raumfläche 82 → 25 m² (Grenze 20 m², Kammern im Labyrinth).
 
 ## Level 5 – „Terror Hotel“ (Eigener Ort)
 

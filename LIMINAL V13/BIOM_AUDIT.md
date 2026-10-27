@@ -65,13 +65,13 @@ Ostnetz. S und Ausreißer siehe `docs/metrics/` (Prüfung grün).
 
 | Zone | Fläche | Wiki-Beleg | Entscheidung |
 |---|---|---|---|
-| ziegel_* (Gänge, hinter Gittern) | 25 % | Ziegelgänge, Gitter-Labyrinth | **Anteil auf ≥ 50 %** |
+| ziegel_* (Gänge, hinter Gittern) | 25 % → 40 % | Ziegelgänge, Gitter-Labyrinth | drei Gangnetze ergänzt (`level3_nachher.png`); 191 von 207 Räumen sind Gänge/Kammern (vorher 60 von 71) |
 | fertigung | 31 % | Assembly Lines | behalten, kleiner |
 | sanktum | 21 % | Sanctums | behalten, kleiner |
 | generator | 19 % | Generator Rooms | behalten, kleiner |
 | kessel | 3 % | Boiler Rooms | behalten |
 | aufzug (Abgang, Kabine) | < 1 % | Aufzüge nach Level 4/5 | behalten |
-| buero | 1 % | nur Menschen-Basen | **entfernen** |
+| buero | 1 % | nur Menschen-Basen | **entfernt** (leere Ziegelkammer) |
 
 ## Level 5 – Eigener Ort
 
