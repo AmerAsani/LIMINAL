@@ -1,14 +1,20 @@
-# LIMINAL – Mehrspieler-Architektur (Koop, Beta)
+# LIMINAL – Mehrspieler-Architektur (Koop)
 
-Stand: 26.10.2026, V13.2. Dieses Dokument entstand vor der ersten Netzwerkzeile des Spiels. Bindend sind die Regeln aus `MULTIPLAYER_BEDROHUNGSMODELL.md` (Abschnitt 6); dieses Dokument legt fest, wie sie umgesetzt werden. Ergebnisse der Prüfungen: `MULTIPLAYER_TESTS.md`, Entscheidung über die Freigabe: `MULTIPLAYER_ENTSCHEIDUNG.md`.
+Stand: 27.10.2026, V13.3. Das Dokument entstand in V13.2 vor der ersten Netzwerkzeile des Spiels.
+- **V13.3** hat den Verbindungsaufbau ersetzt: Beitrittscode über eine Lobby, NAT-Durchdringung mit Relay-Rückfall, Verschlüsselung durch die Bibliothek. Betroffen sind die Abschnitte 1, 4–8, 12 und 13.
+- Bindend sind die Regeln aus `MULTIPLAYER_BEDROHUNGSMODELL.md` (Abschnitt 6); dieses Dokument legt fest, wie sie umgesetzt werden.
+- Wahl der Lösung: `MULTIPLAYER_RECHERCHE.md`, E-033. Betrieb: `MULTIPLAYER_SETUP.md`. Prüfungen: `MULTIPLAYER_TESTS.md`. Freigabe: `MULTIPLAYER_ENTSCHEIDUNG.md`.
 
 Nichts hier behauptet, der Mehrspielermodus sei „vollkommen sicher“. Ziel ist ein kleines, bekanntes und geprüftes Restrisiko.
 
 ## 1. Rahmen
 
 - Koop für 2–4 Spieler auf derselben Ebene, gemeinsame Reise durch die zehn Ebenen.
-- Ein Spieler hostet, die anderen treten bei (LAN oder Internet mit Portfreigabe).
-- Keine Konten, keine fremden Server, keine Vermittlung, kein Datenabfluss an Dritte.
+- Ein Spieler hostet, die anderen treten bei:
+  - **mit einem Beitrittscode über eine Lobby**, ohne Router-Einstellungen;
+  - oder direkt per Adresse und langem Code (LAN, Portfreigabe).
+- Keine Konten, keine App-IDs, kein Dienst eines Dritten, der freigeschaltet werden müsste.
+- Die Lobby mit Relay (`liminal_lobby.exe`) betreibt der Herausgeber oder eine Spielergruppe selbst. Was sie sieht: Abschnitt 8.
 
 ## 2. Gastgeber oder eigener Server?
 
@@ -47,46 +53,154 @@ Positionen, Werte oder Inventarinhalte eines Gastes nimmt der Host nie an. Es gi
 
 ## 4. Transport
 
-**Entscheidung: ENet 1.3.18** (MIT, Lee Salzman; Quelle: github.com/lsalzman/enet, Commit `2662c0de09e36f2a2030ccc2c528a3e4c9e8138a`, unverändert in `third_party/enet`).
-- Bewährte UDP-Bibliothek seit 2002, in vielen Spielen im Einsatz.
-- Etwa 4000 Zeilen C ohne weitere Abhängigkeiten.
-- Bringt zuverlässige und unzuverlässige, geordnete Kanäle, Verbindungsverwaltung, Fragmentierung und Bandbreitenbegrenzung mit.
+**Entscheidung (V13.3, E-033): WebRTC-Datenkanäle mit libdatachannel 0.24.6** (MPL-2.0, Paul-Louis Ageneau). Darunter:
+- libjuice 1.7.4: ICE, STUN, TURN;
+- usrsctp: SCTP;
+- Mbed TLS 3.6.7 LTS: DTLS 1.2.
 
-| Bewertet | Lizenz | Abhängigkeiten | Verschlüsselung | Urteil |
-|---|---|---|---|---|
-| ENet | MIT | keine | keine (siehe 5) | gewählt: klein, bewährt, gepflegt |
-| GameNetworkingSockets (Valve) | BSD-3 | Protobuf, OpenSSL oder libsodium | ja | zu schwer für den Umfang |
-| yojimbo / netcode | BSD-3 | libsodium, mbedTLS | ja | gut, aber zwei Kryptobibliotheken mehr |
-| eigene Zuverlässigkeit auf Winsock | – | – | – | verworfen (fehleranfällig) |
+Alle Quellen liegen unverändert in `third_party/`; Versionen, Commits und Prüfsummen in `LICENSES.md`, Abschnitt 7.
+
+- **Je Gast eine Verbindung** (Peer-Verbindung) mit zwei Kanälen:
+  - `r`: zuverlässig, geordnet – Beitritt, Ereignisse, Inventar, Gruppe;
+  - `u`: ungeordnet, Lebensdauer 150 ms (PR-SCTP) – Eingaben, Momentaufnahmen, Ping. Was in 150 ms nicht durchkommt, verfällt; bei knapper Bandbreite stauen sich so keine veralteten Momentaufnahmen.
+- **Verbindungsweg (ICE):** direkt (Adressen der Netzwerkkarten), über NAT (öffentliche Adresse per STUN) oder **über das TURN-Relay**, wenn nichts anderes geht. Die Wahl trifft ICE von selbst. Das Spiel zeigt den Weg je Spieler an (direkt / direkt durch NAT / über Relay).
+- **Höchstgröße:** 1200 Byte Nutzdaten je Nachricht. Längeres verwirft die DLL; die Bibliothek nimmt höchstens 4 KiB je Nachricht an.
+- **V13.2 verworfen:**
+  - ENet 1.3.18 mit eigenem Handshake (HMAC-Beweis) und eigener AES-256-GCM-Schicht ist **entfernt**.
+  - Begründung: eigene Kryptografie, keine NAT-Durchdringung (`MULTIPLAYER_RECHERCHE.md`).
+
+| Bewertet (V13.3) | NAT ohne Portfreigabe | Verschlüsselung/Authentisierung | Urteil |
+|---|---|---|---|
+| libdatachannel + libjuice + Mbed TLS | ja (ICE + TURN) | DTLS, Fingerabdruck aus der Signalisierung | **gewählt** |
+| Steam Networking Sockets / EOS P2P | ja (Relay des Anbieters) | ja | Konto und SDK nur mit Konto; später als zweiter Weg möglich |
+| GameNetworkingSockets (Open Source) | ja (ICE, TURN seit 1.6) | ohne eigene Zertifizierungsstelle nicht authentisiert | Protobuf/Abseil, Linkprobleme mit LLVM |
+| netcode/yojimbo, ENet | nein | netcode ja, ENet nein | verworfen |
+| Photon, PlayFab Party | ja (Cloud) | ja | Konto, laufende Kosten, Verkehr bei Dritten |
 
 ## 5. Verschlüsselung und Beitritt
 
-Das Bedrohungsmodell verlangt authentisierte Verschlüsselung nach dem Handshake (T4) und verbietet eigene Kryptografie (Regel 7).
+Keine eigene Kryptografie. Verschlüsselung und Echtheit der Gegenstelle macht DTLS. Dazu kommt eine Zusammensetzung bewährter Bausteine, kein neues Verfahren:
 
-**Entscheidung:** Windows-Kryptografie (CNG, `bcrypt.dll`), Teil von Windows, keine zusätzliche Bibliothek.
-- **Beitrittsschlüssel:** 128 zufällige Bit aus `BCryptGenRandom`. Der Host zeigt ihn als 26 Zeichen an (Base32, in Fünfergruppen); kopierbar, zusammen mit Adresse und Port als eine Zeile.
-- **Sitzungsschlüssel je Verbindung:** HKDF-SHA256 (HMAC aus CNG) über den Beitrittsschlüssel und je 16 zufällige Byte von Host und Gast. Getrennte Schlüssel je Richtung.
-- **Jede Nachricht nach dem Handshake:** AES-256-GCM (CNG). Die Nonce besteht aus Richtung und 64-Bit-Zähler; der Zähler dient zugleich als Schutz vor Wiederholung (Fenster `SeqWindow` aus `src/net`).
-- **Handshake:** Der Gast beweist den Schlüssel, ohne ihn zu senden (HMAC über beide Zufallswerte). Falsche Beweise zählen; nach 5 Fehlversuchen wird die Adresse 60 s gesperrt.
-- **Gewollte Grenze:** ENet selbst (Verbindungsaufbau, Bestätigungen) bleibt unverschlüsselt. Wer auf dem Weg sitzt, kann Verbindungen stören, aber Spielnachrichten weder lesen noch fälschen. Kein Vorwärtsgeheimnis: Wer den Beitrittsschlüssel später erfährt und den Verkehr aufgezeichnet hat, kann ihn lesen. Der Schlüssel gilt nur für eine Sitzung.
+- **DTLS 1.2** je Verbindung (Mbed TLS):
+  - ECDHE mit Vorwärtsgeheimnis;
+  - AES-GCM bzw. ChaCha20-Poly1305;
+  - Zertifikate ECDSA P-256.
+  - Jede Seite prüft das Zertifikat der Gegenseite gegen den SHA-256-Fingerabdruck aus deren Verbindungsbeschreibung (RFC 8827).
+- **Zusätzliche Prüfung in der DLL:** Nach dem Öffnen der Kanäle muss der von DTLS geprüfte Fingerabdruck vorliegen und gleich dem aus der Beschreibung sein. Hintergrund: libdatachannel setzt mit Mbed TLS `VERIFY_OPTIONAL`; ein Gegenüber ohne Zertifikat würde sonst nicht abgewiesen (`MULTIPLAYER_RECHERCHE.md`, Abschnitt 4).
+- **Beitrittscode** (Crockford-Base32, Vierergruppen; `src/netdll/joincode.*`):
 
-## 6. Prozess- und Bibliotheksgrenze (Regel 6)
+  | Teil | Zeichen | Bit | Wer prüft | Zweck |
+  |---|---|---|---|---|
+  | Raumnummer | 6 | 30 | Lobby | Raum finden |
+  | Geheimteil | 6 | 30 | Host, **im DTLS-Kanal** (Vergleich in fester Zeit) | Schutz vor Fremdbeitritt; die Lobby sieht ihn nie |
+  | Prüfteil (nur langer Code) | 12 | 60 | Gast, **bevor er etwas sendet** | Pinning: erste 60 Bit des SHA-256-Fingerabdrucks des Host-Zertifikats |
 
-- Netzwerk, ENet und Verschlüsselung liegen in **`liminal_net.dll`**. Das Spiel lädt sie mit `LoadLibrary` erst, wenn man „Spiel hosten“ oder „Beitreten“ wählt.
-- `LiminalGame.exe` importiert keine Netzwerkbibliothek (`ws2_32`); `tools/check_no_network.py` prüft das weiter.
+  - **Kurzer Code** (12 Zeichen, z. B. `K7QF-M2XA-9FJT`) für die Lobby mit `wss://`.
+  - **Langer Code** (24 Zeichen) für „Direkt“: dort Pflicht, weil die Signalisierung zur eingebauten Lobby unverschlüsselt ist. Über die Lobby geht er auch.
+  - Das Host-Zertifikat erzeugt die DLL einmal je Sitzung (`hostcert.cpp`, Mbed TLS) und nutzt es für alle Gäste. Nur so kann der Prüfteil im Code stehen.
+- **Ablauf:**
+  1. Gast → Lobby: Raumnummer, Name.
+  2. Host ↔ Gast über die Lobby: Beschreibungen (SDP mit Fingerabdruck) und ICE-Kandidaten.
+  3. Der Gast prüft den Prüfteil, wenn vorhanden.
+  4. ICE findet einen Weg, DTLS prüft die Fingerabdrücke.
+  5. Gast → Host: **HALLO** (Version der DLL, Geheimteil, Name) im zuverlässigen Kanal.
+  6. Host → Gast: **WILLKOMMEN** oder **ABSAGE** mit Grund. Erst jetzt melden beide „verbunden“; der Gast verlässt die Lobby.
+- **Rahmung in der DLL** (das Einzige, was über den Daten der Bibliothek liegt):
+  - je Nachricht 1 Byte Art: Hallo, Willkommen, Absage, Nutzdaten, Ping, Pong;
+  - feste Längen; alles andere zählt als ungültig.
+- **Fehlversuche:**
+  - Falsches Geheimteil, falscher Name, Zeitlimit oder Müll zählen je Adresse.
+  - Nach 5 Fehlversuchen in 10 min weist der Host die Adresse 10 min lang ab, schon wenn die Lobby den Beitritt meldet. Die Lobby nennt dem Host dafür eine Kennung der Adresse je Raum, nicht die IP.
+  - Ein Bann durch den Host (Pausenmenü) gilt auch in der Lobby: Sie weist die Adresse für diesen Raum ab.
+  - Die Lobby selbst sperrt eine Adresse nach 10 unbekannten Raumnummern in 10 min für 10 min.
+- **Sitzungstoken** (128 Bit, Spielprotokoll) wie bisher: Wer innerhalb von 120 s mit demselben Code und Token wiederkommt, bekommt seinen Platz, seine Werte und sein Inventar zurück.
+- **Versionsprüfung auf drei Ebenen:**
+  - Lobby-Protokoll v1 (Lobby antwortet „version“);
+  - DLL-Rahmung v3 (Absage VERSION);
+  - Spielprotokoll v3 mit Prüfsumme der Spieldaten (Absage „andere Version“ bzw. „andere Spieldaten“).
+
+## 6. Lobby und Relay
+
+`src/netdll/lobby_server.*`, als Programm `tools/lobby/lobby_main.cpp` → `liminal_lobby.exe`. Eigener Code, weil es für Beitrittscodes keinen fertigen, kontofreien Dienst gibt. Bewusst klein gehalten.
+
+- **WebSocket-Server** (libdatachannel, TLS über Mbed TLS) mit JSON-Nachrichten (nlohmann/json):
+  - Raum öffnen;
+  - beitreten;
+  - Beschreibungen und Kandidaten weiterreichen;
+  - abweisen, sperren, verlassen.
+
+  Format und Prüfregeln: `src/netdll/lobby_proto.hpp`. Jede Seite prüft jedes Feld (Typ, Länge, Zeichen, Bereich). Weitergereicht wird nie das empfangene JSON, sondern eine neu gebaute Nachricht aus geprüften Feldern.
+- **STUN/TURN-Server** von libjuice im selben Programm:
+  - Für jeden Raum legt die Lobby **eigene, zeitlich begrenzte TURN-Zugangsdaten** an (zufällig, Gültigkeit = Lebensdauer des Raums, höchstens 12 h) mit einer Obergrenze an Zuteilungen.
+  - Feste Zugangsdaten gibt es nicht.
+- **Grenzen:**
+
+  | Grenze | Wert |
+  |---|---|
+  | Nachricht | höchstens 8 KiB, Schachtelungstiefe 4 |
+  | Nachrichten je Verbindung | 30/s, Vorrat 60; anhaltend darüber: getrennt |
+  | Verbindungen | 512 insgesamt, 12 je Adresse |
+  | Räume | 256 insgesamt, 4 je Adresse |
+  | Beitrittsversuche je Adresse | 20/min |
+  | gleichzeitig wartende Gäste je Raum | 4 |
+  | Zeitlimits | ohne Anmeldung 10 s; wartender Gast 60 s; Raum höchstens 12 h |
+
+  Verstöße trennen die Verbindung; die Lobby läuft weiter.
+- **Eingebaute Lobby (Direkt):**
+  - Der Host startet denselben Server in seiner DLL: ein Raum, ohne Relay; „Host“ nur über die eigene Loopback-Adresse.
+  - Alle Gäste-Verbindungen nutzen einen festen UDP-Port (ICE-Mux), Standard 27500; damit ist eine Portfreigabe (TCP und UDP 27500) möglich.
+  - Der Gast nimmt die eingegebene Adresse zusätzlich als ICE-Kandidaten.
+- **Verbindung des Spiels zur Lobby** über **WinHTTP** (`src/netdll/lobby_client.*`):
+  - Windows prüft das TLS-Zertifikat von `wss://` (Schannel, Stammzertifikate, Sperrlisten), oder es zählt ein festgelegtes Zertifikat (Pinning über `koop.json`).
+  - Der WebSocket-Client von libdatachannel wurde dafür nicht genommen: Unter Windows schaltet er die Zertifikatsprüfung ab (`websocket.cpp`: „not supported on Windows“).
+- **Lobby verloren (Host):** Laufende Spiele laufen weiter (direkt oder über das Relay). Die DLL versucht alle 5 s neu und meldet einen **neuen** Code, sobald die Lobby wieder da ist.
+
+## 7. Prozess- und Bibliotheksgrenze (Regel 6)
+
+- Netzwerk, WebRTC, Lobby-Verbindung und Kryptografie liegen in **`liminal_net.dll`**. Das Spiel lädt sie mit `LoadLibrary` erst, wenn man hostet oder beitritt.
+- `LiminalGame.exe` importiert keine Netzwerkbibliothek; `tools/check_no_network.py` prüft das weiter.
+- Die DLL darf `ws2_32`, `iphlpapi` (Netzwerkschnittstellen für ICE) und `winhttp` (Lobby) importieren, keine Download-Bibliothek. Sie exportiert genau die elf `ln_`-Funktionen.
 - Ohne Mehrspieler öffnet das Spiel keinen Port.
-- Schnittstelle der DLL: wenige C-Funktionen (Host/Client öffnen und schließen, Paket senden, Ereignisse abholen, Messwerte). Sie liefert nur entschlüsselte, geprüfte Nutzdaten fester Höchstgröße.
+- **Schnittstelle der DLL** (`src/netdll/ln_api.h`, Version 3):
+
+  | Funktion | Aufgabe |
+  |---|---|
+  | `ln_host`, `ln_join` | Host/Gast öffnen (Lobby oder direkt) |
+  | `ln_poll` | Ereignisse: verbunden, getrennt mit Grund, Nachricht, Code bereit, Fortschritt |
+  | `ln_send`, `ln_drop` | senden; Kick, Bann |
+  | `ln_stats` | Laufzeit, Verlust, Weg, Bytes |
+  | `ln_code`, `ln_port`, `ln_close`, `ln_random`, `ln_version` | Hilfen |
+
+  Sie liefert nur entschlüsselte, geprüfte Nutzdaten fester Höchstgröße.
+- Die Schnittstelle ist so geschnitten, dass sich ein zweiter Transport (z. B. Steam Networking Sockets) dahinter setzen lässt, ohne das Spiel zu ändern.
 - Das Spielprotokoll prüft `src/net` (Prüfschicht aus V13, erweitert): Typ, Länge, Bereich, Rate, Folge, Rolle.
+- Alle Aufrufe der Bibliothek stehen in `try/catch` (sie meldet Fehler als Ausnahme). Ihre Rückrufe legen nur Beschreibungen, Kandidaten und neue Kanäle in einen Eingang. Nachrichten holt die DLL im Spiel-Thread ab (höchstens 256 je Kanal und Bild; der Rest bleibt in der Bibliothek, Gegendruck).
 
-## 7. Verbindung, NAT, Firewall, Datenschutz
+## 8. Verbindung, NAT, Firewall, Datenschutz
 
-- Direktverbindung: IP und Port (Standard 27500/UDP) plus Beitrittsschlüssel. Im LAN genügt die angezeigte Adresse.
-- Übers Internet braucht der Host eine Portfreigabe im Router. Es gibt kein NAT-Traversal über fremde Server; das ist bewusst so, denn jeder Vermittlungsserver wäre ein Dritter mit Einblick.
-- Beim ersten Hosten fragt die Windows-Firewall, ob das Spiel Verbindungen annehmen darf. Der Dialog wird vorher im Menü angekündigt („Windows fragt gleich …“); ohne Zustimmung geht nur ein Spiel auf demselben Rechner.
-- **Daten im Netz:** Spielername (höchstens 16 Zeichen), Spielzustand. Gäste erfahren keine IP-Adressen anderer Gäste, nur den Spielernamen.
-- Keine Protokollzeile mit Pfaden geht ins Netz. Protokolle bleiben lokal und enthalten nur die Adresse des Hosts bzw. der Gäste.
+- **Über die Lobby:**
+  - Host und Gäste verbinden sich nur **ausgehend** (TCP zur Lobby, UDP für ICE).
+  - Ohne Router-Einstellungen: direkter Weg, wenn NAT es zulässt, sonst das Relay der Lobby.
+  - Netze, die UDP ganz sperren, gehen nicht (libjuice spricht TURN nur über UDP; Abschnitt 12).
+- **Direkt:** Im LAN genügt die Adresse des Hosts; übers Internet braucht der Host eine Portfreigabe (TCP und UDP 27500).
+- **Firewall:** Beim ersten Hosten im Modus „Direkt“ fragt Windows, ob das Spiel Verbindungen annehmen darf. Ob die Abfrage auch im Lobby-Modus erscheint (UDP-Sockets für ICE), ist **nicht geprüft**.
+- **Daten im Netz:**
+  - Spielername (höchstens 16 Zeichen) und Spielzustand.
+  - Gäste erfahren keine Adressen anderer Gäste.
+  - Host und Gast sehen einander, wenn ein direkter Weg gefunden wird. Mit **„Eigene IP verbergen“** (nur Relay) meldet die DLL keine direkten Kandidaten, und ICE nutzt nur das Relay.
+  - Grenze: libjuice schickt Prüfpakete auch von der eigenen Adresse an die Relay-Adresse der Gegenseite. Der TURN-Server lässt sie nur durch, wenn die Absender-IP in den Berechtigungen der Gegenseite steht. Zwischen getrennten Rechnern ist das nicht so; im Test auf getrennten Loopback-Adressen nachgestellt.
+- **Was die Lobby sieht:**
+  - IP-Adressen (nur im Arbeitsspeicher, für Raten und Sperren);
+  - Raumnummer, Namen, Verbindungsbeschreibungen.
+  - **Nicht:** das Geheimteil des Codes, den Spielverkehr.
+  - Das Relay sieht Adressen und verschlüsselte Pakete.
+  - Folgen für den Betrieb: `MULTIPLAYER_SETUP.md`, Abschnitt 5.
+- **Protokolle:**
+  - Die Lobby schreibt keine IP-Adressen ins Protokoll.
+  - Das Spiel protokolliert lokal, nie über das Netz.
+  - Die DLL schreibt nur mit `LIMINAL_NET_LOG=1` Meldungen der Bibliothek auf stderr.
 
-## 8. Welt und Synchronisierung
+## 9. Welt und Synchronisierung
 
 - **Welt aus dem Seed:** Die Ebenen sind feste Karten, Funde verteilt der Spawnplan nach Seed. Host und Gäste erzeugen dieselbe Welt (der Willkommensgruß überträgt Ebene, Seed des Laufs und Schwierigkeit). Prüfsumme der Welt zum Vergleich.
 - **Zustandsänderungen** (zuverlässiger Kanal, Ereignisse mit fortlaufender Nummer):
@@ -100,7 +214,7 @@ Das Bedrohungsmodell verlangt authentisierte Verschlüsselung nach dem Handshake
 - **Momentaufnahmen** (unzuverlässig, 20 je Sekunde):
   - alle Spieler (Ort, Geschwindigkeit, Blick, Lampe, Haltung)
   - die eigenen Werte (Gesundheit, Verstand, Ausdauer, Batterie)
-  - die Wesen in der Nähe (Art, Ort, Richtung, Eingaben ihrer Bewegung)
+  - die Wesen in der Nähe (Art als Zahl bis `kRoles` = 40, Ort, Richtung, Eingaben ihrer Bewegung)
   - letzte verarbeitete Eingabe je Gast
 
   Höchstens 1200 Byte je Paket.
@@ -111,7 +225,7 @@ Das Bedrohungsmodell verlangt authentisierte Verschlüsselung nach dem Handshake
 - **Körper der Mitspieler:** das vorhandene Spielermodell mit der Lampenhaltung von außen (B-001). Ihr Lichtkegel ist ein eigenes Licht im Renderer.
 - **Wesen:** KI nur auf dem Host. Gäste zeigen „Puppen“: Ort, Richtung und Eingaben der Bewegung kommen vom Host, die Bewegung (Gang, Atem, Licht) rechnet der Gast mit derselben Animation. Die Wesen wählen als Ziel den nächsten Spieler, den sie wahrnehmen. Keine Erscheinung im Blickfeld irgendeines Spielers.
 
-## 9. Spielregeln im Koop
+## 10. Spielregeln im Koop
 
 - **Ebenenwechsel:** Wer einen Ausgang betritt, ist „bereit“. Alle sehen „Ausgang gefunden – 1/3 bereit“. Sind alle Lebenden bereit, wechselt die Gruppe. Nach 60 s ohne alle zieht der Host die Übrigen mit (Ankündigung ab 15 s). Spieler auf verschiedenen Ebenen gibt es nicht.
 - **Tod:** Der Gestorbene sieht einem lebenden Mitspieler zu (Wechsel mit der Maus). Er kommt nach 20 s am letzten Sicherungspunkt zurück, solange jemand lebt. Sterben alle, beginnt die Gruppe am Sicherungspunkt neu (wie im Einzelspiel).
@@ -119,47 +233,51 @@ Das Bedrohungsmodell verlangt authentisierte Verschlüsselung nach dem Handshake
 - **Verstand und Halluzinationen:** Den Verstand rechnet der Host. Halluzinationen sieht nur der Betroffene.
 - **Speichern:** nur der Host, in einem eigenen Koop-Spielstand (Werte je Spielername), nie über den Einzelspielerstand. Gäste speichern nichts.
 
-## 10. Rollen und Rechte
+## 11. Rollen und Rechte
 
 | Rolle | Darf |
 |---|---|
-| Host | Sitzung öffnen und schließen, Spieler entfernen (Kick) oder sperren (Bann für die Sitzung), speichern |
+| Host | Sitzung öffnen und schließen, Spieler entfernen (Kick) oder sperren (Bann für die Sitzung, auch in der Lobby), speichern |
 | Gast | Eingaben und Absichten senden, Sitzung verlassen |
 
 - Nachrichtentypen haben je Rolle und Verbindungszustand eine Erlaubnisliste.
 - Ein Gast, der eine Host-Nachricht sendet, wird getrennt.
 - Höchstens 4 Spieler (Host + 3).
-- Halbe Handshakes: höchstens 8 gleichzeitig, Zeitlimit 5 s.
+- Halbe Beitritte (Signalisierung, ICE, DTLS, Hallo): höchstens 4 gleichzeitig, 3 je Adresse, Zeitlimit 20 s (über das Relay dauert der Aufbau länger als die 5 s der ENet-Zeit).
 - Stille: 10 s, dann wird getrennt.
 - Wiederverbinden: innerhalb von 120 s mit demselben Sitzungstoken kehrt der Gast mit Inventar und Werten zurück.
 
-## 11. Grenzen der Beta
+## 12. Grenzen (V13.3)
 
 - **Keine Sprachübertragung.** Begründung in `MULTIPLAYER_ENTSCHEIDUNG.md`: Mikrofonzugriff, Audio-Codec und Moderation sind ein eigenes Datenschutz- und Sicherheitsthema.
-- **Kein NAT-Traversal, kein Serverbrowser** (keine Dritten).
+- **Kein Serverbrowser:** Beitritt nur mit Code (bewusst: keine öffentliche Liste von Räumen).
+- **Nur UDP:**
+  - libjuice spricht TURN nur über UDP.
+  - Netze ohne UDP (manche Firmen- und Schulnetze) bekommen keine Verbindung, auch nicht über das Relay. Das Spiel meldet dann klar „kein Verbindungsweg“.
+  - Abhilfe wäre TURN über TCP/TLS (z. B. coturn mit libnice); nicht umgesetzt.
+- **Lobby-Betrieb:** Ohne öffentlich erreichbare Lobby geht nur „Direkt“. Die Adresse der Lobby ist der eine fehlende Eintrag (`koop.json`).
+- **Lobby und Spiel nur für Windows gebaut und geprüft.** Der Code der Lobby ist bis auf nichts Windows-Spezifisches portabel, ein Bau unter Linux ist aber nicht versucht.
 - Die letzte Aufzugsfahrt (Flucht mit drei Sicherungen, V9) gibt es nur in der alten, zusammenhängenden Welt. Die Reise durch die zehn Ebenen nutzt sie nicht; im Koop ist sie aus.
 
-## 12. Umsetzung (Stand V13.2)
+## 13. Umsetzung (Stand V13.3)
 
 | Teil | Wo | Anmerkung |
 |---|---|---|
-| Transport, Handshake, Verschlüsselung | `src/netdll/` → `liminal_net.dll` (ENet 1.3.18, CNG) | Exporte: genau die zehn `ln_`-Funktionen (`tools/check_no_network.py` prüft das) |
-| Spielprotokoll v3 (V13.2: v2 + Gesten der neuen Wesen) | `src/net/coop_proto.*` | Join, Input (bis 4 Eingaben je Paket), Action, Ping, Bye; Welcome, Snapshot, Event, Inventory, Roster, Pong, Check |
-| Host und Gast | `src/coop/coop.*` | `CoopHost`, `CoopClient`; DLL-Lader `netapi_dll.cpp` (nur aus dem Ordner des Spiels) |
-| Figuren der Mitspieler | `src/gameplay/pawn.*` | Spielermodell, Lampenhaltung von außen, eigener Lichtkegel |
-| Sitzung im Koop | `src/gameplay/session_coop.cpp` | Absichten des Gasts am Zustand des Hosts geprüft, Welt nach dem Host beim Gast |
-| Wesen für mehrere Spieler | `src/gameplay/presence.cpp` | Ziel je Wesen (nächster lebender Spieler), Regie reihum, Erscheinen nie im Blick irgendeines Spielers, Puppen beim Gast |
-| Laden um mehrere Spieler | `src/world/world.cpp` | Kacheln um den Host und um jede Figur eines Gasts |
-| Oberfläche | `src/ui/ui_coop.cpp` | Hauptmenü „Koop (Beta)“, Pausenmenü „Mitspieler“, Statuszeile, Namen über den Mitspielern |
-| Prüfungen | `tests/net_transport_test.cpp`, `tests/coop_test.cpp` | `MULTIPLAYER_TESTS.md` |
+| Transport, Code, Rahmung | `src/netdll/transport.cpp`, `joincode.*`, `hostcert.*` → `liminal_net.dll` | libdatachannel (statisch), Exporte: genau die elf `ln_`-Funktionen (`tools/check_no_network.py`) |
+| Lobby-Nachrichten | `src/netdll/lobby_proto.*` | Prüfschicht, gemeinsam für DLL und Lobby |
+| Lobby- und Relay-Server | `src/netdll/lobby_server.*`, `tools/lobby/lobby_main.cpp` → `liminal_lobby.exe` | auch eingebaut im Host (Direkt) und in den Tests |
+| Verbindung zur Lobby | `src/netdll/lobby_client.*` | WinHTTP (TLS-Prüfung durch Windows, Pinning) |
+| Einstellungen von Mbed TLS | `src/netdll/config/liminal_mbedtls_config.h` | DTLS-SRTP (zum Bauen nötig), Threads, ohne Sockets |
+| Spielprotokoll v3 | `src/net/coop_proto.*` | unverändert bis auf die Obergrenze `kRoles` = 40 (Format gleich, Abschnitt 9) |
+| Host und Gast | `src/coop/coop.*`, `netapi*.cpp` | `CoopHost::start(NetSettings)`, `CoopClient::connect(NetSettings, Adresse, Code)`; Gründe als Text (`reasonText`) |
+| Einstellungen | `koop.json` (Programmordner, dann Nutzerordner), `App::netSettings` | `MULTIPLAYER_SETUP.md`, Abschnitt 3.4 |
+| Oberfläche | `src/ui/ui_coop.cpp` | Hosten/Beitreten, Code, Lobby oder Direkt, „Eigene IP verbergen“; Pausenmenü „Mitspieler“ mit Code (Strg+C), Ping, Verlust, Weg; klare Fehlermeldungen; Fortschritt beim Beitritt |
+| Prüfungen | `tests/net_transport_test.cpp`, `tests/coop_test.cpp` | `MULTIPLAYER_TESTS.md`, Abschnitt 7 |
 
-Abweichungen und Ergänzungen gegenüber den Abschnitten 1–11:
+Seit V13.3 zusätzlich:
 
-- **Bestätigung im Handshake:** Nach dem angenommenen Beweis sendet der Host eine leere, verschlüsselte Nachricht. Erst damit meldet der Gast „verbunden“ und darf senden. Ohne sie warteten beide aufeinander (gefunden im ersten Bot-Test). Die Authentisierung ist dadurch gegenseitig, bevor ein Byte Spielinhalt fließt.
-- **Blick als Winkel, nicht als Änderung:** Eine Eingabe trägt Gier- und Nickwinkel absolut (Nicken auf ±83° begrenzt). Der Blick bestimmt im Koop nur die Laufrichtung und die Lampe, nie Treffer oder Werte; eine begrenzte Blickänderung (Bedrohungsmodell T2) schützt hier nichts. Die Bewegung selbst bleibt Eingabe (Achsen, Tasten), ihr Zeitanteil ist begrenzt (1–100 ms je Eingabe, Zeitbudget je Gast: nicht mehr Spielzeit als die Uhr des Hosts plus 0,5 s).
-- **Momentaufnahmen erst nach der ersten Eingabe:** Der Host sendet sie, sobald der Gast spielt. Davor kämen sie auf dem unzuverlässigen Kanal vor dem Willkommen an, und der Gast müsste sie verwerfen.
-- **Vorräte:** Der Faktor 1 + 0,6 × (n − 1) gilt ab der nächsten Ebene (n = verbundene Spieler beim Wechsel). Der Host überträgt ihn mit dem Wechsel und im Willkommen. Der Generator würfelt die Zusatzfunde über einen eigenen Hash, deshalb bleibt die Grundbelegung (und das Einzelspiel mit 1,0) unverändert.
-- **Ebenenwechsel:** Der Ausgang ist ein Bereich, keine Tür. Wer darin steht, ist bereit; verlässt er ihn, ist er es nicht mehr. Braucht der Übergang eine Sache (Sicherung im Aufzug von Level 3), genügt sie bei einem der Bereiten.
-- **Speichern:** Der Host speichert einen eigenen Koop-Stand (Markierung `coop` im Spielstand) mit den Werten, Inventaren und Lampen der Gäste nach Namen. Hostet er „Koop-Stand fortsetzen“, bekommt ein Gast mit demselben Namen seine Sachen zurück. Gäste speichern nichts.
-- **Namen über den Mitspielern:** Alle Körper sind dasselbe Spielermodell; der Name schwebt über dem Kopf (mit denselben Matrizen wie das Bild projiziert).
-- **Gezeichnete Wesen beim Gast:** Puppen mit derselben Animation wie beim Host. Ihre Schritte erzeugt der Gast selbst; Knurren, Bellen, Flattern, Klopfen und die Schrecken des eigenen Todes kommen als Ereignisse.
+- **Rollen der Wesen:**
+  - Die Obergrenze `kRoles` im Spielprotokoll ist 40 (Format unverändert: ein Byte).
+  - Neue Wesen in `Presence::Role` brauchen bis 40 keine Protokolländerung; `static_assert` in `coop.cpp` wacht darüber.
+  - Rollen, die ein Gast nicht kennt, zeigt er nicht an (statt sie auf ein anderes Wesen zu klemmen). Klänge zu Rollen über 5 erreichen die Gäste jetzt auch (vorher auf 0–5 geklemmt).
+- **Regelbrecher:** Wer wegen ungültiger Nachrichten getrennt wird, behält keinen Platz zum Wiederverbinden.
