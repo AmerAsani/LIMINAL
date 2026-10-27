@@ -44,11 +44,14 @@ class Kit:
             self.parts[k] = (mat, bmesh.new(), smooth, weld)
         return self.parts[k][1]
 
-    def finish(self):
+    def finish(self, mtx=None):
+        """Objekte anlegen; mtx dreht/verschiebt am Ende das ganze Modell (z. B. Achsen an die Karte anpassen)."""
         for i, (mat, bm, smooth, weld) in enumerate(self.parts.values()):
             if not bm.faces:
                 bm.free()
                 continue
+            if mtx is not None:
+                bmesh.ops.transform(bm, matrix=mtx, verts=list(bm.verts))
             if weld:
                 bmesh.ops.remove_doubles(bm, verts=list(bm.verts), dist=1e-5)
             ob = common.obj_from_bmesh(f'teil{i}', bm, mat)
@@ -571,7 +574,9 @@ def _scaffold(variant):
         for i in range(3):
             _coupler(k, m, (rng.uniform(X0 + 0.1, -0.05), rng.uniform(-0.8, 0.8), D1 + 0.04), (rng.uniform(-1, 1), 1, 0),
                      rng)
-    k.finish()
+    # Gebaut mit Feldlaenge entlang y und Gelaender auf +x; level1.py setzt das Feld mit yaw = Wandnormale + 90 Grad
+    # (Feldlaenge entlang x, Wand auf +y). Daher am Ende -90 Grad um z: Laenge -> x, Gelaenderseite -> -y (Raum).
+    k.finish(rot(0, 0, -math.pi / 2))
 
 
 def _bucket(k, m, x, y, z, rng):
@@ -886,10 +891,10 @@ def build_rebar_bundle():
     rust2 = material('rost_dunkel', (0.42, 0.28, 0.20), look='metal', tex='metal_rusty_iron', rough=0.9, metal=0.3, r=1.4, m=0.1)
     timber = material('kantholz_alt', (0.50, 0.44, 0.36), look='wood', tex='wood_birch', rough=0.9, r=1.4)
     # Kanthoelzer quer (entlang y)
-    for x in (-1.25, 0.0, 1.25):
+    for x in (-1.0, 0.0, 1.0):
         blk(k(timber), (0.10, 1.05, 0.10), (x + jitter(rng, 0.04), jitter(rng, 0.04), 0.05), rz=jitter(rng, 0.08), bevel=0.006)
     # Buendel: hexagonale Packung, Staebe 3,6 m (entlang x), Enden versetzt
-    Lb = 3.6
+    Lb = 2.8
     zc = 0.10 + 0.085
     bars = []
     for ring_r, cnt in ((0.0, 1), (0.032, 6), (0.064, 12), (0.092, 9)):
@@ -910,15 +915,15 @@ def build_rebar_bundle():
             cyl(k(m['orange'], 50), (x1 - 0.03, y * spread * 1.05, z), (x1 + 0.001, y * spread * 1.05, z), r * 1.15, 8)
     # Bindedraht an drei Stellen, verdrillte Enden
     wire = material('bindedraht', (0.30, 0.29, 0.28), look='metal', rough=0.6, metal=0.8, r=1.1, m=0.6)
-    for x in (-1.0, 0.1, 1.15):
+    for x in (-0.85, 0.1, 0.95):
         pts = [(x + 0.004 * math.sin(a * 3), 0.112 * math.cos(a), zc + 0.096 * math.sin(a)) for a in [TAU * i / 18 for i in range(19)]]
         sweep(k(wire, 60), pts, 0.0018, 4, caps=False)
         tail = [(x, 0.0, zc + 0.096), (x + 0.01, 0.004, zc + 0.115), (x + 0.004, -0.004, zc + 0.13), (x + 0.012, 0.0, zc + 0.145)]
         sweep(k(wire, 60), catmull(tail, 3), 0.002, 4)
     # Lieferschild (gelber Kunststoff) am Draht
     blk(k(material('schild_gelb', (0.86, 0.72, 0.12), look='plastic', rough=0.5, r=0.9)), (0.002, 0.07, 0.10),
-        (1.15, 0.0, zc + 0.20), rx=0.15)
-    cyl(k(wire, 60), (1.15, 0.0, zc + 0.145), (1.15, 0.0, zc + 0.25), 0.0012, 4)
+        (0.95, 0.0, zc + 0.20), rx=0.15)
+    cyl(k(wire, 60), (0.95, 0.0, zc + 0.145), (0.95, 0.0, zc + 0.25), 0.0012, 4)
     # Buegel (Steckbuegel) lose daneben
     for i in range(4):
         cx, cy = -0.6 + i * 0.35 + jitter(rng, 0.05), 0.42 + jitter(rng, 0.04)
@@ -1497,4 +1502,1350 @@ def build_tarp_pile():
                 if abs(p.x - x) < 0.06 and abs(p.y - y) < 0.06:
                     h = max(h, p.z)
         blk(k(m['brick']), (0.24, 0.115, 0.071), (x, y, h + 0.035), rz=a, rx=jitter(rng, 0.08), bevel=0.004)
+    k.finish()
+
+
+# =====================================================================================================================
+# GARDEN - ueberwuchert (gedaempftes Gruen im Kunstlicht, Moos feucht)
+# =====================================================================================================================
+def mats_plant():
+    return {
+        'leaf_dark': material('blatt_dunkel', (0.13, 0.22, 0.09), look='paint', rough=0.45, r=0.75),
+        'leaf_mid': material('blatt_mittel', (0.20, 0.31, 0.11), look='paint', rough=0.55, r=0.9),
+        'leaf_light': material('blatt_hell', (0.30, 0.41, 0.15), look='paint', rough=0.6, r=1.0),
+        'leaf_yellow': material('blatt_gelb', (0.46, 0.44, 0.17), look='paint', rough=0.7, r=1.15),
+        'leaf_brown': material('blatt_braun', (0.34, 0.24, 0.13), look='paint', rough=0.85, r=1.35),
+        'fern': material('farn', (0.24, 0.36, 0.13), look='paint', rough=0.7, r=1.1),
+        'fern_dark': material('farn_dunkel', (0.17, 0.27, 0.10), look='paint', rough=0.7, r=1.1),
+        'stem': material('stengel', (0.24, 0.30, 0.13), look='paint', rough=0.7, r=1.1),
+        'stem_brown': material('stengel_braun', (0.30, 0.22, 0.14), look='wood', rough=0.8, r=1.25),
+        'bark': material('rinde', (0.36, 0.29, 0.22), look='wood', tex='concrete_rough', rough=0.95, r=1.4),
+        'bark_dark': material('rinde_dunkel', (0.24, 0.19, 0.15), look='wood', tex='concrete_rough', rough=0.95, r=1.45),
+        'birch': material('birkenrinde', (0.86, 0.84, 0.79), look='paint', tex='plaster_white', rough=0.7, r=1.15),
+        'birch_mark': material('birke_lentizellen', (0.10, 0.09, 0.09), look='paint', rough=0.8, r=1.3),
+        'twig': material('zweig', (0.32, 0.20, 0.15), look='wood', rough=0.75, r=1.2),
+        'root': material('wurzel', (0.40, 0.31, 0.22), look='wood', tex='concrete_rough', rough=0.9, r=1.35),
+        'soil': material('erde_feucht', (0.40, 0.31, 0.24), look='concrete', tex='concrete_rough', rough=0.9, r=1.15),
+        'moss': material('moos', (0.86, 0.92, 0.78), look='fabric', tex='moss', rough=0.9, r=1.05),
+        'moss_dry': material('moos_trocken', (0.82, 0.74, 0.52), look='fabric', tex='moss', rough=0.95, r=1.3),
+        'wet': material('beton_nass', (0.34, 0.34, 0.33), look='concrete', tex='concrete_floor', rough=0.3, r=0.45),
+        'slab': material('estrich', (0.68, 0.68, 0.66), look='concrete', tex='concrete_floor', rough=0.9, r=1.2),
+        'slab_edge': material('estrich_bruch', (0.62, 0.61, 0.58), look='concrete', tex='concrete_rough', rough=0.95, r=1.4),
+        'grass': material('gras', (0.30, 0.40, 0.15), look='paint', rough=0.7, r=1.1),
+        'grass_dry': material('gras_trocken', (0.50, 0.46, 0.28), look='paint', rough=0.85, r=1.3),
+    }
+
+
+def _pick_leaf(P, rng, weights=(('leaf_dark', 0.3), ('leaf_mid', 0.45), ('leaf_light', 0.17), ('leaf_yellow', 0.08))):
+    x = rng.random()
+    for name, w in weights:
+        x -= w
+        if x <= 0:
+            return P[name]
+    return P[weights[-1][0]]
+
+
+def _jag(rng, cx, cy, rx, ry, n=7, rough=0.3, a0=0.0):
+    """Unregelmaessiger Umriss (gegen den Uhrzeigersinn)."""
+    return [(cx + rx * math.cos(a0 + TAU * i / n) * (1 + jitter(rng, rough)), cy + ry * math.sin(a0 + TAU * i / n) * (1 + jitter(rng, rough)))
+            for i in range(n)]
+
+
+def _slab(k, P, rng, outline, thick, M):
+    """Bruchstueck der Bodenplatte: Oberseite Estrich, Bruchkanten rau."""
+    poly_prism(k(P['slab_edge']), outline, -thick, -0.004, M)
+    top = [M @ V((x, y, 0.0)) for (x, y) in outline]
+    quad_n(k(P['slab']), top, M.to_3x3() @ V((0, 0, 1)))
+    # Kantenbruch oben: schmale Fase in Bruchmaterial
+    for i in range(len(outline)):
+        a, b = outline[i], outline[(i + 1) % len(outline)]
+        c = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
+        pts = [M @ V((a[0], a[1], 0.0)), M @ V((b[0], b[1], 0.0)), M @ V((b[0], b[1], -0.004)), M @ V((a[0], a[1], -0.004))]
+        out = M.to_3x3() @ V((c[0], c[1], 0.0))
+        quad_n(k(P['slab_edge']), pts, out)
+
+
+def _crack_base(k, P, rng, rx=0.45, ry=0.10, chunks=4, lift=0.03, soil_r=None):
+    """Riss im Betonboden: dunkle Erde im Spalt, angehobene Bruchstuecke an den Raendern, Kruemel."""
+    soil_out = _jag(rng, 0.0, 0.0, rx, ry, n=11, rough=0.35)
+    quad_n(k(P['soil']), [V((x, y, 0.004)) for (x, y) in soil_out], (0, 0, 1))
+    for _ in range(4):
+        blob(k(P['soil'], 30), (rng.uniform(-rx * 0.6, rx * 0.6), rng.uniform(-ry * 0.5, ry * 0.5), 0.004), (0, 0, 1),
+             rng.uniform(0.03, 0.07), rng.uniform(0.01, 0.025), rng)
+    for i in range(chunks):
+        side = 1 if i % 2 == 0 else -1
+        cx = -rx * 0.7 + (rx * 1.4) * (i + 0.5) / chunks + jitter(rng, 0.04)
+        cy = side * (ry + rng.uniform(0.06, 0.12))
+        out = _jag(rng, 0.0, 0.0, rng.uniform(0.08, 0.14), rng.uniform(0.06, 0.10), n=6, rough=0.25)
+        M = tr(cx, cy, lift * rng.uniform(0.4, 1.0)) @ rot(side * rng.uniform(0.08, 0.2), jitter(rng, 0.08), rng.uniform(0, TAU))
+        _slab(k, P, rng, out, 0.07, M)
+    for _ in range(8):
+        a = rng.uniform(0, TAU)
+        blk(k(P['slab_edge']), (rng.uniform(0.015, 0.04), rng.uniform(0.012, 0.03), rng.uniform(0.008, 0.02)),
+            (rx * 1.1 * math.cos(a), (ry + 0.15) * math.sin(a), 0.006), rx=jitter(rng, 0.4), ry=jitter(rng, 0.4), rz=a, bevel=0.002)
+
+
+# --- haengende Ranken (Deckenmodell) -------------------------------------------------------------------------------------
+def _strand(k, P, rng, top, length, r0, leaf_every, leaf_len, sway=0.12, dry=False, curl=True):
+    """Ranke, die von der Decke haengt: Stengel duenner werdend, Blaetter wechselstaendig, Spitze leicht eingerollt."""
+    n = max(4, int(length / 0.09))
+    dx, dy = rng.uniform(-1, 1), rng.uniform(-1, 1)
+    ph = rng.uniform(0, 6)
+    pts = []
+    for i in range(n + 1):
+        t = i / n
+        z = top[2] - length * t
+        off = sway * t * t
+        x = top[0] + dx * off + 0.025 * math.sin(t * 7 + ph)
+        y = top[1] + dy * off + 0.025 * math.cos(t * 6 + ph)
+        pts.append(V((x, y, z)))
+    if curl:
+        e = pts[-1]
+        d = V((dx, dy, 0)).normalized() if abs(dx) + abs(dy) > 0.01 else V((1, 0, 0))
+        pts += [e + d * 0.025 + V((0, 0, -0.01)), e + d * 0.04 + V((0, 0, 0.012)), e + d * 0.025 + V((0, 0, 0.03))]
+    rs = [r0 * (1.0 - 0.6 * i / (len(pts) - 1)) for i in range(len(pts))]
+    sweep(k(P['stem_brown'] if dry else P['stem'], 70), pts, rs, 5)
+    # Blaetter
+    s = 0.06
+    side = 1
+    total = sum((pts[i + 1] - pts[i]).length for i in range(len(pts) - 1))
+    while s < total - 0.04:
+        # Punkt auf der Polylinie bei Bogenlaenge s
+        acc = 0.0
+        for i in range(len(pts) - 1):
+            seg = (pts[i + 1] - pts[i]).length
+            if acc + seg >= s:
+                p = pts[i].lerp(pts[i + 1], (s - acc) / max(seg, 1e-6))
+                tang = (pts[i + 1] - pts[i]).normalized()
+                break
+            acc += seg
+        side = -side
+        az = rng.uniform(0, TAU) if not dry else 0.0
+        outw = V((math.cos(az), math.sin(az), 0.0))
+        outw = (outw - tang * outw.dot(tang)).normalized()
+        frac = s / total
+        L = leaf_len * (1.15 - 0.5 * frac) * rng.uniform(0.8, 1.15)
+        if dry and rng.random() < 0.5:
+            s += leaf_every
+            continue
+        mat = P['leaf_brown'] if (dry and rng.random() < 0.6) else _pick_leaf(P, rng)
+        # kurzer Stiel, dann Blatt nach aussen/unten haengend, Oberseite nach aussen
+        stalk_end = p + outw * 0.018 + V((0, 0, -0.006))
+        cyl(k(P['stem'], 70), p, stalk_end, 0.0015, 3, caps=False)
+        fwd = (outw * 0.55 + V((0, 0, -0.85))).normalized()
+        leaf(k(mat, 60), stalk_end, fwd, outw, L, L * 0.62, stations=((0.22, 0.95), (0.55, 0.85)), droop=0.35,
+             fold=0.12, curl=0.06)
+        s += leaf_every * rng.uniform(0.75, 1.25)
+
+
+def _ceiling_mat(k, P, rng, rx, ry, n_stems=6):
+    """Geflecht an der Decke: flach anliegende Triebe mit ein paar Blaettern (nach unten)."""
+    for i in range(n_stems):
+        a = rng.uniform(0, TAU)
+        p = V((rx * math.cos(a) * rng.uniform(0.5, 1.0), ry * math.sin(a) * rng.uniform(0.5, 1.0), -0.008))
+        d = (-p).normalized() if p.length > 0.01 else V((1, 0, 0))
+        ctrl = [p.copy()]
+        for _ in range(5):  # kriechender Trieb: Zufallsweg mit Richtungsgedaechtnis
+            d = (Matrix.Rotation(rng.uniform(-0.9, 0.9), 3, 'Z') @ d).normalized()
+            p = p + d * rng.uniform(0.12, 0.22)
+            p.x = max(-rx, min(rx, p.x))
+            p.y = max(-ry, min(ry, p.y))
+            p.z = -0.006 - rng.uniform(0.0, 0.01)
+            ctrl.append(p.copy())
+        pts = catmull(ctrl, 3)
+        sweep(k(P['stem_brown'], 70), pts, [0.008 - 0.004 * j / (len(pts) - 1) for j in range(len(pts))], 5)
+        for j in range(1, len(pts) - 1, 3):
+            p = pts[j]
+            d = V((rng.uniform(-1, 1), rng.uniform(-1, 1), 0.0)).normalized()
+            leaf(k(_pick_leaf(P, rng), 60), p + V((0, 0, -0.004)), d, (0, 0, -1), rng.uniform(0.05, 0.08), 0.045,
+                 stations=((0.3, 1.0),), fold=0.1)
+
+
+def _vines(variant):
+    rng = random.Random(201 + variant)
+    P = mats_plant()
+    k = Kit()
+    if variant == 0:      # dichter Vorhang
+        _ceiling_mat(k, P, rng, 0.7, 0.45, 6)
+        for i in range(11):
+            top = V((rng.uniform(-0.6, 0.6), rng.uniform(-0.38, 0.38), -0.01))
+            _strand(k, P, rng, top, rng.uniform(0.45, 1.4), 0.005, 0.10, 0.09)
+    elif variant == 1:    # wenige lange, duenne Ranken, teils vertrocknet
+        _ceiling_mat(k, P, rng, 0.5, 0.3, 4)
+        for i in range(7):
+            top = V((rng.uniform(-0.45, 0.45), rng.uniform(-0.25, 0.25), -0.01))
+            _strand(k, P, rng, top, rng.uniform(0.8, 1.6), 0.0035, 0.12, 0.06, sway=0.2, dry=(i % 3 == 0))
+    else:                 # verholzte Liane als Bogen, daraus haengende Triebe
+        _ceiling_mat(k, P, rng, 0.9, 0.35, 5)
+        a, b = V((-0.85, -0.1, -0.01)), V((0.85, 0.12, -0.01))
+        loop = []
+        for i in range(13):
+            t = i / 12
+            p = a.lerp(b, t)
+            p.z -= 0.55 * math.sin(math.pi * t) ** 1.3
+            p.y += 0.08 * math.sin(t * 9)
+            loop.append(p)
+        rs = [0.022 - 0.008 * abs(0.5 - i / 12) for i in range(13)]
+        sweep(k(P['bark'], 60), loop, rs, 7)
+        # zweiter, duennerer Strang um den ersten gewunden
+        twist = [loop[i] + V((0, 0.03 * math.cos(i * 1.4), 0.03 * math.sin(i * 1.4))) for i in range(13)]
+        sweep(k(P['bark_dark'], 60), catmull(twist, 2), 0.008, 5)
+        for i in range(2, 11, 2):
+            _strand(k, P, rng, loop[i] + V((0, 0, -0.02)), rng.uniform(0.3, 0.75), 0.004, 0.08, 0.07, sway=0.08)
+        for i in range(1, 12):
+            p = loop[i]
+            for _ in range(2):
+                d = V((rng.uniform(-1, 1), rng.uniform(-1, 1), rng.uniform(-0.6, 0.3))).normalized()
+                leaf(k(_pick_leaf(P, rng), 60), p, d, (0, 0, 1), rng.uniform(0.07, 0.10), 0.06, droop=0.4)
+    k.finish()
+
+
+def build_vines_ceiling():
+    _vines(0)
+
+
+def build_vines_ceiling__v1():
+    _vines(1)
+
+
+def build_vines_ceiling__v2():
+    _vines(2)
+
+
+# --- Efeu an der Wand (Wandmodell: Wand bei x = 0, Ursprung am Boden) -----------------------------------------------
+IVY_OUTLINE = [(0.0, 1.0), (0.26, 0.48), (0.62, 0.36), (0.32, -0.08), (0.0, 0.04), (-0.32, -0.08), (-0.62, 0.36),
+               (-0.26, 0.48)]
+
+
+def _ivy_leaf(k, P, rng, base, outward, size, mat=None):
+    """Efeublatt (fuenflappig) an kurzem Stiel; Blattflaeche schraeg nach aussen/oben gestellt."""
+    up = V((jitter(rng, 0.4), jitter(rng, 0.4), 1.0)).normalized()
+    nrm = (V(outward) * 0.85 + V((0, 0, 0.25)) + V((0, jitter(rng, 0.3), jitter(rng, 0.2)))).normalized()
+    t = (up - nrm * up.dot(nrm)).normalized()     # Blattspitze
+    s = nrm.cross(t)
+    c = V(base) + V(outward) * rng.uniform(0.025, 0.06)
+    cyl(k(P['stem_brown'], 70), V(base), c, 0.0018, 3, caps=False)
+    pts = [c + (s * u + t * v) * size for (u, v) in IVY_OUTLINE]
+    lift = max(0.0, 0.004 - min(q.x for q in pts)) if outward[0] > 0.5 else 0.0
+    if lift > 0:  # Blatt nicht in die Wand stecken lassen
+        c = c + V((lift, 0, 0))
+        pts = [q + V((lift, 0, 0)) for q in pts]
+    leaf_fan(k(mat or _pick_leaf(P, rng, (('leaf_dark', 0.55), ('leaf_mid', 0.3), ('leaf_light', 0.1), ('leaf_yellow', 0.05))), 0),
+             c + t * size * 0.35, pts, nrm, cup=size * 0.08)
+
+
+def _ivy_stem(k, P, rng, start, height, width, r0, depth, step=0.11, max_z=2.4, size=(0.075, 0.115), kid_p=0.45):
+    """Kriechender Efeutrieb an der Wand (x klein), mit Verzweigungen; Blaetter wechselstaendig, gross und dicht
+    (geschindelt) - so wirkt der Bewuchs als Teppich und nicht als Gestruepp."""
+    n = max(4, int(height / step))
+    pts = []
+    ph = rng.uniform(0, 6)
+    for i in range(n + 1):
+        t = i / n
+        y = start[1] + width * math.sin(t * 2.2 + ph) * 0.5 + jitter(rng, 0.025)
+        z = min(max_z, start[2] + height * t)
+        pts.append(V((r0 + 0.003 + abs(math.sin(t * 9 + ph)) * 0.005, y, z)))
+    rs = [r0 * (1.0 - 0.7 * i / n) for i in range(n + 1)]
+    sweep(k(P['bark_dark'] if r0 > 0.006 else P['stem_brown'], 70), pts, rs, 5)
+    # Haftwurzeln: kurze Buendel zur Wand
+    for i in range(1, n, 3):
+        p = pts[i]
+        cyl(k(P['stem_brown'], 0), p + V((-rs[i] * 0.5, 0, 0)), V((0.001, p.y + jitter(rng, 0.01), p.z - 0.012)), 0.0012, 3, caps=False)
+    for i in range(1, n + 1):
+        p = pts[i]
+        q = p + V((0, jitter(rng, 0.04), jitter(rng, 0.03)))
+        _ivy_leaf(k, P, rng, q, (1, jitter(rng, 0.35), 0), rng.uniform(*size))
+    if depth > 0:
+        for i in range(2, n - 1, 3):
+            if rng.random() < kid_p:
+                p = pts[i]
+                _ivy_stem(k, P, rng, (0, p.y, p.z), height * rng.uniform(0.25, 0.45), width * rng.uniform(0.5, 1.0) * rng.choice((-1, 1)),
+                          r0 * 0.55, depth - 1, step, max_z, size, kid_p)
+
+
+def _ivy(variant):
+    rng = random.Random(221 + variant)
+    P = mats_plant()
+    k = Kit()
+    if variant == 0:
+        for (y, h, w) in ((-0.45, 2.3, 0.35), (-0.12, 2.0, 0.4), (0.2, 2.35, 0.4), (0.48, 1.7, 0.3)):
+            _ivy_stem(k, P, rng, (0, y, 0.0), h, w, 0.011, 1, step=0.14, size=(0.10, 0.145), kid_p=0.35)
+    else:
+        for (y, h, w) in ((-0.25, 1.6, 0.35), (0.0, 1.2, 0.3), (0.25, 1.4, 0.4)):
+            _ivy_stem(k, P, rng, (0, y, 0.0), h, w, 0.009, 1, max_z=1.7, step=0.15, size=(0.09, 0.13), kid_p=0.25)
+        # Auslaeufer auf dem Boden
+        for s in (-1, 1):
+            pts = catmull([(0.03, s * 0.2, 0.006), (0.18, s * 0.45, 0.008), (0.30, s * 0.70, 0.006), (0.36, s * 0.95, 0.006)], 3)
+            sweep(k(P['stem_brown'], 70), pts, 0.005, 5)
+            for p in pts[1::2]:
+                _ivy_leaf(k, P, rng, p, (0, 0, 1), rng.uniform(0.06, 0.085))
+    # Erde und Laub am Fuss der Wand
+    for _ in range(3):
+        rr = rng.uniform(0.06, 0.12)
+        blob(k(P['soil'], 30), (rr * 1.35 + rng.uniform(0.0, 0.06), rng.uniform(-0.45, 0.45), 0.0), (0, 0, 1), rr,
+             0.012, rng, nseg=10)
+    k.finish()
+
+
+def build_ivy_wall():
+    _ivy(0)
+
+
+def build_ivy_wall__v1():
+    _ivy(1)
+
+
+# --- Moospolster (Boden, flach, weiche Raender) ------------------------------------------------------------------------
+def _cushion(k, P, rng, cx, cy, rx, ry, h, rings=7, segs=28, a0=0.0, z0=0.0, wet_ring=True, dry=True):
+    """Moospolster: Polarnetz mit welligem Rand, Hoehe zum Rand weich auslaufend, kleine Buckel; feuchter Hof.
+    z0: Hoehe der Unterlage (Boden 0, Kistendeckel ...)."""
+    ph = [rng.uniform(0, TAU) for _ in range(4)]
+
+    def rad(a):
+        return 1.0 + 0.18 * math.sin(3 * a + ph[0]) + 0.10 * math.sin(5 * a + ph[1]) + 0.06 * math.sin(9 * a + ph[2])
+    bumps = [(rng.uniform(-0.6, 0.6), rng.uniform(-0.6, 0.6), rng.uniform(0.15, 0.35), rng.uniform(0.3, 1.0)) for _ in range(6)]
+    src = bmesh.new()
+    center = src.verts.new((cx, cy, z0 + h + 0.002))
+    grid = []
+    for ri in range(1, rings + 1):
+        t = ri / rings
+        row = []
+        for si in range(segs):
+            a = a0 + TAU * si / segs
+            rr = rad(a) * t
+            u, v = rr * math.cos(a), rr * math.sin(a)
+            hh = h * (1.0 - t ** 2.2) ** 0.8
+            for (bu, bv, bs, bh) in bumps:
+                d2 = ((u - bu) ** 2 + (v - bv) ** 2) / (bs * bs)
+                hh += h * 0.35 * bh * math.exp(-d2) * (1.0 - t)
+            row.append(src.verts.new((cx + u * rx, cy + v * ry, z0 + max(0.0015, hh + 0.0015))))
+        grid.append(row)
+    for si in range(segs):
+        sj = (si + 1) % segs
+        src.faces.new((center, grid[0][si], grid[0][sj]))
+    for ri in range(rings - 1):
+        for si in range(segs):
+            sj = (si + 1) % segs
+            src.faces.new((grid[ri][si], grid[ri + 1][si], grid[ri + 1][sj], grid[ri][sj]))
+    for f in src.faces:
+        f.normal_update()
+        if f.normal.z < 0:
+            f.normal_flip()
+    dry_a = rng.uniform(0, TAU)
+
+    def pick(f):
+        c = f.calc_center_median()
+        a = math.atan2((c.y - cy) / ry, (c.x - cx) / rx)
+        if dry and math.cos(a - dry_a) > 0.88 and math.hypot((c.x - cx) / rx, (c.y - cy) / ry) > 0.62:
+            return k(P['moss_dry'], 60, weld=True)
+        return k(P['moss'], 60, weld=True)
+    emit(src, pick)
+    if not wet_ring:
+        return
+    # feuchter Hof um das Polster (dunkler, glaenzender Beton)
+    outer = []
+    inner = []
+    for si in range(segs):
+        a = a0 + TAU * si / segs
+        r1 = rad(a)
+        inner.append(V((cx + r1 * 0.97 * math.cos(a) * rx, cy + r1 * 0.97 * math.sin(a) * ry, 0.0012)))
+        r2 = r1 * (1.08 + 0.05 * math.sin(4 * a + ph[3]))
+        outer.append(V((cx + r2 * math.cos(a) * rx, cy + r2 * math.sin(a) * ry, 0.0008)))
+    wet = k(P['wet'], 0)
+    for si in range(segs):
+        sj = (si + 1) % segs
+        quad_n(wet, [inner[si], outer[si], outer[sj], inner[sj]], (0, 0, 1))
+
+
+def _sporophytes(k, P, rng, cx, cy, rx, ry, h, n):
+    cap = material('sporenkapsel', (0.42, 0.30, 0.16), look='paint', rough=0.7, r=1.1)
+    for _ in range(n):
+        a, r = rng.uniform(0, TAU), rng.uniform(0, 0.6)
+        x, y = cx + r * math.cos(a) * rx, cy + r * math.sin(a) * ry
+        z0 = h * (1.0 - r ** 2) * 0.9
+        top = V((x + jitter(rng, 0.004), y + jitter(rng, 0.004), z0 + rng.uniform(0.015, 0.03)))
+        cyl(k(P['stem_brown'], 0), (x, y, z0), top, 0.0007, 3, caps=False)
+        cyl(k(cap, 60), top, top + V((0.002, 0, 0.004)), 0.0018, 5)
+
+
+def _moss(variant):
+    rng = random.Random(241 + variant)
+    P = mats_plant()
+    k = Kit()
+    if variant == 0:
+        _cushion(k, P, rng, 0.0, 0.0, 0.62, 0.48, 0.035)
+        _sporophytes(k, P, rng, 0.0, 0.0, 0.62, 0.48, 0.035, 14)
+        for _ in range(3):  # Betonkruemel im Polster
+            blk(k(P['slab_edge']), (0.03, 0.02, 0.015), (rng.uniform(-0.4, 0.4), rng.uniform(-0.3, 0.3), 0.03), rz=rng.uniform(0, 3),
+                rx=0.3, bevel=0.003)
+    elif variant == 1:
+        # entlang eines Risses: dunkler Spalt, mehrere Polster in einer Reihe
+        crack = [(-1.0, -0.02), (-0.6, 0.03), (-0.2, -0.04), (0.2, 0.02), (0.6, -0.03), (1.0, 0.02)]
+        pts = catmull([V((x, y, 0.001)) for (x, y) in crack], 3)
+        for i in range(len(pts) - 1):
+            a, b = pts[i], pts[i + 1]
+            d = (b - a).normalized()
+            nrm = V((-d.y, d.x, 0)) * 0.012
+            quad_n(k(P['soil'], 0), [a - nrm, b - nrm, b + nrm, a + nrm], (0, 0, 1))
+        for i, x in enumerate((-0.75, -0.3, 0.15, 0.6)):
+            _cushion(k, P, rng, x, jitter(rng, 0.03), rng.uniform(0.22, 0.32), rng.uniform(0.12, 0.18), rng.uniform(0.02, 0.03),
+                     rings=5, segs=20, a0=i)
+    else:
+        for (x, y, r1, r2, h) in ((-0.25, 0.1, 0.28, 0.22, 0.03), (0.22, -0.12, 0.2, 0.16, 0.025), (0.05, 0.32, 0.12, 0.1, 0.02)):
+            _cushion(k, P, rng, x, y, r1, r2, h, rings=5, segs=20, a0=x)
+        _sporophytes(k, P, rng, -0.25, 0.1, 0.28, 0.22, 0.03, 8)
+    k.finish()
+
+
+def build_moss_patch():
+    _moss(0)
+
+
+def build_moss_patch__v1():
+    _moss(1)
+
+
+def build_moss_patch__v2():
+    _moss(2)
+
+
+# --- Farne aus Betonrissen ------------------------------------------------------------------------------------------------
+def _frond(k, P, rng, base, out_dir, length, rise, pairs=11, mat=None, dead=False):
+    """Farnwedel: gebogene Spindel, Fiederblaetter paarweise, zur Spitze kleiner."""
+    out_dir = V(out_dir).normalized()
+    pts = []
+    n = 6
+    for i in range(n + 1):
+        t = i / n
+        horiz = length * (0.15 + 0.85 * t) * t
+        h = rise * math.sin(min(1.0, t * 1.6) * math.pi * 0.5) - length * 0.35 * max(0.0, t - 0.5) ** 2 * 2
+        if dead:
+            h = 0.01 + 0.02 * math.sin(t * 3)
+            horiz = length * t
+        pts.append(V(base) + out_dir * horiz + V((0, 0, h)))
+    mat = mat or (P['leaf_brown'] if dead else (P['fern'] if rng.random() < 0.6 else P['fern_dark']))
+    sweep(k(P['stem_brown'] if dead else P['stem'], 70), pts, [0.004 - 0.0028 * i / n for i in range(n + 1)], 4)
+    side = V((0, 0, 1)).cross(out_dir).normalized()
+    for j in range(pairs):
+        t = 0.18 + 0.8 * j / pairs
+        f = t * n
+        i = min(n - 1, int(f))
+        p = pts[i].lerp(pts[i + 1], f - i)
+        tang = (pts[i + 1] - pts[i]).normalized()
+        nrm = tang.cross(side).normalized()
+        if nrm.z < 0:
+            nrm = -nrm
+        size = length * 0.16 * math.sin(math.pi * (0.18 + 0.72 * t)) * rng.uniform(0.9, 1.1)
+        for s in (-1, 1):
+            d = (side * s * 0.85 + tang * 0.45).normalized()
+            leaf(k(mat, 0), p, d, nrm, size, size * 0.28, stations=((0.35, 1.0),), droop=0.4, fold=0.2)
+
+
+def _fiddlehead(k, P, base, h, d):
+    pts = []
+    for i in range(14):
+        t = i / 13
+        if t < 0.6:
+            pts.append(V(base) + V((d[0] * t * 0.06, d[1] * t * 0.06, h * t / 0.6)))
+        else:
+            a = (t - 0.6) / 0.4 * TAU * 0.9
+            r = 0.025 * (1.0 - (t - 0.6) / 0.4 * 0.7)
+            c = V(base) + V((d[0] * 0.06 + d[0] * 0.025, d[1] * 0.06 + d[1] * 0.025, h))
+            pts.append(c + V((-d[0] * r * math.cos(a), -d[1] * r * math.cos(a), r * math.sin(a))))
+    sweep(k(P['stem'], 70), pts, [0.005 - 0.003 * i / 13 for i in range(14)], 5)
+
+
+def build_fern_cluster():
+    rng = random.Random(261)
+    P = mats_plant()
+    k = Kit()
+    _crack_base(k, P, rng, rx=0.42, ry=0.08, chunks=4)
+    for i in range(9):
+        a = TAU * i / 9 + jitter(rng, 0.25)
+        b = V((0.08 * math.cos(a) + jitter(rng, 0.05), 0.04 * math.sin(a), 0.004))
+        _frond(k, P, rng, b, (math.cos(a), math.sin(a), 0), rng.uniform(0.5, 0.85), rng.uniform(0.35, 0.6))
+    for a in (0.4, 3.6):
+        _frond(k, P, rng, (0.05 * math.cos(a), 0.05 * math.sin(a), 0.004), (math.cos(a), math.sin(a), 0), 0.55, 0.0, dead=True)
+    _fiddlehead(k, P, (0.02, -0.02, 0.004), 0.12, (0.7, 0.7))
+    _fiddlehead(k, P, (-0.04, 0.02, 0.004), 0.09, (-0.8, 0.5))
+    k.finish()
+
+
+# --- Wurzeln brechen den Boden auf --------------------------------------------------------------------------------------
+def build_roots_floor():
+    rng = random.Random(281)
+    P = mats_plant()
+    k = Kit()
+    # Hauptwurzeln: tauchen auf und ab (z < 0 = im Boden), verjuengen sich
+    mains = [
+        [(-1.25, -0.10, -0.06), (-0.85, -0.05, 0.05), (-0.40, 0.05, 0.08), (0.05, 0.10, 0.03), (0.45, 0.25, -0.03), (0.80, 0.45, 0.03), (1.15, 0.65, -0.05)],
+        [(-1.25, 0.05, -0.05), (-0.90, 0.25, 0.06), (-0.55, 0.45, 0.07), (-0.25, 0.70, 0.0), (0.0, 0.85, -0.05)],
+        [(-1.25, -0.20, -0.05), (-0.85, -0.40, 0.04), (-0.35, -0.55, 0.06), (0.15, -0.60, 0.0), (0.55, -0.75, -0.05)],
+    ]
+    humps = []
+    for mi, ctrl in enumerate(mains):
+        pts = catmull([V(p) for p in ctrl], 5)
+        r0 = 0.075 - mi * 0.015
+        rs = [r0 * (1.0 - 0.75 * i / (len(pts) - 1)) for i in range(len(pts))]
+        prof = [(math.cos(TAU * i / 9) * (1.0 + 0.12 * math.sin(i * 2.3)), math.sin(TAU * i / 9) * 0.8) for i in range(9)]
+        sweep(k(P['root'], 60), pts, rs, profile=prof, up=(0, 0, 1))
+        for i, p in enumerate(pts):
+            if p.z > 0.04 and i % 4 == 0:
+                tg = (pts[min(i + 1, len(pts) - 1)] - pts[max(i - 1, 0)]).normalized()
+                humps.append((p, rs[i], tg))
+        # Seitenwurzeln
+        for i in range(4, len(pts) - 4, 5):
+            p = pts[i]
+            d = V((rng.uniform(-0.3, 0.6), rng.choice((-1, 1)) * rng.uniform(0.5, 1.0), 0.0)).normalized()
+            sp = [p, p + d * 0.15 + V((0, 0, 0.01)), p + d * 0.32 + V((jitter(rng, 0.06), jitter(rng, 0.06), -0.01)),
+                  p + d * 0.5 + V((jitter(rng, 0.08), jitter(rng, 0.08), -0.04))]
+            sweep(k(P['root'], 60), catmull(sp, 3), [rs[i] * 0.45 * (1 - 0.7 * j / 9) for j in range(10)], 6)
+    # erdige Stellen um die Buckel
+    for (p, r, tg) in humps:
+        out = _jag(rng, p.x, p.y, r * 2.6, r * 2.2, n=9, rough=0.3)
+        quad_n(k(P['soil'], 0), [V((x, y, 0.003)) for (x, y) in out], (0, 0, 1))
+    # angehobene Plattenstuecke: liegen mit der Kante auf der Wurzel, die Gegenkante bleibt am Boden (gekippt um eine
+    # Achse parallel zur Wurzel) - wie eine Platte, die von unten aufgedrueckt wurde
+    for i, (p, r, tg) in enumerate(humps[:8]):
+        side = V((-tg.y, tg.x, 0.0)).normalized() * (1 if i % 2 == 0 else -1)
+        rad = rng.uniform(0.18, 0.30)
+        out = _jag(rng, 0.0, 0.0, rad, rad * rng.uniform(0.7, 0.95), n=6, rough=0.2)
+        top_z = p.z + r * 0.9
+        ang = math.atan2(top_z, rad * 1.7)
+        c = p + side * (rad * 0.85 + r * 0.3)
+        axis = V((tg.x, tg.y, 0.0)).normalized()
+        R = Matrix.Rotation(ang, 4, axis)
+        if (R.to_3x3() @ (-side)).z < 0:  # die zur Wurzel zeigende Kante soll oben liegen
+            R = Matrix.Rotation(-ang, 4, axis)
+        M = tr(c.x, c.y, top_z * 0.5) @ R @ rot(0, 0, rng.uniform(0, TAU))
+        _slab(k, P, rng, out, 0.08, M)
+        if rng.random() < 0.6:  # Moos in der Fuge
+            blob(k(P['moss'], 60), tuple(p + side * 0.05 + V((0, 0, 0.004 - p.z))), (0, 0, 1), rng.uniform(0.04, 0.08), 0.012, rng)
+    # Bruchstuecke und Kruemel
+    for _ in range(14):
+        x, y = rng.uniform(-1.1, 1.0), rng.uniform(-0.8, 0.8)
+        s = rng.uniform(0.02, 0.07)
+        blk(k(P['slab_edge']), (s, s * rng.uniform(0.5, 0.9), s * rng.uniform(0.25, 0.45)), (x, y, s * 0.12), rx=jitter(rng, 0.25),
+            ry=jitter(rng, 0.25), rz=rng.uniform(0, 3), bevel=0.003)
+    k.finish()
+
+
+# --- Strauch und junger Baum ------------------------------------------------------------------------------------------------
+def _branch(k, P, rng, start, d, length, r0, depth, leaf_fn, bark, twig_mat, gravity=-0.05, kids=2, segs=5):
+    """Ast: Abschnitte mit leichter Kruemmung; Kinder seitlich; am Ende Blaetter (leaf_fn(p, tangente))."""
+    pts = [V(start)]
+    d = V(d).normalized()
+    seg = length / segs
+    for i in range(segs):
+        d = (d + V((jitter(rng, 0.18), jitter(rng, 0.18), jitter(rng, 0.12) + gravity))).normalized()
+        pts.append(pts[-1] + d * seg)
+    r1 = r0 * 0.35
+    rs = [r0 + (r1 - r0) * i / segs for i in range(segs + 1)]
+    sweep(k(bark if r0 > 0.008 else twig_mat, 70), pts, rs, 6 if r0 > 0.012 else 4)
+    if depth > 0:
+        for c in range(kids):
+            t = rng.uniform(0.35, 0.8)
+            f = t * segs
+            i = min(segs - 1, int(f))
+            p = pts[i].lerp(pts[i + 1], f - i)
+            tang = (pts[i + 1] - pts[i]).normalized()
+            side = tang.orthogonal().normalized()
+            side = Matrix.Rotation(rng.uniform(0, TAU), 3, tang) @ side
+            cd = (tang * 0.65 + side * 0.6 + V((0, 0, 0.15))).normalized()
+            _branch(k, P, rng, p, cd, length * rng.uniform(0.45, 0.65), rs[i] * 0.7, depth - 1, leaf_fn, bark, twig_mat,
+                    gravity, kids, max(3, segs - 1))
+    # Blaetter an den letzten Abschnitten
+    for i in range(max(1, segs - 3), segs + 1):
+        leaf_fn(pts[i], (pts[i] - pts[i - 1]).normalized())
+
+
+def build_shrub_concrete():
+    rng = random.Random(301)
+    P = mats_plant()
+    k = Kit()
+    _crack_base(k, P, rng, rx=0.32, ry=0.12, chunks=5, lift=0.04)
+
+    def leaves(p, tang):
+        for _ in range(rng.randint(4, 6)):
+            side = Matrix.Rotation(rng.uniform(0, TAU), 3, tang) @ tang.orthogonal().normalized()
+            d = (side * 0.8 + tang * 0.45 + V((0, 0, -0.05))).normalized()
+            L = rng.uniform(0.07, 0.10)
+            leaf(k(_pick_leaf(P, rng), 0), p + side * 0.01, d, (0, 0, 1), L, L * 0.52, stations=((0.4, 1.0),), droop=0.4, fold=0.15)
+    for i in range(7):
+        a = TAU * i / 7 + jitter(rng, 0.3)
+        tilt = rng.uniform(0.25, 0.65)
+        d = V((math.cos(a) * tilt, math.sin(a) * tilt, 1.0))
+        _branch(k, P, rng, (0.03 * math.cos(a), 0.03 * math.sin(a), 0.0), d, rng.uniform(0.8, 1.25), 0.016, 1, leaves,
+                P['bark'], P['twig'], gravity=-0.04, kids=3, segs=5)
+    # Laub am Boden
+    for _ in range(16):
+        a, r = rng.uniform(0, TAU), rng.uniform(0.15, 0.6)
+        p = V((r * math.cos(a), r * math.sin(a), 0.003))
+        d = V((math.cos(a * 3), math.sin(a * 3), 0.05)).normalized()
+        leaf(k(P['leaf_brown'] if rng.random() < 0.6 else P['leaf_yellow'], 0), p, d, (0, 0, 1), 0.05, 0.026,
+             stations=((0.4, 1.0),), fold=0.2, curl=0.25)
+    k.finish()
+
+
+def build_sapling():
+    """Junge Birke (2,8 m) aus einem aufgebrochenen Loch im Estrich."""
+    rng = random.Random(321)
+    P = mats_plant()
+    k = Kit()
+    # aufgeworfene Plattenstuecke im Kreis, Erde
+    out = _jag(rng, 0.0, 0.0, 0.22, 0.2, n=10, rough=0.25)
+    quad_n(k(P['soil'], 0), [V((x, y, 0.004)) for (x, y) in out], (0, 0, 1))
+    for i in range(5):
+        a = TAU * i / 5 + jitter(rng, 0.2)
+        o = _jag(rng, 0.0, 0.0, rng.uniform(0.12, 0.18), rng.uniform(0.09, 0.13), n=6, rough=0.2)
+        M = tr(0.28 * math.cos(a), 0.28 * math.sin(a), 0.04) @ rot(0, 0, a) @ rot(0, -rng.uniform(0.12, 0.28), 0)
+        _slab(k, P, rng, o, 0.07, M)
+    # Stamm: leicht geneigt und gebogen, unten dunkle Borke, oben weiss mit Lentizellen
+    H = 2.8
+    trunk = []
+    for i in range(11):
+        t = i / 10
+        trunk.append(V((0.06 * math.sin(t * 2.2) + 0.05 * t, 0.04 * math.sin(t * 3.1 + 1), H * t)))
+    rs = [0.038 * (1 - 0.82 * i / 10) for i in range(11)]
+    sweep(k(P['bark_dark'], 60), trunk[:3], rs[:3], 9)
+    sweep(k(P['birch'], 60), trunk[2:], rs[2:], 9)
+    for _ in range(26):  # Lentizellen: quer liegende dunkle Striche
+        t = rng.uniform(0.25, 0.85)
+        f = t * 10
+        i = min(9, int(f))
+        p = trunk[i].lerp(trunk[i + 1], f - i)
+        r = rs[i] + (rs[i + 1] - rs[i]) * (f - i)
+        a = rng.uniform(0, TAU)
+        n = V((math.cos(a), math.sin(a), 0.0))
+        c = p + n * (r + 0.0006)
+        tg = V((-math.sin(a), math.cos(a), 0.0))
+        w = rng.uniform(0.008, 0.025)
+        quad_n(k(P['birch_mark'], 0), [c - tg * w + V((0, 0, -0.002)), c + tg * w + V((0, 0, -0.002)), c + tg * w + V((0, 0, 0.002)),
+                                       c - tg * w + V((0, 0, 0.002))], n)
+
+    def leaves(p, tang):
+        for _ in range(rng.randint(5, 7)):
+            side = Matrix.Rotation(rng.uniform(0, TAU), 3, tang) @ tang.orthogonal().normalized()
+            d = (side * 0.7 + tang * 0.3 + V((0, 0, -0.45))).normalized()
+            L = rng.uniform(0.05, 0.07)
+            leaf(k(_pick_leaf(P, rng, (('leaf_mid', 0.45), ('leaf_light', 0.4), ('leaf_yellow', 0.15))), 0), p, d, (0, 0, 1), L,
+                 L * 0.7, stations=((0.35, 1.0),), droop=0.3, fold=0.15)
+    # Aeste spiralig ab 0,9 m, oben kuerzer; Birkenzweige haengen leicht
+    nb = 13
+    for j in range(nb):
+        t = 0.32 + 0.62 * j / nb
+        f = t * 10
+        i = min(9, int(f))
+        p = trunk[i].lerp(trunk[i + 1], f - i)
+        a = j * 2.4
+        up = 0.55 + 0.5 * t
+        d = V((math.cos(a), math.sin(a), up))
+        L = (0.95 - 0.7 * (t - 0.32)) * rng.uniform(0.8, 1.1)
+        _branch(k, P, rng, p, d, L, rs[i] * 0.42, 1, leaves, P['twig'], P['twig'], gravity=-0.08, kids=2, segs=4)
+    # Spitze
+    _branch(k, P, rng, trunk[-1], V((0.05, 0.0, 1.0)), 0.25, rs[-1], 0, leaves, P['twig'], P['twig'], gravity=0.0, kids=0, segs=3)
+    k.finish()
+
+
+# --- ueberwucherte Holzkiste ------------------------------------------------------------------------------------------
+def build_overgrown_crate():
+    rng = random.Random(341)
+    P = mats_plant()
+    k = Kit()
+    wood = material('kiste_verwittert', (0.52, 0.50, 0.44), look='wood', tex='wood_birch', rough=0.9, r=1.35)
+    wood_g = material('kiste_algen', (0.40, 0.44, 0.34), look='wood', tex='wood_birch', rough=0.9, r=1.4)
+    batten = material('kiste_leiste_alt', (0.38, 0.34, 0.28), look='wood', tex='wood_birch', rough=0.9, r=1.4)
+    L, W, H = 1.0, 0.7, 0.62
+    t, gap = 0.02, 0.006
+    n = 5
+    h = (H - (n - 1) * gap) / n
+    for i in range(n):
+        z0 = i * (h + gap)
+        mat = wood_g if i < 2 else wood
+        cube(k(mat), (L / 2 - t, -W / 2 + t, z0), (L / 2, W / 2 - t, z0 + h), bevel=0.002)
+        cube(k(mat), (-L / 2, -W / 2 + t, z0), (-L / 2 + t, W / 2 - t, z0 + h), bevel=0.002)
+        cube(k(mat), (-L / 2, W / 2 - t, z0), (L / 2, W / 2, z0 + h), bevel=0.002)
+        if i == 3:  # gebrochenes Brett vorn (-y): kuerzer, Splitter
+            cube(k(mat), (-L / 2, -W / 2, z0), (0.05, -W / 2 + t, z0 + h), bevel=0.002)
+            for s in range(3):
+                blk(k(wood), (0.06 + s * 0.02, t * 0.8, h * 0.25), (0.08 + s * 0.02, -W / 2 + t / 2, z0 + h * (0.2 + 0.3 * s)), ry=0.1 * s,
+                    bevel=0.001)
+        else:
+            cube(k(mat), (-L / 2, -W / 2, z0), (L / 2, -W / 2 + t, z0 + h), bevel=0.002)
+    # Deckel: Bretter, eines verschoben
+    m_ = 5
+    w = (W - (m_ - 1) * gap) / m_
+    for i in range(m_):
+        y0 = -W / 2 + i * (w + gap)
+        dx = 0.06 if i == 1 else 0.0
+        cube(k(wood), (-L / 2 + dx, y0, H), (L / 2 + dx, y0 + w, H + t), bevel=0.002)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            x0, y0 = sx * L / 2, sy * W / 2
+            xa, xb = sorted((x0 - sx * 0.05, x0 + sx * 0.02))
+            ya, yb = sorted((y0 - sy * 0.05, y0 + sy * 0.02))
+            cube(k(batten), (xa, ya, 0.0), (xb, yb, H), bevel=0.003)
+    # Moos auf dem Deckel und an den unteren Kanten
+    _cushion(k, P, rng, 0.05, 0.02, 0.40, 0.27, 0.04, rings=5, segs=22, z0=H + t, wet_ring=False, dry=False)
+    _cushion(k, P, rng, -0.38, -0.2, 0.12, 0.1, 0.025, rings=3, segs=12, z0=H + t, wet_ring=False, dry=False)
+    for _ in range(5):
+        x = rng.uniform(-L / 2, L / 2)
+        blob(k(P['moss'], 60), (x, -W / 2 - 0.004, rng.uniform(0.02, 0.12)), (0, -1, 0), rng.uniform(0.04, 0.08), 0.012, rng, squash=0.5)
+    # Efeu klettert an der Vorder- und Seitenwand hoch und ueber die Kante
+    # (Stengel laeuft an der Seitenflaeche hoch, ueber die Kante und ein Stueck ueber den Deckel)
+    climbs = [((0, -1, 0), -0.32, 0.0), ((0, -1, 0), 0.05, 0.0), ((0, -1, 0), 0.34, 0.0), ((1, 0, 0), -0.15, 0.0),
+              ((1, 0, 0), 0.2, 0.0)]
+    for (side, u0, _) in climbs:
+        side = V(side)
+        along = V((-side.y, side.x, 0.0))
+        face = V((side.x * (L / 2 + 0.012), side.y * (W / 2 + 0.012), 0.0))
+        pts = []
+        top = rng.uniform(0.75, 1.0)
+        for i in range(8):
+            tt = i / 7
+            pts.append(face + along * (u0 + 0.10 * math.sin(tt * 4 + u0 * 5)) + V((0, 0, 0.02 + (H + 0.03) * tt * top)))
+        if top > 0.85:
+            pts += [face - side * 0.05 + along * (u0 + 0.08) + V((0, 0, H + t + 0.01)),
+                    face - side * 0.22 + along * (u0 + 0.03) + V((0, 0, H + t + 0.012))]
+        sweep(k(P['stem_brown'], 70), pts, 0.005, 5)
+        for p in pts[1:]:
+            for _ in range(2):
+                q = p + along * jitter(rng, 0.05) + V((0, 0, jitter(rng, 0.04)))
+                outw = side if p.z < H else V((0, 0, 1))
+                _ivy_leaf(k, P, rng, q, outw, rng.uniform(0.06, 0.09))
+    # Grasbueschel am Fuss
+    for (x, y) in ((-0.55, -0.38), (0.52, -0.40), (0.56, 0.3), (-0.2, -0.42)):
+        for b in range(9):
+            a = rng.uniform(0, TAU)
+            lb = rng.uniform(0.12, 0.28)
+            base = V((x + jitter(rng, 0.03), y + jitter(rng, 0.03), 0.0))
+            tip = base + V((math.cos(a) * lb * 0.45, math.sin(a) * lb * 0.45, lb))
+            mid = base.lerp(tip, 0.5) + V((0, 0, 0.02))
+            wv = V((-math.sin(a), math.cos(a), 0.0)) * 0.004
+            mat = P['grass'] if rng.random() < 0.7 else P['grass_dry']
+            two_sided(k(mat, 0), [[base - wv, base + wv, mid + wv * 0.7, mid - wv * 0.7], [mid - wv * 0.7, mid + wv * 0.7, tip]])
+    # kleiner Farn an der Ecke
+    for i in range(4):
+        a = -0.9 + i * 0.5
+        _frond(k, P, rng, (0.6, -0.42, 0.004), (math.cos(a), math.sin(a), 0), rng.uniform(0.25, 0.38), rng.uniform(0.15, 0.25), pairs=8)
+    k.finish()
+
+
+# =====================================================================================================================
+# FABLED - altes Holz in Zinnoberrot (abgeplatzt), darueber Neon und farbige Kabel
+# =====================================================================================================================
+def mats_fabled():
+    return {
+        'lac': material('zinnober', (0.70, 0.17, 0.10), look='paint', rough=0.4, r=0.62),
+        'lac_dark': material('zinnober_dunkel', (0.46, 0.11, 0.07), look='paint', rough=0.55, r=0.85),
+        'lac_worn': material('zinnober_matt', (0.60, 0.22, 0.14), look='paint', rough=0.7, r=1.15),
+        'lac_black': material('lack_schwarz', (0.045, 0.035, 0.03), look='paint', rough=0.4, r=0.6),
+        'wood': material('holz_bloss', (0.36, 0.22, 0.13), look='wood', tex='wood_walnut_floor', rough=0.8, r=1.15),
+        'wood_dark': material('holz_dunkel', (0.20, 0.12, 0.08), look='wood', tex='wood_walnut_floor', rough=0.85, r=1.25),
+        'ground': material('kreidegrund', (0.70, 0.62, 0.50), look='paint', rough=0.9, r=1.35),
+        'grime': material('schmutz', (0.22, 0.16, 0.12), look='paint', rough=0.95, r=1.4),
+        'brass': material('messing', (0.72, 0.54, 0.27), look='metal', rough=0.35, metal=0.9, r=0.6, m=0.85),
+        'brass_dark': material('messing_angelaufen', (0.40, 0.31, 0.17), look='metal', rough=0.6, metal=0.8, r=0.95, m=0.65),
+        'interior': material('innen_dunkel', (0.08, 0.05, 0.035), look='wood', rough=0.9, r=1.3),
+        'steel_dark': material('stahl_dunkel', (0.20, 0.20, 0.21), look='metal', rough=0.6, metal=0.8, r=1.15, m=0.55),
+        'black_plastic': material('kunststoff_schwarz', (0.06, 0.06, 0.065), look='plastic', rough=0.6, r=1.0),
+        'grey_box': material('trafo_grau', (0.46, 0.47, 0.47), look='paint', rough=0.55, r=0.95),
+        'glass_dark': material('elektrode_glas', (0.14, 0.13, 0.13), look='glass', rough=0.2, r=0.4),
+        'clear': material('halter_klar', (0.62, 0.64, 0.64), look='plastic', rough=0.3, r=0.6),
+        'copper': material('kupfer', (0.80, 0.45, 0.25), look='metal', rough=0.35, metal=0.9, r=0.6, m=0.85),
+        'galv': material('verzinkt', (0.66, 0.67, 0.66), look='galvanized', rough=0.5, metal=0.8, r=1.05, m=0.6),
+        'tape': material('isolierband', (0.04, 0.04, 0.04), look='plastic', rough=0.5, r=0.8),
+        'tie': material('kabelbinder', (0.85, 0.85, 0.80), look='plastic', rough=0.5, r=0.9),
+    }
+
+
+def _chips_rect(k, F, rng, M, axis, sign, a0, a1, b0, b1, level, n, size, edge_bias=0.7, mats=('wood', 'ground', 'wood_dark')):
+    """Abplatzer auf einer Rechteckflaeche (lokal): Flaeche senkrecht zu axis (0 x, 1 y, 2 z) bei level, Normale sign.
+    a/b: Grenzen in den beiden anderen Achsen. Abplatzer liegen bevorzugt an den Kanten (wo Lack abgestossen wird)."""
+    other = [i for i in range(3) if i != axis]
+    nrm_l = V((0, 0, 0))
+    nrm_l[axis] = sign
+    nrm = (M.to_3x3() @ nrm_l).normalized()
+    for _ in range(n):
+        if rng.random() < edge_bias:
+            e = rng.randrange(4)
+            ca = (a0 + rng.uniform(0, 1) * (a1 - a0)) if e < 2 else (a0 + size * 0.6 if e == 2 else a1 - size * 0.6)
+            cb = (b0 + size * 0.6 if e == 0 else b1 - size * 0.6) if e < 2 else (b0 + rng.uniform(0, 1) * (b1 - b0))
+        else:
+            ca, cb = rng.uniform(a0, a1), rng.uniform(b0, b1)
+        s = size * rng.uniform(0.4, 1.0)
+        pts = []
+        nv = rng.randint(5, 7)
+        ph = rng.uniform(0, TAU)
+        for i in range(nv):
+            ang = ph + TAU * i / nv
+            p = V((0, 0, 0))
+            p[axis] = level + sign * 0.0005
+            p[other[0]] = min(a1, max(a0, ca + math.cos(ang) * s * rng.uniform(0.5, 1.0)))
+            p[other[1]] = min(b1, max(b0, cb + math.sin(ang) * s * rng.uniform(0.3, 0.8)))
+            pts.append(M @ p)
+        quad_n(k(F[rng.choice(mats)]), pts, nrm)
+
+
+def _box_chips(k, F, rng, lo, hi, M, faces, n, size, **kw):
+    """Abplatzer auf ausgewaehlten Seiten eines Quaders lo..hi (faces z. B. '+x -y +z')."""
+    for f in faces.split():
+        s = 1 if f[0] == '+' else -1
+        ax = 'xyz'.index(f[1])
+        o = [i for i in range(3) if i != ax]
+        level = hi[ax] if s > 0 else lo[ax]
+        _chips_rect(k, F, rng, M, ax, s, lo[o[0]], hi[o[0]], lo[o[1]], hi[o[1]], level, n, size, **kw)
+
+
+def _raised_panel(k, mat, M, y0, y1, z0, z1, x0, h, inset):
+    """Erhabene Fuellung: Rechteck y0..y1 / z0..z1 auf x0, Spiegel (inset) um h vorstehend, mit Schraegen."""
+    def P(x, y, z):
+        return M @ V((x, y, z))
+    o = [P(x0, y0, z0), P(x0, y1, z0), P(x0, y1, z1), P(x0, y0, z1)]
+    i_ = [P(x0 + h, y0 + inset, z0 + inset), P(x0 + h, y1 - inset, z0 + inset), P(x0 + h, y1 - inset, z1 - inset),
+          P(x0 + h, y0 + inset, z1 - inset)]
+    n = M.to_3x3() @ V((1, 0, 0))
+    bm = k(mat)
+    quad_n(bm, i_, n)
+    for a in range(4):
+        b = (a + 1) % 4
+        quad_n(bm, [o[a], o[b], i_[b], i_[a]], n)
+
+
+def _prism_y(k, mat, prof, y0, y1, M=None, smooth=0.0):
+    """Profilleiste: Querschnitt prof [(x, z), ...] entlang y von y0 bis y1 (geschlossener Koerper)."""
+    src = bmesh.new()
+    a = [src.verts.new((x, y0, z)) for (x, z) in prof]
+    b = [src.verts.new((x, y1, z)) for (x, z) in prof]
+    n = len(prof)
+    for i in range(n):
+        j = (i + 1) % n
+        src.faces.new((a[i], a[j], b[j], b[i]))
+    src.faces.new(a)
+    src.faces.new(list(reversed(b)))
+    bmesh.ops.recalc_face_normals(src, faces=list(src.faces))
+    emit(src, lambda f: k(mat, smooth), M)
+
+
+# --- Wandvertaefelung (Wandmodell 1 m breit, Ursprung am Boden, Wand bei x = 0) ----------------------------------------
+def build_panel_vermilion():
+    rng = random.Random(401)
+    F = mats_fabled()
+    k = Kit()
+    H = 2.2
+    # Blindboden (Rueckwand) und Rahmen: halbe Aussenstiele (stossen an das Nachbarmodul), Mittelstiel, drei Riegel
+    cube(k(F['lac_dark']), (0.0, -0.5, 0.0), (0.012, 0.5, H))
+    frame = [((-0.5, 0.12), (-0.455, 2.08)), ((0.455, 0.12), (0.5, 2.08)), ((-0.035, 0.12), (0.035, 2.08))]
+    for (y0, z0), (y1, z1) in frame:
+        cube(k(F['lac']), (0.012, y0, z0), (0.034, y1, z1), bevel=0.003)
+    for (z0, z1) in ((0.12, 0.24), (0.70, 0.79), (1.84, 1.92), (2.02, 2.08)):
+        cube(k(F['lac']), (0.012, -0.455, z0), (0.034, 0.455, z1), bevel=0.003)
+    # sechs erhabene Fuellungen: Sockelfeld, hohes Feld, schmaler Fries
+    for (y0, y1) in ((-0.455, -0.035), (0.035, 0.455)):
+        for (z0, z1, ins) in ((0.24, 0.70, 0.045), (0.79, 1.84, 0.05), (1.92, 2.02, 0.02)):
+            _raised_panel(k, F['lac'], Matrix.Identity(4), y0 + 0.004, y1 - 0.004, z0 + 0.004, z1 - 0.004, 0.018, 0.010, ins)
+    # Sockelleiste (dunkler, verschmutzt) und Abdeckleiste oben (Profil)
+    _prism_y(k, F['lac_dark'], [(0.0, 0.0), (0.040, 0.0), (0.040, 0.10), (0.032, 0.115), (0.032, 0.125), (0.0, 0.125)], -0.5, 0.5)
+    _prism_y(k, F['lac'], [(0.0, 2.08), (0.040, 2.08), (0.040, 2.11), (0.056, 2.13), (0.056, 2.17), (0.036, 2.20), (0.0, 2.20)],
+             -0.5, 0.5)
+    # Abplatzer an Kanten (Riegel, Stiele, Sockel), Schmutz unten, Kratzer
+    for (z0, z1) in ((0.12, 0.24), (0.70, 0.79)):
+        _box_chips(k, F, rng, (0.012, -0.455, z0), (0.034, 0.455, z1), Matrix.Identity(4), '+x', 2, 0.02)
+    _box_chips(k, F, rng, (0.0, -0.5, 0.0), (0.040, 0.5, 0.10), Matrix.Identity(4), '+x', 4, 0.025, mats=('wood_dark', 'wood', 'grime'))
+    _box_chips(k, F, rng, (0.012, -0.5, 0.12), (0.034, -0.455, 2.08), Matrix.Identity(4), '+x', 2, 0.015)
+    _box_chips(k, F, rng, (0.012, -0.035, 0.12), (0.034, 0.035, 2.08), Matrix.Identity(4), '+x', 2, 0.015)
+    for _ in range(3):  # Kratzer: helle, duenne Striche in der unteren Fuellung
+        y, z = rng.uniform(-0.4, 0.4), rng.uniform(0.3, 0.62)
+        a = rng.uniform(-0.6, 0.6)
+        L, w = rng.uniform(0.05, 0.14), 0.0016
+        d = V((0, math.cos(a), math.sin(a)))
+        c = V((0.0285, y, z))
+        nn = V((0, -math.sin(a), math.cos(a))) * w
+        quad_n(k(F['ground']), [c - d * L / 2 - nn, c + d * L / 2 - nn, c + d * L / 2 + nn, c - d * L / 2 + nn], (1, 0, 0))
+    k.finish()
+
+
+# --- Neonroehre an der Wand (Ursprung: Wand, Mitte der Roehre; Karte setzt z = Montagehoehe) ----------------------------
+NEON = [(1.0, 0.16, 0.10), (0.22, 1.0, 0.36), (0.22, 0.46, 1.0), (0.64, 0.22, 1.0)]
+
+
+def _boot(k, F, p, d):
+    """Durchfuehrung (Elektrodenhuelse) an der Wand: schwarzer Gummischuh, in den die Roehre fuehrt."""
+    lathe(k(F['black_plastic'], 50), [(0.0, 0.0), (0.016, 0.0), (0.015, 0.02), (0.011, 0.034), (0.0, 0.034)], 10,
+          tr(*p) @ V(d).to_track_quat('Z', 'Y').to_matrix().to_4x4())
+
+
+def _neon_path(k, F, glow, pts, r=0.0075, dark_ends=0.045):
+    """Leuchtroehre entlang pts (Glas leuchtet), Enden als dunkle Elektrodenstuecke zur Wand."""
+    pts = [V(p) for p in pts]
+    # Bogenlaenge, um die Elektrodenenden abzutrennen
+    L = [0.0]
+    for a, b in zip(pts, pts[1:]):
+        L.append(L[-1] + (b - a).length)
+    total = L[-1]
+
+    def at(s):
+        for i in range(len(pts) - 1):
+            if L[i + 1] >= s:
+                return pts[i].lerp(pts[i + 1], (s - L[i]) / max(1e-9, L[i + 1] - L[i]))
+        return pts[-1]
+    mid = [at(dark_ends)] + [p for p, s in zip(pts, L) if dark_ends < s < total - dark_ends] + [at(total - dark_ends)]
+    sweep(k(glow, 60), mid, r, 10, caps=False)
+    head = [p for p, s in zip(pts, L) if s <= dark_ends] + [at(dark_ends)]
+    tail = [at(total - dark_ends)] + [p for p, s in zip(pts, L) if s >= total - dark_ends]
+    for seg in (head, tail):
+        if len(seg) >= 2:
+            sweep(k(F['glass_dark'], 60), seg, r * 1.02, 10, caps=True)
+
+
+def _bend(a, corner, b, n=4, rad=0.03):
+    """Abgerundete Ecke von a ueber corner nach b (Punkte)."""
+    a, corner, b = V(a), V(corner), V(b)
+    da, db = (a - corner).normalized(), (b - corner).normalized()
+    p0, p1 = corner + da * rad, corner + db * rad
+    out = []
+    for i in range(n + 1):
+        t = i / n
+        q = p0.lerp(corner, t).lerp(corner.lerp(p1, t), t)
+        out.append(q)
+    return out
+
+
+def _support(k, F, p, xw=0.0):
+    """Roehrenhalter: Abstandshalter aus klarem Kunststoff mit Klammer."""
+    cyl(k(F['clear'], 50), (xw, p[1], p[2]), (p[0] - 0.008, p[1], p[2]), 0.005, 6)
+    lathe(k(F['clear'], 50), [(0.0085, -0.004), (0.0105, -0.004), (0.0105, 0.004), (0.0085, 0.004), (0.0085, -0.004)], 10,
+          tr(*p) @ rot(math.pi / 2, 0, 0))
+
+
+def _neon_tube(variant):
+    rng = random.Random(421 + variant)
+    F = mats_fabled()
+    k = Kit()
+    glow = material(f'neon_{variant}', NEON[variant], look='glow', glow=1.5)
+    X = 0.055
+    yl = 0.60
+    pts = [V((0.03, -yl - 0.03, 0.0))] + _bend((0.03, -yl - 0.03, 0.0), (X, -yl - 0.03, 0.0), (X, 0.0, 0.0))[1:] + \
+        _bend((X, 0.0, 0.0), (X, yl + 0.03, 0.0), (0.03, yl + 0.03, 0.0)) + [V((0.03, yl + 0.03, 0.0))]
+    _neon_path(k, F, glow, pts)
+    for s in (-1, 1):
+        _boot(k, F, (0.0, s * (yl + 0.03), 0.0), (1, 0, 0))
+    for y in (-0.35, 0.05, 0.42):
+        _support(k, F, (X, y + jitter(rng, 0.03), 0.0))
+    # Trafo unter der Roehre, Hochspannungskabel zu beiden Enden, Netzkabel nach oben
+    ty = 0.18 + jitter(rng, 0.05)
+    cube(k(F['grey_box']), (0.0, ty - 0.10, -0.24), (0.065, ty + 0.10, -0.12), bevel=0.004)
+    cube(k(material('typenschild', (0.80, 0.78, 0.70), look='paint', rough=0.6, r=1.0)), (0.065, ty - 0.05, -0.20), (0.0656, ty + 0.03, -0.16))
+    for s in (-1, 1):
+        cyl(k(F['steel_dark'], 50), (0.0, ty + s * 0.095, -0.13), (0.07, ty + s * 0.095, -0.13), 0.004, 6)
+    cab = k(F['black_plastic'], 60)
+    for s in (-1, 1):
+        ye = s * (yl + 0.03)
+        sweep(cab, catmull([(0.006, ty + s * 0.10, -0.18), (0.006, ty + s * 0.16, -0.17), (0.006, (ty + ye) / 2, -0.10),
+                            (0.006, ye, -0.03), (0.012, ye, -0.012)], 3), 0.0035, 5)
+    sweep(cab, catmull([(0.006, ty - 0.02, -0.12), (0.006, ty - 0.03, 0.05), (0.006, ty - 0.02, 0.30), (0.006, ty - 0.03, 0.62)], 3),
+          0.004, 5)
+    for z in (0.18, 0.45):  # Kabelschellen
+        cube(k(F['clear']), (0.0, ty - 0.04, z - 0.006), (0.012, ty - 0.01, z + 0.006))
+    k.finish()
+
+
+def build_neon_tube():
+    _neon_tube(0)
+
+
+def build_neon_tube__v1():
+    _neon_tube(1)
+
+
+def build_neon_tube__v2():
+    _neon_tube(2)
+
+
+def build_neon_tube__v3():
+    _neon_tube(3)
+
+
+# --- Neonform ohne Schrift (Wandmodell, Ursprung Mitte) ---------------------------------------------------------------
+def _neon_sign(variant):
+    rng = random.Random(441 + variant)
+    F = mats_fabled()
+    k = Kit()
+    X = 0.07
+    # Traeger (Kabelkanal, schwarz lackiert) unten, darin der Trafo
+    cube(k(F['lac_black']), (0.0, -0.45, -0.36), (0.07, 0.45, -0.28), bevel=0.005)
+    for y in (-0.38, 0.38):
+        cube(k(F['steel_dark']), (0.0, y - 0.02, -0.37), (0.005, y + 0.02, -0.27))
+    supports = []
+    if variant == 0:
+        pink = material('neon_pink', (1.0, 0.22, 0.45), look='glow', glow=1.5)
+        cyan = material('neon_cyan', (0.20, 0.90, 1.0), look='glow', glow=1.4)
+        for (mat, zc, ph, amp) in ((pink, 0.06, 0.0, 0.10), (cyan, -0.10, 0.6, 0.08)):
+            wave = []
+            for i in range(29):
+                t = i / 28
+                y = -0.52 + 1.04 * t
+                wave.append(V((X, y, zc + amp * math.sin(t * TAU * 1.5 + ph) * (0.6 + 0.4 * math.sin(math.pi * t)))))
+            ends = [V((0.02, wave[0].y - 0.02, wave[0].z))] + wave + [V((0.02, wave[-1].y + 0.02, wave[-1].z))]
+            _neon_path(k, F, mat, ends)
+            for p in (wave[0], wave[-1]):
+                _boot(k, F, (0.0, p.y + (-0.02 if p.y < 0 else 0.02), p.z), (1, 0, 0))
+            supports += [wave[5], wave[14], wave[23]]
+        # Raute (gelb) rechts oben
+        yel = material('neon_gelb', (1.0, 0.80, 0.18), look='glow', glow=1.3)
+        c = V((X, 0.36, 0.26))
+        dia = [c + V((0, 0, 0.09)), c + V((0, 0.07, 0)), c + V((0, 0, -0.09)), c + V((0, -0.07, 0)), c + V((0, 0, 0.088))]
+        _neon_path(k, F, yel, [V((0.02, c.y, c.z + 0.11))] + dia, dark_ends=0.03)
+        _boot(k, F, (0.0, c.y, c.z + 0.11), (1, 0, 0))
+        supports.append(c + V((0, 0.07, 0)))
+    else:
+        orange = material('neon_orange', (1.0, 0.45, 0.10), look='glow', glow=1.5)
+        violet = material('neon_violett', (0.66, 0.24, 1.0), look='glow', glow=1.5)
+        ring = []
+        for i in range(37):
+            a = math.pi / 2 + TAU * i / 36 * 0.96
+            ring.append(V((X, 0.30 * math.cos(a), 0.30 * math.sin(a) + 0.0)))
+        _neon_path(k, F, orange, [V((0.02, ring[0].y, ring[0].z + 0.03))] + ring + [V((0.02, ring[-1].y, ring[-1].z + 0.03))])
+        for p in (ring[0], ring[-1]):
+            _boot(k, F, (0.0, p.y, p.z + 0.03), (1, 0, 0))
+        zig = []
+        for i in range(9):
+            t = i / 8
+            zig.append(V((X + 0.012, -0.20 + 0.40 * t, 0.07 * (1 if i % 2 else -1) * (1.0 - abs(t - 0.5)))))
+        zz = catmull(zig, 3)
+        _neon_path(k, F, violet, [V((0.02, zz[0].y, zz[0].z))] + zz + [V((0.02, zz[-1].y, zz[-1].z))])
+        for p in (zz[0], zz[-1]):
+            _boot(k, F, (0.0, p.y, p.z), (1, 0, 0))
+        supports += [ring[6], ring[18], ring[30], zz[6], zz[18]]
+    for p in supports:
+        _support(k, F, p)
+    # Hochspannungskabel vom Traeger zu den Durchfuehrungen
+    for y in (-0.3, 0.3):
+        sweep(k(F['black_plastic'], 60), [(0.006, y, -0.28), (0.006, y * 1.2, -0.10), (0.006, y * 1.3, 0.05)], 0.003, 5)
+    k.finish()
+
+
+def build_neon_sign():
+    _neon_sign(0)
+
+
+def build_neon_sign__v1():
+    _neon_sign(1)
+
+
+# --- farbige Kabel von der Decke (Deckenmodell, Oberseite z = 0) -----------------------------------------------------------
+CABLE_COLORS = [(0.62, 0.08, 0.06), (0.80, 0.62, 0.08), (0.10, 0.22, 0.55), (0.10, 0.40, 0.18), (0.80, 0.80, 0.76),
+                (0.05, 0.05, 0.05), (0.85, 0.36, 0.06), (0.42, 0.42, 0.43), (0.45, 0.20, 0.45)]
+
+
+def _cable_mat(i):
+    names = ['rot', 'gelb', 'blau', 'gruen', 'weiss', 'schwarz', 'orange', 'grau', 'violett']
+    return material(f'kabel_{names[i % 9]}', CABLE_COLORS[i % 9], look='rubber', rough=0.55, r=0.85)
+
+
+def _stripped_end(k, F, p, d, r):
+    """Abisoliertes Kabelende: Kupferlitze."""
+    d = V(d).normalized()
+    cyl(k(F['copper'], 50), p, V(p) + d * 0.025, r * 0.55, 5)
+
+
+def _cable_hang(variant):
+    rng = random.Random(461 + variant)
+    F = mats_fabled()
+    k = Kit()
+    if variant == 0:
+        # Abzweigdose an der Decke, Haken auf der anderen Seite; Kabel haengen in Boegen dazwischen
+        A, B = V((0.0, -0.95, -0.06)), V((0.0, 0.95, -0.04))
+        cube(k(F['grey_box']), (-0.08, -1.03, -0.09), (0.08, -0.87, 0.0), bevel=0.006)
+        cyl(k(F['steel_dark'], 50), (0.0, 0.95, 0.0), (0.0, 0.95, -0.05), 0.006, 6)
+        lathe(k(F['steel_dark'], 50), [(0.015, -0.004), (0.022, -0.004), (0.022, 0.004), (0.015, 0.004), (0.015, -0.004)], 8,
+              tr(0.0, 0.95, -0.065) @ rot(math.pi / 2, 0, 0))
+        for i in range(8):
+            sag = rng.uniform(0.35, 0.95)
+            off = V((jitter(rng, 0.035), 0.0, jitter(rng, 0.01)))
+            pts = []
+            for j in range(15):
+                t = j / 14
+                p = A.lerp(B, t) + off * (1 - abs(2 * t - 1))
+                p.z -= sag * (1 - (2 * t - 1) ** 2) ** 1.1
+                p.x += 0.06 * math.sin(t * math.pi * 2 + i) * (1 - abs(2 * t - 1))
+                pts.append(p)
+            sweep(k(_cable_mat(i), 60), pts, rng.uniform(0.004, 0.0065), 5)
+        # zwei Kabel haengen vom Haken weiter herunter, offene Enden
+        for i in range(2):
+            pts = [B + V((0, 0, -0.01)), B + V((0.02 * i, 0.03, -0.25)), B + V((0.04 - 0.08 * i, 0.06, -0.55)),
+                   B + V((0.03 - 0.07 * i, 0.04, -0.75 - 0.2 * i))]
+            pp = catmull(pts, 4)
+            sweep(k(_cable_mat(i + 6), 60), pp, 0.0045, 5)
+            _stripped_end(k, F, pp[-1], pp[-1] - pp[-2], 0.0045)
+        for p in (A + V((0, 0.05, -0.01)), B + V((0, -0.05, -0.02))):  # Kabelbinder am Buendel
+            lathe(k(F['tie'], 50), [(0.018, -0.003), (0.021, -0.003), (0.021, 0.003), (0.018, 0.003), (0.018, -0.003)], 8,
+                  tr(*p) @ rot(math.pi / 2, 0, 0))
+    else:
+        # abgerissene Kabeltrasse (Stueck Gitterrinne), Buendel faellt heraus, Enden lose, Isolierband
+        g = k(F['galv'], 0)
+        for x in (-0.1, 0.1):
+            cyl(g, (x, -0.35, -0.06), (x, 0.15, -0.06), 0.0025, 4)
+        for y in [-0.35 + 0.1 * i for i in range(6)]:
+            sweep(g, [(-0.1, y, -0.0), (-0.1, y, -0.06), (0.1, y, -0.06), (0.1, y, 0.0)], 0.0022, 4)
+        cyl(k(F['steel_dark'], 50), (0.0, -0.1, 0.0), (0.0, -0.1, -0.06), 0.005, 6)
+        for i in range(9):
+            L = rng.uniform(0.45, 1.05)
+            x0, y0 = jitter(rng, 0.06), rng.uniform(-0.3, 0.05)
+            pts = [V((x0, y0, -0.05)), V((x0 * 0.6, 0.12 + jitter(rng, 0.02), -0.07)), V((x0 * 0.4 + jitter(rng, 0.03), 0.2, -0.2)),
+                   V((jitter(rng, 0.05), 0.22 + jitter(rng, 0.04), -0.2 - L * 0.5)), V((jitter(rng, 0.08), 0.2 + jitter(rng, 0.06), -0.2 - L))]
+            if i % 4 == 0:  # Schlaufe am Ende
+                e = pts[-1]
+                pts += [e + V((0.04, 0.0, 0.05)), e + V((0.06, 0.03, 0.12))]
+            pp = catmull(pts, 4)
+            r = rng.uniform(0.0035, 0.006)
+            sweep(k(_cable_mat(i), 60), pp, r, 5)
+            if i % 3 != 2:
+                _stripped_end(k, F, pp[-1], pp[-1] - pp[-2], r)
+        for z in (-0.32, -0.55):  # Isolierband ums Buendel
+            lathe(k(F['tape'], 50), [(0.0, z - 0.02), (0.03, z - 0.02), (0.031, z + 0.02), (0.0, z + 0.02)], 10,
+                  tr(0.0, 0.21, 0.0))
+        # Verbindungsklemme an einem Kabel
+        cube(k(material('klemme_orange', (0.85, 0.40, 0.08), look='plastic', rough=0.5, r=0.8)), (-0.012, 0.19, -0.72),
+             (0.012, 0.21, -0.68), bevel=0.002)
+    k.finish()
+
+
+def build_cable_hang():
+    _cable_hang(0)
+
+
+def build_cable_hang__v1():
+    _cable_hang(1)
+
+
+# --- Schrank, Tisch, Bank, Paravent (Bodenmodelle, Blick +x) --------------------------------------------------------------
+def _pull(k, F, M, p, r=0.032):
+    """Runde Messingrosette mit Buegelgriff (chinesischer Beschlag)."""
+    Mp = M @ tr(*p) @ rot(0, math.pi / 2, 0)
+    lathe(k(F['brass_dark'], 40), [(0.0, 0.0), (r, 0.0), (r * 0.95, 0.003), (r * 0.3, 0.005), (0.0, 0.005)], 14, Mp)
+    arc = [Mp @ V((-0.002, r * 0.7 * math.cos(a), r * 0.7 * math.sin(a) * 0.0 + 0.006 + 0.014 * math.sin(a))) for a in
+           [math.pi * i / 8 for i in range(9)]]
+    sweep(k(F['brass'], 60), arc, 0.003, 5)
+
+
+def build_cabinet_vermilion():
+    rng = random.Random(481)
+    F = mats_fabled()
+    k = Kit()
+    W, D, H = 1.0, 0.48, 1.86
+    x0, x1 = -D / 2, D / 2
+    I = Matrix.Identity(4)
+    # Sockel mit ausgeschnittenen Fuessen (Vorderseite), dunkel verschmutzt
+    for (y0, y1) in ((-W / 2, -W / 2 + 0.09), (W / 2 - 0.09, W / 2)):
+        cube(k(F['lac_dark']), (x0, y0, 0.0), (x1, y1, 0.11), bevel=0.004)
+    cube(k(F['lac_dark']), (x1 - 0.03, -W / 2, 0.06), (x1, W / 2, 0.11), bevel=0.004)
+    cube(k(F['lac_dark']), (x0, -W / 2, 0.06), (x0 + 0.03, W / 2, 0.11), bevel=0.004)
+    # Korpus: Seiten, Rueckwand, Boden, Deckel mit Ueberstand und Kranzprofil
+    lac = F['lac']
+    cube(k(lac), (x0, -W / 2, 0.11), (x1, -W / 2 + 0.025, H - 0.06), bevel=0.003)
+    cube(k(lac), (x0, W / 2 - 0.025, 0.11), (x1, W / 2, H - 0.06), bevel=0.003)
+    cube(k(F['lac_dark']), (x0, -W / 2 + 0.025, 0.11), (x0 + 0.015, W / 2 - 0.025, H - 0.06))
+    cube(k(F['interior']), (x0 + 0.015, -W / 2 + 0.025, 0.11), (x1 - 0.02, W / 2 - 0.025, 0.13))
+    cube(k(lac), (x0 - 0.02, -W / 2 - 0.03, H - 0.06), (x1 + 0.035, W / 2 + 0.03, H - 0.03), bevel=0.004)
+    cube(k(lac), (x0 - 0.01, -W / 2 - 0.015, H - 0.03), (x1 + 0.02, W / 2 + 0.015, H), bevel=0.006)
+    # Front: Rahmen (Stiele, Riegel), zwei Schubladen, zwei Tueren (eine einen Spalt offen)
+    xf = x1
+    cube(k(lac), (xf - 0.02, -W / 2 + 0.025, 0.11), (xf, W / 2 - 0.025, 0.16), bevel=0.003)
+    cube(k(lac), (xf - 0.02, -W / 2 + 0.025, 0.36), (xf, W / 2 - 0.025, 0.40), bevel=0.003)
+    cube(k(lac), (xf - 0.02, -W / 2 + 0.025, H - 0.11), (xf, W / 2 - 0.025, H - 0.06), bevel=0.003)
+    cube(k(lac), (xf - 0.02, -0.02, 0.16), (xf, 0.02, H - 0.11), bevel=0.003)
+    cube(k(F['interior']), (x0 + 0.015, -W / 2 + 0.025, 0.40), (xf - 0.03, W / 2 - 0.025, H - 0.11))
+    for (y0, y1) in ((-W / 2 + 0.03, -0.025), (0.025, W / 2 - 0.03)):
+        cube(k(lac), (xf - 0.018, y0, 0.165), (xf + 0.004, y1, 0.355), bevel=0.004)
+        _raised_panel(k, lac, I, y0 + 0.02, y1 - 0.02, 0.185, 0.335, xf + 0.004, 0.006, 0.025)
+        _pull(k, F, I, (xf + 0.01, (y0 + y1) / 2, 0.26), 0.026)
+    hinge_y = {0: -W / 2 + 0.03, 1: W / 2 - 0.03}
+    for d in (0, 1):
+        y0, y1 = ((-W / 2 + 0.03, -0.022) if d == 0 else (0.022, W / 2 - 0.03))
+        ajar = math.radians(7.0) if d == 1 else 0.0
+        hy = hinge_y[d]
+        Md = tr(xf, hy, 0.0) @ rot(0, 0, ajar) @ tr(-xf, -hy, 0.0)
+        z0, z1 = 0.405, H - 0.115
+        cube(k(lac), (xf - 0.02, y0, z0), (xf + 0.004, y1, z1), Md, bevel=0.004)
+        for (za, zb) in ((z0 + 0.06, z0 + 0.62), (z0 + 0.70, z1 - 0.06)):
+            _raised_panel(k, lac, Md, y0 + 0.05, y1 - 0.05, za, zb, xf + 0.004, 0.008, 0.035)
+        for zh in (z0 + 0.12, (z0 + z1) / 2, z1 - 0.12):  # Messingbaender
+            cube(k(F['brass_dark']), (xf + 0.004, hy - 0.004 if d == 0 else hy - 0.05, zh - 0.035),
+                 (xf + 0.0065, hy + 0.05 if d == 0 else hy + 0.004, zh + 0.035), Md)
+        yy = y1 - 0.06 if d == 0 else y0 + 0.06
+        _pull(k, F, Md, (xf + 0.006, yy, (z0 + z1) / 2 + 0.05), 0.03)
+        # abgegriffene Stelle um den Griff (Lack weg, Holz dunkel)
+        _chips_rect(k, F, rng, Md, 0, 1, yy - 0.06, yy + 0.06, (z0 + z1) / 2 - 0.05, (z0 + z1) / 2 + 0.15, xf + 0.004, 4, 0.03,
+                    edge_bias=0.0, mats=('wood_dark', 'wood'))
+        _box_chips(k, F, rng, (xf - 0.02, y0, z0), (xf + 0.004, y1, z1), Md, '+x', 6, 0.025)
+    # Schloss mit Rosette in der Mitte
+    Ml = tr(xf + 0.005, 0.0, 1.05) @ rot(0, math.pi / 2, 0)
+    lathe(k(F['brass_dark'], 40), [(0.0, 0.0), (0.03, 0.0), (0.028, 0.003), (0.0, 0.004)], 12, Ml)
+    cube(k(F['interior']), (xf + 0.009, -0.003, 1.035), (xf + 0.0095, 0.003, 1.06))
+    # Abplatzer: Seiten, Kranz, Sockel; Staub auf dem Deckel
+    _box_chips(k, F, rng, (x0, -W / 2, 0.11), (x1, -W / 2 + 0.025, H - 0.06), I, '-y', 8, 0.03)
+    _box_chips(k, F, rng, (x0, W / 2 - 0.025, 0.11), (x1, W / 2, H - 0.06), I, '+y', 8, 0.03)
+    _box_chips(k, F, rng, (x0 - 0.02, -W / 2 - 0.03, H - 0.06), (x1 + 0.035, W / 2 + 0.03, H - 0.03), I, '+x', 5, 0.02)
+    _box_chips(k, F, rng, (x0, -W / 2, 0.0), (x1, W / 2, 0.11), I, '+x -y +y', 3, 0.03, mats=('wood_dark', 'grime'))
+    dust = material('staub', (0.46, 0.40, 0.36), look='fabric', rough=1.0, r=1.5)
+    blob(k(dust, 30), (0.0, 0.1, H), (0, 0, 1), 0.16, 0.0015, rng, nseg=12, squash=0.7)
+    k.finish()
+
+
+def _leg(k, mat, x, y, z0, z1, w0, w1, splay=(0.0, 0.0), foot=False):
+    """Vierkantbein, nach unten schlanker; foot: nach innen eingerollter Fuss (Pferdehuf)."""
+    src = bmesh.new()
+    ring0 = [src.verts.new((x + sx * w1 / 2 + splay[0], y + sy * w1 / 2 + splay[1], z0)) for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+    ring1 = [src.verts.new((x + sx * w0 / 2, y + sy * w0 / 2, z1)) for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+    for i in range(4):
+        j = (i + 1) % 4
+        src.faces.new((ring0[i], ring0[j], ring1[j], ring1[i]))
+    src.faces.new(list(reversed(ring0)))
+    src.faces.new(ring1)
+    bmesh.ops.recalc_face_normals(src, faces=list(src.faces))
+    emit(src, lambda f: k(mat))
+    if foot:
+        dx = -1 if x > 0 else 1
+        dy = -1 if y > 0 else 1
+        blk(k(mat), (w1 * 1.25, w1 * 1.25, z0), (x + splay[0] + dx * w1 * 0.15, y + splay[1] + dy * w1 * 0.15, z0 * 0.5), bevel=0.006)
+
+
+def build_table_vermilion():
+    rng = random.Random(501)
+    F = mats_fabled()
+    k = Kit()
+    L, W, H = 1.4, 0.8, 0.78
+    I = Matrix.Identity(4)
+    t = 0.04
+    # Platte: Rahmen mit Fase, Mitte abgenutzt (matter), Ringe und Kratzer
+    cube(k(F['lac']), (-L / 2, -W / 2, H - t), (L / 2, W / 2, H), bevel=0.008)
+    for (cx, cy, rx, ry) in ((-0.32, 0.12, 0.16, 0.10), (0.25, -0.1, 0.2, 0.12), (0.05, 0.2, 0.1, 0.07), (0.48, 0.22, 0.08, 0.06)):
+        worn = _jag(rng, cx, cy, rx, ry, n=9, rough=0.3)
+        quad_n(k(F['lac_worn']), [V((x, y, H + 0.0004)) for (x, y) in worn], (0, 0, 1))
+    for _ in range(3):
+        c = V((rng.uniform(-0.5, 0.5), rng.uniform(-0.28, 0.28), H + 0.0008))
+        rr = rng.uniform(0.032, 0.042)
+        lathe(k(F['lac_dark'], 0), [(rr, 0.0), (rr + 0.003, 0.0)], 20, tr(*c))
+    for _ in range(6):
+        a = rng.uniform(0, math.pi)
+        c = V((rng.uniform(-0.6, 0.6), rng.uniform(-0.33, 0.33), H + 0.0009))
+        d = V((math.cos(a), math.sin(a), 0)) * rng.uniform(0.04, 0.12)
+        nn = V((-math.sin(a), math.cos(a), 0)) * 0.0012
+        quad_n(k(F['ground']), [c - d - nn, c + d - nn, c + d + nn, c - d + nn], (0, 0, 1))
+    _box_chips(k, F, rng, (-L / 2, -W / 2, H - t), (L / 2, W / 2, H), I, '+z', 10, 0.025)
+    _box_chips(k, F, rng, (-L / 2, -W / 2, H - t), (L / 2, W / 2, H), I, '+x -x +y -y', 2, 0.015)
+    # Zarge (zurueckgesetzt), Beine mit Pferdehuf-Fuessen, Eckbaender (Spandrels)
+    zg = 0.10
+    for s in (-1, 1):
+        cube(k(F['lac']), (-L / 2 + 0.06, s * (W / 2 - 0.06) - 0.012, H - t - zg), (L / 2 - 0.06, s * (W / 2 - 0.06) + 0.012, H - t),
+             bevel=0.003)
+        cube(k(F['lac']), (s * (L / 2 - 0.06) - 0.012, -W / 2 + 0.06, H - t - zg), (s * (L / 2 - 0.06) + 0.012, W / 2 - 0.06, H - t),
+             bevel=0.003)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            x, y = sx * (L / 2 - 0.08), sy * (W / 2 - 0.08)
+            _leg(k, F['lac'], x, y, 0.03, H - t, 0.065, 0.05, foot=True)
+            _box_chips(k, F, rng, (x - 0.03, y - 0.03, 0.03), (x + 0.03, y + 0.03, 0.25), I, '+x -x +y -y', 1, 0.02,
+                       mats=('wood_dark', 'wood'))
+            # Eckband: Dreieck unter der Zarge, zur Mitte hin
+            for (ax, ay) in ((1, 0), (0, 1)):
+                p0 = V((x, y, H - t - zg))
+                p1 = p0 + V((-sx * ax * 0.12, -sy * ay * 0.12, 0))
+                p2 = p0 + V((0, 0, -0.10))
+                nrm = V((ay * sy, ax * sx, 0))
+                if nrm.length < 0.5:
+                    continue
+                for off in (0.006, -0.006):
+                    q = [p + nrm * off for p in (p0, p1, p2)]
+                    quad_n(k(F['lac']), q, nrm * (1 if off > 0 else -1))
+    # Fussleiste (Steg) zwischen den Beinen, schwarz abgesetzt
+    for sy in (-1, 1):
+        cube(k(F['lac_black']), (-L / 2 + 0.1, sy * (W / 2 - 0.08) - 0.012, 0.12), (L / 2 - 0.1, sy * (W / 2 - 0.08) + 0.012, 0.15),
+             bevel=0.003)
+    k.finish()
+
+
+def build_bench_vermilion():
+    rng = random.Random(521)
+    F = mats_fabled()
+    k = Kit()
+    L, W, H = 1.6, 0.38, 0.47
+    I = Matrix.Identity(4)
+    t = 0.055
+    # Sitzbrett entlang y (die Bank steht an der Wand, Blick +x)
+    cube(k(F['lac']), (-W / 2, -L / 2, H - t), (W / 2, L / 2, H), bevel=0.008)
+    for (cy, ry) in ((-0.42, 0.18), (0.05, 0.14), (0.45, 0.16)):  # Sitzflaechen abgewetzt
+        worn = _jag(rng, 0.01, cy, 0.09, ry, n=9, rough=0.25)
+        quad_n(k(F['lac_worn']), [V((x, y, H + 0.0004)) for (x, y) in worn], (0, 0, 1))
+    _box_chips(k, F, rng, (-W / 2, -L / 2, H - t), (W / 2, L / 2, H), I, '+z', 8, 0.025)
+    _box_chips(k, F, rng, (-W / 2, -L / 2, H - t), (W / 2, L / 2, H), I, '+x -x', 3, 0.02)
+    # gespreizte Beine, Zarge, Seitenstege
+    for sy in (-1, 1):
+        for sx in (-1, 1):
+            x, y = sx * (W / 2 - 0.06), sy * (L / 2 - 0.12)
+            _leg(k, F['lac'], x, y, 0.0, H - t, 0.055, 0.05, splay=(sx * 0.03, sy * 0.025))
+            _box_chips(k, F, rng, (x - 0.03, y - 0.03, 0.0), (x + 0.03, y + 0.03, 0.2), I, '+x -x', 1, 0.018,
+                       mats=('wood_dark', 'grime'))
+        cube(k(F['lac']), (-W / 2 + 0.07, sy * (L / 2 - 0.12) - 0.012, 0.16), (W / 2 - 0.07, sy * (L / 2 - 0.12) + 0.012, 0.19),
+             bevel=0.003)
+    for sx in (-1, 1):
+        cube(k(F['lac']), (sx * (W / 2 - 0.06) - 0.012, -L / 2 + 0.14, H - t - 0.07), (sx * (W / 2 - 0.06) + 0.012, L / 2 - 0.14, H - t),
+             bevel=0.003)
+    k.finish()
+
+
+def build_screen_vermilion():
+    """Paravent aus vier Fluegeln (je 0,5 x 1,8 m) im Zickzack; oben Gitterwerk, unten Fuellung, Messingscharniere."""
+    rng = random.Random(541)
+    F = mats_fabled()
+    k = Kit()
+    w, h = 0.5, 1.8
+    ang = math.radians(28)
+    # Fluegel i: Kante an Kante, abwechselnd gedreht (Draufsicht Zickzack entlang y)
+    p = V((0.0, -2 * w * math.cos(ang), 0.0))
+    for i in range(4):
+        a = ang if i % 2 == 0 else -ang
+        d = V((math.sin(a), math.cos(a), 0.0))
+        M = Matrix((
+            (d.y, d.x, 0, p.x),
+            (-d.x, d.y, 0, p.y),
+            (0, 0, 1, 0.0),
+            (0, 0, 0, 1)))
+        # lokale y von 0..w entlang d, lokale x = Dicke
+        fr = k(F['lac'])
+        tk = 0.028
+        cube(fr, (-tk / 2, 0.0, 0.03), (tk / 2, 0.04, h), M, bevel=0.003)
+        cube(fr, (-tk / 2, w - 0.04, 0.03), (tk / 2, w, h), M, bevel=0.003)
+        for (z0, z1) in ((0.08, 0.13), (0.62, 0.67), (h - 0.05, h)):
+            cube(fr, (-tk / 2, 0.04, z0), (tk / 2, w - 0.04, z1), M, bevel=0.003)
+        for s in (0.04, w - 0.04):  # Fuesse
+            cube(k(F['lac_dark']), (-0.03, s - 0.03, 0.0), (0.03, s + 0.03, 0.03), M, bevel=0.004)
+        # Fuellung unten
+        cube(k(F['lac_dark']), (-0.006, 0.04, 0.13), (0.006, w - 0.04, 0.62), M)
+        for sgn in (1, -1):
+            Mr = M if sgn > 0 else M @ rot(0, 0, math.pi) @ tr(0, -w, 0)
+            _raised_panel(k, F['lac'], Mr, 0.06, w - 0.06, 0.15, 0.60, 0.006, 0.006, 0.03)
+        # Gitterwerk oben: senkrechte und waagrechte Staebe, versetzt; im dritten Fluegel fehlen Staebe
+        sl = k(F['lac'])
+        zs = [0.67 + (h - 0.05 - 0.67) * j / 7 for j in range(1, 7)]
+        ys = [0.04 + (w - 0.08) * j / 4 for j in range(1, 4)]
+        for j, z in enumerate(zs):
+            if i == 2 and j in (2, 3):
+                continue
+            cube(sl, (-0.008, 0.04, z - 0.007), (0.008, w - 0.04, z + 0.007), M)
+        for j, y in enumerate(ys):
+            if i == 2 and j == 1:
+                # abgebrochener Stab: haengt schraeg
+                cube(sl, (-0.008, y - 0.007, h - 0.25), (0.008, y + 0.007, h - 0.05), M)
+                Mb = M @ tr(0.0, y, h - 0.25) @ rot(0.35, 0, 0)
+                cube(sl, (-0.008, -0.007, -0.3), (0.008, 0.007, 0.0), Mb)
+                continue
+            cube(sl, (-0.008, y - 0.007, 0.67), (0.008, y + 0.007, h - 0.05), M)
+        _box_chips(k, F, rng, (-tk / 2, 0.0, 0.03), (tk / 2, w, h), M, '+x -x', 4, 0.02)
+        # Scharniere zum naechsten Fluegel
+        if i < 3:
+            for zh in (0.3, 1.0, 1.6):
+                cube(k(F['brass_dark']), (-tk / 2 - 0.002, w - 0.02, zh - 0.03), (tk / 2 + 0.002, w + 0.004, zh + 0.03), M)
+        p = p + d * w
     k.finish()
