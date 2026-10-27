@@ -93,6 +93,22 @@ def resample(pts, step):
     return out
 
 
+def view_yaw(g, x, y, yaw, near=6.0):
+    """Blick in Laufrichtung; steht dort eine Wand naeher als `near`, die freieste Richtung bis +-75 Grad
+    (Kritikrunde 1 Level 1: Bilder zeigten in Kurven nur eine Wand)."""
+    if g.ray(x, y, yaw, maxd=near + 1.0) >= near:
+        return yaw
+    best, score = yaw, -1.0
+    for k in range(1, 6):
+        for sgn in (1, -1):
+            a = yaw + sgn * math.radians(15 * k)
+            d = g.ray(x, y, a, maxd=40.0)
+            sc = d - 0.04 * 15 * k
+            if sc > score:
+                best, score = a, sc
+    return best
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('level')
@@ -115,6 +131,7 @@ def main():
         j = min(i + 1, len(shots) - 1)
         k = max(i - 1, 0)
         yaw = math.atan2(shots[j][1] - shots[k][1], shots[j][0] - shots[k][0]) if j != k else 0.0
+        yaw = view_yaw(g, x, y, yaw)
         lines.append(f'pos {x:.2f} {y:.2f} {yaw:.4f} -0.04')
         lines.append('wait 10')
         lines.append('shot ' + os.path.join(raw, f'{i:03d}.png').replace('\\', '/'))

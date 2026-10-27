@@ -1275,7 +1275,7 @@ FXZ = frame(Vector((0, 0, 0)), Vector((1, 0, 0)), Vector((0, 0, 1)), Vector((0, 
 SWAP = frame(Vector((0, 0, 0)), Vector((1, 0, 0)), Vector((0, 0, 1)), Vector((0, 1, 0)))
 
 
-def _arch_tall(width, spring, crown, top):
+def _arch_tall(width, spring, crown, top, D=0.5, impost=True):
     """Segmentbogen im 1 m tiefen Durchbruch (Ursprung Mitte am Boden, Laibung x -0.5..0.5, Oeffnung y +-width/2).
     Laibung aus Brettschalung (Fugen laufen durch die Wandtiefe, jedes Brett leicht anders im Ton und in der Lage),
     2-cm-Fasen an beiden Wandseiten, Bogenzwickel, profilierte Archivolte, Schlussstein (auch in der Laibung),
@@ -1288,7 +1288,7 @@ def _arch_tall(width, spring, crown, top):
     R0 = (half * half + rise * rise) / (2 * rise)
     cz = crown - R0
     a_l, a_r = math.atan2(spring - cz, -half), math.atan2(spring - cz, half)
-    D, c = 0.5, 0.02
+    c = 0.02
     nb = max(8, int(round(R0 * (a_l - a_r) / 0.105)))
     g = 0.0035 / R0
 
@@ -1329,7 +1329,7 @@ def _arch_tall(width, spring, crown, top):
     mb.add(chamfer(b_prism(kpoly, -D, D), 0.003), C[2], FYZ)
     # Kaempfer: Karnies (u nach innen, v nach oben) ueber die Laibung, Rueckspruenge auf beiden Wandflaechen
     kp = [(0.0, 0.0), (0.012, 0.0), (0.016, 0.03), (0.03, 0.06), (0.05, 0.085), (0.055, 0.12), (0.055, 0.16), (0.0, 0.16)]
-    for sy in (-1, 1):
+    for sy in ((-1, 1) if impost else ()):
         poly = [(sy * (half - u), spring - 0.16 + v) for (u, v) in kp]
         mb.add(b_prism(poly, -D - 0.035, D + 0.035), C[1], FYZ)
         for sx in (-1, 1):
@@ -1345,6 +1345,14 @@ def build_arch_tall3():
 
 def build_arch_tall4():
     _arch_tall(4.0, 2.9, 4.45, 4.62)
+
+
+def build_arcade_gothic():
+    """V13.3 (Kritikrunde 1 Level 1): Arkadenbogen zwischen zwei runden Saeulen der Gothic-Hallen (Achsabstand 7 m).
+    Ursprung an der Decke (5,6 m ueber dem Boden), Bogen spannt entlang y: Kaempfer 4,5 m auf Halsring-Hoehe der
+    Saeulen (Schaftradius 0,425 m), Scheitel 5,45 m, Zwickel bis zur Decke; 0,8 m tief, ohne eigene Kaempfer (der
+    Bogen waechst aus dem Kapitell). Aufbau wie die hohen Durchgangsboegen: Brettschalung, Archivolte, Schlussstein."""
+    _arch_tall(7.0 - 2 * 0.425, 4.5 - 5.6, 5.45 - 5.6, 0.0, D=0.4, impost=False)
 
 
 def build_column_round():

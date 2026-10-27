@@ -1725,7 +1725,7 @@ static Mount mountOf(const std::string& m) {
                                   "carousel_36", "luggage_pile", "checkin_counter", "bta_booth", "travelator", "travelator_stopped", "seats_row", "gate_counter", "camp_c32"};  // V12 Level 36
     // V13.3: Level-1-Sektoren, Rohrverlauf, Level-2-Werkstatt, Level-36-Bereiche
     static const char* wall2[] = {"formwork", "ivy_wall", "neon_tube", "neon_sign", "panel_vermilion", "pipe_wall"};
-    static const char* ceil2[] = {"vines_ceiling", "cable_hang"};
+    static const char* ceil2[] = {"vines_ceiling", "cable_hang", "arcade_gothic"};
     static const char* floor2[] = {"scaffold", "wall_unfinished", "cement_bags", "rebar_bundle", "work_light", "cement_mixer", "wheelbarrow",
                                    "sawhorse", "site_barrier", "tarp_pile", "moss_patch", "fern_cluster", "roots_floor", "shrub_concrete",
                                    "sapling", "overgrown_crate", "cabinet_vermilion", "table_vermilion", "bench_vermilion", "screen_vermilion",

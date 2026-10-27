@@ -120,7 +120,7 @@
     { "key": "garden", "name": "Garden",
       "wall": [0.62, 0.66, 0.58], "floor": [0.46, 0.48, 0.42], "ceil": [0.52, 0.55, 0.50],
       "trim": [0.26, 0.30, 0.24], "lamp": [0.92, 1.00, 0.86], "fog": [0.022, 0.030, 0.022],
-      "fog_density": 0.05, "ambient": 0.045, "light_style": "authored",
+      "fog_density": 0.03, "ambient": 0.065, "light_style": "authored",
       "wall_pattern": "concrete", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.2,
       "wall_tex": "concrete_wall_old", "floor_tex": "concrete_rough", "ceil_tex": "concrete_cast", "damp_band": [0.0, 1.1, 0.7] },
     { "key": "fabled", "name": "Fabled",
