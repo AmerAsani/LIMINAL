@@ -69,3 +69,8 @@ Als Naechstes: Raummetrik-, Schilder-, Aehnlichkeits- und Wegbilder-Werkzeuge; S
 
 Bekannte Fehler: coop_test --quick meldete unter hoher Last (20 parallele Agenten) einmal „zu schnelle Uhr: 32 Eingaben verworfen“ – ohne Last erneut pruefen. 52 GLB mit Befunden in validate_models.py (werden von den Ausstattungs-/Wesen-Arbeiten behoben).
 
+### V13.3 Zwischenstand 2 (27.10.2026, erneut Nutzungsgrenze)
+Fertig seit Stand 1: Raummetrik/Schilder/Aehnlichkeit/Laufweg/Kartenbild/Spot-Werkzeuge (`tools/qa/`), `LEVEL0_STANDARD.md`, `STRUKTURTYP.md`, `BIOM_AUDIT.md`; Level 1: Sektoren Ouroboros, Garden, Fabled, Decken >= 2,8 m, Sichtachsen 36,8 m, Rohre aus 1-m-Stuecken; Pfuetzen als Boden-Abziehbild, Deckenspiegelung im SSR, klares Wasser (Vorher/Nachher `docs/screens/props/wasser/`); Arm (Teil 3) zusammengefuehrt (E-032).
+Laufen/unterbrochen (Worktrees, mit SendMessage fortsetzen): Mehrspieler, Audio, Ausstattung L1 A/B, L2, L3, L0+Fundstuecke, L5, L5.3+188, 903+37, 36, L1-Sektoren; Wesen Duller+Arms, Growler+Nguithr'xurh, Wrangler, Smiler-Leuchtstab+Skin-Stealer-Ruf, Level-1-Erscheinungen (Garden, Ouroboros-Arbeiter, Crawler, Jerry).
+Als Naechstes: Ergebnisse pruefen und zusammenfuehren; Level-1-Abnahme (Kritikrunden, Laufweg nachher, AUFWAND.md); weitere Wesen (Hound-Rudel, grosser Clump, Praetorian/Motten L2/L3, Cannibal Cuisine, Fenster L2, Samantha, Ants, Woodlins/Watchers, Ratten-Fallen, purpurne Wesen, Faceling-Varianten); Level 2, 3, 0, 5, 5.3, 188, 903, 37, 36.
+
