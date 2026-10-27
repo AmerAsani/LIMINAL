@@ -1984,20 +1984,20 @@ def build_padded_panel():
     schliessen nahtlos an (Rand = Naht)."""
     rg = rng(41)
     m = common.material
-    pad = m('polster', (0.84, 0.82, 0.75), look='plastic', r=1.25)
-    pad_low = m('polster_unten', (0.74, 0.71, 0.63), look='plastic', r=1.35)
+    pad = m('polster', (0.84, 0.82, 0.75), look='plastic', r=0.7)  # V13.3 r4: Kunstleder glaenzt seidig (Woelbung im Streiflicht)
+    pad_low = m('polster_unten', (0.70, 0.66, 0.57), look='plastic', r=0.85)  # unten abgegriffen, Flecken
     seam = m('polster_naht', (0.76, 0.74, 0.67), look='plastic', r=1.3)
     button = m('polster_knopf', (0.76, 0.74, 0.67), look='plastic', r=1.0)
     trim = m('polster_leiste', (0.55, 0.53, 0.48), look='plastic', r=0.9)
     mb = MB()
     zb, zt = 0.07, 2.36
     cols, rows = 2, 4
-    ts = [0.0, 0.06, 0.26, 0.5, 0.74, 0.94]  # Teilung je Kissen: schmale Nahtstreifen am Rand
+    ts = [0.0, 0.04, 0.11, 0.2, 0.31, 0.43, 0.57, 0.69, 0.8, 0.89, 0.96]  # V13.3 r4: feiner - runde Kissen statt Facetten
     su = sv = len(ts)
     nu, nv = cols * su, rows * sv
     us = [(ci + t) / cols for ci in range(cols) for t in ts] + [1.0]
     vs = [(cj + t) / rows for cj in range(rows) for t in ts] + [1.0]
-    dmin, dmax = 0.026, 0.085
+    dmin, dmax = 0.018, 0.092  # V13.3 r4: tiefere Naehte, prallere Kissen
     amp = [[rg.uniform(0.85, 1.0) for _ in range(rows)] for _ in range(cols)]
     shift = [[rg.uniform(0.04, 0.12) for _ in range(rows)] for _ in range(cols)]
 
@@ -2017,7 +2017,8 @@ def build_padded_panel():
             f = bm.faces.new((VV[i][j], VV[i + 1][j], VV[i + 1][j + 1], VV[i][j + 1]))  # Normale +x
             f.smooth = True
             on_seam = (i % su == 0) or ((i + 1) % su == 0) or (j % sv == 0) or ((j + 1) % sv == 0)
-            f.material_index = 2 if on_seam else (1 if j < sv else 0)
+            low = j < sv  # unterste Reihe abgegriffen (r4: Einzelflecken je Flaeche sahen wie Pixel aus - verworfen)
+            f.material_index = 2 if on_seam else (1 if low else 0)
     # Seiten schliessen (Rand = Naht, 2,6 cm tief); Normalen -y bzw. +y
     for i in (0, nu):
         for j in range(nv):
