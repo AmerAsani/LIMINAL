@@ -14,7 +14,12 @@
   // V13.2 (ENTITY_ABGLEICH.md): Skin-Stealer getarnt (die Seite: weisse Menschengestalten, die Haut tragen), Wretch
   "presence": { "hound": true, "smiler": true, "gestalt": false, "blackout": true, "clump": 0.35,
                "skinstealer": { "mode": "skin", "group": [1, 1], "every": 300, "chance": 0.25 },
-               "wretch": { "mode": "mixed", "group": [1, 1], "every": 260 } },
+               "wretch": { "mode": "mixed", "group": [1, 1], "every": 260 },
+               // V13.3 (KREATUR_Duller.md, KREATUR_Arms.md): Duller lauern hinter den Waenden der Gaenge (im Raum oder Gang dahinter;
+               // every: mittlerer Abstand der Auftritte, s); Arms kommen im Dunkeln aus den Deckenlueftungen (every: Abstand, solange
+               // es dunkel ist; chance: Anteil, mit dem es ohne Lueftung in der Naehe durch einen Riss in der Decke kommt)
+               "duller": { "every": 150 },
+               "arms": { "every": 40, "chance": 0.7 } },
   "next_level": "level2",
   "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0 },
 
@@ -120,7 +125,7 @@
     { "key": "garden", "name": "Garden",
       "wall": [0.62, 0.66, 0.58], "floor": [0.46, 0.48, 0.42], "ceil": [0.52, 0.55, 0.50],
       "trim": [0.26, 0.30, 0.24], "lamp": [0.92, 1.00, 0.86], "fog": [0.022, 0.030, 0.022],
-      "fog_density": 0.05, "ambient": 0.045, "light_style": "authored",
+      "fog_density": 0.03, "ambient": 0.065, "light_style": "authored",
       "wall_pattern": "concrete", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.2,
       "wall_tex": "concrete_wall_old", "floor_tex": "concrete_rough", "ceil_tex": "concrete_cast", "damp_band": [0.0, 1.1, 0.7] },
     { "key": "fabled", "name": "Fabled",

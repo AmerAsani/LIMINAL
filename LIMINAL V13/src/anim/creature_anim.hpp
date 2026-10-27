@@ -99,6 +99,8 @@ private:
     void updateBiped(float dt, const Input& in);   // V13.2: Faceling, Skin-Stealer, Wretch
     void updateRat(float dt, const Input& in);     // V13.2: Death Rat
     void updateWindow(float dt, const Input& in);  // V13.2: Fensterwesen
+    void updateDuller(float dt, const Input& in);  // V13.3: Duller (anim/creature_duller.cpp)
+    void updateArms(float dt, const Input& in);    // V13.3: Arms (anim/creature_arms.cpp)
     void updateWrangler(float dt, const Input& in);  // V13.3: Wrangler (creature_wrangler.cpp)
     // Gangzyklus fuer n Beine; rest: Ruhepunkte (Welt) dieses Bildes
     void stepLegs(float dt, int n, const float* offs, float duty, float S, const vec3* rest, float standDur, const float* weight);
@@ -165,6 +167,7 @@ private:
     };
     std::vector<Cap> cols_;
     Input last_;
+    std::vector<float> xs_;  // V13.3: Zustand weiterer Wesen (Duller: Brocken, Stolpern; Arms: Fetzen, Rauch) - Belegung je Datei
     bool stepped_ = false;
     vec3 stepPos_;
     float stepWeight_ = 0.5f;

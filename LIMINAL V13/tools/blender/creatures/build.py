@@ -1,7 +1,7 @@
 """V13: Wesen bauen (KREATUREN_ANALYSE.md). Aufruf aus dem V13-Ordner:
   .toolchain/blender/blender-4.5.14-windows-x64/blender.exe -b --factory-startup --python tools/blender/creatures/build.py -- <wesen> [--preview <ordner>] [--grob]
 <wesen>: hound, smiler, clump, gestalt, moth, nest; V13.2: faceling, faceling_evo, faceling_dress, skinstealer, wretch, rat,
-rat_bald, window; V13.3: wrangler, wrangler_f, wrangler_fs, wrangler_brood. Schreibt data/models/ent_<wesen>_l0..l2.glb (Varianten mit SKELETON im Modul).
+rat_bald, window; V13.3: duller, arms, wrangler, wrangler_f, wrangler_fs, wrangler_brood. Schreibt data/models/ent_<wesen>_l0..l2.glb (Varianten mit SKELETON im Modul).
 
 Je Wesen liefert ein Modul (creatures/<wesen>.py) eine Funktion build(J, bones) -> Liste von Gruppen:
   {'name', 'fm' (Material im Spiel), 'parts' (sdf.Part), 'disp' (Verschiebung oder None), 'h' (Voxel, m)}
@@ -57,6 +57,7 @@ PREVIEW_RGB = {'ent_skin': (0.55, 0.47, 0.40), 'ent_hair': (0.03, 0.03, 0.03), '
                'ent_ratskin': (0.62, 0.48, 0.48), 'ent_umbra': (0.02, 0.02, 0.02),
                'ent_cloth_c': (0.20, 0.26, 0.36), 'ent_cloth_d': (0.17, 0.20, 0.14), 'ent_humanskin_b': (0.38, 0.26, 0.21),
                'ent_hair_grey': (0.55, 0.53, 0.5),
+               'ent_dullerskin': (0.30, 0.30, 0.32), 'ent_rotskin': (0.45, 0.47, 0.40), 'ent_smoke': (0.5, 0.5, 0.5), 'ent_concrete': (0.7, 0.7, 0.68),  # V13.3
                # V13.3 Wrangler
                'ent_wr_membrane': (0.62, 0.60, 0.56), 'ent_wr_membrane_f': (0.80, 0.66, 0.62), 'ent_wr_hide': (0.42, 0.40, 0.38),
                'ent_wr_gut': (0.30, 0.08, 0.10), 'ent_wr_pith': (0.62, 0.64, 0.46), 'ent_wr_bone': (0.80, 0.76, 0.66),

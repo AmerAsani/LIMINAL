@@ -50,9 +50,10 @@ for x in (16, 47):
     m.opening(a1, a3, width=8, at=x)
 for x in (86, 109):
     m.opening(a2, a3, width=8, at=x)
-# freistehende, fleckige Wandscheiben (die Hallen sind weit, aber nicht leer)
-for (r, x0, y0, x1, y1) in ((a1, 24, 18, 25, 33), (a1, 40, 40, 56, 41), (a2, 92, 22, 93, 40), (a3, 30, 72, 46, 73),
-                            (a3, 70, 80, 71, 92), (a3, 96, 68, 97, 82)):
+# freistehende, fleckige Wandscheiben (die Hallen sind weit, aber nicht leer); V13.3: 6 m statt 12-18 m (korrigierte
+# Sichtachsen-Messung zaehlt die Scheiben jetzt: P90 79,7 m < 85 m)
+for (r, x0, y0, x1, y1) in ((a1, 24, 18, 25, 24), (a1, 40, 40, 46, 41), (a2, 92, 22, 93, 28), (a3, 30, 72, 36, 73),
+                            (a3, 70, 80, 71, 86), (a3, 96, 68, 97, 74)):
     m.block(r, x0, y0, x1, y1, HALL_H, hidden=False)
 
 # --- Hallen: Gothic (Boegen, runde Saeulen) -----------------------------------------------------------------------
@@ -83,9 +84,13 @@ def columns(r, step=7, rows=2):
     R = m.R(r)
     ys = [R.y0 + round((R.h) * (k + 1) / (rows + 1)) for k in range(rows)]
     for y in ys:
-        for x in range(R.x0 + 5, R.x1 - 4, step):
+        xs = list(range(R.x0 + 5, R.x1 - 4, step))
+        for x in xs:
             m.block(r, x, y, x + 1, y + 1, GOTH_H, hidden=True)
             m.obj('column_round', x + 0.5, y + 0.5, 0.0, 0.0)
+        # V13.3 (Kritikrunde 1): Arkadenboegen zwischen den Saeulen einer Reihe (Wiki: geschwungene Bauweise, Boegen)
+        for xa, xb in zip(xs, xs[1:]):
+            m.obj('arcade_gothic', (xa + xb) / 2 + 0.5, y + 0.5, GOTH_H, math.pi / 2)
 
 
 for r in gothic:
@@ -342,7 +347,8 @@ for k, s in enumerate(pipe_segs):
     for j in range(1 + int(dens * 4)):
         y = R.y0 + 0.3 + (j % max(1, R.h)) * 0.35 if R.h > 1 else R.y0 + 0.3
         z = top - 0.12 - 0.17 * (j // max(1, R.h))
-        pipe_line(s, R.x0, R.x1, min(R.y1 - 0.3, y), z, j % 2, walls=(False, False))
+        lower = j // max(1, R.h) >= 1  # V13.3: untere Lage ohne Gewindestange durchs obere Rohr (Varianten 2/3)
+        pipe_line(s, R.x0, R.x1, min(R.y1 - 0.3, y), z, (2 if lower else 0) + j % 2, walls=(False, False))
     for (fx, fy, fyaw) in m.wall_faces(s, margin=1):
         if rng.random() < 0.08 + 0.25 * dens:
             m.obj('gauge', fx, fy, R.floor + 1.5 + rng.random() * 0.3, fyaw, variant=rng.randrange(2))
@@ -507,7 +513,7 @@ for r in garden:
             px, py = R.x0 + 2 + m.rng.random() * (R.w - 4), R.y0 + 2 + m.rng.random() * (R.h - 4)
             if not any(m.blocked(px + dx, py + dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1)):
                 m.obj(name, px, py, R.floor, m.rng.random() * 6.28, variant=m.rng.randrange(3) if name == 'moss_patch' else 0)
-    battens(r, 7, 7, 0.75, 7.0, (0.92, 1.0, 0.86), 0.35)
+    battens(r, 6, 6, 0.85, 8.0, (0.92, 1.0, 0.86), 0.25)  # V13.3 Kritikrunde 1: war zu dunkel fuer Pflanzen
 
 # Fabled: Holzvertaefelung und Moebel in Zinnoberrot, Neon an Waenden und Stuetzen, farbige Kabel von der Decke
 for r in [fabled] + fab_rooms:
@@ -574,6 +580,38 @@ safe_point('rohr', near, 'Vor dem Rohrgang')
 last.kw['circuit'] = C_ROOMS
 m.checkpoint('l2_tor', last.x0 + 2.5, last.cy, 0.0, 'Rohre und Messuhren')
 m.obj('safety_light', last.x0 + 2.5, last.cy, last.floor + last.height, 0.0, tag='emergency')
+# V13.3 (Kritikrunde 1): Gild-Waende waren auf langen Strecken kahl - Rohr unter der Decke entlang der Waende,
+# Verteiler, Kaesten, Lueftungsgitter und Steckdosen in unregelmaessigen Abstaenden
+for r in gd:
+    R = m.R(r)
+    top = R.floor + R.height
+    var = rng.randrange(2)
+    for (fx, fy, fyaw) in m.wall_faces(r, margin=0):
+        m.obj('pipe_run', fx + math.cos(fyaw) * 0.3, fy + math.sin(fyaw) * 0.3, top - 0.12, fyaw + math.pi / 2, variant=var,
+              tag='pipes')
+    for (fx, fy, fyaw) in m.wall_faces(r, margin=1):
+        q = rng.random()
+        if q < 0.05:
+            m.obj('power_box', fx, fy, R.floor + 1.5, fyaw, tag='deco')
+        elif q < 0.10:
+            m.obj('junction_box', fx, fy, R.floor + 1.6 + rng.random() * 0.8, fyaw, tag='deco')
+        elif q < 0.14:
+            m.obj('vent_grille', fx, fy, R.floor + 0.35, fyaw, tag='deco')
+        elif q < 0.18:
+            m.obj('outlet', fx, fy, R.floor + 0.3, fyaw, tag='deco')
+
+# V13.3: Deckenlueftungen in Gaengen und im Rohrgang (Wiki Arms: kommen aus Lueftungen/Rohren; Lager fuer presence_arms)
+for r in maze + pipe_segs:
+    R = m.R(r)
+    if min(R.w, R.h) > 3 or max(R.w, R.h) < 4 or rng.random() > 0.45:
+        continue
+    along_x = R.w >= R.h
+    n_ = max(R.w, R.h)
+    for k in range(1 + rng.randrange(max(1, min(4, n_ - 2))), n_ - 1, 9):
+        px = R.x0 + k + 0.5 if along_x else (R.x1 - 0.6 if r in pipe_segs else R.cx)
+        py = (R.y1 - 0.6 if r in pipe_segs else R.cy) if along_x else R.y0 + k + 0.5
+        if all(math.hypot(px - l[0], py - l[1]) > 1.3 for l in R.lights) and not m.blocked(px, py):
+            m.obj('ceiling_vent', px, py, R.floor + R.height, 0.0 if along_x else math.pi / 2, variant=rng.randrange(2), tag='deco')
 # V13.3: Wesen nach den Sicherungspunkten setzen (Abstand >= 17 m)
 # Hounds und Clumps streifen durch die Hallen (Wiki); Smiler kommen mit dem Flackern (Regie)
 for r in aquila + gothic + gd + [ouro, fabled] + garden:

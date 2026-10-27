@@ -33,12 +33,12 @@ g1 = m.room(14, 24, 44, 45, 'generatorraum', 'generator', 0.0, 6.0, circuit=C_RO
 h2 = m.room(30, 46, 32, 70, 'gang', 'ziegel_grau', 0.0, 2.6, circuit=C_GANG)
 m.opening(g1, h2)
 m.opening(h2, h1)
-A = m.room(50, 4, 110, 44, 'fertigung', 'fertigung', 0.0, 8.0, circuit=C_HALLE, label='Fertigungsstraße')
-h3 = m.room(70, 45, 75, 70, 'gang_breit', 'ziegel_hell', 0.0, 3.4, circuit=C_GANG)
+A = m.room(50, 4, 110, 36, 'fertigung', 'fertigung', 0.0, 8.0, circuit=C_HALLE, label='Fertigungsstraße')  # V13.3: 60 x 32
+h3 = m.room(70, 37, 75, 70, 'gang_breit', 'ziegel_hell', 0.0, 3.4, circuit=C_GANG)
 m.opening(A, h3)
 m.opening(h3, h1)
-S = m.room(120, 6, 152, 58, 'sanktuarium', 'sanktum', 0.0, 7.9, circuit=C_SANKT, label='Sanktuarium')
-h4 = m.room(111, 24, 119, 26, 'gang', 'ziegel_braun', 0.0, 2.6, circuit=C_GANG)
+S = m.room(122, 10, 150, 50, 'sanktuarium', 'sanktum', 0.0, 7.9, circuit=C_SANKT, label='Sanktuarium')  # V13.3: 28 x 40
+h4 = m.room(111, 24, 121, 26, 'gang', 'ziegel_braun', 0.0, 2.6, circuit=C_GANG)
 m.opening(A, h4)
 m.door(h4, S, 'wide', 2, top=2.6)
 h5 = m.room(101, 71, 104, 99, 'gang', 'ziegel_grau', 0.0, HALL_H, circuit=C_GANG)
@@ -46,8 +46,8 @@ m.opening(h1, h5)
 g2 = m.room(96, 100, 130, 124, 'generatorraum', 'generator', 0.0, 6.0, circuit=C_ROOMS, label='Generatorraum 2')
 m.opening(h5, g2)
 # Paranoia-Gang: eng, niedrig, dunkel; endet am Kesselraum
-p1 = m.room(40, 75, 41, 98, 'paranoia', 'ziegel_dunkel', 0.0, 2.3, circuit=C_GANG, label='Paranoia')
-p2 = m.room(40, 99, 78, 100, 'paranoia', 'ziegel_dunkel', 0.0, 2.3, circuit=C_GANG)
+p1 = m.room(40, 75, 42, 98, 'paranoia', 'ziegel_dunkel', 0.0, 2.6, circuit=C_GANG, label='Paranoia')  # V13.3: 2 m breit, 2,6 m
+p2 = m.room(40, 99, 78, 101, 'paranoia', 'ziegel_dunkel', 0.0, 2.6, circuit=C_GANG)
 m.opening(h1, p1)
 m.opening(p1, p2)
 b1 = m.room(79, 96, 88, 104, 'kesselraum', 'kessel', 0.0, 3.2, circuit=C_ROOMS, label='Kesselraum')
@@ -56,7 +56,7 @@ b2 = m.room(60, 76, 68, 84, 'kesselraum', 'kessel', 0.0, 3.2, circuit=C_ROOMS)
 m.door(h1, b2, 'door', 1)
 b3 = m.room(106, 80, 114, 88, 'kesselraum', 'kessel', 0.0, 3.2, circuit=C_ROOMS)
 m.door(h5, b3, 'door', 1)
-buero = m.room(12, 76, 22, 84, 'buero', 'buero', 0.0, 2.8, circuit=C_ROOMS, label='Büro')
+buero = m.room(12, 76, 22, 84, 'kammer', 'ziegel_braun', 0.0, 2.8, circuit=C_ROOMS, label='Kammer')  # V13.3: kein Buero (Wiki: nur Basen)
 m.door(h1, buero, 'door', 1)
 # Aufzug nach Level 5
 vor = m.room(132, 113, 144, 120, 'aufzugsvorraum', 'ziegel_hell', 0.0, 3.2, circuit=C_ROOMS, label='Aufzug')
@@ -105,6 +105,47 @@ for r in maze:
     m.R(r).lights = []
 for r in MC.values():
     m.R(r).kw['circuit'] = C_ROOMS
+# V13.3: weitere Gangnetze im Osten, unter dem Sanktuarium und im Sueden
+NETS = []
+for (nx0, ny0, nx1, ny1) in ((156, 52, 170, 112), (116, 52, 154, 98), (42, 105, 94, 129)):
+    J_, S_, C_ = corridor_maze(m, nx0, ny0, nx1, ny1, 9, 2, 'gang', 'ziegel_grau', ['kammer', 'kammer', 'kesselraum'],
+                               lambda t: 'kessel' if t == 'kesselraum' else 'ziegel_braun', height=2.8, density=0.75,
+                               room_chance=0.5, circuit=C_GANG, light_every=99)
+    net = [r for r in list(J_.values()) + list(S_.values()) if r is not None]
+    for r in net:
+        m.R(r).zone = rng.choice(BRICKS)
+        m.R(r).lights = []
+    for r in C_.values():
+        m.R(r).kw['circuit'] = C_ROOMS
+    NETS.append((net, [r for r in J_.values() if r is not None]))
+    maze += net
+
+
+def link_any(cands, target, n=2):
+    k = 0
+    for r in cands:
+        if k >= n:
+            break
+        try:
+            m.door(r, target, 'door', 1)
+            k += 1
+        except ValueError:
+            pass
+
+
+(n1, j1), (n2, j2), (n3, j3) = NETS
+link_any([r for r in j2 if m.R(r).y0 == 52 and m.R(r).x0 >= 122 and m.R(r).x1 <= 150], S, 1)  # Sanktuarium -> Netz darunter
+link_any([r for r in j2 if m.R(r).x0 == 116], b3, 1)                                   # Netz -> Kesselraum am Gang
+link_any([r for r in j1 if m.R(r).x0 == 156], [r for r in j2 if m.R(r).x1 == max(m.R(q).x1 for q in j2)][0], 1)
+for a_ in [r for r in j1 if m.R(r).x0 == 156][1::2]:                                   # Ost <-> Mitte an mehreren Stellen
+    for b_ in [r for r in j2 if m.R(r).x1 == max(m.R(q).x1 for q in j2)]:
+        if abs(m.R(a_).cy - m.R(b_).cy) < 1.0:
+            try:
+                m.door(a_, b_, 'door', 1)
+            except ValueError:
+                pass
+link_any([r for r in j3 if m.R(r).y0 == 105], p2, 2)                                  # Sued -> Paranoia-Gang
+link_any([r for r in j3 if m.R(r).y0 == 105], b1, 1)                                   # Sued -> Kesselraum
 conn = m.room(29, 75, 31, 87, 'gang', 'ziegel_grau', 0.0, 2.8, circuit=C_GANG)
 m.opening(h1, conn)
 top_j = [r for r in MJ.values() if r is not None and m.R(r).y0 == 88 and m.R(r).x0 == 29]
@@ -235,9 +276,13 @@ def wall_runs(r, margin=1):
 for r in gaenge:
     R = m.R(r)
     top = R.floor + R.height
+    pipe_yaw = None  # V13.3: in Gaengen unter 3 m nur an einer Wand (sonst bleibt kein Durchgang)
     for yaw, run in wall_runs(r):
         for j in range(0, len(run) - 4, 7):
             if rng.random() < 0.55:
+                if min(R.w, R.h) < 3 and pipe_yaw is not None and abs(pipe_yaw - yaw) > 0.1:
+                    continue
+                pipe_yaw = yaw
                 fx, fy = (run[j][0] + run[j + 4][0]) / 2, (run[j][1] + run[j + 4][1]) / 2
                 m.obj('pipe_black', fx, fy, R.floor, yaw, tag='pipes')
                 m.spawn('deco', fx + math.cos(yaw) * 0.45, fy + math.sin(yaw) * 0.45, R.floor, 0.0, set='puddle', weight=0.3)
@@ -264,7 +309,7 @@ for r, at in ((p1, 'y0'), (p2, 'x1')):
         m.obj('sign_warning', f[0], f[1], R.floor + 1.6, f[2], tag='deco')
 for f in m.wall_faces(h1, margin=0):
     if abs(f[0] - 40.5) < 1.6 and f[2] < 0:  # neben dem Eingang in den Paranoia-Gang, an der Suedwand des Hauptgangs
-        m.obj('sign_warning', f[0] + (1.5 if f[0] < 40 else 0), f[1], 1.6, f[2], tag='deco')
+        m.obj('sign_warning', f[0], f[1], 1.6, f[2], tag='deco')  # V13.3: Eingang ist 2 m breit - Schild daneben
         break
 # Abgang: Warnschilder (Wiki: sie weisen nach Level 4)
 for (fx, fy, fyaw) in m.wall_faces(abgang, margin=1)[::3][:3]:
@@ -367,11 +412,7 @@ for (r, d, kind) in barred:
 
 # Buero: Schreibtisch, Tisch, Stuehle, Tuch ueber einem Moebel
 R = m.R(buero)
-p = wall_spot(buero, 0.45)
-if p:
-    m.obj('desk_crt', p[0], p[1], R.floor, p[2] + math.pi / 2, variant=1)
-    m.obj('chair', p[0] + math.cos(p[2]) * 0.75, p[1] + math.sin(p[2]) * 0.75, R.floor, p[2] + math.pi)
-m.obj('canvas_drape_b', R.cx + 1.0, R.cy + 1.0, R.floor, 0.0)
+m.obj('canvas_drape_b', R.cx + 1.0, R.cy + 1.0, R.floor, 0.0)  # V13.3: Kammer - nur ein abgedecktes Geraet
 m.block(buero, int(R.cx), int(R.cy), int(R.cx) + 2, int(R.cy) + 2, 1.6, hidden=True)
 # Teile von Zuegen im breiten Gang
 R = m.R(h3)
@@ -419,6 +460,6 @@ safe_point('abgang', abgang, 'Abgang aus Level 2')
 safe_point('sanktum', S, 'Sanktuarium (Zuflucht)', at=(m.R(S).cx, m.R(S).y1 - 8.5))
 safe_point('kessel', b1, 'Kesselraum')
 safe_point('aufzug', vor, 'Vor dem Aufzug')
-safe_point('buero', buero, 'Büro am Hauptgang')
+safe_point('buero', buero, 'Kammer am Hauptgang')
 
 m.save()

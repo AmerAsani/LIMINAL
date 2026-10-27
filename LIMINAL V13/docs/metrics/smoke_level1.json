@@ -1,0 +1,15 @@
+{
+ "level": "level1",
+ "exit_code": 0,
+ "stations": 24,
+ "errors": [],
+ "sim_ms_avg": 0.08208333333333333,
+ "render_cpu_ms_avg": 15.969999999999999,
+ "gpu_ms_avg": 3.5708333333333333,
+ "gpu_ms_max": 4.86,
+ "triangles_max": 755399,
+ "vram_mb_max": 1067,
+ "ram_mb_max": 648,
+ "ram_peak_mb": 730,
+ "ok": true
+}

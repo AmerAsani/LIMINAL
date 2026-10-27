@@ -254,6 +254,13 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     materialData_[FM_ENT_WR_CRACK] = GpuMaterial{{0.04f, 0.038f, 0.035f}, 0, ent(EL_HORN, ML_CRAZE), 1.0f, 0, 0.0f};
     materialData_[FM_ENT_WR_PINCER] = GpuMaterial{{0.8f, 0.72f, 0.66f}, 0, ent(EL_CHITIN, ML_CRAZE), 0.24f, 0, 0.0f};
     materialData_[FM_ENT_WR_DEBRIS] = GpuMaterial{{0.66f, 0.65f, 0.62f}, 0, ent(EL_TOOTH, ML_CRAZE), 1.0f, 0, 0.5f};
+    // V13.3: Duller - dunkelgrau, trocken und matt, Haarrisse; an Knochenkanten etwas Glanz (Textur); kein roetliches Durchscheinen
+    materialData_[FM_ENT_DULLERSKIN] = GpuMaterial{{0.34f, 0.34f, 0.36f}, 0, ent(EL_SKIN, ML_CRAZE), 1.5f, 0, 0.25f};
+    // V13.3: Arms - verwesende, graue Haut mit gruenlichem Stich, speckig-feucht (wenig Rauheit)
+    materialData_[FM_ENT_ROTSKIN] = GpuMaterial{{0.44f, 0.47f, 0.40f}, 0, ent(EL_SKIN, ML_CRAZE), 0.8f, 0, 0.5f};
+    // V13.3: frisch gebrochener Beton und Putz (Bruchstelle des Dullers, Riss der Arms): hell, stumpf, fleckig, Haarrisse
+    materialData_[FM_ENT_CONCRETE] = GpuMaterial{{0.56f, 0.56f, 0.54f}, 0, ent(EL_TOOTH, ML_CRAZE), 1.9f, 0, 0.45f};
+    materialData_[FM_ENT_SMOKE] = GpuMaterial{{0.32f, 0.31f, 0.30f}, 0, tri(L_SKIN) | kMatFlagSmoke, 1.0f, 0, 0.0f};  // Rauch verbrannter Haut
     writeMaterials(gpu);
     lights_ = gpu.createStructured(sizeof(GpuLight), 2048, true, false);
     puddles_ = gpu.createStructured(sizeof(vec4), kMaxPuddles * 2, true, false);  // V13.3

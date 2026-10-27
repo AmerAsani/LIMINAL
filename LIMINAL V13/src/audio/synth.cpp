@@ -16,6 +16,8 @@ std::unordered_map<std::string, Sound> synthesizeAll(JobSystem& jobs, int rate) 
     addWorldSounds(defs, rate);
     addCreatureSounds(defs, rate);
     addLevelSounds(defs, rate);
+    addDullerSounds(defs, rate);  // V13.3
+    addArmsSounds(defs, rate);
     std::vector<Sound> out(defs.size());
     jobs.parallelFor((int)defs.size(), [&](int i) { out[(size_t)i] = defs[(size_t)i].make(); });
     std::unordered_map<std::string, Sound> map;

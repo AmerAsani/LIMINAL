@@ -30,6 +30,22 @@ def plan(g, rooms_min, meters_min, seed):
     visited = {cur}
     length = 0.0
     guard = 0
+    if not adj.get(cur):  # V13.3: Ebene aus einem Raum (Level 903): entlang der langen Seite hin und zurueck
+        r = g.rooms[cur]
+        x0, y0, x1, y1 = r['rect']
+        along_x = (x1 - x0) >= (y1 - y0)
+        lanes = [y0 + (y1 - y0) * f for f in (0.35, 0.65)] if along_x else [x0 + (x1 - x0) * f for f in (0.35, 0.65)]
+        for k, lane in enumerate(lanes):
+            ends = (x0 + 1.5, x1 - 1.5) if k % 2 == 0 else (x1 - 1.5, x0 + 1.5)
+            for e in ends:
+                q = (e, lane) if along_x else (lane, e)
+                if g.ok(*q):
+                    p_ = path(g, pts[-1], q)
+                    if p_:
+                        for qq in p_[1:]:
+                            length += math.hypot(qq[0] - pts[-1][0], qq[1] - pts[-1][1])
+                            pts.append(qq)
+        return pts, seq, length
     while (len(visited) < rooms_min or length < meters_min) and guard < 400:
         guard += 1
         nb = sorted(adj.get(cur, ()))
@@ -77,6 +93,22 @@ def resample(pts, step):
     return out
 
 
+def view_yaw(g, x, y, yaw, near=6.0):
+    """Blick in Laufrichtung; steht dort eine Wand naeher als `near`, die freieste Richtung bis +-75 Grad
+    (Kritikrunde 1 Level 1: Bilder zeigten in Kurven nur eine Wand)."""
+    if g.ray(x, y, yaw, maxd=near + 1.0) >= near:
+        return yaw
+    best, score = yaw, -1.0
+    for k in range(1, 6):
+        for sgn in (1, -1):
+            a = yaw + sgn * math.radians(15 * k)
+            d = g.ray(x, y, a, maxd=40.0)
+            sc = d - 0.04 * 15 * k
+            if sc > score:
+                best, score = a, sc
+    return best
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('level')
@@ -99,6 +131,7 @@ def main():
         j = min(i + 1, len(shots) - 1)
         k = max(i - 1, 0)
         yaw = math.atan2(shots[j][1] - shots[k][1], shots[j][0] - shots[k][0]) if j != k else 0.0
+        yaw = view_yaw(g, x, y, yaw)
         lines.append(f'pos {x:.2f} {y:.2f} {yaw:.4f} -0.04')
         lines.append('wait 10')
         lines.append('shot ' + os.path.join(raw, f'{i:03d}.png').replace('\\', '/'))
