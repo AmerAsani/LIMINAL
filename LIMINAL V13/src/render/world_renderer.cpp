@@ -240,13 +240,15 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     materialData_[FM_ENT_OOZE] = GpuMaterial{{0.42f, 0.20f, 0.11f}, 0, ent(EL_HORN, ML_PORES), 0.22f, 0, 0.05f};
     // V13.3: Growler - Chenille der Pfeifenreiniger (feines Haar, Fasern), bunt getoent, matt; a und b leuchten, wenn das Wesen
     // leuchtet (Junge in Level 2: im Dunkeln zu sehen). Draht: blank, metallisch
-    materialData_[FM_ENT_PIPE_A] = GpuMaterial{{2.05f, 0.5f, 1.15f}, 1.3f, ent(EL_FUR, ML_FIBER), 1.2f, 0, 0.4f};    // Magenta (Runde 1: zu satt, wie Spielzeug - jetzt verblichen, verdreckt)
-    materialData_[FM_ENT_PIPE_B] = GpuMaterial{{0.42f, 1.45f, 1.8f}, 1.3f, ent(EL_FUR, ML_FIBER), 1.2f, 0, 0.4f};    // Tuerkis
-    materialData_[FM_ENT_PIPE_C] = GpuMaterial{{2.1f, 1.7f, 0.5f}, 0, ent(EL_FUR, ML_FIBER), 1.2f, 0, 0.45f};        // Gelb
-    materialData_[FM_ENT_PIPE_D] = GpuMaterial{{0.85f, 1.75f, 0.52f}, 0, ent(EL_FUR, ML_FIBER), 1.2f, 0, 0.45f};     // Gruen
+    // Runde 3: auf der hellen Zahn-Ebene statt Pelz - der Shader blendet Leuchten bei dunklen Texturen aus (Junge leuchteten nicht);
+    // Fasern aus der Mikroebene, matt (Rauheit x 2,6), Toenung auf den hellen Grund umgerechnet
+    materialData_[FM_ENT_PIPE_A] = GpuMaterial{{0.74f, 0.05f, 0.40f}, 1.6f, ent(EL_TOOTH, ML_FIBER), 2.6f, 0, 0.4f};   // Magenta
+    materialData_[FM_ENT_PIPE_B] = GpuMaterial{{0.05f, 0.48f, 0.86f}, 1.6f, ent(EL_TOOTH, ML_FIBER), 2.6f, 0, 0.4f};   // Tuerkis
+    materialData_[FM_ENT_PIPE_C] = GpuMaterial{{0.86f, 0.58f, 0.05f}, 0, ent(EL_TOOTH, ML_FIBER), 2.6f, 0, 0.45f};     // Gelb
+    materialData_[FM_ENT_PIPE_D] = GpuMaterial{{0.19f, 0.66f, 0.07f}, 0, ent(EL_TOOTH, ML_FIBER), 2.6f, 0, 0.45f};     // Gruen
     materialData_[FM_ENT_WIRE] = GpuMaterial{{0.78f, 0.77f, 0.74f}, 0, ent(EL_TOOTH, ML_CRAZE), 0.32f, 1.0f, 0.1f};
     // Nguithr'xurh - sandfarben behaart (Walzenspinne); Seide grauweiss, faserig, matt; Betaeubungsstoff milchig und nass
-    materialData_[FM_ENT_SOLIFUGE] = GpuMaterial{{1.55f, 1.18f, 0.8f}, 0, ent(EL_FUR, ML_FIBER), 1.0f, 0, 0.2f};
+    materialData_[FM_ENT_SOLIFUGE] = GpuMaterial{{1.4f, 0.98f, 0.62f}, 0, ent(EL_FUR, ML_FIBER), 1.05f, 0, 0.42f};  // Runde 2: zu hell und sauber (Holz)
     materialData_[FM_ENT_SILK] = GpuMaterial{{1.75f, 1.68f, 1.5f}, 0, ent(EL_FUR, ML_FIBER), 1.15f, 0, 0.5f};  // Runde 1: zu weiss, glaenzte wie Glas
     materialData_[FM_ENT_SEDATIVE] = GpuMaterial{{1.0f, 0.97f, 0.82f}, 0, ent(EL_TOOTH, ML_PORES), 0.12f, 0, 0.05f};
     writeMaterials(gpu);
