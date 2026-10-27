@@ -82,8 +82,10 @@ public:
     // V13.2 Koop (Beta)
     CoopView coopView() override;
     bool hasCoopSave() override;
-    bool hostCoop(const std::string& name, const std::string& difficulty, int port, bool resume, std::string& error) override;
-    bool joinCoop(const std::string& name, const std::string& address, int port, const std::string& key, std::string& error) override;
+    bool hostCoop(const std::string& name, const std::string& difficulty, bool useLobby, bool relayOnly, bool resume, std::string& error) override;
+    bool joinCoop(const std::string& name, const std::string& code, bool useLobby, const std::string& address, bool relayOnly, std::string& error) override;
+    std::string coopLobbyName() override;
+    void copyText(const std::string& text) override;
     void kickCoop(int id, bool ban) override;
 
 private:
@@ -196,7 +198,8 @@ private:
     bool coopWasDead_ = false;
     std::string coopName_;
     bool coopSave_ = false;  // dieser Lauf ist ein Koop-Stand (Host)
-    std::string coopKeyFile_;  // Skript (Tests): Schluessel des Hosts in diese Datei
+    std::string coopKeyFile_;  // Skript (Tests): Beitrittscode des Hosts in diese Datei
+    coop::NetSettings netSettings(bool useLobby, bool relayOnly);  // koop.json (Programmordner, dann Nutzerordner) + Menue
 };
 
 }  // namespace lim

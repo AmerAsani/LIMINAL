@@ -400,42 +400,44 @@ void App::scriptStep() {
             session_->stats().health = std::clamp(std::atof(arg.c_str()), 1.0, 100.0);
         } else if (cmd == "sanity" && session_) {  // V7: Sanity setzen (Tests)
             session_->stats().sanity = std::clamp(std::atof(arg.c_str()), 0.0, 100.0);
-        } else if (cmd == "coophost" && session_) {  // V13.2 (Tests): coophost <Port> <Datei> - diese Sitzung hosten, Schluessel in die Datei
-            char file[260] = {};
+        } else if (cmd == "coophost" && session_) {
+            // V13.2/V13.3 (Tests): coophost <Port> <Datei> [lobby] - diese Sitzung hosten (direkt auf Port oder ueber die
+            // Lobby aus koop.json); der lange Beitrittscode kommt in die Datei, sobald er da ist
+            char file[260] = {}, mode[16] = {};
             int port = 27500;
-            std::sscanf(arg.c_str(), "%d %259s", &port, file);
+            std::sscanf(arg.c_str(), "%d %259s %15s", &port, file, mode);
             std::string err;
             if (!loadNet(err)) {
                 log::error("Skript: {}", err);
                 scriptFailed_ = true;
                 continue;
             }
+            coop::NetSettings ns = netSettings(std::string(mode) == "lobby", false);
+            ns.directPort = (u16)port;
             coopHost_ = std::make_unique<coop::CoopHost>(netApi_, "Host", coopBuild());
-            if (!coopHost_->start((u16)port, 4, err)) {
+            if (!coopHost_->start(ns, 4, err)) {
                 log::error("Skript: {}", err);
                 coopHost_.reset();
                 scriptFailed_ = true;
                 continue;
             }
             coopHost_->attach(*session_, "", difficultyIndex(session_->difficulty));
-            if (FILE* f = std::fopen(file, "wb")) {
-                std::fprintf(f, "%s", coopHost_->key().text().c_str());
-                std::fclose(f);
-            }
-            log::info("Skript: Koop-Host auf Port {}", coopHost_->port());
-        } else if (cmd == "coopjoin") {  // V13.2 (Tests): coopjoin <Adresse> <Port> <Datei mit Schluessel>
-            char addr[128] = {}, file[260] = {};
+            coopKeyFile_ = file;
+            log::info("Skript: Koop-Host gestartet ({})", ns.useLobby ? "Lobby" : std::format("direkt, Port {}", coopHost_->port()));
+        } else if (cmd == "coopjoin") {
+            // V13.2/V13.3 (Tests): coopjoin <Adresse> <Port> <Datei mit Code> [lobby] - direkt zu Adresse:Port oder ueber die Lobby
+            char addr[128] = {}, file[260] = {}, mode[16] = {};
             int port = 27500;
-            std::sscanf(arg.c_str(), "%127s %d %259s", addr, &port, file);
-            std::string key;
+            std::sscanf(arg.c_str(), "%127s %d %259s %15s", addr, &port, file, mode);
+            std::string code;
             if (FILE* f = std::fopen(file, "rb")) {
                 char buf[64] = {};
                 std::fread(buf, 1, sizeof(buf) - 1, f);
                 std::fclose(f);
-                key = buf;
+                code = buf;
             }
             std::string err;
-            if (!joinCoop("Gast", addr, port, key, err)) {
+            if (!joinCoop("Gast", code, std::string(mode) == "lobby", std::format("{}:{}", addr, port), false, err)) {
                 log::error("Skript: {}", err);
                 scriptFailed_ = true;
             }
@@ -1931,7 +1933,7 @@ void App::runBenchmark() {
     paths::writeFileAtomic(paths::join(paths::localDataDir(), "benchmark_v13.txt"), res + "\n", false);
 }
 
-// --- V13.2 Koop (Beta) -----------------------------------------------------------------------------
+// --- V13.2/V13.3 Koop -------------------------------------------------------------------------------
 bool App::loadNet(std::string& error) {
     if (netApi_.ok()) return true;
     return coop::loadNetLibrary(netApi_, error);
@@ -1959,7 +1961,50 @@ bool App::hasCoopSave() {
     return false;
 }
 
-bool App::hostCoop(const std::string& name0, const std::string& difficulty, int port, bool resume, std::string& error) {
+// koop.json: zuerst neben dem Spiel (vom Herausgeber), dann im Nutzerordner (eigene Lobby); MULTIPLAYER_SETUP.md
+coop::NetSettings App::netSettings(bool useLobby, bool relayOnly) {
+    coop::NetSettings ns;
+    for (const std::string& dir : {paths::exeDir(), paths::localDataDir()}) {
+        const std::string file = paths::join(dir, "koop.json");
+        const auto text = paths::readFile(file);
+        if (!text) continue;
+        std::string perr;
+        const auto j = Json::parse(*text, &perr);
+        if (!j || !j->isObject()) {
+            log::warn("koop.json ({}) nicht lesbar: {}", file, perr);
+            continue;
+        }
+        if ((*j)["lobby"].isString()) ns.lobby = (*j)["lobby"].asString();
+        // festgelegtes Zertifikat der Lobby: Fingerabdruck oder PEM-Datei neben koop.json
+        if (const std::string c = (*j)["lobby_cert"].asString(std::string()); !c.empty()) {
+            if (c.find(':') != std::string::npos && c.size() == 95) ns.lobbyCert = c;
+            else if (const auto pem = paths::readFile(paths::join(dir, c))) ns.lobbyCert = *pem;
+            else log::warn("koop.json: Zertifikat {} nicht lesbar", c);
+        }
+        if ((*j)["ice_servers"].isArray()) {
+            ns.ice.clear();
+            for (const Json& e : (*j)["ice_servers"].items())
+                if (e.isString()) ns.ice += (ns.ice.empty() ? "" : " ") + e.asString();
+        }
+        if ((*j)["direct_port"].isNumber()) ns.directPort = (u16)std::clamp<long long>((*j)["direct_port"].asInt(27500), 1024, 65535);
+        if ((*j)["relay_only"].isBool()) ns.relayOnly = (*j)["relay_only"].asBool(false);
+    }
+    ns.useLobby = useLobby;
+    ns.relayOnly = ns.relayOnly || relayOnly;
+    if (const char* b = std::getenv("LIMINAL_COOP_BIND")) ns.bind = b;  // nur Tests (zwei Spiele auf einem Rechner)
+    return ns;
+}
+
+std::string App::coopLobbyName() {
+    const coop::NetSettings ns = netSettings(true, false);
+    std::string h = ns.lobby;
+    if (const size_t p = h.find("://"); p != std::string::npos) h = h.substr(p + 3);
+    return h.substr(0, h.find('/'));
+}
+
+void App::copyText(const std::string& text) { input::Input::setClipboardText(text); }
+
+bool App::hostCoop(const std::string& name0, const std::string& difficulty, bool useLobby, bool relayOnly, bool resume, std::string& error) {
     std::string name;
     for (char c : name0)
         if (std::isalnum((unsigned char)c) || c == ' ' || c == '_' || c == '-') name += c;
@@ -1967,7 +2012,7 @@ bool App::hostCoop(const std::string& name0, const std::string& difficulty, int 
     if (name.empty()) name = "Host";
     if (!loadNet(error)) return false;
     auto host = std::make_unique<coop::CoopHost>(netApi_, name, coopBuild());
-    if (!host->start((u16)port, 4, error)) return false;
+    if (!host->start(netSettings(useLobby, relayOnly), 4, error)) return false;
     if (resume) {
         game::SaveEntry best;
         bool found = false;
@@ -1988,28 +2033,31 @@ bool App::hostCoop(const std::string& name0, const std::string& difficulty, int 
     coopHost_ = std::move(host);
     coopSave_ = true;
     coopHost_->attach(*session_, "", difficultyIndex(session_->difficulty));
-    ui_.toast(std::format("Koop (Beta) offen auf Port {} · Schlüssel {} · Pausenmenü → Mitspieler", coopHost_->port(), coopHost_->key().text()), 8.0);
-    log::info("Koop: Host gestartet (Port {})", coopHost_->port());
+    ui_.toast(useLobby ? std::string("Koop offen · der Beitrittscode steht gleich im Pausenmenü unter »Mitspieler«")
+                       : std::format("Koop offen (direkt, Port {}) · Code im Pausenmenü unter »Mitspieler«", coopHost_->port()),
+              8.0);
+    log::info("Koop: Host gestartet ({})", useLobby ? "Lobby" : "direkt");
     return true;
 }
 
-bool App::joinCoop(const std::string& name, const std::string& address, int port, const std::string& key, std::string& error) {
-    coop::JoinKey k;
-    if (!coop::JoinKey::parse(key, k)) {
-        error = "Schlüssel: 26 Zeichen (A–Z und 2–7), Bindestriche egal.";
+bool App::joinCoop(const std::string& name, const std::string& code, bool useLobby, const std::string& address, bool relayOnly, std::string& error) {
+    size_t symbols = 0;
+    for (char ch : code) symbols += std::isalnum((unsigned char)ch) ? 1 : 0;
+    if (symbols != 12 && symbols != 24) {
+        error = "Beitrittscode: 12 Zeichen (über die Lobby) oder 24 Zeichen (lang, für direkt); Bindestriche egal.";
         return false;
     }
-    if (address.empty()) {
+    if (!useLobby && address.empty()) {
         error = "Adresse des Hosts fehlt.";
         return false;
     }
     if (!loadNet(error)) return false;
     auto c = std::make_unique<coop::CoopClient>(netApi_, coopBuild());
-    if (!c->connect(address, (u16)port, k, name, error)) return false;
+    if (!c->connect(netSettings(useLobby, relayOnly), address, code, name, error)) return false;
     coopClient_ = std::move(c);
     coopName_ = name;
     coopJoinT_ = 0.0;
-    ui_.coopMessage(std::format("Verbinde mit {}:{} …", address, port));
+    ui_.coopMessage(coopClient_->progress());
     // im Spiel (Skript): sofort weiter warten; im Titel uebernimmt updateTitle
     return true;
 }
@@ -2035,10 +2083,14 @@ void App::coopJoinPump(double dt) {
         coopSave_ = false;
         currentSlotPath_.clear();
         ui_.coopMessage("");
-        ui_.toast(std::format("Koop (Beta): beigetreten als Spieler {}", coopClient_->selfId()), 4.0);
+        const LnStats st = coopClient_->netStats();
+        ui_.toast(std::format("Koop: beigetreten als Spieler {} ({})", coopClient_->selfId(),
+                              st.path == LN_PATH_RELAY ? "über das Relay" : st.path == LN_PATH_NAT ? "direkt durch NAT" : "direkt"),
+                  4.0);
         return;
     }
-    if (coopClient_->state() == coop::CoopClient::State::Closed || coopJoinT_ > 15.0) {
+    if (coopClient_->state() != coop::CoopClient::State::Closed) ui_.coopMessage(coopClient_->progress());
+    if (coopClient_->state() == coop::CoopClient::State::Closed || coopJoinT_ > 45.0) {
         const std::string why = coopClient_->state() == coop::CoopClient::State::Closed ? coopClient_->closeReason() : "Host antwortet nicht";
         ui_.coopMessage("Beitritt fehlgeschlagen: " + (why.empty() ? std::string("getrennt") : why));
         coopClient_->stop();
@@ -2047,7 +2099,22 @@ void App::coopJoinPump(double dt) {
 }
 
 void App::coopBefore(double dt) {
-    if (coopHost_) coopHost_->beforeUpdate(dt);
+    if (coopHost_) {
+        coopHost_->beforeUpdate(dt);
+        if (!coopKeyFile_.empty() && !coopHost_->code(true).empty()) {  // Skript (Tests): Code in die Datei
+            if (FILE* f = std::fopen(coopKeyFile_.c_str(), "wb")) {
+                std::fprintf(f, "%s", coopHost_->code(true).c_str());
+                std::fclose(f);
+            }
+            coopKeyFile_.clear();
+        }
+        std::string why;
+        if (coopHost_->takeFailure(why)) {  // Raum liess sich nicht oeffnen: zurueck ins Einzelspiel, Meldung
+            ui_.toast("Koop nicht gestartet: " + why, 8.0);
+            log::warn("Koop: Raum nicht offen ({})", why);
+            leaveCoop(why);
+        }
+    }
     if (coopClient_ && coopClient_->state() != coop::CoopClient::State::Playing) {  // Beitritt aus dem Spiel heraus (Skript)
         coopJoinPump(dt);
         if (!coopClient_ && state_ == State::Playing) ui_.toast("Beitritt fehlgeschlagen.", 3.0);
@@ -2125,9 +2192,11 @@ ui::Host::CoopView App::coopView() {
     v.host = coopHost_ != nullptr;
     std::vector<coop::PlayerInfo> ps;
     if (coopHost_) {
-        v.key = coopHost_->key().text();
+        v.code = coopHost_->code(false);
+        v.codeLong = coopHost_->code(true);
+        v.direct = coopHost_->direct();
+        v.lobbyStatus = coopHost_->lobbyStatus();
         v.port = coopHost_->port();
-        v.address = "IP dieses Rechners (ipconfig)";
         v.status = coopHost_->status();
         ps = coopHost_->players();
         v.dead = coopHost_->selfDead();
@@ -2141,7 +2210,12 @@ ui::Host::CoopView App::coopView() {
         for (const auto& p : ps)
             if (p.id == coopClient_->spectate()) v.spectating = p.name;
     }
-    for (const auto& p : ps) v.players.push_back({p.id, p.name, p.alive, p.ready, p.connected, p.self, p.rttMs});
+    if (coopClient_ && !ps.empty()) {  // Gast: die eigene Verbindung zum Host
+        const LnStats st = coopClient_->netStats();
+        for (auto& p : ps)
+            if (p.id == 0) p.rttMs = (int)st.rttMs, p.path = st.path, p.lossPct = (int)std::lround(st.loss * 100.0f);
+    }
+    for (const auto& p : ps) v.players.push_back({p.id, p.name, p.alive, p.ready, p.connected, p.self, p.rttMs, p.path, p.lossPct});
     return v;
 }
 

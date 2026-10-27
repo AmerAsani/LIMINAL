@@ -2503,7 +2503,8 @@ void Presence::netApply(const std::vector<NetState>& in, double stamp) {
         Agent* a = nullptr;
         for (auto& q : agents_)
             if (q->puppet && q->netId == n.netId) a = q.get();
-        const Role role = (Role)std::clamp(n.role, 0, kRoleCount - 1);
+        if (n.role < 0 || n.role >= kRoleCount) continue;  // V13.3: Rolle unbekannt (Protokoll traegt bis kRoles): nicht zeigen
+        const Role role = (Role)n.role;
         if (a && (a->role != role || a->variant != n.variant)) {  // Kennung neu vergeben: neu anlegen
             std::erase_if(agents_, [&](const auto& q) { return q.get() == a; });
             a = nullptr;

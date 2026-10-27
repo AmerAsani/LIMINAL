@@ -180,7 +180,7 @@ void Ui::drawHud(Host& h, double dt) {
     r_->setAlpha(look);
     drawHotbar(h, *ses);
     r_->setAlpha(1.0f);
-    drawCoopHud(h);  // V13.2 Koop (Beta)
+    drawCoopHud(h);  // V13.2/V13.3 Koop
 
     double cd = st.deathCountdown();
     std::string prompt = ses->targetPrompt();
