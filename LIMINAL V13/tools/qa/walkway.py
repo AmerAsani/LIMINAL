@@ -20,10 +20,14 @@ from game import run  # noqa: E402
 from maplib import NAMES, ROOT, Grid, path  # noqa: E402
 
 
-def plan(g, rooms_min, meters_min, seed):
+def plan(g, rooms_min, meters_min, seed, zone=None):
     rnd = random.Random(seed)
     adj = g.neighbours()
     sx, sy = g.m['start'][0], g.m['start'][1]
+    if zone:  # V13.3: Weg in einer Zone beginnen (Kritikrunden fuer Bereiche abseits des Starts)
+        cand = [r for r in g.rooms if r.get('zone') == zone]
+        x0, y0, x1, y1 = max(cand, key=lambda r: (r['rect'][2] - r['rect'][0]) * (r['rect'][3] - r['rect'][1]))['rect']
+        sx, sy = next((x + 0.5, y + 0.5) for y in range((y0 + y1) // 2, y1) for x in range((x0 + x1) // 2, x1) if g.ok(x + 0.5, y + 0.5))
     cur = int(g.room[int(sy), int(sx)])
     pts = [(sx, sy)]
     seq = [cur]
@@ -118,9 +122,10 @@ def main():
     ap.add_argument('--meters', type=float, default=200.0)
     ap.add_argument('--seed', type=int, default=1)
     ap.add_argument('--size', default='1280x720')
+    ap.add_argument('--zone', default=None, help='Weg in dieser Zone beginnen (groesster Raum der Zone)')
     a = ap.parse_args()
     g = Grid(a.level)
-    pts, seq, length = plan(g, a.rooms, a.meters, a.seed)
+    pts, seq, length = plan(g, a.rooms, a.meters, a.seed, a.zone)
     shots = resample(pts, a.step)
     od = os.path.join(ROOT, 'docs', 'screens', a.level, f'wegbilder_{a.round}')
     os.makedirs(os.path.dirname(od), exist_ok=True)  # Einzelbilder bleiben in build/qa/walk (nur Boegen ins Repository)

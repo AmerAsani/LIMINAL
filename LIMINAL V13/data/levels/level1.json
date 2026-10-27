@@ -131,7 +131,7 @@
     { "key": "fabled", "name": "Fabled",
       "wall": [0.62, 0.36, 0.28], "floor": [0.42, 0.33, 0.26], "ceil": [0.40, 0.34, 0.30],
       "trim": [0.40, 0.14, 0.10], "lamp": [1.00, 0.86, 0.66], "fog": [0.024, 0.016, 0.022],
-      "fog_density": 0.045, "ambient": 0.035, "light_style": "authored",
+      "fog_density": 0.03, "ambient": 0.065, "light_style": "authored",
       "wall_pattern": "boards", "floor_pattern": "planks", "ceil_pattern": "none", "baseboard": true, "door_height": 2.2,
       "wall_tex": "wood_herringbone_dark", "floor_tex": "wood_walnut_floor", "ceil_tex": "concrete_cast" }
   ],
