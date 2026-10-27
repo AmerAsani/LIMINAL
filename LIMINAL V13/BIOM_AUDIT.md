@@ -98,5 +98,5 @@ Typen belegt. Ähnlichkeit S 0,948. Entscheidung: behalten.
 
 ## Level 36 – Mischform
 
-gang 33 %, halle 33 %, gate 18 %, laeden 16 % – belegt. **Ergänzen:** Sicherheitskontrolle (außer Betrieb), Lost-and-Found-
-Büro, Lounge, Meeting Place (Wiki).
+gang 33 %, halle 33 %, gate 18 %, laeden 16 % – belegt. **Ergänzt (V13.3, `level36_nachher.png`):** Sicherheitskontrolle
+(außer Betrieb) 3 %, Fundbüro 1 %, Lounge 8 %, Meeting Place 6 % (Wiki).

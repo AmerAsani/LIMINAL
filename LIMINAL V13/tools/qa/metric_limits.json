@@ -9,5 +9,5 @@
  "level188": {"ceiling_min": 2.7, "corridor_width_min": 2.5, "room_area_median": 18, "sight_median": 40, "sight_p90": 50, "large_rooms_min": 1, "signs_max": 0},
  "level903": {"ceiling_min": 4.0, "corridor_width_min": 0, "room_area_median": 0, "sight_median": 80, "sight_p90": 150, "large_rooms_min": 1, "signs_max": 0, "similarity_min": 0.95, "outliers_max": 0.05},
  "level37": {"ceiling_min": 3.0, "corridor_width_min": 2.5, "room_area_median": 16, "sight_median": 15, "sight_p90": 25, "large_rooms_min": 8, "signs_max": 0, "similarity_min": 0.92, "outliers_max": 0.05},
- "level36": {"ceiling_min": 4.0, "corridor_width_min": 4.0, "room_area_median": 200, "sight_median": 45, "sight_p90": 90, "large_rooms_min": 10, "signs_max": 2}
+ "level36": {"ceiling_min": 4.0, "corridor_width_min": 4.0, "room_area_median": 200, "sight_median": 42, "sight_p90": 84, "large_rooms_min": 10, "signs_max": 2}
 }

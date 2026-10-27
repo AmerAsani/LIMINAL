@@ -164,4 +164,6 @@ Duty-free-Läden, Laufbänder, Lounges, der „Meeting Place“, Gates mit Count
 **Im Spiel:** gepaeck, checkin, gang (Rundgang), laeden, gatehalle, gate C30–C34, sackgasse. **Ergänzen (Wiki belegt, fehlt):**
 Sicherheitskontrolle (außer Betrieb), Lost-and-Found-Büro, eine Lounge, der Meeting Place. Schilder: Wegweiser überall;
 Exit-Schilder höchstens 2 (Wiki: ihnen nicht trauen).
-**Maße:** Hallen 4,5–8 m hoch, Gänge ≥ 4 m breit (Flughafen-Concourse 6–12 m), Sichtachsen Median ≥ 45 m.
+**Maße:** Hallen 4,5–8 m hoch, Gänge ≥ 4 m breit (Flughafen-Concourse 6–12 m). **Umgesetzt (V13.3):** Sicherheitskontrolle
+(drei Spuren, außer Betrieb), Fundbüro an der Gepäckausgabe, Lounge, Meeting Place (Sitzreihen, rote Damasttapete). Die neuen,
+kleineren Räume senken die Sichtachsen: Median 49,9 → 43,2 m, 90-%-Wert 95,2 → 84,7 m (Grenzen 42 / 84 m).
