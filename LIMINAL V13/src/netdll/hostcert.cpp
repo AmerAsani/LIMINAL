@@ -10,11 +10,6 @@
 #include <mbedtls/x509_csr.h>
 #include <psa/crypto.h>
 
-#ifdef _WIN32
-#include <windows.h>
-#include <wincrypt.h>
-#endif
-
 #include <chrono>
 #include <cstdio>
 #include <ctime>
@@ -135,19 +130,6 @@ std::string fingerprintOfPem(const std::string& certPem) {
         out = hexFp(h);
     }
     mbedtls_x509_crt_free(&c);
-    return out;
-}
-
-std::string windowsRootsPem() {
-    std::string out;
-#ifdef _WIN32
-    HCERTSTORE st = CertOpenSystemStoreW(0, L"ROOT");
-    if (!st) return out;
-    PCCERT_CONTEXT c = nullptr;
-    while ((c = CertEnumCertificatesInStore(st, c)) != nullptr)
-        if (c->dwCertEncodingType & X509_ASN_ENCODING) out += pemOf(c->pbCertEncoded, c->cbCertEncoded);
-    CertCloseStore(st, 0);
-#endif
     return out;
 }
 

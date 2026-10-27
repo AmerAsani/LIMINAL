@@ -1,5 +1,5 @@
-// V13.3: Zertifikat des Hosts fuer DTLS (eines je Sitzung) und Stammzertifikate fuer die TLS-Pruefung der Lobby.
-// Erzeugung und Pruefung macht Mbed TLS bzw. Windows (crypt32); hier werden nur deren Funktionen aufgerufen.
+// V13.3: Zertifikat des Hosts fuer DTLS (eines je Sitzung). Erzeugung und Pruefung macht Mbed TLS; hier werden nur
+// dessen Funktionen aufgerufen.
 #pragma once
 
 #include <string>
@@ -16,7 +16,5 @@ struct HostCert {
 bool makeHostCert(HostCert& out, std::string& error, const char* subject = "CN=liminal");
 // SHA-256 eines PEM-Zertifikats als "AB:CD:..." (Pruefung, Tests); leer bei Fehler
 std::string fingerprintOfPem(const std::string& certPem);
-// Stammzertifikate des Windows-Speichers "ROOT" als PEM-Liste (fuer wss:// mit oeffentlicher Zertifizierungsstelle)
-std::string windowsRootsPem();
 
 }  // namespace lim::netc

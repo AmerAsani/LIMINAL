@@ -85,7 +85,8 @@ typedef struct LnLimits {
 
 typedef struct LnConfig {
     const char* lobby;       /* "wss://name:port" oder "ws://..." ; leer/NULL: ohne Lobby (direkt) */
-    const char* lobbyCa;     /* PEM der Lobby (eigenes Zertifikat oder Zertifizierungsstelle); leer: Windows-Speicher */
+    const char* lobbyCert;   /* festgelegtes Zertifikat der Lobby: PEM oder SHA-256 "AB:CD:..."; leer: Stammzertifikate
+                                von Windows (wss:// ueber WinHTTP/Schannel) */
     const char* ice;         /* weitere Server, durch Leerzeichen getrennt: "stun:host:port turn:user:pass@host:port" */
     const char* bindAddress; /* nur Tests: z. B. "127.0.0.1" */
     uint16_t port;           /* direkt: TCP-Port der eingebauten Lobby und UDP-Port der Verbindungen (0: 27500) */

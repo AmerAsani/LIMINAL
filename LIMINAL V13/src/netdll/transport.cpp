@@ -29,6 +29,7 @@
 
 #include "netdll/hostcert.hpp"
 #include "netdll/joincode.hpp"
+#include "netdll/lobby_client.hpp"
 #include "netdll/lobby_proto.hpp"
 #include "netdll/lobby_server.hpp"
 
@@ -121,7 +122,7 @@ struct PingWin {
 };
 
 struct Peer {
-    enum Phase { Free, Signaling, Hello, Open };
+    enum Phase { Free, Signaling, Hello, Open, Closing };  // Closing: Absage gesendet, Verbindung lebt noch kurz
     Phase phase = Free;
     uint32_t gen = 0;
     int lobbyId = 0;
@@ -129,7 +130,7 @@ struct Peer {
     std::shared_ptr<rtc::PeerConnection> pc;
     std::shared_ptr<rtc::DataChannel> r, u;
     std::string remoteFp;  // Fingerabdruck aus der Beschreibung der Gegenstelle
-    double opened = 0, lastRx = 0, nextPing = 0;
+    double opened = 0, lastRx = 0, nextPing = 0, closeAt = 0;
     int remoteCands = 0;
     bool helloSent = false;
     PingWin ping;
@@ -142,7 +143,6 @@ struct Grave {
     double t;
     std::shared_ptr<rtc::PeerConnection> pc;
     std::shared_ptr<rtc::DataChannel> r, u;
-    std::shared_ptr<rtc::WebSocket> ws;
 };
 
 std::string upper(std::string s) {
@@ -164,13 +164,13 @@ void initLibrary() {
 struct LnContext {
     bool server = false;
     LnLimits lim{};
-    std::string lobbyUrl, lobbyHost, lobbyCa, bindAddress;
+    std::string lobbyUrl, lobbyHost, lobbyPin, bindAddress;
     bool lobbyTls = false, direct = false, relayOnly = false;
     uint16_t port = 0;
     std::vector<IceEntry> extraIce;
     std::vector<rtc::IceServer> ice;
     std::shared_ptr<Inbox> inbox = std::make_shared<Inbox>();
-    std::shared_ptr<rtc::WebSocket> ws;
+    std::unique_ptr<LobbyClient> ws;
     double wsStarted = 0, wsRetryAt = 0;
     bool wsOpen = false, lobbyReported = false;
     std::unique_ptr<LobbyServer> embedded;
@@ -315,39 +315,22 @@ void lobbySend(LnContext* c, const LMsg& m) {
     if (!c->ws) return;
     const std::string s = build(m);
     if (s.empty()) return;
-    try {
-        if (c->ws->isOpen()) c->ws->send(s);
-    } catch (...) {
-    }
+    c->ws->send(s);
 }
+
+bool loopbackHost(const std::string& h) { return h == "localhost" || h == "::1" || h.rfind("127.", 0) == 0; }
 
 void lobbyConnect(LnContext* c) {
     c->wsOpen = false;
     c->wsStarted = nowSec();
-    try {
-        rtc::WebSocket::Configuration wc;
-        wc.maxMessageSize = kMaxLobbyMsg;
-        wc.connectionTimeout = std::chrono::milliseconds(8000);
-        wc.pingInterval = std::chrono::milliseconds(10000);
-        wc.maxOutstandingPings = 3;
-        if (c->lobbyTls) {
-            wc.disableTlsVerification = false;  // Mbed TLS prueft sonst nicht (MULTIPLAYER_RECHERCHE.md, Abschnitt 4)
-            wc.caCertificatePemFile = c->lobbyCa.empty() ? windowsRootsPem() : c->lobbyCa;
-        }
-        c->ws = std::make_shared<rtc::WebSocket>(wc);
-        c->ws->open(c->lobbyUrl);
-    } catch (...) {
-        c->ws.reset();
-    }
+    // WinHTTP: wss:// wird gegen die Stammzertifikate von Windows geprueft oder gegen das festgelegte Zertifikat
+    c->ws = std::make_unique<LobbyClient>();
+    c->ws->open(c->lobbyUrl, c->lobbyPin, !c->direct && !loopbackHost(c->lobbyHost));
 }
 
 void lobbyClose(LnContext* c) {
     if (!c->ws) return;
-    try {
-        c->ws->close();
-    } catch (...) {
-    }
-    c->graves.push_back({nowSec(), nullptr, nullptr, nullptr, c->ws});
+    c->ws->close();
     c->ws.reset();
     c->wsOpen = false;
 }
@@ -375,7 +358,7 @@ void closePeer(LnContext* c, int slot) {
         if (p.pc) p.pc->close();
     } catch (...) {
     }
-    c->graves.push_back({nowSec(), p.pc, p.r, p.u, nullptr});
+    c->graves.push_back({nowSec(), p.pc, p.r, p.u});
     const uint32_t gen = p.gen;
     p = Peer{};
     p.gen = gen + 1;
@@ -399,6 +382,13 @@ void sendFrame(Peer& p, bool reliable, const u8* d, size_t n) {
 void refusePeer(Peer& p, int reason) {
     const u8 f[2] = {F_REFUSE, (u8)reason};
     sendFrame(p, true, f, 2);
+}
+
+// Absage senden und die Verbindung noch 1 s offen halten, damit sie ankommt (danach schliesst pumpHost)
+void refuseLinger(Peer& p, int reason, double now) {
+    refusePeer(p, reason);
+    p.phase = Peer::Closing;
+    p.closeAt = now + 1.0;
 }
 
 // Fehlversuch einer Adresse (falscher Code, Muell, Zeitlimit beim Beitritt); nach banFails gesperrt
@@ -477,7 +467,7 @@ void hostAdmit(LnContext* c, const LMsg& m, double now) {
     for (size_t i = 0; i < c->peers.size(); ++i) {
         const Peer& p = c->peers[i];
         if (p.phase == Peer::Open) ++open;
-        else if (p.phase != Peer::Free) ++half, halfHere += p.addr == m.addr ? 1 : 0;
+        else if (p.phase != Peer::Free && p.phase != Peer::Closing) ++half, halfHere += p.addr == m.addr ? 1 : 0;
         else if (freeSlot < 0 && !p.pc) freeSlot = (int)i;
         if (p.phase != Peer::Free && p.lobbyId == m.id) return;  // doppelt
     }
@@ -609,7 +599,13 @@ void handleLobbyGuest(LnContext* c, const LMsg& m) {
             } catch (...) {
             }
             break;
-        case LType::Err: guestFail(c, reasonOfErr(m.err)); break;
+        case LType::Err: {
+            int r = reasonOfErr(m.err);
+            // der Host hat aufgegeben, waehrend ICE noch suchte: kein Weg gefunden
+            if (r == LN_R_TIMEOUT && c->progress >= LN_P_CONNECTING && c->progress < LN_P_HELLO) r = LN_R_ICE;
+            guestFail(c, r);
+            break;
+        }
         default: break;
     }
 }
@@ -619,13 +615,8 @@ void pumpLobby(LnContext* c, double now) {
         if (c->server && now >= c->wsRetryAt) lobbyConnect(c);  // Host: Lobby neu versuchen (neuer Code)
         return;
     }
-    bool open = false, closed = false;
-    try {
-        open = c->ws->isOpen();
-        closed = c->ws->isClosed();
-    } catch (...) {
-        closed = true;
-    }
+    const bool open = c->ws->isOpen(), closed = c->ws->isClosed();
+    const bool certBad = closed && (c->ws->error() == LobbyClient::Error::Tls || c->ws->error() == LobbyClient::Error::Pin);
     if (open && !c->wsOpen) {
         c->wsOpen = true;
         LMsg m;
@@ -640,14 +631,10 @@ void pumpLobby(LnContext* c, double now) {
         lobbySend(c, m);
     }
     for (int k = 0; k < 64 && c->ws; ++k) {
-        std::optional<rtc::message_variant> msg;
-        try {
-            msg = c->ws->receive();
-        } catch (...) {
-        }
+        const std::optional<std::string> msg = c->ws->receive();
         if (!msg) break;
         LMsg m;
-        if (!std::holds_alternative<std::string>(*msg) || !parseFromLobby(std::get<std::string>(*msg), m)) continue;  // ungueltig: verwerfen
+        if (!parseFromLobby(*msg, m)) continue;  // ungueltig: verwerfen
         if (c->server) handleLobbyHost(c, m, now);
         else handleLobbyGuest(c, m);
     }
@@ -661,12 +648,12 @@ void pumpLobby(LnContext* c, double now) {
                 pushEvent(c, LN_EV_ROOM, -1, 0, 0, nullptr, 0, nullptr);
             } else if (!c->lobbyReported) {
                 c->lobbyReported = true;
-                pushEvent(c, LN_EV_DISCONNECTED, -1, 0, LN_R_LOBBY, nullptr, 0, nullptr);
+                pushEvent(c, LN_EV_DISCONNECTED, -1, 0, certBad ? LN_R_CERT : LN_R_LOBBY, nullptr, 0, nullptr);
             }
             c->wsRetryAt = now + 5.0;
             if (c->direct) c->wsRetryAt = now + 1.0;
         } else if (!c->connected && c->progress < LN_P_CONNECTING) {
-            guestFail(c, LN_R_LOBBY);  // ohne Beschreibung des Hosts geht es nicht weiter
+            guestFail(c, certBad ? LN_R_CERT : LN_R_LOBBY);  // ohne Beschreibung des Hosts geht es nicht weiter
         }
         (void)wasOpen;
     }
@@ -735,28 +722,22 @@ void hostFrame(LnContext* c, int slot, int channel, const u8* d, size_t n, doubl
         if (channel != LN_RELIABLE || d[0] != F_HELLO || n < kHelloFixed + 1 || n > kHelloFixed + LN_NAME_MAX || std::memcmp(d + 1, kMagic, 4) != 0)
             return countInvalid(c, slot, now);
         const unsigned ver = (unsigned)d[5] | ((unsigned)d[6] << 8);
-        if (ver != LN_VERSION) {
-            refusePeer(p, LN_R_VERSION);
-            return hostDrop(c, slot, LN_R_VERSION, false, false);
-        }
+        if (ver != LN_VERSION) return refuseLinger(p, LN_R_VERSION, now);
         const std::string secret((const char*)d + 7, kSecretChars);
         const size_t nl = d[7 + kSecretChars];
         if (nl != n - kHelloFixed) return countInvalid(c, slot, now);
         const std::string name((const char*)d + kHelloFixed, nl);
         if (!equalConst(secret, c->secret)) {
-            refusePeer(p, LN_R_BADKEY);
-            return hostDrop(c, slot, LN_R_BADKEY, false, true);
+            noteFail(c, p.addr, now);
+            return refuseLinger(p, LN_R_BADKEY, now);
         }
         if (!nameOk(name)) {
-            refusePeer(p, LN_R_PROTOCOL);
-            return hostDrop(c, slot, LN_R_PROTOCOL, false, true);
+            noteFail(c, p.addr, now);
+            return refuseLinger(p, LN_R_PROTOCOL, now);
         }
         int open = 0;
         for (const Peer& q : c->peers) open += q.phase == Peer::Open ? 1 : 0;
-        if (open >= c->lim.maxPeers) {
-            refusePeer(p, LN_R_FULL);
-            return hostDrop(c, slot, LN_R_FULL, false, false);
-        }
+        if (open >= c->lim.maxPeers) return refuseLinger(p, LN_R_FULL, now);
         p.name = name;
         p.phase = Peer::Open;
         p.nextPing = now;
@@ -872,6 +853,10 @@ void pumpHost(LnContext* c, double now) {
     for (size_t i = 0; i < c->peers.size(); ++i) {
         Peer& p = c->peers[i];
         if (p.phase == Peer::Free) continue;
+        if (p.phase == Peer::Closing) {
+            if (now >= p.closeAt) closePeer(c, (int)i);
+            continue;
+        }
         rtc::PeerConnection::State st = rtc::PeerConnection::State::Closed;
         try {
             st = p.pc->state();
@@ -925,8 +910,13 @@ void pumpGuest(LnContext* c, double now) {
             st = p.pc->state();
         } catch (...) {
         }
+        if (p.helloSent) {  // zuerst lesen: eine Absage des Hosts kommt vor dem Schliessen
+            readChannel(c, 0, LN_RELIABLE, now);
+            if (!c->finished) readChannel(c, 0, LN_UNRELIABLE, now);
+            if (c->finished) return;
+        }
         if (st == rtc::PeerConnection::State::Failed || st == rtc::PeerConnection::State::Closed)
-            return guestFail(c, c->connected ? LN_R_TIMEOUT : LN_R_ICE);
+            return guestFail(c, c->connected || p.helloSent ? LN_R_TIMEOUT : LN_R_ICE);
         if (!p.helloSent && channelsOpen(p)) {
             if (!fingerprintVerified(p) || (c->code.hasPin() && !equalConst(pinFromFingerprint(p.remoteFp), c->code.pin))) return guestFail(c, LN_R_CERT);
             u8 h[kHelloFixed + LN_NAME_MAX];
@@ -942,11 +932,6 @@ void pumpGuest(LnContext* c, double now) {
             p.lastRx = now;
             c->progress = LN_P_HELLO;
             pushEvent(c, LN_EV_PROGRESS, 0, 0, LN_P_HELLO, nullptr, 0, nullptr);
-        }
-        if (p.helloSent) {
-            readChannel(c, 0, LN_RELIABLE, now);
-            if (!c->finished) readChannel(c, 0, LN_UNRELIABLE, now);
-            if (c->finished) return;
         }
     }
     if (!c->connected) {
@@ -973,7 +958,8 @@ LnContext* makeContext(const LnConfig* cfg) {
     auto* c = new LnContext;
     if (cfg) {
         if (cfg->lobby && *cfg->lobby) c->lobbyUrl = cfg->lobby;
-        if (cfg->lobbyCa) c->lobbyCa = cfg->lobbyCa;
+        if (cfg->lobbyCert && *cfg->lobbyCert)  // PEM oder Fingerabdruck "AB:CD:..."
+            c->lobbyPin = std::strncmp(cfg->lobbyCert, "-----BEGIN", 10) == 0 ? fingerprintOfPem(cfg->lobbyCert) : upper(cfg->lobbyCert);
         if (cfg->bindAddress) c->bindAddress = cfg->bindAddress;
         c->extraIce = parseIceList(cfg->ice);
         c->port = cfg->port ? cfg->port : kDefaultPort;
@@ -1059,7 +1045,6 @@ LN_API LnContext* ln_join(const LnConfig* cfg, const char* direct, const char* c
     }
     pushEvent(c, LN_EV_PROGRESS, 0, 0, LN_P_LOBBY, nullptr, 0, nullptr);
     lobbyConnect(c);
-    if (!c->ws) guestFail(c, LN_R_LOBBY);
     return c;
 }
 
@@ -1109,8 +1094,8 @@ LN_API void ln_drop(LnContext* c, int peer, int reason, int ban) {
         m.addr = p.addr;
         if (m.id && credOk(m.addr)) lobbySend(c, m);
     }
-    if (p.phase == Peer::Open || p.phase == Peer::Hello) refusePeer(p, reason);
-    hostDrop(c, peer, reason, false, false);
+    if (p.phase == Peer::Open || p.phase == Peer::Hello) return refuseLinger(p, reason, nowSec());
+    if (p.phase != Peer::Closing) hostDrop(c, peer, reason, false, false);
 }
 
 LN_API int ln_stats(LnContext* c, int peer, LnStats* out) {
@@ -1130,6 +1115,7 @@ LN_API int ln_stats(LnContext* c, int peer, LnStats* out) {
             if (auto r = p.pc->rtt()) out->rttMs = (uint32_t)r->count();
         rtc::Candidate l, r;
         if (p.pc->getSelectedCandidatePair(&l, &r)) {
+            if (std::getenv("LIMINAL_NET_LOG")) std::fprintf(stderr, "[ln] Weg: %s <-> %s\n", l.candidate().c_str(), r.candidate().c_str());
             using T = rtc::Candidate::Type;
             if (l.type() == T::Relayed || r.type() == T::Relayed) out->path = LN_PATH_RELAY;
             else if (l.type() == T::Host && r.type() == T::Host) out->path = LN_PATH_DIRECT;

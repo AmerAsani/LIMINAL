@@ -157,8 +157,10 @@ add_library(lim_json INTERFACE)
 target_include_directories(lim_json INTERFACE "${CMAKE_SOURCE_DIR}/third_party/nlohmann_json/single_include")
 
 # eigener Netzcode: Beitrittscode, Lobby-Nachrichten, Lobby-Server, Host-Zertifikat (src/netdll)
-add_library(lim_netcore STATIC src/netdll/joincode.cpp src/netdll/lobby_proto.cpp src/netdll/lobby_server.cpp src/netdll/hostcert.cpp)
-target_link_libraries(lim_netcore PUBLIC lim_options datachannel-static juice-static lim_mbedtls lim_json crypt32)
+add_library(lim_netcore STATIC src/netdll/joincode.cpp src/netdll/lobby_proto.cpp src/netdll/lobby_server.cpp src/netdll/hostcert.cpp
+    src/netdll/lobby_client.cpp)
+# winhttp: WebSocket zur Lobby mit TLS-Pruefung durch Windows (lobby_client.hpp); crypt32: Zertifikat der Lobby
+target_link_libraries(lim_netcore PUBLIC lim_options datachannel-static juice-static lim_mbedtls lim_json winhttp crypt32)
 # die DLL des Spiels (nur ln_*-Funktionen werden exportiert)
 add_library(liminal_net SHARED src/netdll/transport.cpp)
 target_link_libraries(liminal_net PRIVATE lim_netcore)

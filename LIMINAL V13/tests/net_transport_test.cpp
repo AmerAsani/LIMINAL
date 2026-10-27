@@ -121,10 +121,10 @@ struct TestLobby {
     }
 };
 struct Cfg {
-    std::string lobby, ca, ice, bind = "127.0.0.1";
+    std::string lobby, cert, ice, bind = "127.0.0.1";
     uint16_t port = 0;
     int relayOnly = 0;
-    LnConfig get() const { return LnConfig{lobby.c_str(), ca.c_str(), ice.c_str(), bind.c_str(), port, relayOnly}; }
+    LnConfig get() const { return LnConfig{lobby.c_str(), cert.c_str(), ice.c_str(), bind.c_str(), port, relayOnly}; }
 };
 static Ctx host(const Cfg& cfg, LnLimits lim = kLim) {
     Ctx h;
@@ -435,7 +435,11 @@ static void testWrongCodes() {
     JoinCode wrongSecret = jc;
     wrongSecret.secret[0] = wrongSecret.secret[0] == '0' ? '1' : '0';
     int badKey = 0;
-    for (int i = 0; i < 4; ++i) badKey += tryJoin(wrongSecret.text(false), "x") == LN_R_BADKEY ? 1 : 0;
+    for (int i = 0; i < 4; ++i) {
+        const int r = tryJoin(wrongSecret.text(false), "x");
+        badKey += r == LN_R_BADKEY ? 1 : 0;
+        if (r != LN_R_BADKEY) note("Grund " + std::to_string(r));
+    }
     check(badKey == 4, "falsches Geheimteil -> BADKEY (" + std::to_string(badKey) + "/4)");
     check(tryJoin(jc.text(false), "Ehrlich") == 0, "danach mit richtigem Code: verbunden (4 Fehlversuche < 5)");
     pump({&h}, 0.5, nullptr);
@@ -443,10 +447,10 @@ static void testWrongCodes() {
     pump({&h, &keep}, 15.0, [&] { return keep.connected || keep.disconnected; });
     check(keep.connected, "Gast bleibt verbunden");
     check(tryJoin(jc.text(false), "Vierter") == LN_R_FULL, "voll -> FULL");
-    // 5. Fehlversuch: die Adresse ist gesperrt, auch mit richtigem Code
-    tryJoin(wrongSecret.text(false), "x");
     keep.close();
     pump({&h}, 3.0, [&] { return h.disconnected > 0; });
+    // 5. Fehlversuch: die Adresse ist gesperrt, auch mit richtigem Code
+    check(tryJoin(wrongSecret.text(false), "x") == LN_R_BADKEY, "5. Fehlversuch");
     check(tryJoin(jc.text(false), "Ehrlich") == LN_R_BANNED, "nach 5 Fehlversuchen gesperrt (auch mit richtigem Code)");
     h.close();
     // Bann durch den Host
@@ -474,14 +478,19 @@ static void testPaths() {
         Cfg cfg;
         cfg.lobby = L.url;
         cfg.relayOnly = 1;
-        Ctx h = host(cfg);
+        // getrennte Loopback-Adressen wie getrennte Rechner: Host 127.0.0.3, Gast 127.0.0.2, Lobby/TURN 127.0.0.1
+        // (sonst laesst der TURN-Server auch Pakete von der eigenen Adresse durch, weil alle Berechtigungen 127.0.0.1 sind)
+        Cfg hc = cfg, gc = cfg;
+        hc.bind = "127.0.0.3", gc.bind = "127.0.0.2";
+        Ctx h = host(hc);
         waitRoom(h);
-        Ctx g = join(cfg, h.code, "Verborgen");
+        Ctx g = join(gc, h.code, "Verborgen");
         check(pump({&h, &g}, 20.0, [&] { return h.connected && g.connected; }), "nur Relay (beide verbergen die IP): verbunden");
         pump({&h, &g}, 1.0, nullptr);
-        LnStats st{};
+        LnStats st{}, hs{};
         ln_stats(g.c, 0, &st);
-        check(st.path == LN_PATH_RELAY, "Weg: Relay (" + std::to_string(st.path) + ")");
+        if (!h.peers.empty()) ln_stats(h.c, h.peers[0], &hs);
+        check(st.path == LN_PATH_RELAY && hs.path == LN_PATH_RELAY, "Weg auf beiden Seiten: Relay (" + std::to_string(st.path) + "/" + std::to_string(hs.path) + ")");
         note("verbunden nach " + std::to_string((int)g.connectMs()) + " ms");
         g.close(), h.close();
         L.s.stop();
@@ -497,14 +506,19 @@ static void testPaths() {
         if (!L.start()) return check(false, "Lobby");
         Cfg cfg;
         cfg.lobby = L.url;
-        Ctx h = host(cfg);
+        Cfg hc = cfg, gc = cfg;
+        hc.bind = "127.0.0.3", gc.bind = "127.0.0.2";
+        Ctx h = host(hc);
         waitRoom(h);
-        Ctx g = join(cfg, h.code, "HinterNAT");
+        Ctx g = join(gc, h.code, "HinterNAT");
         check(pump({&h, &g}, 20.0, [&] { return h.connected && g.connected; }), "direkte Wege gesperrt: ueber Relay verbunden");
         pump({&h, &g}, 1.0, nullptr);
-        LnStats st{};
+        LnStats st{}, hs{};
         ln_stats(g.c, 0, &st);
-        check(st.path == LN_PATH_RELAY && dropped > 0, "Weg: Relay, " + std::to_string(dropped.load()) + " direkte Kandidaten verworfen");
+        if (!h.peers.empty()) ln_stats(h.c, h.peers[0], &hs);
+        check(st.path == LN_PATH_RELAY && hs.path == LN_PATH_RELAY && dropped > 0,
+              "Weg: Relay (" + std::to_string(st.path) + "/" + std::to_string(hs.path) + "), " + std::to_string(dropped.load()) + " direkte Kandidaten verworfen");
+        note("verbunden nach " + std::to_string((int)g.connectMs()) + " ms");
         g.close(), h.close();
         L.s.stop();
     }
@@ -590,18 +604,29 @@ static void testTls() {
     L.cfg.tlsCert = server.certPem, L.cfg.tlsKey = server.keyPem;
     if (!L.start()) return check(false, "Lobby mit TLS");
     const std::string url = "wss://localhost:" + std::to_string(L.s.port());
-    auto tryHost = [&](const std::string& ca) {
+    int reason = 0;
+    auto tryHost = [&](const std::string& cert) {
         Cfg cfg;
-        cfg.lobby = url, cfg.ca = ca;
+        cfg.lobby = url, cfg.cert = cert;
         Ctx h = host(cfg);
         pump({&h}, 12.0, [&] { return !h.code.empty() || h.disconnected; });
         const bool ok = !h.code.empty();
+        reason = h.lastReason;
         h.close();
         return ok;
     };
-    check(tryHost(server.certPem), "festgelegtes Zertifikat der Lobby: Raum offen");
-    check(!tryHost(other.certPem), "fremdes Zertifikat (gleicher Name): abgewiesen");
-    check(!tryHost(""), "selbst signiert gegen die Windows-Stammzertifikate: abgewiesen");
+    check(tryHost(server.certPem), "festgelegtes Zertifikat der Lobby (PEM): Raum offen");
+    check(tryHost(server.fingerprint), "festgelegtes Zertifikat der Lobby (Fingerabdruck): Raum offen");
+    check(!tryHost(other.certPem) && reason == LN_R_CERT, "fremdes Zertifikat (gleicher Name): abgewiesen, Grund CERT (" + std::to_string(reason) + ")");
+    check(!tryHost("") && reason == LN_R_CERT, "selbst signiert gegen die Windows-Stammzertifikate: abgewiesen, Grund CERT (" + std::to_string(reason) + ")");
+    // ein Gast ueber wss mit festgelegtem Zertifikat
+    Cfg cfg;
+    cfg.lobby = url, cfg.cert = server.fingerprint;
+    Ctx h = host(cfg);
+    waitRoom(h);
+    Ctx g = join(cfg, h.code, "Ueber TLS");
+    check(pump({&h, &g}, 15.0, [&] { return h.connected && g.connected; }), "Gast ueber wss verbunden");
+    g.close(), h.close();
     L.s.stop();
 }
 
@@ -680,14 +705,17 @@ static void testLobbyAttacks() {
     TestLobby L;
     L.cfg.maxPerIp = 6;
     if (!L.start()) return check(false, "Lobby");
-    auto raw = [&](const std::function<void(rtc::WebSocket&)>& act) {
+    auto raw = [&](const std::function<void(rtc::WebSocket&)>& act, int waitMs = 3000) {
         auto ws = std::make_shared<rtc::WebSocket>();
         std::atomic<bool> open{false};
         ws->onOpen([&] { open = true; });
         ws->open(L.url);
         for (int i = 0; i < 300 && !open; ++i) std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        if (open) act(*ws);
-        for (int i = 0; i < 300 && !ws->isClosed(); ++i) std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        if (open) try {
+                act(*ws);
+            } catch (...) {  // schon geschlossen
+            }
+        for (int i = 0; i < waitMs / 10 && !ws->isClosed(); ++i) std::this_thread::sleep_for(std::chrono::milliseconds(10));
         const bool closed = ws->isClosed();
         ws->close();
         return closed;
@@ -697,7 +725,7 @@ static void testLobbyAttacks() {
     check(raw([](rtc::WebSocket& w) { w.send(std::string(20000, 'a')); }), "20 KB -> getrennt");
     check(raw([](rtc::WebSocket& w) { w.send(std::string(3000, '[') + std::string(3000, ']')); }), "tiefe Schachtelung -> getrennt");
     check(raw([](rtc::WebSocket& w) { w.send("{\"t\":\"ban\",\"id\":1,\"addr\":\"x\"}"); }), "Gast sendet Host-Befehl -> getrennt");
-    check(raw([](rtc::WebSocket&) {}), "stumm -> nach 10 s getrennt");
+    check(raw([](rtc::WebSocket&) {}, 13000), "stumm -> nach 10 s getrennt");
     // viele Verbindungen von einer Adresse
     std::vector<std::shared_ptr<rtc::WebSocket>> many;
     std::atomic<int> opened{0};
@@ -726,7 +754,7 @@ static void testLobbyAttacks() {
             w.send(build(j));
         });
         refused += err.find("noroom") != std::string::npos ? 1 : 0;
-        rate += err.find("rate") != std::string::npos ? 1 : 0;
+        rate += err.empty() || err.find("rate") != std::string::npos ? 1 : 0;  // gesperrt: abgewiesen, schon beim Verbinden ohne Antwort
     }
     check(refused == L.cfg.failsPerTenMinutes && rate == 14 - L.cfg.failsPerTenMinutes,
           "Codes raten: " + std::to_string(refused) + " x unbekannt, danach " + std::to_string(rate) + " x gesperrt");
@@ -777,17 +805,18 @@ int main(int argc, char** argv) {
     std::string only;
     for (int i = 1; i < argc; ++i)
         if (std::string(argv[i]) == "--only" && i + 1 < argc) only = argv[++i];
+    auto want = [&](const char* n) { return only.empty() || ("," + only + ",").find(std::string(",") + n + ",") != std::string::npos; };
     std::printf("liminal_net %d (libdatachannel %s)\n", ln_version(), RTC_VERSION);
     const auto t0 = Clock::now();
-    if (only.empty() || only == "codes") testCodes();
-    if (only.empty() || only == "proto") testLobbyProto();
-    if (only.empty() || only == "join") testLobbyJoin();
-    if (only.empty() || only == "wrong") testWrongCodes();
-    if (only.empty() || only == "paths") testPaths();
-    if (only.empty() || only == "direct") testDirect();
-    if (only.empty() || only == "tls") testTls();
-    if (only.empty() || only == "host") testHostAttacks();
-    if (only.empty() || only == "lobby") testLobbyAttacks();
+    if (want("codes")) testCodes();
+    if (want("proto")) testLobbyProto();
+    if (want("join")) testLobbyJoin();
+    if (want("wrong")) testWrongCodes();
+    if (want("paths")) testPaths();
+    if (want("direct")) testDirect();
+    if (want("tls")) testTls();
+    if (want("host")) testHostAttacks();
+    if (want("lobby")) testLobbyAttacks();
     std::printf("%s: %d Pruefungen, %d Fehler (%.0f s)\n", gFails ? "FEHLER" : "OK", gChecks, gFails, secSince(t0));
     return gFails ? 1 : 0;
 }
