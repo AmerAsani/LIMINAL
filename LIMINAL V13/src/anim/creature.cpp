@@ -566,7 +566,7 @@ const Build& bipedBuild(Entity e) {
 const CreatureSkeleton& entitySkeleton(Entity e) {
     static const std::array<CreatureSkeleton, kEntityCount> all = {makeSmiler(), makeHound(), makeMoth(), makeGestalt(), makeNest(),
                                                                    makeClump(), makeBiped(Entity::Faceling), makeBiped(Entity::SkinStealer),
-                                                                   makeBiped(Entity::Wretch), makeRat(), makeWindow()};
+                                                                   makeBiped(Entity::Wretch), makeRat(), makeWindow(), wg::makeWrangler()};
     return all[(size_t)std::min((int)e, kEntityCount - 1)];
 }
 
@@ -583,6 +583,7 @@ const char* entityModel(Entity e) {
         case Entity::Wretch: return "ent_wretch";
         case Entity::Rat: return "ent_rat";
         case Entity::Window: return "ent_window";
+        case Entity::Wrangler: return "ent_wrangler";  // V13.3
         default: return "ent_smiler";
     }
 }
@@ -591,6 +592,9 @@ const std::vector<const char*>& entityVariants(Entity e) {
     // Faceling: entwickelt (Level 3), rosa Kleid (Level 188); Death Rat: haarlos (Level 2, Hitze); Skin-Stealer: getarnt (in Menschenhaut)
     static const std::vector<const char*> none, fc{"ent_faceling", "ent_faceling_evo", "ent_faceling_dress", "ent_faceling_b", "ent_faceling_c"}, rat{"ent_rat", "ent_rat_bald"},
         ss{"ent_skinstealer", "ent_skinstealer_skin"};
+    // V13.3 Wrangler: Maennchen (Laecheln), Weibchen (Zangen), traechtiges Weibchen (Samen am Leib), Jungtiere am Ast
+    static const std::vector<const char*> wr{"ent_wrangler", "ent_wrangler_f", "ent_wrangler_fs", "ent_wrangler_brood"};
+    if (e == Entity::Wrangler) return wr;
     return e == Entity::Faceling ? fc : (e == Entity::Rat ? rat : (e == Entity::SkinStealer ? ss : none));
 }
 
@@ -607,6 +611,7 @@ const char* entityName(Entity e) {
         case Entity::Wretch: return "Wretch";
         case Entity::Rat: return "Death Rat";
         case Entity::Window: return "Fensterwesen";
+        case Entity::Wrangler: return "Wrangler";  // V13.3
         default: return "?";
     }
 }

@@ -165,6 +165,7 @@ vec3 CreatureAnimator::headPos() const {
         case Entity::Wretch: return (pose_.j[bp::HEAD] + pose_.j[bp::HEADTOP]) * 0.5f;
         case Entity::Rat: return pose_.j[rt::HEAD];
         case Entity::Window: return (pose_.j[wn::FIG_NECK] + pose_.j[wn::FIG_TOP]) * 0.5f;
+        case Entity::Wrangler: return (pose_.j[wg::NECK0 + wg::kNeck] + pose_.j[wg::SNOUT]) * 0.5f;  // V13.3
         default: return pose_.j[ns::TOP];
     }
 }
@@ -190,6 +191,7 @@ void CreatureAnimator::update(double dtIn, const Input& in) {
     if (isBiped(e_)) turn = e_ == Entity::SkinStealer ? 3.0f : 4.5f;  // V13.2
     if (e_ == Entity::Rat) turn = 12.0f;
     if (e_ == Entity::Window) turn = 1000.0f;  // haengt fest in der Wand
+    if (e_ == Entity::Wrangler) turn = 1000.0f;  // V13.3: die Bahn liegt fest
     const float yawBefore = yaw_;
     yaw_ += wrapPi(in.yaw - yaw_) * std::min(1.0f, dt * turn);
     speed_ = air ? length(vel_) : std::hypot(vel_.x, vel_.y);
@@ -210,6 +212,7 @@ void CreatureAnimator::update(double dtIn, const Input& in) {
         case Entity::Wretch: updateBiped(dt, in); break;
         case Entity::Rat: updateRat(dt, in); break;
         case Entity::Window: updateWindow(dt, in); break;
+        case Entity::Wrangler: updateWrangler(dt, in); break;  // V13.3
         default: updateNest(dt, in); break;
     }
     last_ = in;
