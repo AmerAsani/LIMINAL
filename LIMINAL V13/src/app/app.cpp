@@ -240,7 +240,8 @@ void App::scriptStep() {
             using R = game::Presence::Role;
             const std::string n = name;
             const R r = n == "faceling" ? R::Faceling : n == "skinstealer" ? R::SkinStealer : n == "wretch" ? R::Wretch : n == "rat" ? R::Rat
-                        : n == "window" ? R::Window : n == "hound" ? R::Hound : n == "smiler" ? R::Smiler : n == "clump" ? R::Clump : R::Gestalt;
+                        : n == "window" ? R::Window : n == "hound" ? R::Hound : n == "smiler" ? R::Smiler : n == "clump" ? R::Clump
+                        : n == "duller" ? R::Duller : n == "arms" ? R::Arms : R::Gestalt;  // V13.3
             auto& pr = session_->presence();
             if (!pr.has(r)) {
                 log::warn("Skript: near - kein {}", game::Presence::roleName(r));
@@ -345,7 +346,8 @@ void App::scriptStep() {
             // Entities nach Namen (anim::Entity); player: der Mensch
             // V13.2: neue Wesen; player = 99 (Mensch)
             const int kind = n == "hound" ? 1 : n == "moth" ? 2 : n == "gestalt" ? 3 : n == "nest" ? 4 : n == "clump" ? 5 : n == "faceling" ? 6
-                             : n == "skinstealer" ? 7 : n == "wretch" ? 8 : n == "rat" ? 9 : n == "window" ? 10 : n == "player" ? 99 : 0;
+                             : n == "skinstealer" ? 7 : n == "wretch" ? 8 : n == "rat" ? 9 : n == "window" ? 10 : n == "player" ? 99
+                             : n == "duller" ? 11 : n == "arms" ? 12 : 0;  // V13.3
             auto& pl = session_->player();
             vec3 at{(float)(pl.x + std::cos(pl.angle) * dist), (float)(pl.y + std::sin(pl.angle) * dist), 0.0f};
             at.z = session_->world().tile(ifloor(at.x), ifloor(at.y)).floor;
@@ -378,6 +380,8 @@ void App::scriptStep() {
                 if (n == "wretch") r = R::Wretch;
                 if (n == "rat") r = R::Rat;
                 if (n == "window") r = R::Window;
+                if (n == "duller") r = R::Duller;  // V13.3
+                if (n == "arms") r = R::Arms;
                 session_->presence().force(r, dist);
             }
         } else if (cmd == "audioinfo") {  // V11 (Tests): Zustand der Klanglandschaft ins Protokoll
@@ -1331,6 +1335,10 @@ void App::handleEvents() {
                 if (e.role == (int)game::Presence::Role::Clump) {  // V11: Buendel - nasser Griff, Knacken, Brüllen tiefer
                     audio_->play("clump_grab", 1.0f, 1.0f, audio::Bus::Effects);
                     audio_->play("scare_hound", 0.85f, 0.78f, audio::Bus::Effects);
+                } else if (e.role == (int)game::Presence::Role::Duller) {  // V13.3: Griff durch die Wand, Beton bricht, Schleifen
+                    audio_->play("duller_grab", 1.0f, 1.0f, audio::Bus::Effects);
+                } else if (e.role == (int)game::Presence::Role::Arms) {  // V13.3: Krallen, dann Schlaege im Schacht, die sich entfernen
+                    audio_->play("arms_take", 1.0f, 1.0f, audio::Bus::Effects);
                 } else {
                     audio_->play(e.role == (int)game::Presence::Role::Smiler ? "scare_smiler" : "scare_hound", 1.0f, 1.0f, audio::Bus::Effects);
                 }
@@ -1361,15 +1369,20 @@ void App::handleEvents() {
                         if (role == Role::SkinStealer) at("hound_step", e.pos, 0.55f + 0.3f * e.intensity, 22.0f, 0.62f + 0.06f * var);
                         if (role == Role::Wretch) at(stepSound(e.surface), e.pos, 0.3f + 0.4f * e.intensity, 18.0f, e.intensity < 0.5f ? 0.7f : 0.9f + 0.1f * var);
                         if (role == Role::Rat) at("hound_step", e.pos, 0.08f, 6.0f, 2.2f + 0.3f * var);
+                        if (role == Role::Duller) at("duller_step", e.pos, 0.3f + 0.3f * e.intensity, 14.0f, 0.95f + 0.1f * var);  // V13.3
                         break;
                     // V11 Buendel: Klopfen im Schacht, Herabfallen, Schleifen, Ausholen
                     case PE::Knock: at(std::format("clump_knock_{}", n % 3), e.pos, 0.9f, 30.0f); break;
                     case PE::Drop:
+                        if (role == Role::Arms) {  // V13.3: die Krallen schnappen ins Leere
+                            at("arms_snap", e.pos, 0.9f, 16.0f, 0.95f + 0.1f * var);
+                            break;
+                        }
                         at(std::format("clump_slap_{}", n % 5), e.pos, 1.0f, 26.0f, 0.8f);
                         at(std::format("clump_crack_{}", n % 3), e.pos, 0.8f, 22.0f);
                         break;
                     case PE::Drag: at(std::format("clump_drag_{}", n % 2), e.pos, 0.55f, 18.0f, 0.9f + 0.2f * var); break;
-                    case PE::Windup: at("clump_reach", e.pos, 1.0f, 20.0f); break;
+                    case PE::Windup: at(role == Role::Arms ? "arms_hiss" : "clump_reach", e.pos, role == Role::Arms ? 0.8f : 1.0f, 20.0f); break;
                     case PE::Breath: at("hound_pant", e.pos + vec3{0, 0, 0.5f}, 0.75f, 12.0f); break;
                     case PE::Growl: at("hound_growl", e.pos + vec3{0, 0, 0.5f}, 0.45f + 0.5f * e.intensity, 22.0f); break;
                     case PE::Whine: at("hound_whine", e.pos + vec3{0, 0, 0.5f}, 0.6f, 26.0f); break;
@@ -1411,6 +1424,18 @@ void App::handleEvents() {
                     case PE::Scream: at("rat_scream", e.pos, 1.0f, 40.0f); break;
                     case PE::Swing: at("stone_swing", e.pos, 0.8f, 12.0f, 0.95f + 0.1f * var); break;
                     case PE::Pull: at("window_pull", e.pos, 0.9f, 14.0f); break;
+                    // V13.3: Duller (Schaben in der Wand, Putz, Durchbruch), Arms (Schaben im Schacht, Lueftung, Schrei im Licht)
+                    case PE::Scrape:
+                        if (role == Role::Duller) at(std::format("duller_scrape_{}", n % 4), e.pos, 0.35f + 0.55f * e.intensity, 12.0f, 0.95f + 0.1f * var);
+                        else at(std::format("arms_scrape_{}", n % 4), e.pos, 0.3f + 0.35f * e.intensity, 14.0f, 0.95f + 0.1f * var);
+                        break;
+                    case PE::Bulge: at(std::format("duller_bulge_{}", n % 2), e.pos, 0.6f + 0.4f * e.intensity, 14.0f); break;
+                    case PE::Burst:
+                        if (role == Role::Duller) at("duller_burst", e.pos, 1.0f, 30.0f);
+                        else at("arms_vent", e.pos, 0.35f, 9.0f);
+                        break;
+                    case PE::Burn: at("arms_burn", e.pos, 1.0f, 30.0f); break;
+                    case PE::Retract: at(role == Role::Duller ? "duller_retract" : "arms_retract", e.pos, 0.7f * e.intensity + 0.2f, 16.0f); break;
                     default: break;
                 }
                 break;

@@ -48,6 +48,7 @@ enum FixedMaterial : u32 {
     FM_ENT_UMBRA,                      // V13.2: Fensterwesen - schwarz und matt, aber fest (ohne den Rauchrand der Gestalt)
     // V13.2: Facelings sind verschieden (Haar, Haut, Kleidung) - weitere Stoffe, dunklere Haut, graues Haar
     FM_ENT_CLOTH_C, FM_ENT_CLOTH_D, FM_ENT_HUMANSKIN_B, FM_ENT_HAIR_GREY,
+    FM_ENT_DULLERSKIN, FM_ENT_ROTSKIN, FM_ENT_SMOKE,  // V13.3: Duller (dunkelgrau, trocken), Arms (verwesend), Rauch
     FM_FIG_END,
 };
 static_assert(FM_FIG_END <= kFixedMaterials);

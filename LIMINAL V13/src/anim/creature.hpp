@@ -43,7 +43,7 @@
 
 namespace lim::anim {
 
-enum class Entity : std::uint8_t { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Count };
+enum class Entity : std::uint8_t { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Count };
 constexpr int kEntityCount = (int)Entity::Count;
 
 struct CBone {
@@ -300,5 +300,69 @@ enum J : std::uint8_t {
 enum B : std::uint8_t { B_ROOT, B_BACK, B_BODY, B_CHEST, B_HEAD, B_UPPER_L, B_FORE_L, B_HAND_L, B_UPPER_R, B_FORE_R, B_HAND_R, BCOUNT };
 constexpr float kW = 1.2f, kH = 1.8f, kFigX = 0.016f;  // Oeffnung; Ebene des Umrisses (x)
 }  // namespace wn
+
+// V13.3: Duller (Entity 6, KREATUR_Duller.md) - gross, duerr, ohne Gesicht. Der Unterarm besteht aus kSeg ineinander
+// steckenden Gliedern (Glied 0 ist der Unterarm, die inneren je duenner): eingefahren liegen sie im Unterarm, ausgefahren
+// reicht der Arm gut 3 m weit (durch eine Wand). Dazu die Bruchstelle in der Wand (sie gehoert zum Wesen): Risse, Rand mit
+// Loch und fuenf Brocken, die zusammen die Woelbung bilden. Code: anim/creature_duller.cpp
+namespace du {
+constexpr int kSeg = 7, kFing = 5, kChunks = 5;
+// Gelenke: Rumpf, je Arm (Schulter, Ellbogen, Anfang und Ende je Glied, Knoechel, Finger zu je 3), Beine, Bruchstelle
+constexpr int kArmJ = 2 + 2 * kSeg + 1 + kFing * 3;
+constexpr int ROOT = 0, PELVIS = 1, SPINE = 2, CHEST = 3, NECK = 4, HEAD = 5, HEADTOP = 6, ARM0 = 7;
+constexpr int LEG0 = ARM0 + 2 * kArmJ;  // + s * 4: Huefte, Knie, Knoechel, Zehen
+constexpr int CRACK_A = LEG0 + 8, CRACK_B = CRACK_A + 1, RIM_A = CRACK_A + 2, RIM_B = CRACK_A + 3, CHUNK0 = CRACK_A + 4;  // + k * 2 + i
+constexpr int JCOUNT = CHUNK0 + kChunks * 2;
+inline int sh(int s) { return ARM0 + s * kArmJ; }
+inline int el(int s) { return sh(s) + 1; }
+inline int segS(int s, int k) { return sh(s) + 2 + k; }
+inline int segE(int s, int k) { return sh(s) + 2 + kSeg + k; }
+inline int kn(int s) { return sh(s) + 2 + 2 * kSeg; }
+inline int fin(int s, int f, int i) { return kn(s) + 1 + f * 3 + i; }
+inline int leg(int s, int i) { return LEG0 + s * 4 + i; }
+// Knochen: Rumpf, je Arm (Schluesselbein, Oberarm, Glieder, Hand, Finger zu je 2), Beine (je 3), Risse, Rand, Brocken
+constexpr int kArmB = 2 + kSeg + 1 + kFing * 2;
+constexpr int B_ROOT = 0, B_PELVIS = 1, B_SPINE = 2, B_CHEST = 3, B_NECK = 4, B_HEAD = 5, B_ARM0 = 6;
+constexpr int B_LEG0 = B_ARM0 + 2 * kArmB;  // + s * 3
+constexpr int B_CRACK = B_LEG0 + 6, B_RIM = B_CRACK + 1, B_CHUNK0 = B_CRACK + 2, BCOUNT = B_CHUNK0 + kChunks;
+static_assert(BCOUNT <= 64, "Gewichtsmasken fassen 64 Knochen");
+inline int bClav(int s) { return B_ARM0 + s * kArmB; }
+inline int bUpper(int s) { return bClav(s) + 1; }
+inline int bSeg(int s, int k) { return bClav(s) + 2 + k; }
+inline int bHand(int s) { return bClav(s) + 2 + kSeg; }
+inline int bFin(int s, int f, int i) { return bHand(s) + 1 + f * 2 + i; }
+inline int bLeg(int s, int i) { return B_LEG0 + s * 3 + i; }
+// Masse (m): Koerper; Glied k ist kSegLen - k * kSegShrink lang und steckt kSegOverlap im vorigen; Bruchstelle der Ruhepose
+constexpr float kHip = 1.10f, kWaist = 1.29f, kChest = 1.52f, kShoulder = 1.80f, kNeckTop = 1.93f, kHeadTop = 2.19f;
+constexpr float kShoulderW = 0.165f, kHipW = 0.095f, kUpper = 0.44f, kSegLen = 0.47f, kSegShrink = 0.01f, kSegOverlap = 0.07f;
+constexpr float kHand = 0.12f, kThigh = 0.53f, kShin = 0.52f, kAnkle = 0.06f, kFoot = 0.21f, kArmOut = 0.45f;
+constexpr float kBreachX = 1.5f, kBreachZ = 1.45f, kBreachH = 1.45f;  // Ruhepose: Mitte der Bruchstelle; Hoehe ueber dem Boden
+inline float segLen(int k) { return kSegLen - kSegShrink * (float)k; }
+float extendedLen();  // Unterarm ganz ausgefahren (Ellbogen bis Handgelenk)
+CreatureSkeleton skeleton();
+}  // namespace du
+
+// V13.3: Arms / Les Bras (Entite 15-FR, KREATUR_Arms.md) - ein langer, verdrehter, verwesender Arm mit drei Krallen, der
+// in Lueftungsschaechten lebt. Wurzel: Mitte der Oeffnung an der Decke; die Kette (kSeg Glieder) laeuft im Schacht und
+// gleitet durch die Oeffnung heraus. Dazu: Riss in der Decke (falls keine Lueftung da ist), verbrannte Hautfetzen, Rauch.
+// Code: anim/creature_arms.cpp
+namespace ar {
+constexpr int kSeg = 14, kClaws = 3, kShreds = 3, kSmoke = 4;
+constexpr int ROOT = 0, C0 = 1;                       // Kette: C0 (tief im Schacht) .. C0 + kSeg (Handgelenk)
+constexpr int WRIST = C0 + kSeg, KN = WRIST + 1;      // Hand: Handgelenk bis Knoechel
+constexpr int CLAW0 = KN + 1;                         // + c * 4 + i: Ansatz, Mitte, Kralle, Spitze
+constexpr int CRACK_A = CLAW0 + kClaws * 4, CRACK_B = CRACK_A + 1;
+constexpr int SHRED0 = CRACK_A + 2;                   // + k * 2 + i
+constexpr int SMOKE0 = SHRED0 + kShreds * 2;          // + k * 2 + i
+constexpr int JCOUNT = SMOKE0 + kSmoke * 2;
+constexpr int B_ROOT = 0, B_SEG0 = 1, B_HAND = B_SEG0 + kSeg, B_CLAW0 = B_HAND + 1;  // + c * 3 + i
+constexpr int B_CRACK = B_CLAW0 + kClaws * 3, B_SHRED0 = B_CRACK + 1, B_SMOKE0 = B_SHRED0 + kShreds, BCOUNT = B_SMOKE0 + kSmoke;
+static_assert(BCOUNT <= 64, "Gewichtsmasken fassen 64 Knochen");
+inline int claw(int c, int i) { return CLAW0 + c * 4 + i; }
+inline int bClaw(int c, int i) { return B_CLAW0 + c * 3 + i; }
+constexpr float kSegLen = 0.3f, kTop = 0.35f;  // Gliedlaenge; Ruhepose: C0 so hoch ueber der Wurzel, die Kette haengt senkrecht
+constexpr float kHand = 0.17f, kOutMax = 3.0f;  // Handgelenk bis Knoechel; so weit (m) gleitet der Arm hoechstens heraus
+CreatureSkeleton skeleton();
+}  // namespace ar
 
 }  // namespace lim::anim

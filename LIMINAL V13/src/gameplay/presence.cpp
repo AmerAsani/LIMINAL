@@ -27,6 +27,8 @@ const char* Presence::roleName(Role r) {
         case Role::Wretch: return "Wretch";
         case Role::Rat: return "Death Rat";
         case Role::Window: return "Fensterwesen";
+        case Role::Duller: return "Duller";  // V13.3
+        case Role::Arms: return "Arms";
     }
     return "?";
 }
@@ -112,6 +114,7 @@ bool Presence::hunting() const {
         if (a->role == Role::Clump && a->state >= 2 && a->state <= 4) return true;  // V11
         if (a->role == Role::Hound && (a->state == 2 || a->state == 3)) return true;
         if (a->role == Role::Smiler && a->state == 1 && a->sight.dist < 14.0f) return true;
+        if ((a->role == Role::Duller && a->state >= 2 && a->state <= 4) || (a->role == Role::Arms && a->state >= 1 && a->state <= 4)) return true;  // V13.3
     }
     return false;
 }
@@ -124,6 +127,8 @@ float Presence::threatProximity() const {
         if (a->role == Role::Hound) p = std::max(p, std::clamp(1.0f - (d - 1.0f) / 22.0f, 0.0f, 1.0f) * (a->state >= 2 ? 1.0f : 0.35f));
         if (a->role == Role::Moth && a->state >= 2) p = std::max(p, std::clamp(1.0f - d / 10.0f, 0.0f, 1.0f) * 0.45f);
         if (a->role == Role::Clump) p = std::max(p, std::clamp(1.0f - (d - 1.0f) / 14.0f, 0.0f, 1.0f) * (a->state >= 2 ? 1.0f : 0.3f));
+        if ((a->role == Role::Duller && a->state >= 2 && a->state <= 4) || (a->role == Role::Arms && a->state >= 1 && a->state <= 4))  // V13.3
+            p = std::max(p, a->role == Role::Duller ? 0.85f : 0.75f);
     }
     return p;
 }
@@ -434,6 +439,7 @@ void Presence::showcase(int kind, vec3 pos, float yaw, float walkSpeed) {
     a->look = kind == 0;
     if (a->ent == Entity::Moth) pos.z += 1.3f;
     if (a->ent == Entity::Window) pos.z += 1.9f;  // V13.2: Mitte des Fensters (Level 188: 1,9 m ueber dem Boden)
+    if (a->ent == Entity::Arms) pos.z += 2.6f, a->up = {0, 0, -1};  // V13.3: Oeffnung in der Decke
     a->initBody(pos, yaw, (unsigned)rng_.randint(1, 1 << 30));
     a->rig.setGlow(1.0f);
     if (a->ent == Entity::Moth && a->walkShow) a->fly = 1.0f;
@@ -486,6 +492,7 @@ bool Presence::kinSet(Role r, const std::string& key, double v) {
             else if (key == "pleads") a->pleads = v > 0.5;
             else if (key == "mode") a->mode = (int)v;
             else if (key == "provoke") a->provoke = v;
+            else if (key == "state") a->state = (int)v, a->stateT = 0.0;  // V13.3 (Tests, Bilder)
             else return false;
             return true;
         }
@@ -1074,6 +1081,8 @@ void Presence::think(Agent& a, double dt, const Context& c, std::vector<Event>& 
         case Role::Wretch: thinkWretch(a, dt, c, out); break;
         case Role::Rat: thinkRat(a, dt, c, out); break;
         case Role::Window: thinkWindow(a, dt, c, out); break;
+        case Role::Duller: thinkDuller(a, dt, c, out); break;  // V13.3
+        case Role::Arms: thinkArms(a, dt, c, out); break;
         default: break;
     }
 }
@@ -1306,6 +1315,10 @@ void Presence::regie(double dt, const Context& c, std::vector<Event>& out) {
                 if (!spawnClump(c, out, true)) log::info("Praesenz: erzwungenes Buendel nicht moeglich (kein Lager)");
             } else if (r == Role::Window) {  // V13.2: Fenster der Ebene (neu verteilt)
                 windowsPlaced_ = false;
+            } else if (r == Role::Duller) {  // V13.3: gleich an eine Wand neben dem Spieler (Skripte, Tests)
+                if (!spawnDuller(c, out, true)) log::info("Praesenz: erzwungener Duller nicht moeglich (keine Wand mit Gang dahinter)");
+            } else if (r == Role::Arms) {
+                if (!spawnArms(c, out, true)) log::info("Praesenz: erzwungene Arms nicht moeglich (keine Decke in Reichweite)");
             } else if (r >= Role::Faceling) {  // V13.2: wie die Ebene sie kennt; kennt sie es nicht, die Grundart
                 static std::array<world::KinDef, world::KIN_COUNT> base;
                 Context x = c;
@@ -1423,6 +1436,10 @@ void Presence::regie(double dt, const Context& c, std::vector<Event>& out) {
                 log::info("Praesenz: Schrei-Ereignis - kein Ort ausser Sicht, spaeter");
             }
         }
+    }
+    if (c.mode > 0 && !c.suspended && c.kin) {  // V13.3: Duller (Wandhinterhalt), Arms (Lueftungen im Dunkeln)
+        regieDuller(dt, c, out);
+        regieArms(dt, c, out);
     }
     if (screamT_ > 0.0) {  // das Licht flackert, bis es vorbei ist
         screamT_ -= dt;
@@ -1590,7 +1607,7 @@ void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
         for (size_t i = before; i < agents_.size();) {
             Agent& a = *agents_[i];
             bool visible = false;
-            if (multi && a.role != Role::Nest && a.role != Role::Moth)
+            if (multi && a.role != Role::Nest && a.role != Role::Moth && a.role != Role::Arms)  // V13.3: Arms im Schacht
                 for (const Tgt& t : tgts) visible = visible || perceive(*t.v, *c.world, a.feet(), a.height()).level > 0.2f;
             if (visible) {
                 log::info("Praesenz: {} verworfen - ein Mitspieler saehe es erscheinen", roleName(a.role));
@@ -1653,7 +1670,8 @@ void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
         if (seen) {
             a.seenT += dt;
             a.unseenT = 0.0;
-            const bool kinThreat = (a.role == Role::Faceling && a.mode >= 2) || a.role == Role::SkinStealer || (a.role == Role::Wretch && !a.pleads);
+            const bool kinThreat = (a.role == Role::Faceling && a.mode >= 2) || a.role == Role::SkinStealer || (a.role == Role::Wretch && !a.pleads) ||
+                                   a.role == Role::Duller;  // V13.3
             if (!a.sighted && !a.showcase && (a.role == Role::Smiler || a.role == Role::Hound || (a.role == Role::Clump && a.state >= 2) || kinThreat) &&
                 (a.role == Role::Smiler || a.sight.level > 0.35f)) {
                 a.sighted = true;
@@ -1760,7 +1778,7 @@ void Presence::netApply(const std::vector<NetState>& in, double stamp) {
             na->puppet = true;
             na->netId = n.netId;
             na->variant = n.variant;
-            na->noShadow = role == Role::Nest || role == Role::Moth || role == Role::Gestalt || role == Role::Clump || role == Role::Window;
+            na->noShadow = role == Role::Nest || role == Role::Moth || role == Role::Gestalt || role == Role::Clump || role == Role::Window || role == Role::Arms;
             na->up = n.up, na->fwd = n.fwd;
             na->initBody(n.pos, n.yaw, 0x9E37u + n.netId);
             if (role == Role::Moth) {  // gleich fertig an Wand oder Decke (wie beim Host)
