@@ -107,6 +107,7 @@ struct SceneParams {
     float redEdge = 0, redPulse = 0;
     float menuDim = 0, desaturate = 0;
     float moodExposure = 1.0f;  // Faktor aus der Raumhelligkeit (dunkle Zonen bleiben dunkel)
+    float grainBoost = 0.0f, chromaBoost = 0.0f;  // V13.3: zusaetzliches Filmkorn und Farbsaeume (Rauschen eines Growlers)
     bool resetHistory = false;
     // V6: Bewegung des Spielers seit dem letzten Bild (Welt -> Welt), fuer mitbewegte Objekte
     mat4 attachedReproject = mat4::identity();

@@ -1337,7 +1337,10 @@ bool entityFromGlb(Entity e, FigureModel& out, std::string& info, const std::str
         {"ent_paleskin", FM_ENT_PALESKIN}, {"ent_wretchskin", FM_ENT_WRETCHSKIN}, {"ent_stone", FM_ENT_STONE},
         {"ent_ratfur", FM_ENT_RATFUR}, {"ent_hornglow", FM_ENT_HORNGLOW}, {"ent_view", FM_ENT_VIEW}, {"ent_ooze", FM_ENT_OOZE},
         {"ent_humanskin", FM_ENT_HUMANSKIN}, {"ent_ratskin", FM_ENT_RATSKIN}, {"ent_umbra", FM_ENT_UMBRA},
-        {"ent_cloth_c", FM_ENT_CLOTH_C}, {"ent_cloth_d", FM_ENT_CLOTH_D}, {"ent_humanskin_b", FM_ENT_HUMANSKIN_B}, {"ent_hair_grey", FM_ENT_HAIR_GREY}};
+        {"ent_cloth_c", FM_ENT_CLOTH_C}, {"ent_cloth_d", FM_ENT_CLOTH_D}, {"ent_humanskin_b", FM_ENT_HUMANSKIN_B}, {"ent_hair_grey", FM_ENT_HAIR_GREY},
+        // V13.3: Growler, Nguithr'xurh
+        {"ent_pipe_a", FM_ENT_PIPE_A}, {"ent_pipe_b", FM_ENT_PIPE_B}, {"ent_pipe_c", FM_ENT_PIPE_C}, {"ent_pipe_d", FM_ENT_PIPE_D},
+        {"ent_wire", FM_ENT_WIRE}, {"ent_solifuge", FM_ENT_SOLIFUGE}, {"ent_silk", FM_ENT_SILK}, {"ent_sedative", FM_ENT_SEDATIVE}};
     const CreatureSkeleton& sk = entitySkeleton(e);
     FigureModel m;
     std::vector<mat4> frames;

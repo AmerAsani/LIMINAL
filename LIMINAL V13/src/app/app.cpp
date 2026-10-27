@@ -240,14 +240,17 @@ void App::scriptStep() {
             using R = game::Presence::Role;
             const std::string n = name;
             const R r = n == "faceling" ? R::Faceling : n == "skinstealer" ? R::SkinStealer : n == "wretch" ? R::Wretch : n == "rat" ? R::Rat
-                        : n == "window" ? R::Window : n == "hound" ? R::Hound : n == "smiler" ? R::Smiler : n == "clump" ? R::Clump : R::Gestalt;
+                        : n == "window" ? R::Window : n == "hound" ? R::Hound : n == "smiler" ? R::Smiler : n == "clump" ? R::Clump
+                        : n == "growler" ? R::Growler : n == "nguithrxurh" ? R::Nguithr : R::Gestalt;  // V13.3
             auto& pr = session_->presence();
             if (!pr.has(r)) {
                 log::warn("Skript: near - kein {}", game::Presence::roleName(r));
             } else {
                 const vec3 at = pr.posOf(r);
                 auto& w = session_->world();
-                const float baseZ = r == R::Window ? at.z - 1.9f : at.z, aimZ = r == R::Window ? at.z : at.z + (r == R::Rat ? 0.1f : 1.0f);
+                float baseZ = r == R::Window ? at.z - 1.9f : at.z, aimZ = r == R::Window ? at.z : at.z + (r == R::Rat ? 0.1f : 1.0f);
+                if (r == R::Nguithr)  // V13.3: die Netzkugeln an der Decke - der Boden darunter, Blick auf die Kugeln
+                    if (const world::Tile* t0 = w.tileIfLoaded(ifloor(at.x), ifloor(at.y))) baseZ = t0->floor, aimZ = at.z - 0.6f;
                 bool placed = false;
                 // erst die gewuenschte Seite, dann reihum weitere Winkel (freie Sicht vom Auge zum Wesen)
                 for (int k = 0; k < 13 && !placed; ++k) {
@@ -345,7 +348,8 @@ void App::scriptStep() {
             // Entities nach Namen (anim::Entity); player: der Mensch
             // V13.2: neue Wesen; player = 99 (Mensch)
             const int kind = n == "hound" ? 1 : n == "moth" ? 2 : n == "gestalt" ? 3 : n == "nest" ? 4 : n == "clump" ? 5 : n == "faceling" ? 6
-                             : n == "skinstealer" ? 7 : n == "wretch" ? 8 : n == "rat" ? 9 : n == "window" ? 10 : n == "player" ? 99 : 0;
+                             : n == "skinstealer" ? 7 : n == "wretch" ? 8 : n == "rat" ? 9 : n == "window" ? 10 : n == "player" ? 99
+                             : n == "growler" ? 11 : n == "nguithrxurh" ? 12 : 0;  // V13.3
             auto& pl = session_->player();
             vec3 at{(float)(pl.x + std::cos(pl.angle) * dist), (float)(pl.y + std::sin(pl.angle) * dist), 0.0f};
             at.z = session_->world().tile(ifloor(at.x), ifloor(at.y)).floor;
@@ -378,6 +382,8 @@ void App::scriptStep() {
                 if (n == "wretch") r = R::Wretch;
                 if (n == "rat") r = R::Rat;
                 if (n == "window") r = R::Window;
+                if (n == "growler") r = R::Growler;  // V13.3
+                if (n == "nguithrxurh") r = R::Nguithr;
                 session_->presence().force(r, dist);
             }
         } else if (cmd == "audioinfo") {  // V11 (Tests): Zustand der Klanglandschaft ins Protokoll
@@ -1331,6 +1337,12 @@ void App::handleEvents() {
                 if (e.role == (int)game::Presence::Role::Clump) {  // V11: Buendel - nasser Griff, Knacken, Brüllen tiefer
                     audio_->play("clump_grab", 1.0f, 1.0f, audio::Bus::Effects);
                     audio_->play("scare_hound", 0.85f, 0.78f, audio::Bus::Effects);
+                } else if (e.role == (int)game::Presence::Role::Growler) {  // V13.3: Drahtspitzen, Rauschen
+                    audio_->play("growler_impale", 1.0f, 1.0f, audio::Bus::Effects);
+                    audio_->play("scare_hound", 0.7f, 0.66f, audio::Bus::Effects);
+                } else if (e.role == (int)game::Presence::Role::Nguithr) {  // V13.3: frisst bei lebendigem Leib
+                    audio_->play("ngui_feed", 1.0f, 1.0f, audio::Bus::Effects);
+                    audio_->play("scare_smiler", 0.6f, 1.25f, audio::Bus::Effects);
                 } else {
                     audio_->play(e.role == (int)game::Presence::Role::Smiler ? "scare_smiler" : "scare_hound", 1.0f, 1.0f, audio::Bus::Effects);
                 }
@@ -1361,6 +1373,8 @@ void App::handleEvents() {
                         if (role == Role::SkinStealer) at("hound_step", e.pos, 0.55f + 0.3f * e.intensity, 22.0f, 0.62f + 0.06f * var);
                         if (role == Role::Wretch) at(stepSound(e.surface), e.pos, 0.3f + 0.4f * e.intensity, 18.0f, e.intensity < 0.5f ? 0.7f : 0.9f + 0.1f * var);
                         if (role == Role::Rat) at("hound_step", e.pos, 0.08f, 6.0f, 2.2f + 0.3f * var);
+                        // V13.3: Growler - dumpfer, weicher Aufschlag, Draht kratzt, das Gewirr raschelt nach
+                        if (role == Role::Growler) at(std::format("growler_drag_{}", n % 3), e.pos, 0.35f + 0.5f * e.intensity, 22.0f, 0.88f + 0.16f * var);
                         break;
                     // V11 Buendel: Klopfen im Schacht, Herabfallen, Schleifen, Ausholen
                     case PE::Knock: at(std::format("clump_knock_{}", n % 3), e.pos, 0.9f, 30.0f); break;
@@ -1411,6 +1425,26 @@ void App::handleEvents() {
                     case PE::Scream: at("rat_scream", e.pos, 1.0f, 40.0f); break;
                     case PE::Swing: at("stone_swing", e.pos, 0.8f, 12.0f, 0.95f + 0.1f * var); break;
                     case PE::Pull: at("window_pull", e.pos, 0.9f, 14.0f); break;
+                    // V13.3: Growler, Nguithr'xurh
+                    case PE::Click: at(std::format("growler_click_{}", n % 4), e.pos, 0.45f + 0.4f * e.intensity, 26.0f, 1.15f - 0.3f * e.intensity + 0.05f * var); break;
+                    case PE::Lurch: at("growler_surge", e.pos, 1.0f, 34.0f); break;
+                    case PE::Merge: at("growler_merge", e.pos, 1.0f, 40.0f); break;
+                    case PE::Collapse: at("growler_collapse", e.pos, 0.5f + 0.5f * e.intensity, 30.0f); break;
+                    case PE::Snip: at("ngui_snip", e.pos, 0.45f, 9.0f, 0.95f + 0.1f * var); break;
+                    case PE::Burst:
+                        at(std::format("ngui_burst_{}", n % 2), e.pos, 0.75f, 14.0f, 0.95f + 0.1f * var);
+                        // Koop (Gast): die Kugel platzt auf mir - die Wirkung rechnet der Host, das Bild hier selbst
+                        if (coopClient_ && session_) {
+                            const auto& pl = session_->player();
+                            if (std::hypot(pl.x - e.pos.x, pl.y - e.pos.y) < 1.25 && std::fabs(pl.z - e.pos.z) < 0.7)
+                                session_->presence().addDose(session_->netSelfId, 0.3f);
+                        }
+                        break;
+                    case PE::Skitter: at(std::format("ngui_skitter_{}", n % 3), e.pos, 0.2f + 0.6f * e.intensity, 9.0f, 0.9f + 0.2f * var); break;
+                    case PE::Stridulate:
+                        if (e.intensity > 0.6f) at("ngui_chitter_1", e.pos, 0.85f, 14.0f, 0.95f + 0.1f * var);
+                        else at("ngui_chitter_0", e.pos, 0.35f + 0.4f * e.intensity, 11.0f, 0.9f + 0.2f * var);
+                        break;
                     default: break;
                 }
                 break;
@@ -1504,7 +1538,30 @@ void App::updateAudio(double dt) {
         const bool uw = s.underwater() && !st.dead;
         if (uw && uwId < 0) uwId = audio_->startLoop("underwater", 0.5f, audio::Bus::Effects);
         if (!uw && uwId >= 0) audio_->stopLoop(uwId), uwId = -1;
-        if (!st.dead) audio_->setMuffle(uw ? 0.8f : 0.0f);
+        // V13.3: betaeubt (Nguithr'xurh) klingt alles dumpf
+        if (!st.dead) audio_->setMuffle(std::max(uw ? 0.8f : 0.0f, 0.6f * s.presence().stupor(s.netSelfId)));
+    }
+    // V13.3: das Rauschen eines Growlers - im Kopf (ohne Richtung), je naeher, desto lauter; die Betaeubung klingt in den Ohren
+    {
+        static int statId = -1, dazeId = -1, gen13 = -1;
+        if (gen13 != audioGen_) gen13 = audioGen_, statId = dazeId = -1;
+        const float stc = st.dead || worldPaused ? 0.0f : s.presence().staticLevel();
+        if (stc > 0.02f && statId < 0) {
+            statId = audio_->startLoop("growler_static", 0.0f, audio::Bus::Creatures);
+            audio_->setLoopFadeIn(statId, 0.8f);
+        }
+        if (stc <= 0.01f && statId >= 0) audio_->stopLoop(statId), statId = -1;
+        if (statId >= 0) {
+            audio_->setLoopVolume(statId, std::min(1.0f, 0.12f + 0.95f * stc));
+            audio_->setLoopPitch(statId, 0.9f + 0.2f * stc);
+        }
+        const float daze = st.dead ? 0.0f : s.presence().stupor(s.netSelfId);
+        if (daze > 0.05f && dazeId < 0) {
+            dazeId = audio_->startLoop("ngui_daze", 0.0f, audio::Bus::Effects);
+            audio_->setLoopFadeIn(dazeId, 2.0f);
+        }
+        if (daze <= 0.03f && dazeId >= 0) audio_->stopLoop(dazeId), dazeId = -1;
+        if (dazeId >= 0) audio_->setLoopVolume(dazeId, std::min(1.0f, 0.2f + 0.8f * daze));
     }
     // V9/V10: jagt eine Entity, liegt ein tiefes Brummen an ihrer Stelle; Herzschlag, wenn sie nah ist;
     // der Schwarm flattert; draussen: Wind
@@ -1672,6 +1729,13 @@ void App::renderWorld(double dt, bool clean) {
             cam.roll = 0.0f;
             if (freeCam_.fov > 1.0f) cam.fovY = freeCam_.fov * 0.0174533f;
         }
+        if (playing && !freeCam_.on && !figCam_.on && !vmCam_.on) {  // V13.3: das Bild schwankt (Rauschen), traege (Betaeubung)
+            const float stc = s.presence().staticLevel(), daze = s.presence().stupor(s.netSelfId), t = (float)time_;
+            cam.roll += stc * (0.05f * std::sin(t * 2.3f) + 0.025f * std::sin(t * 7.9f)) + daze * 0.07f * std::sin(t * 0.6f);
+            cam.yaw += stc * 0.012f * std::sin(t * 13.0f) * std::sin(t * 3.1f) + daze * 0.03f * std::sin(t * 0.43f);
+            cam.pitch += daze * 0.025f * std::sin(t * 0.51f + 1.0f);
+            cam.fovY *= 1.0f + 0.04f * stc * std::sin(t * 4.0f) + 0.05f * daze;
+        }
         if (playing && coop()) {  // V13.2: Namen ueber den Mitspielern (nach allen Kameras; dieselben Matrizen wie das Bild)
             std::vector<ui::Ui::NameTag> tags;
             const float aspect = (float)window_.width() / (float)std::max(1, window_.height());
@@ -1720,6 +1784,22 @@ void App::renderWorld(double dt, bool clean) {
         sp.moodExposure = mood;
         const float glow = playing ? s.escapeGlow() : 0.0f;  // V9: die Kabine wird immer heller
         if (glow > 0.0f) sp.moodExposure = mood * (1.0f + 2.2f * glow * glow), sp.desaturate = std::max(sp.desaturate, 0.5f * glow);
+        // V13.3: Rauschen eines Growlers - Bildrauschen wie zwischen zwei Sendern, Farbsaeume, die Farbe weicht; Betaeubung
+        // (Nguithr'xurh) - dunkler, weichgezeichnet, entsaettigt
+        if (playing) {
+            const float stc = s.presence().staticLevel(), daze = s.presence().stupor(s.netSelfId);
+            if (stc > 0.0f) {
+                const float flick = 0.7f + 0.3f * std::sin((float)time_ * 37.0f) * std::sin((float)time_ * 11.0f);
+                sp.grainBoost = 9.0f * stc * stc * flick;
+                sp.chromaBoost = 5.0f * stc;
+                sp.desaturate = std::max(sp.desaturate, 0.55f * stc);
+            }
+            if (daze > 0.0f) {
+                sp.menuDim = std::max(sp.menuDim, 0.55f * smoothstep(0.15f, 1.0f, daze));
+                sp.desaturate = std::max(sp.desaturate, 0.45f * daze);
+                sp.moodExposure *= 1.0f - 0.35f * daze;
+            }
+        }
         // V11: Schreck - weisser Blitz in den ersten Bildern, roter Rand, danach fast schwarz
         if (playing && scareT_ >= 0.0) {
             const float pop = std::exp(-(float)scareT_ * 11.0f);

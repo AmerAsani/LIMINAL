@@ -763,8 +763,10 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
     }
     // V6: erschoepft etwas langsamer, Sprinten nur mit Ausdauer
     player_.speedMul = stats_.speedMul() * (stats_.exhausted ? 0.9 : 1.0);
+    // V13.3: betaeubt (Nguithr'xurh) langsamer und ohne Sprint; durch das Gewirr einer Growler-Leiche waten
+    player_.speedMul *= presence_.slowFor(netSelfId, {(float)player_.x, (float)player_.y, (float)player_.z});
     PlayerControl c = paused ? PlayerControl{} : control;
-    if (!stats_.canSprint()) c.sprint = false;
+    if (!stats_.canSprint() || presence_.stupor(netSelfId) > 0.5f) c.sprint = false;
     if (ride_.active) c.forward = c.side = 0.0f, c.sprint = c.jump = false;  // V8: im Aufzug nur umsehen
     if (stats_.dead) c.forward = c.side = 0.0f, c.sprint = c.jump = c.jumpHeld = false;  // V13.2: tot (Koop: zusehen)
     const double prevX = player_.x, prevY = player_.y;
@@ -1573,6 +1575,8 @@ void GameSession::updatePresence(double dt) {
         netCreaturesFresh = false;
     }
     presence_.update(dt, c, presenceEvents_);
+    // V13.3: Growler senden WLAN und laden Geraete auf (die Seite) - nah an einem laedt sich die Lampe (das Rauschen zehrt dafuer)
+    if (presence_.staticLevel() > 0.25f && !stats_.dead) flash_.addCharge(dt * 3.0 * presence_.staticLevel());
     noisePings_.clear();
     if (netRole == NetRole::Guest) {  // Werte rechnet der Host; hier nur Klang und Bild der Puppen
         for (const Presence::Event& e : presenceEvents_) {
@@ -1629,6 +1633,11 @@ void GameSession::updatePresence(double dt) {
                         if (p->stats.health <= 0.0) p->stats.dead = true, p->killRole = (int)e.role;
                         break;
                     case PE::Whisper: p->stats.sanity = std::max(0.0, p->stats.sanity - 0.4 * e.strength); break;
+                    case PE::Static:  // V13.3: das Rauschen eines Growlers aus der Naehe
+                        p->stats.health = std::max(0.0, p->stats.health - (double)e.strength * hitScale_);
+                        p->stats.sanity = std::max(0.0, p->stats.sanity - 0.5);
+                        if (p->stats.health <= 0.0) p->stats.dead = true, p->killRole = (int)e.role;
+                        break;
                     default: break;
                 }
             }
@@ -1642,7 +1651,9 @@ void GameSession::updatePresence(double dt) {
                                  e.type == PE::TakeOff || e.type == PE::Knock || e.type == PE::Drop || e.type == PE::Drag ||
                                  e.type == PE::Flicker || e.type == PE::Breath || e.type == PE::Mimic || e.type == PE::Plead ||
                                  e.type == PE::Gurgle || e.type == PE::Hum || e.type == PE::Squeak || e.type == PE::Scream ||
-                                 e.type == PE::Swing || e.type == PE::Pull || e.type == PE::Whisper;  // V13.2
+                                 e.type == PE::Swing || e.type == PE::Pull || e.type == PE::Whisper ||  // V13.2
+                                 e.type == PE::Click || e.type == PE::Lurch || e.type == PE::Merge || e.type == PE::Collapse ||
+                                 e.type == PE::Snip || e.type == PE::Burst || e.type == PE::Skitter || e.type == PE::Stridulate;  // V13.3
             if (!audible) continue;
             if (e.type == PE::Flicker)
                 if (const world::Tile* t = world_->tileIfLoaded(ifloor(e.pos.x), ifloor(e.pos.y)); t && t->room) haunt_.flicker(t->room);
@@ -1659,7 +1670,9 @@ void GameSession::updatePresence(double dt) {
         if (netRole == NetRole::Host && (e.type == PE::Step || e.type == PE::Growl || e.type == PE::Bark || e.type == PE::TakeOff ||
                                          e.type == PE::Knock || e.type == PE::Drop || e.type == PE::Drag || e.type == PE::Flicker ||
                                          e.type == PE::Mimic || e.type == PE::Plead || e.type == PE::Gurgle || e.type == PE::Hum ||
-                                         e.type == PE::Squeak || e.type == PE::Scream || e.type == PE::Swing || e.type == PE::Pull))
+                                         e.type == PE::Squeak || e.type == PE::Scream || e.type == PE::Swing || e.type == PE::Pull ||
+                                         e.type == PE::Click || e.type == PE::Lurch || e.type == PE::Merge || e.type == PE::Collapse ||  // V13.3
+                                         e.type == PE::Snip || e.type == PE::Burst || e.type == PE::Skitter || e.type == PE::Stridulate))
             netFigureOut.push_back(e);  // auch die Gaeste hoeren es
         GameEvent ev;
         ev.type = GameEvent::Figure;
@@ -1720,6 +1733,15 @@ void GameSession::updatePresence(double dt) {
                 }
                 break;
             case PE::Whisper: stats_.sanity = std::max(0.0, stats_.sanity - 0.4 * e.strength); break;  // V13.2: es zehrt
+            case PE::Static:  // V13.3: das Rauschen eines Growlers aus der Naehe - zehrt am Verstand, grosse schaden dem Kopf
+                stats_.health = std::max(0.0, stats_.health - (double)e.strength * hitScale_);
+                stats_.sanity = std::max(0.0, stats_.sanity - 0.5);
+                if (stats_.health <= 0.0) {
+                    stats_.dead = true;
+                    deathCause_ = "stalker";
+                    killRole_ = (int)e.role;
+                }
+                break;
             case PE::Scream:  // V13.2: Ratten - das Licht im Raum flackert (weiter ueber Flicker)
                 if (const world::Tile* t = world_->tileIfLoaded(ifloor(e.pos.x), ifloor(e.pos.y)); t && t->room) haunt_.flicker(t->room);
                 break;

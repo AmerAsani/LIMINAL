@@ -14,7 +14,10 @@
   // V13.2 (ENTITY_ABGLEICH.md): Skin-Stealer getarnt (die Seite: weisse Menschengestalten, die Haut tragen), Wretch
   "presence": { "hound": true, "smiler": true, "gestalt": false, "blackout": true, "clump": 0.35,
                "skinstealer": { "mode": "skin", "group": [1, 1], "every": 300, "chance": 0.25 },
-               "wretch": { "mode": "mixed", "group": [1, 1], "every": 260 } },
+               "wretch": { "mode": "mixed", "group": [1, 1], "every": 260 },
+               // V13.3 (KREATUR_Growler.md, KREATUR_Nguithrxurh.md): Growler ausgewachsen, einzeln; Nguithr'xurh gross, hungrig
+               "growler": { "mode": "adult", "group": [1, 1], "every": 330 },
+               "nguithrxurh": { "mode": "large", "group": [3, 4], "every": 170, "chance": 1.0 } },
   "next_level": "level2",
   "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0 },
 

@@ -16,7 +16,8 @@ void GameSession::pawnInput(Pawn& p, const PlayerControl& c0, double dt) {
     if (!p.alive) return;
     PlayerControl c = c0;
     p.player.speedMul = p.stats.speedMul() * (p.stats.exhausted ? 0.9 : 1.0);
-    if (!p.stats.canSprint()) c.sprint = false;
+    p.player.speedMul *= presence_.slowFor(p.id, {(float)p.player.x, (float)p.player.y, (float)p.player.z});  // V13.3
+    if (!p.stats.canSprint() || presence_.stupor(p.id) > 0.5f) c.sprint = false;
     if (const world::Room* wr = world_->roomAt(p.player.x, p.player.y)) p.player.waterZ = wr->water;
     else p.player.waterZ = -999.0;
     p.player.update(dt, c, tileSrc());
