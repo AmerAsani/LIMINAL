@@ -998,6 +998,8 @@ LN_API LnContext* ln_host(const LnConfig* cfg, const LnLimits* lim) {
         lc.turn = false;
         lc.singleRoom = true;
         lc.maxPerIp = 8;
+        lc.maxConnections = 32;  // im Spiel des Hosts: wenige Verbindungen genuegen
+        lc.maxRooms = 1;
         c->embedded = std::make_unique<LobbyServer>();
         if (!c->embedded->start(lc, err)) {
             delete c;
