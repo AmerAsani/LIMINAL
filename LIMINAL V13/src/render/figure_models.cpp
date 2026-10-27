@@ -120,11 +120,11 @@ SkinPart toPart(const Ctx& c, const sculpt::RawMesh& m, u32 material, u32 allowe
 }
 
 SkinPart meshPart(const Ctx& c, const Shape& s, float h, u32 material, u32 allowed, float sigma = 0.35f, const Policy& policy = nullptr,
-                  Aabb box = Aabb{}, const Tint& tint = nullptr) {
+                  Aabb box = Aabb{}, const Tint& tint = nullptr, float keep = -1.0f) {
     if (!box.valid()) box = s.bounds();
     sculpt::RawMesh m = sculpt::mesh(s, box, h, c.jobs);
     const size_t tris = m.idx.size() / 3;
-    const size_t target = std::max<size_t>(64, (size_t)((float)tris * kKeep[c.lod]));
+    const size_t target = std::max<size_t>(64, (size_t)((float)tris * (keep > 0.0f ? keep : kKeep[c.lod])));
     if (target < tris) {
         sculpt::simplify(m, target);
         sculpt::reproject(m, s, h, c.jobs);
@@ -150,10 +150,12 @@ void torso(Shape& s, const Ctx& c, float g, bool detail) {
         const float sg = c.sg(sd);
         vec3 sh = c.SJ(J_SHOULDER_L, sd);
         s.cone(c.J(J_NECK) + U * (0.005f * hk) - F * 0.015f, sh - U * 0.004f - F * 0.008f, b.neckR * 0.8f + g, 0.026f + g, 0.045f);
-        // Deltamuskel
+        // Deltamuskel. V13.3: unter Kleidung nur das halbe Aufmass - der Aermel (sleeveDist) liegt darueber; mit vollem
+        // Aufmass wurde die Schulter beim gehobenen Arm von hinten eine dicke Kugel
         vec3 armDir = normalize(c.SJ(J_ELBOW_L, sd) - sh);
+        const float gd = g * 0.5f;
         s.ellipsoidAx(sh + armDir * (0.04f * hk) + L * (sg * 0.002f), armDir, F,
-                      {0.065f * hk + g, b.upperArmR * (0.98f + 0.15f * b.muscle) + g, b.upperArmR * (1.02f + 0.15f * b.muscle) + g}, 0.03f);
+                      {0.065f * hk + gd, b.upperArmR * (0.98f + 0.15f * b.muscle) + gd, b.upperArmR * (1.02f + 0.15f * b.muscle) + gd}, 0.03f);
         // Gesaess
         s.ellipsoid(c.J(J_PELVIS) - F * (b.hipsD * 0.5f) + L * (sg * 0.064f) - U * (0.055f * hk),
                     {0.072f + g, 0.074f + g, 0.088f * hk + g}, 0.05f);
@@ -625,15 +627,52 @@ float sleeveRadius(const Ctx& c, const SleeveGeo& g, float s) {
     const Build& b = c.b;
     const float end = g.fa + kCuffOut, seam = end - kCuffLen;
     const float xs[] = {-g.ua, -0.55f * g.ua, 0.0f, 0.35f * g.fa, seam - kGather, seam, end};
-    const float ys[] = {b.upperArmR + 0.0185f, b.upperArmR + 0.0125f, b.forearmR + 0.0125f, b.forearmR + 0.0075f,
+    const float ys[] = {b.upperArmR + 0.016f, b.upperArmR + 0.0125f, b.forearmR + 0.0125f, b.forearmR + 0.0075f,
                         b.wristR + 0.0125f, b.wristR + 0.0058f, b.wristR + 0.0046f};
     return monotone(xs, ys, 7, s);
+}
+
+// Stofffalten des Aermels (Verschiebung, positiv = nach innen); groove: Anteil einer Rinne 0..1 (Faerbung)
+float sleeveFolds(const SleeveGeo& g, vec3 p, float* groove) {
+    float v = 0.0f, gr = 0.0f;
+    const vec3 q = p - g.E;
+    // Armbeuge: drei bis vier Querfalten auf der Innenseite des Ellbogens, schraeg zu den Seiten auslaufend
+    {
+        const float u = dot(q, g.bis);
+        const vec3 rv = orthoTo(q, g.bis);
+        const float rl = length(rv);
+        if (std::fabs(u) < 0.11f && rl > 0.02f && rl < 0.075f) {
+            const vec3 n = rv / rl;
+            const float cr = dot(n, g.crook), lat = dot(n, cross(g.bis, g.crook));
+            const float m = std::exp(-(u / 0.045f) * (u / 0.045f)) * smoothstep(-0.2f, 0.65f, cr);
+            const float ph = 2.0f * kPi * (u - 0.008f * lat) / 0.028f + 1.3f * sculpt::noise3(p * 30.0f, 211);
+            const float f = 0.0026f * m * std::sin(ph);
+            v += f;
+            gr = std::max(gr, std::max(0.0f, f) / 0.0026f);
+        }
+    }
+    // Stau ueber dem Buendchen: der Aermel ist laenger als der Arm und schiebt sich vor der Raffung in Ringen zusammen
+    {
+        const float tf = dot(q, g.fd), rl = length(orthoTo(q, g.fd));
+        const float w = tf - (g.fa + kCuffOut - kCuffLen - kGather);
+        if (w > -0.12f && w < 0.0f && rl < 0.07f) {
+            const float m = smoothstep(-0.11f, -0.07f, w) * (1.0f - smoothstep(-0.012f, -0.003f, w));
+            const float am = 0.6f + 0.4f * sculpt::noise3(p * 28.0f, 223);
+            const float ph = 2.0f * kPi * w / 0.02f + 2.0f * sculpt::noise3(p * 22.0f, 227);
+            const float f = 0.0026f * m * am * std::sin(ph);
+            v += f - 0.0012f * m;  // gerafft etwas weiter
+            gr = std::max(gr, std::max(0.0f, f) / 0.0026f);
+        }
+    }
+    if (groove) *groove = gr;
+    return v;
 }
 
 // Abstand zum Aermel (Stoff ist innen negativ)
 float sleeveDist(const Ctx& c, const SleeveGeo& g, vec3 p) {
     const vec3 pu = p - g.S;
-    const float tu = std::clamp(dot(pu, g.ad), 0.0f, g.ua);
+    // V13.3 Runde 3: der Schlauch beginnt 2 cm im Deltamuskel (die Kappe an der Schulter trug sonst auf)
+    const float tu = std::clamp(dot(pu, g.ad), 0.02f, g.ua);
     const float du = length(pu - g.ad * tu) - sleeveRadius(c, g, tu - g.ua);
     const float end = g.fa + kCuffOut;
     const vec3 pf = p - g.E;
@@ -662,6 +701,12 @@ vec2 hoodieTint(const Ctx& c, const SleeveGeo* sl, vec3 p) {
         dark = std::max(dark, 0.9f * smoothstep(end - kDish - 0.004f, end - kDish + 0.001f, tf) * (1.0f - smoothstep(rH - 0.001f, rH + 0.003f, rad)));
         dark = std::max(dark, 0.12f * smoothstep(seam - 0.002f, seam + 0.004f, tf));
         dark = std::max(dark, 0.35f * std::exp(-((tf - seam) / 0.004f) * ((tf - seam) / 0.004f)));
+    }
+    // Rinnen der Falten etwas dunkler (Hohlraum)
+    for (int sd = 0; sd < 2; ++sd) {
+        float gr = 0.0f;
+        sleeveFolds(sl[sd], p, &gr);
+        dark = std::max(dark, 0.3f * gr);
     }
     return vec2{0.0f, std::clamp(dark, 0.0f, 1.0f)};
 }
@@ -722,6 +767,7 @@ void buildPlayer(Assembly& as) {
                     const float tf = dot(p - g.E, g.fd), seam = g.fa + kCuffOut - kCuffLen;
                     v *= 1.0f - smoothstep(seam - kGather - 0.004f, seam - kGather + 0.004f, tf);  // Buendchen glatt
                 }
+                for (const SleeveGeo& g : sl) v += sleeveFolds(g, p, nullptr);  // V13.3 Runde 3
                 return v;
             };
         }
@@ -740,7 +786,8 @@ void buildPlayer(Assembly& as) {
         const float hoodH = lod == 0 ? 0.0065f : kBodyH[lod];
         const Ctx* cp = &c;
         Tint hoodTint = [cp, sl](vec3 p) { return hoodieTint(*cp, sl, p); };
-        parts.push_back(meshPart(c, hoodie, hoodH, FM_HOODIE, kTorsoBones | kArmBones, 0.4f, sleeveWeights, Aabb{}, hoodTint));
+        // Stufe 0: 40 % der Dreiecke behalten (Kante des Buendchens und Falten), sonst wie alle Teile
+        parts.push_back(meshPart(c, hoodie, hoodH, FM_HOODIE, kTorsoBones | kArmBones, 0.4f, sleeveWeights, Aabb{}, hoodTint, lod == 0 ? 0.4f : -1.0f));
         trousers(as, lod, FM_JEANS, 0.014f, c.LJ(J_ANKLE_L, 0).z + 0.045f, 0.0f, false, 107, c.J(J_PELVIS).z - 0.02f);
         shoes(as, lod, FM_SNEAKER, 0.004f, true);
     }

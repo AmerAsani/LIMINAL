@@ -263,3 +263,23 @@ Hinweis: `vmcam` kreist im Rahmen der Lampe. Ab Runde 2 ist dieser Rahmen im Ego
 - Schlecht: Die Schulter mit dem gehobenen Arm ist von hinten eine dicke Kugel (`aussen_armkette`, „hinten“, „nah_hinten“).
 - Schlecht: Die Faust liegt mit 30,4–30,9° vom Blick knapp am Bildrand (Test: < 31°).
 - Grenzwertig: Die Kante des Bündchens zeigt aus 26 cm noch Facetten.
+
+### Runde 3 – Falten, Netzdichte, Schulter (`v13_3_r3_*`)
+
+**Geändert** (`figure_models.cpp`, `body.cpp`):
+- Falten als Verschiebung des Distanzfelds (`sleeveFolds`), in der Ruhepose angelegt, das Skinning nimmt sie mit:
+  - Armbeuge: drei bis vier Querfalten auf der Innenseite des Ellbogens (Gauß ±4,5 cm um das Gelenk, nur zur Beuge hin), leicht schräg zu den Seiten.
+  - Stau über dem Bündchen: der Ärmel schiebt sich auf 4–11 cm vor der Raffung in Ringen zusammen (Abstand 2 cm, Tiefe je nach Rauschen 60–100 %) und ist dort 1,2 mm weiter.
+  - Rinnen der Falten bis 30 % dunkler (Färbung je Punkt).
+- Netz der Jacke in Stufe 0: 40 % der Dreiecke bleiben (vorher 27 %), für Kante und Falten.
+- Schulter: Deltamuskel unter der Jacke nur mit halbem Aufmass; Ärmel an der Schulter 6,1 statt 6,35 cm; der Schlauch beginnt 2 cm im Deltamuskel.
+- Faust 3° weiter gedreht (43°) und 1 cm höher: Abstand zum Bildrand 29,6–29,8° statt 30,4–30,9° (Test < 31°).
+
+**Zwischenschritt verworfen:** Querfalten der Beuge mit 3,4 mm Tiefe und 2,4 cm Abstand. Bei der stärksten Beugung (Ego dicht an der Wand, 160°) klappten 320 von 27 650 Dreiecken um (Grenze 1 % = 276). Mit 2,6 mm und 2,8 cm: 267.
+
+**Befund:**
+- Besser: Der Stau über dem Bündchen liest sich als Stoff (`aussen_unterarm_falten`, `debug_arm` „vl“, „unten“).
+- Besser: Die Kante des Bündchens ist glatter (`buendchen_kante_r2_r3`), aus 26 cm aber noch mit einzelnen Facetten.
+- Schlecht: Die Ringe sind zu gleichmäßig (Ziehharmonika). An einer Stelle entsteht eine scharfe dunkle Kerbe.
+- Schlecht: Die Falten der Armbeuge sind kaum zu sehen. Im Ego-Bild liegt die Beuge ohnehin außerhalb, von außen ist sie bei gebeugtem Arm verdeckt.
+- Unklar: Die Schulter von hinten ist nur wenig schlanker (`schulter_hinten_r0_r2_r3`: Runde 0, 2, 3).

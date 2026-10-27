@@ -15,7 +15,7 @@ constexpr double kPiD = 3.141592653589793;
 // Strichstaerke des Strichmaennchens (Radius). Die Proportionen stehen in BodyProportions (V10).
 constexpr float kLine = 0.02f;
 // V13.3: Drehung der Faust um die Lampenachse im Ego-Bild (rad, Daumen nach aussen)
-constexpr float kLampRoll = 0.70f;
+constexpr float kLampRoll = 0.75f;
 
 // V12/V13: Hand im Griff (data/models/vm_hand_l.glb) im Rahmen der Lampe (x Achse zum Glas, y rechts, z oben;
 // Ursprung Griffmitte). V13: die Werte (Handgelenk, Unterarm, Handrichtung, Handflaeche) kommen zur Laufzeit aus dem
@@ -268,9 +268,9 @@ void Body::update(double dt, const Player& p) {
         vec3 hf = F * cp + U * spc, hu = U * cp - F * spc;
         float sway = (float)std::sin(p.bobPhase * 2.0) * 0.012f * gait;
         // V12: mit der Hand aus Blender sitzt die Griffmitte hoeher (die ganze Faust soll im Bild sein)
-        // V13.3: 2 cm tiefer und 2 cm naeher zur Mitte - mit der gedrehten Faust (kLampRoll) haengt der Ellbogen dann
+        // V13.3: 1 cm tiefer und 2 cm naeher zur Mitte - mit der gedrehten Faust (kLampRoll) haengt der Ellbogen dann
         // unter der Schulter statt 16 cm darueber
-        const float drop = pr_.gripOut > 0.0f ? 0.19f : 0.25f, inward = pr_.gripOut > 0.0f ? 0.13f : 0.15f;
+        const float drop = pr_.gripOut > 0.0f ? 0.18f : 0.25f, inward = pr_.gripOut > 0.0f ? 0.13f : 0.15f;
         vec3 target = eye_ + hf * 0.40f - hu * (drop + sway) - R * (inward + 0.01f * (float)std::cos(p.bobPhase)) + U * (bob * 0.3f);
         // V13.2 (B-001): von aussen vor der Brust, etwas links der Mitte - der Unterarm liegt fast waagerecht
         if (outside_) target = eye_ + hf * 0.36f - hu * (0.40f + sway) - R * (0.08f + 0.01f * (float)std::cos(p.bobPhase)) + U * (bob * 0.3f);
@@ -303,7 +303,7 @@ void Body::update(double dt, const Player& p) {
             auto ortho = [](vec3 v, vec3 ax) { return v - ax * dot(v, ax); };
             // Die Hand gleitet entlang der Lampenachse (8 cm zurueck bis 4,5 cm vor), bis der Unterarm des Modells zu
             // einem Ellbogen fuehrt, den der Oberarm erreicht - sonst stuende der Aermel schief zum Handgelenk.
-            // V13.3: Im Ego-Bild ist die Faust um die Lampenachse gedreht (Daumen 40 Grad nach aussen, Handflaeche schraeg
+            // V13.3: Im Ego-Bild ist die Faust um die Lampenachse gedreht (Daumen 43 Grad nach aussen, Handflaeche schraeg
             // nach oben zur Mitte - leicht supiniert wie beim Halten von unten). Mit dem Daumen genau oben fuehrte der
             // Unterarm des Handmodells (Elle 33 Grad, Streckung) von oben aussen zur Hand: Ellbogen 16 cm ueber der
             // Schulter, Oberarm 33 Grad nach oben, der Aermel quer dicht vor der Kamera. Jetzt haengt der Ellbogen auf
