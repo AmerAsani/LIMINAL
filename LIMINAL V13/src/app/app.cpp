@@ -1220,6 +1220,9 @@ void App::handleEvents() {
     // V11: Klaenge mit Ort nehmen den Weg des Schalls (durch Tueren, um Ecken), nicht den durch die Wand
     const auto& pl = session_->player();
     const vec3 ear{(float)pl.x, (float)pl.y, (float)pl.eye()};
+    // V13.3: Hoerer vor den Klaengen dieses Bildes setzen - play3d verwirft Quellen ausser Reichweite, und nach einem
+    // Ebenenwechsel/Wiedereinstieg stand der Hoerer sonst noch an der alten Stelle (falsches Culling im ersten Bild)
+    audio_->setListener(ear, (float)pl.angle);
     auto at = [&](const std::string& name, vec3 pos, float volume, float radius, float pitch = 1.0f) {
         audio::PlayOpts o;
         o.volume = volume, o.pitch = pitch, o.vary = false;

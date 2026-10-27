@@ -111,6 +111,8 @@ struct AudioStats {
     float outRmsFast = 0.0f;                                   // Master-Ausgang, gleitend ueber ~100 ms
     float mixMsMax = 0.0f, lockWaitMsMax = 0.0f;  // laengster Mischvorgang / laengste Wartezeit auf die Sperre
     bool threadHung = false;
+    float master = 0.0f, muffle = 0.0f;  // Mischzustand (haengt nach Ebenenwechsel/Pause etwas?)
+    bool paused = false;
 };
 
 // V13.3: gezielt ausgeloeste Fehler fuer Tests und den Skriptbefehl audiofault (AUDIO_BUG.md, "Was simuliert ist").
@@ -315,6 +317,7 @@ private:
     std::atomic<unsigned long long> heartbeat_{0}, mixed_{0};
     std::atomic<int> step_{0};
     std::atomic<bool> hung_{false};
+    std::atomic<int> sessMute_{0};
     // Watchdog (nur Hauptthread)
     unsigned long long wdBeat_ = 0, wdFrames_ = 0;
     long long wdBeatT_ = 0, wdFramesT_ = 0;

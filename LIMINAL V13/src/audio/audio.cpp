@@ -1039,6 +1039,7 @@ AudioStats AudioSystem::stats() {
         }
         s.ready = ready_;
         s.mixRate = sampleRate_;
+        s.master = master_, s.paused = paused_, s.muffle = muffle_;
     }
     std::lock_guard lock(statMutex_);
     s.deviceOpen = running_;
@@ -1061,11 +1062,13 @@ std::string AudioSystem::statsLine() {
         "Geraet {} '{}' ({} Hz/{} Kan./{} Bit, Strom {} Hz {} Kan., Mischer {} Hz, Puffer {} Bilder, Periode {:.1f} ms) | geoeffnet {} "
         "fehlgeschl. {} verloren {} Neustarts {} letzter Fehler {} letzter Grund '{}' | Stimmen {}/{} (Schleifen {}, stopping {}, haengend {}, "
         "Spitze {}) | gestartet {} abgewiesen {} (belegt) verworfen {} zurueckgeholt {} ungueltig {} | Ausgang Spitze {:.1f} dBFS RMS {:.1f} dBFS "
-        "erwartet {:.1f} dBFS | Bilder {} Unterlaeufe {} Zeitueberschr. {} NaN {} Stille-Alarme {} Mischen max {:.2f} ms (Sperre {:.2f} ms){}",
+        "erwartet {:.1f} dBFS | Bilder {} Unterlaeufe {} Zeitueberschr. {} NaN {} Stille-Alarme {} Mischen max {:.2f} ms (Sperre {:.2f} ms) | "
+        "Master {:.2f} Pause {} Daempfung {:.2f}{}",
         s.deviceOpen ? "offen" : "ZU", s.device, s.deviceRate, s.deviceChannels, s.deviceBits, s.streamRate, s.streamChannels, s.mixRate,
         s.bufferFrames, s.periodMs, s.opens, s.openFailures, s.losses, s.restarts, hrText(s.lastHr), s.lastReason, s.voices, kVoices, s.loops,
         s.stopping, s.stuck, s.peakVoices, s.plays, s.allocFails, s.dropped, s.reclaimed, s.badInput, toDb(s.outPeak), toDb(s.outRms),
-        toDb(s.expectedRms), s.frames, s.underruns, s.timeouts, s.nonFinite, s.silenceAlarms, s.mixMsMax, s.lockWaitMsMax, s.threadHung ? " | THREAD HAENGT" : "");
+        toDb(s.expectedRms), s.frames, s.underruns, s.timeouts, s.nonFinite, s.silenceAlarms, s.mixMsMax, s.lockWaitMsMax, s.master,
+        s.paused ? "an" : "aus", s.muffle, s.threadHung ? " | THREAD HAENGT" : "");
 }
 
 // --- V13.3: Neustart, Benachrichtigungen, Watchdog, Fehler fuer Tests ----------------------------------------
@@ -1121,8 +1124,10 @@ void AudioSystem::onFormatProperty(const wchar_t* id) {
 }
 
 void AudioSystem::onSessionVolume(float volume, bool mute) {
+    // nur Wechsel von Stumm/Laut melden (Schieberegler liefern viele Ereignisse)
+    if (sessMute_.exchange(mute ? 1 : 0) == (mute ? 1 : 0)) return;
     std::lock_guard lock(mutex_);
-    note(std::format("IAudio: Windows-Lautstaerke dieser Sitzung {:.0f} %{}", volume * 100.0f, mute ? ", STUMM geschaltet" : ""));
+    note(std::format("IAudio: Windows-Lautstaerke dieser Sitzung {:.0f} %{}", volume * 100.0f, mute ? ", STUMM geschaltet" : ", laut"));
 }
 
 void AudioSystem::watchdog() {
@@ -1136,10 +1141,16 @@ void AudioSystem::watchdog() {
             hung_ = false;
             log::info("Audio-Watchdog: Audiothread reagiert wieder");
         }
-    } else if (now - wdBeatT_ > 2000 && !hung_) {
+    } else if (now - wdBeatT_ > 3000 && !hung_) {
         hung_ = true;
-        log::error("Audio-Watchdog: Audiothread reagiert seit {} ms nicht (Schritt: {}) - Neustart angefordert", now - wdBeatT_, stepName(step_));
-        requestRestart("Audiothread reagierte nicht (Watchdog)");
+        const int s = step_;
+        if (s == kOpen || s == kClose) {
+            // steckt in einem Aufruf von Windows (Initialize, Stop): ein Neustart haelfe nicht, er folgt ohnehin danach
+            log::warn("Audio-Watchdog: Audiogeraet antwortet seit {} ms nicht (Schritt: {})", now - wdBeatT_, stepName(s));
+        } else {
+            log::error("Audio-Watchdog: Audiothread reagiert seit {} ms nicht (Schritt: {}) - Neustart angefordert", now - wdBeatT_, stepName(s));
+            requestRestart("Audiothread reagierte nicht (Watchdog)");
+        }
     }
     // Strom offen, aber nichts gemischt: der Treiber holt keine Daten mehr
     const unsigned long long f = mixed_;
