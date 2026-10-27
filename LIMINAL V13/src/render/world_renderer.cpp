@@ -238,6 +238,22 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     materialData_[FM_ENT_VIEW] = GpuMaterial{{1.0f, 1.0f, 1.0f}, 1.4f, ent(EL_VIEW, ML_PORES), 0.3f, 0, 0.0f};
     // Ausfluss (Wretch: rotbrauner Saft aus den Pusteln, brauner Schlamm aus dem Mund)
     materialData_[FM_ENT_OOZE] = GpuMaterial{{0.42f, 0.20f, 0.11f}, 0, ent(EL_HORN, ML_PORES), 0.22f, 0, 0.05f};
+    // V13.3: Wrangler (KREATUR_Wrangler.md). Haut feucht und klebrig, durchscheinend (gerastert, kMatMembraneShift); das Maennchen
+    // rauer und grauer, dichter (die Seite: mit dem Alter grauer und undurchsichtiger), das Weibchen blass rosa und klarer.
+    // Innen: dunkelroter Darm, pflanzenartige Faserstraenge (olivbraun), Knochen; Schleim glaenzt, Staub und Schutt matt
+    auto memb = [](u32 op) { return op << kMatMembraneShift; };
+    materialData_[FM_ENT_WR_MEMBRANE] = GpuMaterial{{1.55f, 1.55f, 1.5f}, 0, ent(EL_SKIN, ML_PORES) | kMatFlagSkin | memb(170), 0.34f, 0, 0.04f};
+    materialData_[FM_ENT_WR_MEMBRANE_F] = GpuMaterial{{1.3f, 1.12f, 1.12f}, 0, ent(EL_HUMAN, ML_PORES) | kMatFlagSkin | memb(130), 0.26f, 0, 0.02f};
+    materialData_[FM_ENT_WR_HIDE] = GpuMaterial{{1.38f, 1.4f, 1.44f}, 0, ent(EL_SKIN, ML_CRAZE) | kMatFlagSkin, 0.88f, 0, 0.2f};
+    materialData_[FM_ENT_WR_GUT] = GpuMaterial{{1.5f, 0.62f, 0.72f}, 0, ent(EL_NEST, ML_PORES) | kMatFlagSkin, 0.3f, 0, 0.0f};
+    materialData_[FM_ENT_WR_PITH] = GpuMaterial{{1.8f, 1.95f, 1.45f}, 0, ent(EL_NEST, ML_FIBER), 0.62f, 0, 0.0f};
+    materialData_[FM_ENT_WR_BONE] = GpuMaterial{{0.95f, 0.92f, 0.85f}, 0, ent(EL_TOOTH, ML_CRAZE), 0.68f, 0, 0.05f};
+    materialData_[FM_ENT_WR_SLIME] = GpuMaterial{{2.2f, 2.4f, 2.0f}, 0, ent(EL_HORN, ML_PORES) | memb(150), 0.05f, 0, 0.0f};
+    materialData_[FM_ENT_WR_SEED] = GpuMaterial{{0.98f, 0.86f, 0.62f}, 0, ent(EL_TOOTH, ML_PORES), 0.38f, 0, 0.1f};
+    materialData_[FM_ENT_WR_DUST] = GpuMaterial{{0.74f, 0.73f, 0.71f}, 0, ent(EL_TOOTH, ML_CRAZE), 1.0f, 0, 0.6f};
+    materialData_[FM_ENT_WR_CRACK] = GpuMaterial{{0.04f, 0.038f, 0.035f}, 0, ent(EL_HORN, ML_CRAZE), 1.0f, 0, 0.0f};
+    materialData_[FM_ENT_WR_PINCER] = GpuMaterial{{0.8f, 0.72f, 0.66f}, 0, ent(EL_CHITIN, ML_CRAZE), 0.24f, 0, 0.0f};
+    materialData_[FM_ENT_WR_DEBRIS] = GpuMaterial{{0.66f, 0.65f, 0.62f}, 0, ent(EL_TOOTH, ML_CRAZE), 1.0f, 0, 0.5f};
     writeMaterials(gpu);
     lights_ = gpu.createStructured(sizeof(GpuLight), 2048, true, false);
     puddles_ = gpu.createStructured(sizeof(vec4), kMaxPuddles * 2, true, false);  // V13.3

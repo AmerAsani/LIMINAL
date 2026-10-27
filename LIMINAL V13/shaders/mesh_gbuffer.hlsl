@@ -397,6 +397,16 @@ GBufferOut PSMain(VSOut i, bool front : SV_IsFrontFace)
         if (ign(i.svpos.xy, gRingParams.z) < thin)
             discard;
     }
+    // V13.3: durchscheinende Haut (Wrangler, world_renderer.hpp kMatMembraneShift): Bits 16-23 = Deckkraft. Gerastert ausduennen;
+    // schraeg gesehen (laengerer Weg durch die Haut) dichter. Das TAA mischt es zu einer milchigen Haut, durch die man das Innere sieht
+    const uint memb = (m.layers >> 16) & 0xFFu;
+    if (memb != 0u && ((m.layers >> 26) & 1u))
+    {
+        const float facing = abs(dot(N, normalize(gCameraPos.xyz - i.wpos)));
+        const float op = lerp(1.0, memb / 255.0, smoothstep(0.12, 0.7, facing));
+        if (ign(i.svpos.xy, gRingParams.z) >= op)
+            discard;
+    }
     float3 T = normalize(i.t.xyz - N * dot(i.t.xyz, N));
     float3 B = cross(N, T) * i.t.w;
     uint layer = m.layers & 0xFFu;

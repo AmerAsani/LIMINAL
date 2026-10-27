@@ -48,6 +48,10 @@ enum FixedMaterial : u32 {
     FM_ENT_UMBRA,                      // V13.2: Fensterwesen - schwarz und matt, aber fest (ohne den Rauchrand der Gestalt)
     // V13.2: Facelings sind verschieden (Haar, Haut, Kleidung) - weitere Stoffe, dunklere Haut, graues Haar
     FM_ENT_CLOTH_C, FM_ENT_CLOTH_D, FM_ENT_HUMANSKIN_B, FM_ENT_HAIR_GREY,
+    // V13.3: Wrangler - durchscheinende Haut (Maennchen grau, Weibchen blass rosa), raue Kopfhaut, Darm, Faserstraenge, Knochen,
+    // Schleim, Samen, Staub, Risse, Zangen, Schutt
+    FM_ENT_WR_MEMBRANE, FM_ENT_WR_MEMBRANE_F, FM_ENT_WR_HIDE, FM_ENT_WR_GUT, FM_ENT_WR_PITH, FM_ENT_WR_BONE, FM_ENT_WR_SLIME,
+    FM_ENT_WR_SEED, FM_ENT_WR_DUST, FM_ENT_WR_CRACK, FM_ENT_WR_PINCER, FM_ENT_WR_DEBRIS,
     FM_FIG_END,
 };
 static_assert(FM_FIG_END <= kFixedMaterials);
@@ -67,6 +71,9 @@ constexpr u32 kMatFlagSmoke = 1u << 29;
 constexpr u32 kMatFlagSkin = 1u << 30;
 // V13: Umriss (Gestalt) - mit kMatFlagSmoke: Rand, Saum und Fasern ausduennen, den Koerper aber dicht lassen
 constexpr u32 kMatFlagSilhouette = 1u << 31;
+// V13.3: durchscheinende Haut (Wrangler) - nur bei Wesen (kMatFlagEntity): Bits 16-23 = Deckkraft (1..255, 0 = deckend). Der
+// Mesh-Shader duennt gerastert aus (schraeg gesehen dichter), das TAA mischt es zu einer milchigen Haut
+constexpr u32 kMatMembraneShift = 16;
 
 struct LightStats {
     u32 total = 0, visible = 0;
