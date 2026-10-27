@@ -404,6 +404,34 @@ void App::scriptStep() {
         } else if (cmd == "minimize" || cmd == "restore") {  // V13.3 (Tests): Fenster minimieren / wiederherstellen
             ShowWindow(window_.hwnd(), cmd == "minimize" ? SW_MINIMIZE : SW_RESTORE);
             if (cmd == "restore") SendMessageW(window_.hwnd(), WM_ACTIVATE, WA_ACTIVE, 0);
+        } else if (cmd == "audiofault" && audio_) {  // V13.3 (Tests): audiofault <art> [wert] - Geraete-/Fehlerpfad gezielt ausloesen
+            char kind[32] = {};
+            int param = 0;
+            std::sscanf(arg.c_str(), "%31s %d", kind, &param);
+            using F = audio::Fault;
+            const std::string k = kind;
+            const F f = k == "invalidate" ? F::DeviceInvalidated : k == "default" ? F::DefaultChanged : k == "format" ? F::FormatChanged
+                        : k == "exclusive" ? F::ExclusiveOverride : k == "remove" ? F::DeviceRemoved : k == "stall" ? F::StallEvents
+                        : k == "mute" ? F::MuteOutput : k == "nan" ? F::NanOutput : F::InitFails;
+            if (k != "invalidate" && k != "default" && k != "format" && k != "exclusive" && k != "remove" && k != "stall" && k != "mute" &&
+                k != "nan" && k != "initfail") {
+                log::error("Skript: audiofault - unbekannte Art '{}'", k);
+                scriptFailed_ = true;
+            } else {
+                audio_->injectFault(f, param);
+            }
+        } else if (cmd == "audiorestart" && audio_) {  // V13.3 (Tests): Strom schliessen und neu oeffnen
+            audio_->requestRestart("Skript");
+        } else if (cmd == "audioexpect") {  // V13.3 (Tests): audioexpect <dBFS> - Pegel am Master-Ausgang (letzte Sekunde) mindestens so hoch
+            const double want = std::atof(arg.c_str());
+            const auto st = audio_ ? audio_->stats() : audio::AudioStats{};
+            const double db = st.outRms > 1e-9f ? 20.0 * std::log10(st.outRms) : -180.0;
+            if (!st.deviceOpen || db < want) {
+                scriptFailed_ = true;
+                log::error("Skript: audioexpect {} dBFS - Ausgang {:.1f} dBFS, Geraet {}", want, db, st.deviceOpen ? "offen" : "ZU");
+            } else {
+                log::info("Skript: audioexpect {} dBFS ok ({:.1f} dBFS)", want, db);
+            }
         } else if (cmd == "resume") {  // V13.3 (Tests): Pausenmenue schliessen (wie "Weiter")
             if (ui_.mode() == ui::Mode::Pause) ui_.setMode(ui::Mode::Hud);
         } else if (cmd == "perf") {  // V10 (Tests): Zeiten und Dreiecke dieses Bildes ins Protokoll
@@ -576,7 +604,7 @@ void App::attachSession(game::GameSession& s) {
 
 void App::startTitleWorld() {
     // Hinter dem Hauptmenue dreht sich langsam die Welt (Seed 7 wie in V4)
-    if (audio_) audio_->stopAll();
+    if (audio_) audio_->stopAll(), audio_->resetMix();  // V13.3: keine Daempfung/Pause aus dem Spiel im Menue (B-020)
     ++audioGen_;
     session_.reset();
     session_ = makeSession(7, content_.defaultDifficulty(), "", "");
@@ -592,7 +620,7 @@ void App::startTitleWorld() {
 
 void App::enterPlaying(std::unique_ptr<game::GameSession> s) {
     if (audio_ && session_) log::info("Audio vor dem Wechsel: {}", audio_->statsLine());  // V13.3 (AUDIO_BUG.md)
-    if (audio_) audio_->stopAll();
+    if (audio_) audio_->stopAll(), audio_->resetMix();
     ++audioGen_;
     session_ = std::move(s);
     state_ = State::Playing;
@@ -842,6 +870,7 @@ void App::mainLoop() {
             settings_.fullscreen = lastWinMode_ == plat::DisplayMode::Borderless;
             if (!testRun() && opt_.overrides.size() == 0) settings_.save();
         }
+        if (audio_) audio_->watchdog();  // V13.3: Geraet verloren, Strom steht, Thread haengt -> Neustart (AUDIO_BUG.md)
         if (window_.minimized()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(30));
             continue;

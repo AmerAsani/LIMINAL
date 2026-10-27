@@ -165,6 +165,11 @@ add_executable(audio_test tests/audio_test.cpp)
 target_link_libraries(audio_test PRIVATE lim_audio)
 set_target_properties(audio_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
 
+# V13.3: Audio mit dem echten Geraet - Start-Stresstest, Geraetewechsel-Simulation, Stille-Erkennung (AUDIO_BUG.md)
+add_executable(audio_device_test tests/audio_device_test.cpp)
+target_link_libraries(audio_device_test PRIVATE lim_audio)
+set_target_properties(audio_device_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
+
 # V11: alle erzeugten Klaenge als WAV-Dateien und Messliste (zum Anhoeren und Vergleichen)
 add_executable(sound_export tests/sound_export.cpp)
 target_link_libraries(sound_export PRIVATE lim_audio)
