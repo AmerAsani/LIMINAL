@@ -22,7 +22,7 @@ import numpy as np
 import anat as A
 import sdf
 
-LODS = (110000, 36000, 11000)
+LODS = (160000, 50000, 15000)
 FEMALE = False
 SEEDS = False
 BROOD = False
@@ -121,7 +121,9 @@ def ring_groups(v, fem, seeds, rng):
         return -rel_ * outer if not fem else -rel_ * outer
 
     groups = [{'name': f'haut{v}', 'merge': 'leib', 'fm': 'ent_wr_membrane_f' if fem else 'ent_wr_membrane', 'parts': skin,
-               'disp': skin_disp, 'h': 0.0075, 'cav_scale': 0.012, 'tris': 3000, 'clones': clones}]
+               'disp': skin_disp, 'h': 0.0075, 'cav_scale': 0.02, 'tris': 2600, 'clones': clones,
+               # die Nachbarringe (im Spiel 0,5 m weiter) fuer die Verdeckung: dunkle Falte, wo ein Ring im anderen steckt
+               'cav_extra': [Rev(bone, xa - 0.5 + RING_XS, R, shell=0.032), Rev(bone, xa + 0.5 + RING_XS, R, shell=0.032)]}]
     # Darm: in der Mitte, an den Ringenden eingeschnuert (dort stoesst er an den Darm des Nachbarn), ein bis zwei Wuelste
     bul = [(0.28 + 0.06 * rng.uniform(-1, 1), 0.2 + 0.03 * rng.uniform(-1, 1))]
     if v % 2:
@@ -132,19 +134,22 @@ def ring_groups(v, fem, seeds, rng):
         gr = np.maximum(gr, cr * np.exp(-((gx - cx) / 0.13) ** 2))
     gy, gz = 0.03 * rng.uniform(-1, 1), AZ - 0.05 + 0.03 * rng.uniform(-1, 1)
     gut = [Rev(bone, xa + gx, gr, y0=gy, z0=gz)]
-    # paarige Organe (wie Nephridien) seitlich unten, dunkel
+    # paarige Organe (wie Nephridien) und Aussackungen, mit dem Darm verwachsen - klumpig, dunkel
     ang0 = rng.uniform(0, 2 * math.pi)
     for sgn in (1, -1):
         a = ang0 + sgn * 1.2
-        c = np.array([xa + 0.27 + 0.05 * sgn, 0.38 * math.cos(a), AZ + 0.38 * math.sin(a)])
-        gut.append(A.ell(bone, c, (1, 0.2 * sgn, 0.1), (0.12, 0.075, 0.06), k=0.0))
-        gut.append(A.cone(bone, c, np.array([xa + 0.27, gy, gz]) + (c - np.array([xa + 0.27, gy, gz])) * 0.35, 0.025, 0.02, k=0.02))
+        c = np.array([xa + 0.27 + 0.05 * sgn, gy + 0.26 * math.cos(a), gz + 0.26 * math.sin(a)])
+        gut.append(A.ell(bone, c, (1, 0.2 * sgn, 0.1), (0.14, 0.09, 0.075), k=0.07))
+    for j in range(3):
+        a = ang0 + 2.6 + rng.uniform(-0.8, 0.8)
+        c = np.array([xa + rng.uniform(0.08, 0.48), gy + 0.17 * math.cos(a), gz + 0.17 * math.sin(a)])
+        gut.append(A.ell(bone, c, A.unit(rng.normal(0, 1, 3)), (rng.uniform(0.06, 0.1), rng.uniform(0.05, 0.08), rng.uniform(0.05, 0.07)), k=0.06))
 
     def gut_disp(P):
         return -0.006 * sdf.fbm(P, 14, 3, seed=7541 + v) - 0.003 * np.maximum(0, np.sin(P[:, 0] * 60.0))
 
     groups.append({'name': f'darm{v}', 'merge': 'darm', 'fm': 'ent_wr_gut', 'parts': gut, 'disp': gut_disp, 'h': 0.012,
-                   'cav_scale': 0.02, 'tris': 700, 'clones': clones})
+                   'cav_scale': 0.02, 'tris': 520, 'clones': clones})
     # Reifen: C-foermig um den Darm (Knochen), um die Achse versetzt je Ringart
     rr = 0.52 if not fem else 0.5
     Rf = sdf.frame_from(Y * math.cos(ang0 + 2.4) + Z * math.sin(ang0 + 2.4), X)  # lokales z = Achse x
@@ -162,7 +167,7 @@ def ring_groups(v, fem, seeds, rng):
         return -0.003 * sdf.fbm(P, 40, 2, seed=7551 + v)
 
     groups.append({'name': f'reifen{v}', 'merge': 'reifen', 'fm': 'ent_wr_bone', 'parts': hoop, 'disp': hoop_disp, 'h': 0.008,
-                   'cav_scale': 0.01, 'tris': 500, 'clones': clones})
+                   'cav_scale': 0.01, 'tris': 380, 'clones': clones})
     # Faserstraenge: laengs, spindelfoermig (wie Leitbuendel eines Stengels), nicht bis an die Ringenden
     pith = []
     n = 6 + v % 2
@@ -180,7 +185,7 @@ def ring_groups(v, fem, seeds, rng):
         return -0.004 * sdf.ridged(P * np.array([0.15, 1.0, 1.0]), 60, 2, seed=7561 + v)
 
     groups.append({'name': f'mark{v}', 'merge': 'mark', 'fm': 'ent_wr_pith', 'parts': pith, 'disp': pith_disp, 'h': 0.007,
-                   'cav_scale': 0.01, 'tris': 500, 'clones': clones})
+                   'cav_scale': 0.01, 'tris': 380, 'clones': clones})
     if seeds:
         groups += seed_groups(v, xa, bone, clones, rng, R)
     return groups
@@ -227,9 +232,9 @@ def neck_groups(fem):
         gx = np.linspace(x0, x1, 20)
         gut.append(Rev(B_NECK0 + i, gx, 0.16 + 0.04 * np.sin((gx - x0) * 12.0), z0=AZ - 0.04, k=0.05))
     return [{'name': 'hals', 'fm': 'ent_wr_membrane_f' if fem else 'ent_wr_membrane', 'parts': skin, 'disp': None, 'h': 0.0085,
-             'cav_scale': 0.012, 'lod_weight': 0.8},
+             'cav_scale': 0.012, 'tris': 7000},
             {'name': 'halsdarm', 'fm': 'ent_wr_gut', 'parts': gut, 'disp': lambda P: -0.005 * sdf.fbm(P, 12, 2, seed=7571),
-             'h': 0.014, 'lod_weight': 0.5}]
+             'h': 0.014, 'tris': 1000}]
 
 
 # --- Kopf des Maennchens -----------------------------------------------------------------------------------------
@@ -243,109 +248,176 @@ def surf_x(parts, y, z, x_from=14.2, x_to=12.4):
 
 
 def smile_z(y):
-    """Laechellinie: Mitte tief, die Winkel ziehen weit nach oben (zu breit, bis an die Seiten)."""
-    t = np.abs(y) / 0.6
-    return 0.84 + 0.07 * t ** 2 + 0.11 * np.maximum(0.0, t - 0.72) ** 1.5 * 6.0
+    """Laechellinie: Mitte tief, die Winkel ziehen weit hinauf in die Wangen (zu breit, bis an die Seiten des Kopfs)."""
+    t = np.abs(y) / 0.64
+    return 0.85 + 0.06 * t ** 2 + 0.5 * np.maximum(0.0, t - 0.78) ** 2
+
+
+def mouth_h(y):
+    """Hoehe der Mundoeffnung (die Lippen weit von den Zaehnen zurueckgezogen), zu den Winkeln schmal."""
+    t = np.clip(np.abs(y) / 0.66, 0.0, 1.0)
+    return 0.125 * (1.0 - t ** 1.7) + 0.014
 
 
 def male_head(rng):
     skull = [A.ell(B_SKULL, (12.93, 0, 1.08), X, (0.64, 0.66, 0.46), k=0.0),          # Hirnschaedel, breit
-             A.ell(B_SKULL, (13.24, 0, 1.03), X, (0.33, 0.6, 0.42), k=0.14),          # Gesichtsflaeche
+             A.ell(B_SKULL, (13.22, 0, 1.04), X, (0.34, 0.6, 0.42), k=0.14),          # Gesichtsflaeche
              A.cone(B_SKULL, (12.45, 0, 1.0), (12.75, 0, 1.03), 0.6, 0.64, k=0.12)]   # Uebergang zum Hals
-    jaw = [A.ell(B_JAW, (12.98, 0, 0.8), X, (0.6, 0.6, 0.24), k=0.1),                  # Unterkiefer, breit
-           A.ell(B_JAW, (13.42, 0, 0.67), X, (0.13, 0.22, 0.12), k=0.08)]              # Kinn
+    jaw = [A.ell(B_JAW, (12.98, 0, 0.8), X, (0.6, 0.6, 0.25), k=0.1),                  # Unterkiefer, breit
+           A.ell(B_JAW, (13.4, 0, 0.66), X, (0.14, 0.24, 0.13), k=0.08)]               # Kinn
+    for s in (1, -1):  # Hamsterbacken, die am Kiefer haengen
+        jaw.append(A.ell(B_JAW, (13.12, s * 0.5, 0.74), (1, s * 0.4, -0.2), (0.16, 0.12, 0.12), k=0.08))
     body = skull + jaw
-    feat = []
-    # Stirnwulst, Wangen, Jochbeine, Traenensaecke
-    feat.append(A.ell(B_SKULL, (surf_x(body, 0, 1.27) - 0.04, 0, 1.27), X, (0.09, 0.4, 0.06), up=Z, k=0.06))
+    feat, cuts = [], []
+
+    def SX(y, z, parts=None):
+        return surf_x(parts or body, y, z)
+
+    # Brauen: zwei Wuelste, innen hochgezogen (bang, flehend) - ueber einem grinsenden Mund
     for s in (1, -1):
-        feat.append(A.ell(B_SKULL, (surf_x(body, s * 0.36, 1.0) - 0.08, s * 0.36, 1.0), X, (0.14, 0.17, 0.13), k=0.08))   # Wange
-        feat.append(A.ell(B_SKULL, (surf_x(body, s * 0.42, 1.13) - 0.06, s * 0.42, 1.13), X, (0.1, 0.12, 0.05), k=0.05))  # Jochbein
-        feat.append(A.ell(B_SKULL, (surf_x(body, s * 0.2, 1.08) - 0.025, s * 0.2, 1.08), X, (0.05, 0.08, 0.035), k=0.03))  # Traenensack
+        a = np.array([SX(s * 0.07, 1.31) - 0.03, s * 0.07, 1.31])
+        b = np.array([SX(s * 0.36, 1.22) - 0.05, s * 0.36, 1.22])
+        feat.append(A.ell(B_SKULL, 0.5 * (a + b), b - a, (np.linalg.norm(b - a) * 0.62, 0.05, 0.045), up=(1, 0, 0.6), k=0.05))
+    # Wangen: hochgedrueckt vom Grinsen, Jochbeine
+    for s in (1, -1):
+        feat.append(A.ell(B_SKULL, (SX(s * 0.4, 0.98) - 0.06, s * 0.4, 0.98), (1, s * 0.3, 0.2), (0.15, 0.16, 0.13), k=0.08))
+        feat.append(A.ell(B_SKULL, (SX(s * 0.52, 0.95) - 0.08, s * 0.52, 0.95), (1, s * 0.6, 0.2), (0.12, 0.12, 0.11), k=0.07))
+        feat.append(A.ell(B_SKULL, (SX(s * 0.42, 1.14) - 0.05, s * 0.42, 1.14), X, (0.09, 0.12, 0.05), k=0.05))
     face = body + feat
-    # Nase: Ruecken und Spitze, Nasenfluegel
-    nb = np.array([surf_x(face, 0, 1.18) - 0.01, 0, 1.18])
-    nt = np.array([surf_x(face, 0, 0.99) + 0.085, 0, 0.99])
-    feat.append(A.cone(B_SKULL, nb, nt, 0.035, 0.055, k=0.04))
     for s in (1, -1):
-        feat.append(A.ell(B_SKULL, nt + np.array([-0.05, s * 0.055, -0.015]), X, (0.04, 0.035, 0.03), k=0.03))
+        ey = np.array([SX(s * 0.2, 1.155, face), s * 0.2, 1.155])
+        feat.append(A.ell(B_SKULL, ey + np.array([-0.025, 0, -0.06]), (1, s * 0.2, 0), (0.05, 0.1, 0.035), k=0.03))  # Traenensack
+        feat.append(A.ell(B_SKULL, ey + np.array([-0.02, s * 0.01, 0.05]), (1, s * 0.15, -0.3), (0.06, 0.115, 0.03), k=0.025))  # Oberlid
     face = body + feat
-    cuts = []
+    # Nase: schmaler Ruecken, knollige Spitze, Nasenfluegel
+    nb = np.array([SX(0, 1.2, face) - 0.01, 0, 1.2])
+    ntx = SX(0, 1.0, face)
+    nt = np.array([ntx + 0.07, 0, 1.0])
+    feat.append(A.cone(B_SKULL, nb, nt - np.array([0.02, 0, -0.02]), 0.03, 0.045, k=0.04))
+    feat.append(A.ell(B_SKULL, nt, (1, 0, -0.3), (0.055, 0.058, 0.05), k=0.03))
     for s in (1, -1):
-        # Nasenloecher, Augenhoehlen
-        cuts.append(A.ell(B_SKULL, nt + np.array([-0.02, s * 0.04, -0.035]), (0.3, 0, -1), (0.022, 0.016, 0.012), op='sub', k=0.008))
-        ey = np.array([surf_x(face, s * 0.2, 1.15), s * 0.2, 1.15])
-        cuts.append(A.ell(B_SKULL, ey + np.array([0.01, 0, 0]), (1, s * 0.25, 0), (0.07, 0.095, 0.06), op='sub', k=0.03))
-        # Nasolabialfalte: tiefe Rinne vom Nasenfluegel weit hinaus zum Mundwinkel
-        p0 = np.array([0, s * 0.09, 1.0])
-        pts = A.bezier(p0, np.array([0, s * 0.3, 0.98]), np.array([0, s * 0.5, 0.95]), 8)
+        feat.append(A.ell(B_SKULL, nt + np.array([-0.055, s * 0.06, -0.02]), (1, s * 0.5, 0), (0.045, 0.035, 0.032), k=0.03))
+    face = body + feat
+    for s in (1, -1):
+        cuts.append(A.ell(B_SKULL, nt + np.array([-0.03, s * 0.042, -0.04]), (0.4, 0, -1), (0.022, 0.017, 0.013), op='sub', k=0.008))
+        # Augenhoehlen: tief - das Auge liegt weit hinten im Schatten
+        ey = np.array([SX(s * 0.2, 1.155, face), s * 0.2, 1.155])
+        cuts.append(A.ell(B_SKULL, ey, (1, s * 0.25, 0), (0.085, 0.085, 0.052), op='sub', k=0.03))
+        # Kraehenfuesse am aeusseren Augenwinkel, Furche zwischen den Brauen
+        for k in range(3):
+            a0 = np.array([0, s * 0.3, 1.16 + 0.03 * (k - 1)])
+            a1 = np.array([0, s * 0.42, 1.16 + 0.06 * (k - 1)])
+            a0[0] = SX(a0[1], a0[2], face) + 0.006
+            a1[0] = SX(a1[1], a1[2], face) + 0.006
+            cuts.append(A.cone(B_SKULL, a0, a1, 0.009, 0.004, op='sub', k=0.006))
+        g0 = np.array([0, s * 0.035, 1.2])
+        g1 = np.array([0, s * 0.045, 1.3])
+        g0[0], g1[0] = SX(g0[1], g0[2], face) + 0.006, SX(g1[1], g1[2], face) + 0.006
+        cuts.append(A.cone(B_SKULL, g0, g1, 0.012, 0.008, op='sub', k=0.008))
+        # Nasolabialfalte: tiefe Rinne vom Nasenfluegel weit hinaus, um den Mundwinkel herum
+        pts = A.bezier(np.array([0, s * 0.1, 1.0]), np.array([0, s * 0.36, 1.0]), np.array([0, s * 0.62, float(smile_z(0.62)) - 0.04]), 10)
         for i in range(len(pts) - 1):
             a, b = pts[i].copy(), pts[i + 1].copy()
-            a[0] = surf_x(face, a[1], a[2]) + 0.004
-            b[0] = surf_x(face, b[1], b[2]) + 0.004
-            cuts.append(A.cone(B_SKULL, a, b, 0.016 + 0.004 * i / 8, 0.016 + 0.004 * (i + 1) / 8, op='sub', k=0.012))
-    # Laecheln: Lippen entlang der Linie, der Spalt dazwischen tief
-    ys = np.linspace(-0.66, 0.66, 45)
-    lip_u, lip_l, slit = [], [], []
+            a[0] = SX(a[1], a[2], face) + 0.006
+            b[0] = SX(b[1], b[2], face) + 0.006
+            cuts.append(A.cone(B_SKULL, a, b, 0.02 + 0.006 * i / 10, 0.02 + 0.006 * (i + 1) / 10, op='sub', k=0.014))
+    # Stirnfalten
+    for zz in (1.37, 1.42, 1.47):
+        prev = None
+        for y in np.linspace(-0.32, 0.32, 9):
+            p = np.array([0, y, zz + 0.02 * (y / 0.32) ** 2])
+            p[0] = SX(p[1], p[2], face) + 0.005
+            if prev is not None:
+                cuts.append(A.cone(B_SKULL, prev, p, 0.008, 0.008, op='sub', k=0.008))
+            prev = p
+    # Philtrum, Kinngruebchen
+    cuts.append(A.cone(B_SKULL, np.array([SX(0, 0.97, face), 0, 0.97]), np.array([SX(0, 0.93, face), 0, 0.93]), 0.012, 0.014, op='sub', k=0.01))
+    cuts.append(A.ell(B_JAW, (SX(0, 0.64, face) + 0.01, 0, 0.64), X, (0.02, 0.014, 0.03), op='sub', k=0.01))
+    # Mund: weit offenes Grinsen, die Lippen von den Zaehnen zurueckgezogen - Oeffnung, Lippen, Zahnfleisch, zwei Zahnreihen
+    ys = np.linspace(-0.63, 0.63, 47)
+    open_, lip_u, lip_l, gums_u, gums_l = [], [], [], [], []
     prev = None
     for y in ys:
         z = float(smile_z(y))
-        x = surf_x(face, y, z) - 0.01
+        x = SX(y, z, face)
         p = np.array([x, y, z])
+        h = float(mouth_h(y))
+        if x < 12.75:  # dort trifft die Linie den Kopf nicht mehr (kein Stab neben dem Kopf)
+            prev = None
+            continue
         if prev is not None:
-            mid = 0.5 * (p + prev)
-            w = 1.0 - 0.45 * (abs(y) / 0.66) ** 2
-            lip_u.append(A.cone(B_SKULL, prev + Z * 0.03, p + Z * 0.03, 0.034 * w, 0.034 * w, k=0.03))
-            lip_l.append(A.cone(B_JAW, prev - Z * 0.032, p - Z * 0.032, 0.038 * w, 0.038 * w, k=0.03))
-            nrm = A.unit(np.array([1.0, mid[1] * 0.9, 0.0]))
-            slit.append(A.cone(B_SKULL, prev - nrm * 0.0, p, 0.017, 0.017, op='sub', k=0.004))
-            slit.append(A.cone(B_SKULL, mid - nrm * 0.12, mid + nrm * 0.05, 0.017, 0.017, op='sub', k=0.004))
-        prev = p
-    # Mundhoehle: der Spalt oeffnet sich in eine weite Hoehle (klappt der Kiefer auf, sieht man hinein)
-    cav = [A.ell(B_SKULL, (13.02, 0, 0.86), X, (0.42, 0.5, 0.13), op='sub', k=0.03)]
-    head = skull + jaw + feat + lip_u + lip_l + cuts + slit + cav
+            pp, ph = prev
+            nrm = A.unit(np.array([1.0, 0.5 * (p[1] + pp[1]) * 1.1, 0.0]))
+            open_.append(A.tube(B_SKULL, pp - nrm * 0.02, p - nrm * 0.02, (0.13, ph * 0.5), (0.13, h * 0.5), up=Z, op='sub', k=0.01))
+            w = 1.0 - 0.5 * (abs(y) / 0.68) ** 2
+            lip_u.append(A.cone(B_SKULL, pp + Z * (ph * 0.5 + 0.004) - nrm * 0.012, p + Z * (h * 0.5 + 0.004) - nrm * 0.012,
+                                0.024 * w, 0.024 * w, k=0.025))
+            lip_l.append(A.cone(B_JAW, pp - Z * (ph * 0.5 + 0.006) - nrm * 0.012, p - Z * (h * 0.5 + 0.006) - nrm * 0.012,
+                                0.028 * w, 0.028 * w, k=0.025))
+            gums_u.append(A.cone(B_SKULL, pp + Z * (ph * 0.5 - 0.008) - nrm * 0.05, p + Z * (h * 0.5 - 0.008) - nrm * 0.05, 0.026, 0.026, k=0.02))
+            gums_l.append(A.cone(B_JAW, pp - Z * (ph * 0.5 - 0.008) - nrm * 0.05, p - Z * (h * 0.5 - 0.008) - nrm * 0.05, 0.026, 0.026, k=0.02))
+        prev = (p, h)
+    # Mundhoehle: hinter den Zaehnen weit (klappt der Kiefer auf, sieht man hinein)
+    cav = [A.ell(B_SKULL, (13.0, 0, 0.86), X, (0.42, 0.5, 0.13), op='sub', k=0.03)]
+    head = skull + jaw + feat + lip_u + lip_l + cuts + open_ + cav
 
     def hide_disp(P):
         wr = sdf.ridged(P * np.array([0.6, 1.0, 0.8]), 11, 3, seed=7581)
         return (-0.006 * smooth01((wr - 0.5) / 0.35) - 0.0025 * sdf.fbm(P, 28, 3, seed=7582)
                 - 0.0012 * sdf.fbm(P, 80, 2, seed=7583))
 
-    # Zaehne: zu viele Menschenzaehne, entlang des ganzen Laechelns - vorn Schneidezaehne, dann Eck- und Backenzaehne,
-    # die nach hinten immer weiterlaufen; oben am Schaedel, unten am Kiefer
+    # Zaehne: viel zu viele Menschenzaehne entlang des ganzen Grinsens - vorn Schneidezaehne, Eckzaehne, dann Backenzaehne
+    # bis in die Winkel; oben haengen sie vom Zahnfleisch, unten stehen sie; dahinter eine zweite, schiefe Reihe
     teeth = []
-    n_side = 14
-    for row, bone, dz in (('u', B_SKULL, 0.012), ('l', B_JAW, -0.014)):
+    n_side = 17
+    for row, bone in (('u', B_SKULL), ('l', B_JAW)):
         for s in (1, -1):
             for i in range(n_side):
                 t = (i + 0.5) / n_side
-                y = s * 0.6 * t ** 0.85
-                z = float(smile_z(y)) + dz
-                x = surf_x(face, y, z) - 0.035 - 0.02 * t
+                y = s * 0.6 * t ** 0.92
+                if i > 3 and rng.random() < 0.1:  # Luecke (ausgefallen)
+                    continue
+                z = float(smile_z(y))
+                h = float(mouth_h(y))
+                x = SX(y, z, face) - 0.045 - 0.012 * t - (0.012 if rng.random() < 0.25 else 0.0)
                 nrm = A.unit(np.array([1.0, y * 1.1, 0.0]))
-                side = A.unit(np.cross(Z, nrm))
-                wid = 0.024 if i < 2 else (0.02 if i < 4 else 0.026)
-                hgt = (0.038 if i < 4 else 0.03) * (1.0 + 0.15 * rng.uniform(-1, 1))
-                up = Z if row == 'u' else -Z
-                c = np.array([x, y, z]) - up * hgt * 0.45
-                teeth.append(A.box(bone, c, nrm, (0.016, wid * 0.85, hgt * 0.5), 0.008, up=Z, k=0.0))
-    # Maul innen: Rachen am Schaedel, Zunge am Kiefer (dunkel, nass)
-    # Auskleidung der Hoehle (innen 1 cm vor der Haut): oben am Schaedel, unten am Kiefer; Zunge am Kiefer
-    mouth = [A.ell(B_SKULL, (13.02, 0, 0.905), X, (0.41, 0.49, 0.085), k=0.0),
-             A.ell(B_JAW, (13.02, 0, 0.815), X, (0.41, 0.49, 0.085), k=0.04),
-             A.ell(B_SKULL, (13.02, 0, 0.86), X, (0.40, 0.48, 0.12), op='sub', k=0.0),
-             A.ell(B_JAW, (13.12, 0, 0.775), X, (0.27, 0.22, 0.05), k=0.05)]
-    # Augen: klein, tief, leuchtend weiss (die Seite: sie sehen damit im Dunkeln)
+                wid = (0.027 if i < 2 else (0.022 if i < 3 else 0.026)) * (1.0 - 0.3 * t)
+                top = z + h * 0.5 + 0.01 if row == 'u' else z - h * 0.5 - 0.01
+                tip = z - 0.006 if row == 'u' else z + 0.004
+                if i == 2:  # Eckzahn etwas laenger
+                    tip += -0.012 if row == 'u' else 0.012
+                tip += rng.uniform(-0.006, 0.006)
+                c = np.array([x, y, 0.5 * (top + tip)])
+                tilt = A.unit(Z + nrm * rng.uniform(-0.15, 0.15) + np.cross(Z, nrm) * rng.uniform(-0.1, 0.1))
+                teeth.append(A.box(bone, c, nrm, (0.016, wid * 0.82, abs(top - tip) * 0.5), 0.009, up=tilt, k=0.0))
+        # zweite Reihe dahinter (gedraengt, schief)
+        for k in range(12):
+            y = rng.uniform(-0.5, 0.5)
+            z = float(smile_z(y))
+            h = float(mouth_h(y))
+            x = SX(y, z, face) - 0.085
+            nrm = A.unit(np.array([1.0, y * 1.1, 0.0]))
+            top = z + h * 0.5 + 0.01 if row == 'u' else z - h * 0.5 - 0.01
+            tip = z + (0.01 if row == 'u' else -0.01)
+            c = np.array([x, y, 0.5 * (top + tip)])
+            teeth.append(A.box(bone, c, A.unit(nrm + rng.normal(0, 0.3, 3)), (0.014, 0.018, abs(top - tip) * 0.5), 0.008, up=Z, k=0.0))
+    # Maul innen: Zahnfleisch, Auskleidung der Hoehle (oben am Schaedel, unten am Kiefer), Zunge
+    mouth = gums_u + gums_l + [A.ell(B_SKULL, (13.0, 0, 0.905), X, (0.41, 0.49, 0.085), k=0.02),
+                               A.ell(B_JAW, (13.0, 0, 0.815), X, (0.41, 0.49, 0.085), k=0.04),
+                               A.ell(B_SKULL, (12.98, 0, 0.86), X, (0.40, 0.48, 0.12), op='sub', k=0.0),
+                               A.ell(B_JAW, (13.08, 0, 0.775), X, (0.27, 0.22, 0.05), k=0.05)]
+    # Augen: klein, tief in den Hoehlen, leuchtend weiss (die Seite: sie sehen damit im Dunkeln)
     eyes = []
     for s in (1, -1):
-        ey = np.array([surf_x(face, s * 0.2, 1.15) - 0.03, s * 0.2, 1.15])
-        eyes.append(A.ell(B_SKULL, ey, X, (0.045, 0.05, 0.042)))
+        ey = np.array([SX(s * 0.2, 1.155, face) - 0.055, s * 0.2, 1.155])
+        eyes.append(A.ell(B_SKULL, ey, X, (0.035, 0.038, 0.032)))
     return [
-        {'name': 'kopf', 'fm': 'ent_wr_hide', 'parts': head, 'disp': hide_disp, 'h': 0.006, 'cav_scale': 0.014, 'lod_weight': 1.6},
-        {'name': 'zaehne', 'fm': 'ent_tooth', 'parts': teeth, 'disp': lambda P: -0.0015 * sdf.fbm(P, 90, 2, seed=7584), 'h': 0.003,
-         'cav_scale': 0.004, 'lod_weight': 1.4},
-        {'name': 'maul', 'fm': 'ent_mouth', 'parts': mouth, 'disp': lambda P: -0.004 * sdf.fbm(P, 30, 2, seed=7585), 'h': 0.01,
-         'lod_weight': 0.4},
-        {'name': 'augen', 'fm': 'ent_glow_eye', 'parts': eyes, 'disp': None, 'h': 0.004, 'lod_weight': 0.3},
+        {'name': 'kopf', 'fm': 'ent_wr_hide', 'parts': head, 'disp': hide_disp, 'h': 0.0055, 'cav_scale': 0.014, 'tris': 16000},
+        {'name': 'zaehne', 'fm': 'ent_tooth', 'parts': teeth, 'disp': lambda P: -0.0015 * sdf.fbm(P, 90, 2, seed=7584), 'h': 0.0028,
+         'cav_scale': 0.004, 'tris': 7000},
+        {'name': 'maul', 'fm': 'ent_mouth', 'parts': mouth, 'disp': lambda P: -0.004 * sdf.fbm(P, 30, 2, seed=7585), 'h': 0.006,
+         'tris': 2600},
+        {'name': 'augen', 'fm': 'ent_glow_eye', 'parts': eyes, 'disp': None, 'h': 0.003, 'tris': 400},
     ]
 
 
@@ -354,40 +426,52 @@ def female_head(rng):
     head = [A.ell(B_SKULL, (12.95, 0, 1.03), X, (0.6, 0.6, 0.5), k=0.0),
             A.ell(B_SKULL, (13.35, 0, 1.07), X, (0.24, 0.42, 0.32), k=0.12),           # Kopflappen
             A.cone(B_SKULL, (12.45, 0, 1.0), (12.75, 0, 1.03), 0.6, 0.6, k=0.12)]
-    # Mundoeffnung vorn unten: rund, wulstig; tiefer Schlund
-    head.append(Part_torus(B_SKULL, (13.46, 0, 0.9), X, 0.17, 0.055, k=0.05))
-    head.append(A.ell(B_SKULL, (13.5, 0, 0.9), X, (0.25, 0.15, 0.15), op='sub', k=0.03))
+    # Mundoeffnung vorn unten: weit, rund, wulstig; tiefer Schlund mit Zahnkraenzen
+    head.append(Part_torus(B_SKULL, (13.46, 0, 0.88), X, 0.22, 0.07, k=0.06))
+    head.append(A.ell(B_SKULL, (13.52, 0, 0.88), X, (0.3, 0.2, 0.2), op='sub', k=0.03))
+    # Taster: kurze, fleischige Fortsaetze um den Mund (oben und unten)
+    for a in (1.2, 1.94, 4.4, 5.02):
+        b0 = np.array([13.5, 0.27 * math.cos(a), 0.88 + 0.27 * math.sin(a)])
+        b1 = b0 + np.array([0.14, 0.06 * math.cos(a), 0.06 * math.sin(a) - 0.03])
+        head.append(A.cone(B_SKULL, b0, b1, 0.045, 0.018, k=0.04))
     # Ringfurchen am Kopf (wurmartig)
     cuts = []
     for xx in (12.62, 12.82, 13.0):
         cuts.append(Part_torus(B_SKULL, (xx, 0, 1.03), X, 0.62, 0.018, op='sub', k=0.01))
-    core = [A.ell(B_SKULL, (12.9, 0, 1.05), X, (0.38, 0.34, 0.28), k=0.0),             # dunkler Knoten (Hirn) im Kopf
-            A.cone(B_SKULL, (12.9, 0, 1.0), (13.35, 0, 0.9), 0.14, 0.09, k=0.08)]
-    throat = [A.ell(B_SKULL, (13.32, 0, 0.9), X, (0.12, 0.13, 0.13))]
+    core = [A.ell(B_SKULL, (12.9, 0, 1.08), X, (0.36, 0.32, 0.26), k=0.0),             # dunkler Knoten (Hirn) im Kopf
+            A.cone(B_SKULL, (12.9, 0, 1.0), (13.3, 0, 0.88), 0.16, 0.12, k=0.08)]
+    for s in (1, -1):  # Muskelstraenge zu den Zangen
+        core.append(A.cone(B_SKULL, (12.95, s * 0.12, 0.95), (13.3, s * 0.3, 0.85), 0.09, 0.07, k=0.05))
+    throat = [A.ell(B_SKULL, (13.3, 0, 0.88), X, (0.14, 0.17, 0.17))]
     ring_teeth = []
-    for i in range(14):
-        a = 2 * math.pi * i / 14
-        p = np.array([13.42, 0.12 * math.cos(a), 0.9 + 0.12 * math.sin(a)])
-        ring_teeth.append(A.cone(B_SKULL, p, p + np.array([-0.03, -0.07 * math.cos(a), -0.07 * math.sin(a)]), 0.014, 0.002))
-    # Zangen: gebogen, nach innen gezahnt, glaenzendes Chitin
+    for ring, (rx, rr, n) in enumerate(((13.47, 0.17, 18), (13.4, 0.13, 14))):
+        for i in range(n):
+            a = 2 * math.pi * (i + 0.5 * ring) / n
+            p = np.array([rx, rr * math.cos(a), 0.88 + rr * math.sin(a)])
+            ring_teeth.append(A.cone(B_SKULL, p, p + np.array([-0.05, -0.1 * math.cos(a), -0.1 * math.sin(a)]), 0.018, 0.002))
+    # Zangen: schwer, sichelfoermig nach innen gebogen (geschlossen kreuzen sich die Spitzen), innen gezahnt, glaenzendes Chitin
     pinc = []
     for b, s in ((B_PL, 1), (B_PR, -1)):
-        p0 = np.array([13.32, s * 0.30, 0.84])
-        tip = np.array([14.22, s * 0.17, 0.78])
-        mid = np.array([13.82, s * 0.42, 0.84])
-        pts = A.bezier(p0, mid, tip + np.array([0, -s * 0.12, 0]), 10)
-        rad = [0.075 * (1 - i / 11) ** 0.7 + 0.008 for i in range(11)]
-        pinc += A.chain(lambda i, b=b: b, pts, rad, k=0.02)
-        pinc.append(A.ell(b, p0, A.unit(mid - p0), (0.12, 0.09, 0.08), k=0.04))
-        for i in range(2, 9):
+        p0 = np.array([13.3, s * 0.34, 0.86])
+        mid = np.array([13.9, s * 0.56, 0.86])
+        tip = np.array([14.36, s * -0.04, 0.8])
+        pts = A.bezier(p0, mid, tip, 14)
+        rad = [0.12 * (1 - i / 15) ** 0.75 + 0.007 for i in range(15)]
+        pinc += A.chain(lambda i, b=b: b, pts, rad, k=0.025)
+        pinc.append(A.ell(b, p0, A.unit(mid - p0), (0.16, 0.13, 0.11), k=0.05))
+        for i in range(3, 13):
             q = pts[i]
-            inward = A.unit(np.array([0, -s, 0]) + A.unit(pts[i + 1] - pts[i - 1]) * 0.3)
-            pinc.append(A.cone(b, q, q + inward * (0.05 - 0.003 * i), 0.016, 0.002, k=0.006))
+            tang = A.unit(pts[i + 1] - pts[i - 1])
+            inward = A.unit(np.cross(tang, np.array([0, 0, 1.0])) * s)
+            if inward[1] * s > 0:
+                inward = -inward
+            ln = (0.07 - 0.004 * i) * (1.3 if i % 3 == 0 else 1.0)
+            pinc.append(A.cone(b, q + inward * rad[i] * 0.6, q + inward * (rad[i] * 0.6 + ln) + tang * 0.02, 0.02, 0.002, k=0.008))
     eyes = []
     for s in (1, -1):
-        eyes.append(A.ell(B_SKULL, (13.36, s * 0.33, 1.22), (1, s * 0.6, 0.3), (0.035, 0.04, 0.035)))
+        eyes.append(A.ell(B_SKULL, (13.47, s * 0.22, 1.2), (1, s * 0.4, 0.2), (0.04, 0.045, 0.04)))
         for j in range(2):
-            eyes.append(A.ell(B_SKULL, (13.2 - 0.1 * j, s * (0.42 + 0.04 * j), 1.28 - 0.04 * j), (1, s, 0.5), (0.016, 0.016, 0.016)))
+            eyes.append(A.ell(B_SKULL, (13.32 - 0.12 * j, s * (0.4 + 0.05 * j), 1.27 - 0.03 * j), (1, s, 0.5), (0.02, 0.02, 0.02)))
     head_parts = head + cuts
 
     def memb_disp(P):
@@ -395,14 +479,14 @@ def female_head(rng):
         return -0.0022 * smooth01((vein - 0.72) / 0.2) + 0.0008 * sdf.fbm(P, 30, 2, seed=7592)
 
     return [
-        {'name': 'kopf', 'fm': 'ent_wr_membrane_f', 'parts': head_parts, 'disp': memb_disp, 'h': 0.007, 'cav_scale': 0.014, 'lod_weight': 1.2},
+        {'name': 'kopf', 'fm': 'ent_wr_membrane_f', 'parts': head_parts, 'disp': memb_disp, 'h': 0.007, 'cav_scale': 0.014, 'tris': 12000},
         {'name': 'kopfkern', 'fm': 'ent_wr_gut', 'parts': core, 'disp': lambda P: -0.006 * sdf.fbm(P, 12, 3, seed=7593), 'h': 0.012,
-         'lod_weight': 0.4},
-        {'name': 'schlund', 'fm': 'ent_mouth', 'parts': throat, 'disp': None, 'h': 0.008, 'lod_weight': 0.2},
-        {'name': 'ringzaehne', 'fm': 'ent_tooth', 'parts': ring_teeth, 'disp': None, 'h': 0.003, 'lod_weight': 0.5},
+         'tris': 1500},
+        {'name': 'schlund', 'fm': 'ent_mouth', 'parts': throat, 'disp': None, 'h': 0.008, 'tris': 400},
+        {'name': 'ringzaehne', 'fm': 'ent_tooth', 'parts': ring_teeth, 'disp': None, 'h': 0.003, 'tris': 800},
         {'name': 'zangen', 'fm': 'ent_wr_pincer', 'parts': pinc, 'disp': lambda P: -0.0015 * sdf.fbm(P, 60, 2, seed=7594), 'h': 0.004,
-         'cav_scale': 0.006, 'lod_weight': 1.3},
-        {'name': 'augen', 'fm': 'ent_glow_eye', 'parts': eyes, 'disp': None, 'h': 0.003, 'lod_weight': 0.3},
+         'cav_scale': 0.006, 'tris': 6000},
+        {'name': 'augen', 'fm': 'ent_glow_eye', 'parts': eyes, 'disp': None, 'h': 0.003, 'tris': 400},
     ]
 
 
@@ -461,11 +545,11 @@ def item_groups(rng):
     cloth_a.append(A.box(b, c + np.array([0.06, 0, -0.07]), X, (0.17, 0.06, 0.012), 0.006, k=0.01))
     return [
         {'name': 'beute_knochen', 'fm': 'ent_wr_bone', 'parts': bones, 'disp': lambda P: -0.002 * sdf.fbm(P, 50, 2, seed=7601),
-         'h': 0.004, 'cav_scale': 0.006, 'lod_weight': 0.6},
+         'h': 0.004, 'cav_scale': 0.006, 'tris': 3000},
         {'name': 'beute_rucksack', 'fm': 'ent_cloth_b', 'parts': cloth_b, 'disp': lambda P: -0.004 * sdf.fbm(P, 20, 3, seed=7602),
-         'h': 0.008, 'lod_weight': 0.3},
+         'h': 0.008, 'tris': 800},
         {'name': 'beute_stiefel', 'fm': 'ent_cloth_a', 'parts': cloth_a, 'disp': lambda P: -0.002 * sdf.fbm(P, 30, 2, seed=7603),
-         'h': 0.006, 'lod_weight': 0.3},
+         'h': 0.006, 'tris': 600},
     ]
 
 

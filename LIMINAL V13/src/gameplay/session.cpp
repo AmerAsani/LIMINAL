@@ -763,6 +763,7 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
     }
     // V6: erschoepft etwas langsamer, Sprinten nur mit Ausdauer
     player_.speedMul = stats_.speedMul() * (stats_.exhausted ? 0.9 : 1.0);
+    player_.speedMul *= 1.0 - 0.5 * presence_.trance();  // V13.3: der Anblick des Wranglers laehmt
     PlayerControl c = paused ? PlayerControl{} : control;
     if (!stats_.canSprint()) c.sprint = false;
     if (ride_.active) c.forward = c.side = 0.0f, c.sprint = c.jump = false;  // V8: im Aufzug nur umsehen
@@ -773,6 +774,15 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
     else player_.waterZ = -999.0;
     if (!world_->level().flashlight && flash_.on) flash_.on = false;  // V11: Level 6
     player_.update(dt, c, *tiles_);
+    // V13.3: der Leib des Wranglers zieht den Blick an (KREATUR_Wrangler.md) - gegensteuern, wegsehen
+    if (vec3 at; !paused && !stats_.dead && presence_.trance(&at) > 0.02f) {
+        const float tr = presence_.trance();
+        const vec3 d = at - body_.eye();
+        const double k = std::min(1.0, dt * 1.1 * tr * tr);
+        player_.angle += std::remainder(std::atan2(d.y, d.x) - player_.angle, 2.0 * 3.14159265) * k;
+        player_.pitch += (std::atan2(d.z, std::max(0.3f, std::hypot(d.x, d.y))) - player_.pitch) * k * 0.7;
+        if (netRole != NetRole::Guest) stats_.sanity = std::max(0.0, stats_.sanity - dt * 0.45 * tr);
+    }
     if (!paused) updateElevators(dt, prevX, prevY);  // V8
     if (!paused) {
         bool wasExhausted = stats_.exhausted;
@@ -910,6 +920,12 @@ ViewCamera GameSession::camera(bool thirdPerson, double dt) {
     c.fovMul = 1.0f + body_.fovKick();
     if (!thirdPerson) {
         c.pos = body_.eye();
+        if (const float q = presence_.quake(); q > 0.01f) {  // V13.3: das Beben (Wrangler) ruettelt die Kamera
+            const float t = (float)stats_.playTime;
+            c.pos += vec3{std::sin(t * 23.1f), std::sin(t * 19.7f + 1.0f), std::sin(t * 29.3f + 2.0f)} * (0.011f * q);
+            c.roll += std::sin(t * 17.3f) * 0.007f * q;
+            c.pitch += std::sin(t * 21.7f + 0.4f) * 0.005f * q;
+        }
         if (ride_.active && ride_.travel >= 0.0) {  // V8: die Kabine ruckelt beim Anfahren und Halten
             const double t = ride_.travel;
             const double env = std::exp(-t * 2.5) + std::exp(-std::max(0.0, 4.6 - t) * 3.0) * (t > 3.0 ? 1.0 : 0.0) + 0.25;

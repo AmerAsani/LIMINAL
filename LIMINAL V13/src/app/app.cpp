@@ -240,7 +240,8 @@ void App::scriptStep() {
             using R = game::Presence::Role;
             const std::string n = name;
             const R r = n == "faceling" ? R::Faceling : n == "skinstealer" ? R::SkinStealer : n == "wretch" ? R::Wretch : n == "rat" ? R::Rat
-                        : n == "window" ? R::Window : n == "hound" ? R::Hound : n == "smiler" ? R::Smiler : n == "clump" ? R::Clump : R::Gestalt;
+                        : n == "window" ? R::Window : n == "hound" ? R::Hound : n == "smiler" ? R::Smiler : n == "clump" ? R::Clump
+                        : n == "wrangler" ? R::Wrangler : R::Gestalt;  // V13.3
             auto& pr = session_->presence();
             if (!pr.has(r)) {
                 log::warn("Skript: near - kein {}", game::Presence::roleName(r));
@@ -345,7 +346,8 @@ void App::scriptStep() {
             // Entities nach Namen (anim::Entity); player: der Mensch
             // V13.2: neue Wesen; player = 99 (Mensch)
             const int kind = n == "hound" ? 1 : n == "moth" ? 2 : n == "gestalt" ? 3 : n == "nest" ? 4 : n == "clump" ? 5 : n == "faceling" ? 6
-                             : n == "skinstealer" ? 7 : n == "wretch" ? 8 : n == "rat" ? 9 : n == "window" ? 10 : n == "player" ? 99 : 0;
+                             : n == "skinstealer" ? 7 : n == "wretch" ? 8 : n == "rat" ? 9 : n == "window" ? 10 : n == "wrangler" ? 11  // V13.3
+                             : n == "player" ? 99 : 0;
             auto& pl = session_->player();
             vec3 at{(float)(pl.x + std::cos(pl.angle) * dist), (float)(pl.y + std::sin(pl.angle) * dist), 0.0f};
             at.z = session_->world().tile(ifloor(at.x), ifloor(at.y)).floor;
@@ -378,6 +380,7 @@ void App::scriptStep() {
                 if (n == "wretch") r = R::Wretch;
                 if (n == "rat") r = R::Rat;
                 if (n == "window") r = R::Window;
+                if (n == "wrangler") r = R::Wrangler;  // V13.3
                 session_->presence().force(r, dist);
             }
         } else if (cmd == "audioinfo") {  // V11 (Tests): Zustand der Klanglandschaft ins Protokoll
