@@ -20,6 +20,7 @@
 //   Fenster    der Umriss wiegt sich und winkt; greift er zu, lehnt er sich heraus, der Arm streckt sich bis 2 m.
 #pragma once
 
+#include <memory>
 #include <vector>
 
 #include "anim/creature.hpp"
@@ -75,6 +76,11 @@ public:
     float height() const;  // aktuelle Hoehe (geduckt)
     vec3 headPos() const;
     float wingbeat() const { return flapAmp_; }  // Deathmoth: 0 .. 1 Fluegelschlag (Klang)
+    // V13.3: Groesse des Wesens (Massstab um die Wurzel: junge, ausgewachsene, verschmolzene Growler; Spinnen je Ebene) und
+    // weitere Eingaben je Wesen (Nguithr'xurh: Anker und Zustand der Netzkugeln, siehe creature_nguithrxurh.cpp)
+    void setScale(float s) { scale_ = s; }
+    float scale() const { return scale_; }
+    void setExtra(const std::vector<float>& v) { extra_ = v; }
 
 private:
     struct Leg {
@@ -96,6 +102,8 @@ private:
     void updateBiped(float dt, const Input& in);   // V13.2: Faceling, Skin-Stealer, Wretch
     void updateRat(float dt, const Input& in);     // V13.2: Death Rat
     void updateWindow(float dt, const Input& in);  // V13.2: Fensterwesen
+    void updateGrowler(float dt, const Input& in);  // V13.3: creature_growler.cpp
+    void updateNguithr(float dt, const Input& in);  // V13.3: creature_nguithrxurh.cpp
     // Gangzyklus fuer n Beine; rest: Ruhepunkte (Welt) dieses Bildes
     void stepLegs(float dt, int n, const float* offs, float duty, float S, const vec3* rest, float standDur, const float* weight);
     vec3 footPos(int i, const float* lift) const;
@@ -165,6 +173,10 @@ private:
     float stepWeight_ = 0.5f;
     unsigned rng_ = 1;
     bool init_ = false;
+    // V13.3: Massstab, weitere Eingaben, eigener Zustand je Wesen (in dessen Datei definiert)
+    float scale_ = 1.0f;
+    std::vector<float> extra_;
+    std::shared_ptr<void> ext_;
 };
 
 }  // namespace lim::anim

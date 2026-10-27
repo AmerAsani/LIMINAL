@@ -77,6 +77,7 @@ void CreatureAnimator::init(Entity e, vec3 pos, float yaw, unsigned seed) {
         case Entity::Hound: chains = hd::kHeadHair + hd::kBackHair; break;
         case Entity::Gestalt: chains = ge::kWisps; break;
         case Entity::Rat: chains = 1; break;  // V13.2: Schwanz
+        case Entity::Growler: chains = 7; break;  // V13.3: Gewirr an Armen und Beinen, Ranken
         default: break;
     }
     chain_.assign((size_t)chains, Chain{});
@@ -150,6 +151,8 @@ void CreatureAnimator::setHidden(bool hidden) {
 float CreatureAnimator::height() const {
     if (e_ == Entity::Hound) return sk_->height - crouch_ * 0.2f;
     if (isBiped(e_)) return std::max(0.5f, pose_.j[bp::HEADTOP].z - pos_.z);  // V13.2: gebeugt (Wretch), geduckt
+    if (e_ == Entity::Growler) return std::max(0.3f, pose_.j[gw::HUMP].z - pos_.z + 0.12f * scale_);  // V13.3: aufgerichtet, zusammengesunken
+    if (e_ == Entity::Nguithr) return sk_->height * scale_;
     return sk_->height;
 }
 
@@ -165,6 +168,8 @@ vec3 CreatureAnimator::headPos() const {
         case Entity::Wretch: return (pose_.j[bp::HEAD] + pose_.j[bp::HEADTOP]) * 0.5f;
         case Entity::Rat: return pose_.j[rt::HEAD];
         case Entity::Window: return (pose_.j[wn::FIG_NECK] + pose_.j[wn::FIG_TOP]) * 0.5f;
+        case Entity::Growler: return pose_.j[gw::KNOT];  // V13.3: der Knoten auf der Brust
+        case Entity::Nguithr: return pose_.j[ng::EYES];
         default: return pose_.j[ns::TOP];
     }
 }
@@ -190,6 +195,8 @@ void CreatureAnimator::update(double dtIn, const Input& in) {
     if (isBiped(e_)) turn = e_ == Entity::SkinStealer ? 3.0f : 4.5f;  // V13.2
     if (e_ == Entity::Rat) turn = 12.0f;
     if (e_ == Entity::Window) turn = 1000.0f;  // haengt fest in der Wand
+    if (e_ == Entity::Growler) turn = 2.6f;      // V13.3: schwerfaellig
+    if (e_ == Entity::Nguithr) turn = 1000.0f;   // V13.3: die Lage kommt aus up/fwd (eigene Feder)
     const float yawBefore = yaw_;
     yaw_ += wrapPi(in.yaw - yaw_) * std::min(1.0f, dt * turn);
     speed_ = air ? length(vel_) : std::hypot(vel_.x, vel_.y);
@@ -210,6 +217,8 @@ void CreatureAnimator::update(double dtIn, const Input& in) {
         case Entity::Wretch: updateBiped(dt, in); break;
         case Entity::Rat: updateRat(dt, in); break;
         case Entity::Window: updateWindow(dt, in); break;
+        case Entity::Growler: updateGrowler(dt, in); break;  // V13.3
+        case Entity::Nguithr: updateNguithr(dt, in); break;
         default: updateNest(dt, in); break;
     }
     last_ = in;

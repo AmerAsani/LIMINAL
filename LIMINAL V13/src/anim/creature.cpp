@@ -566,7 +566,8 @@ const Build& bipedBuild(Entity e) {
 const CreatureSkeleton& entitySkeleton(Entity e) {
     static const std::array<CreatureSkeleton, kEntityCount> all = {makeSmiler(), makeHound(), makeMoth(), makeGestalt(), makeNest(),
                                                                    makeClump(), makeBiped(Entity::Faceling), makeBiped(Entity::SkinStealer),
-                                                                   makeBiped(Entity::Wretch), makeRat(), makeWindow()};
+                                                                   makeBiped(Entity::Wretch), makeRat(), makeWindow(),
+                                                                   makeGrowlerSkeleton(), makeNguithrSkeleton()};  // V13.3
     return all[(size_t)std::min((int)e, kEntityCount - 1)];
 }
 
@@ -583,6 +584,8 @@ const char* entityModel(Entity e) {
         case Entity::Wretch: return "ent_wretch";
         case Entity::Rat: return "ent_rat";
         case Entity::Window: return "ent_window";
+        case Entity::Growler: return "ent_growler";        // V13.3
+        case Entity::Nguithr: return "ent_nguithrxurh";
         default: return "ent_smiler";
     }
 }
@@ -591,6 +594,9 @@ const std::vector<const char*>& entityVariants(Entity e) {
     // Faceling: entwickelt (Level 3), rosa Kleid (Level 188); Death Rat: haarlos (Level 2, Hitze); Skin-Stealer: getarnt (in Menschenhaut)
     static const std::vector<const char*> none, fc{"ent_faceling", "ent_faceling_evo", "ent_faceling_dress", "ent_faceling_b", "ent_faceling_c"}, rat{"ent_rat", "ent_rat_bald"},
         ss{"ent_skinstealer", "ent_skinstealer_skin"};
+    // V13.3: Nguithr'xurh - 1 Netzkugeln der Kolonie, 2 dasselbe mit eingesponnenen Deathmoths (Level 2)
+    static const std::vector<const char*> ng{"ent_nguithrxurh", "ent_nguithrxurh_web", "ent_nguithrxurh_web_moth"};
+    if (e == Entity::Nguithr) return ng;
     return e == Entity::Faceling ? fc : (e == Entity::Rat ? rat : (e == Entity::SkinStealer ? ss : none));
 }
 
@@ -607,6 +613,8 @@ const char* entityName(Entity e) {
         case Entity::Wretch: return "Wretch";
         case Entity::Rat: return "Death Rat";
         case Entity::Window: return "Fensterwesen";
+        case Entity::Growler: return "Growler";  // V13.3
+        case Entity::Nguithr: return "Nguithr'xurh";
         default: return "?";
     }
 }

@@ -25,6 +25,7 @@
 // (Knurren und Bellen, ein naeher kommendes Laecheln mit tiefem Droehnen, das Flattern des Schwarms).
 #pragma once
 
+#include <array>
 #include <functional>
 #include <memory>
 #include <string>
@@ -48,8 +49,9 @@ namespace lim::game {
 class Presence {
 public:
     // V11: Clump (Buendel); V13.2: Faceling, Skin-Stealer, Wretch, Death Rat, Fensterwesen (gleiche Reihenfolge wie anim::Entity)
-    enum class Role { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window };
-    static constexpr int kRoleCount = 11;
+    // V13.3: Growler, Nguithr'xurh (presence_growler.cpp, presence_nguithrxurh.cpp)
+    enum class Role { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Growler, Nguithr };
+    static constexpr int kRoleCount = 13;
     static const char* roleName(Role r);
 
     struct Event {
@@ -88,6 +90,16 @@ public:
             Scream,      // Death Rats fallen ueber ein anderes Wesen her ("Screaming Event"): Kreischen, Flackern
             Swing,       // Schlag mit dem Steinwerkzeug (Ausholen)
             Pull,        // Fensterwesen: der Arm faehrt aus dem Fenster
+            // V13.3: Growler, Nguithr'xurh
+            Click,       // Growler: Klicks der Echoortung (strength: Groesse 0..1)
+            Static,      // Growler: das telepathische Rauschen schadet aus der Naehe (strength: Health-Punkte dieses Takts, 0: nur Verstand)
+            Lurch,       // Growler: richtet sich auf, die Drahtrippen straeuben sich, das Rauschen schwillt - gleich stoesst er zu
+            Merge,       // zwei Growler verschmelzen
+            Collapse,    // Growler bricht zusammen (verhungert, verwirrt, Schock)
+            Snip,        // Nguithr'xurh schneidet eine Netzkugel ab
+            Burst,       // eine Netzkugel zerplatzt am Boden (strength: Betaeubung fuer das Ziel, 0: daneben)
+            Skitter,     // Nguithr'xurh huscht
+            Stridulate,  // Nguithr'xurh zirpt (Cheliceren reiben - im Licht, gestoert)
         } type;
         Role role = Role::Smiler;
         vec3 pos;
@@ -209,6 +221,14 @@ public:
     bool kinSet(Role r, const std::string& key, double v);
     int variantOf(Role r) const;
     vec3 headOf(Role r) const;  // V13.2 (Tests): Kopf des ersten Wesens dieser Rolle
+    // V13.3: Growler - Staerke des telepathischen Rauschens beim Spieler dieses Rechners (0..1: Bild und Klang verzerrt),
+    // Groesse eines Growlers (Tests). Nguithr'xurh - Betaeubung je Spieler (0..1), Tempo-Faktor (betaeubt langsamer).
+    float staticLevel() const { return static_; }
+    float growlerScale(int i = 0) const;
+    float stupor(int target) const { return target >= 0 && target < 4 ? stupor_[(size_t)target] : 0.0f; }
+    void addDose(int target, float d);
+    float slowFor(int target, vec3 feet) const;  // auch: Gewirr einer Growler-Leiche
+    vec3 webOf(int i = 0) const;  // Mitte der i-ten Netzkolonie an der Decke (Tests, Skripte); 0: keine
 
 private:
     struct Agent;
@@ -260,6 +280,16 @@ private:
     void thinkWretch(Agent& a, double dt, const Context& c, std::vector<Event>& out);
     void thinkRat(Agent& a, double dt, const Context& c, std::vector<Event>& out);
     void thinkWindow(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    // V13.3: Growler, Nguithr'xurh (eigene Dateien)
+    void regieGrowler(double dt, const Context& c, std::vector<Event>& out);
+    bool spawnGrowler(const Context& c, std::vector<Event>& out, bool forced);
+    void thinkGrowler(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    void regieNguithr(double dt, const Context& c, std::vector<Event>& out);
+    bool spawnNguithr(const Context& c, std::vector<Event>& out, bool forced);
+    void thinkNguithr(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    void prepGN(Agent& a, const Context& c);  // Massstab, Leuchten, Netzkugeln an die Animation (auch Puppen und Vorfuehrungen)
+    void preGN(double dt, const Context& c);  // je Bild vor allem anderen: Rauschen neu sammeln, Betaeubung klingt ab
+    void prepNguithr(Agent& a, const Context& c);  // Spinne (Groesse, Lage, Augenschein) und Netzkugeln an die Animation
     bool roomAllowed(const Context& c, vec3 p, int kin) const;
     bool wander(Agent& a, double dt, const Context& c, double speed, int kin);
     void updateHive(double dt, const Context& c, std::vector<Event>& out);
@@ -288,6 +318,12 @@ private:
     int nextGroup_ = 1;
     double forcedDist_ = 0.0;
     Hive hive_;
+    // V13.3: Growler, Nguithr'xurh - naechster Auftritt, Rauschen beim Spieler, Betaeubung je Spieler
+    double nextGrowler_ = 60.0, nextNguithr_ = 20.0, corpseT_ = 0.0;
+    float static_ = 0.0f;
+    vec3 selfEye_;
+    std::array<float, 4> stupor_{};
+    std::array<double, 4> stuporHold_{};  // so lange klingt die Betaeubung noch nicht ab (s)
 };
 
 }  // namespace lim::game

@@ -27,6 +27,8 @@ const char* Presence::roleName(Role r) {
         case Role::Wretch: return "Wretch";
         case Role::Rat: return "Death Rat";
         case Role::Window: return "Fensterwesen";
+        case Role::Growler: return "Growler";  // V13.3
+        case Role::Nguithr: return "Nguithr'xurh";
     }
     return "?";
 }
@@ -112,6 +114,7 @@ bool Presence::hunting() const {
         if (a->role == Role::Clump && a->state >= 2 && a->state <= 4) return true;  // V11
         if (a->role == Role::Hound && (a->state == 2 || a->state == 3)) return true;
         if (a->role == Role::Smiler && a->state == 1 && a->sight.dist < 14.0f) return true;
+        if (a->role == Role::Growler && a->state >= 2 && a->state <= 4) return true;  // V13.3: jagt, holt aus, greift an
     }
     return false;
 }
@@ -125,7 +128,7 @@ float Presence::threatProximity() const {
         if (a->role == Role::Moth && a->state >= 2) p = std::max(p, std::clamp(1.0f - d / 10.0f, 0.0f, 1.0f) * 0.45f);
         if (a->role == Role::Clump) p = std::max(p, std::clamp(1.0f - (d - 1.0f) / 14.0f, 0.0f, 1.0f) * (a->state >= 2 ? 1.0f : 0.3f));
     }
-    return p;
+    return std::max(p, static_ * 0.8f);  // V13.3: das Rauschen eines Growlers
 }
 int Presence::swarm(vec3& center) const {
     int n = 0;
@@ -1061,6 +1064,7 @@ void Presence::updateHive(double dt, const Context& c, std::vector<Event>& out) 
 void Presence::think(Agent& a, double dt, const Context& c, std::vector<Event>& out) {
     if (a.showcase) {  // Vorfuehrung: das Gesicht sieht zur Kamera
         if (a.look) a.lookAt = c.view.eye;
+        if (a.role == Role::Growler || a.role == Role::Nguithr) prepGN(a, c);  // V13.3
         return;
     }
     switch (a.role) {
@@ -1074,6 +1078,8 @@ void Presence::think(Agent& a, double dt, const Context& c, std::vector<Event>& 
         case Role::Wretch: thinkWretch(a, dt, c, out); break;
         case Role::Rat: thinkRat(a, dt, c, out); break;
         case Role::Window: thinkWindow(a, dt, c, out); break;
+        case Role::Growler: thinkGrowler(a, dt, c, out); break;  // V13.3
+        case Role::Nguithr: thinkNguithr(a, dt, c, out); break;
         default: break;
     }
 }
@@ -1306,6 +1312,8 @@ void Presence::regie(double dt, const Context& c, std::vector<Event>& out) {
                 if (!spawnClump(c, out, true)) log::info("Praesenz: erzwungenes Buendel nicht moeglich (kein Lager)");
             } else if (r == Role::Window) {  // V13.2: Fenster der Ebene (neu verteilt)
                 windowsPlaced_ = false;
+            } else if (r == Role::Growler || r == Role::Nguithr) {  // V13.3: eigene Auftritte (presence_growler/_nguithrxurh.cpp)
+                if (!(r == Role::Growler ? spawnGrowler(c, out, true) : spawnNguithr(c, out, true))) log::info("Praesenz: erzwungenes {} nicht moeglich", roleName(r));
             } else if (r >= Role::Faceling) {  // V13.2: wie die Ebene sie kennt; kennt sie es nicht, die Grundart
                 static std::array<world::KinDef, world::KIN_COUNT> base;
                 Context x = c;
@@ -1424,6 +1432,7 @@ void Presence::regie(double dt, const Context& c, std::vector<Event>& out) {
             }
         }
     }
+    if (c.mode > 0 && !c.suspended) regieGrowler(dt, c, out), regieNguithr(dt, c, out);  // V13.3
     if (screamT_ > 0.0) {  // das Licht flackert, bis es vorbei ist
         screamT_ -= dt;
         screamTick_ -= dt;
@@ -1462,7 +1471,7 @@ void Presence::animate(Agent& a, double dt, const Context& c, std::vector<Event>
     // Motten am Ruheplatz und weit weg: Pose bleibt (sie sitzen still)
     if (a.role == Role::Moth && a.state == 0 && a.stateT > 2.0 && !a.showcase) return;
     const bool audible = a.role == Role::Hound || a.role == Role::Smiler || a.role == Role::Clump || a.role == Role::Faceling ||
-                         a.role == Role::SkinStealer || a.role == Role::Wretch || a.role == Role::Rat;  // V13.2
+                         a.role == Role::SkinStealer || a.role == Role::Wretch || a.role == Role::Rat || a.role == Role::Growler;  // V13.2, V13.3
     if (a.human) {
         anim::Animator::Input in;
         in.pos = a.pos;
@@ -1504,6 +1513,7 @@ void Presence::animate(Agent& a, double dt, const Context& c, std::vector<Event>
 void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
     time_ += dt;
     if (!c.world || !c.player) return;
+    preGN(dt, c);  // V13.3
     const Player& p = *c.player;
     if (c.puppet) {  // V13.2 Koop (Gast): nur nachfuehren und bewegen
         for (auto& ap : agents_) {
@@ -1511,6 +1521,7 @@ void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
             a.age += dt;
             a.stateT += dt;
             if (a.puppet) puppetStep(a, c);
+            if (a.role == Role::Growler || a.role == Role::Nguithr) prepGN(a, c);  // V13.3: Groesse, Netzkugeln
             a.sight = perceive(c.view, *c.world, a.feet(), a.height());
             if (a.role == Role::Smiler) {
                 const double ph = time_ * 1.35 + 0.4 * std::sin(time_ * 0.31);

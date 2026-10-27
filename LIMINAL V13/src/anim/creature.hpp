@@ -29,6 +29,9 @@
 //                       Vierbeiner (rt), langer Schwanz.
 //   Fensterwesen (E. 2) ein Fenster: verschwommene Landschaft, darin ein dunkler Umriss, der winkt; greift mit einem Arm
 //                       aus dem Fenster (wn). Wurzel: Mitte der Fensteroeffnung auf der Wand, x zeigt aus der Wand.
+//   V13.3:
+//   Growler (E. 130)    gebeugte Masse aus bunten Pfeifenreinigern, Glieder enden in schleifendem Gewirr (gw).
+//   Nguithr'xurh (E. 16) Walzenspinne mit 16 Gliedmassen; im selben Skelett die Netzkugeln der Kolonie (ng).
 //
 // Wie beim Menschen (anim/skeleton) werden Gelenkpositionen animiert; jeder Knochen ist ein starrer
 // Rahmen vom Start- zum Endgelenk, gedreht nach einem Hinweisvektor ("oben"). Skinning-Matrix =
@@ -43,7 +46,7 @@
 
 namespace lim::anim {
 
-enum class Entity : std::uint8_t { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Count };
+enum class Entity : std::uint8_t { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Growler, Nguithr, Count };
 constexpr int kEntityCount = (int)Entity::Count;
 
 struct CBone {
@@ -67,6 +70,7 @@ struct CreatureSkeleton {
 struct CreaturePose {
     std::vector<vec3> j;   // Gelenke (Welt)
     std::vector<vec3> up;  // je Knochen
+    std::vector<float> s;  // V13.3: Massstab je Knochen um sein Startgelenk (leer: alle 1) - Groesse, verborgene Teile
 };
 
 const CreatureSkeleton& entitySkeleton(Entity e);
@@ -300,5 +304,78 @@ enum J : std::uint8_t {
 enum B : std::uint8_t { B_ROOT, B_BACK, B_BODY, B_CHEST, B_HEAD, B_UPPER_L, B_FORE_L, B_HAND_L, B_UPPER_R, B_FORE_R, B_HAND_R, BCOUNT };
 constexpr float kW = 1.2f, kH = 1.8f, kFigX = 0.016f;  // Oeffnung; Ebene des Umrisses (x)
 }  // namespace wn
+
+// V13.3: Growler (Entity 130, KREATUR_Growler.md) - grob menschenaehnliche, vornuebergebeugte Masse aus bunten
+// Pfeifenreinigern ohne Kopf: der "Kopf" ist ein Knoten auf der Brust, aus dem die Kabel auseinanderlaufen. Kurze Beine,
+// lange Arme; alle Glieder enden in Gewirr, das nachschleift. Brustklappen (oeffnen sich zum Aufnehmen der Beute),
+// sechs Buendel rippenartiger Drahtspitzen (fahren beim Angriff aus), drei Peitschenranken am Ruecken.
+// Masse eines ausgewachsenen Tiers (2,1 m gebeugt); Junge und Verschmolzene ueber den Massstab je Knochen.
+namespace gw {
+constexpr int kSpikes = 6, kArmJ = 7, kLegJ = 6, kTend = 3, kTendJ = 5;
+enum J : std::uint8_t {
+    ROOT, PELVIS, SPINE, CHEST, HUMP, KNOT,
+    DOORH_L, DOORT_L, DOORH_R, DOORT_R,
+    SPK0,                          // + k * 2 + (0 Ansatz, 1 Spitze)
+    ARM0 = SPK0 + kSpikes * 2,     // + Seite * kArmJ + i: Schulter, Ellbogen, Handgelenk, Gewirr 1..4
+    LEG0 = ARM0 + 2 * kArmJ,       // + Seite * kLegJ + i: Huefte, Knie, Knoechel, Zehen, Gewirr 1, 2
+    TEND0 = LEG0 + 2 * kLegJ,      // + k * kTendJ + i
+    JCOUNT = TEND0 + kTend * kTendJ
+};
+enum B : std::uint8_t {
+    B_ROOT, B_PELVIS, B_SPINE, B_HUMP, B_KNOT, B_DOOR_L, B_DOOR_R,
+    B_SPK0,                         // + k
+    B_ARM0 = B_SPK0 + kSpikes,      // + Seite * 6 + i: Oberarm, Unterarm, Gewirr 1..4
+    B_LEG0 = B_ARM0 + 12,           // + Seite * 5 + i: Oberschenkel, Unterschenkel, Fuss, Gewirr 1, 2
+    B_TEND0 = B_LEG0 + 10,          // + k * 4 + i
+    BCOUNT = B_TEND0 + kTend * 4
+};
+static_assert(BCOUNT <= 64, "Gewichtsmasken fassen 64 Knochen");
+inline int armJ(int s, int i) { return ARM0 + s * kArmJ + i; }
+inline int armB(int s, int i) { return B_ARM0 + s * 6 + i; }
+inline int legJ(int s, int i) { return LEG0 + s * kLegJ + i; }
+inline int legB(int s, int i) { return B_LEG0 + s * 5 + i; }
+inline int tendJ(int k, int i) { return TEND0 + k * kTendJ + i; }
+inline int tendB(int k, int i) { return B_TEND0 + k * 4 + i; }
+}  // namespace gw
+
+// V13.3: Nguithr'xurh (Entity 16, KREATUR_Nguithrxurh.md) - Walzenspinne mit 16 Gliedmassen (12 Laufbeine, 2 Pedipalpen,
+// 2 Cheliceren), im Mittel 18 cm lang (Massstab je Ebene). Dazu im selben Skelett die Netzkugeln einer Kolonie (Variante
+// "web"): je Kugel ein Knochen vom Anker an der Decke bis zur Mitte (Faden und Kugel starr) und eine Pfuetze am Boden
+// (zerplatzt). Wurzel: Spinne - unter dem Koerper auf der Flaeche; Netz - Mitte der Kolonie an der Decke (z nach unten
+// haengen die Kugeln, die Pfuetzen liegen in der Ruhepose kHang tiefer).
+namespace ng {
+constexpr int kLegs = 12, kSacs = 6;
+constexpr float kHang = 2.6f;  // Deckenhoehe der Ruhepose (Pfuetzen)
+enum J : std::uint8_t {
+    ROOT, PRO, EYES, OPI0, OPI1, OPI2,
+    CHB_L, CHT_L, CHB_R, CHT_R,                // Cheliceren
+    PPB_L, PPK_L, PPT_L, PPB_R, PPK_R, PPT_R,  // Pedipalpen
+    LEG0,                                      // + Bein * 4 + i: Huefte, Knie, Ferse, Klaue (Bein = Paar * 2 + Seite)
+    DRAG_A = LEG0 + kLegs * 4, DRAG_B,         // Faden aus den Spinnwarzen
+    SAC0,                                      // + k * 4 + i: Anker, Kugelmitte, Pfuetze a, Pfuetze b
+    JCOUNT = SAC0 + kSacs * 4
+};
+enum B : std::uint8_t {
+    B_ROOT, B_PRO, B_OPI0, B_OPI1, B_CH_L, B_CH_R, B_PP0_L, B_PP1_L, B_PP0_R, B_PP1_R,
+    B_LEG0,                     // + Bein * 3 + i
+    B_DRAG = B_LEG0 + kLegs * 3,
+    B_SAC0,                     // + k * 2: Kugel (mit Faden), Pfuetze
+    BCOUNT = B_SAC0 + kSacs * 2
+};
+static_assert(BCOUNT <= 64, "Gewichtsmasken fassen 64 Knochen");
+inline int legJ(int l, int i) { return LEG0 + l * 4 + i; }
+inline int legB(int l, int i) { return B_LEG0 + l * 3 + i; }
+inline int sacJ(int k, int i) { return SAC0 + k * 4 + i; }
+inline int sacB(int k) { return B_SAC0 + k * 2; }
+inline int splatB(int k) { return B_SAC0 + k * 2 + 1; }
+// Kugeln der Ruhepose: Lage des Ankers (x, y), Fadenlaenge, Radius der Kugel
+struct Sac {
+    float x, y, len, r;
+};
+constexpr Sac kSac[kSacs] = {{0.05f, 0.02f, 0.62f, 0.13f}, {0.42f, 0.18f, 0.44f, 0.11f}, {-0.30f, 0.36f, 0.72f, 0.12f},
+                             {-0.36f, -0.28f, 0.38f, 0.10f}, {0.30f, -0.40f, 0.56f, 0.12f}, {-0.02f, -0.62f, 0.30f, 0.09f}};
+}  // namespace ng
+CreatureSkeleton makeGrowlerSkeleton();  // creature_growler.cpp
+CreatureSkeleton makeNguithrSkeleton();  // creature_nguithrxurh.cpp
 
 }  // namespace lim::anim
