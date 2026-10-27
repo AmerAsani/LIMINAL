@@ -238,9 +238,9 @@ for r in segments:
     if max(R.w, R.h) >= 4:
         if R.zone == 'brownout':  # V13.3: Dauer-Brownout - wenige, schwache, flackernde Roehren
             R.kw['flicker'] = 1
-            tube_run(r, ORANGE, step=4, dead_group=0.55)
+            tube_run(r, ORANGE, step=4, dead_group=0.45)  # V13.3 Kritikrunde 1: war schwarz (0,55 tot, 0,35)
             for l_ in R.lights:
-                l_[3] = 0.35
+                l_[3] = 0.45
             continue
         tube_run(r, ORANGE if R.zone == 'heiss' else (WHITE if R.zone == 'beton' or rng.random() < 0.6 else ORANGE))
 tube_run(gleis, WHITE, step=4, dead_group=0.35, lit_near=(m.start[0], m.start[1]))
@@ -271,7 +271,7 @@ m.obj('tube_white', vr.cx, vr.cy, vr.floor + vr.height, 0.0, tag='light')
 m.light(vor3, vr.cx, vr.cy, 0, 0.7, 4.0, z=vr.floor + vr.height - 0.12, panel=False, color=WHITE)
 # violette Notlichter (seit dem Ausfall, vereinzelt; eigene Batterie)
 for r in list(junctions.values()) + [gleis]:
-    if rng.random() < (0.12 if r != gleis else 1.0):
+    if rng.random() < (1.0 if r == gleis else 0.5 if m.R(r).zone == 'brownout' else 0.12):  # V13.3: im Brownout oefter
         faces = m.wall_faces(r, margin=0)
         for (fx, fy, fyaw) in (rng.sample(faces, min(len(faces), 6 if r == gleis else 1)) if faces else []):
             m.obj('violet_lamp', fx, fy, m.R(r).floor + 2.1, fyaw, tag='emergency')
