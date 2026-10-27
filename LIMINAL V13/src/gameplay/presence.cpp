@@ -440,7 +440,7 @@ void Presence::showcase(int kind, vec3 pos, float yaw, float walkSpeed) {
     a->look = kind == 0;
     if (a->ent == Entity::Moth) pos.z += 1.3f;
     if (a->ent == Entity::Window) pos.z += 1.9f;  // V13.2: Mitte des Fensters (Level 188: 1,9 m ueber dem Boden)
-    if (a->ent == Entity::Arms) pos.z += 2.6f, a->up = {0, 0, -1};  // V13.3: Oeffnung in der Decke
+    if (a->ent == Entity::Arms) pos.z += 2.8f, a->up = {0, 0, -1};  // V13.3: Oeffnung in der Decke (Gang in Level 1: 2,8 m)
     a->initBody(pos, yaw, (unsigned)rng_.randint(1, 1 << 30));
     a->rig.setGlow(1.0f);
     if (a->ent == Entity::Moth && a->walkShow) a->fly = 1.0f;

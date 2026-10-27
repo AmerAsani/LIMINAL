@@ -106,7 +106,8 @@ CreatureSkeleton ar::skeleton() {
         J(SHRED0 + k * 2, a), J(SHRED0 + k * 2 + 1, a + F * 0.02f);
     }
     for (int k = 0; k < kSmoke; ++k) {
-        const vec3 a{-0.5f, ((float)k - 1.5f) * 0.15f, -1.2f};
+        // Ruhepose um z = 1 m nahe der Achse: dort duennt der Rauchrand des Shaders (mesh_gbuffer, Smiler-Masse) nur teilweise aus
+        const vec3 a{0.05f, ((float)k - 1.5f) * 0.07f, 1.0f};
         J(SMOKE0 + k * 2, a), J(SMOKE0 + k * 2 + 1, a + Z * 0.12f);
     }
     B(B_ROOT, ROOT, ROOT, -1, 0.0f, F);

@@ -61,8 +61,8 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 | Clump (Entity 5) | Verschmolzene Glieder, blind, jagt nach Gehör; still bleiben. | **umgesetzt** |
 | Skin-Stealer (Entity 10) | Weiße Menschengestalten, die Haut tragen; ansprechen entlarvt sie; ruhig zurückweichen. | **neu (V13.2), teilweise**: getarnt in Menschenhaut, satt oder hungrig, ruhiges Zurückweichen hilft (`KREATUR_SkinStealer.md`). „Ansprechen entlarvt sie“ fehlt: der Spieler hat keine Stimme. |
 | Wretch (Entity 15) | Aggressive, untote Menschengestalten. | **neu (V13.2)**: träge und schnelle Wretches (`KREATUR_Wretch.md`) |
-| Duller (Entity 6) | Menschengestalten, die durch Wände greifen; bei Schaben in der Wand Abstand von Wänden halten. | **fehlt**: Priorität 6 (nur diese Ebene) |
-| Arms (französischer Zweig, entite-15-fr) | Eine Gliedmaße durch Lüftungen und Risse bei Stromausfall; Licht darauf richten. | **fehlt**: Priorität 9. Die Seite gehört zum französischen Zweig; das Bündel hängt im Spiel schon einen Arm als Köder aus dem Schacht. |
+| Duller (Entity 6) | Menschengestalten, die durch Wände greifen; bei Schaben in der Wand Abstand von Wänden halten. | **umgesetzt (V13.3)**: Hinterhalt durch die Wand mit Schaben und Wölbung, flieht gesehen lautlos, meidet Mandelwasser – [KREATUR_Duller.md](KREATUR_Duller.md) |
+| Arms (französischer Zweig, entite-15-fr) | Eine Gliedmaße durch Lüftungen und Risse bei Stromausfall; Licht darauf richten. | **umgesetzt (V13.3)**: aus Deckenlüftungen und Rissen nur im Dunkeln, von Lärm angelockt, Schaben im Schacht, Licht verbrennt es – [KREATUR_Arms.md](KREATUR_Arms.md) |
 | Crawler (Entity 17) | Ein krankmachender Pilz. | **bewusst weggelassen**: Pilz ohne Gestalt und Verhalten auf der Ebenenseite; als Gefahr nur über Krankheit, die das Spiel nicht kennt |
 | Growler (Entity 130) | Wesen aus Kabeln; ein schwerer Gegenstand auf dem Kopf verwirrt sie. | **fehlt**: Priorität 8 |
 | Nguithr'xurh (Entity 16) | Insektenartig an der Decke, bei kugelförmigen Netzen. | **fehlt**: Priorität 7 |
@@ -184,10 +184,10 @@ Bewertet nach Zahl der Ebenen, Dichte der Beschreibung auf den Ebenenseiten und 
 | 3 | Skin-Stealer (Entity 10) | 1, 3, 5, 188 | **neu (V13.2)**: wahre Gestalt und getarnt |
 | 4 | Wretch (Entity 15) | 1, 2, 3 | **neu (V13.2)**: träge, schnell, flehend |
 | 5 | Death Rat (Entity 24) | 2, 3, 5 | **neu (V13.2)**: mit Fell, haarlos, Schrei-Ereignis |
-| 6 | Duller (Entity 6) | 1 | offen |
+| 6 | Duller (Entity 6) | 1 | **umgesetzt (V13.3)**: [KREATUR_Duller.md](KREATUR_Duller.md) |
 | 7 | Nguithr'xurh (Entity 16) | 1, 2, (5) | offen |
 | 8 | Growler (Entity 130) | 1, 2, (5) | offen |
-| 9 | Arms (entite-15-fr) | 1 | offen |
+| 9 | Arms (entite-15-fr) | 1 | **umgesetzt (V13.3)**: [KREATUR_Arms.md](KREATUR_Arms.md) |
 | 10 | Wrangler (Entity 75) | 1, 2 | offen |
 | 11–14 | Cannibal Cuisine, purpurne Wesen, Woodlins/Watchers/Ants, Samantha | je eine | offen |
 

@@ -79,9 +79,8 @@ struct Path {
     }
 };
 // Belegung von xs_
-constexpr int X_INIT = 0, X_EXT = 1, X_EXTV = 2, X_GRIP = 3, X_GRIPV = 4, X_BULGE = 5, X_BULGEV = 6, X_STUMBLE = 7, X_STUMBLEV = 8,
-              X_STUMBLET = 9, X_SCRAPE = 10, X_SCRAPEV = 11, X_FLEE = 12, X_FLEEV = 13, X_BURST = 14, X_RIM = 15, X_SWAY = 16,
-              X_SWAYV = 17, X_ARMPH = 18, X_ARMPHV = 19, X_CHUNK = 24, X_CHUNKN = 16, X_SIZE = X_CHUNK + du::kChunks * X_CHUNKN;
+constexpr int X_EXT = 1, X_EXTV = 2, X_GRIP = 3, X_GRIPV = 4, X_BULGE = 5, X_BULGEV = 6, X_STUMBLE = 7, X_STUMBLEV = 8,
+              X_STUMBLET = 9, X_SCRAPE = 10, X_SCRAPEV = 11, X_FLEE = 12, X_FLEEV = 13, X_BURST = 14, X_ARMPH = 18, X_ARMPHV = 19, X_CHUNK = 24, X_CHUNKN = 16, X_SIZE = X_CHUNK + du::kChunks * X_CHUNKN;
 // Brocken: Lage (0), Geschwindigkeit (3), Achse x (6), Achse z (9), Drehung (12), Zustand (15: 0 in der Wand, 1 fliegt, 2 liegt)
 }  // namespace
 
@@ -358,7 +357,6 @@ void CreatureAnimator::updateDuller(float dt, const Input& in) {
         const vec3 bax = safeNorm(cross(du0, F), -Lw);
         vec3 E = S0 + du0 * kUpper;
         vec3 fdir = rotateAround(du0, bax, elb);
-        vec3 pole = safeNorm(-F + Lw * (sg * 0.3f), -F);
         // Kratzen: beide Haende an der eigenen Wandseite, die Finger schaben (rechts auf Hoehe der Bruchstelle)
         if (scrape > 0.01f && wall) {
             const vec3 hand = nearFace + t1 * (sg * 0.24f) + U * (sd == 1 ? kBreachH - 0.05f : kBreachH + 0.3f) +
@@ -388,9 +386,12 @@ void CreatureAnimator::updateDuller(float dt, const Input& in) {
                 if (dot(T - breach, n) < 0.25f) T += n * (0.25f - dot(T - breach, n));  // nie hinter die Wand
                 const vec3 c = breach + n * 0.45f;
                 const vec3 prev = breach + n * 0.02f;
-                for (int i = 1; i <= 14; ++i) {  // Bogen von der Wand zum Ziel
+                const vec3 side = safeNorm(cross(n, U), t1);
+                for (int i = 1; i <= 14; ++i) {  // Bogen von der Wand zum Ziel; er windet sich (Welle laeuft zur Hand)
                     const float u = (float)i / 14.0f;
-                    path.add(prev * ((1 - u) * (1 - u)) + c * (2 * u * (1 - u)) + T * (u * u));
+                    const float wav = 0.035f * sm01(u * 2.5f) * (1.0f - 0.6f * grip);
+                    path.add(prev * ((1 - u) * (1 - u)) + c * (2 * u * (1 - u)) + T * (u * u) + side * (wav * std::sin(u * 6.0f - time_ * 3.4f)) +
+                             U * (wav * 0.7f * std::sin(u * 4.5f - time_ * 2.7f + 1.0f)));
                 }
             } else {
                 path.add(T);
