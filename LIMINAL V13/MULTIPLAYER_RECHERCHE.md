@@ -42,7 +42,7 @@ Bewertet für LIMINAL: Listen-Server bis 4 Spieler, eigene C++20-Engine, Windows
 | **Valve GameNetworkingSockets** (Open Source, v1.6.1 vom 03.10.2026) | teilweise: ICE (eigener Client, seit 1.6.0 „out of beta“), **TURN seit 1.6.0** [17][18]; Signalisierung und TURN-Server muss man selbst stellen; das SDR-Relay gibt es nur mit Steam [17] | ja: „AES-GCM-256 per packet, Curve25519 for key exchange“ [17]; **Authentisierung ohne Steam nur mit eigener Zertifizierungsstelle** (sonst verschlüsselt, aber ohne Identität) [19] | hoch (dieselbe Transportschicht wie Steam); aktiv | BSD-3-Clause | keine; eigener Signalisierungs- und TURN-Server | wie eigener Server | Abhängigkeit **Protobuf** (ab 22 mit Abseil), Krypto über OpenSSL, libsodium oder bcrypt; bekannter Hinweis „Link errors may occur with LLVM 10+“ [20]; MinGW-Fix erst in 1.6.1 [18] |
 | **yojimbo / netcode** (Glenn Fiedler; netcode 1.4.8, yojimbo 1.14.0) | **nein**: für dedizierte Server; keine NAT-Durchdringung, kein Relay [21] | ja: libsodium; Beitritt nur mit **Connect-Token** aus einem eigenen Web-Backend, dessen privater Schlüssel nie im Client liegen darf [21] | gut gepflegt | BSD-3 | eigenes Backend nötig | wie eigener Server | passt nicht: Listen-Server hinter NAT ist nicht vorgesehen |
 | **ENet + Absicherung** (Stand V13.2) | **nein** (Portfreigabe) | nur mit eigener Schicht (V13.2: eigener Handshake + AES-GCM) | ENet reif, aber ohne Sicherheit | MIT | keine | Host-IP muss weitergegeben werden | passt technisch, verstößt gegen „keine eigene Kryptografie“ und löst NAT nicht |
-| **WebRTC-Datenkanäle: libdatachannel** (v0.24.6 vom 26.09.2026) mit **libjuice** (ICE, STUN, TURN; v1.7.4), **usrsctp**, **Mbed TLS 3.6 LTS** | **ja**: ICE mit STUN, **TURN-Relay als automatischer Rückfall** [22][23] | ja: **DTLS 1.2** (ECDHE, Vorwärtsgeheimnis) mit Zertifikats-Fingerabdruck aus der Signalisierung (RFC 8827) [22]; SCTP-Kanäle zuverlässig/unzuverlässig | aktiv (Releases 2026-09); in den Advisory-Datenbanken (OSV, GitHub) **keine bekannte Lücke** für die verwendeten Commits (Abschnitt 4); bekannt: ein Absturz durch ungeprüfte Eingaben in einer Fremdanwendung (CVE-2026-103936, Fehler des Aufrufers) [24] | libdatachannel und libjuice **MPL-2.0** (Dateiebene: unveränderte Dateien weitergeben, Quellort nennen), usrsctp BSD-3, Mbed TLS Apache-2.0, plog MIT | keine Lizenzkosten, kein Konto; ein Lobby- und TURN-Server muss irgendwo laufen | Lobby und TURN sieht IPs; Peers sehen einander (oder nur das Relay, Einstellung „nur Relay“) | C++17, reine Quellen; **libjuice bringt einen STUN/TURN-Server mit** [23], libdatachannel einen **WebSocket-Server und -Client** [22] → eigener Lobby-Server ohne weitere Bibliothek. MinGW: libjuice ausdrücklich, libdatachannel nicht in der CI (selbst geprüft, Abschnitt 6) |
+| **WebRTC-Datenkanäle: libdatachannel** (v0.24.6 vom 26.09.2026) mit **libjuice** (ICE, STUN, TURN; v1.7.4), **usrsctp**, **Mbed TLS 3.6 LTS** | **ja**: ICE mit STUN, **TURN-Relay als automatischer Rückfall** [22][23] | ja: **DTLS 1.2** (ECDHE, Vorwärtsgeheimnis) mit Zertifikats-Fingerabdruck aus der Signalisierung (RFC 8827) [22]; SCTP-Kanäle zuverlässig/unzuverlässig. Der WebSocket-Client prüft unter Windows kein TLS-Zertifikat (Abschnitt 4) | aktiv (Releases 2026-09); in den Advisory-Datenbanken (OSV, GitHub) **keine bekannte Lücke** für die verwendeten Commits (Abschnitt 4); bekannt: ein Absturz durch ungeprüfte Eingaben in einer Fremdanwendung (CVE-2026-103936, Fehler des Aufrufers) [24] | libdatachannel und libjuice **MPL-2.0** (Dateiebene: unveränderte Dateien weitergeben, Quellort nennen), usrsctp BSD-3, Mbed TLS Apache-2.0, plog MIT | keine Lizenzkosten, kein Konto; ein Lobby- und TURN-Server muss irgendwo laufen | Lobby und TURN sieht IPs; Peers sehen einander (oder nur das Relay, Einstellung „nur Relay“) | C++17, reine Quellen; **libjuice bringt einen STUN/TURN-Server mit** [23], libdatachannel einen **WebSocket-Server und -Client** [22] → eigener Lobby-Server ohne weitere Bibliothek. MinGW: libjuice ausdrücklich, libdatachannel nicht in der CI (selbst geprüft, Abschnitt 6) |
 | **WebRTC mit coturn** (TURN-Server, Linux) | wie oben, Relay über coturn | TURN-Anmeldung (REST-API mit Zeitlimit) | sehr verbreitet; **2026 zwei Lücken** (Speicherleck über HTTP-Umleitung CVE-2026-62959, CVSS 8.2; Absturz einer TCP-Verbindung CVE-2026-68552), behoben in 4.15.0; aktuell 4.18.0 [25][26] | BSD-3 | eigener Server | wie oben | für einen öffentlichen Linux-Server die erste Wahl als TURN; nicht als Teil des Spiels |
 | **Photon Realtime / Fusion** (Exit Games) | ja: alles läuft über Photon-Server (Cloud-Relay) | Verschlüsselung optional*, eigene Authentisierung über einen Web-Dienst* | sehr verbreitet (Content Warning, vermutlich Phasmophobia) | proprietäres SDK | **20 CCU nur zur Entwicklung**, dann z. B. 95 $ einmalig für 100 CCU (12 Monate) oder 95 $/Monat für 500 CCU; Verkehr über Kontingent 0,05–0,10 $/GB [27]; Konto und App-ID | Photon (Exit Games, Hamburg) sieht allen Verkehr | C++-SDK für MSVC*; mit llvm-mingw fraglich; Konto nötig |
 | **PlayFab Party** (Microsoft) | ja: P2P, sonst Relay [28] | ja: verschlüsselt, Relay mit DTLS [28] | hoch (Valheim-Crossplay [5]) | proprietär | nutzungsabhängig (Spielerminuten, Relay-Verkehr) [29]; Azure/PlayFab-Konto | Microsoft sieht Verbindungsdaten | SDK für MSVC/GDK*; Konto nötig |
@@ -54,7 +54,7 @@ Bewertet für LIMINAL: Listen-Server bis 4 Spieler, eigene C++20-Engine, Windows
 2. **Hinter NAT ohne Portfreigabe?** netcode/yojimbo und ENet nicht. Bleiben: GameNetworkingSockets und libdatachannel.
 3. **Authentisierung ohne Steam?**
    - GameNetworkingSockets: ohne eigene Zertifizierungsstelle nur verschlüsselt, nicht authentisiert. Ein Angreifer auf dem Weg (oder der Betreiber des Relays) könnte sich dazwischen schalten. Eine eigene Stelle mit Zertifikaten je Sitzung hieße: ein eigenes Protokoll um die Bibliothek herum.
-   - WebRTC: DTLS prüft den Zertifikats-Fingerabdruck aus der Signalisierung (Standard, RFC 8827). Der Fingerabdruck lässt sich zusätzlich im Beitrittscode festhalten („Pinning“, Abschnitt 5.2).
+   - WebRTC: DTLS prüft den Zertifikats-Fingerabdruck aus der Signalisierung (Standard, RFC 8827). Der Fingerabdruck lässt sich zusätzlich im Beitrittscode festhalten („Pinning“, `MULTIPLAYER_ARCHITEKTUR.md`, Abschnitt 5).
 4. **Bau mit llvm-mingw:**
    - GameNetworkingSockets braucht Protobuf (mit Abseil). Die Dokumentation warnt vor Linkfehlern mit LLVM ab Version 10; der MinGW-Fix kam erst am 03.10.2026.
    - libdatachannel braucht nur reine C/C++-Quellen; Mbed TLS baut ohne Perl/Python aus dem Release-Archiv.
@@ -77,7 +77,10 @@ Bewertet für LIMINAL: Listen-Server bis 4 Spieler, eigene C++20-Engine, Windows
 - libdatachannel setzt mit Mbed TLS für DTLS `MBEDTLS_SSL_VERIFY_OPTIONAL`. Bei OpenSSL ist das Gegenstück `SSL_VERIFY_FAIL_IF_NO_PEER_CERT`.
 - Folge: Ein Gegenüber ohne Zertifikat würde nicht abgewiesen. Ein falscher Fingerabdruck bricht ab, weil Mbed TLS Fehler des Prüf-Rückrufs als fatal behandelt.
 - **Gegenmaßnahme in LIMINAL:** Nach dem Öffnen der Kanäle verlangt `liminal_net.dll`, dass `remoteFingerprint()` gesetzt ist und zum Fingerabdruck aus der Beschreibung passt; sonst trennt sie.
-- Außerdem prüft die TLS-Verbindung der WebSocket-Lobby mit Mbed TLS **kein** Zertifikat (`MBEDTLS_SSL_VERIFY_NONE`), solange man nicht ausdrücklich prüfen lässt. LIMINAL schaltet die Prüfung ein und übergibt die Stammzertifikate von Windows oder ein festgelegtes Zertifikat (Abschnitt 5.2).
+- Außerdem prüft der WebSocket-Client von libdatachannel **unter Windows gar kein** TLS-Zertifikat:
+  - `websocket.cpp` schaltet die Prüfung ab („TLS certificate verification with root CA is not supported on Windows“); mit Mbed TLS steht dann `MBEDTLS_SSL_VERIFY_NONE`.
+  - Im eigenen Test wurde ein fremdes Zertifikat angenommen.
+  - **Gegenmaßnahme:** Das Spiel spricht mit der Lobby über **WinHTTP** von Windows (Schannel prüft Kette, Name, Sperrlisten; optional Pinning). Nur der Server-Teil der Lobby nutzt libdatachannel.
 - **Status:** Beides ist nicht als Fehler an die Entwickler gemeldet (kein Konto). Es steht als offener Punkt in `MULTIPLAYER_BEDROHUNGSMODELL.md`.
 
 ## 5. Ergebnis
@@ -89,6 +92,7 @@ Bewertet für LIMINAL: Listen-Server bis 4 Spieler, eigene C++20-Engine, Windows
 - Beitritt per **Code** statt IP. NAT-Durchdringung über ICE; geht kein direkter Weg, **automatisch über das TURN-Relay**.
 - Verschlüsselung und Authentisierung macht die Bibliothek (DTLS). Der eigene Handshake und die eigene AES-Schicht aus V13.2 sind **entfernt**, ENet ebenso.
 - Eigener Code bleibt: Spiellogik, Autorität, Prüfung jeder Nachricht, die Lobby (Vermittlung von Codes und Signalisierung, siehe 5.3) und eine kleine Rahmung in der DLL (Hallo mit Version und Geheimteil des Codes, Ping für die Verbindungsqualität).
+- Die Verbindung zur Lobby läuft über WinHTTP (Windows), nicht über den WebSocket-Client von libdatachannel (Abschnitt 4).
 - Alles Netz bleibt in `liminal_net.dll`. Das Spiel ohne Koop enthält weiterhin keinen Netzwerkcode.
 
 ### 5.2 Warum nicht Steam/EOS, und was das für die Veröffentlichung heißt
@@ -116,6 +120,25 @@ Bewertet für LIMINAL: Listen-Server bis 4 Spieler, eigene C++20-Engine, Windows
 
 - Netze, die **jeden UDP-Verkehr sperren** (manche Firmen- und Schulnetze): libjuice spricht TURN nur über UDP. Ein Relay über TCP oder TLS (Port 443) ginge nur mit einem anderen TURN-Server (coturn) und libnice; nicht umgesetzt.
 - Für weltweites Spiel muss **jemand den Lobby-Server öffentlich betreiben** (Herausgeber des Spiels oder eine Spielergruppe). Das ist der eine Eintrag in der Konfigurationsdatei (`MULTIPLAYER_SETUP.md`).
+
+## 6. Eigene Prüfung: Bau mit llvm-mingw und Grundfunktion
+
+**Bau:** libdatachannel nennt MinGW nicht in seiner CI (Mbed TLS nur unter macOS). Deshalb zuerst selbst gebaut, mit llvm-mingw (Clang 23.1.2) und CMake 4.4.3. Nötig waren drei Baueinstellungen, keine Änderung an den Quellen:
+1. `-include algorithm` für libdatachannel: `configuration.cpp` nutzt `std::transform` ohne `<algorithm>`; mit libc++ kommt der Kopf nicht indirekt mit.
+2. Mbed TLS mit `MBEDTLS_SSL_DTLS_SRTP` (sonst fehlt `mbedtls_ssl_conf_dtls_srtp_protection_profiles`), mit `MBEDTLS_THREADING_C`/`_PTHREAD` (mehrere Threads), ohne `MBEDTLS_NET_C`.
+3. `CMAKE_SKIP_INSTALL_RULES`, weil libdatachannel sonst die eigene Mbed-TLS-Bibliothek exportieren will.
+
+**Grundfunktion, erste Probe auf 127.0.0.1:**
+
+| Weg | Ergebnis |
+|---|---|
+| direkt | Kanal offen nach 27 ms, Fingerabdruck geprüft, 1200 Byte angekommen |
+| nur über den TURN-Server von libjuice | offen nach 92 ms, Weg „relay → relay“ |
+| WebSocket-Server und -Client | Echo angekommen |
+
+Die ausführlichen Prüfungen stehen in `MULTIPLAYER_TESTS.md`, Abschnitt 7.
+
+**Größe:** `liminal_net.dll` 3,4 MB, `liminal_lobby.exe` 3,0 MB (statisch gebunden).
 
 ## Quellen (abgerufen am 27.10.2026)
 

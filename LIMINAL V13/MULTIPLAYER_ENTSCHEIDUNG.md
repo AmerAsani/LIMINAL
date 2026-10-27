@@ -1,5 +1,34 @@
 # LIMINAL V13 – Entscheidung Mehrspieler
 
+## V13.3: Koop ohne Router-Einstellungen, Beta-Etikett entfernt (Stand 27.10.2026, E-033)
+
+**Der Koop-Modus heißt jetzt „Koop“ (ohne „Beta“).**
+- Beitritt mit Code über eine Lobby, ohne Portfreigabe. Kein direkter Weg → automatisch über das Relay.
+- Direkt (LAN/IP) mit langem Code für Fortgeschrittene.
+- Verschlüsselung und Echtheit der Gegenstelle durch die Bibliothek (DTLS). Der eigene Handshake und die eigene AES-Schicht aus V13.2 sind entfernt.
+
+Er ist **nicht „vollkommen sicher“**; die Restrisiken stehen in `MULTIPLAYER_BEDROHUNGSMODELL.md`, Abschnitte 7, 8 und 9.5.
+
+Bedingungen des Auftrags für das Entfernen des Beta-Etiketts:
+
+| Bedingung | Stand | Beleg |
+|---|---|---|
+| Recherche abgeschlossen | erfüllt | `MULTIPLAYER_RECHERCHE.md` (fünf Spiele, neun Lösungen, Quellen) |
+| bewährte Bibliothek integriert | erfüllt | libdatachannel 0.24.6, libjuice 1.7.4, Mbed TLS 3.6.7 LTS, usrsctp; unverändert in `third_party/` (`LICENSES.md`, Abschnitt 7.1) |
+| alle Tests grün | erfüllt | `MULTIPLAYER_TESTS.md`, Abschnitt 7: Transport, Koop mit Bots über alle Wege, Angriffe, Fuzzing, Reise, Langlauf 60 min; Einzelspieler-Tests unverändert grün |
+| Bedrohungsmodell aktualisiert | erfüllt | `MULTIPLAYER_BEDROHUNGSMODELL.md`, Abschnitt 9 |
+| Restrisiken dokumentiert | erfüllt | ebenda, Abschnitt 9.5; `MULTIPLAYER_SETUP.md`, Abschnitt 5 (Datenschutz) |
+
+**Offen, ehrlich benannt** (nicht Teil der Bedingungen, aber Bedingungen aus V13):
+- **Unabhängige Durchsicht durch Dritte:** weiterhin nicht möglich.
+- **Fuzzing über Stunden:**
+  - Die eigenen Parser liefen Hunderttausende Fälle, der Netzweg 5 min, der Langlauf 60 min.
+  - Die Parser der Bibliotheken (STUN, DTLS, SCTP) habe ich nicht selbst gefuzzt; sie sind Teil von OSS-Fuzz bzw. gepflegter Projekte.
+- **Kein Test über das echte Internet:** Es fehlen zwei Rechner in verschiedenen Netzen, echte NAT-Router und Mobilfunk. Alles lief auf einem Rechner mit Netzstörer. Die Anleitung für den Echttest steht in `MULTIPLAYER_TESTS.md`, Abschnitt 7.6.
+- **Lobby öffentlich betreiben:** Das macht der Herausgeber (`MULTIPLAYER_SETUP.md`). Ohne eingetragene Lobby geht nur „Direkt“.
+
+---
+
 ## V13.2: Koop als Beta freigegeben (Stand 26.10.2026, DECISIONS E-030)
 
 **Der Koop-Modus ist als Beta im Spiel:** Hauptmenü „Koop (Beta)“ (Hosten oder Beitreten), im Pausenmenü „Mitspieler“. Bis zu vier Spieler, ein Spieler hostet (`MULTIPLAYER_ARCHITEKTUR.md`). Er ist nie „vollkommen sicher“; das Restrisiko steht in `MULTIPLAYER_BEDROHUNGSMODELL.md`, Abschnitte 7 und 8.

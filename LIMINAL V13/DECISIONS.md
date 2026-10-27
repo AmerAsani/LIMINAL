@@ -408,7 +408,7 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
   - NAT-Durchdringung mit automatischem Relay-Rückfall.
   - Verschlüsselung (DTLS mit Vorwärtsgeheimnis) und Echtheit der Gegenstelle (Zertifikats-Fingerabdruck) macht die Bibliothek.
   - Ohne Konto und ohne Kosten nutzbar; Relay und Lobby lassen sich selbst betreiben.
-  - Baut mit llvm-mingw. Selbst geprüft mit `tests/webrtc_smoke.cpp`: direkt, nur Relay, WebSocket.
+  - Baut mit llvm-mingw. Zuerst mit einem kleinen Probeprogramm geprüft (direkt, nur Relay, WebSocket); heute deckt das `tests/net_transport_test.cpp` ab.
 - **Verworfen:**
   - Steam Networking Sockets und EOS: Konto, SDK nur mit Konto; Spieler bräuchten Steam bzw. ein Epic-Produkt. Die DLL-Schnittstelle lässt Steam später als zweiten Weg zu.
   - GameNetworkingSockets (Open Source): ohne eigene Zertifizierungsstelle keine Authentisierung; dazu Protobuf mit Abseil und bekannte Linkprobleme mit LLVM.
@@ -422,6 +422,20 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
 - **Bausteine statt eigener Kryptografie:**
   - Der Beitrittscode besteht aus Raumnummer und Geheimteil. Die Lobby sieht nur die Raumnummer. Das Geheimteil prüft der Host erst im DTLS-Kanal (Passwortprüfung über einen authentisierten Kanal).
   - Die lange Form des Codes enthält zusätzlich 60 Bit des Zertifikats-Fingerabdrucks des Hosts (Pinning). Der Gast prüft ihn, bevor er etwas sendet.
-  - Damit kann weder eine kompromittierte Lobby noch ein Angreifer im lokalen Netz den Host vortäuschen.
+  - Mit dem langen Code kann weder eine kompromittierte Lobby noch ein Angreifer im lokalen Netz den Host vortäuschen. Mit dem kurzen Code vertraut der Gast der Lobby (Restrisiko, `MULTIPLAYER_BEDROHUNGSMODELL.md`, Abschnitt 9.5). Im Modus „Direkt“ ist der lange Code Pflicht.
 - **Einstellungen am Bau von Mbed TLS** (`src/netdll/config/liminal_mbedtls_config.h`): DTLS-SRTP an (ohne baut libdatachannel nicht), Threads an (PSA-Zustand), Sockets aus.
 - **Quellen unverändert:** Fehlende Includes in libdatachannel (`std::transform` ohne `<algorithm>`) werden beim Bau über `-include algorithm` ergänzt, nicht im Quelltext.
+- **Nachträge während der Umsetzung (27.10.2026):**
+  - **Verbindung zur Lobby über WinHTTP statt über den WebSocket-Client von libdatachannel.**
+    - Dieser schaltet unter Windows die TLS-Prüfung ab („not supported on Windows“). Belegt im Test: Ein fremdes Zertifikat wurde angenommen.
+    - WinHTTP prüft mit Schannel gegen die Stammzertifikate von Windows; zusätzlich ist Pinning möglich (`lobby_cert`).
+    - `liminal_net.dll` importiert dafür `winhttp.dll`; `tools/check_no_network.py` erlaubt das nur für die DLL.
+  - **Gegenmaßnahme zu `VERIFY_OPTIONAL`** (libdatachannel mit Mbed TLS): Die DLL verlangt einen von DTLS geprüften Fingerabdruck, der zur Beschreibung passt.
+  - **Unzuverlässiger Kanal mit Lebensdauer 150 ms statt „0 Wiederholungen“:**
+    - SCTP staut sonst veraltete Momentaufnahmen hinter seiner Staukontrolle. Gemessen im schlechten Netz (128 kbit/s): 6,6 s Laufzeit und 19 m Abweichung.
+    - Mit Lebensdauer verfällt Altes; die Laufzeit bleibt bei 0,35 s.
+  - **Laufzeit für die Anzeige aus SCTP;** der eigene Ping enthält die Wartezeit bis zum nächsten Bild. Der Ping zählt nur den Verlust.
+  - **Absagen mit 1 s Nachlauf,** sonst kam die Absage beim Gast nicht an (er meldete „kein Weg“ statt „falscher Code“).
+  - **Wer wegen ungültiger Nachrichten getrennt wird, behält keinen Platz** (vorher 120 s belegt).
+  - **Obergrenze `kRoles` = 40** im Spielprotokoll (Format gleich). Unbekannte Rollen zeigt der Gast nicht an.
+- **Freigabe:** Das Beta-Etikett ist entfernt, weil die Bedingungen des Auftrags erfüllt sind (`MULTIPLAYER_ENTSCHEIDUNG.md`, V13.3). Der Modus ist damit nicht „vollkommen sicher“; Restrisiken: `MULTIPLAYER_BEDROHUNGSMODELL.md`, Abschnitt 9.5.
