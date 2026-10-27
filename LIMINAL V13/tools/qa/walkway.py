@@ -30,6 +30,22 @@ def plan(g, rooms_min, meters_min, seed):
     visited = {cur}
     length = 0.0
     guard = 0
+    if not adj.get(cur):  # V13.3: Ebene aus einem Raum (Level 903): entlang der langen Seite hin und zurueck
+        r = g.rooms[cur]
+        x0, y0, x1, y1 = r['rect']
+        along_x = (x1 - x0) >= (y1 - y0)
+        lanes = [y0 + (y1 - y0) * f for f in (0.35, 0.65)] if along_x else [x0 + (x1 - x0) * f for f in (0.35, 0.65)]
+        for k, lane in enumerate(lanes):
+            ends = (x0 + 1.5, x1 - 1.5) if k % 2 == 0 else (x1 - 1.5, x0 + 1.5)
+            for e in ends:
+                q = (e, lane) if along_x else (lane, e)
+                if g.ok(*q):
+                    p_ = path(g, pts[-1], q)
+                    if p_:
+                        for qq in p_[1:]:
+                            length += math.hypot(qq[0] - pts[-1][0], qq[1] - pts[-1][1])
+                            pts.append(qq)
+        return pts, seq, length
     while (len(visited) < rooms_min or length < meters_min) and guard < 400:
         guard += 1
         nb = sorted(adj.get(cur, ()))
