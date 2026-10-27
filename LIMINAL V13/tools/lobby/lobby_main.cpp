@@ -2,7 +2,7 @@
 // Anleitung, Kosten und Datenschutz: MULTIPLAYER_SETUP.md. Ohne Konto, ohne fremde Dienste.
 //
 //   liminal_lobby.exe [--port 27515] [--bind ADRESSE] [--turn-port 3478] [--no-turn]
-//                     [--public-host NAME] [--external-ip IP] [--relay-ports 50000-50199]
+//                     [--public-host NAME] [--public-turn-port N] [--external-ip IP] [--relay-ports 50000-50199]
 //                     [--tls-cert DATEI --tls-key DATEI] [--max-rooms 256] [--verbose]
 //
 // Gespeichert wird nichts auf der Platte. IP-Adressen haelt der Server nur im Speicher (Raten, Sperren) und
@@ -31,6 +31,7 @@ void usage() {
         "  --turn-port N       UDP-Port fuer STUN/TURN, Standard 3478\n"
         "  --no-turn           ohne STUN/TURN (dann nur direkte Wege)\n"
         "  --public-host NAME  so erreichen Spieler STUN/TURN (Standard: wie die Lobby)\n"
+        "  --public-turn-port N  so erreichen Spieler den TURN-Port (Weiterleitung), Standard wie --turn-port\n"
         "  --external-ip IP    oeffentliche IP fuer Relay-Adressen (Server hinter NAT)\n"
         "  --relay-ports A-B   UDP-Ports fuer Relay-Zuteilungen (fuer die Firewall)\n"
         "  --tls-cert DATEI    Zertifikat (PEM) fuer wss://\n"
@@ -50,6 +51,7 @@ int main(int argc, char** argv) {
         else if (a == "--turn-port") cfg.turnPort = (uint16_t)std::atoi(next().c_str());
         else if (a == "--no-turn") cfg.turn = false;
         else if (a == "--public-host") cfg.publicHost = next();
+        else if (a == "--public-turn-port") cfg.publicTurnPort = (uint16_t)std::atoi(next().c_str());
         else if (a == "--external-ip") cfg.externalAddress = next();
         else if (a == "--relay-ports") {
             const std::string r = next();

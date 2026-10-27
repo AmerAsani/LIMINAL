@@ -398,7 +398,7 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
 - **Fensterwesen:** in drei dunklen Fenstern (ohne Jalousie) im Erdgeschoss des Hofs von Level 188; einmal je Ebene gesetzt, bleiben dort (Wiki: bleiben, bis sie vergehen). Lockt mit Flüstern (Wiki: tröstend) und Handzeichen; unter 1,9 m vor der Öffnung fährt ein Arm heraus (Wiki: 1–2 m), nach 0,7 s zieht er hinein (tödlich) – wer sofort zurücktritt, entkommt. **Level 2** (Ebenenseite: Fensterwesen am Gangende) ist **nicht umgesetzt**: die Rohrgänge haben keine Fenster; ein eigenes Fenster an Gangenden wäre ein neues Ausstattungsstück (Rang 2 bleibt dafür offen).
 - **Regie:** je Wesen eine Gruppe zur Zeit, außer Sicht, 14–30 m Weg (weiter, wenn die erlaubten Räume weiter liegen), erster Auftritt nach 25–150 s; Abstand je Ebene (`every`) mal Schwierigkeit (`stalker_pause`). Schaden der Schläge mal `stalker_hit / 35`.
 
-## E-032 Koop: Verbindung ohne Router-Einstellungen über WebRTC-Datenkanäle (27.10.2026)
+## E-033 Koop: Verbindung ohne Router-Einstellungen über WebRTC-Datenkanäle (27.10.2026)
 - **Auftrag:** Jeder Spieler soll ohne Portfreigabe beitreten können. Keine eigene Kryptografie, kein eigenes Transportprotokoll, wenn es Bewährtes gibt. Recherche: `MULTIPLAYER_RECHERCHE.md`.
 - **Gewählt:**
   - libdatachannel 0.24.6 (WebRTC-Datenkanäle) mit libjuice 1.7.4 (ICE, STUN, TURN), Mbed TLS 3.6.7 LTS (DTLS 1.2) und usrsctp (SCTP);

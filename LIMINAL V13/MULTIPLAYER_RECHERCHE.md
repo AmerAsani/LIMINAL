@@ -1,6 +1,6 @@
 # LIMINAL – Recherche: Verbindungsaufbau im Koop ohne Router-Einstellungen
 
-Stand: 27.10.2026 (V13.3). Auftrag: Jeder Spieler auf der Welt soll einem Host beitreten können, ohne im Router etwas einzustellen. Keine eigene Kryptografie, kein eigenes Transportprotokoll, wenn es eine bewährte Lösung gibt. Ergebnis und Begründung: Abschnitt 5, Eintrag E-032 in `DECISIONS.md`.
+Stand: 27.10.2026 (V13.3). Auftrag: Jeder Spieler auf der Welt soll einem Host beitreten können, ohne im Router etwas einzustellen. Keine eigene Kryptografie, kein eigenes Transportprotokoll, wenn es eine bewährte Lösung gibt. Ergebnis und Begründung: Abschnitt 5, Eintrag E-033 in `DECISIONS.md`.
 
 Diese Datei trennt, was belegt ist (mit Quelle), von dem, was nur ein Hinweis ist. Alle Webseiten wurden am 27.10.2026 abgerufen. Versionen, Commits und Prüfsummen der gewählten Bibliotheken: `LICENSES.md`, Abschnitt 7.
 

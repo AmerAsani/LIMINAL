@@ -120,7 +120,7 @@ target_link_options(LiminalGame PRIVATE -municode)
 add_dependencies(LiminalGame lim_shaders lim_data)
 
 # ------------------------------------------------------------------------------------
-# V13.3: Mehrspieler-Transport (MULTIPLAYER_ARCHITEKTUR.md, Abschnitte 4-7; Wahl: MULTIPLAYER_RECHERCHE.md, E-032).
+# V13.3: Mehrspieler-Transport (MULTIPLAYER_ARCHITEKTUR.md, Abschnitte 4-7; Wahl: MULTIPLAYER_RECHERCHE.md, E-033).
 # WebRTC-Datenkanaele ueber libdatachannel 0.24.6 (MPL-2.0): ICE/STUN/TURN mit libjuice 1.7.4 (MPL-2.0), DTLS mit
 # Mbed TLS 3.6.7 LTS (Apache-2.0), SCTP mit usrsctp (BSD-3), Protokoll plog (MIT); Lobby-Nachrichten mit nlohmann/json
 # 3.12.0 (MIT). Alle Quellen unveraendert in third_party (LICENSES.md, Abschnitt 7). Alles Netz liegt in
