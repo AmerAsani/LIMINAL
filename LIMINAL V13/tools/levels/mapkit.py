@@ -85,6 +85,7 @@ FLOOR_MOUNT = {'chair', 'rack', 'bed', 'barrel', 'cart', 'pump', 'wardrobe', 'tr
                'moss_patch', 'fern_cluster', 'roots_floor', 'shrub_concrete', 'sapling', 'overgrown_crate',  # V13.3 L1 Garden
                'cabinet_vermilion', 'table_vermilion', 'bench_vermilion', 'screen_vermilion',  # V13.3 L1 Fabled
                'xray_scanner', 'security_gate', 'tray_stack', 'lounge_chair', 'lounge_table',  # V13.3 L36
+               'macchina_parts', 'macchina_tools',  # V13.3 L2
                'carousel_36', 'luggage_pile', 'checkin_counter', 'bta_booth', 'travelator', 'travelator_stopped', 'seats_row', 'gate_counter', 'camp_c32'}  # V12 L36
 
 
