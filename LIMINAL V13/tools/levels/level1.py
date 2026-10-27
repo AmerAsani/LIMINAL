@@ -600,6 +600,18 @@ for r in gd:
         elif q < 0.18:
             m.obj('outlet', fx, fy, R.floor + 0.3, fyaw, tag='deco')
 
+# V13.3: Deckenlueftungen in Gaengen und im Rohrgang (Wiki Arms: kommen aus Lueftungen/Rohren; Lager fuer presence_arms)
+for r in maze + pipe_segs:
+    R = m.R(r)
+    if min(R.w, R.h) > 3 or max(R.w, R.h) < 4 or rng.random() > 0.45:
+        continue
+    along_x = R.w >= R.h
+    n_ = max(R.w, R.h)
+    for k in range(1 + rng.randrange(max(1, min(4, n_ - 2))), n_ - 1, 9):
+        px = R.x0 + k + 0.5 if along_x else (R.x1 - 0.6 if r in pipe_segs else R.cx)
+        py = (R.y1 - 0.6 if r in pipe_segs else R.cy) if along_x else R.y0 + k + 0.5
+        if all(math.hypot(px - l[0], py - l[1]) > 1.3 for l in R.lights) and not m.blocked(px, py):
+            m.obj('ceiling_vent', px, py, R.floor + R.height, 0.0 if along_x else math.pi / 2, variant=rng.randrange(2), tag='deco')
 # V13.3: Wesen nach den Sicherungspunkten setzen (Abstand >= 17 m)
 # Hounds und Clumps streifen durch die Hallen (Wiki); Smiler kommen mit dem Flackern (Regie)
 for r in aquila + gothic + gd + [ouro, fabled] + garden:

@@ -88,7 +88,7 @@ Bilder: `docs/screens/creatures/duller/` (Blender-Vorschau `blender_r1.jpg`, `bl
 
 ## Restmängel
 
-- Im nahen Lampenlicht wirkt die dunkelgraue Haut bleich (automatische Belichtung, wie bei dunklen Stoffen).
+- ~~Im nahen Lampenlicht wirkt die dunkelgraue Haut bleich~~ – behoben bei der Zusammenführung (Hauptstrang): Grundfarbe 0,50 → 0,34 (`FM_ENT_DULLERSKIN`); im Hallenlicht jetzt dunkelgrau wie im Wiki, Bild `docs/screens/creatures/duller/r8_hauptstrang_farbe.jpg`.
 - Die Rippen sind zu gleichmäßig; Staub beim Durchbruch fehlt (es gibt keine Teilchen für Wesen).
 - Auf der Seite des Dullers bekommt die Wand kein Loch (man sähe es nur dort, wo er steht – und dort flieht er).
 - Diebstahl von Gegenständen nicht umgesetzt.
