@@ -264,9 +264,13 @@ def main():
     lp, booths = build_studio(a.level, classes, dump['rooms'])
     shotdir = os.path.join(QA, 'shots', a.level, a.round)
     os.makedirs(shotdir, exist_ok=True)
-    lines = ['wait 90']
+    lines = ['wait 90', 'vmdebug 7']  # Spielerfigur, Hand und Lampe ausblenden
     plan = []
     for b in booths:
+        # Spieler in die Kabine (die Welt laedt nur um den Spieler), Figur ist ausgeblendet
+        bx0, by0, bx1, by1 = b['room']
+        lines.append(f'pos {bx0 + 1.2:.2f} {by1 - 1.2:.2f}')
+        lines.append('wait 20')
         for rname, i, cam, t, light in shots_for(b):
             fn = os.path.join(shotdir, f"{b['key'].replace('@', '_v')}__{rname}_{i}.png").replace('\\', '/')
             lines.append('camat {:.3f} {:.3f} {:.3f} {:.3f} {:.3f} {:.3f} 55'.format(*cam, *t))
@@ -326,7 +330,7 @@ def compose(level, rnd, booths, plan):
         U.paste(im.resize((320, 180)), (x, y))
         d.rectangle([x, y + 180, x + 320, y + 200], fill=(0, 0, 0))
         d.text((x + 4, y + 184), k, fill=(255, 255, 255))
-    od = os.path.join(ROOT, 'docs', 'screens', level.replace('level', 'level_'))
+    od = os.path.join(ROOT, 'docs', 'screens', level)
     os.makedirs(od, exist_ok=True)
     U.save(os.path.join(od, f'props_uebersicht_{rnd}.jpg'), quality=82)
     print(f'{len(booths)} Klassen -> {out}')
