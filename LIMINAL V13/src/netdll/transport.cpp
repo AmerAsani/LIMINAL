@@ -1,65 +1,88 @@
-// V13.2: liminal_net.dll - Transport des Mehrspielers (MULTIPLAYER_ARCHITEKTUR.md, Abschnitte 4-6).
-// ENet traegt die Pakete; darueber Handshake mit Beweis des Beitrittsschluessels und AES-256-GCM je Nachricht.
-// Alles aus dem Netz gilt als feindlich: feste Laengen im Handshake, Hoechstgroesse, Zaehler (keine Wiederholung),
-// Rate je Gast, Zeitlimits, Sperre nach falschen Beweisen. Fehler trennen die Gegenstelle, nie den Prozess.
+// V13.3: liminal_net.dll - Transport des Koop-Modus (MULTIPLAYER_ARCHITEKTUR.md, Abschnitte 4-7).
+//
+// Verbindung, NAT-Durchdringung, Relay und Verschluesselung macht libdatachannel (WebRTC-Datenkanaele: ICE/STUN/TURN
+// ueber libjuice, DTLS 1.2 ueber Mbed TLS, SCTP ueber usrsctp). Hier steht nur, was die Bibliothek nicht kennt:
+// Lobby-Nachrichten, Grenzen (Plaetze, halbe Beitritte, Raten, Zeitlimits, Sperren), die Pruefung des Codes
+// (Geheimteil im DTLS-Kanal, Pruefteil gegen den Fingerabdruck) und eine kleine Rahmung (Hallo, Ping, Nutzdaten).
+//
+// Alles aus dem Netz gilt als feindlich: feste Laengen, Hoechstgroesse, Raten je Gast, Zeitlimits; Fehler trennen die
+// Gegenstelle, nie den Prozess. Jeder Aufruf der Bibliothek steht in try/catch (sie meldet Fehler als Ausnahme).
+// Nachrichten werden im Spiel-Thread abgeholt (ln_poll); die Rueckrufe der Bibliothek legen nur Beschreibungen,
+// Kandidaten und neue Kanaele in einen Eingang.
 #define LN_BUILD
 #include "netdll/ln_api.h"
 
-#include <enet/enet.h>
+#include <rtc/rtc.hpp>
 
 #include <algorithm>
 #include <chrono>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <deque>
 #include <map>
+#include <memory>
+#include <mutex>
+#include <set>
 #include <string>
 #include <vector>
 
-#include "netdll/secure.hpp"
+#include "netdll/hostcert.hpp"
+#include "netdll/joincode.hpp"
+#include "netdll/lobby_proto.hpp"
+#include "netdll/lobby_server.hpp"
 
 namespace {
 
-using lim::netsec::Aead;
+using namespace lim::netc;
 using u8 = std::uint8_t;
-using u32 = std::uint32_t;
-using u64 = std::uint64_t;
 
-constexpr u32 kMagic = 0x4E4D494Cu;  // "LIMN"
-enum Frame : u8 { F_HELLO = 1, F_CHALLENGE = 2, F_PROOF = 3, F_DATA = 4, F_REFUSE = 5 };
-constexpr size_t kHelloLen = 1 + 4 + 2 + 16 + 1 + LN_NAME_MAX;  // 40
-constexpr size_t kChallengeLen = 1 + 4 + 16 + 4;                // 25 (kleiner als HELLO: keine Verstaerkung)
-constexpr size_t kProofLen = 1 + 4 + 4 + 16;                    // 25
-constexpr size_t kDataHead = 1 + 8;
-constexpr size_t kMaxFrame = kDataHead + LN_MAX_PAYLOAD + lim::netsec::kTag;
-constexpr int kHalfOpenPerAddr = 3;  // gleichzeitige Handshakes je Adresse (3 Gaeste hinter einem Router)
-constexpr int kEnetHeadroom = 32;    // ENet-Plaetze ueber den Spielplaetzen: Ueberzaehlige bekommen sofort eine Absage
+constexpr u8 F_HELLO = 1, F_WELCOME = 2, F_REFUSE = 3, F_DATA = 0x10, F_PING = 0x11, F_PONG = 0x12;
+constexpr char kMagic[4] = {'L', 'I', 'M', 'N'};
+constexpr size_t kHelloFixed = 1 + 4 + 2 + kSecretChars + 1;  // + Name
+constexpr size_t kPingLen = 9;
+constexpr uint16_t kDefaultPort = 27500;
+constexpr double kPingInterval = 0.5;
+constexpr size_t kLossWindow = 40;              // 20 s
+constexpr size_t kMaxBufferedUnreliable = 256 * 1024;
+constexpr size_t kMaxBufferedReliable = 4 * 1024 * 1024;
+constexpr int kMaxReadPerFrame = 256;           // je Kanal und Bild; der Rest wartet (Gegendruck)
+constexpr int kMaxRemoteCandidates = 40;
+constexpr double kGuestTimeout = 30.0;
+constexpr double kLobbyTimeout = 10.0;
 
 double nowSec() {
     using namespace std::chrono;
     return duration<double>(steady_clock::now().time_since_epoch()).count();
 }
-void put32(u8* p, u32 v) { for (int i = 0; i < 4; ++i) p[i] = (u8)(v >> (8 * i)); }
-u32 get32(const u8* p) { return (u32)p[0] | ((u32)p[1] << 8) | ((u32)p[2] << 16) | ((u32)p[3] << 24); }
-void put64(u8* p, u64 v) { for (int i = 0; i < 8; ++i) p[i] = (u8)(v >> (8 * i)); }
-u64 get64(const u8* p) {
-    u64 v = 0;
-    for (int i = 7; i >= 0; --i) v = (v << 8) | p[i];
-    return v;
-}
 
-// Name: 1..16 Zeichen aus Buchstaben, Ziffern, Leerzeichen, '-', '_', '.'
-bool validName(const char* s, size_t n) {
-    if (n == 0 || n > LN_NAME_MAX) return false;
-    for (size_t i = 0; i < n; ++i) {
-        const unsigned char ch = (unsigned char)s[i];
-        const bool ok = (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == ' ' || ch == '-' || ch == '_' || ch == '.';
-        if (!ok) return false;
+struct Inbox {
+    enum Kind { Desc = 1, Cand = 2, Channel = 3 };
+    struct Item {
+        int slot = 0;
+        uint32_t gen = 0;
+        int kind = 0;
+        std::string a, b;
+        std::shared_ptr<rtc::DataChannel> dc;
+    };
+    std::mutex m;
+    std::deque<Item> q;
+    void push(Item it) {
+        std::lock_guard<std::mutex> l(m);
+        if (q.size() < 2048) q.push_back(std::move(it));
     }
-    return s[0] != ' ' && s[n - 1] != ' ';
-}
+    bool pop(Item& out) {
+        std::lock_guard<std::mutex> l(m);
+        if (q.empty()) return false;
+        out = std::move(q.front());
+        q.pop_front();
+        return true;
+    }
+};
 
 struct Bucket {
     double rate = 120, burst = 60, tokens = 60, last = -1;
+    void set(double r, double b) { rate = r, burst = b, tokens = b, last = -1; }
     bool take(double now) {
         if (last < 0) last = now;
         tokens = std::min(burst, tokens + (now - last) * rate);
@@ -70,473 +93,1073 @@ struct Bucket {
     }
 };
 
+struct PingWin {
+    struct P {
+        uint32_t seq;
+        double t;
+        bool answered;
+    };
+    uint32_t seq = 0;
+    std::deque<P> sent;
+    double rtt = 0, rttVar = 0;
+    bool any = false;
+    void answer(uint32_t s, double now) {
+        for (P& p : sent)
+            if (p.seq == s && !p.answered) {
+                p.answered = true;
+                const double r = (now - p.t) * 1000.0;
+                if (!any) rtt = r, rttVar = r * 0.5, any = true;
+                else rttVar = 0.75 * rttVar + 0.25 * std::abs(r - rtt), rtt = 0.875 * rtt + 0.125 * r;
+            }
+    }
+    float loss(double now) const {
+        int n = 0, lost = 0;
+        for (const P& p : sent)
+            if (now - p.t > 2.0) ++n, lost += p.answered ? 0 : 1;  // nach 2 s gilt ein Ping als verloren
+        return n ? (float)lost / (float)n : 0.0f;
+    }
+};
+
 struct Peer {
-    enum Phase { Free, WaitHello, WaitProof, Open, Closing } phase = Free;  // Closing: abgewiesen, Trennung laeuft
-    bool halfOpen() const { return phase == WaitHello || phase == WaitProof || phase == Closing; }
-    ENetPeer* ep = nullptr;
-    u8 cn[16]{}, sn[16]{};
-    u32 cookie = 0;
-    char name[LN_NAME_MAX + 1]{};
-    size_t nameLen = 0;
-    Aead tx, rx;
-    u64 txCtr[2]{}, rxCtr[2]{};
-    bool rxAny[2]{};
-    double opened = 0;
-    Bucket bucket;
+    enum Phase { Free, Signaling, Hello, Open };
+    Phase phase = Free;
+    uint32_t gen = 0;
+    int lobbyId = 0;
+    std::string addr, name;
+    std::shared_ptr<rtc::PeerConnection> pc;
+    std::shared_ptr<rtc::DataChannel> r, u;
+    std::string remoteFp;  // Fingerabdruck aus der Beschreibung der Gegenstelle
+    double opened = 0, lastRx = 0, nextPing = 0;
+    int remoteCands = 0;
+    bool helloSent = false;
+    PingWin ping;
+    Bucket bucket, pingBucket;
     int invalid = 0, rateDrops = 0;
-    u32 addr = 0;
-    bool announced = false;  // Gast: CONNECTED gemeldet (erste gueltige Nachricht des Hosts)
     LnStats st{};
 };
 
-struct Ban {
-    int fails = 0;
-    double until = 0, window = 0;
+struct Grave {
+    double t;
+    std::shared_ptr<rtc::PeerConnection> pc;
+    std::shared_ptr<rtc::DataChannel> r, u;
+    std::shared_ptr<rtc::WebSocket> ws;
 };
+
+std::string upper(std::string s) {
+    for (char& c : s) c = (char)std::toupper((unsigned char)c);
+    return s;
+}
+
+void initLibrary() {
+    static std::once_flag once;
+    std::call_once(once, [] {
+        const char* env = std::getenv("LIMINAL_NET_LOG");
+        if (env && *env == '1') rtc::InitLogger(rtc::LogLevel::Warning, [](rtc::LogLevel, std::string msg) { std::fprintf(stderr, "[rtc] %s\n", msg.c_str()); });
+        else rtc::InitLogger(rtc::LogLevel::None);
+    });
+}
 
 }  // namespace
 
 struct LnContext {
     bool server = false;
-    ENetHost* host = nullptr;
-    u8 key[LN_KEY_BYTES]{};
     LnLimits lim{};
+    std::string lobbyUrl, lobbyHost, lobbyCa, bindAddress;
+    bool lobbyTls = false, direct = false, relayOnly = false;
+    uint16_t port = 0;
+    std::vector<IceEntry> extraIce;
+    std::vector<rtc::IceServer> ice;
+    std::shared_ptr<Inbox> inbox = std::make_shared<Inbox>();
+    std::shared_ptr<rtc::WebSocket> ws;
+    double wsStarted = 0, wsRetryAt = 0;
+    bool wsOpen = false, lobbyReported = false;
+    std::unique_ptr<LobbyServer> embedded;
+    std::deque<LnEvent> events;
+    std::vector<Grave> graves;
     std::vector<Peer> peers;  // Host: Plaetze; Gast: einer (der Host)
-    std::deque<LnEvent> queue;
-    std::map<u32, Ban> bans;
-    std::string myName;
+    uint32_t genCounter = 0;
+    // Host
+    HostCert cert;
+    std::string room, secret, pin;
+    struct Fails {
+        int n = 0;
+        double window = 0, until = 0;
+    };
+    std::map<std::string, Fails> fails;
+    std::set<std::string> banned;
+    // Gast
+    JoinCode code;
+    std::string myName, directHost;
+    uint16_t directPort = 0;
+    double started = 0;
+    int progress = 0;
+    bool joined = false, connected = false, finished = false;
 };
 
 namespace {
-
-int g_enetRefs = 0;
-bool enetUp() {
-    if (g_enetRefs++ == 0 && enet_initialize() != 0) {
-        g_enetRefs = 0;
-        return false;
-    }
-    return true;
-}
-void enetDown() {
-    if (g_enetRefs > 0 && --g_enetRefs == 0) enet_deinitialize();
-}
-
-void sendRaw(Peer& p, int channel, const u8* data, size_t n) {
-    if (!p.ep) return;
-    ENetPacket* pk = enet_packet_create(data, n, channel == LN_RELIABLE ? ENET_PACKET_FLAG_RELIABLE : 0);
-    if (pk && enet_peer_send(p.ep, (enet_uint8)channel, pk) != 0) enet_packet_destroy(pk);
-}
 
 void pushEvent(LnContext* c, int type, int peer, int channel, int reason, const u8* data, int len, const char* name) {
     LnEvent ev{};
     ev.type = type, ev.peer = peer, ev.channel = channel, ev.reason = reason, ev.len = len;
     if (data && len > 0) std::memcpy(ev.data, data, (size_t)len);
     if (name) std::strncpy(ev.name, name, LN_NAME_MAX);
-    c->queue.push_back(ev);
+    c->events.push_back(ev);
 }
 
-// Schluessel je Richtung: HKDF(Beitrittsschluessel, Salz = Zufall Gast | Zufall Host)
-bool deriveKeys(const u8 key[LN_KEY_BYTES], const u8 cn[16], const u8 sn[16], u8 c2s[32], u8 s2c[32]) {
-    u8 salt[32], okm[64];
-    std::memcpy(salt, cn, 16), std::memcpy(salt + 16, sn, 16);
-    static const char info[] = "LIMN v2 keys";
-    if (!lim::netsec::hkdfSha256(key, LN_KEY_BYTES, salt, 32, (const u8*)info, sizeof(info) - 1, okm, 64)) return false;
-    std::memcpy(c2s, okm, 32), std::memcpy(s2c, okm + 32, 32);
-    SecureZeroMemory(okm, sizeof(okm));
-    return true;
+// --- Adressen und Server ---------------------------------------------------------------------------
+// "ws://name:port/pfad" oder "wss://..." -> Rechner, Port, TLS
+bool parseUrl(const std::string& url, std::string& host, uint16_t& port, bool& tls) {
+    std::string rest;
+    if (url.rfind("wss://", 0) == 0) tls = true, rest = url.substr(6);
+    else if (url.rfind("ws://", 0) == 0) tls = false, rest = url.substr(5);
+    else return false;
+    rest = rest.substr(0, rest.find('/'));
+    port = tls ? 443 : 80;
+    if (!rest.empty() && rest[0] == '[') {
+        const size_t e = rest.find(']');
+        if (e == std::string::npos) return false;
+        host = rest.substr(1, e - 1);
+        rest = rest.substr(e + 1);
+    } else {
+        const size_t p = rest.rfind(':');
+        host = rest.substr(0, p);
+        rest = p == std::string::npos ? std::string() : rest.substr(p);
+    }
+    if (!rest.empty()) {
+        if (rest[0] != ':' || rest.size() < 2 || rest.size() > 6) return false;
+        const int v = std::atoi(rest.c_str() + 1);
+        if (v < 1 || v > 65535) return false;
+        port = (uint16_t)v;
+    }
+    return !host.empty() && hostOk(host);
 }
 
-bool proofMac(const u8 key[LN_KEY_BYTES], const u8 cn[16], const u8 sn[16], const char* name, size_t nameLen, u8 out[16]) {
-    u8 msg[10 + 32 + LN_NAME_MAX];
-    std::memcpy(msg, "LIMN-proof", 10);
-    std::memcpy(msg + 10, cn, 16), std::memcpy(msg + 26, sn, 16);
-    std::memcpy(msg + 42, name, nameLen);
-    u8 full[32];
-    if (!lim::netsec::hmacSha256(key, LN_KEY_BYTES, msg, 42 + nameLen, full)) return false;
-    std::memcpy(out, full, 16);
-    return true;
+// "adresse", "adresse:port", "[v6]:port" oder "v6"
+bool parseDirect(const std::string& s, std::string& host, uint16_t& port) {
+    port = kDefaultPort;
+    if (s.empty() || s.size() > 260) return false;
+    if (s[0] == '[') {
+        const size_t e = s.find(']');
+        if (e == std::string::npos) return false;
+        host = s.substr(1, e - 1);
+        const std::string rest = s.substr(e + 1);
+        if (!rest.empty()) {
+            if (rest[0] != ':') return false;
+            const int v = std::atoi(rest.c_str() + 1);
+            if (v < 1 || v > 65535) return false;
+            port = (uint16_t)v;
+        }
+    } else if (std::count(s.begin(), s.end(), ':') == 1) {
+        const size_t p = s.find(':');
+        host = s.substr(0, p);
+        const int v = std::atoi(s.c_str() + p + 1);
+        if (v < 1 || v > 65535) return false;
+        port = (uint16_t)v;
+    } else {
+        host = s;
+    }
+    return !host.empty() && hostOk(host);
 }
 
-void nonceFor(u8 out[12], int dir, int channel, u64 ctr) {
-    out[0] = (u8)dir, out[1] = (u8)channel, out[2] = 0, out[3] = 0;
-    put64(out + 4, ctr);
+// "stun:host:port turn:user:pass@host:port"
+std::vector<IceEntry> parseIceList(const char* s) {
+    std::vector<IceEntry> out;
+    if (!s) return out;
+    std::string all(s);
+    size_t i = 0;
+    while (i < all.size() && out.size() < (size_t)kMaxIce) {
+        while (i < all.size() && all[i] == ' ') ++i;
+        size_t e = all.find(' ', i);
+        if (e == std::string::npos) e = all.size();
+        std::string t = all.substr(i, e - i);
+        i = e;
+        if (t.empty()) continue;
+        IceEntry ie;
+        if (t.rfind("stun:", 0) == 0) t = t.substr(5);
+        else if (t.rfind("turn:", 0) == 0) {
+            ie.turn = true;
+            t = t.substr(5);
+            const size_t at = t.rfind('@');
+            const size_t colon = t.find(':');
+            if (at == std::string::npos || colon == std::string::npos || colon > at) continue;
+            ie.user = t.substr(0, colon), ie.pass = t.substr(colon + 1, at - colon - 1);
+            t = t.substr(at + 1);
+            if (!credOk(ie.user) || !credOk(ie.pass)) continue;
+        } else continue;
+        uint16_t port = 3478;
+        std::string host;
+        if (!parseDirect(t, host, port)) continue;
+        ie.host = host, ie.port = port;
+        out.push_back(ie);
+    }
+    return out;
 }
 
-// verschluesselt senden (dir 0: Gast -> Host, 1: Host -> Gast)
-bool sendData(Peer& p, int dir, int channel, const u8* data, int len) {
-    if (p.phase != Peer::Open || !p.tx.ready() || len < 0 || len > LN_MAX_PAYLOAD) return false;
-    u8 buf[kMaxFrame];
-    const u64 ctr = ++p.txCtr[channel];
-    buf[0] = F_DATA;
-    put64(buf + 1, ctr);
-    u8 nonce[12];
-    nonceFor(nonce, dir, channel, ctr);
-    const u8 aad[2] = {F_DATA, (u8)channel};
-    if (!p.tx.seal(nonce, aad, 2, data, (size_t)len, buf + kDataHead)) return false;
-    sendRaw(p, channel, buf, kDataHead + (size_t)len + lim::netsec::kTag);
-    ++p.st.sent;
-    return true;
+void setIce(LnContext* c, const std::vector<IceEntry>& fromLobby) {
+    c->ice.clear();
+    auto add = [&](const IceEntry& e) {
+        const std::string host = e.host.empty() ? c->lobbyHost : e.host;
+        if (host.empty() || !hostOk(host)) return;
+        try {
+            if (e.turn) c->ice.emplace_back(host, e.port, e.user, e.pass, rtc::IceServer::RelayType::TurnUdp);
+            else c->ice.emplace_back(host, e.port);
+        } catch (...) {
+        }
+    };
+    for (const IceEntry& e : fromLobby) add(e);
+    for (const IceEntry& e : c->extraIce) add(e);
 }
 
-// entschluesseln und pruefen; false = ungueltig
-bool openData(Peer& p, int dir, int channel, const u8* in, size_t n, u8* out, int& outLen) {
-    if (n < kDataHead + lim::netsec::kTag || n > kMaxFrame || in[0] != F_DATA || channel < 0 || channel > 1) return false;
-    const u64 ctr = get64(in + 1);
-    // keine Wiederholung: je Kanal strikt steigend (zuverlaessig: geordnet; unzuverlaessig: ENet verwirft Aelteres)
-    if (p.rxAny[channel] && ctr <= p.rxCtr[channel]) return false;
-    if (ctr == 0) return false;
-    u8 nonce[12];
-    nonceFor(nonce, dir, channel, ctr);
-    const u8 aad[2] = {F_DATA, (u8)channel};
-    const size_t m = n - kDataHead - lim::netsec::kTag;
-    if (!p.rx.open(nonce, aad, 2, in + kDataHead, m, out)) return false;
-    p.rxAny[channel] = true;
-    p.rxCtr[channel] = ctr;
-    outLen = (int)m;
-    return true;
+// --- Lobby -----------------------------------------------------------------------------------------------
+void lobbySend(LnContext* c, const LMsg& m) {
+    if (!c->ws) return;
+    const std::string s = build(m);
+    if (s.empty()) return;
+    try {
+        if (c->ws->isOpen()) c->ws->send(s);
+    } catch (...) {
+    }
 }
 
-void refuse(LnContext* c, Peer& p, int reason) {
-    const u8 r[2] = {F_REFUSE, (u8)reason};
-    sendRaw(p, LN_RELIABLE, r, 2);
-    if (p.ep) enet_peer_disconnect_later(p.ep, (enet_uint32)reason);
-    p.phase = Peer::Closing;  // alles Weitere wird ignoriert (kein zweiter Beweis auf derselben Verbindung)
-    (void)c;
+void lobbyConnect(LnContext* c) {
+    c->wsOpen = false;
+    c->wsStarted = nowSec();
+    try {
+        rtc::WebSocket::Configuration wc;
+        wc.maxMessageSize = kMaxLobbyMsg;
+        wc.connectionTimeout = std::chrono::milliseconds(8000);
+        wc.pingInterval = std::chrono::milliseconds(10000);
+        wc.maxOutstandingPings = 3;
+        if (c->lobbyTls) {
+            wc.disableTlsVerification = false;  // Mbed TLS prueft sonst nicht (MULTIPLAYER_RECHERCHE.md, Abschnitt 4)
+            wc.caCertificatePemFile = c->lobbyCa.empty() ? windowsRootsPem() : c->lobbyCa;
+        }
+        c->ws = std::make_shared<rtc::WebSocket>(wc);
+        c->ws->open(c->lobbyUrl);
+    } catch (...) {
+        c->ws.reset();
+    }
 }
 
-int slotOf(ENetPeer* ep) { return (int)(intptr_t)ep->data - 1; }
+void lobbyClose(LnContext* c) {
+    if (!c->ws) return;
+    try {
+        c->ws->close();
+    } catch (...) {
+    }
+    c->graves.push_back({nowSec(), nullptr, nullptr, nullptr, c->ws});
+    c->ws.reset();
+    c->wsOpen = false;
+}
 
-void freePeer(LnContext* c, int slot, int reason, bool notify) {
+int reasonOfErr(const std::string& e) {
+    if (e == "noroom") return LN_R_NOROOM;
+    if (e == "full" || e == "busy") return LN_R_FULL;
+    if (e == "banned") return LN_R_BANNED;
+    if (e == "rate") return LN_R_RATE;
+    if (e == "version") return LN_R_VERSION;
+    if (e == "closed") return LN_R_HOSTGONE;
+    if (e == "badkey") return LN_R_BADKEY;
+    if (e == "timeout") return LN_R_TIMEOUT;
+    return LN_R_PROTOCOL;
+}
+
+// --- Gegenstellen ----------------------------------------------------------------------------------------
+void closePeer(LnContext* c, int slot) {
     Peer& p = c->peers[(size_t)slot];
-    if (notify && p.phase == Peer::Open) pushEvent(c, LN_EV_DISCONNECTED, c->server ? slot : 0, 0, reason, nullptr, 0, nullptr);
-    if (p.ep) p.ep->data = nullptr;
+    if (p.phase == Peer::Free && !p.pc) return;
+    try {
+        if (p.pc) p.pc->resetCallbacks();
+        if (p.r) p.r->close();
+        if (p.u) p.u->close();
+        if (p.pc) p.pc->close();
+    } catch (...) {
+    }
+    c->graves.push_back({nowSec(), p.pc, p.r, p.u, nullptr});
+    const uint32_t gen = p.gen;
     p = Peer{};
+    p.gen = gen + 1;
 }
 
-// Fehlversuch einer Adresse (falscher Beweis, Muell oder Zeitlimit im Handshake); nach banFails gesperrt
-void noteFail(LnContext* c, u32 addr, double now) {
-    Ban& b = c->bans[addr];
-    if (now - b.window > 60.0) b.fails = 0, b.window = now;
-    if (++b.fails >= c->lim.banFails) b.until = now + c->lim.banMs / 1000.0;
-}
-
-void invalid(LnContext* c, int slot, double now) {
-    Peer& p = c->peers[(size_t)slot];
-    ++p.st.dropped;
-    if (++p.invalid > c->lim.maxInvalid && p.ep) {
-        if (p.halfOpen()) noteFail(c, p.addr, now);
-        enet_peer_disconnect_now(p.ep, LN_R_PROTOCOL);
-        freePeer(c, slot, LN_R_PROTOCOL, true);
-    }
-}
-
-// --- Host --------------------------------------------------------------------------------------------------------
-void serverReceive(LnContext* c, ENetPeer* ep, int channel, const u8* d, size_t n, double now) {
-    const int slot = ep->data ? slotOf(ep) : -1;
-    if (slot < 0) return;
-    Peer& p = c->peers[(size_t)slot];
-    if (p.phase == Peer::Closing) return;
-    if (n > kMaxFrame || n == 0) return invalid(c, slot, now);
-    switch (p.phase) {
-        case Peer::WaitHello: {
-            if (n != kHelloLen || d[0] != F_HELLO || get32(d + 1) != kMagic) return invalid(c, slot, now);
-            const unsigned ver = (unsigned)d[5] | ((unsigned)d[6] << 8);
-            if (ver != LN_VERSION) return refuse(c, p, LN_R_VERSION);
-            std::memcpy(p.cn, d + 7, 16);
-            const size_t nl = d[23];
-            if (nl > LN_NAME_MAX || !validName((const char*)d + 24, nl)) return refuse(c, p, LN_R_PROTOCOL);
-            std::memcpy(p.name, d + 24, nl);
-            p.name[nl] = 0, p.nameLen = nl;
-            if (!lim::netsec::randomBytes(p.sn, 16) || !lim::netsec::randomBytes((u8*)&p.cookie, 4)) return refuse(c, p, LN_R_PROTOCOL);
-            u8 ch[kChallengeLen];
-            ch[0] = F_CHALLENGE;
-            put32(ch + 1, kMagic);
-            std::memcpy(ch + 5, p.sn, 16);
-            put32(ch + 21, p.cookie);
-            sendRaw(p, LN_RELIABLE, ch, sizeof(ch));
-            p.phase = Peer::WaitProof;
-            return;
-        }
-        case Peer::WaitProof: {
-            if (n != kProofLen || d[0] != F_PROOF || get32(d + 1) != kMagic || get32(d + 5) != p.cookie) return invalid(c, slot, now);
-            u8 want[16];
-            if (!proofMac(c->key, p.cn, p.sn, p.name, p.nameLen, want) || !lim::netsec::equalConstTime(want, d + 9, 16)) {
-                noteFail(c, p.addr, now);
-                return refuse(c, p, LN_R_BADKEY);
-            }
-            int open = 0;
-            for (const Peer& q : c->peers) open += q.phase == Peer::Open ? 1 : 0;
-            if (open >= c->lim.maxPeers) return refuse(c, p, LN_R_FULL);
-            u8 c2s[32], s2c[32];
-            if (!deriveKeys(c->key, p.cn, p.sn, c2s, s2c) || !p.rx.init(c2s) || !p.tx.init(s2c)) return refuse(c, p, LN_R_PROTOCOL);
-            SecureZeroMemory(c2s, 32), SecureZeroMemory(s2c, 32);
-            p.phase = Peer::Open;
-            pushEvent(c, LN_EV_CONNECTED, slot, 0, 0, nullptr, 0, p.name);
-            // leere, verschluesselte Bestaetigung: der Gast weiss damit, dass der Host den Schluessel kennt (gegenseitig),
-            // und darf senden; ohne sie warteten beide aufeinander
-            sendData(p, 1, LN_RELIABLE, nullptr, 0);
-            return;
-        }
-        case Peer::Open: {
-            u8 out[LN_MAX_PAYLOAD];
-            int len = 0;
-            if (!openData(p, 0, channel, d, n, out, len)) return invalid(c, slot, now);
-            if (!p.bucket.take(now)) {
-                ++p.st.dropped;
-                if (++p.rateDrops > 200) {  // dauerhaft ueber der Rate: trennen
-                    enet_peer_disconnect_now(p.ep, LN_R_RATE);
-                    freePeer(c, slot, LN_R_RATE, true);
-                }
-                return;
-            }
-            p.rateDrops = 0;
-            ++p.st.received;
-            if (len > 0) pushEvent(c, LN_EV_MESSAGE, slot, channel, 0, out, len, nullptr);
-            return;
-        }
-        default: return;
-    }
-}
-
-void serverConnect(LnContext* c, ENetPeer* ep, double now) {
-    const u32 addr = ep->address.host;
-    auto b = c->bans.find(addr);
-    if (b != c->bans.end() && b->second.until > now) {
-        enet_peer_disconnect_now(ep, LN_R_BANNED);
-        return;
-    }
-    int half = 0, halfHere = 0, freeSlot = -1;
-    for (size_t i = 0; i < c->peers.size(); ++i) {
-        const Peer& p = c->peers[i];
-        if (p.halfOpen()) ++half, halfHere += p.addr == addr ? 1 : 0;
-        if (p.phase == Peer::Free && freeSlot < 0) freeSlot = (int)i;
-    }
-    if (freeSlot < 0 || half >= c->lim.maxHalfOpen || halfHere >= kHalfOpenPerAddr) {
-        enet_peer_disconnect_now(ep, LN_R_FULL);
-        return;
-    }
-    Peer& p = c->peers[(size_t)freeSlot];
-    p = Peer{};
-    p.phase = Peer::WaitHello;
-    p.ep = ep;
-    p.addr = addr;
-    p.opened = now;
-    p.bucket.rate = c->lim.rate, p.bucket.burst = c->lim.burst, p.bucket.tokens = c->lim.burst;
-    ep->data = (void*)(intptr_t)(freeSlot + 1);
-    enet_peer_timeout(ep, 0, (enet_uint32)std::max(1000, c->lim.silenceMs / 2), (enet_uint32)c->lim.silenceMs);
-}
-
-// --- Gast ----------------------------------------------------------------------------------------------------------
-void clientReceive(LnContext* c, int channel, const u8* d, size_t n) {
-    Peer& p = c->peers[0];
-    if (n == 0 || n > kMaxFrame) return;
-    if (d[0] == F_REFUSE && n == 2) {
-        const int reason = d[1];
-        p.phase = Peer::Free;
-        pushEvent(c, LN_EV_DISCONNECTED, 0, 0, reason, nullptr, 0, nullptr);
-        if (p.ep) enet_peer_disconnect_now(p.ep, (enet_uint32)reason);
-        p.ep = nullptr;
-        return;
-    }
-    if (p.phase == Peer::WaitHello) {  // warten auf CHALLENGE
-        if (n != kChallengeLen || d[0] != F_CHALLENGE || get32(d + 1) != kMagic) return;
-        std::memcpy(p.sn, d + 5, 16);
-        const u32 cookie = get32(d + 21);
-        u8 pr[kProofLen];
-        pr[0] = F_PROOF;
-        put32(pr + 1, kMagic);
-        put32(pr + 5, cookie);
-        if (!proofMac(c->key, p.cn, p.sn, c->myName.c_str(), c->myName.size(), pr + 9)) return;
-        u8 c2s[32], s2c[32];
-        if (!deriveKeys(c->key, p.cn, p.sn, c2s, s2c) || !p.tx.init(c2s) || !p.rx.init(s2c)) return;
-        SecureZeroMemory(c2s, 32), SecureZeroMemory(s2c, 32);
-        sendRaw(p, LN_RELIABLE, pr, sizeof(pr));
-        p.phase = Peer::Open;
-        return;
-    }
-    if (p.phase == Peer::Open) {
-        u8 out[LN_MAX_PAYLOAD];
-        int len = 0;
-        if (!openData(p, 1, channel, d, n, out, len)) {
+void sendFrame(Peer& p, bool reliable, const u8* d, size_t n) {
+    auto& dc = reliable ? p.r : p.u;
+    if (!dc) return;
+    try {
+        if (!dc->isOpen()) return;
+        if (!reliable && dc->bufferedAmount() > kMaxBufferedUnreliable) {
             ++p.st.dropped;
             return;
         }
-        if (!p.announced) {  // die erste gueltige Nachricht beweist: der Host kennt den Schluessel
-            p.announced = true;
-            pushEvent(c, LN_EV_CONNECTED, 0, 0, 0, nullptr, 0, nullptr);
-        }
-        ++p.st.received;
-        if (len > 0) pushEvent(c, LN_EV_MESSAGE, 0, channel, 0, out, len, nullptr);  // leer: nur die Bestaetigung
+        dc->send(reinterpret_cast<const std::byte*>(d), n);
+        p.st.bytesSent += n;
+    } catch (...) {
     }
+}
+
+void refusePeer(Peer& p, int reason) {
+    const u8 f[2] = {F_REFUSE, (u8)reason};
+    sendFrame(p, true, f, 2);
+}
+
+// Fehlversuch einer Adresse (falscher Code, Muell, Zeitlimit beim Beitritt); nach banFails gesperrt
+void noteFail(LnContext* c, const std::string& addr, double now) {
+    if (addr.empty()) return;
+    auto& f = c->fails[addr];
+    if (now - f.window > 600.0) f.n = 0, f.window = now;
+    if (++f.n >= c->lim.banFails) f.until = now + c->lim.banMs / 1000.0;
+}
+
+void hostDrop(LnContext* c, int slot, int reason, bool notify, bool fail) {
+    Peer& p = c->peers[(size_t)slot];
+    if (fail) noteFail(c, p.addr, nowSec());
+    if (notify && p.phase == Peer::Open) pushEvent(c, LN_EV_DISCONNECTED, slot, 0, reason, nullptr, 0, nullptr);
+    if (p.phase == Peer::Signaling && p.lobbyId) {  // die Lobby soll den wartenden Gast entlassen
+        LMsg m;
+        m.t = LType::Refuse;
+        m.id = p.lobbyId;
+        m.err = reason == LN_R_FULL ? "full" : reason == LN_R_BANNED ? "banned" : reason == LN_R_BADKEY ? "badkey" : "timeout";
+        lobbySend(c, m);
+    }
+    closePeer(c, slot);
+}
+
+void guestFail(LnContext* c, int reason) {
+    if (c->finished) return;
+    c->finished = true;
+    pushEvent(c, LN_EV_DISCONNECTED, 0, 0, reason, nullptr, 0, nullptr);
+    closePeer(c, 0);
+    lobbyClose(c);
+}
+
+std::shared_ptr<rtc::PeerConnection> makePc(LnContext* c, int slot, uint32_t gen) {
+    rtc::Configuration rc;
+    rc.iceServers = c->ice;
+    if (!c->bindAddress.empty()) rc.bindAddress = c->bindAddress;
+    if (c->relayOnly) rc.iceTransportPolicy = rtc::TransportPolicy::Relay;
+    rc.maxMessageSize = 4096;
+    if (c->server) {
+        rc.certificatePemFile = c->cert.certPem;
+        rc.keyPemFile = c->cert.keyPem;
+        if (c->direct) {  // ein UDP-Port fuer alle Gaeste (Portfreigabe moeglich)
+            rc.enableIceUdpMux = true;
+            rc.portRangeBegin = rc.portRangeEnd = c->port;
+        }
+    }
+    auto pc = std::make_shared<rtc::PeerConnection>(rc);
+    std::weak_ptr<Inbox> wi = c->inbox;
+    pc->onLocalDescription([wi, slot, gen](rtc::Description d) {
+        if (auto in = wi.lock()) in->push({slot, gen, Inbox::Desc, std::string(d), d.typeString(), nullptr});
+    });
+    pc->onLocalCandidate([wi, slot, gen](rtc::Candidate cd) {
+        if (auto in = wi.lock()) in->push({slot, gen, Inbox::Cand, cd.candidate(), cd.mid(), nullptr});
+    });
+    if (!c->server)
+        pc->onDataChannel([wi, slot, gen](std::shared_ptr<rtc::DataChannel> dc) {
+            if (auto in = wi.lock()) in->push({slot, gen, Inbox::Channel, dc->label(), "", dc});
+        });
+    return pc;
+}
+
+bool channelsOpen(const Peer& p);
+
+// --- Host: Gast aus der Lobby ------------------------------------------------------------------------------
+void hostAdmit(LnContext* c, const LMsg& m, double now) {
+    auto refuse = [&](const char* e) {
+        LMsg r;
+        r.t = LType::Refuse;
+        r.id = m.id;
+        r.err = e;
+        lobbySend(c, r);
+    };
+    if (c->banned.count(m.addr)) return refuse("banned");
+    if (auto f = c->fails.find(m.addr); f != c->fails.end() && f->second.until > now) return refuse("banned");
+    int open = 0, half = 0, halfHere = 0, freeSlot = -1;
+    for (size_t i = 0; i < c->peers.size(); ++i) {
+        const Peer& p = c->peers[i];
+        if (p.phase == Peer::Open) ++open;
+        else if (p.phase != Peer::Free) ++half, halfHere += p.addr == m.addr ? 1 : 0;
+        else if (freeSlot < 0 && !p.pc) freeSlot = (int)i;
+        if (p.phase != Peer::Free && p.lobbyId == m.id) return;  // doppelt
+    }
+    if (open >= c->lim.maxPeers) return refuse("full");
+    if (freeSlot < 0 || half >= c->lim.maxHalfOpen || halfHere >= 2) return refuse("busy");
+    Peer& p = c->peers[(size_t)freeSlot];
+    const uint32_t gen = p.gen;
+    p = Peer{};
+    p.gen = gen;
+    p.phase = Peer::Signaling;
+    p.lobbyId = m.id;
+    p.addr = m.addr;
+    p.name = m.name;
+    p.opened = now;
+    p.bucket.set(c->lim.rate, c->lim.burst);
+    p.pingBucket.set(10.0, 20.0);
+    try {
+        p.pc = makePc(c, freeSlot, gen);
+        p.r = p.pc->createDataChannel("r");
+        rtc::DataChannelInit ui;
+        ui.reliability.unordered = true;
+        ui.reliability.maxRetransmits = 0;
+        p.u = p.pc->createDataChannel("u", ui);
+    } catch (...) {
+        closePeer(c, freeSlot);
+        return refuse("busy");
+    }
+}
+
+void handleLobbyHost(LnContext* c, const LMsg& m, double now) {
+    auto peerOf = [&](int lobbyId) -> int {
+        for (size_t i = 0; i < c->peers.size(); ++i)
+            if (c->peers[i].phase != Peer::Free && c->peers[i].lobbyId == lobbyId) return (int)i;
+        return -1;
+    };
+    switch (m.t) {
+        case LType::Room: {
+            const bool first = c->room.empty();
+            c->room = m.room;
+            setIce(c, m.ice);
+            const std::string text = JoinCode{c->room, c->secret, c->pin}.text(false);
+            pushEvent(c, LN_EV_ROOM, -1, 0, first ? 0 : 1, (const u8*)text.data(), (int)text.size(), nullptr);
+            break;
+        }
+        case LType::Guest: hostAdmit(c, m, now); break;
+        case LType::Sig: {
+            const int s = peerOf(m.from);
+            if (s < 0 || m.kind != "answer") break;
+            Peer& p = c->peers[(size_t)s];
+            if (p.phase != Peer::Signaling || !p.remoteFp.empty()) break;
+            try {
+                rtc::Description d(m.sdp, "answer");
+                auto fp = d.fingerprint();
+                if (!fp || fp->algorithm != rtc::CertificateFingerprint::Algorithm::Sha256) throw std::runtime_error("fp");
+                p.remoteFp = upper(fp->value);
+                p.pc->setRemoteDescription(d);
+            } catch (...) {
+                hostDrop(c, s, LN_R_PROTOCOL, false, true);
+            }
+            break;
+        }
+        case LType::Cand: {
+            const int s = peerOf(m.from);
+            if (s < 0) break;
+            Peer& p = c->peers[(size_t)s];
+            if (p.phase != Peer::Signaling || ++p.remoteCands > kMaxRemoteCandidates) break;
+            try {
+                p.pc->addRemoteCandidate(rtc::Candidate(m.cand, m.mid));
+            } catch (...) {
+            }
+            break;
+        }
+        case LType::Gone: {
+            const int s = peerOf(m.id);
+            if (s >= 0 && c->peers[(size_t)s].phase == Peer::Signaling && !channelsOpen(c->peers[(size_t)s])) closePeer(c, s);
+            break;
+        }
+        case LType::Err:
+            if (c->room.empty() && !c->lobbyReported) {  // Raum nicht eroeffnet
+                c->lobbyReported = true;
+                pushEvent(c, LN_EV_DISCONNECTED, -1, 0, m.err == "version" ? LN_R_VERSION : m.err == "busy" ? LN_R_FULL : LN_R_LOBBY, nullptr, 0, nullptr);
+            }
+            break;
+        default: break;
+    }
+}
+
+// --- Gast: Nachrichten der Lobby ---------------------------------------------------------------------------
+void handleLobbyGuest(LnContext* c, const LMsg& m) {
+    Peer& p = c->peers[0];
+    switch (m.t) {
+        case LType::Joined:
+            if (c->joined) break;
+            c->joined = true;
+            setIce(c, m.ice);
+            c->progress = LN_P_SIGNALING;
+            pushEvent(c, LN_EV_PROGRESS, 0, 0, LN_P_SIGNALING, nullptr, 0, nullptr);
+            try {
+                p.pc = makePc(c, 0, p.gen);
+            } catch (...) {
+                guestFail(c, LN_R_ICE);
+            }
+            break;
+        case LType::Sig: {
+            if (!p.pc || m.kind != "offer" || !p.remoteFp.empty()) break;
+            try {
+                rtc::Description d(m.sdp, "offer");
+                auto fp = d.fingerprint();
+                if (!fp || fp->algorithm != rtc::CertificateFingerprint::Algorithm::Sha256) return guestFail(c, LN_R_CERT);
+                p.remoteFp = upper(fp->value);
+                // Pruefteil des Codes: der Host muss genau dieses Zertifikat haben (DTLS erzwingt es danach)
+                if (c->code.hasPin() && !equalConst(pinFromFingerprint(p.remoteFp), c->code.pin)) return guestFail(c, LN_R_CERT);
+                p.pc->setRemoteDescription(d);
+                if (c->direct) {  // die eingegebene Adresse als Kandidat (Portfreigabe ueber das Internet)
+                    rtc::Candidate cand("candidate:1 1 UDP 1694498815 " + c->directHost + " " + std::to_string(c->directPort) + " typ host", d.bundleMid());
+                    if (cand.resolve(rtc::Candidate::ResolveMode::Lookup)) p.pc->addRemoteCandidate(cand);
+                }
+                c->progress = LN_P_CONNECTING;
+                pushEvent(c, LN_EV_PROGRESS, 0, 0, LN_P_CONNECTING, nullptr, 0, nullptr);
+            } catch (...) {
+                guestFail(c, LN_R_PROTOCOL);
+            }
+            break;
+        }
+        case LType::Cand:
+            if (!p.pc || ++p.remoteCands > kMaxRemoteCandidates) break;
+            try {
+                p.pc->addRemoteCandidate(rtc::Candidate(m.cand, m.mid));
+            } catch (...) {
+            }
+            break;
+        case LType::Err: guestFail(c, reasonOfErr(m.err)); break;
+        default: break;
+    }
+}
+
+void pumpLobby(LnContext* c, double now) {
+    if (!c->ws) {
+        if (c->server && now >= c->wsRetryAt) lobbyConnect(c);  // Host: Lobby neu versuchen (neuer Code)
+        return;
+    }
+    bool open = false, closed = false;
+    try {
+        open = c->ws->isOpen();
+        closed = c->ws->isClosed();
+    } catch (...) {
+        closed = true;
+    }
+    if (open && !c->wsOpen) {
+        c->wsOpen = true;
+        LMsg m;
+        if (c->server) {
+            m.t = LType::Host;
+            m.max = std::clamp(c->lim.maxPeers, 1, 7);
+        } else {
+            m.t = LType::Join;
+            m.room = c->code.room;
+            m.name = c->myName;
+        }
+        lobbySend(c, m);
+    }
+    for (int k = 0; k < 64 && c->ws; ++k) {
+        std::optional<rtc::message_variant> msg;
+        try {
+            msg = c->ws->receive();
+        } catch (...) {
+        }
+        if (!msg) break;
+        LMsg m;
+        if (!std::holds_alternative<std::string>(*msg) || !parseFromLobby(std::get<std::string>(*msg), m)) continue;  // ungueltig: verwerfen
+        if (c->server) handleLobbyHost(c, m, now);
+        else handleLobbyGuest(c, m);
+    }
+    if (!c->ws) return;
+    if (closed || (!c->wsOpen && now - c->wsStarted > kLobbyTimeout)) {
+        const bool wasOpen = c->wsOpen;
+        lobbyClose(c);
+        if (c->server) {
+            if (!c->room.empty()) {  // Raum verloren: neue Beitritte erst wieder mit neuem Code
+                c->room.clear();
+                pushEvent(c, LN_EV_ROOM, -1, 0, 0, nullptr, 0, nullptr);
+            } else if (!c->lobbyReported) {
+                c->lobbyReported = true;
+                pushEvent(c, LN_EV_DISCONNECTED, -1, 0, LN_R_LOBBY, nullptr, 0, nullptr);
+            }
+            c->wsRetryAt = now + 5.0;
+            if (c->direct) c->wsRetryAt = now + 1.0;
+        } else if (!c->connected && c->progress < LN_P_CONNECTING) {
+            guestFail(c, LN_R_LOBBY);  // ohne Beschreibung des Hosts geht es nicht weiter
+        }
+        (void)wasOpen;
+    }
+}
+
+// --- Rahmen ------------------------------------------------------------------------------------------------
+void countInvalid(LnContext* c, int slot, double now) {
+    Peer& p = c->peers[(size_t)slot];
+    ++p.st.dropped;
+    if (++p.invalid > c->lim.maxInvalid) {
+        if (c->server) hostDrop(c, slot, LN_R_PROTOCOL, true, p.phase != Peer::Open);
+        else guestFail(c, LN_R_PROTOCOL);
+    }
+    (void)now;
+}
+
+void sendPing(Peer& p, double now) {
+    u8 f[kPingLen];
+    f[0] = F_PING;
+    const uint32_t s = ++p.ping.seq;
+    std::memcpy(f + 1, &s, 4);
+    const uint32_t t = (uint32_t)(now * 1000.0);
+    std::memcpy(f + 5, &t, 4);
+    p.ping.sent.push_back({s, now, false});
+    while (p.ping.sent.size() > kLossWindow) p.ping.sent.pop_front();
+    sendFrame(p, false, f, kPingLen);
+}
+
+// gemeinsam fuer Host und Gast im offenen Zustand: Nutzdaten, Ping, Pong. false: ungueltig
+bool openFrame(LnContext* c, int slot, int channel, const u8* d, size_t n, double now) {
+    Peer& p = c->peers[(size_t)slot];
+    if (d[0] == F_DATA && n >= 1 && n <= 1 + LN_MAX_PAYLOAD) {
+        if (c->server && !p.bucket.take(now)) {
+            ++p.st.dropped;
+            if (++p.rateDrops > 200) hostDrop(c, slot, LN_R_RATE, true, false);  // dauerhaft ueber der Rate
+            return true;
+        }
+        p.rateDrops = 0;
+        ++p.st.received;
+        if (n > 1) pushEvent(c, LN_EV_MESSAGE, slot, channel, 0, d + 1, (int)(n - 1), nullptr);
+        return true;
+    }
+    if (channel == LN_UNRELIABLE && n == kPingLen && d[0] == F_PING) {
+        if (p.pingBucket.take(now)) {
+            u8 f[kPingLen];
+            std::memcpy(f, d, kPingLen);
+            f[0] = F_PONG;
+            sendFrame(p, false, f, kPingLen);
+        }
+        return true;
+    }
+    if (channel == LN_UNRELIABLE && n == kPingLen && d[0] == F_PONG) {
+        uint32_t s;
+        std::memcpy(&s, d + 1, 4);
+        p.ping.answer(s, now);
+        return true;
+    }
+    return false;
+}
+
+void hostFrame(LnContext* c, int slot, int channel, const u8* d, size_t n, double now) {
+    Peer& p = c->peers[(size_t)slot];
+    if (n == 0 || n > 1 + LN_MAX_PAYLOAD) return countInvalid(c, slot, now);
+    p.lastRx = now;
+    if (p.phase == Peer::Hello) {
+        if (channel != LN_RELIABLE || d[0] != F_HELLO || n < kHelloFixed + 1 || n > kHelloFixed + LN_NAME_MAX || std::memcmp(d + 1, kMagic, 4) != 0)
+            return countInvalid(c, slot, now);
+        const unsigned ver = (unsigned)d[5] | ((unsigned)d[6] << 8);
+        if (ver != LN_VERSION) {
+            refusePeer(p, LN_R_VERSION);
+            return hostDrop(c, slot, LN_R_VERSION, false, false);
+        }
+        const std::string secret((const char*)d + 7, kSecretChars);
+        const size_t nl = d[7 + kSecretChars];
+        if (nl != n - kHelloFixed) return countInvalid(c, slot, now);
+        const std::string name((const char*)d + kHelloFixed, nl);
+        if (!equalConst(secret, c->secret)) {
+            refusePeer(p, LN_R_BADKEY);
+            return hostDrop(c, slot, LN_R_BADKEY, false, true);
+        }
+        if (!nameOk(name)) {
+            refusePeer(p, LN_R_PROTOCOL);
+            return hostDrop(c, slot, LN_R_PROTOCOL, false, true);
+        }
+        int open = 0;
+        for (const Peer& q : c->peers) open += q.phase == Peer::Open ? 1 : 0;
+        if (open >= c->lim.maxPeers) {
+            refusePeer(p, LN_R_FULL);
+            return hostDrop(c, slot, LN_R_FULL, false, false);
+        }
+        p.name = name;
+        p.phase = Peer::Open;
+        p.nextPing = now;
+        const u8 w[3] = {F_WELCOME, (u8)(LN_VERSION & 0xFF), (u8)(LN_VERSION >> 8)};
+        sendFrame(p, true, w, 3);
+        pushEvent(c, LN_EV_CONNECTED, slot, 0, 0, nullptr, 0, p.name.c_str());
+        return;
+    }
+    if (p.phase != Peer::Open || !openFrame(c, slot, channel, d, n, now)) countInvalid(c, slot, now);
+}
+
+void guestFrame(LnContext* c, int channel, const u8* d, size_t n, double now) {
+    Peer& p = c->peers[0];
+    if (n == 0 || n > 1 + LN_MAX_PAYLOAD) return countInvalid(c, 0, now);
+    p.lastRx = now;
+    if (!c->connected) {
+        if (channel == LN_RELIABLE && n == 3 && d[0] == F_WELCOME && ((unsigned)d[1] | ((unsigned)d[2] << 8)) == LN_VERSION) {
+            c->connected = true;
+            p.phase = Peer::Open;
+            p.nextPing = now;
+            pushEvent(c, LN_EV_CONNECTED, 0, 0, 0, nullptr, 0, nullptr);
+            LMsg done;  // die Lobby wird nicht mehr gebraucht
+            done.t = LType::Done;
+            lobbySend(c, done);
+            lobbyClose(c);
+            return;
+        }
+        if (channel == LN_RELIABLE && n == 2 && d[0] == F_REFUSE) return guestFail(c, d[1] >= 1 && d[1] <= LN_R_HOSTGONE ? d[1] : LN_R_PROTOCOL);
+        return countInvalid(c, 0, now);
+    }
+    if (channel == LN_RELIABLE && n == 2 && d[0] == F_REFUSE) return guestFail(c, d[1] >= 1 && d[1] <= LN_R_HOSTGONE ? d[1] : LN_R_PROTOCOL);
+    if (!openFrame(c, 0, channel, d, n, now)) countInvalid(c, 0, now);
+}
+
+// Nachrichten eines Kanals abholen (hoechstens kMaxReadPerFrame; der Rest bleibt in der Bibliothek)
+void readChannel(LnContext* c, int slot, int channel, double now) {
+    const uint32_t gen = c->peers[(size_t)slot].gen;
+    for (int k = 0; k < kMaxReadPerFrame; ++k) {
+        Peer& p = c->peers[(size_t)slot];
+        auto& dc = channel == LN_RELIABLE ? p.r : p.u;
+        if (!dc || p.phase == Peer::Free || p.gen != gen) return;
+        std::optional<rtc::message_variant> m;
+        try {
+            m = dc->receive();
+        } catch (...) {
+        }
+        if (!m) return;
+        if (!std::holds_alternative<rtc::binary>(*m)) {
+            countInvalid(c, slot, now);
+            continue;
+        }
+        const rtc::binary& b = std::get<rtc::binary>(*m);
+        p.st.bytesReceived += b.size();
+        if (c->server) hostFrame(c, slot, channel, reinterpret_cast<const u8*>(b.data()), b.size(), now);
+        else guestFrame(c, channel, reinterpret_cast<const u8*>(b.data()), b.size(), now);
+        if (c->peers[(size_t)slot].gen != gen || c->finished) return;  // getrennt
+    }
+}
+
+bool channelsOpen(const Peer& p) {
+    try {
+        return p.r && p.u && p.r->isOpen() && p.u->isOpen();
+    } catch (...) {
+        return false;
+    }
+}
+
+// DTLS hat den Fingerabdruck geprueft; mit Mbed TLS darf eine Gegenstelle ohne Zertifikat aber nicht durchrutschen
+// (MULTIPLAYER_RECHERCHE.md, Abschnitt 4): der gepruefte Wert muss vorliegen und gleich dem aus der Beschreibung sein
+bool fingerprintVerified(Peer& p) {
+    try {
+        const std::string fp = upper(p.pc->remoteFingerprint().value);
+        return !fp.empty() && !p.remoteFp.empty() && equalConst(fp, p.remoteFp);
+    } catch (...) {
+        return false;
+    }
+}
+
+void pumpInbox(LnContext* c) {
+    Inbox::Item it;
+    for (int guard = 0; guard < 512 && c->inbox->pop(it); ++guard) {
+        if (it.slot < 0 || it.slot >= (int)c->peers.size()) continue;
+        Peer& p = c->peers[(size_t)it.slot];
+        if (p.gen != it.gen || !p.pc) continue;  // veraltet
+        LMsg m;
+        if (it.kind == Inbox::Desc) {
+            m.t = LType::Sig;
+            m.kind = it.b == "offer" ? "offer" : "answer";
+            m.sdp = it.a;
+            if (!sdpOk(m.sdp)) continue;
+        } else if (it.kind == Inbox::Cand) {
+            m.t = LType::Cand;
+            m.cand = it.a, m.mid = it.b;
+            if (!candOk(m.cand) || !midOk(m.mid)) continue;
+        } else if (it.kind == Inbox::Channel && !c->server) {
+            if (it.a == "r" && !p.r) p.r = it.dc;
+            else if (it.a == "u" && !p.u) p.u = it.dc;
+            else
+                try {
+                    it.dc->close();
+                } catch (...) {
+                }
+            continue;
+        } else {
+            continue;
+        }
+        if (c->server) m.to = p.lobbyId;
+        lobbySend(c, m);
+    }
+}
+
+void pumpHost(LnContext* c, double now) {
+    for (size_t i = 0; i < c->peers.size(); ++i) {
+        Peer& p = c->peers[i];
+        if (p.phase == Peer::Free) continue;
+        rtc::PeerConnection::State st = rtc::PeerConnection::State::Closed;
+        try {
+            st = p.pc->state();
+        } catch (...) {
+        }
+        if (st == rtc::PeerConnection::State::Failed || st == rtc::PeerConnection::State::Closed) {
+            hostDrop(c, (int)i, p.phase == Peer::Open ? LN_R_TIMEOUT : LN_R_ICE, true, false);
+            continue;
+        }
+        if (p.phase == Peer::Signaling && channelsOpen(p)) {
+            if (!fingerprintVerified(p)) {
+                hostDrop(c, (int)i, LN_R_CERT, false, true);
+                continue;
+            }
+            p.phase = Peer::Hello;
+            p.lastRx = now;
+        }
+        if (p.phase != Peer::Open && now - p.opened > c->lim.handshakeMs / 1000.0) {
+            hostDrop(c, (int)i, LN_R_TIMEOUT, false, p.phase == Peer::Hello);
+            continue;
+        }
+        if (p.phase == Peer::Hello || p.phase == Peer::Open) {
+            const uint32_t gen = p.gen;
+            readChannel(c, (int)i, LN_RELIABLE, now);
+            if (c->peers[i].gen == gen) readChannel(c, (int)i, LN_UNRELIABLE, now);
+            if (c->peers[i].gen != gen) continue;
+        }
+        if (p.phase == Peer::Open) {
+            if (now - p.lastRx > c->lim.silenceMs / 1000.0) {
+                hostDrop(c, (int)i, LN_R_TIMEOUT, true, false);
+                continue;
+            }
+            try {
+                if (p.r->bufferedAmount() > kMaxBufferedReliable) {  // liest nicht mehr: trennen
+                    hostDrop(c, (int)i, LN_R_TIMEOUT, true, false);
+                    continue;
+                }
+            } catch (...) {
+            }
+            if (now >= p.nextPing) p.nextPing = now + kPingInterval, sendPing(p, now);
+        }
+    }
+}
+
+void pumpGuest(LnContext* c, double now) {
+    Peer& p = c->peers[0];
+    if (c->finished) return;
+    if (p.pc) {
+        rtc::PeerConnection::State st = rtc::PeerConnection::State::New;
+        try {
+            st = p.pc->state();
+        } catch (...) {
+        }
+        if (st == rtc::PeerConnection::State::Failed || st == rtc::PeerConnection::State::Closed)
+            return guestFail(c, c->connected ? LN_R_TIMEOUT : LN_R_ICE);
+        if (!p.helloSent && channelsOpen(p)) {
+            if (!fingerprintVerified(p) || (c->code.hasPin() && !equalConst(pinFromFingerprint(p.remoteFp), c->code.pin))) return guestFail(c, LN_R_CERT);
+            u8 h[kHelloFixed + LN_NAME_MAX];
+            h[0] = F_HELLO;
+            std::memcpy(h + 1, kMagic, 4);
+            h[5] = (u8)(LN_VERSION & 0xFF), h[6] = (u8)(LN_VERSION >> 8);
+            std::memcpy(h + 7, c->code.secret.data(), kSecretChars);
+            h[7 + kSecretChars] = (u8)c->myName.size();
+            std::memcpy(h + kHelloFixed, c->myName.data(), c->myName.size());
+            sendFrame(p, true, h, kHelloFixed + c->myName.size());
+            p.helloSent = true;
+            p.phase = Peer::Hello;
+            p.lastRx = now;
+            c->progress = LN_P_HELLO;
+            pushEvent(c, LN_EV_PROGRESS, 0, 0, LN_P_HELLO, nullptr, 0, nullptr);
+        }
+        if (p.helloSent) {
+            readChannel(c, 0, LN_RELIABLE, now);
+            if (!c->finished) readChannel(c, 0, LN_UNRELIABLE, now);
+            if (c->finished) return;
+        }
+    }
+    if (!c->connected) {
+        if (now - c->started > kGuestTimeout)
+            return guestFail(c, c->progress >= LN_P_HELLO ? LN_R_TIMEOUT : c->progress >= LN_P_SIGNALING ? LN_R_ICE : LN_R_LOBBY);
+        return;
+    }
+    if (now - p.lastRx > c->lim.silenceMs / 1000.0) return guestFail(c, LN_R_TIMEOUT);
+    if (now >= p.nextPing) p.nextPing = now + kPingInterval, sendPing(p, now);
 }
 
 void pump(LnContext* c) {
     const double now = nowSec();
-    ENetEvent ev;
-    for (int guard = 0; guard < 512 && enet_host_service(c->host, &ev, 0) > 0; ++guard) {
-        switch (ev.type) {
-            case ENET_EVENT_TYPE_CONNECT:
-                if (c->server) {
-                    serverConnect(c, ev.peer, now);
-                } else {  // Gast: HELLO senden
-                    Peer& p = c->peers[0];
-                    p.ep = ev.peer;
-                    u8 h[kHelloLen] = {};
-                    h[0] = F_HELLO;
-                    put32(h + 1, kMagic);
-                    h[5] = (u8)(LN_VERSION & 0xFF), h[6] = (u8)(LN_VERSION >> 8);
-                    std::memcpy(h + 7, p.cn, 16);
-                    h[23] = (u8)c->myName.size();
-                    std::memcpy(h + 24, c->myName.data(), c->myName.size());
-                    sendRaw(p, LN_RELIABLE, h, sizeof(h));
-                    p.phase = Peer::WaitHello;
-                }
-                break;
-            case ENET_EVENT_TYPE_RECEIVE:
-                if (c->server) serverReceive(c, ev.peer, ev.channelID, ev.packet->data, ev.packet->dataLength, now);
-                else clientReceive(c, ev.channelID, ev.packet->data, ev.packet->dataLength);
-                enet_packet_destroy(ev.packet);
-                break;
-            case ENET_EVENT_TYPE_DISCONNECT: {
-                const int reason = ev.data ? (int)ev.data : LN_R_TIMEOUT;
-                if (c->server) {
-                    if (ev.peer->data) freePeer(c, slotOf(ev.peer), reason, true);
-                } else {
-                    Peer& p = c->peers[0];
-                    const bool was = p.phase != Peer::Free;
-                    const bool open = p.announced;
-                    p = Peer{};
-                    if (was) pushEvent(c, LN_EV_DISCONNECTED, 0, 0, open ? reason : (reason == LN_R_TIMEOUT ? LN_R_UNREACHABLE : reason), nullptr, 0, nullptr);
-                }
-                break;
-            }
-            default: break;
-        }
+    pumpLobby(c, now);
+    pumpInbox(c);
+    if (c->server) pumpHost(c, now);
+    else pumpGuest(c, now);
+    // Graeber: geschlossene Verbindungen erst nach einer Weile freigeben (Rueckrufe der Bibliothek laufen aus)
+    std::erase_if(c->graves, [now](const Grave& g) { return now - g.t > 3.0; });
+}
+
+LnContext* makeContext(const LnConfig* cfg) {
+    initLibrary();
+    auto* c = new LnContext;
+    if (cfg) {
+        if (cfg->lobby && *cfg->lobby) c->lobbyUrl = cfg->lobby;
+        if (cfg->lobbyCa) c->lobbyCa = cfg->lobbyCa;
+        if (cfg->bindAddress) c->bindAddress = cfg->bindAddress;
+        c->extraIce = parseIceList(cfg->ice);
+        c->port = cfg->port ? cfg->port : kDefaultPort;
+        c->relayOnly = cfg->relayOnly != 0;
+    } else {
+        c->port = kDefaultPort;
     }
-    // Zeitlimit im Handshake
-    if (c->server)
-        for (size_t i = 0; i < c->peers.size(); ++i) {
-            Peer& p = c->peers[i];
-            if (p.halfOpen() && now - p.opened > c->lim.handshakeMs / 1000.0) {
-                if (p.phase != Peer::Closing) noteFail(c, p.addr, now);
-                if (p.ep) enet_peer_disconnect_now(p.ep, LN_R_TIMEOUT);
-                freePeer(c, (int)i, LN_R_TIMEOUT, false);
-            }
-        }
+    c->direct = c->lobbyUrl.empty();
+    return c;
 }
 
 }  // namespace
 
 extern "C" {
 
-LN_API LnContext* ln_host(uint16_t port, const uint8_t key[LN_KEY_BYTES], const LnLimits* lim) {
-    if (!key || !enetUp()) return nullptr;
-    auto* c = new LnContext;
+LN_API LnContext* ln_host(const LnConfig* cfg, const LnLimits* lim) {
+    LnContext* c = makeContext(cfg);
     c->server = true;
-    std::memcpy(c->key, key, LN_KEY_BYTES);
-    c->lim = lim ? *lim : LnLimits{3, 8, 120.0, 60.0, 8, 5000, 10000, 5, 60000};
-    c->lim.maxPeers = std::clamp(c->lim.maxPeers, 1, 16);
-    c->lim.maxHalfOpen = std::clamp(c->lim.maxHalfOpen, 1, 32);
+    c->lim = lim ? *lim : LnLimits{3, 4, 120.0, 60.0, 8, 20000, 10000, 5, 600000};
+    c->lim.maxPeers = std::clamp(c->lim.maxPeers, 1, 7);
+    c->lim.maxHalfOpen = std::clamp(c->lim.maxHalfOpen, 1, 8);
     c->peers.resize((size_t)(c->lim.maxPeers + c->lim.maxHalfOpen));
-    ENetAddress a{};
-    a.host = ENET_HOST_ANY;
-    a.port = port;
-    c->host = enet_host_create(&a, c->peers.size() + kEnetHeadroom, 2, 0, 0);
-    if (!c->host) {
+    std::string err;
+    if (!makeHostCert(c->cert, err) || !randomChars(kSecretChars, c->secret)) {
         delete c;
-        enetDown();
         return nullptr;
     }
+    c->pin = pinFromFingerprint(c->cert.fingerprint);
+    if (c->direct) {  // die Lobby laeuft im Host selbst: ein Raum, ohne Relay
+        LobbyConfig lc;
+        lc.bind = c->bindAddress;
+        lc.port = c->port;
+        lc.turn = false;
+        lc.singleRoom = true;
+        lc.maxPerIp = 8;
+        c->embedded = std::make_unique<LobbyServer>();
+        if (!c->embedded->start(lc, err)) {
+            delete c;
+            return nullptr;
+        }
+        c->port = c->embedded->port();
+        c->lobbyUrl = "ws://" + std::string(c->bindAddress.empty() || c->bindAddress == "0.0.0.0" ? "127.0.0.1" : c->bindAddress) + ":" +
+                      std::to_string(c->port);
+    }
+    uint16_t p = 0;
+    if (!parseUrl(c->lobbyUrl, c->lobbyHost, p, c->lobbyTls)) {
+        delete c;
+        return nullptr;
+    }
+    lobbyConnect(c);
     return c;
 }
 
-LN_API LnContext* ln_connect(const char* hostName, uint16_t port, const uint8_t key[LN_KEY_BYTES], const char* name) {
-    if (!hostName || !key || !name || !validName(name, std::strlen(name)) || !enetUp()) return nullptr;
-    auto* c = new LnContext;
-    std::memcpy(c->key, key, LN_KEY_BYTES);
-    c->myName = name;
-    c->lim = LnLimits{1, 1, 1e9, 1e9, 1000000, 5000, 10000, 5, 60000};
+LN_API LnContext* ln_join(const LnConfig* cfg, const char* direct, const char* code, const char* name) {
+    if (!code || !name) return nullptr;
+    LnContext* c = makeContext(cfg);
+    c->lim = LnLimits{1, 1, 1e9, 1e9, 1000000, 20000, 10000, 5, 60000};
     c->peers.resize(1);
-    c->host = enet_host_create(nullptr, 1, 2, 0, 0);
-    ENetAddress a{};
-    if (!c->host || enet_address_set_host(&a, hostName) != 0) {
-        if (c->host) enet_host_destroy(c->host);
-        delete c;
-        enetDown();
-        return nullptr;
+    c->started = nowSec();
+    c->myName = name;
+    c->progress = LN_P_LOBBY;
+    if (!nameOk(c->myName)) {
+        guestFail(c, LN_R_PROTOCOL);
+        return c;
     }
-    a.port = port;
-    Peer& p = c->peers[0];
-    lim::netsec::randomBytes(p.cn, 16);
-    p.ep = enet_host_connect(c->host, &a, 2, 0);
-    if (!p.ep) {
-        enet_host_destroy(c->host);
-        delete c;
-        enetDown();
-        return nullptr;
+    if (!parseCode(code, c->code)) {
+        guestFail(c, LN_R_BADCODE);
+        return c;
     }
-    p.phase = Peer::WaitHello;
-    enet_peer_timeout(p.ep, 0, 5000, 10000);
+    if (c->direct) {
+        // ohne Lobby: die Adresse des Hosts; der Pruefteil ist Pflicht (die Signalisierung ist hier unverschluesselt)
+        if (!direct || !parseDirect(direct, c->directHost, c->directPort) || !c->code.hasPin()) {
+            guestFail(c, LN_R_BADCODE);
+            return c;
+        }
+        const bool v6 = c->directHost.find(':') != std::string::npos;
+        c->lobbyUrl = "ws://" + (v6 ? "[" + c->directHost + "]" : c->directHost) + ":" + std::to_string(c->directPort);
+    }
+    uint16_t p = 0;
+    if (!parseUrl(c->lobbyUrl, c->lobbyHost, p, c->lobbyTls)) {
+        guestFail(c, LN_R_LOBBY);
+        return c;
+    }
+    pushEvent(c, LN_EV_PROGRESS, 0, 0, LN_P_LOBBY, nullptr, 0, nullptr);
+    lobbyConnect(c);
+    if (!c->ws) guestFail(c, LN_R_LOBBY);
     return c;
 }
 
 LN_API int ln_poll(LnContext* c, LnEvent* ev) {
     if (!c || !ev) return 0;
-    if (c->queue.empty()) pump(c);
-    if (c->queue.empty()) return 0;
-    *ev = c->queue.front();
-    c->queue.pop_front();
+    if (c->events.empty()) pump(c);
+    if (c->events.empty()) return 0;
+    *ev = c->events.front();
+    c->events.pop_front();
     return 1;
 }
 
 LN_API int ln_send(LnContext* c, int peer, int channel, const uint8_t* data, int len) {
-    if (!c || channel < 0 || channel > 1 || !data) return 0;
-    if (c->server) {
-        if (peer < 0 || peer >= (int)c->peers.size()) return 0;
-        return sendData(c->peers[(size_t)peer], 1, channel, data, len) ? 1 : 0;
+    if (!c || channel < 0 || channel > 1 || !data || len < 0 || len > LN_MAX_PAYLOAD) return 0;
+    if (!c->server) peer = 0;
+    if (peer < 0 || peer >= (int)c->peers.size()) return 0;
+    Peer& p = c->peers[(size_t)peer];
+    if (p.phase != Peer::Open) return 0;
+    auto& dc = channel == LN_RELIABLE ? p.r : p.u;
+    try {
+        if (!dc || !dc->isOpen()) return 0;
+        if (channel == LN_UNRELIABLE && dc->bufferedAmount() > kMaxBufferedUnreliable) {
+            ++p.st.dropped;
+            return 0;
+        }
+        rtc::binary b((size_t)len + 1);
+        b[0] = std::byte{F_DATA};
+        if (len) std::memcpy(b.data() + 1, data, (size_t)len);
+        p.st.bytesSent += b.size();
+        dc->send(std::move(b));
+    } catch (...) {
+        return 0;
     }
-    return sendData(c->peers[0], 0, channel, data, len) ? 1 : 0;
+    ++p.st.sent;
+    return 1;
 }
 
 LN_API void ln_drop(LnContext* c, int peer, int reason, int ban) {
     if (!c || !c->server || peer < 0 || peer >= (int)c->peers.size()) return;
     Peer& p = c->peers[(size_t)peer];
     if (p.phase == Peer::Free) return;
-    if (ban) c->bans[p.addr].until = 1e300;  // fuer die ganze Sitzung
-    if (p.ep) enet_peer_disconnect(p.ep, (enet_uint32)reason);
-    freePeer(c, peer, reason, false);
+    if (ban) {
+        if (!p.addr.empty()) c->banned.insert(p.addr);
+        LMsg m;  // auch in der Lobby sperren (Adresse des Gasts, fuer diesen Raum)
+        m.t = LType::Ban;
+        m.id = p.lobbyId;
+        m.addr = p.addr;
+        if (m.id && credOk(m.addr)) lobbySend(c, m);
+    }
+    if (p.phase == Peer::Open || p.phase == Peer::Hello) refusePeer(p, reason);
+    hostDrop(c, peer, reason, false, false);
 }
 
 LN_API int ln_stats(LnContext* c, int peer, LnStats* out) {
     if (!c || !out) return 0;
     const size_t i = c->server ? (size_t)peer : 0;
-    if (i >= c->peers.size() || !c->peers[i].ep) return 0;
+    if (peer < 0 && c->server) return 0;
+    if (i >= c->peers.size() || !c->peers[i].pc) return 0;
     Peer& p = c->peers[i];
     *out = p.st;
-    out->rttMs = p.ep->roundTripTime, out->rttVarMs = p.ep->roundTripTimeVariance;
-    out->loss = (float)p.ep->packetLoss / (float)ENET_PEER_PACKET_LOSS_SCALE;
+    const double now = nowSec();
+    out->rttMs = (uint32_t)std::lround(p.ping.rtt);
+    out->rttVarMs = (uint32_t)std::lround(p.ping.rttVar);
+    out->loss = p.ping.loss(now);
+    out->path = LN_PATH_UNKNOWN;
+    try {
+        if (!p.ping.any)
+            if (auto r = p.pc->rtt()) out->rttMs = (uint32_t)r->count();
+        rtc::Candidate l, r;
+        if (p.pc->getSelectedCandidatePair(&l, &r)) {
+            using T = rtc::Candidate::Type;
+            if (l.type() == T::Relayed || r.type() == T::Relayed) out->path = LN_PATH_RELAY;
+            else if (l.type() == T::Host && r.type() == T::Host) out->path = LN_PATH_DIRECT;
+            else out->path = LN_PATH_NAT;
+        }
+    } catch (...) {
+    }
     return 1;
 }
 
-LN_API uint16_t ln_port(LnContext* c) {
-    if (!c || !c->host) return 0;
-    ENetAddress a{};
-    return enet_socket_get_address(c->host->socket, &a) == 0 ? a.port : c->host->address.port;  // Port 0: vom System vergeben
+LN_API int ln_code(LnContext* c, int withPin, char* out, int cap) {
+    if (!c || !c->server || c->room.empty() || !out || cap <= 0) return 0;
+    const std::string t = JoinCode{c->room, c->secret, c->pin}.text(withPin != 0);
+    if ((int)t.size() >= cap) return 0;
+    std::memcpy(out, t.c_str(), t.size() + 1);
+    return 1;
 }
+
+LN_API uint16_t ln_port(LnContext* c) { return c && c->embedded ? c->embedded->port() : 0; }
 
 LN_API void ln_close(LnContext* c) {
     if (!c) return;
-    if (c->host) {
-        for (Peer& p : c->peers)
-            if (p.ep) enet_peer_disconnect_now(p.ep, LN_R_NORMAL);
-        enet_host_flush(c->host);
-        enet_host_destroy(c->host);
-    }
+    for (size_t i = 0; i < c->peers.size(); ++i) closePeer(c, (int)i);
+    lobbyClose(c);
+    if (c->embedded) c->embedded->stop();
+    c->graves.clear();
     delete c;
-    enetDown();
 }
 
-LN_API int ln_random(uint8_t* out, int n) { return out && n > 0 && lim::netsec::randomBytes(out, (size_t)n) ? 1 : 0; }
+LN_API int ln_random(uint8_t* out, int n) { return out && n > 0 && randomBytes(out, (size_t)n) ? 1 : 0; }
 LN_API int ln_version(void) { return LN_VERSION; }
 
 }  // extern "C"
