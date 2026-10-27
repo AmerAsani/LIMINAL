@@ -100,3 +100,17 @@ Agenten: alle ausser „Props Level 1 Blender-Modelle“ (vom Nutzer gestoppt, A
   - Faceling-Varianten;
   - Randwesen;
   - Wow-Check der vorhandenen Wesen.
+
+### V13.3 Zwischenstand 5 (27.10.2026, Nutzungsgrenze)
+- Kritikrunde 1 (Struktur) erledigt für Level 2, 3, 0 und 5: `KRITIK_Level2.md`, `KRITIK_Level3.md`, `KRITIK_Level0.md`, `KRITIK_Level5.md`.
+- `room_metrics.py` erneuert veraltete Ausstattungs-Abzüge selbst.
+- Agenten wegen der Nutzungsgrenze angehalten (mit SendMessage fortsetzen; ihre Arbeit liegt committet in den Worktree-Zweigen):
+  - Mehrspieler `aa6ecde9fd4b8ff11`: war beim 60-Minuten-Langlauf;
+  - Growler+Nguithr'xurh `aed8bb58cf363c623`: war beim gameplay_test;
+  - Wrangler `a40d77c4c87074e60`: war beim Blender-Bau.
+- Danach in dieser Reihenfolge:
+  - Smiler/Skin-Stealer `a2a8250ed528a5ff1`;
+  - L1-Erscheinungen + Entity 99 `a8e9e99616db9fe9e`;
+  - Audio `a1a310e23cd626c63`;
+  - Ausstattung L2, L3, L0, L5, 5.3+188, 903+37, 36.
+- Offen bleiben die Kritikrunden 1 für Level 5.3, 188, 903, 37 und 36.
