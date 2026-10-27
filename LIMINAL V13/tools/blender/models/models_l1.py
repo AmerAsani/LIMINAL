@@ -509,6 +509,12 @@ def _crate(L, W, H, seed, style):
             poly = clip_poly(poly, -nn.x, -nn.y, -(c0 - bw * 0.45))
             frame_rects.append(poly)
             del band
+        if style == 'c' and si < 2:  # Griffleiste an den Stirnseiten (steht weiter vor, unten gefast)
+            zc = H - 0.2
+            gl = [(-e + bw, zc - 0.03), (e - bw, zc - 0.03), (e - bw, zc + 0.035), (-e + bw, zc + 0.035)]
+            mb.add(b_prism(gl, 0.0, bt + 0.014, ch=0.006), lmat, F)
+            for uc in (-e + bw + 0.05, 0.0, e - bw - 0.05):
+                mb.add(b_nail(), M['nagel'], F @ T(uc, zc + 0.01, bt + 0.014))
         for k, pr in enumerate(frame_rects):
             mat = M['dunkel'] if (k == 2 and style != 'a') else lmat
             pr = rot2(pr, rg.uniform(-0.002, 0.002), sum(p[0] for p in pr) / len(pr), sum(p[1] for p in pr) / len(pr))
@@ -787,8 +793,10 @@ class _Pile:
         mat = mat or M[rg.choice(['brett', 'brett', 'brett_alt', 'brett_grau'])]
         # Bruchflaechen heller (frisches Holz): Stirnflaechen an gebrochenen Enden
         for f in bm.faces:
-            f.material_index = 0
-        mb.add(bm, mat, T(-L / 2, 0, -Tk / 2))
+            c = f.calc_center_median()
+            end = (broken[1] and c.x > L - 0.12) or (broken[0] and c.x < 0.12)
+            f.material_index = 1 if end and abs(f.normal.x) > 0.3 else 0
+        mb.add(bm, [mat, M['bruch']], T(-L / 2, 0, -Tk / 2))
         for i in range(nails):  # krumme Naegel, die herausstehen
             x = rg.uniform(0.05, L - 0.05) - L / 2
             ln = rg.uniform(0.03, 0.06)
@@ -1014,6 +1022,27 @@ def _debris(seed, kind):
         y = cy + 0.22 * math.sin(a * 5.0 + seed)
         pts.append((x, y, _surface_z(x, y) + 0.0025))
     P.strap(pts)
+    # Spaene, Splitter und ein paar Naegel rund um den Haufen auf dem Boden
+    M = P.M
+    mb = MB()
+    for k in range(18):
+        ang = rg.uniform(0, TAU)
+        rr = rg.uniform(0.35, 1.0)
+        x, y = cx + math.cos(ang) * rr * (hi.x - lo.x) * 0.55, cy + math.sin(ang) * rr * (hi.y - lo.y) * 0.55
+        if _surface_z(x, y) > 0.004:
+            continue
+        ln, w = rg.uniform(0.02, 0.09), rg.uniform(0.006, 0.02)
+        poly = [(-ln / 2, -w / 2), (ln / 2 - rg.uniform(0, ln * 0.4), -w / 2), (ln / 2, rg.uniform(-w / 2, w / 2)),
+                (ln / 2 - rg.uniform(0, ln * 0.3), w / 2), (-ln / 2 + rg.uniform(0, ln * 0.3), w / 2)]
+        mb.add(b_prism(poly, 0.0, rg.uniform(0.002, 0.006)), rg.choice([M['bruch'], M['brett'], M['brett_alt']]), T(x, y, 0.0) @ R(rg.uniform(0, TAU), 'Z'))
+    for k in range(5):
+        ang = rg.uniform(0, TAU)
+        x, y = cx + math.cos(ang) * (hi.x - lo.x) * 0.45, cy + math.sin(ang) * (hi.y - lo.y) * 0.45
+        if _surface_z(x, y) > 0.004:
+            continue
+        mb.add(b_tube([(0, 0, 0.0016), (rg.uniform(0.035, 0.06), 0, 0.0016)], 0.0016, 4, caps=True), M['rost'],
+               T(x, y, 0.0) @ R(rg.uniform(0, TAU), 'Z'))
+    mb.obj('spaene')
 
 
 def _surface_z(x, y, exclude=None):
