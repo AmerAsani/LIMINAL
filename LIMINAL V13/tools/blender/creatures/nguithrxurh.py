@@ -71,7 +71,7 @@ def build(J, bones):
     body.append(A.ell(B_PRO, (0.046, 0, 0.040), (1, 0, 0.2), (0.019, 0.024, 0.017), k=0.008))
     body.append(A.ell(B_PRO, (0.051, 0, 0.051), (1, 0, 0), (0.007, 0.008, 0.006), k=0.004))  # Augenhuegel
     for s in (1, -1):
-        eyes.append(A.ell(B_PRO, (0.0545, s * 0.0042, 0.0545), A.unit((1, s * 0.5, 0.3)), (0.0032, 0.0032, 0.0032), k=0.0))
+        eyes.append(A.ell(B_PRO, (0.0545, s * 0.0047, 0.0548), A.unit((1, s * 0.5, 0.3)), (0.0042, 0.0042, 0.0042), k=0.0))
     # Brustplatten unten, wo die Beine ansetzen
     body.append(A.ell(B_PRO, (0.012, 0, 0.024), (1, 0, 0), (0.03, 0.022, 0.009), k=0.006))
     # --- Hinterleib: weich, gegliedert (Ringe in der Verschiebung), wulstig ------------------------------------------
@@ -80,20 +80,25 @@ def build(J, bones):
     for x, ry, rz, z in segs:
         b = B_OPI0 if x > -0.065 else B_OPI1
         body.append(A.ell(b, (x, 0, z), (1, 0, 0), (0.014, ry, rz), k=0.008))
+    # Runde 1: einfarbig wie Holz - dunkle Platten: Kopfschild (Propeltidium) und je Hinterleibsring ein Rueckenschild
+    plates = [A.ell(B_PRO, (0.03, 0, 0.050), (1, 0, 0.15), (0.024, 0.019, 0.0045), k=0.0)]
+    for x, ry, rz, z in segs[:-1]:
+        b = B_OPI0 if x > -0.065 else B_OPI1
+        plates.append(A.ell(b, (x, 0, z + rz * 0.93), (1, 0, 0), (0.0085, ry * 0.62, 0.0032), k=0.0))
     # --- Cheliceren: Grundglied behaart, Scheren dunkel und glaenzend mit Zaehnen --------------------------------------
     for si, s in enumerate((1, -1)):
         b = B_CH[si]
         base = J[CHB[si]]
         tip = J[CHB[si] + 1]
         d = A.unit(tip - base)
-        body.append(A.ell(b, base + d * 0.012 + Z * 0.003, d, (0.022, 0.0115, 0.014), up=Z, k=0.004))
+        body.append(A.ell(b, base + d * 0.014 + Z * 0.004, d, (0.028, 0.0135, 0.0175), up=Z, k=0.004))  # Runde 1: zu klein
         # fester Finger (oben) und beweglicher Finger (unten), leicht gebogen
         for fz, curl, rr in ((0.004, -0.5, 0.0052), (-0.004, 0.6, 0.0046)):
-            p0 = base + d * 0.026 + Z * fz
-            p1 = p0 + d * 0.018 + Z * (fz * 0.4)
-            p2 = p1 + A.unit(d + Z * curl * 0.5 - np.array([0, s * 0.15, 0])) * 0.016
-            chit += A.chain(lambda i, b=b: b, [p0, p1, p2], [rr, rr * 0.75, 0.0008], k=0.002)
-            for t in np.linspace(0.15, 0.85, 5):  # Zahnreihe innen
+            p0 = base + d * 0.032 + Z * fz
+            p1 = p0 + d * 0.024 + Z * (fz * 0.4)
+            p2 = p1 + A.unit(d + Z * curl * 0.5 - np.array([0, s * 0.15, 0])) * 0.022
+            chit += A.chain(lambda i, b=b: b, [p0, p1, p2], [rr * 1.25, rr * 0.9, 0.0008], k=0.002)
+            for t in np.linspace(0.12, 0.88, 7):  # Zahnreihe innen
                 q = p0 + (p2 - p0) * t
                 inward = A.unit(-Z * np.sign(fz) + np.array([0, -s * 0.3, 0]))
                 chit.append(A.cone(b, q, q + inward * rng.uniform(0.0025, 0.004), 0.0012, 0.0002))
@@ -110,14 +115,14 @@ def build(J, bones):
     for l in range(12):
         p = l // 2
         pts = [J[legJ(l, i)] for i in range(4)]
-        radii = [0.0036 - 0.0001 * p, 0.0031, 0.0022, 0.0011]
+        radii = [0.0050 - 0.0001 * p, 0.0037, 0.0024, 0.0010]  # Runde 1: gleich dick wie Staebe
         lp = A.chain(lambda i, l=l: legB(l, i), pts, radii, k=0.0015)
         lp.append(A.ell(legB(l, 0), pts[0], pts[1] - pts[0], (0.005, 0.0045, 0.0045), k=0.002))  # Huefte
-        lp += bristles(legB(l, 0), pts[0], pts[1], radii[0], 8, rng, 0.004, 0.011)
-        lp += bristles(legB(l, 1), pts[1], pts[2], radii[1], 9, rng, 0.004, 0.012)
-        lp += bristles(legB(l, 2), pts[2], pts[3], radii[2], 5, rng, 0.003, 0.007)
-        rings = [A.ell(legB(l, 0), pts[1], pts[2] - pts[1], (0.0035, 0.0038, 0.0038), k=0.0),
-                 A.ell(legB(l, 1), pts[2], pts[3] - pts[2], (0.003, 0.003, 0.003), k=0.0),
+        lp += bristles(legB(l, 0), pts[0], pts[1], radii[0], 18, rng, 0.006, 0.016)
+        lp += bristles(legB(l, 1), pts[1], pts[2], radii[1], 20, rng, 0.005, 0.015)
+        lp += bristles(legB(l, 2), pts[2], pts[3], radii[2], 10, rng, 0.003, 0.009)
+        rings = [A.ell(legB(l, 0), pts[1], pts[2] - pts[1], (0.0052, 0.0052, 0.0052), k=0.0),
+                 A.ell(legB(l, 1), pts[2], pts[3] - pts[2], (0.0036, 0.0036, 0.0036), k=0.0),
                  A.cone(legB(l, 2), pts[3] + A.unit(pts[3] - pts[2]) * -0.004, pts[3], 0.0012, 0.0004)]  # Klaue
         legs.append((lp, rings))
     # Borsten am Koerper
@@ -156,6 +161,8 @@ def build(J, bones):
                        'h': 0.0002, 'cav_scale': 0.0012, 'merge': 'chitin', 'lod_weight': 1.5})
         groups.append({'name': f'kissen{si}', 'fm': 'ent_nestegg', 'parts': [p for p in pale if p.bone == B_PP[si] + 1], 'disp': None,
                        'h': 0.0002, 'cav_scale': 0.001, 'merge': 'kissen'})
+    for i, pl in enumerate(plates):
+        groups.append({'name': f'platte{i}', 'fm': 'ent_chitin', 'parts': [pl], 'disp': None, 'h': 0.00025, 'cav_scale': 0.001, 'merge': 'chitin'})
     groups.append({'name': 'augen', 'fm': 'ent_eyeshine', 'parts': eyes, 'disp': None, 'h': 0.00015, 'cav_scale': 0.0008, 'lod_weight': 2.0})
     groups.append({'name': 'faden', 'fm': 'ent_silk', 'parts': silk, 'disp': None, 'h': 0.0003, 'cav_scale': 0.0008, 'lod_weight': 0.3})
     return groups

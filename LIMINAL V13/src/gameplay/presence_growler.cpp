@@ -76,7 +76,7 @@ void Presence::prepGN(Agent& a, const Context& c) {
     }
     float s;
     if (a.puppet) s = 0.3f + 1.5f * a.fly;  // Koop: Groesse im Kanal fly
-    else if (a.showcase) s = a.variant == 1 ? 0.5f : (a.variant == 2 ? 1.4f : 1.0f);
+    else if (a.showcase) s = a.variant == 1 ? 0.5f : (a.variant == 2 ? 1.4f : 1.0f), a.glow = a.variant == 1 ? 2.6f : 0.0f;
     else s = gag(a).scale;
     if (!a.puppet) a.fly = std::clamp((s - 0.3f) / 1.5f, 0.0f, 1.0f);
     a.cre.setScale(s);
@@ -144,7 +144,7 @@ bool Presence::spawnGrowler(const Context& c, std::vector<Event>& out, bool forc
         GAg& g = gag(*a);
         g.young = young;
         g.scale = g.scaleT = young ? (float)rng_.uniform(0.45, 0.58) : (float)rng_.uniform(0.92, 1.12);
-        a->glow = young ? 1.0f : 0.0f;  // Junge: leuchtend bunt, im Dunkeln zu sehen (Level 2)
+        a->glow = young ? 2.6f : 0.0f;  // Junge: leuchtend bunt, im Dunkeln zu sehen (Level 2)
         a->initBody(q, (float)rng_.uniform(-kPiF, kPiF), (unsigned)rng_.randint(1, 1 << 30));
         a->cre.setScale(g.scale);
         a->rig.setGlow(a->glow);
@@ -225,7 +225,7 @@ void Presence::thinkGrowler(Agent& a, double dt, const Context& c, std::vector<E
     a.growl = std::clamp((float)(0.25 + 0.75 * (a.state >= kHunt && a.state <= kStrike)), 0.0f, 1.0f);
     auto setState = [&](int st) { a.state = st, a.stateT = 0.0; };
     // Junge leuchten (im Dunkeln zu sehen); eine Leiche erlischt
-    a.glow = g.young && a.state != kCorpse ? 1.0f : 0.0f;
+    a.glow = g.young && a.state != kCorpse ? 2.6f : 0.0f;  // Runde 2: im Dunkeln kaum zu sehen
     // --- Leiche --------------------------------------------------------------------------------------------------
     if (a.state == kCorpse) {
         a.hang = 1.0f, a.growl = 0.0f;
@@ -310,6 +310,28 @@ void Presence::thinkGrowler(Agent& a, double dt, const Context& c, std::vector<E
                 setState(kListen);
                 break;
             }
+            // Junge jagen kleine Beute (Level 2: Death Rats) - erreicht er eine, nimmt er sie auf und waechst ein wenig
+            bool chasing = false;
+            if (g.young && a.cool <= 0.0)
+                for (auto& o : agents_) {
+                    if (o->role != Role::Rat || o->showcase || o->puppet || o->state == 9) continue;
+                    const float dr = hdist(o->pos, a.pos);
+                    if (dr < 0.55f) {
+                        o->state = 9;
+                        g.scaleT = std::min(1.2f, g.scaleT + 0.03f);
+                        out.push_back({Event::Squeak, Role::Rat, o->pos, 1.0f});
+                        a.cool = 5.0;
+                        break;
+                    }
+                    if (dr < 7.0f && clearSight(*c.world, knot, o->pos + vec3{0, 0, 0.1f})) {
+                        a.perceive = 1.0f, a.perceiveAt = o->pos;
+                        if (a.hasGoal || std::fmod(a.age, 0.5) < dt) a.field.build(*c.world, ifloor(o->pos.x), ifloor(o->pos.y), 1.0f), a.hasGoal = false;
+                        walkTo(a, a.field, 1.6, dt, c);
+                        chasing = true;
+                        break;
+                    }
+                }
+            if (chasing) break;
             wander(a, dt, c, 0.65, world::KIN_GROWLER);
             break;
         }

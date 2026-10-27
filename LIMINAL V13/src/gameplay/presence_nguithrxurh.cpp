@@ -167,7 +167,7 @@ void Presence::prepNguithr(Agent& a, const Context& c) {
     // Spinne: Groesse (Koop: Kanal bait), Lage, Augen werfen das Lampenlicht zurueck
     float s;
     if (a.puppet) s = 0.3f + 1.5f * a.bait;
-    else if (a.showcase) s = 1.4f;
+    else if (a.showcase) s = 2.0f;
     else s = sag(a).scale;
     if (!a.puppet) a.bait = std::clamp((s - 0.3f) / 1.5f, 0.0f, 1.0f);
     if (a.showcase && a.variant == 3) {  // Vorfuehrung an der Decke
@@ -190,7 +190,7 @@ bool Presence::spawnNguithr(const Context& c, std::vector<Event>& out, bool forc
     else if (!forced) return false;
     if (!fld().valid()) return false;
     const bool small = K.mode == "small";
-    const float scale = K.mode == "small" ? 0.9f : (K.mode == "medium" ? 1.25f : 1.6f);
+    const float scale = K.mode == "small" ? 0.95f : (K.mode == "medium" ? 1.5f : 2.0f);  // Runde 1: 1,6 in Level 1 wirkte wie ein Insekt
     std::vector<std::pair<i64, i64>> cand;
     fld().ring(forced ? 40 : 90, forced ? 200 : 260, cand);
     const vec3 eye = c.view.eye;

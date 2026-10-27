@@ -62,27 +62,39 @@ def build_web(J, moths):
             fluid.append(A.ell(b, q - Z * (L + 0.004), (0, 0, 1), (0.008, 0.0075, 0.0075), k=0.004))
         groups.append({'name': f'stoff{k}', 'fm': 'ent_sedative', 'parts': fluid,
                        'disp': lambda P, k=k: -0.0012 * sdf.fbm(P, 60, 2, seed=1610 + k), 'h': 0.0012, 'cav_scale': 0.006, 'merge': 'stoff'})
-        # Huelle aus Seide mit Rissen, umwickelt
-        shell = [A.ell(b, c, (1, 0, 0), (r, r * 0.97, r * 1.02), k=0.0)]
+        # Huelle aus Seide: birnenfoermig (zum Faden hin zusammengezogen), klumpig, matt und faserig; wenige schmale Risse, durch
+        # die der Stoff glaenzt (Runde 1: runde, glaenzende Kugeln mit Loechern - wirkten wie Christbaumkugeln, Lampen)
+        shell = [A.ell(b, c - Z * r * 0.08, (1, 0, 0), (r, r * 0.97, r * 0.92), k=0.0),
+                 A.cone(b, c + Z * r * 0.2, c + Z * (r + 0.1), r * 0.78, 0.012, k=0.04)]
         for _ in range(4):
             u = sphere_pt(rng)
-            shell.append(A.ell(b, c + u * r * 0.42, u, (r * 0.62, r * 0.55, r * 0.55), k=0.025))
-        shell.append(A.ell(b, c, (1, 0, 0), (r * 0.9, r * 0.87, r * 0.91), op='sub', k=0.004))
-        for _ in range(5):  # Risse: dort glaenzt der Stoff durch
-            u = sphere_pt(rng)
-            if u[2] > 0.7:
-                continue
-            shell.append(A.ell(b, c + u * r * 1.02, u, (r * 0.2, r * rng.uniform(0.25, 0.45), r * 0.12), op='sub', k=0.01))
-        # oben zum Faden zusammengezogen
-        shell.append(A.cone(b, c + Z * r * 0.75, c + Z * (r + 0.05), r * 0.35, 0.004, k=0.02))
+            shell.append(A.ell(b, c + u * r * 0.45, u, (r * 0.6, r * 0.52, r * 0.52), k=0.03))
+        shell.append(A.ell(b, c - Z * r * 0.06, (1, 0, 0), (r * 0.88, r * 0.85, r * 0.8), op='sub', k=0.004))
+        for _ in range(2):  # schmale Risse seitlich
+            u = A.unit(np.array([rng.normal(), rng.normal(), rng.uniform(-0.3, 0.3)]))
+            shell.append(A.ell(b, c + u * r * 1.0, u, (r * 0.15, r * rng.uniform(0.3, 0.5), r * 0.07), op='sub', k=0.008))
         wraps = []
-        for _ in range(16):
+        for _ in range(22):
             n = sphere_pt(rng)
             e1 = A.perp(n)
             e2 = np.cross(n, e1)
             a0, span = rng.uniform(0, 2 * math.pi), rng.uniform(1.5, 4.5)
-            pts = [c + (e1 * math.cos(a0 + span * t) + e2 * math.sin(a0 + span * t)) * (r * rng.uniform(1.0, 1.05)) for t in np.linspace(0, 1, 12)]
-            wraps += [A.tube(b, pts[i], pts[i + 1], (0.0022, 0.0022)) for i in range(len(pts) - 1)]
+            pts = [c + (e1 * math.cos(a0 + span * t) + e2 * math.sin(a0 + span * t)) * (r * rng.uniform(1.0, 1.06)) for t in np.linspace(0, 1, 12)]
+            wraps += [A.tube(b, pts[i], pts[i + 1], (0.0024, 0.0024)) for i in range(len(pts) - 1)]
+        fluff = []
+        for _ in range(30):  # lose Faeden stehen ab
+            u = sphere_pt(rng)
+            p0 = c + u * r * 0.98
+            p1 = p0 + A.unit(u + rng.normal(0, 0.7, 3)) * rng.uniform(0.03, 0.09)
+            fluff.append(A.tube(b, p0, p1, (0.0014, 0.0014)))
+        for _ in range(5):  # Faeden haengen unten heraus
+            p0 = c + np.array([rng.uniform(-0.5, 0.5) * r, rng.uniform(-0.5, 0.5) * r, -r * 0.85])
+            L = rng.uniform(0.08, 0.26)
+            p1 = p0 + np.array([rng.uniform(-0.03, 0.03), rng.uniform(-0.03, 0.03), -L * 0.55])
+            p2 = p0 + np.array([rng.uniform(-0.05, 0.05), rng.uniform(-0.05, 0.05), -L])
+            fluff += [A.tube(b, p0, p1, (0.0013, 0.0013)), A.tube(b, p1, p2, (0.0013, 0.0013), (0.0009, 0.0009))]
+        groups.append({'name': f'flaum{k}', 'fm': 'ent_silk', 'parts': fluff, 'disp': None, 'h': 0.0009, 'cav_scale': 0.002, 'merge': 'seide',
+                       'lod_weight': 0.6})
 
         def silk_disp(P, k=k):
             return -0.0009 * (sdf.ridged(P * np.array([1.0, 1.0, 2.5]), 180, 2, seed=1620 + k) - 0.5) - 0.0006 * sdf.fbm(P, 400, 1, seed=1630 + k)
@@ -132,11 +144,16 @@ def build_web(J, moths):
         return [A.tube(0, pts[i], pts[i + 1], (r, r)) for i in range(n - 1)]
 
     for a in anchors:  # Speichen
-        mats.append(thread(center, a - Z * 0.01, 0.0018, 0.02))
+        mats.append(thread(center, a - Z * 0.01, 0.0028, 0.02))
         for _ in range(3):  # aufgefaechert zur Decke
             q = a + np.array([rng.uniform(-0.12, 0.12), rng.uniform(-0.12, 0.12), -0.002])
             mats.append(thread(a - Z * 0.01, q, 0.0011, 0.0, 3))
     order = np.argsort([math.atan2(a[1], a[0]) for a in anchors])
+    for i in range(len(order)):  # Runde 1: an der Decke kaum zu sehen - dichte Seidenlappen zwischen den Speichen
+        a1, a2 = anchors[order[i]], anchors[order[(i + 1) % len(order)]]
+        m = (a1 + a2) * 0.3
+        d = A.unit(np.array([(a2 - a1)[0], (a2 - a1)[1], 0.0]) + 1e-6)
+        mats.append([A.ell(0, np.array([m[0], m[1], -0.008]), d, (rng.uniform(0.08, 0.16), rng.uniform(0.04, 0.08), 0.003), k=0.0)])
     for ring_r in (0.22, 0.45):  # zwei Ringe zwischen den Speichen
         pts = []
         for i in range(len(order) + 1):

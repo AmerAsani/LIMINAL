@@ -32,7 +32,7 @@ except Exception:
     pass
 COLORS = ('ent_pipe_a', 'ent_pipe_b', 'ent_pipe_c', 'ent_pipe_d')  # Magenta, Tuerkis (beide leuchten bei den Jungen), Gelb, Gruen
 H = 0.005       # Voxel der Straenge
-RS = 0.021      # Radius eines Pfeifenreinigers (Runde 1: 0,016 - zu duenn, der Kern schaute ueberall durch)
+RS = 0.014      # Radius eines Pfeifenreinigers (Blender-Runde 1: 0,016 zu wenige; Runde 1 im Spiel: 0,021 wirkte wie Wolle - jetzt duenner, dafuer viel mehr)
 # Gelenke und Knochen (siehe Kopf)
 ROOT, PELVIS, SPINE, CHEST, HUMP, KNOT = 0, 1, 2, 3, 4, 5
 DOORH = (6, 8)
@@ -199,15 +199,18 @@ def build(J, bones):
         wires.setdefault(region, []).extend(parts)
 
     def pick_color(bias=None):
+        # Runde 2: nur bunte Chenille - jetzt dazwischen schwarze, glaenzende Kabel (Level-1-Seite: aus Kabeln)
+        if rng.random() < 0.22:
+            return 'ent_darkskin'
         w = np.array([1.0, 1.0, 1.0, 1.0]) if bias is None else np.asarray(bias, dtype=float)
         return COLORS[int(rng.choice(4, p=w / w.sum()))]
 
     # --- Rumpf: drei Lagen Straenge, quer und schraeg gewickelt ---------------------------------------------------
     # nicht ueber die Brustklappen (die liegen als eigenes Geflecht ueber der Hoehle)
-    in_torso = lambda q: q[2] > 0.62 and q[2] < 2.08 and not (q[0] > 0.3 and abs(q[1]) < 0.27 and 0.93 < q[2] < 1.43)
-    for layer, (count, off) in enumerate(((230, RS * 0.7), (170, RS * 1.8), (90, RS * 2.9))):  # Runde 1: 95/60/30 - zu duenn
+    in_torso = lambda q: q[2] > 0.45 and q[2] < 2.08 and not (q[0] > 0.3 and abs(q[1]) < 0.27 and 0.93 < q[2] < 1.43)
+    for layer, (count, off) in enumerate(((360, RS * 0.7), (260, RS * 1.8), (140, RS * 2.9))):
         for _ in range(count):
-            z = rng.uniform(0.68, 2.0)
+            z = rng.uniform(0.5, 2.0)
             az = rng.uniform(-math.pi, math.pi)
             p0 = np.array([0.1 + 0.5 * math.cos(az), 0.55 * math.sin(az), z])
             # Achse des Rumpfs: gebeugt (unten senkrecht, oben nach vorn)
@@ -218,16 +221,24 @@ def build(J, bones):
                 continue
             col = pick_color()
             add('rumpf', col, tube_chain(torso_bone, pts, RS * rng.uniform(0.85, 1.1)))
-            if rng.random() < 0.45:  # abstehendes Ende mit blankem Draht
+            if rng.random() < 0.7:  # abstehendes Ende mit blankem Draht
                 n = body.grad(pts[-1])
                 sp, wp = frayed_end(pts, n, rng, RS, torso_bone(pts[-1]))
                 add('rumpf', col, sp)
                 add_wire('rumpf', wp)
+    # Runde 1: wirkte weich wie Wolle - jetzt stehen ueberall blanke, spitze Draehte aus der Masse
+    for _ in range(160):
+        z = rng.uniform(0.6, 2.0)
+        az = rng.uniform(-math.pi, math.pi)
+        p = body.project(np.array([0.1 + 0.5 * math.cos(az), 0.55 * math.sin(az), z]), RS * 1.5)
+        n = body.grad(p)
+        q = p + A.unit(n + rng.normal(0, 0.45, 3)) * rng.uniform(0.04, 0.13)
+        add_wire('rumpf', [A.cone(torso_bone(p), p - n * 0.02, q, 0.0028, 0.0005)])
     # --- Arme: Straenge laengs, verdreht, buendelartig ----------------------------------------------------------
     for s in (0, 1):
         S, E, W = J[armJ(s, 0)], J[armJ(s, 1)], J[armJ(s, 2)]
         arm_bone = nearest_bone([(armB(s, 0), S, E), (armB(s, 1), E, W)])
-        for _ in range(80):
+        for _ in range(120):
             t0 = rng.uniform(-0.15, 0.7)
             a0 = S + (W - S) * max(0.0, t0) + (S - J[CHEST]) * (0.25 if t0 < 0 else 0.0)
             ax = A.unit(W - S)
@@ -249,7 +260,7 @@ def build(J, bones):
         cb = nearest_bone([(armB(s, i + 1), chain[i], chain[i + 1]) for i in range(4)])
         for i in range(4):
             body.core.append(A.cone(armB(s, i + 2), chain[i], chain[i + 1], 0.06 - 0.008 * i, 0.05 - 0.008 * i, k=0.02))
-        for _ in range(46):
+        for _ in range(64):
             pts = []
             ph, rad = rng.uniform(0, 2 * math.pi), rng.uniform(0.03, 0.095)
             twist = rng.uniform(4.0, 11.0) * rng.choice([-1, 1])
@@ -286,7 +297,7 @@ def build(J, bones):
     for s in (0, 1):
         Hh, K, An = J[legJ(s, 0)], J[legJ(s, 1)], J[legJ(s, 2)]
         leg_bone = nearest_bone([(legB(s, 0), Hh, K), (legB(s, 1), K, An), (legB(s, 2), An, J[legJ(s, 3)])])
-        for _ in range(70):
+        for _ in range(150):
             a0 = Hh + (An - Hh) * rng.uniform(0, 0.9)
             ax = A.unit(An - Hh)
             pts = body.walk(a0 + A.perp(ax) * 0.1, ax, rng.uniform(-0.9, 0.9) + (math.pi / 2 if rng.random() < 0.5 else 0.0),
@@ -299,7 +310,7 @@ def build(J, bones):
         tb = nearest_bone([(legB(s, 3), trail[0], trail[1]), (legB(s, 4), trail[1], trail[2])])
         for i in range(2):
             body.core.append(A.cone(legB(s, 3 + i), trail[i], trail[i + 1], 0.05 - 0.01 * i, 0.04 - 0.01 * i, k=0.02))
-        for _ in range(26):
+        for _ in range(36):
             ph, tw = rng.uniform(0, 2 * math.pi), rng.uniform(5, 12) * rng.choice([-1, 1])
             pts = []
             for j in range(11):
@@ -342,14 +353,14 @@ def build(J, bones):
     # --- Knoten: Sternfoermig laufen die Kabel auseinander; in der Mitte ein verdrehter Wulst um ein dunkles Loch ----
     K0 = J[KNOT]
     nK = body.grad(body.project(K0, 0.0))
-    for _ in range(70):
+    for _ in range(110):
         ang = rng.uniform(0, 2 * math.pi)
         e1 = A.perp(nK)
         e2 = np.cross(nK, e1)
         d = e1 * math.cos(ang) + e2 * math.sin(ang)
         pts = [body.project(K0 + nK * 0.02, RS * 1.2)]
         p = pts[0]
-        L = rng.uniform(0.14, 0.38)
+        L = rng.uniform(0.18, 0.5)
         for j in range(int(L / 0.03)):
             p = body.project(p + d * 0.03 + rng.normal(0, 0.006, 3), RS * (1.2 + 0.4 * rng.random()))
             pts.append(p)
@@ -367,7 +378,14 @@ def build(J, bones):
         a0, span, rr = rng.uniform(0, 6.3), rng.uniform(2.5, 5.0), rng.uniform(0.045, 0.085)
         knot = [K0 + nK * 0.02 + (e1 * math.cos(a0 + span * t) + e2 * math.sin(a0 + span * t)) * rr * (1 - 0.3 * t) for t in np.linspace(0, 1, 14)]
         add('knoten', pick_color(), tube_chain(lambda q: B_KNOT, knot, RS * rng.uniform(0.7, 0.95)))
-    knot_hole = [A.ell(B_KNOT, K0 + nK * 0.03, nK, (0.04, 0.03, 0.03), k=0.0)]
+    knot_hole = [A.ell(B_KNOT, K0 + nK * 0.03, nK, (0.06, 0.07, 0.07), k=0.0)]  # Runde 2: der Knoten war kein Blickfang
+    for _ in range(46):  # blanke Draehte strahlen aus dem Loch (fangen das Lampenlicht)
+        e1 = A.perp(nK)
+        e2 = np.cross(nK, e1)
+        a = rng.uniform(0, 2 * math.pi)
+        d = A.unit((e1 * math.cos(a) + e2 * math.sin(a)) + nK * rng.uniform(0.2, 0.9))
+        p0 = K0 + nK * 0.05 + (e1 * math.cos(a) + e2 * math.sin(a)) * 0.05
+        add_wire('knoten', [A.cone(B_KNOT, p0, p0 + d * rng.uniform(0.06, 0.16), 0.0032, 0.0006)])
     # --- Brustklappen: Geflecht ueber der Hoehle ---------------------------------------------------------------------
     doors = {}
     body.use_closed = True
@@ -375,16 +393,16 @@ def build(J, bones):
         h0 = J[DOORH[s]]
         t0 = J[DOORH[s] + 1]
         parts = []
-        for row in range(9):  # Runde 1: zu regelmaessig (wie ein Grill) - jetzt schief, verschieden dick, ausgefranst
-            z = 0.97 + row * 0.054 + rng.uniform(-0.015, 0.015)
-            tilt = rng.uniform(-0.06, 0.06)
+        for row in range(14):  # Runde 2: noch wie ein Korb - dichter; Runde 1: zu regelmaessig (wie ein Grill) - jetzt schief, verschieden dick, ausgefranst
+            z = 0.96 + row * 0.034 + rng.uniform(-0.02, 0.02)
+            tilt = rng.uniform(-0.14, 0.14)
             pts = [body.project(np.array([h0[0] + (t0[0] - h0[0]) * u, h0[1] + (t0[1] - h0[1]) * u, z + tilt * u + 0.01 * math.sin(u * 9 + row)]), RS * (1.2 + 0.4 * (row % 2)))
                    for u in np.linspace(-0.05, 1.05, 8)]
             add(f'klappe{s}', pick_color(), tube_chain(lambda q, s=s: B_DOOR[s], pts, RS * rng.uniform(0.75, 1.05)))
             parts.append(pts)
-        for colm in range(8):
+        for colm in range(14):
             u = rng.uniform(0.0, 1.0)
-            du = rng.uniform(-0.25, 0.25)
+            du = rng.uniform(-0.6, 0.6)
             pts = [body.project(np.array([h0[0] + (t0[0] - h0[0]) * (u + du * t), h0[1] + (t0[1] - h0[1]) * (u + du * t), z]), RS * (1.6 + 0.6 * rng.random()))
                    for t, z in zip(np.linspace(0, 1, 9), np.linspace(0.93, 1.44, 9))]
             add(f'klappe{s}', pick_color(), tube_chain(lambda q, s=s: B_DOOR[s], pts, RS * rng.uniform(0.7, 0.95)))
@@ -409,9 +427,9 @@ def build(J, bones):
         e2 = np.cross(dr, e1)
         for i in range(11):
             a, r = rng.uniform(0, 2 * math.pi), rng.uniform(0.0, 0.07)
-            base = at + (e1 * math.cos(a) + e2 * math.sin(a)) * r - dr * 0.2
+            base = at + (e1 * math.cos(a) + e2 * math.sin(a)) * r - dr * 0.3
             d = A.unit(dr + rng.normal(0, 0.18, 3))
-            L = rng.uniform(0.27, 0.36)
+            L = rng.uniform(0.40, 0.52)  # Runde 1: in Ruhe kaum zu sehen - jetzt 10-20 cm Stummel
             mid = base + d * (L * 0.72)
             tip = base + d * L
             add(f'rippe{q}', COLORS[int(rng.integers(0, 4))], [A.cone(B_SPK0 + q, base, mid, RS * 0.8, RS * 0.62)])

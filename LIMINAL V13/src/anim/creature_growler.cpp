@@ -260,7 +260,7 @@ void CreatureAnimator::updateGrowler(float dt, const Input& in) {
     for (int q = 0; q < kSpikes; ++q) {
         const vec3 d = Mb * (Rt * nrmG(kSpk[q].dir, {1, 0, 0}));
         const float jit = g.spike > 0.05f ? 0.012f * std::sin(time_ * (40.0f + 3.0f * (float)q)) : 0.0f;
-        const float ext = (0.20f * g.spike + jit - 0.02f * dead) * s;
+        const float ext = (0.28f * g.spike + jit - 0.04f * dead) * s;
         J[SPK0 + q * 2] = T(SPK0 + q * 2) + d * ext;
         J[SPK0 + q * 2 + 1] = T(SPK0 + q * 2 + 1) + d * ext;
     }
@@ -360,7 +360,10 @@ void CreatureAnimator::updateGrowler(float dt, const Input& in) {
         const float sy = t == 0 ? 1.0f : (t == 2 ? -1.0f : 0.0f);
         float w = 0.0f;
         // aufgerichtet (Ausholen) und Peitschenschlag: Zielkurve in Rumpfachsen
-        if (g.rear > 0.05f || whip > 0.0f) {
+        // Runde 1: in Ruhe standen die Ranken wie Hoerner - jetzt haengen sie ueber den Ruecken und heben sich erst, wenn er
+        // lauscht oder jagt (sichtbares Zeichen: er hat einen bemerkt)
+        const float alertUp = 0.8f * std::max(g.hunt, perc_);
+        if (g.rear > 0.05f || whip > 0.0f || alertUp > 0.05f) {
             // Phase: 0..0.45 hinter dem Koerper hoch, 0.45..0.7 nach vorn hinab, dann zurueck
             const float p = whip > 0.0f ? whip : 0.0f;
             const float up = whip > 0.0f ? (p < 0.45f ? smG(p / 0.45f) : 1.0f - smG((p - 0.45f) / 0.25f)) : 1.0f;
@@ -371,7 +374,7 @@ void CreatureAnimator::updateGrowler(float dt, const Input& in) {
                 const vec3 lash = b0 + (TU * (0.55f * u - 0.9f * u * u) + TF * (1.2f * u) + TL * (sy * 0.3f * u)) * (1.2f * s);
                 over[q] = raised + (lash - raised) * fwd;
             }
-            w = std::max(smG(g.rear), up);
+            w = std::max({smG(g.rear), whip > 0.0f ? up : 0.0f, alertUp});
         }
         // Zucken: eine Ranke hebt sich kurz und tastet
         if (g.twitchK >= 0.0f && (int)g.twitchK == t && w < 0.1f) {
@@ -382,8 +385,8 @@ void CreatureAnimator::updateGrowler(float dt, const Input& in) {
             }
             w = 0.6f * a;
         }
-        const float stiff = (w > 0.05f ? 14.0f : 4.0f) * (1.0f - dead);
-        chainOf(4 + t, B_HUMP, idx, 5, stiff, whip > 0.0f ? 0.93f : 0.87f, (2.0f + 6.0f * dead) * (1.0f - 0.7f * w), w > 0.0f ? over : nullptr, w);
+        const float stiff = (w > 0.05f ? 14.0f : 2.2f) * (1.0f - dead);
+        chainOf(4 + t, B_HUMP, idx, 5, stiff, whip > 0.0f ? 0.93f : 0.87f, (7.0f + 3.0f * dead) * (1.0f - 0.8f * w), w > 0.0f ? over : nullptr, w);
     }
     // Zehen nach dem Gewirr (bleiben am Fuss)
     autoUps();
