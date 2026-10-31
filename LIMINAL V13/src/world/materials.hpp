@@ -67,6 +67,8 @@ struct Material {
     double seamDark = 0.72;
     // V12: Textur-Ebene aus Bilddateien je Richtung (oben = Boden, unten = Decke, Wand); 255 = nach Muster
     std::array<u8, 3> layer{255, 255, 255};
+    // V13.3: Rauheitsfaktor und Metall-Zuschlag aus Blender (< 0: nach Oberflaeche)
+    float roughMul = -1.0f, metalAdd = -1.0f;
 };
 
 class MaterialBank {
@@ -77,12 +79,13 @@ public:
     MaterialBank();
     u16 get(std::array<double, 3> rgb, PlanePattern plane = PlanePattern::None, WallPattern wall = WallPattern::Plain,
             bool emissive = false, std::vector<Band> bands = {}, double seamDark = 0.72,
-            Surface surface = Surface::Default, std::array<u8, 3> layer = {255, 255, 255});
+            Surface surface = Surface::Default, std::array<u8, 3> layer = {255, 255, 255},
+            std::array<float, 2> pbr = {-1.0f, -1.0f});
     const Material& operator[](u16 id) const { return *items_[id]; }
     std::size_t size() const { return count_.load(std::memory_order_acquire); }
 
 private:
-    using Key = std::tuple<std::array<double, 3>, u8, u8, bool, std::vector<Band>, double, u8, std::array<u8, 3>>;
+    using Key = std::tuple<std::array<double, 3>, u8, u8, bool, std::vector<Band>, double, u8, std::array<u8, 3>, std::array<float, 2>>;
     std::mutex mutex_;
     std::map<Key, u16> index_;
     std::vector<std::unique_ptr<Material>> items_;  // feste Kapazitaet -> Zeiger bleiben gueltig

@@ -41,6 +41,9 @@ struct MatDesc {
     float glow = 0.0f;  // > 0: leuchtet (Staerke relativ)
     std::string tex;    // V12: Textur aus data/textures (Name), leer = nach Look
     std::string fm;     // V12: festes Material des Renderers (Viewmodel: Hand, Taschenlampe), leer = keins
+    // V13.3: Glanz je Material ("r=<faktor> m=<zuschlag>" im Namen aus Blender): Faktor auf die Rauheit der Textur
+    // (0,3 glaenzend, 1,5 stumpf) und Zuschlag auf ihre Metallizitaet; < 0 = wie der Look
+    float rough = -1.0f, metal = -1.0f;
 };
 
 struct Part {
@@ -88,8 +91,11 @@ bool skinJointRest(const Skin& skin, const std::string& name, vec3& out);
 // auf den Bereich abgebildet.
 const Model* model(const std::string& name, int variant = 0);
 // V12: Modell aus einer Datei (props/glb_import) anmelden; ueberdeckt ein gleichnamiges Code-Modell
-void registerModel(const std::string& name, Model m);
+// V13.3: variant > 0 fuer weitere Varianten ("name@3.glb"); Variante 0 muss es geben
+void registerModel(const std::string& name, Model m, int variant = 0);
 int variants(const std::string& name);
+// V13.3 (Kontaktboegen, Pruefung): Name und Variante eines schon gebauten Modells; false, wenn unbekannt
+bool modelName(const Model* m, std::string& name, int& variant);
 // alle Namen (Pruefung der Karten)
 std::vector<std::string> modelNames();
 

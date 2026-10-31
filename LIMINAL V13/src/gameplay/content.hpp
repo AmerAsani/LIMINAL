@@ -56,6 +56,8 @@ class Content {
 public:
     // V11: sub = Unterordner mit eigenen levels/ und world.json (Tests der alten Welt: "legacy")
     bool load(const std::string& dataDir, std::string& error, const std::string& sub = "");
+    // V13.3 (Kontaktboegen): ein weiteres Level aus einer Datei (Karte daneben in ../maps/); id = seine Kennung
+    bool addLevelFile(const std::string& path, std::string& id, std::string& error);
 
     const ItemDef* item(const std::string& key) const;
     const std::vector<ItemDef>& items() const { return items_; }

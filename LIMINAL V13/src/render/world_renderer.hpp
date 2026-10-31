@@ -16,7 +16,7 @@ struct ExtraLight;  // V7, renderer.hpp
 
 // Die ersten GPU-Materialien sind fest vergeben (Items, Requisiten);
 // Weltmaterialien folgen dahinter.
-constexpr u32 kFixedMaterials = 80;  // V9: 16 -> 32 (Sicherungen ...), V10: 64 (Figuren), V13.2: 80 (neue Wesen)
+constexpr u32 kFixedMaterials = 160;  // V9: 16 -> 32 (Sicherungen ...), V10: 64 (Figuren), V13.2: 80, V13.3: 160 (weitere Wesen)
 enum FixedMaterial : u32 {
     FM_ITEM_ENERGY = 0, FM_ITEM_ALMOND = 1, FM_BODY = 2, FM_BODY_FACE = 3,
     FM_VEND_BODY = 4, FM_VEND_GLOW = 5, FM_VEND_GLASS = 6,  // V6: Automat
@@ -48,6 +48,7 @@ enum FixedMaterial : u32 {
     FM_ENT_UMBRA,                      // V13.2: Fensterwesen - schwarz und matt, aber fest (ohne den Rauchrand der Gestalt)
     // V13.2: Facelings sind verschieden (Haar, Haut, Kleidung) - weitere Stoffe, dunklere Haut, graues Haar
     FM_ENT_CLOTH_C, FM_ENT_CLOTH_D, FM_ENT_HUMANSKIN_B, FM_ENT_HAIR_GREY,
+    FM_ENT_DULLERSKIN, FM_ENT_ROTSKIN, FM_ENT_SMOKE, FM_ENT_CONCRETE,  // V13.3: Duller (dunkelgrau, trocken), Arms (verwesend), Rauch, Bruchbeton
     FM_FIG_END,
 };
 static_assert(FM_FIG_END <= kFixedMaterials);
@@ -86,7 +87,7 @@ public:
     // maxLights (V6): Obergrenze gleichzeitig gerechneter Leuchten (die naechsten zuerst)
     u32 updateLights(Gpu& gpu, const mat4& view, const Frustum& frustum, vec3 camPos, float maxDist, float time,
                      float intensityScale, bool shadows, u32 maxLights = 2048,
-                     const std::vector<ExtraLight>* extra = nullptr);
+                     const std::vector<ExtraLight>* extra = nullptr, float worldScale = 1.0f);
     // V7: Stromausfall - Leuchten mit diesem Flacker-Seed abdunkeln (-1 keiner)
     void setBlackout(int seed, float amount, vec3 origin = {}, float front = -1.0f) {
         blackoutSeed_ = seed, blackoutAmount_ = amount, blackoutOrigin_ = origin, blackoutFront_ = front;
@@ -95,6 +96,10 @@ public:
     u32 drawChunks(Gpu& gpu, const Frustum& frustum, vec3 camPos);
     // V11: Ausstattung der Chunks (Shader und Ziele sind gesetzt); liefert Dreiecke
     u64 drawProps(Gpu& gpu, const Frustum& frustum, vec3 camPos, float maxDist);
+    // V13.3: die naechsten Pfuetzen (hoechstens kMaxPuddles) hochladen; liefert die Anzahl
+    static constexpr u32 kMaxPuddles = 32;
+    u32 updatePuddles(Gpu& gpu, vec3 camPos, float maxDist);
+    ID3D11ShaderResourceView* puddleSrv() const { return puddles_.srv.get(); }
 
     ID3D11ShaderResourceView* materialSrv() const { return materials_.srv.get(); }
     ID3D11ShaderResourceView* lightSrv() const { return lights_.srv.get(); }
@@ -114,6 +119,7 @@ private:
         u32 propIndexCount = 0;
         Aabb propBounds;
         std::vector<world::ChunkLight> lights;
+        std::vector<world::PuddleDecal> puddles;  // V13.3
     };
     void writeMaterials(Gpu& gpu);
     // Ring-Bereich auf "unbekannt" (massiv, dunkel) setzen; Rechteck in Ringkoordinaten
@@ -127,6 +133,7 @@ private:
     size_t syncedWorldMaterials_ = 0;
     Buffer materials_;
     Buffer lights_;
+    Buffer puddles_;  // V13.3: je Pfuetze 2 x float4
     std::vector<GpuLight> lightData_;
     Texture height_, ambient_;
     int ringSize_ = 256;

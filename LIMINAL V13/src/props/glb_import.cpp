@@ -50,6 +50,8 @@ void parseMaterialName(const std::string& name, MatDesc& d) {
             else if (k == "tex") d.tex = v;
             else if (k == "glow") d.glow = (float)std::atof(v.c_str());
             else if (k == "fm") d.fm = v;
+            else if (k == "r") d.rough = (float)std::atof(v.c_str());  // V13.3
+            else if (k == "m") d.metal = (float)std::atof(v.c_str());
         }
         tok.clear();
     };
@@ -457,7 +459,11 @@ int loadModelDirectory(const std::string& dir) {
     std::error_code ec;
     for (const auto& e : std::filesystem::directory_iterator(paths::widen(dir), ec)) {
         if (!e.is_regular_file() || e.path().extension() != L".glb") continue;
-        const std::string name = e.path().stem().string(), file = paths::join(dir, e.path().filename().string());
+        const std::string stem = e.path().stem().string(), file = paths::join(dir, e.path().filename().string());
+        // V13.3: "name@3" = Variante 3 von "name"
+        const size_t at = stem.find('@');
+        const std::string name = at == std::string::npos ? stem : stem.substr(0, at);
+        const int variant = at == std::string::npos ? 0 : std::clamp(std::atoi(stem.c_str() + at + 1), 0, 63);
         Model m;
         std::string err;
         if (!loadGlb(file, m, err)) {
@@ -473,8 +479,8 @@ int loadModelDirectory(const std::string& dir) {
         size_t tris = 0;
         for (const auto& p : m.parts) tris += p.mesh.tris();
         const int parts = (int)m.parts.size();
-        registerModel(name, std::move(m));
-        log::info("Modell {}: {} Teile, {} Dreiecke", name, parts, tris);
+        registerModel(name, std::move(m), variant);
+        log::info("Modell {}: {} Teile, {} Dreiecke", stem, parts, tris);
         ++n;
     }
     return n;

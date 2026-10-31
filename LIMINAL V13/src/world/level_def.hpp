@@ -15,7 +15,7 @@
 
 namespace lim::world {
 
-constexpr int kMaxZones = 16;  // V8: die zusammenhaengende Welt traegt die Zonen aller Ebenen
+constexpr int kMaxZones = 24;  // V8: die zusammenhaengende Welt traegt die Zonen aller Ebenen (V13.3: 16 -> 24, Sektoren von Level 1)
 using Rgb = std::array<double, 3>;
 using ZoneWeights = std::array<double, kMaxZones>;
 
@@ -89,7 +89,7 @@ struct StyleOverride {
 
 // V13.2: weitere Wesen je Ebene (Level-JSON "presence": {"faceling": {...}, "skinstealer": ..., "wretch": ..., "rat": ...,
 // "window": ...}); Verhalten nach den Wikidot-Seiten (ENTITY_ABGLEICH.md, KREATUR_<Name>.md)
-enum KinIndex : int { KIN_FACELING, KIN_SKINSTEALER, KIN_WRETCH, KIN_RAT, KIN_WINDOW, KIN_COUNT };
+enum KinIndex : int { KIN_FACELING, KIN_SKINSTEALER, KIN_WRETCH, KIN_RAT, KIN_WINDOW, KIN_DULLER, KIN_ARMS, KIN_COUNT };  // V13.3: Duller, Arms
 struct KinDef {
     bool on = false;
     std::string mode;                // je Wesen (Faceling: peaceful|irritable|armed|lethal; Skin-Stealer: skin|true;

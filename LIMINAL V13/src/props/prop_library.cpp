@@ -1372,43 +1372,73 @@ const std::map<std::string, Entry>& registry() {
 
 }  // namespace
 
-// V12: Modelle aus Dateien (eine Variante je Datei)
+// V12: Modelle aus Dateien (eine Variante je Datei). V13.3: "name@3.glb" ist Variante 3 von "name"; fehlende
+// Varianten zeigen Variante 0
 std::mutex& importedMutex() {
     static std::mutex m;
     return m;
 }
-std::map<std::string, std::unique_ptr<Model>>& imported() {
-    static std::map<std::string, std::unique_ptr<Model>> m;
+std::map<std::string, std::vector<std::unique_ptr<Model>>>& imported() {
+    static std::map<std::string, std::vector<std::unique_ptr<Model>>> m;
     return m;
 }
+const Model* pickImported(const std::vector<std::unique_ptr<Model>>& vs, int variant) {
+    const int n = (int)vs.size();
+    const auto& m = vs[(size_t)(((variant % n) + n) % n)];
+    return m ? m.get() : vs[0].get();
+}
 
-void registerModel(const std::string& name, Model m) {
+void registerModel(const std::string& name, Model m, int variant) {
     std::lock_guard lock(importedMutex());
-    imported()[name] = std::make_unique<Model>(std::move(m));
+    auto& vs = imported()[name];
+    if ((int)vs.size() <= variant) vs.resize((size_t)variant + 1);
+    vs[(size_t)variant] = std::make_unique<Model>(std::move(m));
+}
+
+// Code-Modelle, einmal je Name und Variante gebaut
+std::mutex& cacheMutex() {
+    static std::mutex m;
+    return m;
+}
+std::map<std::pair<std::string, int>, std::unique_ptr<Model>>& cache() {
+    static std::map<std::pair<std::string, int>, std::unique_ptr<Model>> c;
+    return c;
 }
 
 const Model* model(const std::string& name, int variant) {
     {
         std::lock_guard lock(importedMutex());
         auto im = imported().find(name);
-        if (im != imported().end()) return im->second.get();
+        if (im != imported().end() && !im->second.empty() && im->second[0]) return pickImported(im->second, variant);
     }
-    static std::mutex mutex;
-    static std::map<std::pair<std::string, int>, std::unique_ptr<Model>> cache;
     const auto& reg = registry();
     auto it = reg.find(name);
     if (it == reg.end()) return nullptr;
     const int v = ((variant % it->second.variants) + it->second.variants) % it->second.variants;
-    std::lock_guard lock(mutex);
-    auto& slot = cache[{name, v}];
+    std::lock_guard lock(cacheMutex());
+    auto& slot = cache()[{name, v}];
     if (!slot) slot = std::make_unique<Model>(it->second.make(v));
     return slot.get();
+}
+
+bool modelName(const Model* m, std::string& name, int& variant) {
+    {
+        std::lock_guard lock(importedMutex());
+        for (const auto& [k, vs] : imported())
+            for (size_t v = 0; v < vs.size(); ++v)
+                if (vs[v].get() == m) return name = k, variant = (int)v, true;
+    }
+    std::lock_guard lock(cacheMutex());
+    for (const auto& [k, e] : cache())
+        if (e.get() == m) return name = k.first, variant = k.second, true;
+    return false;
 }
 
 int variants(const std::string& name) {
     {
         std::lock_guard lock(importedMutex());
-        if (imported().count(name)) return 1;
+        if (auto im = imported().find(name); im != imported().end() && !im->second.empty() && im->second[0])
+            return (int)im->second.size();
     }
     auto it = registry().find(name);
     return it == registry().end() ? 0 : it->second.variants;

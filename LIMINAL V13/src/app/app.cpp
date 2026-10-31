@@ -42,6 +42,7 @@ bool App::parseArgs(const std::vector<std::string>& a) {
         else if (k == "--name") opt_.name = next();
         else if (k == "--difficulty") opt_.difficulty = next();
         else if (k == "--level") opt_.level = next();
+        else if (k == "--level-file") opt_.levelFile = next();  // V13.3
         else if (k == "--demo") opt_.demo = true;
         else if (k == "--benchmark") opt_.benchmark = std::atoi(next().c_str());
         else if (k == "--shot") opt_.shot = next();
@@ -239,7 +240,8 @@ void App::scriptStep() {
             using R = game::Presence::Role;
             const std::string n = name;
             const R r = n == "faceling" ? R::Faceling : n == "skinstealer" ? R::SkinStealer : n == "wretch" ? R::Wretch : n == "rat" ? R::Rat
-                        : n == "window" ? R::Window : n == "hound" ? R::Hound : n == "smiler" ? R::Smiler : n == "clump" ? R::Clump : R::Gestalt;
+                        : n == "window" ? R::Window : n == "hound" ? R::Hound : n == "smiler" ? R::Smiler : n == "clump" ? R::Clump
+                        : n == "duller" ? R::Duller : n == "arms" ? R::Arms : R::Gestalt;  // V13.3
             auto& pr = session_->presence();
             if (!pr.has(r)) {
                 log::warn("Skript: near - kein {}", game::Presence::roleName(r));
@@ -344,7 +346,8 @@ void App::scriptStep() {
             // Entities nach Namen (anim::Entity); player: der Mensch
             // V13.2: neue Wesen; player = 99 (Mensch)
             const int kind = n == "hound" ? 1 : n == "moth" ? 2 : n == "gestalt" ? 3 : n == "nest" ? 4 : n == "clump" ? 5 : n == "faceling" ? 6
-                             : n == "skinstealer" ? 7 : n == "wretch" ? 8 : n == "rat" ? 9 : n == "window" ? 10 : n == "player" ? 99 : 0;
+                             : n == "skinstealer" ? 7 : n == "wretch" ? 8 : n == "rat" ? 9 : n == "window" ? 10 : n == "player" ? 99
+                             : n == "duller" ? 11 : n == "arms" ? 12 : 0;  // V13.3
             auto& pl = session_->player();
             vec3 at{(float)(pl.x + std::cos(pl.angle) * dist), (float)(pl.y + std::sin(pl.angle) * dist), 0.0f};
             at.z = session_->world().tile(ifloor(at.x), ifloor(at.y)).floor;
@@ -377,6 +380,8 @@ void App::scriptStep() {
                 if (n == "wretch") r = R::Wretch;
                 if (n == "rat") r = R::Rat;
                 if (n == "window") r = R::Window;
+                if (n == "duller") r = R::Duller;  // V13.3
+                if (n == "arms") r = R::Arms;
                 session_->presence().force(r, dist);
             }
         } else if (cmd == "audioinfo") {  // V11 (Tests): Zustand der Klanglandschaft ins Protokoll
@@ -455,6 +460,34 @@ void App::scriptStep() {
             if (arg == "off") vmCam_.on = false;
             else if (std::sscanf(arg.c_str(), "%f %f %f", &az, &el, &d) >= 2) vmCam_ = {true, az, el, d};
             resetHistory_ = true;
+        } else if (cmd == "cam" || cmd == "camat") {  // V13.3 (Tests): cam x y z blick neigung [fov] | camat x y z zx zy zz [fov] | cam off
+            float v[7] = {0, 0, 0, 0, 0, 0, 0};
+            const int n = std::sscanf(arg.c_str(), "%f %f %f %f %f %f %f", &v[0], &v[1], &v[2], &v[3], &v[4], &v[5], &v[6]);
+            if (arg == "off") {
+                freeCam_.on = false;
+            } else if (cmd == "cam" && n >= 5) {
+                freeCam_ = {true, {v[0], v[1], v[2]}, v[3], v[4], n >= 6 ? v[5] : 0.0f};
+            } else if (cmd == "camat" && n >= 6) {
+                const vec3 d = vec3{v[3], v[4], v[5]} - vec3{v[0], v[1], v[2]};
+                const float h = std::sqrt(d.x * d.x + d.y * d.y);
+                freeCam_ = {true, {v[0], v[1], v[2]}, std::atan2(d.y, d.x) * 57.29578f, std::atan2(d.z, std::max(h, 1e-4f)) * 57.29578f,
+                            n >= 7 ? v[6] : 0.0f};
+            } else {
+                log::error("Skript: {} braucht Zahlen ({})", cmd, arg);
+                scriptFailed_ = true;
+            }
+            resetHistory_ = true;
+        } else if (cmd == "testlight") {  // V13.3 (Tests): testlight x y z zx zy zz [staerke] [kegel] | testlight off
+            float v[8] = {0, 0, 0, 1, 0, 0, 1, 28};
+            const int n = std::sscanf(arg.c_str(), "%f %f %f %f %f %f %f %f", &v[0], &v[1], &v[2], &v[3], &v[4], &v[5], &v[6], &v[7]);
+            if (arg == "off") testLight_.on = false;
+            else if (n >= 6) testLight_ = {true, {v[0], v[1], v[2]}, normalize(vec3{v[3] - v[0], v[4] - v[1], v[5] - v[2]}), v[6], v[7]};
+            resetHistory_ = true;
+        } else if (cmd == "worldlight") {  // V13.3 (Tests): Leuchten der Welt skalieren (0 = dunkel)
+            worldLight_ = (float)std::atof(arg.c_str());
+            resetHistory_ = true;
+        } else if (cmd == "propdump" && session_) {  // V13.3 (Tests): Ausstattung, Schilder und Raeume als JSON
+            propDump(arg);
         } else if (cmd == "quit") {
             quit_ = true;
             return;
@@ -475,6 +508,17 @@ bool App::init(std::string& err) {
     }
     settings_.fromJson(opt_.overrides);
     if (testRun()) opt_.noMouse = true;  // reproduzierbare Aufnahmen und Tests
+    // V13.3: --script @datei - Befehle aus einer Datei (lange Bilderfolgen; Zeilenenden gelten wie ';')
+    if (opt_.script.size() > 1 && opt_.script[0] == '@') {
+        if (auto bytes = paths::readFile(opt_.script.substr(1))) {
+            opt_.script.assign(bytes->begin(), bytes->end());
+            for (char& ch : opt_.script)
+                if (ch == '\n' || ch == '\r') ch = ';';
+        } else {
+            err = "Skriptdatei fehlt: " + opt_.script.substr(1);
+            return false;
+        }
+    }
     for (size_t a = 0, b; a <= opt_.script.size() && !opt_.script.empty(); a = b + 1) {
         b = opt_.script.find(';', a);
         if (b == std::string::npos) b = opt_.script.size();
@@ -483,6 +527,11 @@ bool App::init(std::string& err) {
     if (opt_.fast) settings_.render.renderScale = 0.5f;
     if (opt_.mode >= 0) settings_.render.displayMode = opt_.mode;
     if (!content_.load(paths::dataDir(), err)) return false;
+    if (!opt_.levelFile.empty()) {  // V13.3 (Kontaktboegen): Testszene aus einer Datei
+        std::string id;
+        if (!content_.addLevelFile(opt_.levelFile, id, err)) return false;
+        opt_.level = id;
+    }
     prefabs_.loadDirectory(paths::join(paths::dataDir(), "prefabs"));
     input_.loadBindings(paths::join(paths::dataDir(), "input.json"));
     jobs_ = std::make_unique<JobSystem>();
@@ -1288,6 +1337,10 @@ void App::handleEvents() {
                 if (e.role == (int)game::Presence::Role::Clump) {  // V11: Buendel - nasser Griff, Knacken, Brüllen tiefer
                     audio_->play("clump_grab", 1.0f, 1.0f, audio::Bus::Effects);
                     audio_->play("scare_hound", 0.85f, 0.78f, audio::Bus::Effects);
+                } else if (e.role == (int)game::Presence::Role::Duller) {  // V13.3: Griff durch die Wand, Beton bricht, Schleifen
+                    audio_->play("duller_grab", 1.0f, 1.0f, audio::Bus::Effects);
+                } else if (e.role == (int)game::Presence::Role::Arms) {  // V13.3: Krallen, dann Schlaege im Schacht, die sich entfernen
+                    audio_->play("arms_take", 1.0f, 1.0f, audio::Bus::Effects);
                 } else {
                     audio_->play(e.role == (int)game::Presence::Role::Smiler ? "scare_smiler" : "scare_hound", 1.0f, 1.0f, audio::Bus::Effects);
                 }
@@ -1318,15 +1371,20 @@ void App::handleEvents() {
                         if (role == Role::SkinStealer) at("hound_step", e.pos, 0.55f + 0.3f * e.intensity, 22.0f, 0.62f + 0.06f * var);
                         if (role == Role::Wretch) at(stepSound(e.surface), e.pos, 0.3f + 0.4f * e.intensity, 18.0f, e.intensity < 0.5f ? 0.7f : 0.9f + 0.1f * var);
                         if (role == Role::Rat) at("hound_step", e.pos, 0.08f, 6.0f, 2.2f + 0.3f * var);
+                        if (role == Role::Duller) at("duller_step", e.pos, 0.3f + 0.3f * e.intensity, 14.0f, 0.95f + 0.1f * var);  // V13.3
                         break;
                     // V11 Buendel: Klopfen im Schacht, Herabfallen, Schleifen, Ausholen
                     case PE::Knock: at(std::format("clump_knock_{}", n % 3), e.pos, 0.9f, 30.0f); break;
                     case PE::Drop:
+                        if (role == Role::Arms) {  // V13.3: die Krallen schnappen ins Leere
+                            at("arms_snap", e.pos, 0.9f, 16.0f, 0.95f + 0.1f * var);
+                            break;
+                        }
                         at(std::format("clump_slap_{}", n % 5), e.pos, 1.0f, 26.0f, 0.8f);
                         at(std::format("clump_crack_{}", n % 3), e.pos, 0.8f, 22.0f);
                         break;
                     case PE::Drag: at(std::format("clump_drag_{}", n % 2), e.pos, 0.55f, 18.0f, 0.9f + 0.2f * var); break;
-                    case PE::Windup: at("clump_reach", e.pos, 1.0f, 20.0f); break;
+                    case PE::Windup: at(role == Role::Arms ? "arms_hiss" : "clump_reach", e.pos, role == Role::Arms ? 0.8f : 1.0f, 20.0f); break;
                     case PE::Breath: at("hound_pant", e.pos + vec3{0, 0, 0.5f}, 0.75f, 12.0f); break;
                     case PE::Growl: at("hound_growl", e.pos + vec3{0, 0, 0.5f}, 0.45f + 0.5f * e.intensity, 22.0f); break;
                     case PE::Whine: at("hound_whine", e.pos + vec3{0, 0, 0.5f}, 0.6f, 26.0f); break;
@@ -1368,6 +1426,18 @@ void App::handleEvents() {
                     case PE::Scream: at("rat_scream", e.pos, 1.0f, 40.0f); break;
                     case PE::Swing: at("stone_swing", e.pos, 0.8f, 12.0f, 0.95f + 0.1f * var); break;
                     case PE::Pull: at("window_pull", e.pos, 0.9f, 14.0f); break;
+                    // V13.3: Duller (Schaben in der Wand, Putz, Durchbruch), Arms (Schaben im Schacht, Lueftung, Schrei im Licht)
+                    case PE::Scrape:
+                        if (role == Role::Duller) at(std::format("duller_scrape_{}", n % 4), e.pos, 0.35f + 0.55f * e.intensity, 12.0f, 0.95f + 0.1f * var);
+                        else at(std::format("arms_scrape_{}", n % 4), e.pos, 0.3f + 0.35f * e.intensity, 14.0f, 0.95f + 0.1f * var);
+                        break;
+                    case PE::Bulge: at(std::format("duller_bulge_{}", n % 2), e.pos, 0.6f + 0.4f * e.intensity, 14.0f); break;
+                    case PE::Burst:
+                        if (role == Role::Duller) at("duller_burst", e.pos, 1.0f, 30.0f);
+                        else at("arms_vent", e.pos, 0.35f, 9.0f);
+                        break;
+                    case PE::Burn: at("arms_burn", e.pos, 1.0f, 30.0f); break;
+                    case PE::Retract: at(role == Role::Duller ? "duller_retract" : "arms_retract", e.pos, 0.7f * e.intensity + 0.2f, 16.0f); break;
                     default: break;
                 }
                 break;
@@ -1622,6 +1692,13 @@ void App::renderWorld(double dt, bool clean) {
             cam.pitch = (float)p.pitch;
             cam.fovY = fovY();
         }
+        if (freeCam_.on) {  // V13.3 (Tests): freie Kamera
+            cam.pos = freeCam_.pos;
+            cam.yaw = freeCam_.yaw * 0.0174533f;
+            cam.pitch = freeCam_.pitch * 0.0174533f;
+            cam.roll = 0.0f;
+            if (freeCam_.fov > 1.0f) cam.fovY = freeCam_.fov * 0.0174533f;
+        }
         if (playing && coop()) {  // V13.2: Namen ueber den Mitspielern (nach allen Kameras; dieselben Matrizen wie das Bild)
             std::vector<ui::Ui::NameTag> tags;
             const float aspect = (float)window_.width() / (float)std::max(1, window_.height());
@@ -1804,6 +1881,21 @@ void App::renderWorld(double dt, bool clean) {
             L.shadows = false;
             sp.extraLights.push_back(L);
         }
+        // V13.3 (Tests): Testlampe (wie die Taschenlampe, frei gestellt) und Leuchten der Welt
+        if (testLight_.on) {
+            gfx::ExtraLight L;
+            L.pos = testLight_.pos;
+            L.dir = testLight_.dir;
+            L.color = vec3{1.0f, 0.93f, 0.8f} * (3.6f * testLight_.power);
+            L.range = 24.0f;
+            L.spot = true;
+            L.cosOuter = std::cos(testLight_.cone * 0.0174533f);
+            L.cosInner = std::cos(testLight_.cone * 0.0174533f * 0.46f);
+            L.soft = 0.3f;
+            L.size = 0.012f;
+            sp.extraLights.insert(sp.extraLights.begin(), L);
+        }
+        sp.worldLightScale = worldLight_;
         // V7: Stromausfall (Halluzination)
         sp.blackoutSeed = s.blackout().seed;
         sp.blackoutAmount = s.blackout().amount;
@@ -1827,6 +1919,73 @@ void App::renderWorld(double dt, bool clean) {
         }
         if (clean) sp.menuDim = sp.redEdge = sp.desaturate = 0.0f;
         renderer_->renderScene(cam, sp, draws_);
+    }
+}
+
+// V13.3 (Kontaktboegen, Objektpruefung, Schilderzaehlung): alles, was die Ebene an Ausstattung zeigt, je Stueck mit Lage,
+// Boden und Decke der Kachel, Abstand zur Wand hinter dem Ursprung und Hoehe des Modells; dazu Notausgaenge und Raeume.
+// Nur feste Karten (die ganze Karte liegt in Sektor 0,0).
+void App::propDump(const std::string& path) {
+    auto& s = *session_;
+    auto& w = s.world();
+    const world::Sector& sec = w.sector(0, 0);
+    std::string out = std::format("{{\"level\":\"{}\",\"props\":[", w.level().id);
+    int n = 0;
+    for (const auto& pr : sec.props) {
+        std::string name;
+        int variant = 0;
+        if (!pr.model || !props::modelName(pr.model, name, variant)) name = "?";
+        const world::Tile& t = w.tile(ifloor(pr.x), ifloor(pr.y));
+        // Wand hinter dem Ursprung (gegen die Blickrichtung des Modells) und rundum
+        auto solidAt = [&](double x, double y) { return w.tile(ifloor(x), ifloor(y)).solid(); };
+        double back = 9.0, around = 9.0;
+        for (double d = 0.0; d <= 3.0; d += 0.02)
+            if (solidAt(pr.x - std::cos(pr.yaw) * d, pr.y - std::sin(pr.yaw) * d)) {
+                back = d;
+                break;
+            }
+        for (int a = 0; a < 16; ++a)
+            for (double d = 0.0; d <= std::min(around, 3.0); d += 0.02)
+                if (solidAt(pr.x + std::cos(a * 0.3927) * d, pr.y + std::sin(a * 0.3927) * d)) {
+                    around = std::min(around, d);
+                    break;
+                }
+        const Aabb b = pr.model ? pr.model->bounds : Aabb{};
+        std::string room = t.room ? std::format("\"{}\",\"{}\",[{},{},{},{}]", t.room->type ? t.room->type->key : "",
+                                                w.level().zones[(size_t)std::max(0, t.room->zone)].key, t.room->x0, t.room->y0,
+                                                t.room->x1, t.room->y1)
+                                  : std::string("\"\",\"\",[]");
+        out += std::format("{}\n{{\"name\":\"{}\",\"v\":{},\"p\":[{:.3f},{:.3f},{:.3f}],\"yaw\":{:.4f},\"s\":[{:.3f},{:.3f},{:.3f}],"
+                           "\"floor\":{:.3f},\"ceil\":{:.3f},\"solid\":{},\"back\":{:.2f},\"around\":{:.2f},"
+                           "\"lo\":[{:.3f},{:.3f},{:.3f}],\"hi\":[{:.3f},{:.3f},{:.3f}],\"tris\":{},\"room\":[{}]}}",
+                           n++ ? "," : "", name, variant, pr.x, pr.y, pr.z, pr.yaw, pr.sx, pr.sy, pr.sz, t.floor, t.ceil,
+                           t.solid() ? 1 : 0, back, around, b.lo.x, b.lo.y, b.lo.z, b.hi.x, b.hi.y, b.hi.z,
+                           [&] {
+                               size_t k = 0;
+                               if (pr.model)
+                                   for (const auto& part : pr.model->parts) k += part.mesh.i.size() / 3;
+                               return k;
+                           }(),
+                           room);
+    }
+    out += "],\n\"exits\":[";
+    n = 0;
+    s.registry().each<game::ExitDoor, game::Transform>([&](ecs::Entity, game::ExitDoor&, game::Transform& t) {
+        out += std::format("{}[{:.2f},{:.2f},{:.2f},{:.3f}]", n++ ? "," : "", t.pos.x, t.pos.y, t.pos.z, t.yaw);
+    });
+    out += "],\n\"rooms\":[";
+    n = 0;
+    for (const auto& r : sec.rooms)
+        out += std::format("{}\n[{},{},{},{},{:.2f},{:.2f},\"{}\",{}]", n++ ? "," : "", r->x0, r->y0, r->x1, r->y1, r->floor,
+                           r->height, r->type ? r->type->key : "", r->isCorridor ? 1 : 0);
+    out += "]}\n";
+    if (FILE* f = _wfopen(paths::widen(path).c_str(), L"wb")) {
+        std::fwrite(out.data(), 1, out.size(), f);
+        std::fclose(f);
+        log::info("Ausstattung: {} Stueck nach {}", sec.props.size(), path);
+    } else {
+        log::error("propdump: kann {} nicht schreiben", path);
+        scriptFailed_ = true;
     }
 }
 

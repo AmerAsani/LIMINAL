@@ -51,6 +51,7 @@ struct Options {
     //   wait N | key Name | text Zeichen | expect Modus[/Seite] | shot Datei.png | quit
     // Exitcode 7, wenn ein "expect" fehlschlaegt.
     std::string script;
+    std::string levelFile;  // V13.3 (Kontaktboegen): zusaetzliches Level aus einer Datei laden und starten
 };
 
 class App final : public ui::Host {
@@ -180,6 +181,20 @@ private:
         float az = 0, el = 0, dist = 2.0f, h = 0.6f, ahead = 0.0f;
     } figCam_;
     bool egoPose_ = false;  // V13.2 (Tests): Ego-Lampenhaltung auch von aussen zeigen
+    // V13.3 (Kontaktboegen, Wegbilder): freie Kamera (Position, Blick in Grad, Bildwinkel), Testlampe (Spot wie die
+    // Taschenlampe, frei gestellt), Leuchten der Welt skalieren (0 = dunkel)
+    struct FreeCam {
+        bool on = false;
+        vec3 pos{};
+        float yaw = 0, pitch = 0, fov = 0;  // Grad; fov 0 = wie im Spiel
+    } freeCam_;
+    struct TestLight {
+        bool on = false;
+        vec3 pos{}, dir{1, 0, 0};
+        float power = 1.0f, cone = 28.0f;
+    } testLight_;
+    float worldLight_ = 1.0f;
+    void propDump(const std::string& path);  // V13.3: Ausstattung, Schilder und Raeume der Ebene als JSON
     bool scriptFailed_ = false;
 
     // --- V13.2 Koop (Beta, MULTIPLAYER_ARCHITEKTUR.md) ----------------------------------------------

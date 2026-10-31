@@ -87,7 +87,7 @@ GpuMaterial toGpuMaterial(const world::Material& m) {
         case Surface::PropPlastic: all(L_PLASTER); g.roughness = 0.5f; break;
         case Surface::PropRubber: all(L_RUBBER); break;
         case Surface::PropGlass: all(L_PLASTER); g.roughness = 0.06f; break;
-        case Surface::PropWater: all(L_PLASTER); g.roughness = 0.02f; break;
+        case Surface::PropWater: down = wall = L_PLASTER; g.roughness = 0.02f; break;  // V13.3: oben die Bodenebene (klares Wasser)
         case Surface::PropRoadPaint: all(L_ROADPAINT); break;
         case Surface::PropSign: all(L_SIGNS); break;
         case Surface::PropStencil: all(L_SIGNS); break;
@@ -99,6 +99,8 @@ GpuMaterial toGpuMaterial(const world::Material& m) {
         case Surface::PropCeramic: all(L_PLASTER); g.roughness = 0.3f; break;
         default: break;
     }
+    if (m.roughMul >= 0.0f) g.roughness = m.roughMul;  // V13.3: aus Blender
+    if (m.metalAdd >= 0.0f) g.metalness = m.metalAdd;
     if (m.emissive) {
         if (m.surface == Surface::Default) all(L_DIFFUSER);
         g.emissive = m.surface == Surface::Vending ? 3.2f : 11.0f;
@@ -236,8 +238,16 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     materialData_[FM_ENT_VIEW] = GpuMaterial{{1.0f, 1.0f, 1.0f}, 1.4f, ent(EL_VIEW, ML_PORES), 0.3f, 0, 0.0f};
     // Ausfluss (Wretch: rotbrauner Saft aus den Pusteln, brauner Schlamm aus dem Mund)
     materialData_[FM_ENT_OOZE] = GpuMaterial{{0.42f, 0.20f, 0.11f}, 0, ent(EL_HORN, ML_PORES), 0.22f, 0, 0.05f};
+    // V13.3: Duller - dunkelgrau, trocken und matt, Haarrisse; an Knochenkanten etwas Glanz (Textur); kein roetliches Durchscheinen
+    materialData_[FM_ENT_DULLERSKIN] = GpuMaterial{{0.34f, 0.34f, 0.36f}, 0, ent(EL_SKIN, ML_CRAZE), 1.5f, 0, 0.25f};
+    // V13.3: Arms - verwesende, graue Haut mit gruenlichem Stich, speckig-feucht (wenig Rauheit)
+    materialData_[FM_ENT_ROTSKIN] = GpuMaterial{{0.44f, 0.47f, 0.40f}, 0, ent(EL_SKIN, ML_CRAZE), 0.8f, 0, 0.5f};
+    // V13.3: frisch gebrochener Beton und Putz (Bruchstelle des Dullers, Riss der Arms): hell, stumpf, fleckig, Haarrisse
+    materialData_[FM_ENT_CONCRETE] = GpuMaterial{{0.56f, 0.56f, 0.54f}, 0, ent(EL_TOOTH, ML_CRAZE), 1.9f, 0, 0.45f};
+    materialData_[FM_ENT_SMOKE] = GpuMaterial{{0.32f, 0.31f, 0.30f}, 0, tri(L_SKIN) | kMatFlagSmoke, 1.0f, 0, 0.0f};  // Rauch verbrannter Haut
     writeMaterials(gpu);
     lights_ = gpu.createStructured(sizeof(GpuLight), 2048, true, false);
+    puddles_ = gpu.createStructured(sizeof(vec4), kMaxPuddles * 2, true, false);  // V13.3
     return height_.valid() && ambient_.valid() && lights_.valid();
 }
 
@@ -309,6 +319,7 @@ void WorldRenderer::addChunk(Gpu& gpu, const world::ChunkData& cd) {
         c.bounds = mesh.bounds;
     }
     c.lights = cd.lights;
+    c.puddles = cd.puddles;  // V13.3
     // V11: Ausstattung
     if (!cd.props.vertices.empty()) {
         std::vector<world::PropVertex> pv = cd.props.vertices;
@@ -365,7 +376,7 @@ void WorldRenderer::removeChunk(Gpu& gpu, const world::ChunkData& cd) {
 
 u32 WorldRenderer::updateLights(Gpu& gpu, const mat4& view, const Frustum& frustum, vec3 camPos, float maxDist,
                                 float time, float intensityScale, bool shadows, u32 maxLights,
-                                const std::vector<ExtraLight>* extra) {
+                                const std::vector<ExtraLight>* extra, float worldScale) {
     struct Cand {
         float d2;
         const world::ChunkLight* l;
@@ -397,7 +408,7 @@ u32 WorldRenderer::updateLights(Gpu& gpu, const mat4& view, const Frustum& frust
     // V7: zusaetzliche Leuchten (Taschenlampe, Schilder) stehen vorn - sie sind nah und wichtig
     const size_t ne = extra ? std::min<size_t>(extra->size(), 16) : 0;
     const size_t cap = std::min<size_t>(lights_.count, maxLights);
-    size_t n = std::min<size_t>(cands.size(), cap > ne ? cap - ne : 0);
+    size_t n = worldScale > 0.0f ? std::min<size_t>(cands.size(), cap > ne ? cap - ne : 0) : 0;  // V13.3: 0 = Welt dunkel
     lightData_.resize(ne + n);
     for (size_t i = 0; i < ne; ++i) {
         const ExtraLight& e = (*extra)[i];
@@ -425,7 +436,7 @@ u32 WorldRenderer::updateLights(Gpu& gpu, const mat4& view, const Frustum& frust
             (blackoutFront_ < 0.0f || std::hypot(L.pos.x - blackoutOrigin_.x, L.pos.y - blackoutOrigin_.y) < blackoutFront_))
             fl *= 1.0f - blackoutAmount_;  // V7, V11: Welle
         vec3 lin{srgbToLinear(L.color.x), srgbToLinear(L.color.y), srgbToLinear(L.color.z)};
-        float power = L.intensity * intensityScale * fl;
+        float power = L.intensity * intensityScale * worldScale * fl;
         vec3 dir{0, 0, -1};
         float over = overOf(L);
         float boost = 1.0f + over / 3.0f;
@@ -442,7 +453,7 @@ u32 WorldRenderer::updateLights(Gpu& gpu, const mat4& view, const Frustum& frust
             au = side * (L.area.x * 0.5f);
             av = vec3{0, 0, L.area.y * 0.5f};
             spill = L.kind == world::ChunkLight::Wall ? 0.25f : 0.12f;
-            if (L.kind == world::ChunkLight::Machine) power = L.intensity * intensityScale * 0.75f * fl;
+            if (L.kind == world::ChunkLight::Machine) power = L.intensity * intensityScale * worldScale * 0.75f * fl;
         }
         g.posRange = {L.pos, range};
         g.colorRadius = {lin * power, std::max(L.area.x, L.area.y) * 0.5f};
@@ -457,6 +468,27 @@ u32 WorldRenderer::updateLights(Gpu& gpu, const mat4& view, const Frustum& frust
     }
     if (ne + n) gpu.update(lights_, lightData_.data(), (u32)((ne + n) * sizeof(GpuLight)));
     return (u32)(ne + n);
+}
+
+u32 WorldRenderer::updatePuddles(Gpu& gpu, vec3 camPos, float maxDist) {
+    static std::vector<std::pair<float, const world::PuddleDecal*>> cand;
+    cand.clear();
+    for (const auto& [k, c] : chunks_)
+        for (const auto& p : c.puddles) {
+            const float d = std::hypot(p.x - camPos.x, p.y - camPos.y);
+            if (d < maxDist + p.radius && std::fabs(p.z - camPos.z) < 6.0f) cand.push_back({d, &p});
+        }
+    std::sort(cand.begin(), cand.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+    const u32 n = (u32)std::min<size_t>(cand.size(), kMaxPuddles);
+    if (n == 0) return 0;
+    vec4 data[kMaxPuddles * 2];
+    for (u32 i = 0; i < n; ++i) {
+        const world::PuddleDecal& p = *cand[i].second;
+        data[i * 2] = {p.x, p.y, p.z, p.radius};
+        data[i * 2 + 1] = {p.stretch, p.angle, p.seed, p.wet};
+    }
+    gpu.update(puddles_, data, n * 2 * (u32)sizeof(vec4));
+    return n;
 }
 
 u64 WorldRenderer::drawProps(Gpu& gpu, const Frustum& frustum, vec3 camPos, float maxDist) {
