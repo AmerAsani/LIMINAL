@@ -446,11 +446,10 @@ void Presence::showcase(int kind, vec3 pos, float yaw, float walkSpeed) {
     if (a->ent == Entity::Moth) pos.z += 1.3f;
     if (a->ent == Entity::Window) pos.z += 1.9f;  // V13.2: Mitte des Fensters (Level 188: 1,9 m ueber dem Boden)
     if (a->ent == Entity::Arms) pos.z += 2.8f, a->up = {0, 0, -1};  // V13.3: Oeffnung in der Decke (Gang in Level 1: 2,8 m)
-    if (a->ent == Entity::Wrangler) {  // V13.3: quer vor dem Betrachter, ein Bogen aus dem Boden; der Kopf bricht links 2 m daneben heraus
+    if (a->ent == Entity::Wrangler) {  // V13.3: quer vor dem Betrachter, ein Bogen aus dem Boden; der Kopf bricht 2,5 m zum Betrachter hin heraus
+        a->fwd = {std::cos(yaw), std::sin(yaw), 0.0f}, a->bait = 2.5f / 32.0f, a->up = {0, 0, 1};
         yaw += 1.5708f;
         a->lean = 6.8f / 16.0f, a->crouch = 0.14f, a->tilt = 1.45f / 4.0f, a->hang = 1.0f, a->fly = 0.35f;
-        const vec3 side{std::cos(yaw + 3.14159f), std::sin(yaw + 3.14159f), 0.0f};
-        a->fwd = side, a->bait = 2.2f / 32.0f, a->up = {0, 0, 1};
     }
     a->initBody(pos, yaw, (unsigned)rng_.randint(1, 1 << 30));
     a->rig.setGlow(1.0f);
