@@ -57,7 +57,7 @@ def bristles(bone, a, b, r, n, rng, lo=0.004, hi=0.012, up_bias=0.4):
         nrm = e1 * math.cos(ang) + e2 * math.sin(ang)
         p = a + (b - a) * t + nrm * r * 0.8
         q = p + A.unit(nrm + d * 0.6 + Z * up_bias + rng.normal(0, 0.2, 3)) * rng.uniform(lo, hi)
-        out.append(A.cone(bone, p, q, 0.00045, 0.00012))
+        out.append(A.cone(bone, p, q, 0.0008, 0.0002))  # Runde 2: 0,45 mm - im Spiel unsichtbar
     return out
 
 
@@ -118,17 +118,19 @@ def build(J, bones):
         radii = [0.0050 - 0.0001 * p, 0.0037, 0.0024, 0.0010]  # Runde 1: gleich dick wie Staebe
         lp = A.chain(lambda i, l=l: legB(l, i), pts, radii, k=0.0015)
         lp.append(A.ell(legB(l, 0), pts[0], pts[1] - pts[0], (0.005, 0.0045, 0.0045), k=0.002))  # Huefte
-        lp += bristles(legB(l, 0), pts[0], pts[1], radii[0], 18, rng, 0.006, 0.016)
-        lp += bristles(legB(l, 1), pts[1], pts[2], radii[1], 20, rng, 0.005, 0.015)
-        lp += bristles(legB(l, 2), pts[2], pts[3], radii[2], 10, rng, 0.003, 0.009)
-        rings = [A.ell(legB(l, 0), pts[1], pts[2] - pts[1], (0.0052, 0.0052, 0.0052), k=0.0),
+        lp += bristles(legB(l, 0), pts[0], pts[1], radii[0], 26, rng, 0.007, 0.02)
+        lp += bristles(legB(l, 1), pts[1], pts[2], radii[1], 28, rng, 0.006, 0.018)
+        lp += bristles(legB(l, 2), pts[2], pts[3], radii[2], 14, rng, 0.004, 0.011)
+        rings = [A.cone(legB(l, 0), pts[0] + (pts[1] - pts[0]) * 0.62, pts[1], radii[0] * 0.98, radii[1] * 1.25, k=0.0),  # Runde 2: Holzstaebe - dunkle Baender
+                 A.cone(legB(l, 1), pts[1] + (pts[2] - pts[1]) * 0.6, pts[2], radii[1] * 1.02, radii[2] * 1.3, k=0.0),
+                 A.ell(legB(l, 0), pts[1], pts[2] - pts[1], (0.0052, 0.0052, 0.0052), k=0.0),
                  A.ell(legB(l, 1), pts[2], pts[3] - pts[2], (0.0036, 0.0036, 0.0036), k=0.0),
                  A.cone(legB(l, 2), pts[3] + A.unit(pts[3] - pts[2]) * -0.004, pts[3], 0.0012, 0.0004)]  # Klaue
         legs.append((lp, rings))
     # Borsten am Koerper
-    body += bristles(B_PRO, np.array([0.0, 0, 0.05]), np.array([0.05, 0, 0.055]), 0.022, 40, rng, 0.005, 0.012, 0.9)
-    body += bristles(B_OPI0, np.array([-0.02, 0, 0.05]), np.array([-0.06, 0, 0.06]), 0.026, 34, rng, 0.004, 0.01, 0.7)
-    body += bristles(B_OPI1, np.array([-0.07, 0, 0.055]), np.array([-0.11, 0, 0.045]), 0.022, 30, rng, 0.004, 0.01, 0.6)
+    body += bristles(B_PRO, np.array([0.0, 0, 0.05]), np.array([0.05, 0, 0.055]), 0.022, 60, rng, 0.006, 0.016, 0.9)
+    body += bristles(B_OPI0, np.array([-0.02, 0, 0.05]), np.array([-0.06, 0, 0.06]), 0.026, 50, rng, 0.005, 0.014, 0.7)
+    body += bristles(B_OPI1, np.array([-0.07, 0, 0.055]), np.array([-0.11, 0, 0.045]), 0.022, 46, rng, 0.005, 0.014, 0.6)
     # Faden aus den Spinnwarzen: 3 m nach oben (nur beim Abseilen zu sehen)
     tip = J[OPI2]
     silk.append(A.cone(B_DRAG, tip, tip + Z * 3.0, 0.0006, 0.0005))
@@ -163,6 +165,7 @@ def build(J, bones):
                        'h': 0.0002, 'cav_scale': 0.001, 'merge': 'kissen'})
     for i, pl in enumerate(plates):
         groups.append({'name': f'platte{i}', 'fm': 'ent_chitin', 'parts': [pl], 'disp': None, 'h': 0.00025, 'cav_scale': 0.001, 'merge': 'chitin'})
-    groups.append({'name': 'augen', 'fm': 'ent_eyeshine', 'parts': eyes, 'disp': None, 'h': 0.00015, 'cav_scale': 0.0008, 'lod_weight': 2.0})
+    groups.append({'name': 'augen', 'fm': 'ent_motheye',  # Runde 2: weisse Punkte (Comic) - jetzt schwarz glaenzend
+                    'parts': eyes, 'disp': None, 'h': 0.00015, 'cav_scale': 0.0008, 'lod_weight': 2.0})
     groups.append({'name': 'faden', 'fm': 'ent_silk', 'parts': silk, 'disp': None, 'h': 0.0003, 'cav_scale': 0.0008, 'lod_weight': 0.3})
     return groups

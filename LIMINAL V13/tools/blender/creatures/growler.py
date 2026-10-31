@@ -393,21 +393,23 @@ def build(J, bones):
         h0 = J[DOORH[s]]
         t0 = J[DOORH[s] + 1]
         parts = []
-        for row in range(14):  # Runde 2: noch wie ein Korb - dichter; Runde 1: zu regelmaessig (wie ein Grill) - jetzt schief, verschieden dick, ausgefranst
-            z = 0.96 + row * 0.034 + rng.uniform(-0.02, 0.02)
-            tilt = rng.uniform(-0.14, 0.14)
-            pts = [body.project(np.array([h0[0] + (t0[0] - h0[0]) * u, h0[1] + (t0[1] - h0[1]) * u, z + tilt * u + 0.01 * math.sin(u * 9 + row)]), RS * (1.2 + 0.4 * (row % 2)))
-                   for u in np.linspace(-0.05, 1.05, 8)]
-            add(f'klappe{s}', pick_color(), tube_chain(lambda q, s=s: B_DOOR[s], pts, RS * rng.uniform(0.75, 1.05)))
-            parts.append(pts)
-        for colm in range(14):
-            u = rng.uniform(0.0, 1.0)
-            du = rng.uniform(-0.6, 0.6)
-            pts = [body.project(np.array([h0[0] + (t0[0] - h0[0]) * (u + du * t), h0[1] + (t0[1] - h0[1]) * (u + du * t), z]), RS * (1.6 + 0.6 * rng.random()))
-                   for t, z in zip(np.linspace(0, 1, 9), np.linspace(0.93, 1.44, 9))]
-            add(f'klappe{s}', pick_color(), tube_chain(lambda q, s=s: B_DOOR[s], pts, RS * rng.uniform(0.7, 0.95)))
-            if rng.random() < 0.6:
-                _, wp = frayed_end(pts, np.array([1.0, 0, 0]), rng, RS * 0.7, B_DOOR[s])
+        # Runde 3: als Geflecht (Reihen und Spalten) blieb es ein Korb - jetzt dieselben gewickelten Straenge wie am Rumpf, nur
+        # auf die Klappe begrenzt (geschlossen sieht man die Naht nicht)
+        lo_u, hi_u = -0.08, 1.08
+        def in_door(q, h0=h0, t0=t0):
+            d = t0[:2] - h0[:2]
+            u = float((q[:2] - h0[:2]) @ d) / float(d @ d)
+            return lo_u < u < hi_u and 0.94 < q[2] < 1.44
+        for i in range(70):
+            u, z = rng.uniform(0.0, 1.0), rng.uniform(0.97, 1.41)
+            p0 = np.array([h0[0] + (t0[0] - h0[0]) * u, h0[1] + (t0[1] - h0[1]) * u, z])
+            pts = body.walk(p0, np.array([0.0, 0.0, 1.0]), rng.uniform(-1.4, 1.4), rng.uniform(0.15, 0.4), RS * (0.8 + 1.1 * (i % 3)), step=0.03,
+                            limit=in_door)
+            if len(pts) < 3:
+                continue
+            add(f'klappe{s}', pick_color(), tube_chain(lambda q, s=s: B_DOOR[s], pts, RS * rng.uniform(0.8, 1.05)))
+            if rng.random() < 0.5:
+                _, wp = frayed_end(pts, body.grad(pts[-1]), rng, RS * 0.7, B_DOOR[s])
                 add_wire(f'klappe{s}', wp)
         doors[s] = parts
     body.use_closed = False
