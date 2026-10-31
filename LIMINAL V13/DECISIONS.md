@@ -435,6 +435,9 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
     - SCTP staut sonst veraltete Momentaufnahmen hinter seiner Staukontrolle. Gemessen im schlechten Netz (128 kbit/s): 6,6 s Laufzeit und 19 m Abweichung.
     - Mit Lebensdauer verfällt Altes; die Laufzeit bleibt bei 0,35 s.
   - **Laufzeit für die Anzeige aus SCTP;** der eigene Ping enthält die Wartezeit bis zum nächsten Bild. Der Ping zählt nur den Verlust.
+  - **SCTP für Echtzeit:** Wiederholung höchstens nach 2 s, 12 Versuche (statt 10 s und 5).
+    - Anlass: Im ersten 60-min-Langlauf über das gestörte Relay trennte die Stille-Erkennung nach 37 min einen Gast; SCTP hatte über 10 s nichts gesendet.
+    - Ergebnis des Langlaufs danach: `MULTIPLAYER_TESTS.md`, Abschnitt 7.8.
   - **Absagen mit 1 s Nachlauf,** sonst kam die Absage beim Gast nicht an (er meldete „kein Weg“ statt „falscher Code“).
   - **Wer wegen ungültiger Nachrichten getrennt wird, behält keinen Platz** (vorher 120 s belegt).
   - **Obergrenze `kRoles` = 40** im Spielprotokoll (Format gleich). Unbekannte Rollen zeigt der Gast nicht an.

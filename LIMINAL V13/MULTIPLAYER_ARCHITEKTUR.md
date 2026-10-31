@@ -64,6 +64,10 @@ Alle Quellen liegen unverändert in `third_party/`; Versionen, Commits und Prüf
   - `r`: zuverlässig, geordnet – Beitritt, Ereignisse, Inventar, Gruppe;
   - `u`: ungeordnet, Lebensdauer 150 ms (PR-SCTP) – Eingaben, Momentaufnahmen, Ping. Was in 150 ms nicht durchkommt, verfällt; bei knapper Bandbreite stauen sich so keine veralteten Momentaufnahmen.
 - **Verbindungsweg (ICE):** direkt (Adressen der Netzwerkkarten), über NAT (öffentliche Adresse per STUN) oder **über das TURN-Relay**, wenn nichts anderes geht. Die Wahl trifft ICE von selbst. Das Spiel zeigt den Weg je Spieler an (direkt / direkt durch NAT / über Relay).
+- **SCTP für Echtzeit:**
+  - Wartezeit bis zur Wiederholung höchstens 2 s, 12 Versuche. Die Vorgabe von libdatachannel ist 10 s und 5 Versuche.
+  - Ob eine Verbindung tot ist, entscheidet die Stille-Erkennung der DLL (10 s ohne Nachricht, Ping alle 0,5 s).
+  - Grund: Im ersten 60-min-Langlauf über das gestörte Relay stand der Verkehr einmal über 10 s still. SCTP wartete nach mehreren verlorenen Wiederholungen bis zu 10 s, und auch der unzuverlässige Kanal steckte im Staufenster.
 - **Höchstgröße:** 1200 Byte Nutzdaten je Nachricht. Längeres verwirft die DLL; die Bibliothek nimmt höchstens 4 KiB je Nachricht an.
 - **V13.2 verworfen:**
   - ENet 1.3.18 mit eigenem Handshake (HMAC-Beweis) und eigener AES-256-GCM-Schicht ist **entfernt**.
