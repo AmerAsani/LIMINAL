@@ -57,7 +57,7 @@ def _troffer(state, var=0):
     if state == 'off':
         stain = P.mat(common.material('wasserfleck', (0.36, 0.28, 0.16), look='paint', r=1.1))
     else:  # Runde 3: Wasserfleck in der leuchtenden Scheibe als bräunlicher, schwaecher leuchtender Hof statt Schwarz
-        stain = P.mat(common.material('wasserfleck_licht', (0.95, 0.62, 0.30) if state != 'red' else (0.8, 0.2, 0.1), look='glow', glow=0.42))
+        stain = P.mat(common.material('wasserfleck_licht', (0.97, 0.84, 0.62) if state != 'red' else (0.9, 0.24, 0.15), look='glow', glow=0.68))
     yel = 1.0 if var != 2 else 0.93
     weak = _TUBES[2] if (var == 1 and state != 'off') else None
     if state == 'off':
@@ -438,6 +438,12 @@ def _outlet(var):
             P.face(vs, hole, want=(1, 0, 0))
         else:
             K.screw(P, (0.0009, cy, 0.0), (1, 0, 0), 0.0026, screw, slot, seg=8, rot=0.3 + sy * 0.5)
+    # Runde 4: Griffschmutz auf der Tapete um den Rahmen (Hand beim Einstecken), Wandtextur der Zone dunkler
+    if var != 1:
+        # Runde 5: dunkler (die Wand ist hier im Feuchtigkeitsrand schon 18 % dunkler; heller wirkte der Fleck wie ausgebessert)
+        wall_dirt = P.mat(common.material('wandschmutz', (0.55, 0.47, 0.26), look='paint', tex='wallpaper_threshold', r=1.1))
+        f = K.blob(P, (0.006, -0.004), HY + 0.018, HZ + 0.014, wall_dirt, seg=14, seed=47 + var, rough=0.18, frame=K.frame_wall, h=0.0002)
+        P.fix([f], (1, 0, 0))
     # Ueberstrichene Stellen am oberen Rand (Farbnasen) bzw. Griffschmutz rechts unten
     if var != 1:
         for k, (y, z, ry, rz) in enumerate(((0.035, HZ - 0.0035, 0.009, 0.0022), (-0.052, HZ - 0.003, 0.006, 0.0018))):

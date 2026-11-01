@@ -88,7 +88,8 @@ def build_item_energy():
         def xend(y):
             ph = (y + WS) / 0.0032
             tri = 1 - abs(2 * (ph - math.floor(ph)) - 1)
-            return sg * (L2 - 0.0012 * tri)
+            notch = 0.0045 * max(0.0, 1 - abs(y - 0.012) / 0.0035) if sg > 0 else 0.0  # Runde 4: Einreisskerbe
+            return sg * (L2 - 0.0012 * tri - notch)
 
         def zc(y):
             return 0.00032 * math.sin((y + WS) * TAU / 0.0034)
@@ -160,6 +161,9 @@ def build_item_almond():
             v.co.x, v.co.y = x * k, y * k
     # Etikett (Schrumpfhuelle auf der Etikettenflaeche)
     lab = [(0.0529, 0.0784), (0.0533, 0.0786), (0.0533, 0.1730), (0.0529, 0.1732)]
+    # Runde 4: Klebenaht des Etiketts (ueberlappende Kante, 0,3 mm hoeher)
+    K.revolve(P, [(0.0533, 0.0790), (0.05365, 0.0792), (0.05365, 0.1724), (0.0533, 0.1726)], 4, label, axis='z', a0=1.2, arc=0.10,
+              close=False, uvfn=lambda s, k, t: (0.97, clamp(0.30 + 0.36 * (t - 0.0786) / 0.0944, 0.30, 0.66)))
     K.revolve(P, lab, 32, label, axis='z',
               uvfn=lambda s, k, t: (s, clamp(0.30 + 0.36 * (t - 0.0786) / 0.0944, 0.30, 0.66)))
     # Deckel mit Garantieband (Atlas: blau, gerippt)
@@ -216,6 +220,7 @@ def build_item_note():
         x, y = (v - 0.5) * L, (0.5 - u) * W
         z = 0.0006 + 0.009 * abs(2 * v - 1) ** 1.4 + 0.0024 * abs(2 * u - 1) ** 2.2
         z += 0.00045 * math.sin(x * 61 + ph[0]) * math.sin(y * 47 + ph[1]) + 0.0003 * math.sin(x * 23 + y * 31 + ph[2])
+        z += 0.0016 * max(0.0, 1 - abs(u - 0.5) * NU / 1.0)  # Runde 4: zweiter, flacher Knick (Zettel war geviertelt)
         return Vector((x, y, z))
     corner = lambda i, j: (i - (NU - K0)) + (j - (NV - K0))  # >= K0: jenseits der Faltlinie des Eselsohrs
     V = {}
@@ -417,6 +422,13 @@ def _fusebox(with_fuse):
     door = [(0.0, 0.1170), (0.0, 0.1275), (0.0012, 0.1290), (0.0040, 0.1293)]
     K.ring_sweep(P, lambda ins: [(a, b + FB_ZC) for a, b in K.rrect(0.229 - ins, 0.309 - ins, 0.004, 2)], door, K.frame_wall,
                  paint, cap0=True, cap1=True)
+    # Runde 5: Schaltplan in der Klarsichttasche innen an der Tuer (Papier aus dem Notizatlas, Tasche als Glanzfolie)
+    note = P.mat(K.fm_material('item_note', (0.86, 0.82, 0.68), name='schaltplan'), atlas=True)
+    film = P.mat(gen('klarsichtfolie', (0.55, 0.56, 0.55), 'glass', r=0.35))
+    pq = ((0.1155, 0.14, 1.50), (0.1155, -0.10, 1.50), (0.1155, -0.10, 1.18), (0.1155, 0.14, 1.18))
+    P.face([P.v(p) for p in pq], note, want=(-1, 0, 0), uvs=[(0.08, 0.05), (0.92, 0.05), (0.92, 0.95), (0.08, 0.95)])
+    fq = ((0.1150, 0.15, 1.420), (0.1150, -0.11, 1.420), (0.1150, -0.11, 1.413), (0.1150, 0.15, 1.413))  # Taschenkante
+    P.face([P.v(p) for p in fq], film, want=(-1, 0, 0))
     gas = [(0.0, 0.1170), (0.0, 0.1118), (0.0065, 0.1118), (0.0065, 0.1170)]
     K.ring_sweep(P, lambda ins: [(a, b + FB_ZC) for a, b in K.rrect(0.214 - ins, 0.294 - ins, 0.004, 1)], gas, K.frame_wall, rubber,
                  closed=True)
@@ -697,7 +709,8 @@ def _stainless(P, name='edelstahl', rgb=(0.80, 0.80, 0.79), r=0.9, m=0.45):
     """Runde 3: lackiertes Stahlblech (hellgrau, abgegriffen) statt blankem Edelstahl - Metall mit Metalltextur wirkte im
     schwachen Licht der Ebenen schwarz; alte Aufzuege in Buerobauten sind oft lackiert."""
     if name == 'edelstahl':
-        return P.mat(gen('aufzug_lack', (0.80, 0.79, 0.74), 'paint', r=0.75, tex='painted_metal_grey'))
+        # Runde 4: ohne die Rost-Textur (painted_metal_grey war fleckig rot) - glatter, leicht abgegriffener Lack
+        return P.mat(gen('aufzug_lack', (0.72, 0.71, 0.67), 'paint', r=0.7))
     return P.mat(gen(name, rgb, 'metal', r=r, m=m))
 
 
