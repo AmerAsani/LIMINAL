@@ -708,7 +708,7 @@ for r in prng.sample(aquila, 3):
         continue
     fx, fy, fyaw = f
     R = m.R(r)
-    m.obj('fungus_wall', fx, fy, R.floor, fyaw, variant=prng.randrange(3), tag='fungus')
+    m.obj('fungus_wall', fx, fy, R.floor, fyaw, variant=prng.randrange(2), tag='fungus')
     gx, gy = fx + math.cos(fyaw) * 0.75, fy + math.sin(fyaw) * 0.75
     m.obj('fungus_floor', gx, gy, R.floor, fyaw + prng.uniform(-0.4, 0.4), variant=prng.randrange(2), tag='fungus')
     m.obj('puddle', gx, gy, R.floor, fyaw, scale=(0.45, 0.45, 1.0), variant=prng.randrange(6))  # das Wasser: Pfuetze der Karte (Spiegelung)

@@ -126,7 +126,7 @@ float3 jesterFace(float2 uv, float3 col, float inten, float expr, float t)
     float aspect = gPost3.y / max(gPost3.z, 1.0);
     float2 p = (uv - 0.5) * float2(aspect, 1.0);
     float scan = 0.82 + 0.18 * sin(uv.y * gPost3.z * 1.6);
-    float3 glass = float3(0.012, 0.014, 0.02) * scan + 0.025 * vn2(uv * 300.0 + t * 40.0);
+    float3 glass = float3(0.006, 0.007, 0.01) * scan + 0.008 * vn2(uv * 300.0 + t * 40.0);  // dunkles Glas, leises Flimmern
     float glow = 0.0;
     if (expr < 2.5)
     {
@@ -142,10 +142,11 @@ float3 jesterFace(float2 uv, float3 col, float inten, float expr, float t)
         float dm;
         if (expr < 0.5)  // Cartoon-Grinsen
             dm = abs(length(m - float2(0.0, -0.17)) - 0.26) + step(m.y + 0.03, 0.0) * 1.0;
-        else if (expr < 1.5)  // verzogen
-            dm = abs(length(m - float2(0.0, 0.2)) - 0.24) + step(0.0, m.y - 0.035) * 1.0 + step(0.17, abs(m.x));
-        else  // offen lachend
-            dm = abs(length(m * float2(1.0, 1.6) - float2(0.0, 0.02)) - 0.17);
+        else if (expr < 1.5)  // verzogen: schiefe Zickzacklinie, runde Enden
+            dm = min(min(sdSeg(m, float2(-0.19, 0.06), float2(-0.07, -0.01)), sdSeg(m, float2(-0.07, -0.01), float2(0.06, 0.07))),
+                     sdSeg(m, float2(0.06, 0.07), float2(0.19, 0.0)));
+        else  // offen lachend: ein gefuellter Halbmond, oben gerade
+            dm = max(length((m - float2(0.0, 0.03)) * float2(1.0, 1.25)) - 0.2, -(m.y - 0.03)) + 0.017;
         glow = max(glow, smoothstep(0.022, 0.012, dm));
         glow = max(glow, 0.3 * smoothstep(0.07, 0.0, dm));
     }

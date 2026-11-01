@@ -218,9 +218,10 @@ def _fungus_wall(variant):
             yy, zz = y + math.cos(a) * rad * rng.uniform(1.0, 1.7), z + math.sin(a) * rad * rng.uniform(1.0, 1.7)
             if free(yy, zz) and zz > 0.02:
                 mound(k, P, (0.002, yy, zz), N, rad * rng.uniform(0.3, 0.5), rad * 0.1, rng, 'fluff', 0.8)
-    for i in range(int(W * 7)):
-        y = -0.48 * W + i / max(1, int(W * 7) - 1) * 0.96 * W + rng.uniform(-0.03, 0.03)
-        mound(k, P, (0.02, y, 0.012), V((0.75, 0, 0.66)), rng.uniform(0.04, 0.08), 0.02, rng, 'fluff')
+    nb = int(W * 11)
+    for i in range(nb):  # dichter Wulst an der Bodenkante, wo das Wasser steht
+        y = -0.5 * W + i / max(1, nb - 1) * W + rng.uniform(-0.03, 0.03)
+        mound(k, P, (0.03, y, 0.012), V((0.7, 0, 0.71)), rng.uniform(0.05, 0.1), 0.025, rng, rng.choice(['fluff', 'fluff', 'fluff_old']))
     # Myzelfaeden zwischen den Polstern, nach oben ausfransend
     for (y, z, rad) in seeds[: (8, 7, 7)[variant]]:
         veins(k, P, (0.0015, y, z), N, U, Wv, rng, steps=rng.randint(5, 9), seg=0.035,
@@ -552,7 +553,7 @@ def _plant_wanderer(variant):
     P = mats_plant()
     k = Kit()
     Z = V((0, 0, 1))
-    bark, bark_d, root = P['bark'], P['bark_dark'], P['root']
+    bark, bark_d, root = P['bark'], material('rinde_kopf', (0.15, 0.12, 0.09), look='wood', tex='concrete_rough', rough=0.95, r=1.5), P['root']
     cloth = material('jacke_verblasst', (0.46, 0.20, 0.16), look='fabric', rough=0.9, r=1.35)
     shoe = material('schuh_alt', (0.18, 0.15, 0.13), look='rubber', rough=0.8, r=1.1)
     hollow = material('rinde_hoehle', (0.05, 0.04, 0.03), look='wood', rough=1.0, r=1.5)
@@ -618,9 +619,9 @@ def _plant_wanderer(variant):
     for _ in range(9):
         q = V((rng.uniform(-1, 1), rng.uniform(-1, 1), rng.uniform(-1, 1))).normalized()
         ellipsoid(k(bark_d, 45), head + q * 0.105, q, rng.uniform(0.018, 0.03), rng.uniform(0.022, 0.04), 7, 4)
-    for _ in range(3):
-        q = V((rng.uniform(-0.5, 0.5), rng.uniform(-1, 1), rng.uniform(0.3, 1))).normalized()
-        sweep(k(P['twig'], 40), [head + q * 0.1, head + q * 0.16, head + q * 0.2 + V((0, 0, 0.03))], [0.012, 0.008, 0.004], 5)
+    for s_ in (-1, 1):  # Aststummel seitlich und nach hinten (nicht nach oben - das sah aus wie Ohren)
+        q = V((rng.uniform(-0.9, -0.4), s_ * rng.uniform(0.6, 1.0), rng.uniform(-0.3, 0.15))).normalized()
+        sweep(k(P['twig'], 40), [head + q * 0.1, head + q * 0.15, head + q * 0.19 + V((0, 0, -0.02))], [0.011, 0.007, 0.004], 5)
     blob(k(P['moss'], 0), head + V((0, 0, 0.12)), (0, 0, 1), 0.06, 0.012, rng, 9)
     ivy = [head + V((math.cos(a) * 0.125, math.sin(a) * 0.125, 0.05 - 0.09 * (a + 1.2) / 2.4)) for a in [-1.2 + 2.4 * i / 8 for i in range(9)]]
     sweep(k(P['stem'], 40), ivy, 0.006, 5)

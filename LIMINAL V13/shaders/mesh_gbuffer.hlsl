@@ -259,7 +259,7 @@ void skinMarks(inout GBufferOut g, float3 bp)
         const float d1 = abs(frac(bp.x * 31.0 + bp.y * 8.0 + bp.z * 19.0 + w) - 0.5);
         const float d2 = abs(frac(-bp.x * 11.0 + bp.y * 29.0 + bp.z * 15.0 + w * 1.3 + 0.37) - 0.5);
         const float width = 0.05 + 0.08 * c;
-        const float reach = smoothstep(1.02 - c * 1.05, 1.1 - c * 1.05, vnoise3(bp * 6.5 + 11.0));
+        const float reach = smoothstep(0.78 - c * 1.6, 0.88 - c * 1.6, vnoise3(bp * 6.5 + 11.0));
         const float vine = max(1.0 - smoothstep(width * 0.6, width, d1),
                                (1.0 - smoothstep(width * 0.5, width * 0.85, d2)) * smoothstep(0.35, 0.5, c)) * reach;
         const float leaf = smoothstep(0.80, 0.86, vnoise3(bp * 58.0 + 2.0)) * reach * smoothstep(0.2, 0.35, c);

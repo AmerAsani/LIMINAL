@@ -480,11 +480,15 @@ vec4 Phenomena::skinFx(int id) const {
     float f = 0.0f;
     if (a.infectT >= 0.0) {
         const double p = stageProgress(cfg_, a.infectT, a.stage);
-        f = a.stage == 1 ? 0.0f : a.stage == 2 ? (float)(0.32 + 0.22 * p) : a.stage == 3 ? (float)(0.62 + 0.3 * p) : 1.0f;
+        f = a.stage == 1 ? 0.0f : a.stage == 2 ? (float)(0.38 + 0.2 * p) : a.stage == 3 ? (float)(0.62 + 0.3 * p) : 1.0f;
     }
+    // Ranken ab den ersten Zeichen, bis zum Beginn der Verwandlung halb (der Shader legt ab 0,5 Rinde an), dann bis zum Tod
     float g = 0.0f;
-    if (a.garden > cfg_.gardenSigns)
-        g = (float)std::clamp((a.garden - cfg_.gardenSigns) / (cfg_.gardenDeath - cfg_.gardenSigns), 0.0, 1.0);
+    if (a.garden > cfg_.gardenSigns * 0.8) {
+        const double s0 = cfg_.gardenSigns * 0.8;
+        g = a.garden < cfg_.gardenBegin ? (float)(0.5 * (a.garden - s0) / std::max(1.0, cfg_.gardenBegin - s0))
+                                        : (float)std::min(1.0, 0.5 + 0.5 * (a.garden - cfg_.gardenBegin) / std::max(1.0, cfg_.gardenDeath - cfg_.gardenBegin));
+    }
     return {f, g, 0.0f, 0.0f};
 }
 
