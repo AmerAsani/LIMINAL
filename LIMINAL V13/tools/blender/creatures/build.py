@@ -1,7 +1,7 @@
 """V13: Wesen bauen (KREATUREN_ANALYSE.md). Aufruf aus dem V13-Ordner:
   .toolchain/blender/blender-4.5.14-windows-x64/blender.exe -b --factory-startup --python tools/blender/creatures/build.py -- <wesen> [--preview <ordner>] [--grob]
 <wesen>: hound, smiler, clump, gestalt, moth, nest; V13.2: faceling, faceling_evo, faceling_dress, skinstealer, wretch, rat,
-rat_bald, window; V13.3: duller, arms. Schreibt data/models/ent_<wesen>_l0..l2.glb (Varianten mit SKELETON im Modul).
+rat_bald, window; V13.3: duller, arms, wrangler, wrangler_f, wrangler_fs, wrangler_brood. Schreibt data/models/ent_<wesen>_l0..l2.glb (Varianten mit SKELETON im Modul).
 
 Je Wesen liefert ein Modul (creatures/<wesen>.py) eine Funktion build(J, bones) -> Liste von Gruppen:
   {'name', 'fm' (Material im Spiel), 'parts' (sdf.Part), 'disp' (Verschiebung oder None), 'h' (Voxel, m)}
@@ -57,7 +57,12 @@ PREVIEW_RGB = {'ent_skin': (0.55, 0.47, 0.40), 'ent_hair': (0.03, 0.03, 0.03), '
                'ent_ratskin': (0.62, 0.48, 0.48), 'ent_umbra': (0.02, 0.02, 0.02),
                'ent_cloth_c': (0.20, 0.26, 0.36), 'ent_cloth_d': (0.17, 0.20, 0.14), 'ent_humanskin_b': (0.38, 0.26, 0.21),
                'ent_hair_grey': (0.55, 0.53, 0.5),
-               'ent_dullerskin': (0.30, 0.30, 0.32), 'ent_rotskin': (0.45, 0.47, 0.40), 'ent_smoke': (0.5, 0.5, 0.5), 'ent_concrete': (0.7, 0.7, 0.68)}  # V13.3
+               'ent_dullerskin': (0.30, 0.30, 0.32), 'ent_rotskin': (0.45, 0.47, 0.40), 'ent_smoke': (0.5, 0.5, 0.5), 'ent_concrete': (0.7, 0.7, 0.68),  # V13.3
+               # V13.3 Wrangler
+               'ent_wr_membrane': (0.62, 0.60, 0.56), 'ent_wr_membrane_f': (0.80, 0.66, 0.62), 'ent_wr_hide': (0.42, 0.40, 0.38),
+               'ent_wr_gut': (0.30, 0.08, 0.10), 'ent_wr_pith': (0.62, 0.64, 0.46), 'ent_wr_bone': (0.80, 0.76, 0.66),
+               'ent_wr_slime': (0.55, 0.57, 0.50), 'ent_wr_seed': (0.72, 0.60, 0.36), 'ent_wr_dust': (0.62, 0.60, 0.56),
+               'ent_wr_crack': (0.05, 0.05, 0.05), 'ent_wr_pincer': (0.12, 0.08, 0.06), 'ent_wr_debris': (0.55, 0.53, 0.5)}
 
 
 def build_group(g, nb):
@@ -66,12 +71,30 @@ def build_group(g, nb):
     F, lo = sdf.evaluate(g['parts'], g['h'], g.get('disp'))
     V, T = sdf.polygonize(F, lo, g['h'], g.get('adapt', 0.0))
     del F
+    if g.get('tris') and len(T) > g['tris']:  # V13.3: vor dem Weiterrechnen ausduennen (Teile, die vielfach geklont werden)
+        V, T = reduce_mesh(V, T, g['tris'])
     N = sdf.vertex_normals(V, T)
     # Hoehlung auch aus Nachbargruppen (cav_extra): wo zwei Netze ineinanderwachsen, liegt eine Falte
     cav, edge = sdf.cavity_edge(g['parts'] + g.get('cav_extra', []), V, N, g.get('disp'), g.get('cav_scale', 0.012))
     W = sdf.weights(g['parts'], V, nb, s=g.get('wsoft', 0.004))
     log(f'  Gruppe {g["name"]}: {len(V)} Punkte, {len(T)} Dreiecke, {time.time() - t0:.1f} s')
     return V, T, W, cav, edge
+
+
+def reduce_mesh(V, T, target):
+    """V13.3: Netz (Spielkoordinaten) auf etwa target Dreiecke ausduennen (Blender, Kantenkollaps)."""
+    me = bpy.data.meshes.new('tmp')
+    me.from_pydata(V.tolist(), [], T.tolist())
+    me.update()
+    ob = bpy.data.objects.new('tmp', me)
+    bpy.context.scene.collection.objects.link(ob)
+    decimate(ob, target)
+    me = ob.data
+    V2 = np.zeros(len(me.vertices) * 3)
+    me.vertices.foreach_get('co', V2)
+    T2 = np.array([list(p.vertices) for p in me.polygons], dtype=np.int64)
+    bpy.data.objects.remove(ob, do_unlink=True)
+    return V2.reshape(-1, 3), T2
 
 
 def to_object(name, V, T, W, cav, edge, mat, nb):
@@ -208,6 +231,10 @@ def main():
     # auf die Spielgroesse gebracht
     S = float(getattr(mod, 'SCALE', 1.0))
     groups = mod.build(np.asarray(J, dtype=float) / S if S != 1.0 else J, bones)
+    # V13.3: fertige Netze je Stufe ('lod_mesh': je Stufe (V, T, W oder None[, Hoehlung, Kante])) werden nicht ausgeduennt -
+    # duenne Glieder und Haare zerfallen beim Kantenkollaps zu flachen Dreiecken (Nguithr'xurh: Beine, Taster, Haare)
+    fixed = [g for g in groups if 'lod_mesh' in g]
+    groups = [g for g in groups if 'lod_mesh' not in g]
     if coarse:
         for g in groups:
             g['h'] *= 2.0
@@ -216,6 +243,19 @@ def main():
     built = []
     for g in groups:
         V, T, W, cav, edge = build_group(g, nb)
+        # V13.3: Abzuege desselben Netzes an anderen Stellen (Ringe des Wranglers): je Abzug Versatz und Knochen - alle
+        # Gewichte des Abzugs gehen an diesen Knochen. Ein Gitter statt vieler gleicher.
+        if g.get('clones'):
+            Vs, Ts, Ws, Cs, Es = [V], [T], [W], [cav], [edge]
+            for off, bone in g['clones']:
+                W2 = np.zeros_like(W)
+                W2[:, bone] = 1.0
+                Ts.append(T + sum(len(x) for x in Vs))
+                Vs.append(V + np.asarray(off, dtype=float))
+                Ws.append(W2)
+                Cs.append(cav)
+                Es.append(edge)
+            V, T, W, cav, edge = np.vstack(Vs), np.vstack(Ts), np.vstack(Ws), np.concatenate(Cs), np.concatenate(Es)
         V = V * S
         key = g.get('merge')
         tgt = next((b for b in built if key and b['key'] == key), None)
@@ -238,9 +278,31 @@ def main():
         m = o.modifiers.new('skelett', 'ARMATURE')
         m.object = arm
     log(f'{model}: Form fertig in {time.time() - t0:.1f} s')
+
+    def fixed_objs(lod):  # V13.3
+        out = []
+        for g in fixed:
+            m = g['lod_mesh'][min(lod, len(g['lod_mesh']) - 1)]
+            V, T = np.asarray(m[0], dtype=float), np.asarray(m[1], dtype=np.int64)
+            if len(T) == 0:
+                continue
+            W = m[2] if len(m) > 2 and m[2] is not None else sdf.weights(g['parts'], V, nb, s=g.get('wsoft', 0.004))
+            if len(m) > 4:
+                cav, edge = np.asarray(m[3], dtype=float), np.asarray(m[4], dtype=float)
+            else:
+                cav, edge = sdf.cavity_edge(g['parts'], V, sdf.vertex_normals(V, T), None, g.get('cav_scale', 0.003))
+            o = to_object(f'{g["name"]}_l{lod}', V * S, T, W, cav, edge, make_material(g['fm'], PREVIEW_RGB.get(g['fm'], (0.5, 0.5, 0.5))), nb)
+            o.parent = arm
+            o.modifiers.new('skelett', 'ARMATURE').object = arm
+            out.append(o)
+        return out
     if prev:
         os.makedirs(prev, exist_ok=True)
-        preview(objs, arm, prev, model)
+        fx = fixed_objs(0)
+        hide = getattr(mod, 'PREVIEW_HIDE', ())  # V13.3: z. B. der 3 m lange Faden - sonst ist das Wesen im Bild winzig
+        preview([o for o in objs + fx if not any(o.name.startswith(h) for h in hide)], arm, prev, model)
+        for o in fx:
+            bpy.data.objects.remove(o, do_unlink=True)
     # Stufen: Anteil der Dreiecke je Gruppe nach ihrem Anteil am Ganzen, gewichtet mit 'lod_weight' (flache Teile wie
     # Fluegel brauchen wenig, feine wie Augen, Haar und Beine mehr)
     lw = {}
@@ -263,9 +325,13 @@ def main():
             tri += decimate(c, max(64, int(budget * share)))
             c.name = f'{o.name}_l{lod}'
             copies.append(c)
+        fx = fixed_objs(lod)  # V13.3
+        tri += sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in fx)
         path = os.path.join(OUT, f'{model}_l{lod}.glb')
-        export(path, copies + [arm])
+        export(path, copies + fx + [arm])
         log(f'{model}_l{lod}: {tri} Dreiecke -> {path}')
+        for o in fx:
+            bpy.data.objects.remove(o, do_unlink=True)
         if prev_copies:
             for c in prev_copies:
                 bpy.data.objects.remove(c, do_unlink=True)

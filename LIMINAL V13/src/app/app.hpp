@@ -54,6 +54,11 @@ struct Options {
     std::string levelFile;  // V13.3 (Kontaktboegen): zusaetzliches Level aus einer Datei laden und starten
 };
 
+namespace app {
+// V13.3: Dauerklaenge des Wranglers - Rumpeln, Leib, Sog (app/wrangler_audio.cpp)
+void wranglerLoops(audio::AudioSystem& au, Soundscape& ss, game::GameSession& s, vec3 ear, int gen, bool dead);
+}  // namespace app
+
 class App final : public ui::Host {
 public:
     App();
@@ -143,6 +148,7 @@ private:
     std::vector<vec4> boneRows_;                 // V10: Knochenmatrizen der Figuren
     std::vector<game::ShadowCaster> casters_;    // V10: Schattenkapseln
     app::Soundscape soundscape_;  // V6: Leuchten, Raumakustik, ferne Klaenge
+    float dustFall_ = 0.0f;       // V13.3: Beben (Wrangler) - gefallener Staub (m)
     app::AutoTune autoTune_;      // V6: Grafik passt sich der Hardware an
     int appliedWinW_ = 0, appliedWinH_ = 0;
     // V7: Notausgang - Abblenden, dann die naechste Ebene

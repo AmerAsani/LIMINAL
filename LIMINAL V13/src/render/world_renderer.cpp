@@ -238,6 +238,22 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     materialData_[FM_ENT_VIEW] = GpuMaterial{{1.0f, 1.0f, 1.0f}, 1.4f, ent(EL_VIEW, ML_PORES), 0.3f, 0, 0.0f};
     // Ausfluss (Wretch: rotbrauner Saft aus den Pusteln, brauner Schlamm aus dem Mund)
     materialData_[FM_ENT_OOZE] = GpuMaterial{{0.42f, 0.20f, 0.11f}, 0, ent(EL_HORN, ML_PORES), 0.22f, 0, 0.05f};
+    // V13.3: Wrangler (KREATUR_Wrangler.md). Haut feucht und klebrig, durchscheinend (gerastert, kMatMembraneShift); das Maennchen
+    // rauer und grauer, dichter (die Seite: mit dem Alter grauer und undurchsichtiger), das Weibchen blass rosa und klarer.
+    // Innen: dunkelroter Darm, pflanzenartige Faserstraenge (olivbraun), Knochen; Schleim glaenzt, Staub und Schutt matt
+    auto memb = [](u32 op) { return op << kMatMembraneShift; };
+    materialData_[FM_ENT_WR_MEMBRANE] = GpuMaterial{{0.74f, 0.92f, 1.12f}, 0, ent(EL_HUMAN, ML_CRAZE) | kMatFlagSkin | memb(212), 0.38f, 0, 0.05f};
+    materialData_[FM_ENT_WR_MEMBRANE_F] = GpuMaterial{{1.3f, 1.06f, 1.24f}, 0, ent(EL_HUMAN, ML_PORES) | kMatFlagSkin | memb(178), 0.22f, 0, 0.02f};
+    materialData_[FM_ENT_WR_HIDE] = GpuMaterial{{1.62f, 1.64f, 1.7f}, 0, ent(EL_SKIN, ML_CRAZE) | kMatFlagSkin, 0.84f, 0, 0.2f};
+    materialData_[FM_ENT_WR_GUT] = GpuMaterial{{1.5f, 0.62f, 0.72f}, 0, ent(EL_NEST, ML_PORES) | kMatFlagSkin, 0.3f, 0, 0.0f};
+    materialData_[FM_ENT_WR_PITH] = GpuMaterial{{1.8f, 1.95f, 1.45f}, 0, ent(EL_NEST, ML_FIBER), 0.62f, 0, 0.0f};
+    materialData_[FM_ENT_WR_BONE] = GpuMaterial{{0.95f, 0.92f, 0.85f}, 0, ent(EL_TOOTH, ML_CRAZE), 0.68f, 0, 0.05f};
+    materialData_[FM_ENT_WR_SLIME] = GpuMaterial{{2.2f, 2.4f, 2.0f}, 0, ent(EL_HORN, ML_PORES) | memb(150), 0.05f, 0, 0.0f};
+    materialData_[FM_ENT_WR_SEED] = GpuMaterial{{0.98f, 0.86f, 0.62f}, 0, ent(EL_TOOTH, ML_PORES), 0.38f, 0, 0.1f};
+    materialData_[FM_ENT_WR_DUST] = GpuMaterial{{0.56f, 0.55f, 0.53f}, 0, ent(EL_TOOTH, ML_CRAZE), 1.0f, 0, 0.6f};
+    materialData_[FM_ENT_WR_CRACK] = GpuMaterial{{0.04f, 0.038f, 0.035f}, 0, ent(EL_HORN, ML_CRAZE), 1.0f, 0, 0.0f};
+    materialData_[FM_ENT_WR_PINCER] = GpuMaterial{{0.8f, 0.72f, 0.66f}, 0, ent(EL_CHITIN, ML_CRAZE), 0.24f, 0, 0.0f};
+    materialData_[FM_ENT_WR_DEBRIS] = GpuMaterial{{0.47f, 0.46f, 0.44f}, 0, ent(EL_TOOTH, ML_CRAZE), 1.0f, 0, 0.5f};
     // V13.3: Duller - dunkelgrau, trocken und matt, Haarrisse; an Knochenkanten etwas Glanz (Textur); kein roetliches Durchscheinen
     materialData_[FM_ENT_DULLERSKIN] = GpuMaterial{{0.34f, 0.34f, 0.36f}, 0, ent(EL_SKIN, ML_CRAZE), 1.5f, 0, 0.25f};
     // V13.3: Arms - verwesende, graue Haut mit gruenlichem Stich, speckig-feucht (wenig Rauheit)
@@ -245,6 +261,24 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     // V13.3: frisch gebrochener Beton und Putz (Bruchstelle des Dullers, Riss der Arms): hell, stumpf, fleckig, Haarrisse
     materialData_[FM_ENT_CONCRETE] = GpuMaterial{{0.56f, 0.56f, 0.54f}, 0, ent(EL_TOOTH, ML_CRAZE), 1.9f, 0, 0.45f};
     materialData_[FM_ENT_SMOKE] = GpuMaterial{{0.32f, 0.31f, 0.30f}, 0, tri(L_SKIN) | kMatFlagSmoke, 1.0f, 0, 0.0f};  // Rauch verbrannter Haut
+    // V13.3: Growler - Chenille der Pfeifenreiniger (feines Haar, Fasern), bunt getoent, matt; a und b leuchten, wenn das Wesen
+    // leuchtet (Junge in Level 2: im Dunkeln zu sehen). Draht: blank, metallisch
+    // Runde 3: auf der hellen Zahn-Ebene statt Pelz - der Shader blendet Leuchten bei dunklen Texturen aus (Junge leuchteten nicht);
+    // Fasern aus der Mikroebene, matt (Rauheit x 2,6), Toenung auf den hellen Grund umgerechnet
+    materialData_[FM_ENT_PIPE_A] = GpuMaterial{{0.74f, 0.05f, 0.40f}, 1.6f, ent(EL_TOOTH, ML_FIBER), 2.6f, 0, 0.4f};   // Magenta
+    materialData_[FM_ENT_PIPE_B] = GpuMaterial{{0.05f, 0.48f, 0.86f}, 1.6f, ent(EL_TOOTH, ML_FIBER), 2.6f, 0, 0.4f};   // Tuerkis
+    materialData_[FM_ENT_PIPE_C] = GpuMaterial{{0.86f, 0.58f, 0.05f}, 0, ent(EL_TOOTH, ML_FIBER), 2.6f, 0, 0.45f};     // Gelb
+    materialData_[FM_ENT_PIPE_D] = GpuMaterial{{0.19f, 0.66f, 0.07f}, 0, ent(EL_TOOTH, ML_FIBER), 2.6f, 0, 0.45f};     // Gruen
+    materialData_[FM_ENT_WIRE] = GpuMaterial{{0.78f, 0.77f, 0.74f}, 0, ent(EL_TOOTH, ML_CRAZE), 0.32f, 1.0f, 0.1f};
+    // Nguithr'xurh - sandfarben behaart (Walzenspinne); Seide grauweiss, faserig, matt; Betaeubungsstoff milchig und nass
+    // Runde 6: matt, sandig-staubig, hellbraun bis ocker (vorher glaenzend wie Kunststoff)
+    materialData_[FM_ENT_SOLIFUGE] = GpuMaterial{{1.25f, 0.82f, 0.45f}, 0, ent(EL_FUR, ML_FIBER), 1.7f, 0, 0.15f};  // Runde 6g: weniger grauer Staub
+    materialData_[FM_ENT_SOLIFUGE_HEAD] = GpuMaterial{{1.05f, 0.55f, 0.28f}, 0, ent(EL_FUR, ML_FIBER), 1.6f, 0, 0.15f};  // Runde 6f: zweifarbig
+    materialData_[FM_ENT_SILK] = GpuMaterial{{1.75f, 1.68f, 1.5f}, 0, ent(EL_FUR, ML_FIBER), 1.15f, 0, 0.5f};  // Runde 1: zu weiss, glaenzte wie Glas
+    materialData_[FM_ENT_SOLIFUGE_DARK] = GpuMaterial{{0.42f, 0.23f, 0.14f}, 0, ent(EL_FUR, ML_PORES), 1.3f, 0, 0.1f};  // Runde 6h: Finger dunkler
+    materialData_[FM_ENT_SOLIFUGE_HAIR] = GpuMaterial{{1.9f, 1.55f, 1.1f}, 0, ent(EL_FUR, ML_FIBER), 1.5f, 0, 0.3f};
+    materialData_[FM_ENT_SOLIFUGE_JOINT] = GpuMaterial{{0.85f, 0.5f, 0.28f}, 0, ent(EL_FUR, ML_FIBER), 1.6f, 0, 0.15f};
+    materialData_[FM_ENT_SEDATIVE] = GpuMaterial{{0.72f, 0.66f, 0.48f}, 0, ent(EL_TOOTH, ML_PORES), 0.1f, 0, 0.15f};  // Runde 5: Pfuetzen wie helles Papier - dunkler, nass
     writeMaterials(gpu);
     lights_ = gpu.createStructured(sizeof(GpuLight), 2048, true, false);
     puddles_ = gpu.createStructured(sizeof(vec4), kMaxPuddles * 2, true, false);  // V13.3

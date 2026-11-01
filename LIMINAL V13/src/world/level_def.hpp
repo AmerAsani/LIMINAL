@@ -89,7 +89,9 @@ struct StyleOverride {
 
 // V13.2: weitere Wesen je Ebene (Level-JSON "presence": {"faceling": {...}, "skinstealer": ..., "wretch": ..., "rat": ...,
 // "window": ...}); Verhalten nach den Wikidot-Seiten (ENTITY_ABGLEICH.md, KREATUR_<Name>.md)
-enum KinIndex : int { KIN_FACELING, KIN_SKINSTEALER, KIN_WRETCH, KIN_RAT, KIN_WINDOW, KIN_DULLER, KIN_ARMS, KIN_COUNT };  // V13.3: Duller, Arms
+// V13.3: "growler" (mode adult|young; chance: Anteil der Leichen in Level 2), "nguithrxurh" (mode large|medium|small; chance:
+// hungrig - greift auch Menschen an; count: Netzkugeln je Kolonie)
+enum KinIndex : int { KIN_FACELING, KIN_SKINSTEALER, KIN_WRETCH, KIN_RAT, KIN_WINDOW, KIN_DULLER, KIN_ARMS, KIN_WRANGLER, KIN_GROWLER, KIN_NGUITHR, KIN_COUNT };  // V13.3: Duller, Arms, Wrangler
 struct KinDef {
     bool on = false;
     std::string mode;                // je Wesen (Faceling: peaceful|irritable|armed|lethal; Skin-Stealer: skin|true;

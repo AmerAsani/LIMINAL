@@ -586,8 +586,8 @@ void Renderer::renderScene(const CameraState& cam, const SceneParams& p, const s
     f.proj = {proj.at(0, 0), proj.at(1, 1), nearZ, 0};
     f.ringParams = {(float)world_.ringSize(), 1.0f / (float)world_.ringSize(), (float)(frame_ % 1024), nearZ};
     f.post = {p.redEdge, p.redPulse, p.menuDim, p.desaturate};
-    f.post2 = {settings_.exposureBias + std::log2(std::clamp(p.moodExposure, 0.1f, 4.0f)), settings_.filmGrain, settings_.vignette,
-               settings_.displayMode == 0 ? settings_.chromatic : 0.0f};
+    f.post2 = {settings_.exposureBias + std::log2(std::clamp(p.moodExposure, 0.1f, 4.0f)), settings_.filmGrain + p.grainBoost, settings_.vignette,
+               settings_.displayMode == 0 ? settings_.chromatic + p.chromaBoost : 0.0f};
     f.post3 = {(float)settings_.displayMode, (float)ow, (float)oh,
                settings_.bloom ? settings_.bloomStrength : 0.0f};
     // z: V6 Nachschaerfen (Post), 0 = aus
@@ -711,7 +711,7 @@ void Renderer::renderScene(const CameraState& cam, const SceneParams& p, const s
         static const int kCount[4] = {0, 450, 900, 1600};  // V6: Menge je Stufe
         const int count = kCount[particles];
         PassConstants pc{};
-        pc.p0 = {(float)count, 6.5f, 0.10f, 0.0f};
+        pc.p0 = {(float)count, 6.5f, 0.10f * (1.0f + 2.5f * p.dustBoost), p.dustFall};  // V13.3: Beben - Staub rieselt
         pc.p1 = {(float)std::min<u32>(nLights, 24u), 0, 0, 0};
         gpu_.update(passCb_, &pc, sizeof(pc));
         ctx->VSSetConstantBuffers(0, 4, cbs);

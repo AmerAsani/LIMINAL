@@ -191,6 +191,19 @@ def dress_aisles(J, S, old):
             m.obj('ceiling_arms', R.cx, R.cy, R.floor + R.height, 0.0 if along_x else math.pi / 2, tag='deco')
         if rng.random() < 0.12:
             m.obj('books_fallen', R.cx, R.cy, R.floor, rng.random() * 6.28, tag='deco')
+        # V13.3 (Kritikrunde 1): in hellen Gaengen Kandelaber zwischen den Regalen - vorher standen sie nur an den
+        # Kreuzungen und die Regale der Gaenge blieben schwarz (Wiki: nur ein aelterer Gang liegt im Dunkeln)
+        if not old:
+            L_ = R.w if along_x else R.h
+            for k_ in range(3, L_ - 2, 6):
+                side = 1 if (k_ // 6) % 2 else -1
+                if along_x:
+                    cx, cy = R.x0 + k_ + 0.5, R.cy + side * (R.h / 2 - 0.75)
+                else:
+                    cx, cy = R.cx + side * (R.w / 2 - 0.75), R.y0 + k_ + 0.5
+                if not m.blocked(cx, cy):
+                    m.obj('candelabrum', cx, cy, R.floor, rng.random() * 6.28, tag='light')
+                    m.light(r, cx, cy, 0, 0.55, 6.0, z=R.floor + 1.85, panel=False, color=CANDLE)
     for (i, j), r in J.items():
         if r is None:
             continue

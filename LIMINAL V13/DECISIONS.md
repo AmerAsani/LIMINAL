@@ -482,3 +482,28 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
   - Sicht auf Augenhöhe sperren Wände, Stützen und Blöcke ab 1,5 m.
   - Nach der Korrektur verletzte nur Level 1 eine Grenze (Sichtachse P90 79,7 m < 85 m). Die Aquila-Wandscheiben wurden von 12–18 m auf 6 m gekürzt.
 - **Grund:** Eine Grenze, die eine falsche Messung besteht, beweist nichts. Die Messung wurde korrigiert, nicht die Grenze gelockert.
+
+## E-036 Laufweg-Schranke e) bei Ebenen mit wenigen Räumen (V13.3, 01.11.2026)
+
+- **Auftrag:** Laufweg mit mindestens 200 m und mindestens 15 Räumen, alle paar Meter ein Bild.
+- **Grenze:** Zwei Ebenen haben laut Wiki und Karte weniger als 15 Räume:
+  - Level 188 „The Courtyard of Windows“ (Wikidot Rev. 69): ein Atrium mit Gängen am Rand. Im Spiel sind es 7 Räume: Hof, weißer Gang, drei Zellen, Treppenhaus, Treppenabsatz.
+  - Level 903 „The Metro“ (Rev. 60): ein einziger, endlos gleicher Bahnsteig, 1 Raum (`STRUKTURTYP.md`).
+- **Entscheidung:** Die Strecke von mindestens 200 m wird eingehalten. Der Weg besucht alle erreichbaren Räume, mehrfach und aus anderen Richtungen.
+  - `walkway.py` verlangt nicht mehr Räume, als erreichbar sind.
+  - Vorher lief der Planer bei Level 188 bis zur Schutzgrenze im Kreis: 6,8 km, 1 696 Bilder.
+  - Level 903 läuft den Bahnsteig auf zwei Spuren hin und zurück.
+  - Mehr Räume hinzuzufügen, nur um die Zahl zu erreichen, widerspräche dem Wiki-Strukturtyp. Teil 2 des Auftrags verbietet selbst ergänzte Zonen.
+- **Beleg:** Raumzahlen aus `data/maps/level188.json` und `level903.json`, ausgegeben von `tools/qa/room_metrics.py` (Spalte „Raeume“).
+
+## E-037 Zeilenenden (V13.3, 01.11.2026)
+
+- **Befund:** 37 Quelldateien wurden im Lauf von V13 von CRLF auf LF umgestellt, `level2.py` umgekehrt.
+  - Ursache: `sed -i` in Git Bash entfernt das CR; Python-Textschreiben unter Windows setzt es.
+  - Die Umstellungen kamen im Hauptstrang und in Agenten-Zweigen vor.
+  - `gameplay_test.cpp` kollidierte deshalb beim Zusammenführen des Wranglers als ganze Datei.
+- **Entscheidung:**
+  - Während Agenten-Zweige offen sind, wird nicht massenhaft umgestellt; das gäbe Konflikte in jedem Zweig. Jede Datei behält ihr heutiges Zeilenende.
+  - Gemischte Dateien (DECISIONS.md, PROGRESS.md) sind wieder einheitlich CRLF.
+  - Ab jetzt werden Dateien nur noch binär bearbeitet (Python `rb`/`wb`, Zeilenende der Datei beibehalten) oder mit dem Edit-Werkzeug. Nie mit `sed -i`.
+- **Wirkung auf das Spiel:** keine; Compiler, Python und JSON-Leser nehmen beide Formen.
