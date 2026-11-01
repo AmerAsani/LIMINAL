@@ -194,6 +194,8 @@ std::optional<LevelDef> LevelDef::fromJson(const Json& jIn, std::string* error, 
         d.exitStart = f["exit_start"].asNumber(d.exitStart);
         d.exitRange = f["exit_range"].asNumber(d.exitRange);
         d.exitMax = f["exit_max"].asNumber(d.exitMax);
+        d.glowstick = f["glowstick"].asNumber(d.glowstick);  // V13.3
+        d.glowstickDark = f["glowstick_dark"].asNumber(d.glowstickDark);
     }
     L.sectorSize = (int)j["sector_size"].asInt(96);
     L.mapName = j["map"].asString("");  // V11
@@ -202,13 +204,14 @@ std::optional<LevelDef> LevelDef::fromJson(const Json& jIn, std::string* error, 
     L.touchLight = j["touch_light"].asBool(false);
     if (const Json* pr = j.find("presence"); pr && pr->isObject()) {
         L.allowHound = (*pr)["hound"].asBool(true), L.allowSmiler = (*pr)["smiler"].asBool(true);
+        L.smilerBait = (*pr)["smiler_bait"].asString("follow") == "hesitate" ? 1 : 0;  // V13.3 (KREATUR_Smiler.md)
         // V11: "clump": true/false oder ein Anteil 0..1 (wie oft es einzieht)
         const Json& cj = (*pr)["clump"];
         L.clumpRate = cj.isNumber() ? std::clamp(cj.asNumber(1.0), 0.0, 1.0) : (cj.asBool(false) ? 1.0 : 0.0);
         L.allowClump = L.clumpRate > 0.0;
         L.allowGestalt = (*pr)["gestalt"].asBool(true), L.allowBlackout = (*pr)["blackout"].asBool(true);
         // V13.2: neue Wesen
-        static const char* kKin[KIN_COUNT] = {"faceling", "skinstealer", "wretch", "rat", "window", "duller", "arms", "wrangler", "growler", "nguithrxurh"};
+        static const char* kKin[KIN_COUNT] = {"faceling", "skinstealer", "wretch", "rat", "window", "duller", "arms", "wrangler", "growler", "nguithrxurh", "ouroboros", "goblin"};
         for (int k = 0; k < KIN_COUNT; ++k) {
             const Json* kj = pr->find(kKin[k]);
             if (!kj || !kj->isObject()) continue;
@@ -227,6 +230,7 @@ std::optional<LevelDef> LevelDef::fromJson(const Json& jIn, std::string* error, 
     L.audio = j["audio"];
     L.dressing = j["dressing"];
     L.spawnRules = j["spawn_rules"];
+    L.phenomena = j["phenomena"];  // V13.3 (gameplay/phenomena.hpp)
     L.displayTitle = j["display_title"].asString(L.title);
     if (L.sectorSize < 32 || L.sectorSize % 16 != 0) return fail("sector_size muss ein Vielfaches von 16 (>= 32) sein");
     L.rarityDistance = j["rarity"]["distance"].asNumber(700.0);

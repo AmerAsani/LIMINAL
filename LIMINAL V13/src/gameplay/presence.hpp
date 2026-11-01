@@ -50,8 +50,10 @@ class Presence {
 public:
     // V11: Clump (Buendel); V13.2: Faceling, Skin-Stealer, Wretch, Death Rat, Fensterwesen (gleiche Reihenfolge wie anim::Entity)
     // V13.3: Growler, Nguithr'xurh hinter Duller, Arms, Wrangler (presence_growler.cpp, presence_nguithrxurh.cpp)
-    enum class Role { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Wrangler, Growler, Nguithr };
-    static constexpr int kRoleCount = 16;  // V13.3: Duller, Arms, Wrangler (KREATUR_Wrangler.md), Growler, Nguithr'xurh
+    // V13.3: Ouroboros-Arbeiter hinter Nguithr'xurh (presence_ouroboros.cpp)
+    // V13.3: Plague Goblins hinter den Ouroboros-Arbeitern (presence_goblin.cpp)
+    enum class Role { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Wrangler, Growler, Nguithr, Ouroboros, Goblin };
+    static constexpr int kRoleCount = 18;  // V13.3: Duller, Arms, Wrangler (KREATUR_Wrangler.md), Growler, Nguithr'xurh, Ouroboros-Arbeiter, Plague Goblins
     static const char* roleName(Role r);
 
     struct Event {
@@ -112,11 +114,43 @@ public:
             SacBurst,    // eine Netzkugel zerplatzt am Boden (strength: Betaeubung fuer das Ziel, 0: daneben)
             Skitter,     // Nguithr'xurh huscht
             Stridulate,  // Nguithr'xurh zirpt (Cheliceren reiben - im Licht, gestoert)
+            // V13.3: Ouroboros-Arbeiter (KREATUR_OuroborosArbeiter.md) - Werkzeug, Maschinen, Stimmen
+            Work,        // Werkzeug (strength: 0 Hammer, 0,25 Kelle, 0,5 Stein gesetzt, 0,75 Brechstange, 1 Stein bricht)
+            Weld,        // Schweissen (strength 0: Zuenden - Ankuendigung, 1: Lichtbogen knistert)
+            Jackhammer,  // Presslufthammer (ein Stoss von 0,6 s)
+            Warn,        // Warnklang (strength 0: Kompressor laeuft an und piept - Presslufthammer, 1: Warnleuchte des Geruests)
+            Creak,       // das Geruest knirscht und wankt (in 2,8 s kippt es)
+            Crash,       // Aufschlag (strength 1: das Geruest, 0,5: eine Lage der Mauer)
+            Murmur,      // dumpfe Stimme ohne Worte (strength 1: dicht am Spieler)
+            Shove,       // ein Arbeiter geht durch den Spieler hindurch / schiebt ihn
+            Dissolve,    // ein Arbeiter vergeht (vom eigenen Geruest getroffen); die anderen bemerken es nicht
+            // V13.3: Plague Goblins (KREATUR_PlagueGoblins.md) - Laute, Diebstahl, Portal
+            Croak,       // Kraechzen, Schnattern (strength 0: leises Schnattern, 0,5: Kraechzen, 1: Warnschrei)
+            Steal,       // am Ruecken des Ziels (strength 0: es zerrt am Rucksack - Ankuendigung, 0,5: nichts gefunden,
+                         // 1: genommen - item: was; die Sitzung nimmt es aus dem Inventar)
+            Take,        // hebt etwas Liegendes auf (item: was; die Sitzung entfernt den naechsten Fund bei pos)
+            Hiss,        // Drohen: Masken hoch, Fauchen - in 1,4 s greift die Bande an (F2)
+            Screech,     // Sprung auf das Ziel (Kreischen; der Biss folgt als Hit)
+            Portal,      // das Portal der Torwaechterin (strength 1: oeffnet, 0: schliesst)
+            Spill,       // ein toter Goblin verliert, was er im Umhang trug (item: was; die Sitzung legt es hin)
+            Gift,        // Handel: die Bande legt etwas hin (item: was)
+            Perish,      // ein Goblin stirbt (Todesschrei); die anderen fliehen
+            // V13.3: Leuchtkoeder und Ansprechen (KREATUR_Smiler.md, KREATUR_SkinStealer.md)
+            Lured,       // Smiler wendet sich dem staerkeren Licht eines Leuchtstabs zu (strength 1: folgt, 0: stutzt nur)
+            Reply,       // Skin-Stealer antwortet auf das Ansprechen - nachgeahmt, falsch betont (strength: (Satz*3+Art+0,5)/16)
+            Shriek,      // Skin-Stealer: die Tarnung faellt, er stuermt los (Rennen, erneutes Ansprechen, zu lange Naehe)
         } type;
         Role role = Role::Smiler;
         vec3 pos;
         float strength = 1.0f;
         int target = 0;  // V13.2 Koop: Spieler, den es betrifft (Context::selfId: dieser Rechner)
+        std::string item;  // V13.3: Plague Goblins - Gegenstand (Steal, Take, Spill, Gift)
+    };
+    // V13.3 Plague Goblins: Liegendes in der Naehe (Funde, Abgelegtes; dropped: vom Spieler hingelegt/geworfen)
+    struct Loose {
+        vec3 pos;
+        std::string kind;
+        bool dropped = false;
     };
 
     // V13.2 Koop: ein weiterer Spieler (Host: vom Host bewegte Figur eines Gasts; Gast: Mitspieler fuer Blick und Licht)
@@ -127,8 +161,17 @@ public:
         double noise = 0.0;
         const world::Room* room = nullptr;
         bool canBlackout = false;
+        const std::vector<std::string>* loot = nullptr;  // V13.3 Plague Goblins: was im Inventar zu holen ist
+        bool hatchet = false;                            // V13.3: haelt das Beil
+        double health = 100.0;                           // V13.3: Geschwaechte (die Seite: Allein, Schwache) werden bedraengt
     };
 
+    // V13.3: Leuchtkoeder - geworfener, leuchtender Leuchtstab: Ort und Leuchtkraft (die eingeschaltete Lampe zaehlt 1)
+    struct Lure {
+        vec3 pos;
+        float strength = 0.0f;
+        int id = 0;
+    };
     struct Context {
         const Player* player = nullptr;
         Viewer view;
@@ -164,6 +207,14 @@ public:
         // V13.2: neue Wesen der Ebene (world::KinDef[KIN_COUNT]: Faceling, Skin-Stealer, Wretch, Ratte, Fenster) oder nullptr
         const world::KinDef* kin = nullptr;
         bool almond = false;  // V13.3: der Spieler haelt Mandelwasser in der Hand (der Duller meidet es)
+        // V13.3 Plague Goblins: was im Inventar zu holen ist (je Stueck ein Eintrag), Beil in der Hand, Liegendes
+        const std::vector<std::string>* loot = nullptr;
+        bool hatchet = false;
+        const std::vector<Loose>* loose = nullptr;
+        double health = 100.0;
+        // V13.3 (KREATUR_Smiler.md): leuchtende Leuchtstaebe; Smiler folgen dem staerkeren Licht (0) oder stutzen nur (1, Level 3)
+        const std::vector<Lure>* lures = nullptr;
+        int smilerBait = 0;
     };
 
     // V13.2 Koop: Zustand eines Wesens fuer die Momentaufnahme (Host) und die Puppe beim Gast
@@ -255,6 +306,49 @@ public:
     vec3 spiderOf(int i, int* state = nullptr) const;
     bool placeAgent(Role r, int i, vec3 p);
     bool gnSet(Role r, const std::string& key, double v);
+    // V13.3: Ouroboros-Arbeiter (presence_ouroboros.cpp). Baustelle: Mauer und Geruest mit Gefahrenzone (Absperrband);
+    // ouroSet (Tests, Skripte): wall <phase>, tower <phase>, fill <0..1>, quick <Faktor>, kill <Arbeiter>; ouroInfo: Lage
+    // und Zonen (Tests); shoveFor: Schub (m/s) eines Arbeiters, der durch den Spieler geht; ouroLights: Lichtbogen und
+    // Warnleuchten (Ort, Farbe x Staerke)
+    struct OuroInfo {
+        bool placed = false;
+        vec3 wall, tower;            // Mitte der Mauer / der Standflaeche am Boden
+        float wallYaw = 0.0f, towerYaw = 0.0f;
+        vec3 wallZone[2], towerZone[2];  // Ecken (Welt, achsparallel) der abgesperrten Flaechen
+        int wallPhase = 0, towerPhase = 0, workers = 0;
+        vec3 sparkAt;                // wo die Funken auftreffen (0: nicht geschweisst)
+        int laid = 0, broken = 0;    // gesetzte Steine, abgetragene Lagen
+        // je Aufgabe (0 Maurer, 1 Klopfer, 2 Brecher, 3 Schweisser, 4 Traeger): vorhanden, Ort, Kopf, Blickrichtung, Aufgabe, Tempo
+        std::array<bool, 5> has{};
+        std::array<vec3, 5> pos{}, head{}, face{};
+        std::array<int, 5> task{};
+        std::array<float, 5> speed{};
+    };
+    OuroInfo ouroInfo() const;
+    bool ouroSet(const std::string& key, double v);
+    vec3 shoveFor(int target, vec3 feet) const;
+    void ouroLights(std::vector<std::pair<vec3, vec3>>& out, vec3 near) const;
+    // V13.3: Plague Goblins (presence_goblin.cpp). goblinSwing: ein Spieler schwingt das Beil (Auge, Blick) - 2: einen
+    // getroffen (stirbt, die Bande flieht und kommt nicht wieder), 1: verscheucht, 0: nichts. goblinInfo (Tests): Lage der
+    // Bande; goblinSet (Tests, Skripte): phase, mob, friendly, quick, rout, open
+    struct GoblinInfo {
+        bool active = false, friendly = false, routed = false, portalOpen = false;
+        int phase = 0, bodies = 0, dead = 0, steals = 0, fails = 0, gifts = 0;
+        vec3 portal;
+        std::vector<vec3> pos;    // je Wesen (ohne Portal)
+        std::vector<int> state, variant;
+        std::vector<float> mask;  // Maske hoch (Drohen, Angriff)
+    };
+    int goblinSwing(int target, vec3 eye, vec3 look);
+    GoblinInfo goblinInfo() const;
+    bool goblinSet(const std::string& key, double v);
+    // V13.3 Ansprechen (KREATUR_SkinStealer.md): die menschenaehnliche Gestalt (Skin-Stealer, Faceling, Wretch), die man
+    // von eye aus in Blickrichtung look in hoechstens maxDist m ansieht (beim Gast: Puppen); head: ihr Kopf
+    bool speakable(world::World& w, vec3 eye, vec3 look, float maxDist, vec3* head = nullptr) const;
+    // ein Spieler spricht sie an (Einzelspieler/Host; by: Spieler, phrase: welcher Satz) - nur der Skin-Stealer antwortet
+    bool address(world::World& w, vec3 eye, vec3 look, int by, int phrase);
+    bool exposedOf(Role r) const;  // V13.3 (Tests): Skin-Stealer entlarvt (hat verraeterisch geantwortet)
+    bool luredOf(Role r) const;    // V13.3 (Tests): Smiler folgt gerade einem Leuchtstab
 
 private:
     struct Agent;
@@ -332,8 +426,22 @@ private:
     void prepGN(Agent& a, const Context& c);  // Massstab, Leuchten, Netzkugeln an die Animation (auch Puppen und Vorfuehrungen)
     void preGN(double dt, const Context& c);  // je Bild vor allem anderen: Rauschen neu sammeln, Betaeubung klingt ab
     void prepNguithr(Agent& a, const Context& c);  // Spinne (Groesse, Lage, Augenschein) und Netzkugeln an die Animation
+    // V13.3: Ouroboros-Arbeiter (presence_ouroboros.cpp)
+    void regieOuroboros(double dt, const Context& c, std::vector<Event>& out);
+    bool spawnOuroboros(const Context& c, std::vector<Event>& out, bool forced);
+    void thinkOuroboros(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    void prepOuroboros(Agent& a, const Context& c);  // Kanaele -> Animation (auch Puppen und Vorfuehrungen)
+    // V13.3: Plague Goblins (presence_goblin.cpp)
+    void regieGoblin(double dt, const Context& c, std::vector<Event>& out);
+    bool spawnGoblin(const Context& c, std::vector<Event>& out, bool forced);
+    void thinkGoblin(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    void prepGoblin(Agent& a, const Context& c);  // Zustand, Groesse, Leuchten -> Animation (auch Puppen und Vorfuehrungen)
     bool roomAllowed(const Context& c, vec3 p, int kin) const;
     bool wander(Agent& a, double dt, const Context& c, double speed, int kin);
+    // V13.3 (presence_lure.cpp): Smiler am Leuchtkoeder (true: das Licht hat ihn, der Rest von thinkSmiler entfaellt);
+    // Skin-Stealer angesprochen (true: diese Runde erledigt)
+    bool baitSmiler(Agent& a, double dt, const Context& c, std::vector<Event>& out, float d, bool dark);
+    bool talkSkinStealer(Agent& a, double dt, const Context& c, std::vector<Event>& out, float d, bool los);
     void updateHive(double dt, const Context& c, std::vector<Event>& out);
     bool walkTo(Agent& a, const NavField& f, double speed, double dt, const Context& c);
     bool hiddenSpawn(const Context& c, int lo, int hi, bool behind, vec3& out, const std::function<bool(vec3)>& ok = {});
@@ -371,6 +479,13 @@ private:
     vec3 selfEye_;
     std::array<float, 4> stupor_{};
     std::array<double, 4> stuporHold_{};  // so lange klingt die Betaeubung noch nicht ab (s)
+    // V13.3: Ouroboros-Arbeiter - Baustelle gesetzt, Zeitraffer (Tests, Bilder), Stimmen, Ersatz fuer vergangene Arbeiter
+    bool ouroPlaced_ = false;
+    double ouroQuick_ = 1.0, ouroMurmurT_ = 6.0, ouroTry_ = 0.0;
+    std::shared_ptr<void> ouroSite_;
+    // V13.3: Plague Goblins - die Bande (Zustand in presence_goblin.cpp), naechster Auftritt
+    std::shared_ptr<void> goblinCtl_;
+    double nextGoblin_ = 50.0;
 };
 
 }  // namespace lim::game

@@ -24,7 +24,9 @@
 #include "gameplay/figure.hpp"
 #include "gameplay/presence.hpp"
 #include "gameplay/inventory.hpp"
+#include "gameplay/lure.hpp"
 #include "gameplay/pawn.hpp"
+#include "gameplay/phenomena.hpp"
 #include "gameplay/player.hpp"
 #include "gameplay/prefabs.hpp"
 #include "gameplay/stats.hpp"
@@ -201,6 +203,23 @@ public:
     // V6: Stapel aus der Hand (Inventar) ablegen
     void dropStack(const std::string& kind, int count);
     size_t droppedCount() const { return dropped_.size(); }
+    // V13.3 (session_lure.cpp): Leuchtstab (KREATUR_Smiler.md) - Licht der Staebe (geworfen und in der Hand) fuer die
+    // Darstellung; Ansprechen (KREATUR_SkinStealer.md) - eine menschenaehnliche Gestalt in wenigen Metern im Blick
+    struct GlowLight {
+        vec3 pos;
+        float power = 0.0f;  // 0..1
+    };
+    void glowLights(std::vector<GlowLight>& out, float radius) const;
+    const LureSystem& lures() const { return lures_; }
+    bool glowThrowPending() const { return glowPending_ > 0.0; }
+    bool speakTarget(vec3* head = nullptr) const;
+    void speak();
+    // V13.3 (session_phenomena.cpp): Erscheinungen von Level 1 ohne Figur - Crawler-Pilz, Garden, Gemaelde der
+    // Spielleiterin, Spuren an einer Tuer (KREATUR_Crawler.md, KREATUR_GameMaster.md, KREATUR_L1_Erscheinungen.md).
+    // Der eigene Spieler hat immer die Nummer 0 (Gast: Bild und Klang aus eigener Rechnung)
+    const Phenomena& phenomena() const { return phenomena_; }
+    Phenomena& phenomena() { return phenomena_; }
+    bool inGarden(double x, double y) const;
 
     // Darstellung
     const world::Room* currentRoom() const { return room_; }
@@ -244,6 +263,7 @@ public:
     bool pawnInteract(Pawn& p, u32 itemHash, std::string& msg, int& note);
     bool pawnUse(Pawn& p, int slot, std::string& msg, std::string& sound);
     bool pawnDrop(Pawn& p, int slot, bool all);
+    bool pawnSpeak(Pawn& p, int phrase);  // V13.3: Interact mit 0..3 statt Kennzahl - der Gast spricht an, wen er ansieht
     void pawnRespawn(Pawn& p);
     // Uebergang, in dem dieser Spieler gerade steht (nullptr: keiner); needsOk: die noetige Sache ist dabei
     const world::MapTransition* transitionAt(const Player& p, const Inventory& inv, bool& needsOk) const;
@@ -264,6 +284,13 @@ public:
         std::string text;
     };
     std::vector<NetPersonal> netPersonalOut;               // Host: Meldungen an einen Gast (leere Lampe ...)
+    struct NetSound {
+        std::string sound;
+        vec3 pos;
+        float volume = 1.0f;
+        int except = -1;  // dieser Spieler hoert es schon selbst (-1: alle)
+    };
+    std::vector<NetSound> netSoundOut;                     // V13.3 Host: Klaenge fuer die Gaeste (Ansprechen, Wurf)
     // Gast
     std::function<void(int kind, u32 arg)> netAction;      // Absichten an den Host (statt sie hier auszufuehren)
     void netRemoveItem(u32 hash);
@@ -353,6 +380,15 @@ private:
     void throwFrom(const Player& p, vec3 eye, const std::string& kind, int count, int by);
     void updatePawnsPresence(Presence::Context& c);
     std::vector<Presence::Other> others_;
+    // V13.3: Plague Goblins (session_goblin.cpp) - was sie stehlen koennen, Liegendes in der Naehe, ihre Wirkung auf die Welt
+    // (Diebstahl, Aufheben, Verlorenes, Geschenk), das Beil (who: 0 dieser Rechner, sonst Gast; Rueckgabe wie goblinSwing)
+    void goblinContext(Presence::Context& c);
+    void goblinWorld(const Presence::Event& e);
+    int hatchetSwing(const Player& p, vec3 eye, int who);
+    void spawnLooseAt(const std::string& kind, vec3 pos);
+    std::vector<std::string> goblinLoot_;
+    std::array<std::vector<std::string>, 4> pawnLoot_;
+    std::vector<Presence::Loose> loose_;
     // V11: Laerm an anderen Orten in diesem Bild (Aufprall geworfener Dinge) und Lager des Buendels
     std::vector<std::pair<vec3, float>> noisePings_;
     std::vector<vec3> clumpLairs_;
@@ -449,6 +485,21 @@ private:
     Presence presence_;
     std::vector<Presence::Event> presenceEvents_;
     void updatePresence(double dt);
+    // V13.3 (session_lure.cpp): Leuchtstaebe, Wurf (Geste, dann Loslassen), Koeder fuer die Praesenz, Ansprechen
+    LureSystem lures_;
+    std::vector<Presence::Lure> presenceLures_;
+    double glowPending_ = -1.0, speakCool_ = 0.0;
+    int glowSlot_ = -1;
+    bool startGlowThrow(int idx);
+    void launchGlowstick(const Player& p, vec3 eye, int by);
+    void updateLures(double dt);
+    void netAddLure(vec3 pos);
+    // V13.3 (session_phenomena.cpp): Erscheinungen ohne Figur
+    Phenomena phenomena_;
+    std::vector<Phenomena::Event> phenEvents_;
+    void updatePhenomena(double dt);
+    void applyPhenomena(std::vector<Phenomena::Event>& evs);
+    void spawnTraces(const world::ChunkData& cd);
     std::vector<mat4> palette_;
     FigureRig playerRig_;
     int bodyStyle_ = -1;  // angewendete Koerperart (0 Strichmaennchen, 1 realistisch)

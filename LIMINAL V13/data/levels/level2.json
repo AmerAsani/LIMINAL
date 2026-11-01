@@ -25,7 +25,8 @@
                "growler": { "mode": "young", "group": [2, 3], "every": 210, "chance": 0.5 },
                "nguithrxurh": { "mode": "small", "group": [2, 3], "every": 160, "chance": 0.25 } },
   "next_level": "level3",
-  "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0 },
+  // V13.3 (KREATUR_Smiler.md): Leuchtstaebe liegen herum, eher in dunklen Raeumen - Koeder fuer Smiler
+  "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0, "glowstick": 0.03, "glowstick_dark": 0.12 },
 
   "zones": [
     { "key": "beton", "fixture": "tube", "name": "Tunnel",

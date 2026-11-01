@@ -41,6 +41,7 @@ GameSession::GameSession(const Content& content, const PrefabLibrary& prefabs,
     tiles_ = std::make_unique<TileAdapter>(*world_);
     world_->onChunkLoaded = [this](const world::ChunkData& cd) { onChunk(cd, true); };
     world_->onChunkUnloaded = [this](const world::ChunkData& cd) { onChunk(cd, false); };
+    phenomena_.setup(world_->level(), (u64)seed);  // V13.3: Erscheinungen ohne Figur (session_phenomena.cpp)
     // V7: Laufbuch (V8: in der Welt beginnt jeder Lauf in der ersten Ebene)
     runLog_.levels.push_back(world_->level().world() ? world_->level().regions.front().id : levelId);
 }
@@ -109,6 +110,7 @@ void GameSession::respawnAtCheckpoint() {
     deathCause_.clear();
     killCam_ = false, killT_ = 0.0, killRole_ = -1;
     air_ = 30.0, deepT_ = 0.0, deepStage_ = 0;  // V11
+    phenomena_.reset(0);  // V13.3: neuer Anfang ohne Pilz und Ranken
     presence_.clear();
     presence_.setGrace(90.0);  // Schonzeit: kein Stromausfall, keine Entity gleich wieder
     haunt_.reset();
@@ -206,6 +208,7 @@ void GameSession::onChunk(const world::ChunkData& cd, bool loaded) {
             }
         spawnLevelEntities(cd);
         spawnFinds(cd);  // V7: Notizen, Batterien, Notausgaenge
+        spawnTraces(cd);  // V13.3: offenes Mandelwasser (session_phenomena.cpp)
         // V6: abgelegte Items dieses Chunks wieder hinlegen
         for (auto& d : dropped_)
             if (!reg_.alive(d.entity) && world::chunkOf(ifloor(d.pos.x), ifloor(d.pos.y)) == cd.key) spawnDropped(d, {}, true);
@@ -285,6 +288,11 @@ void GameSession::spawnFinds(const world::ChunkData& cd) {
                     e = prefabs_.spawn(reg_, "item_pickup", s.pos, s.yaw);
                     if (auto* p = reg_.get<Pickup>(e)) p->item = "battery", p->worldId = s.id;
                     if (auto* m = reg_.get<MeshRenderer>(e)) m->model = "battery";
+                } else if (s.kind == FindSpot::Glowstick) {  // V13.3
+                    if (picked.count(s.id) || !content_.item("glowstick")) continue;
+                    e = prefabs_.spawn(reg_, "item_pickup", s.pos, s.yaw);
+                    if (auto* p = reg_.get<Pickup>(e)) p->item = "glowstick", p->worldId = s.id;
+                    if (auto* m = reg_.get<MeshRenderer>(e)) m->model = "glowstick";
                 } else if (s.kind == FindSpot::FuseBox) {
                     // V9: Sicherungskasten - knapp vor der Wand; schon geleert: offen und still
                     if (!content_.item(s.item)) continue;
@@ -595,6 +603,7 @@ void GameSession::carryOver(const GameSession& from) {
     levelMemory = from.levelMemory;
     levelMemory[from.levelId] = {from.picked, from.mapNotes_};
     if (auto it = levelMemory.find(levelId); it != levelMemory.end()) picked = it->second.picked, mapNotes_ = it->second.notes;
+    phenomena_.ailment(0) = from.phenomena_.ailment(0);  // V13.3: der Pilz reist mit (die Garden-Uhr geht draussen zurueck)
 }
 
 // Wanderer: gehen zu zufaelligen Zielen in der Naehe, bleiben auf begehbaren Kacheln
@@ -766,16 +775,23 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
     player_.speedMul *= 1.0 - 0.5 * presence_.trance();  // V13.3: der Anblick des Wranglers laehmt
     // V13.3: betaeubt (Nguithr'xurh) langsamer und ohne Sprint; durch das Gewirr einer Growler-Leiche waten
     player_.speedMul *= presence_.slowFor(netSelfId, {(float)player_.x, (float)player_.y, (float)player_.z});
+    player_.speedMul *= phenomena_.speedMul(0);            // V13.3: Fieber, Ranken (session_phenomena.cpp)
     PlayerControl c = paused ? PlayerControl{} : control;
     if (!stats_.canSprint() || presence_.stupor(netSelfId) > 0.5f) c.sprint = false;
     if (ride_.active) c.forward = c.side = 0.0f, c.sprint = c.jump = false;  // V8: im Aufzug nur umsehen
     if (stats_.dead) c.forward = c.side = 0.0f, c.sprint = c.jump = c.jumpHeld = false;  // V13.2: tot (Koop: zusehen)
+    if (phenomena_.frozen(0)) c.forward = c.side = 0.0f, c.sprint = c.jump = c.jumpHeld = false;  // V13.3: ihre Einladung
     const double prevX = player_.x, prevY = player_.y;
     // V11: Wasserspiegel am Ort (Raum unter dem Spieler)
     if (const world::Room* wr = world_->roomAt(player_.x, player_.y)) player_.waterZ = wr->water;
     else player_.waterZ = -999.0;
     if (!world_->level().flashlight && flash_.on) flash_.on = false;  // V11: Level 6
     player_.update(dt, c, *tiles_);
+    // V13.3: Ouroboros-Arbeiter weichen nicht aus - wer im Weg steht, wird beiseitegeschoben (Wand bleibt Wand)
+    if (!paused && !stats_.dead && !ride_.active) {
+        const vec3 sh = presence_.shoveFor(netSelfId, {(float)player_.x, (float)player_.y, (float)player_.z});
+        if (sh.x != 0.0f || sh.y != 0.0f) phys::moveAndSlide(*tiles_, player_.x, player_.y, player_.z, sh.x * dt, sh.y * dt, player_.shape);
+    }
     // V13.3: der Leib des Wranglers zieht den Blick an (KREATUR_Wrangler.md) - gegensteuern, wegsehen
     if (vec3 at; !paused && !stats_.dead && presence_.trance(&at) > 0.02f) {
         const float tr = presence_.trance();
@@ -792,6 +808,7 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
         if (player_.jumped) stats_.spendStamina(4.0);
         if (stats_.exhausted && !wasExhausted) events_.push_back({GameEvent::Exhausted, "Außer Atem – kurz verschnaufen …", 2.5f});
         updateDropped(dt);
+        updateLures(dt);  // V13.3: Leuchtstaebe (session_lure.cpp)
         updateWater(dt);  // V11
         // V7: Taschenlampe verbraucht Batterie
         if (flash_.update(dt)) events_.push_back({GameEvent::FlashEmpty, "Die Batterie der Taschenlampe ist leer.", 3.0f});
@@ -877,6 +894,7 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
             for (Pawn* p : pawns)
                 if (p) pawnTick(*p, dt);
         updatePresence(dt);  // V10
+        updatePhenomena(dt);  // V13.3: Pilz, Garden, Gemaelde, Tuerspuren (nach den Wesen: others_ ist gefuellt)
     }
     if (killCam_ && !paused) killT_ += dt;  // V11
     target_ = ecs::kNull;
@@ -1058,7 +1076,7 @@ void GameSession::findTarget() {
 }
 
 std::string GameSession::targetPrompt() const {
-    if (target_ == ecs::kNull) return "";
+    if (target_ == ecs::kNull) return speakTarget() ? "Ansprechen" : "";  // V13.3 (KREATUR_SkinStealer.md)
     auto& reg = const_cast<ecs::Registry&>(reg_);
     auto* pk = reg.get<Pickup>(target_);
     auto* in = reg.get<Interactable>(target_);
@@ -1080,7 +1098,10 @@ std::string GameSession::targetPrompt() const {
 }
 
 void GameSession::interact() {
-    if (target_ == ecs::kNull) return;
+    if (target_ == ecs::kNull) {
+        if (speakTarget()) speak();  // V13.3: niemand zum Aufnehmen im Blick, aber eine Gestalt - ansprechen
+        return;
+    }
     if (netAction) {  // V13.2 Koop (Gast): Aufnehmen und Lesen entscheidet der Host
         if (const u32 h = targetHash()) {
             netAction(1, h);
@@ -1183,8 +1204,31 @@ void GameSession::interact() {
 }
 
 void GameSession::useSlot(int idx) {
+    // V13.3: das Beil wird nicht verbraucht - es schwingt (Plague Goblins: verscheuchen, ein Treffer toetet)
+    const bool hatchet = idx >= 0 && idx < Inventory::kSize && inventory_.slots[(size_t)idx] && inventory_.slots[(size_t)idx]->kind == "hatchet";
+    if (hatchet && !body_.gestureActive()) {
+        const ItemDef* hd = content_.item("hatchet");
+        body_.gesture(Body::Gesture::Swing, {}, hd ? hd->model : "hatchet", hd ? (float)hd->holdOffset : 0.0f, hd ? (float)hd->scale : 1.0f);
+        GameEvent ev{GameEvent::Consume, "", 0.0f};
+        ev.sound = "hatchet_swing";
+        events_.push_back(ev);
+        if (netAction) netAction(2, (u32)idx);  // Koop (Gast): der Host rechnet den Schwung
+        else if (hatchetSwing(player_, body_.eye(), netSelfId) == 2) {
+            GameEvent hit{GameEvent::Consume, "", 0.0f};
+            hit.sound = "hatchet_hit";
+            events_.push_back(hit);
+        }
+        return;
+    }
+    if (hatchet) return;
+    if (startGlowThrow(idx)) return;  // V13.3: Leuchtstab knicken und werfen (session_lure.cpp; Gast: Eingabe beim Loslassen)
     if (netAction) {  // V13.2 Koop (Gast)
-        if (idx >= 0 && idx < Inventory::kSize && inventory_.slots[(size_t)idx]) netAction(2, (u32)idx);
+        if (idx >= 0 && idx < Inventory::kSize && inventory_.slots[(size_t)idx]) {
+            std::vector<Phenomena::Event> pe;  // V13.3: eigenes Bild und Klang (die Werte rechnet der Host)
+            const std::string extra = phenomena_.drink(0, inventory_.slots[(size_t)idx]->kind, pe);
+            if (!extra.empty()) events_.push_back({GameEvent::Toast, extra, 3.0f});
+            netAction(2, (u32)idx);
+        }
         return;
     }
     if (idx >= 0 && idx < Inventory::kSize && inventory_.slots[(size_t)idx] && isFuse(inventory_.slots[(size_t)idx]->kind)) {
@@ -1207,6 +1251,8 @@ void GameSession::useSlot(int idx) {
         return;
     }
     GameEvent ev{GameEvent::Consume, stats_.consume(*d), 3.0f};
+    std::vector<Phenomena::Event> pe;  // V13.3: offenes Mandelwasser steckt an, versiegeltes heilt frueh (KREATUR_Crawler.md)
+    if (const std::string extra = phenomena_.drink(0, d->key, pe); !extra.empty()) ev.text += " · " + extra, ev.duration = 4.0f;
     ev.sound = d->useSound;
     events_.push_back(ev);
     // die Hand fuehrt das Item zum Mund
@@ -1316,6 +1362,8 @@ void GameSession::collectMeshes(std::vector<VisibleMesh>& out) {
         v.highlight = m.highlight;
         out.push_back(v);
     });
+    lures_.collect(out, eye);  // V13.3: Leuchtstaebe
+    phenomena_.collect(out, eye);  // V13.3: Gemaelde am Boden (KREATUR_GameMaster.md)
     haunt_.collect(out);  // V7: "Der Andere"
     presence_.collect(out, palette_, eye, figureDetail);  // V10: die Figuren
     for (Pawn* p : pawns)  // V13.2 Koop: die Mitspieler (Spielermodell, Lampe von aussen)
@@ -1358,6 +1406,7 @@ Json GameSession::toJson() const {
     p.set("distance", player_.distance);
     j.set("player", std::move(p));
     j.set("stats", stats_.toJson());
+    j.set("phenomena", phenomena_.toJson(0));  // V13.3
     j.set("inventory", inventory_.toJson());
     j.set("selected", inventory_.selected);
     std::vector<std::string> ids(picked.begin(), picked.end());
@@ -1458,6 +1507,7 @@ void GameSession::fromJson(const Json& j) {
     player_.pitch = std::clamp(p["pitch"].asNumber(0.0), -Player::kPitchMax, Player::kPitchMax);
     player_.distance = p["distance"].asNumber(0.0);
     stats_.fromJson(j["stats"]);
+    phenomena_.fromJson(0, j["phenomena"]);  // V13.3
     inventory_.fromJson(j["inventory"]);
     inventory_.selected = (int)(j["selected"].asInt(0) % Inventory::kHotbar);
     picked.clear();
@@ -1572,6 +1622,7 @@ void GameSession::updatePresence(double dt) {
     landNoise_ = std::max(0.0, landNoise_ - dt * 2.5);
     c.noise = std::max(noise, landNoise_);
     c.pings = &noisePings_;
+    c.lures = &presenceLures_, c.smilerBait = L.smilerBait;  // V13.3: Leuchtkoeder (KREATUR_Smiler.md)
     if (const Json& bo = L.audio["blackout"]; bo.isObject()) {
         c.blackoutEvery0 = bo["every"][0].asNumber(200.0), c.blackoutEvery1 = bo["every"][1].asNumber(340.0);
         c.blackoutLen0 = bo["duration"][0].asNumber(20.0), c.blackoutLen1 = bo["duration"][1].asNumber(32.0);
@@ -1587,6 +1638,7 @@ void GameSession::updatePresence(double dt) {
     // V7: die Gestalt im (halluzinierten) Stromausfall zeigt jetzt das Praesenzsystem
     if (haunt_.takeGhostRequest() && hallucinations) presence_.force(Presence::Role::Gestalt);
     if (netRole != NetRole::Solo) updatePawnsPresence(c);  // V13.2 Koop
+    goblinContext(c);                                      // V13.3: Plague Goblins (Vorraete, Beil, Liegendes, Gesundheit)
     if (netRole == NetRole::Guest && netCreaturesFresh) {
         presence_.netApply(netCreatures, presence_.netTime());
         netCreaturesFresh = false;
@@ -1626,6 +1678,7 @@ void GameSession::updatePresence(double dt) {
     stats_.sanity = std::max(0.0, stats_.sanity);
     using PE = Presence::Event;
     for (const PE& e : presenceEvents_) {
+        goblinWorld(e);  // V13.3: Plague Goblins - Diebstahl, Aufheben, Verlorenes, Geschenk
         if (netRole == NetRole::Host && e.target != netSelfId) {  // V13.2 Koop: betrifft einen Gast
             netFigureOut.push_back(e);
             Pawn* p = nullptr;
@@ -1672,7 +1725,10 @@ void GameSession::updatePresence(double dt) {
                                  e.type == PE::Scrape || e.type == PE::Bulge || e.type == PE::Burst || e.type == PE::Burn || e.type == PE::Retract ||
                                  (e.type == PE::Windup && e.role == Presence::Role::Arms) ||  // V13.3
                                  e.type == PE::Click || e.type == PE::Lurch || e.type == PE::Merge || e.type == PE::Collapse ||
-                                 e.type == PE::Snip || e.type == PE::SacBurst || e.type == PE::Skitter || e.type == PE::Stridulate;  // V13.3
+                                 e.type == PE::Snip || e.type == PE::SacBurst || e.type == PE::Skitter || e.type == PE::Stridulate ||  // V13.3
+                                 e.type == PE::Croak || e.type == PE::Steal || e.type == PE::Take || e.type == PE::Hiss ||
+                                 e.type == PE::Screech || e.type == PE::Portal || e.type == PE::Perish || e.type == PE::Mimic ||  // V13.3 Plague Goblins
+                                 e.type == PE::Reply || e.type == PE::Shriek;                 // V13.3: Skin-Stealer (Ansprechen)
             if (!audible) continue;
             if (e.type == PE::Flicker)
                 if (const world::Tile* t = world_->tileIfLoaded(ifloor(e.pos.x), ifloor(e.pos.y)); t && t->room) haunt_.flicker(t->room);
@@ -1693,7 +1749,10 @@ void GameSession::updatePresence(double dt) {
                                          e.type == PE::Scrape || e.type == PE::Bulge || e.type == PE::Burst || e.type == PE::Burn ||
                                          e.type == PE::Retract || (e.type == PE::Windup && e.role == Presence::Role::Arms) ||  // V13.3
                                          e.type == PE::Click || e.type == PE::Lurch || e.type == PE::Merge || e.type == PE::Collapse ||  // V13.3
-                                         e.type == PE::Snip || e.type == PE::SacBurst || e.type == PE::Skitter || e.type == PE::Stridulate))
+                                         e.type == PE::Snip || e.type == PE::SacBurst || e.type == PE::Skitter || e.type == PE::Stridulate ||
+                                         e.type == PE::Croak || e.type == PE::Take || e.type == PE::Hiss || e.type == PE::Screech ||
+                                         e.type == PE::Portal || e.type == PE::Perish ||  // V13.3 Plague Goblins
+                                         e.type == PE::Reply || e.type == PE::Shriek))
             netFigureOut.push_back(e);  // auch die Gaeste hoeren es
         GameEvent ev;
         ev.type = GameEvent::Figure;
@@ -1851,6 +1910,8 @@ void GameSession::collectBody(std::vector<VisibleMesh>& out, bool firstPerson) {
         for (size_t i = figFirst; i < out.size(); ++i) out[i].clip = vec4(wr + hd * 0.02f, 0.025f);
     }
     if (!(debugDraw & 4)) body_.collectProps(out);
+    const vec4 skin = phenomena_.skinFx(0);  // V13.3: Pilz und Ranken auf der eigenen Haut (nur Hautmaterialien)
+    for (size_t i = figFirst; i < out.size(); ++i) out[i].fx = skin;
     if (sk && body_.viewmodelHand() && body_.lampVisible() && !(debugDraw & 1)) {
         static const int grip = sk->pose("grip"), press = sk->pose("press");
         std::vector<float> w(sk->poses.size(), 0.0f);
@@ -1874,6 +1935,7 @@ void GameSession::collectBody(std::vector<VisibleMesh>& out, bool firstPerson) {
         v.attached = true;
         v.cullCenter = o;
         v.cullRadius = 0.0f;
+        v.fx = skin;
         out.push_back(v);
     }
 }

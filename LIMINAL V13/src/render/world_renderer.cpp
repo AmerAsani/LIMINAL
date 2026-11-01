@@ -163,6 +163,15 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     materialData_[FM_FUSEBOX] = GpuMaterial{{1, 1, 1}, 0, all(L_FUSE), 1.0f, 0, 0.0f};
     materialData_[FM_FUSE_GLOW] = GpuMaterial{{1.0f, 0.4f, 0.07f}, 3.5f, all(L_FUSE), 1.0f, 0, 0.0f};
     materialData_[FM_ITEM_FUSE] = GpuMaterial{{1, 1, 1}, 0, all(L_FUSE), 1.0f, 0, 0.0f};
+    // V13.3: Beil - Eschenstiel (geoelt, abgegriffen), geschmiedeter Kopf (dunkel, die Schneide blank geschliffen)
+    materialData_[FM_ITEM_HATCHET_WOOD] = GpuMaterial{{0.62f, 0.45f, 0.28f}, 0, all(L_WOOD), 0.7f, 0, 0.25f};
+    materialData_[FM_ITEM_HATCHET_HEAD] = GpuMaterial{{0.24f, 0.24f, 0.25f}, 0, all(L_METAL), 0.42f, 1.0f, 0.3f};
+    // V13.3: Leuchtstab - Huelle aus mattem, durchscheinendem Kunststoff (ungeknickt blass gelbgruen, glaenzend); geknickt
+    // leuchtet die Fluessigkeit gruen (hell, gegen Ende matt); Kappe aus festem, dunklerem Kunststoff
+    materialData_[FM_ITEM_GLOWSTICK] = GpuMaterial{{0.58f, 0.72f, 0.42f}, 0, all(L_DIFFUSER), 0.3f, 0, 0.05f};
+    materialData_[FM_ITEM_GLOWSTICK_LIT] = GpuMaterial{{0.30f, 1.0f, 0.18f}, 1.6f, all(L_DIFFUSER), 0.3f, 0, 0.0f};
+    materialData_[FM_ITEM_GLOWSTICK_DIM] = GpuMaterial{{0.30f, 0.95f, 0.18f}, 0.7f, all(L_DIFFUSER), 0.3f, 0, 0.0f};
+    materialData_[FM_ITEM_GLOWSTICK_CAP] = GpuMaterial{{0.30f, 0.42f, 0.24f}, 0, all(L_PLASTER), 0.55f, 0, 0.1f};
     // V10: Figuren - Haut, Stoff und Haar triplanar (Toenung x helle Textur), Augen und Ausweis mit UV
     auto tri = [&](u32 l) { return all(l) | kMatFlagTriplanar; };
     materialData_[FM_SKIN_PLAYER] = GpuMaterial{{0.95f, 0.86f, 0.8f}, 0, tri(L_SKIN), 1.0f, 0, 0.3f};
@@ -279,6 +288,59 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     materialData_[FM_ENT_SOLIFUGE_HAIR] = GpuMaterial{{1.9f, 1.55f, 1.1f}, 0, ent(EL_FUR, ML_FIBER), 1.5f, 0, 0.3f};
     materialData_[FM_ENT_SOLIFUGE_JOINT] = GpuMaterial{{0.85f, 0.5f, 0.28f}, 0, ent(EL_FUR, ML_FIBER), 1.6f, 0, 0.15f};
     materialData_[FM_ENT_SEDATIVE] = GpuMaterial{{0.72f, 0.66f, 0.48f}, 0, ent(EL_TOOTH, ML_PORES), 0.1f, 0, 0.15f};  // Runde 5: Pfuetzen wie helles Papier - dunkler, nass
+    // V13.3: Ouroboros-Arbeiter - der Koerper ist ein Schatten mit Rauchrand (kMatOuroSmoke); der Overall faengt etwas Licht
+    // (verwaschenes, staubiges Segeltuch), Gesicht und Haende schlucken es. Die Werkzeuge sind echt und fest - die Gefahr
+    const u32 obSmoke = kMatFlagSmoke | kMatFlagSilhouette | kMatOuroSmoke;
+    // all() legt die Ebene auch in die Bits 16-23 - dort steht die Kennung des Rauchrands; ohne Loeschen griff er nie (Runde 2)
+    auto obTri = [&](u32 l) { return (tri(l) & ~0x00FF0000u) | obSmoke; };
+    // Runde 1/2: als nichtmetallischer Stoff wurde der Overall im Lampenlicht zur hellgrauen Schaufensterpuppe (auch bei Albedo
+    // 0,02); metallisch ohne Streulicht bleibt er ein Schatten, in dem nur Falten und Naehte schimmern
+    materialData_[FM_ENT_OB_OVERALL] = GpuMaterial{{0.030f, 0.029f, 0.027f}, 0, obTri(L_DENIM), 1.3f, 1.0f, 0.6f};
+    materialData_[FM_ENT_OB_VOID] = GpuMaterial{{0.0025f, 0.0025f, 0.003f}, 0, obTri(L_SKIN), 1.4f, 1.0f, 0.0f};
+    materialData_[FM_ENT_OB_DUST] = GpuMaterial{{0.07f, 0.068f, 0.064f}, 0, obTri(L_DENIM), 1.8f, 1.0f, 0.6f};  // Zementstaub, Knie (Runde 1/2: leuchteten wie Augen)
+    materialData_[FM_ENT_OB_EYE] = GpuMaterial{{0.58f, 0.58f, 0.54f}, 0, ent(EL_TOOTH, ML_PORES), 0.9f, 0, 0.1f};  // matt, nur im Licht
+    materialData_[FM_ENT_OB_RUBBER] = GpuMaterial{{0.034f, 0.034f, 0.035f}, 0, tri(L_LEATHER), 0.55f, 0, 0.45f};   // Gummistiefel, Schlauch
+    materialData_[FM_ENT_OB_STEEL] = GpuMaterial{{0.60f, 0.60f, 0.58f}, 0, ent(EL_TOOTH, ML_CRAZE), 0.55f, 1.0f, 0.35f};  // verzinkt, Werkzeug
+    materialData_[FM_ENT_OB_RUST] = GpuMaterial{{0.30f, 0.21f, 0.15f}, 0, ent(EL_HORN, ML_CRAZE), 1.35f, 0.3f, 0.5f};
+    // Gehaeuse des Presslufthammers: dunkler, abgegriffener Guss mit Resten von Lack (Runde 1: gelb mit Rippen las sich als Maiskolben)
+    materialData_[FM_ENT_OB_PAINT] = GpuMaterial{{0.15f, 0.14f, 0.12f}, 0, ent(EL_TOOTH, ML_CRAZE), 0.8f, 0.55f, 0.55f};
+    materialData_[FM_ENT_OB_WOOD] = GpuMaterial{{0.50f, 0.38f, 0.25f}, 0, ent(EL_HORN, ML_FIBER), 1.25f, 0, 0.5f};
+    materialData_[FM_ENT_OB_BRICK] = GpuMaterial{{0.74f, 0.31f, 0.17f}, 0, ent(EL_TOOTH, ML_PORES), 1.9f, 0, 0.3f};  // Hochlochziegel (Runde 3/5: Horn-Ebene wie Lederkissen)
+    materialData_[FM_ENT_OB_TAPE_R] = GpuMaterial{{0.60f, 0.07f, 0.05f}, 0, ent(EL_TOOTH, ML_PORES), 0.6f, 0, 0.35f};
+    materialData_[FM_ENT_OB_TAPE_W] = GpuMaterial{{0.82f, 0.81f, 0.77f}, 0, ent(EL_TOOTH, ML_PORES), 0.6f, 0, 0.35f};
+    materialData_[FM_ENT_OB_SPARK] = GpuMaterial{{1.0f, 0.74f, 0.38f}, 6.0f, ent(EL_TOOTH, ML_PORES), 0.5f, 0, 0.0f};
+    materialData_[FM_ENT_OB_BEACON] = GpuMaterial{{1.0f, 0.56f, 0.10f}, 4.0f, ent(EL_TOOTH, ML_PORES), 0.3f, 0, 0.0f};
+    materialData_[FM_ENT_OB_CARD] = GpuMaterial{{0.40f, 0.44f, 0.33f}, 0, ent(EL_TOOTH, ML_FIBER), 1.7f, 0, 0.5f};  // Anhaenger am Guertel
+    // V13.3: Plague Goblins (KREATUR_PlagueGoblins.md) - weiches schwarzes Federfell (matt, ein Hauch Blauschwarz), Schuppenbeine
+    // (trocken), Krallen und Schnabel (Horn, glatt), Saegezaehne (gelblich, nass), Rachen (nass, dunkelrot), Augen (spiegelnd gelb -
+    // das Leuchten kommt aus glow: im Dunkeln schwach, im Lichtkegel hell). Masken: glatt und hell (Henchmen, abgegriffen), dunkles
+    // Leder (Spaeher), roter Lack mit Messing (Torwaechterin); grober Umhang, Cape aus Samt, Filzhut; Silberstock, Sand
+    materialData_[FM_ENT_PG_FEATHER] = GpuMaterial{{0.034f, 0.034f, 0.040f}, 0, ent(EL_FUR, ML_FIBER), 0.72f, 0, 0.25f};
+    materialData_[FM_ENT_PG_SCALE] = GpuMaterial{{0.24f, 0.22f, 0.20f}, 0, ent(EL_SKIN, ML_SCALE), 0.6f, 0, 0.35f};  // Runde 2: verschwand im Dunkel
+    materialData_[FM_ENT_PG_TALON] = GpuMaterial{{0.09f, 0.08f, 0.075f}, 0, ent(EL_HORN, ML_CRAZE), 0.42f, 0, 0.2f};
+    materialData_[FM_ENT_PG_BEAK] = GpuMaterial{{0.12f, 0.115f, 0.11f}, 0, ent(EL_HORN, ML_CRAZE), 0.2f, 0, 0.25f};  // Runde 1/4: schwarz im Schwarz
+    materialData_[FM_ENT_PG_TOOTH] = GpuMaterial{{0.78f, 0.71f, 0.52f}, 0, ent(EL_TOOTH, ML_PORES), 0.32f, 0, 0.3f};
+    materialData_[FM_ENT_PG_MOUTH] = GpuMaterial{{0.52f, 0.11f, 0.12f}, 0, ent(EL_SKIN, ML_PORES), 0.18f, 0, 0.15f};  // Runde 4: Rachen nicht zu sehen
+    // Runde 1: flache, gleichmaessig leuchtende Scheiben (Comic) - dunkler Bernstein, nass glaenzend, weniger Eigenleuchten
+    materialData_[FM_ENT_PG_EYE] = GpuMaterial{{0.78f, 0.48f, 0.06f}, 1.8f, ent(EL_TOOTH, ML_PORES), 0.04f, 0, 0.0f};
+    // Runde 1: fleckig wie eine Kartoffel (Zahn-Ebene) - gekochtes, gewachstes Leder, blass, glatt
+    materialData_[FM_ENT_PG_MASK] = GpuMaterial{{0.47f, 0.40f, 0.31f}, 0, tri(L_LEATHER), 0.5f, 0, 0.4f};  // Runde 3: leuchtend weiss - hellbraun, verschmutzt
+    materialData_[FM_ENT_PG_LEATHER] = GpuMaterial{{0.10f, 0.075f, 0.06f}, 0, tri(L_LEATHER), 0.55f, 0, 0.35f};
+    // Runde 1: weisse Sprenkel; Runde 2: grell rot wie Spielzeug - Ochsenblut, gealterter Lack
+    materialData_[FM_ENT_PG_ORNATE] = GpuMaterial{{0.11f, 0.028f, 0.024f}, 0, tri(L_LEATHER), 0.45f, 0, 0.3f};
+    materialData_[FM_ENT_PG_GLASS] = GpuMaterial{{0.08f, 0.10f, 0.09f}, 0, ent(EL_TOOTH, ML_PORES), 0.05f, 0.6f, 0.1f};
+    materialData_[FM_ENT_PG_BRASS] = GpuMaterial{{0.62f, 0.46f, 0.22f}, 0, ent(EL_TOOTH, ML_CRAZE), 0.35f, 1.0f, 0.4f};
+    // Runde 3: im Licht graubraun wie Filz (Spielzeug) - fast schwarz, staubig, speckig
+    materialData_[FM_ENT_PG_CLOAK] = GpuMaterial{{0.045f, 0.04f, 0.036f}, 0, tri(L_WOOL), 0.95f, 0, 0.7f};
+    materialData_[FM_ENT_PG_CAPE] = GpuMaterial{{0.09f, 0.025f, 0.035f}, 0, tri(L_WORSTED), 0.75f, 0, 0.35f};  // Runde 2: zu hell, Pappe
+    materialData_[FM_ENT_PG_HAT] = GpuMaterial{{0.06f, 0.055f, 0.055f}, 0, tri(L_WOOL), 0.95f, 0, 0.4f};
+    materialData_[FM_ENT_PG_SILVER] = GpuMaterial{{0.80f, 0.80f, 0.82f}, 0, ent(EL_TOOTH, ML_CRAZE), 0.28f, 1.0f, 0.35f};
+    materialData_[FM_ENT_PG_SAND] = GpuMaterial{{0.95f, 0.72f, 0.35f}, 1.2f, ent(EL_TOOTH, ML_PORES), 0.9f, 0, 0.0f};
+    materialData_[FM_ENT_PG_VOID] = GpuMaterial{{0.004f, 0.004f, 0.006f}, 0, ent(EL_SKIN, ML_PORES), 0.15f, 0, 0.0f};
+    materialData_[FM_ENT_PG_RIM] = GpuMaterial{{0.86f, 0.66f, 0.38f}, 1.3f, ent(EL_TOOTH, ML_PORES), 1.0f, 0, 0.0f};  // Runde 1: Feuerring
+    materialData_[FM_ENT_PG_LOOT] = GpuMaterial{{0.82f, 0.84f, 0.80f}, 0, ent(EL_TOOTH, ML_PORES), 0.25f, 0, 0.2f};
+    // Runde 2: kahle, runzlige, grau-rosa Haut (Gesicht unter der Maske, Innenseite der Ohren) - laesst Licht ein
+    materialData_[FM_ENT_PG_SKIN] = GpuMaterial{{0.56f, 0.40f, 0.38f}, 0, ent(EL_SKIN, ML_PORES) | kMatFlagSkin, 0.45f, 0, 0.35f};
     writeMaterials(gpu);
     lights_ = gpu.createStructured(sizeof(GpuLight), 2048, true, false);
     puddles_ = gpu.createStructured(sizeof(vec4), kMaxPuddles * 2, true, false);  // V13.3

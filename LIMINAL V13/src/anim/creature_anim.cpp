@@ -154,6 +154,8 @@ float CreatureAnimator::height() const {
     if (e_ == Entity::Duller) return std::max(0.5f, pose_.j[du::HEADTOP].z - pos_.z);  // V13.3: gebueckt
     if (e_ == Entity::Growler) return std::max(0.3f, pose_.j[gw::HUMP].z - pos_.z + 0.12f * scale_);  // V13.3: aufgerichtet, zusammengesunken
     if (e_ == Entity::Nguithr) return sk_->height * scale_;
+    if (e_ == Entity::Ouroboros) return ouroHeight();  // V13.3: Arbeiter gebueckt, Mauer, Geruest
+    if (e_ == Entity::Goblin) return goblinHeight();   // V13.3: aufrecht, auf allen vieren, Portal
     return sk_->height;
 }
 
@@ -174,6 +176,8 @@ vec3 CreatureAnimator::headPos() const {
         case Entity::Wrangler: return (pose_.j[wg::NECK0 + wg::kNeck] + pose_.j[wg::SNOUT]) * 0.5f;  // V13.3
         case Entity::Growler: return pose_.j[gw::KNOT];  // V13.3: der Knoten auf der Brust
         case Entity::Nguithr: return pose_.j[ng::EYES];
+        case Entity::Ouroboros: return ouroHead();  // V13.3
+        case Entity::Goblin: return goblinHead();   // V13.3
         default: return pose_.j[ns::TOP];
     }
 }
@@ -204,6 +208,8 @@ void CreatureAnimator::update(double dtIn, const Input& in) {
     if (e_ == Entity::Wrangler) turn = 1000.0f;  // V13.3: die Bahn liegt fest
     if (e_ == Entity::Growler) turn = 2.6f;      // V13.3: schwerfaellig
     if (e_ == Entity::Nguithr) turn = 1000.0f;   // V13.3: die Lage kommt aus up/fwd (eigene Feder)
+    if (e_ == Entity::Ouroboros) turn = 1000.0f;  // V13.3: eigene Feder je Variante (Mauer und Geruest stehen fest)
+    if (e_ == Entity::Goblin) turn = 1000.0f;     // V13.3: eigene Feder (ruckartige Vogelwendungen)
     const float yawBefore = yaw_;
     yaw_ += wrapPi(in.yaw - yaw_) * std::min(1.0f, dt * turn);
     speed_ = air ? length(vel_) : std::hypot(vel_.x, vel_.y);
@@ -229,6 +235,8 @@ void CreatureAnimator::update(double dtIn, const Input& in) {
         case Entity::Wrangler: updateWrangler(dt, in); break;  // V13.3
         case Entity::Growler: updateGrowler(dt, in); break;  // V13.3
         case Entity::Nguithr: updateNguithr(dt, in); break;
+        case Entity::Ouroboros: updateOuroboros(dt, in); break;  // V13.3
+        case Entity::Goblin: updateGoblin(dt, in); break;  // V13.3
         default: updateNest(dt, in); break;
     }
     last_ = in;
@@ -430,7 +438,10 @@ void CreatureAnimator::updateSmiler(float dt, const Input& in) {
     auto flatDir = [&](vec3 at) { return safeNorm(vec3{at.x - upperRigid.x, at.y - upperRigid.y, 0.0f}, F); };
     if (perc_ > 0.01f) toward = toward + flatDir(in.perceiveAt) * perc_;
     if (light_ > 0.01f) toward = toward + flatDir(in.lightFrom) * light_;
-    const vec3 leanOff = toward * 0.13f + U * (0.09f * jaw_);
+    // V13.3 (Kanal bait, KREATUR_Smiler.md): am Leuchtkoeder senkt sich die obere Masse ueber das Licht, das Gesicht
+    // folgt tiefer hinab als sonst
+    spring(bait_, baitV_, in.bait, 1.1f, dt);
+    const vec3 leanOff = toward * (0.13f + 0.27f * bait_) + U * (0.09f * jaw_ - 0.36f * bait_);
     J[ROOT] = pos_;
     J[BASE] = W(B[BASE]) + lag * 0.15f + Lw * (sw2 * 0.5f);
     J[CORE] = W(B[CORE]) + lag * 0.5f + Lw * sw1 + F * (sw2 * 0.5f) + hover * 0.5f + leanOff * 0.45f;
@@ -441,7 +452,7 @@ void CreatureAnimator::updateSmiler(float dt, const Input& in) {
         const vec3 dl = at - J[UPPER];
         const float lx = dot(dl, F), ly = dot(dl, Lw);
         yw = std::clamp(std::atan2(ly, lx), -1.5f, 1.5f);
-        pt = std::clamp(std::atan2(dl.z - 0.25f, std::hypot(lx, ly)), -0.55f, 0.45f);
+        pt = std::clamp(std::atan2(dl.z - 0.25f, std::hypot(lx, ly)), -0.55f - 0.45f * bait_, 0.45f);
     };
     if (in.look) aimAt(in.lookAt, wantYaw, wantPitch);
     // V13.2: in Ruhe treibt das Gesicht kaum merklich (lebt, auch wenn es dich ansieht)

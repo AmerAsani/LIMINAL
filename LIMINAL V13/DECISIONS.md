@@ -507,3 +507,17 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
   - Gemischte Dateien (DECISIONS.md, PROGRESS.md) sind wieder einheitlich CRLF.
   - Ab jetzt werden Dateien nur noch binär bearbeitet (Python `rb`/`wb`, Zeilenende der Datei beibehalten) oder mit dem Edit-Werkzeug. Nie mit `sed -i`.
 - **Wirkung auf das Spiel:** keine; Compiler, Python und JSON-Leser nehmen beide Formen.
+
+## E-038 Entity 99 „The Game Master“ in Level 1 (V13.3, 01.11.2026)
+
+- **Wiki:**
+  - Level 1 (Wikidot Rev. 83): Gemälde liegen kurz vor den Türen zu den Hallen auf dem Boden und verschwinden unbeobachtet. Eines mit einer Narrenfigur führt beim Hindurchgehen nach Level 389.
+  - entity-99 (Rev. 39): Marionetten-Narr mit Glasbildschirm-Gesicht. Sie lockt Wanderer in Spiele, betrügt selbst und verliert schlecht. „Wer betrügt, fliegt raus.“
+- **Grenze:** Level 389 gibt es im Spiel nicht. Eine eigene Ebene nur für diesen Übergang wäre eine selbst ergänzte Zone (Teil 2).
+- **Entscheidung (Interpretation, gekennzeichnet in KREATUR_GameMaster.md):**
+  - Zwölf Plätze vor den Hallentüren, je Lauf vier Gemälde. Unbeobachtet verschwinden sie nach etwa 7 s und tauchen vor einer anderen Tür wieder auf.
+  - Ihr Gemälde hat ein echtes Glasbildschirm-Gesicht, das den Ausdruck nur unbeobachtet wechselt. Dazu rote Kugeln und rote Fäden, die nach oben steigen.
+  - Wer es betritt, erstarrt. Ihr Gesicht füllt das Bild, sie lädt mit eigenen Sätzen ein, ohne Spiele aus ihrem Katalog und ohne Inhalte anderer Spiele. Dann wirft sie einen „wegen Betrugs“ hinaus.
+  - Man steht danach an anderer Stelle in Level 1: mindestens 30 m entfernt, nie im Garden. Sperrzeit 240 s je Spieler.
+  - Im Koop rechnet der Host; der Gast erhält die Lage als Positionskorrektur.
+- **Grund:** Verhalten und Übergang bleiben nah am Wiki, ohne eine Ebene zu erfinden. Das Hinauswerfen ist das einzige, was das Wiki über den Ausgang aus ihrem Spiel sagt.

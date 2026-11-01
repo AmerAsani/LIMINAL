@@ -118,6 +118,11 @@ struct Presence::Agent {
     std::array<Sample, 8> samples{};
     int nSamples = 0;
     std::shared_ptr<void> ext;  // V13.3: eigener Zustand je Wesen (in dessen Datei definiert, z. B. presence_growler.cpp)
+    // V13.3: Leuchtkoeder (Smiler: verfolgter Stab, uebergangener Stab, Stutzen) und Ansprechen (Skin-Stealer: wer, welcher
+    // Satz, Antwort in replyT s, Dauer der Begegnung, entlarvt)
+    int lureId = 0, lureSkip = 0, addrBy = -1, phrase = 0;
+    double lureT = 0.0, replyT = -1.0, chat = 0.0;
+    bool addressed = false, exposed = false;
 
     void initBody(vec3 p, float y, unsigned seed) {
         pos = p, yaw = y;

@@ -63,6 +63,7 @@ WALL_MOUNT = {'outlet', 'vent_grille', 'painting', 'power_box', 'wall_sconce', '
               'window_188_a', 'window_188_b', 'window_188_c', 'window_188_fig', 'window_188_lit', 'window_entry_188', 'door_mahogany', 'walkway_glass',  # V12 L188
               'metro_dormant_a', 'metro_dormant_b', 'metro_dormant_home', 'metro_dormant_coupling', 'sign_903_wall',  # V12 L903
               'formwork', 'ivy_wall', 'neon_tube', 'neon_sign', 'panel_vermilion', 'pipe_wall',  # V13.3 L1-Sektoren
+              'fungus_wall', 'claw_marks',  # V13.3 L1-Erscheinungen (Crawler-Pilz, Tuerspuren)
               'departure_board', 'exit_sign_36', 'storefront_a', 'storefront_b', 'storefront_c', 'storefront_closed', 'gate_sign_c30', 'gate_sign_c31', 'gate_sign_c32', 'gate_sign_c33', 'gate_sign_c34', 'gate_door_closed', 'gate_door_boarding', 'clock_36', 'clock_36_b', 'water_fountain', 'restroom_sign'}  # V12 L36
 DOOR_MODELS = {'steel_door', 'hotel_door', 'damaged_door'}
 CEILING_MOUNT = {'batten', 'highbay', 'chandelier', 'safety_light', 'ceiling_vent',
@@ -84,6 +85,7 @@ FLOOR_MOUNT = {'chair', 'rack', 'bed', 'barrel', 'cart', 'pump', 'wardrobe', 'tr
                'scaffold', 'wall_unfinished', 'cement_bags', 'rebar_bundle', 'work_light', 'cement_mixer', 'wheelbarrow', 'sawhorse', 'site_barrier', 'tarp_pile',  # V13.3 L1 Ouroboros
                'moss_patch', 'fern_cluster', 'roots_floor', 'shrub_concrete', 'sapling', 'overgrown_crate',  # V13.3 L1 Garden
                'cabinet_vermilion', 'table_vermilion', 'bench_vermilion', 'screen_vermilion',  # V13.3 L1 Fabled
+               'fungus_floor', 'fungus_camp', 'goo_trail', 'plant_wanderer',  # V13.3 L1-Erscheinungen
                'xray_scanner', 'security_gate', 'tray_stack', 'lounge_chair', 'lounge_table',  # V13.3 L36
                'macchina_parts', 'macchina_tools',  # V13.3 L2
                'carousel_36', 'luggage_pile', 'checkin_counter', 'bta_booth', 'travelator', 'travelator_stopped', 'seats_row', 'gate_counter', 'camp_c32'}  # V12 L36

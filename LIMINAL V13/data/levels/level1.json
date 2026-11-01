@@ -25,9 +25,16 @@
                "wrangler": { "mode": "mixed", "every": 320, "chance": 0.4, "count": 1 },
                // V13.3 (KREATUR_Growler.md, KREATUR_Nguithrxurh.md): Growler ausgewachsen, einzeln; Nguithr'xurh gross, hungrig
                "growler": { "mode": "adult", "group": [1, 1], "every": 330 },
-               "nguithrxurh": { "mode": "large", "group": [3, 4], "every": 170, "chance": 1.0 } },
+               "nguithrxurh": { "mode": "large", "group": [3, 4], "every": 170, "chance": 1.0 },
+               // V13.3 (KREATUR_OuroborosArbeiter.md): die schattenhaften Arbeiter der ewigen Baustelle im Sektor Ouroboros
+               // (group: so viele Arbeiter; rooms: nur dort)
+               "ouroboros": { "group": [5, 5], "rooms": ["ouroboros"] },
+               // V13.3 (KREATUR_PlagueGoblins.md): Plague Goblins (Entity 25, Fussnote der Seite) - eine Bande mit Portal (group: Koerper
+               // ohne Portal; every: Abstand der Auftritte, s; chance: Anteil der Banden, die einem Geschwaechten zusetzen)
+               "goblin": { "group": [9, 12], "every": 260, "chance": 0.6 } },
   "next_level": "level2",
-  "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0 },
+  // V13.3 (KREATUR_Smiler.md): Leuchtstaebe liegen herum, eher in dunklen Raeumen - Koeder fuer Smiler
+  "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0, "glowstick": 0.015, "glowstick_dark": 0.08 },
 
   "zones": [
     { "key": "aquila", "name": "Aquila",
@@ -173,17 +180,22 @@
   "fallback_type": "zimmer",
   "supply_fallback_type": "zimmer",
   "spawn_preferred_types": ["halle"],
-  "supply_items": [ { "item": "almond", "weight": 0.55 }, { "item": "energy", "weight": 0.25 }, { "item": "battery", "weight": 0.2 } ],
+  "supply_items": [ { "item": "almond", "weight": 0.55 }, { "item": "energy", "weight": 0.25 }, { "item": "battery", "weight": 0.2 }, { "item": "hatchet", "weight": 0.06 } ],
 
   // Was je Lauf an den Spawnpunkten der Karte erscheint: Mandelwasser, Konserven (Energieriegel), Batterien -
   // neben den Kistenstapeln der Hallen und in Raeumen der Gaenge (LEVELSPEC_1 Abschnitt 2)
+  // V13.3: dazu selten ein Beil (KREATUR_PlagueGoblins.md: Plague Goblins mit Messer oder Axt verscheuchen)
   "spawn_rules": {
-    "item":    { "count": [8, 12], "spacing": 14, "table": { "almond": 0.5, "energy": 0.25, "battery": 0.25 }, "first_within": 60 },
+    "item":    { "count": [8, 12], "spacing": 14, "table": { "almond": 0.5, "energy": 0.25, "battery": 0.25, "hatchet": 0.18 }, "first_within": 60 },
     "note":    { "count": [3, 4], "spacing": 30 },
     "crate":   { "count": [0, 0] },
     "deco":    { "chance": 0.75 },
     "fusebox": { "count": [0, 0] }
   },
+
+  // V13.3: Erscheinungen ohne Figur (gameplay/phenomena.hpp; Orte: Spawnpunkte "trace" der Karte) - Crawler-Pilz,
+  // Garden-Verwandlung, Gemaelde vor den Hallentueren mit der Spielleiterin (Entity 99), Spuren an einer Zimmertuer
+  "phenomena": { "fungus": true, "garden": true, "paintings": true, "jester": true, "claws": true, "painting_count": 4 },
 
   // Klang (Wiki: still und hallend, Scheppern und Grollen durch die Rohre unter der Decke; Tropfen in Pfuetzen)
   "audio": {

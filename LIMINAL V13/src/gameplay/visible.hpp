@@ -22,6 +22,7 @@ struct VisibleMesh {
     int material = -1;      // >= 0: alle Teile mit diesem Material; kShadowLook: das Trugbild
     vec4 clip{0, 0, 0, 0};  // V13: Schnittkugel (w > 0): Pixel darin verwerfen (Haut des Koerpers am Handgelenk)
     bool dualQuat = false;  // V13.2 (B-001): Skinning mit Dual Quaternions (Menschen)
+    vec4 fx{0, 0, 0, 0};    // V13.3: Zeichen auf der Haut (x Pilz, y Ranken; 0..1) - nur Haut der Figuren (KREATUR_Crawler.md)
 };
 constexpr int kShadowLook = 1000;  // die Anwendung setzt dafuer das Schattenmaterial
 
