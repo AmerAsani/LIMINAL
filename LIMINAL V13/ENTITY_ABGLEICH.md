@@ -35,7 +35,9 @@ Status-Begriffe:
 | Entity 9 (Facelings) | https://backrooms-wiki.wikidot.com/entity-9 | 39 | 02.07.2025 01:55 |
 | Entity 10 (Skin-Stealers) | https://backrooms-wiki.wikidot.com/entity-10 | 61 | 09.03.2025 00:58 |
 | Entity 15 (Wretches) | https://backrooms-wiki.wikidot.com/entity-15 | 54 | 07.08.2026 06:38 |
+| Entity 17 (Crawlers) | https://backrooms-wiki.wikidot.com/entity-17 | 40 | 01.06.2025 11:47 (als „veraltet“ markiert) |
 | Entity 24 (Death Rats) | https://backrooms-wiki.wikidot.com/entity-24 | 25 | 01.06.2025 11:46 (als „in Überarbeitung“ markiert) |
+| Entity 99 (The Game Master) | https://backrooms-wiki.wikidot.com/entity-99 | 39 | 11.08.2026 08:28 |
 
 ## Je Ebene
 
@@ -63,12 +65,14 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 | Wretch (Entity 15) | Aggressive, untote Menschengestalten. | **neu (V13.2)**: träge und schnelle Wretches (`KREATUR_Wretch.md`) |
 | Duller (Entity 6) | Menschengestalten, die durch Wände greifen; bei Schaben in der Wand Abstand von Wänden halten. | **umgesetzt (V13.3)**: Hinterhalt durch die Wand mit Schaben und Wölbung, flieht gesehen lautlos, meidet Mandelwasser – [KREATUR_Duller.md](KREATUR_Duller.md) |
 | Arms (französischer Zweig, entite-15-fr) | Eine Gliedmaße durch Lüftungen und Risse bei Stromausfall; Licht darauf richten. | **umgesetzt (V13.3)**: aus Deckenlüftungen und Rissen nur im Dunkeln, von Lärm angelockt, Schaben im Schacht, Licht verbrennt es – [KREATUR_Arms.md](KREATUR_Arms.md) |
-| Crawler (Entity 17) | Ein krankmachender Pilz. | **bewusst weggelassen**: Pilz ohne Gestalt und Verhalten auf der Ebenenseite; als Gefahr nur über Krankheit, die das Spiel nicht kennt |
+| Crawler (Entity 17) | Ein krankmachender Pilz. | **umgesetzt (V13.3)**: weißer Befall an feuchten Stellen (Wand, Pfütze, Kadaver, Lager eines Infizierten mit Schleifspur), Ansteckung durch Waten im Befall oder offenes Mandelwasser, Stadien nach Wiki-Zeitleiste bis zum Tod, Flecken und Belag auf der eigenen Hand, Mandelwasser heilt früh (Interpretation) – [KREATUR_Crawler.md](KREATUR_Crawler.md) |
 | Growler (Entity 130) | Wesen aus Kabeln; ein schwerer Gegenstand auf dem Kopf verwirrt sie. | **fehlt**: Priorität 8 |
 | Nguithr'xurh (Entity 16) | Insektenartig an der Decke, bei kugelförmigen Netzen. | **fehlt**: Priorität 7 |
 | Wrangler (Entity 75) | Riesig, schlangenartig, gräbt sich durch Wände, hypnotisiert; leise gehen, wenn die Wände beben. | **umgesetzt (V13.3)**: Beben, Durchzug durch Wand, Boden oder Decke, Sog des Anblicks, wer laut ist, wird geschnappt; selten Jungtiere – [KREATUR_Wrangler.md](KREATUR_Wrangler.md) |
 | Staphylococcus liminalis (Entity 19), Plague Goblins (Entity 25) | Krankheitserreger. | **bewusst weggelassen**: keine Gestalt; das Spiel hat kein Krankheitssystem |
-| Narrenfigur im Gemälde (Entity 99) | Ein Bild, das als Ausgang zu Level 389 dient. | **bewusst weggelassen**: Ausgang zu einer Ebene, die das Spiel nicht enthält |
+| Narrenfigur im Gemälde (Entity 99) | Ein Bild, das als Ausgang zu Level 389 dient. | **umgesetzt (V13.3)**: Gemälde am Boden vor den Hallentüren verschwinden unbeobachtet; ihr Bild mit Bildschirmgesicht (wechselt ungesehen), roten Kugeln und Fäden lädt ein und wirft „aus dem Spiel“ – anderswo in Level 1 (Interpretation, Level 389 fehlt) – [KREATUR_GameMaster.md](KREATUR_GameMaster.md) |
+| Garden-Sektor (Verwandlung) | Wer etwa eine Stunde bleibt, wird zur Pflanze. | **umgesetzt (V13.3)**: Garden-Uhr, Zeichen, Ranken und Rinde auf der Hand, Blätter am Rand der Sicht, Tod durch Verwandlung, Erholung draußen; Gestalten aus Rinde – [KREATUR_L1_Erscheinungen.md](KREATUR_L1_Erscheinungen.md) |
+| Dunkles, stilles Wesen an der Schlafraumtür (Erzählung) | Klatschende Schritte, Krallenspuren, zähe Flüssigkeit. | **umgesetzt (V13.3)**: Krallenrillen und schwarze Läufer neben einer Zimmertür, Abdrücke an der Schwelle, selten Schritte, Krallen und Atem hinter der Tür – [KREATUR_L1_Erscheinungen.md](KREATUR_L1_Erscheinungen.md) |
 | Gruppen (M.E.G., B.N.T.G., Ariane Circle u. a.), schattenhafte Arbeiter im Overall | Menschliche Gruppen; Arbeiter aus einem Ouroboros-Sektor. | **bewusst weggelassen**: Menschen, keine Wesen; nur über Notizen angedeutet |
 
 ### Level 2 – „Pipe Dreams“
