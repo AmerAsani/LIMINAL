@@ -2492,8 +2492,6 @@ def build_grate_stair():
             K.box(galv, (x0, y - 0.003, z - 0.006), (x1, y + 0.003, z))
         K.box(nose, (x0 - 0.005, -W, z - 0.03), (x0 + 0.03, W, z + 0.003), bev=0.002)
         K.box(galv, (x1 - 0.004, -W, z - 0.03), (x1, W, z))
-        if rng.random() < 0.5:
-            decal(K, P['grime'], (x0 + 0.14, rng.uniform(-0.3, 0.3), z + 0.0008), (1, 0, 0), (0, 1, 0), 0.09, 0.2, 8100 + k, n=10, lift=0.0)
         decal(K, P['steel_dark'], (x0 + 0.012, rng.uniform(-0.3, 0.3), z + 0.0034), (1, 0, 0), (0, 1, 0), 0.012, rng.uniform(0.1, 0.25), 8200 + k,
               n=8, lift=0.0)
     # Podest
@@ -3249,10 +3247,10 @@ def weather(amp=0.0012, freq=22.0, pit=0.0016, pitf=60.0, seed=3):
 
 
 def stone_mats(prefix, tint, tex='travertine'):
-    return [mat(f'{prefix}', tint, 'concrete', tex=tex, r=1.0),
-            mat(f'{prefix}_schmutz', tuple(c * 0.74 for c in tint), 'concrete', tex=tex, r=1.25),
-            mat(f'{prefix}_staub', tuple(min(1.0, c * 1.05) for c in tint), 'concrete', tex=tex, r=1.4),
-            mat(f'{prefix}_fleck', tuple(c * 0.88 for c in tint), 'concrete', tex=tex, r=1.15)]
+    return [mat(f'{prefix}', tint, 'concrete', tex=tex, r=1.3),
+            mat(f'{prefix}_schmutz', tuple(c * 0.74 for c in tint), 'concrete', tex=tex, r=1.45),
+            mat(f'{prefix}_staub', tuple(min(1.0, c * 1.05) for c in tint), 'concrete', tex=tex, r=1.5),
+            mat(f'{prefix}_fleck', tuple(c * 0.88 for c in tint), 'concrete', tex=tex, r=1.4)]
 
 
 def stone_pick(seed, cavt=0.42, fleck=True):
@@ -3407,23 +3405,18 @@ def build_greek_torso():
         X.ell((-0.01, 0.140, 1.455), (0.060, 0.055, 0.050), k=0.06),
         X.ell((-0.01, -0.140, 1.455), (0.060, 0.055, 0.050), k=0.06),
         X.cone((0.0, 0, 1.46), (0.012, 0, 1.62), 0.058, 0.05, k=0.04),
-        X.cone((-0.01, 0.170, 1.44), (0.0, 0.192, 1.12), 0.046, 0.040, k=0.035),
-        X.cone((-0.01, -0.170, 1.44), (0.0, -0.192, 1.12), 0.046, 0.040, k=0.035),
-        X.ell((0.135, 0.0, 1.12), (0.012, 0.008, 0.009), k=0.004, op='sub'),
+        X.cone((-0.01, 0.165, 1.445), (0.015, 0.240, 1.365), 0.046, 0.042, k=0.035),
+        X.cone((-0.01, -0.165, 1.445), (0.010, -0.235, 1.355), 0.046, 0.042, k=0.035),
         X.tube((-0.105, 0, 1.42), (-0.10, 0, 1.08), (0.008, 0.008), (0.006, 0.006), k=0.02, op='sub'),
         # Zehen des linken Fusses
         X.ell((0.20, 0.08, base + 0.02), (0.06, 0.04, 0.025), k=0.02),
     ]
     for k in range(4):
         parts.append(X.ell((0.255, 0.065 + k * 0.012, base + 0.015), (0.012, 0.006, 0.009), k=0.004))
-    # Chiton-Falten zwischen den Bruesten und ueber dem Bauch (feine Rillen, abgezogen)
-    for k in range(5):
-        y = -0.06 + k * 0.03
-        parts.append(X.tube((0.13, y, 1.28), (0.12, y * 1.3, 1.05), (0.004, 0.004), (0.004, 0.004), k=0.006, op='sub'))
     # Bruchflaechen: Hals, Arme, ein Ausbruch im Gewand unten
     parts.append(cutter((0.012, 0, 1.585), (0.15, 0.1, 1.0), (0.012, 0, 1.6), 0.09, amp=0.008, seed=4))
-    parts.append(cutter((0.0, 0.185, 1.24), (0.25, 0.35, -0.90), (0.0, 0.19, 1.16), 0.10, amp=0.008, seed=5))
-    parts.append(cutter((0.0, -0.185, 1.29), (0.15, -0.30, -0.94), (0.0, -0.19, 1.20), 0.10, amp=0.008, seed=6))
+    parts.append(cutter((0.006, 0.212, 1.392), (0.3, 0.75, -0.6), (0.02, 0.245, 1.36), 0.085, amp=0.008, seed=5))
+    parts.append(cutter((0.0, -0.200, 1.395), (0.2, -0.8, -0.55), (0.012, -0.24, 1.355), 0.085, amp=0.008, seed=6))
     parts.append(cutter((0.14, -0.20, 0.40), (0.7, -0.7, 0.1), (0.14, -0.20, 0.40), 0.11, amp=0.01, seed=7))
     disp = weather(0.0018, 14.0, 0.0022, 45.0, 9)
     ob = sculpt('torso', parts, 0.004, disp, target=13000)
