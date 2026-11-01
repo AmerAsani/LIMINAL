@@ -113,6 +113,9 @@ private:
     void updateOuroboros(float dt, const Input& in);  // V13.3: creature_ouroboros.cpp (Arbeiter, Mauer, Geruest)
     float ouroHeight() const;
     vec3 ouroHead() const;
+    void updateGoblin(float dt, const Input& in);  // V13.3: creature_goblin.cpp (Plague Goblins, Portal)
+    float goblinHeight() const;
+    vec3 goblinHead() const;
     // Gangzyklus fuer n Beine; rest: Ruhepunkte (Welt) dieses Bildes
     void stepLegs(float dt, int n, const float* offs, float duty, float S, const vec3* rest, float standDur, const float* weight);
     vec3 footPos(int i, const float* lift) const;

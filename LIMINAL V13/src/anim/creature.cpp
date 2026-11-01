@@ -568,7 +568,7 @@ const CreatureSkeleton& entitySkeleton(Entity e) {
                                                                    makeClump(), makeBiped(Entity::Faceling), makeBiped(Entity::SkinStealer),
                                                                    makeBiped(Entity::Wretch), makeRat(), makeWindow(), du::skeleton(),
                                                                    ar::skeleton(), wg::makeWrangler(), makeGrowlerSkeleton(), makeNguithrSkeleton(),
-                                                                   ob::makeSkeleton()};  // V13.3
+                                                                   ob::makeSkeleton(), gb::makeSkeleton()};  // V13.3
     return all[(size_t)std::min((int)e, kEntityCount - 1)];
 }
 
@@ -591,6 +591,7 @@ const char* entityModel(Entity e) {
         case Entity::Growler: return "ent_growler";        // V13.3
         case Entity::Nguithr: return "ent_nguithrxurh";
         case Entity::Ouroboros: return "ent_ouroboros";  // V13.3
+        case Entity::Goblin: return "ent_goblin";        // V13.3
         default: return "ent_smiler";
     }
 }
@@ -608,6 +609,9 @@ const std::vector<const char*>& entityVariants(Entity e) {
     // V13.3: Ouroboros-Arbeiter - 1 Brecher (schwer), 2 die Mauer, 3 das Fahrgeruest
     static const std::vector<const char*> ob{"ent_ouroboros", "ent_ouroboros_heavy", "ent_ouroboros_wall", "ent_ouroboros_scaffold"};
     if (e == Entity::Ouroboros) return ob;
+    // V13.3: Plague Goblins - 1 Spaeher, 2 Torwaechterin, 3 das Portal der Bande
+    static const std::vector<const char*> gbv{"ent_goblin", "ent_goblin_scout", "ent_goblin_gate", "ent_goblin_portal"};
+    if (e == Entity::Goblin) return gbv;
     return e == Entity::Faceling ? fc : (e == Entity::Rat ? rat : (e == Entity::SkinStealer ? ss : none));
 }
 
@@ -630,6 +634,7 @@ const char* entityName(Entity e) {
         case Entity::Growler: return "Growler";  // V13.3
         case Entity::Nguithr: return "Nguithr'xurh";
         case Entity::Ouroboros: return "Ouroboros-Arbeiter";  // V13.3
+        case Entity::Goblin: return "Plague Goblin";  // V13.3
         default: return "?";
     }
 }

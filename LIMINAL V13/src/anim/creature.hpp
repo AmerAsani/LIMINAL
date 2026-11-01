@@ -36,6 +36,9 @@
 //   Nguithr'xurh (E. 16) Walzenspinne mit 16 Gliedmassen; im selben Skelett die Netzkugeln der Kolonie (ng).
 //   Ouroboros-Arbeiter  schattenhafte Gestalten im Overall (Level 1, Sektor Ouroboros); im selben Skelett ihre Werkzeuge,
 //                       die Mauer, die sie bauen und einreissen, und ein Fahrgeruest, das umkippt (ob).
+//   Plague Goblins (E. 25) katzengrosse Vogel-Katzen-Wesen in Umhang und Pestarztmaske; laufen halb aufrecht, rennen auf allen
+//                       vieren; unter der Maske ein Kraehenschnabel voller Saegezaehne; im selben Skelett der Stock der
+//                       Torwaechterin, die Beute in der Klaue und das Portal der Bande (gb).
 //
 // Wie beim Menschen (anim/skeleton) werden Gelenkpositionen animiert; jeder Knochen ist ein starrer
 // Rahmen vom Start- zum Endgelenk, gedreht nach einem Hinweisvektor ("oben"). Skinning-Matrix =
@@ -50,7 +53,7 @@
 
 namespace lim::anim {
 
-enum class Entity : std::uint8_t { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Wrangler, Growler, Nguithr, Ouroboros, Count };
+enum class Entity : std::uint8_t { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Wrangler, Growler, Nguithr, Ouroboros, Goblin, Count };
 constexpr int kEntityCount = (int)Entity::Count;
 
 struct CBone {
@@ -535,5 +538,61 @@ enum Task : int { K_IDLE = 0, K_WALK = 1, K_CARRY = 2, K_LAY = 3, K_HAMMER = 4, 
                   K_LIFT = 11, K_DISSOLVE = 12, K_EMERGE = 13 };
 CreatureSkeleton makeSkeleton();  // creature_ouroboros.cpp
 }  // namespace ob
+
+// V13.3: Plague Goblins (Wikidot entity-25, Rev. 28; KREATUR_PlagueGoblins.md) - katzengross (Henchman aufrecht 0,58 m bis
+// zum Scheitel), halb zweibeinig: Laufbeine wie ein Vogel (Ferse hoch), lange duenne Arme mit Krallen, zwei lange Ohren mit
+// Pinseln, ein gefiederter Schwanz, der unter dem Umhang hervorsieht. Die Maske sitzt an einem Scharnier an der Stirn (klappt
+// hoch); darunter Kraehenschnabel mit Unterkiefer. Der Umhang haengt an sechs Straengen (je zwei Knochen). Varianten im selben
+// Skelett: 0 Henchman (glatte helle Maske), 1 Spaeher (dunkles Leder, Glasaugen), 2 Torwaechterin (Hut, Cape, verzierte Maske,
+// Silberstock mit Sanduhr), 3 das Portal (aufrechtes Oval ueber dem Boden mit sechs Sandstroemen). Wurzel: zwischen den Fuessen
+// am Boden; Portal: Mitte unten.
+namespace gb {
+constexpr int kStrands = 6, kSwirls = 6;
+constexpr float kPortalH = 1.25f, kPortalW = 0.9f;
+enum J : std::uint8_t {
+    ROOT, PELVIS, SPINE, CHEST, NECK, HEAD, SNOUT, CROWN, JAWP, JAWT, MASKP, MASKT,
+    EAR0,                          // + Seite * 3 + i: Ansatz, Mitte, Spitze
+    ARM0 = EAR0 + 6,               // + Seite * 4 + i: Schulter, Ellbogen, Handgelenk, Krallenspitze
+    LEG0 = ARM0 + 8,               // + Seite * 5 + i: Huefte, Knie, Ferse, Ballen, Zehenspitze
+    TAIL0 = LEG0 + 10,             // + i (4)
+    CLOAK0 = TAIL0 + 4,            // + k * 3 + i: Ansatz an den Schultern, Mitte, Saum
+    CANE_A = CLOAK0 + kStrands * 3, CANE_B,  // Stock: Spitze am Boden, Sanduhr oben
+    ITEM_A, ITEM_B,                // Beute in der linken Klaue (unten, oben)
+    PORT_A, PORT_B,                // Portal: Mitte unten, Mitte oben
+    SWIRL0,                        // + k * 2 + i: Sandstrom (Anfang, Ende)
+    JCOUNT = SWIRL0 + kSwirls * 2
+};
+enum B : std::uint8_t {
+    B_ROOT, B_PELVIS, B_SPINE, B_CHEST, B_NECK, B_HEAD, B_JAW, B_MASK,
+    B_EAR0,                        // + Seite * 2 + i
+    B_ARM0 = B_EAR0 + 4,           // + Seite * 3 + i: Oberarm, Unterarm, Hand
+    B_LEG0 = B_ARM0 + 6,           // + Seite * 4 + i: Oberschenkel, Unterschenkel, Lauf, Zehen
+    B_TAIL0 = B_LEG0 + 8,          // + i (3)
+    B_CLOAK0 = B_TAIL0 + 3,        // + k * 2 + i
+    B_CANE = B_CLOAK0 + kStrands * 2,
+    B_ITEM,
+    B_PORTAL,
+    B_SWIRL0,                      // + k
+    BCOUNT = B_SWIRL0 + kSwirls
+};
+static_assert(BCOUNT <= 64, "Gewichtsmasken fassen 64 Knochen");
+inline int earJ(int s, int i) { return EAR0 + s * 3 + i; }
+inline int earB(int s, int i) { return B_EAR0 + s * 2 + i; }
+inline int armJ(int s, int i) { return ARM0 + s * 4 + i; }
+inline int armB(int s, int i) { return B_ARM0 + s * 3 + i; }
+inline int legJ(int s, int i) { return LEG0 + s * 5 + i; }
+inline int legB(int s, int i) { return B_LEG0 + s * 4 + i; }
+inline int cloakJ(int k, int i) { return CLOAK0 + k * 3 + i; }
+inline int cloakB(int k, int i) { return B_CLOAK0 + k * 2 + i; }
+inline int swirlJ(int k, int i) { return SWIRL0 + k * 2 + i; }
+// Winkel der Umhangstraenge (rad, 0 = vorn): vorn offen, damit die Arme herauskommen
+constexpr float kStrandAng[kStrands] = {0.62f, 1.62f, 2.62f, -2.62f, -1.62f, -0.62f};
+// Zustaende (Presence, Animation): 0 Ruhe/Suchen, 1 Gehen/Schleichen, 2 Huschen (auf allen vieren), 3 Spaehen, 4 Wuehlen
+// (Diebstahl), 5 mit Beute fort, 6 Drohen (Maske hoch, Umhang gespreizt), 7 Angriff (Sprung), 8 aus dem Portal, 11 tot,
+// 12 ins Portal, 13 Handel (bietet an), 14 noch im Portal (unsichtbar); Portal: 0 zu, 1 oeffnet, 2 offen, 3 schliesst
+enum State : int { S_IDLE = 0, S_WALK = 1, S_SCURRY = 2, S_PEEK = 3, S_RUMMAGE = 4, S_LOOT = 5, S_THREAT = 6, S_ATTACK = 7,
+                   S_EMERGE = 8, S_DEAD = 11, S_ENTER = 12, S_TRADE = 13, S_INSIDE = 14 };
+CreatureSkeleton makeSkeleton();  // creature_goblin.cpp
+}  // namespace gb
 
 }  // namespace lim::anim

@@ -155,6 +155,7 @@ float CreatureAnimator::height() const {
     if (e_ == Entity::Growler) return std::max(0.3f, pose_.j[gw::HUMP].z - pos_.z + 0.12f * scale_);  // V13.3: aufgerichtet, zusammengesunken
     if (e_ == Entity::Nguithr) return sk_->height * scale_;
     if (e_ == Entity::Ouroboros) return ouroHeight();  // V13.3: Arbeiter gebueckt, Mauer, Geruest
+    if (e_ == Entity::Goblin) return goblinHeight();   // V13.3: aufrecht, auf allen vieren, Portal
     return sk_->height;
 }
 
@@ -176,6 +177,7 @@ vec3 CreatureAnimator::headPos() const {
         case Entity::Growler: return pose_.j[gw::KNOT];  // V13.3: der Knoten auf der Brust
         case Entity::Nguithr: return pose_.j[ng::EYES];
         case Entity::Ouroboros: return ouroHead();  // V13.3
+        case Entity::Goblin: return goblinHead();   // V13.3
         default: return pose_.j[ns::TOP];
     }
 }
@@ -207,6 +209,7 @@ void CreatureAnimator::update(double dtIn, const Input& in) {
     if (e_ == Entity::Growler) turn = 2.6f;      // V13.3: schwerfaellig
     if (e_ == Entity::Nguithr) turn = 1000.0f;   // V13.3: die Lage kommt aus up/fwd (eigene Feder)
     if (e_ == Entity::Ouroboros) turn = 1000.0f;  // V13.3: eigene Feder je Variante (Mauer und Geruest stehen fest)
+    if (e_ == Entity::Goblin) turn = 1000.0f;     // V13.3: eigene Feder (ruckartige Vogelwendungen)
     const float yawBefore = yaw_;
     yaw_ += wrapPi(in.yaw - yaw_) * std::min(1.0f, dt * turn);
     speed_ = air ? length(vel_) : std::hypot(vel_.x, vel_.y);
@@ -233,6 +236,7 @@ void CreatureAnimator::update(double dtIn, const Input& in) {
         case Entity::Growler: updateGrowler(dt, in); break;  // V13.3
         case Entity::Nguithr: updateNguithr(dt, in); break;
         case Entity::Ouroboros: updateOuroboros(dt, in); break;  // V13.3
+        case Entity::Goblin: updateGoblin(dt, in); break;  // V13.3
         default: updateNest(dt, in); break;
     }
     last_ = in;
