@@ -289,7 +289,8 @@ void GameSession::spawnFinds(const world::ChunkData& cd) {
                     if (auto* p = reg_.get<Pickup>(e)) p->item = "battery", p->worldId = s.id;
                     if (auto* m = reg_.get<MeshRenderer>(e)) m->model = "battery";
                 } else if (s.kind == FindSpot::Glowstick) {  // V13.3
-                    if (picked.count(s.id) || !content_.item("glowstick")) continue;
+                    // isPicked: auch vom Host gemeldet, bevor der Chunk hier geladen war (Koop, ferner Fund / spaeter Beitritt)
+                    if (isPicked(s.id) || !content_.item("glowstick")) continue;
                     e = prefabs_.spawn(reg_, "item_pickup", s.pos, s.yaw);
                     if (auto* p = reg_.get<Pickup>(e)) p->item = "glowstick", p->worldId = s.id;
                     if (auto* m = reg_.get<MeshRenderer>(e)) m->model = "glowstick";

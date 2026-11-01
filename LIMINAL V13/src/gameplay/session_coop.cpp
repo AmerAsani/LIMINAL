@@ -284,6 +284,7 @@ void GameSession::netRemoveItem(u32 hash) {
     if (!known)
         for (const std::string& id : picked) known = known || worldItemHash(id) == hash;
     if (!known && netPendingPicked_.size() < kMaxNetPendingPicked) netPendingPicked_.insert(hash);
+    if (known) netPendingPicked_.erase(hash);  // mit Kennung bekannt: nicht zugleich als gemerkte Kennzahl zaehlen
     std::erase_if(dropped_, [&](const DroppedItem& d) { return d.netHash == hash; });
     for (ecs::Entity e : gone) {
         if (target_ == e) target_ = ecs::kNull;
