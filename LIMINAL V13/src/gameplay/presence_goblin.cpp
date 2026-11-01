@@ -744,7 +744,9 @@ void Presence::thinkGoblin(Agent& a, double dt, const Context& c, std::vector<Ev
                     goalTo(a, *c.world, S.portal + vec3{std::cos(ang), std::sin(ang), 0.0f} * r);
                 }
                 const double ph = std::fmod(a.age + g.delay * 3.0, 6.0);
-                if (ph < 1.6) a.reach = 1.0f, a.crouch = 0.5f, a.fly = 0.65f;  // pickt am Boden, auf allen vieren (Runde 3: alle standen wie Figuren)
+                // pickt am Boden, auf allen vieren (Runde 3/5: alle standen wie Figuren - jetzt die Haelfte der Zeit, je Goblin versetzt)
+                if (ph < 3.0) a.reach = 1.0f, a.crouch = 0.5f, a.fly = 0.65f;
+                else a.crouch = (float)std::fmod(g.delay * 7.3, 0.5), a.tilt = (float)std::sin(a.age * 0.7 + g.delay) * 0.3f;
                 if (ph > 4.0) a.perceive = 1.0f, a.perceiveAt = a.pos + dirYaw(a.yaw + (float)std::sin(a.age) * 1.4f) * 3.0f + vec3{0, 0, 0.4f};
             }
             if (a.variant == 2) a.perceive = 1.0f, a.alert = 0.5f;

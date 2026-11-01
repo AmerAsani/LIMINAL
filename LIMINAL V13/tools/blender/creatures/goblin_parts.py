@@ -266,6 +266,8 @@ def body(J, bones, caste):
     if caste == 2:
         groups += hat_groups(J) + cane_groups(J)
     groups += loot_groups(J)
+    if caste == 0:
+        groups += bundle_groups(J, rng)
     groups += [
         {'name': 'federn', 'fm': 'ent_pg_feather', 'parts': feather, 'disp': feather_disp, 'h': 0.0016, 'cav_scale': 0.006, 'lod_weight': 1.3},
         {'name': 'pinsel', 'fm': 'ent_pg_feather', 'parts': hair, 'disp': None, 'h': 0.0005, 'cav_scale': 0.001, 'lod_weight': 0.4},
@@ -418,6 +420,34 @@ def cane_groups(J):
     return [{'name': 'stock', 'fm': 'ent_pg_silver', 'parts': silver, 'disp': None, 'h': 0.0005, 'cav_scale': 0.001, 'lod_weight': 0.5},
             {'name': 'sanduhrglas', 'fm': 'ent_pg_glass', 'parts': glass, 'disp': None, 'h': 0.0005, 'cav_scale': 0.001, 'lod_weight': 0.3},
             {'name': 'sand', 'fm': 'ent_pg_sand', 'parts': sand, 'disp': None, 'h': 0.0005, 'cav_scale': 0.001, 'lod_weight': 0.2}]
+
+
+def bundle_groups(J, rng):
+    """Runde 6: aus der Ferne standen die Henchmen wie gleiche Spielfiguren - sie sind die Lasttraeger der Bande (die Seite: sie
+    sammeln Holz- und Metallreste, Knochen und Koerperteile toter Wanderer). Auf dem Ruecken ein verschnuertes Buendel: zwei lange
+    Knochen, ein Rohrstueck, ein Lumpenbausch - schraeg ueber die Schulter, je Goblin etwas anders."""
+    c = J[CHEST] + np.array([-0.075, 0.0, 0.0])
+    up = A.unit(np.array([-0.35, 0.25, 1.0]))
+    side = A.unit(np.cross(up, X))
+    bones, rust, rag = [], [], []
+    for k, (off, ln) in enumerate(((-0.012, 0.3), (0.014, 0.26))):  # Oberschenkelknochen: Schaft mit Gelenkkoepfen
+        d = A.unit(up + side * (0.18 * (k * 2 - 1)) + rng.normal(0, 0.04, 3))
+        a0 = c + side * off - d * (ln * 0.42)
+        a1 = a0 + d * ln
+        bones.append(A.cone(B_CHEST, a0, a1, 0.0075, 0.0065, k=0.0))
+        for e, sgn in ((a0, -1.0), (a1, 1.0)):
+            bones.append(A.ell(B_CHEST, e, d, (0.012, 0.013, 0.01), up=side, k=0.006))
+            bones.append(A.ell(B_CHEST, e + side * 0.007 + d * (sgn * 0.004), d, (0.008, 0.008, 0.008), k=0.004))
+    d = A.unit(up - side * 0.35)
+    rust.append(A.cone(B_CHEST, c - d * 0.08 + side * 0.02, c + d * 0.17 + side * 0.02, 0.011, 0.011, k=0.0))
+    rust.append(A.cone(B_CHEST, c + d * 0.17 + side * 0.02, c + d * 0.19 + side * 0.03, 0.0125, 0.0125, k=0.003))  # Muffe
+    rag.append(A.ell(B_CHEST, c + up * 0.02 - X * 0.015, up, (0.07, 0.05, 0.035), up=-X, k=0.0))
+    rag.append(A.ell(B_CHEST, c - up * 0.04 + side * 0.02 - X * 0.01, up, (0.04, 0.045, 0.03), up=-X, k=0.02))
+    for t in (-0.03, 0.035):  # Schnuere
+        rag.append(sdf.Part('torus', B_CHEST, k=0.004, c=c + up * t - X * 0.012, R=sdf.frame_from(up, -X), major=0.045, minor=0.004))
+    return [{'name': 'knochen', 'fm': 'ent_wr_bone', 'parts': bones, 'disp': None, 'h': 0.0009, 'cav_scale': 0.002, 'lod_weight': 0.5},
+            {'name': 'rohr', 'fm': 'ent_ob_rust', 'parts': rust, 'disp': None, 'h': 0.0011, 'cav_scale': 0.002, 'lod_weight': 0.25},
+            {'name': 'lumpen', 'fm': 'ent_pg_cloak', 'parts': rag, 'disp': cloak_disp, 'h': 0.0014, 'cav_scale': 0.005, 'lod_weight': 0.4}]
 
 
 def loot_groups(J):
