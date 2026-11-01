@@ -12,6 +12,7 @@
 namespace lim::coop {
 
 namespace nc = net::coop;
+static_assert(game::Presence::kRoleCount <= nc::kRoles, "mehr Wesen als das Protokoll traegt: kRoles erhoehen");
 using game::GameEvent;
 using game::GameSession;
 using game::Pawn;
@@ -24,7 +25,6 @@ constexpr double kRespawnDelay = 20.0;     // Wiedereinstieg nach dem Tod (s)
 constexpr double kGroupPull = 60.0;        // danach zieht der Host die Uebrigen mit
 constexpr double kReconnectWindow = 120.0;
 constexpr int kMaxInvalid = 8;
-const char kB32[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
 vec3 posOf(const game::Player& p) { return {(float)p.x, (float)p.y, (float)p.z}; }
 vec3 mmVec(i32 x, i32 y, i32 z) { return {(float)nc::fromMm(x), (float)nc::fromMm(y), (float)nc::fromMm(z)}; }
@@ -53,42 +53,29 @@ game::PlayerControl controlOf(const nc::InputFrame& f) {
 }
 }  // namespace
 
-// --- Schluessel ------------------------------------------------------------------------------------
-std::string JoinKey::text() const {
-    std::string raw;
-    u32 acc = 0;
-    int bits = 0;
-    for (u8 v : b) {
-        acc = (acc << 8) | v, bits += 8;
-        while (bits >= 5) raw += kB32[(acc >> (bits - 5)) & 31], bits -= 5;
+// --- Gruende -------------------------------------------------------------------------------------
+const char* reasonText(int reason) {
+    switch (reason) {
+        case LN_R_NONE: return "";
+        case LN_R_NORMAL: return "getrennt";
+        case LN_R_TIMEOUT: return "Zeitlimit (keine Antwort mehr)";
+        case LN_R_BADKEY: return "falscher Code";
+        case LN_R_FULL: return "Host ist voll";
+        case LN_R_VERSION: return "andere Version";
+        case LN_R_PROTOCOL: return "Protokollfehler";
+        case LN_R_BANNED: return "gesperrt";
+        case LN_R_KICKED: return "vom Host entfernt";
+        case LN_R_RATE: return "zu viele Nachrichten";
+        case LN_R_UNREACHABLE: return "Host nicht erreichbar";
+        case LN_R_LOBBY: return "Lobby nicht erreichbar (Internet, Adresse in koop.json?)";
+        case LN_R_NOROOM: return "Code unbekannt oder Sitzung beendet";
+        case LN_R_ICE: return "kein Verbindungsweg (Firewall/NAT) – auch das Relay war nicht erreichbar";
+        case LN_R_CERT: return "Zertifikat passt nicht (Code falsch abgeschrieben oder fremde Lobby)";
+        case LN_R_BADCODE: return "Code hat das falsche Format (direkt: der lange Code mit 24 Zeichen)";
+        case LN_R_HOSTGONE: return "Host hat die Sitzung beendet";
+        case LN_R_BUSY: return "Host nimmt gerade andere Gäste auf – bitte gleich noch einmal versuchen";
+        default: return "getrennt";
     }
-    if (bits > 0) raw += kB32[(acc << (5 - bits)) & 31];
-    std::string out;
-    for (size_t i = 0; i < raw.size(); ++i) {
-        if (i && i % 5 == 0) out += '-';
-        out += raw[i];
-    }
-    return out;
-}
-
-bool JoinKey::parse(const std::string& s, JoinKey& out) {
-    std::vector<int> sym;
-    for (char c : s) {
-        if (c == '-' || c == ' ') continue;
-        const char u = (char)std::toupper((unsigned char)c);
-        const char* p = std::strchr(kB32, u);
-        if (!p || !u) return false;
-        sym.push_back((int)(p - kB32));
-    }
-    if (sym.size() != 26) return false;
-    u32 acc = 0;
-    int bits = 0;
-    size_t k = 0;
-    for (int v : sym) {
-        acc = (acc << 5) | (u32)v, bits += 5;
-        if (bits >= 8 && k < 16) out.b[k++] = (u8)(acc >> (bits - 8)), bits -= 8;
-    }
-    return k == 16 && (acc & ((1u << bits) - 1)) == 0;  // Rest muss null sein (kanonisch)
 }
 
 bool Bucket::take(double now) {
@@ -129,23 +116,44 @@ CoopHost::CoopHost(NetApi api, std::string hostName, u32 buildHash) : api_(api),
 }
 CoopHost::~CoopHost() { stop(); }
 
-bool CoopHost::start(u16 port, int maxPlayers, std::string& error) {
+bool CoopHost::start(const NetSettings& net, int maxPlayers, std::string& error) {
     if (!api_.ok()) {
         error = "Netz nicht verfuegbar";
         return false;
     }
-    if (api_.random(key_.b.data(), 16) != 1) {
-        error = "kein Zufall verfuegbar";
+    net_ = net;
+    if (net_.useLobby && net_.lobby.empty()) {
+        error = "Keine Lobby eingetragen (koop.json, siehe MULTIPLAYER_SETUP.md). Direkt (LAN/IP) geht ohne.";
         return false;
     }
     maxPlayers_ = std::clamp(maxPlayers, 2, nc::kMaxPlayers);
-    LnLimits lim{maxPlayers_ - 1, 8, 120.0, 60.0, 8, 5000, 10000, 5, 60000};
-    ctx_ = api_.host(port, key_.b.data(), &lim);
+    // Gaeste, halbe Beitritte, Rate/Vorrat je Gast, ungueltige bis zur Trennung, Zeitlimits, Sperre nach 5 falschen Codes (10 min)
+    LnLimits lim{maxPlayers_ - 1, 4, 120.0, 60.0, 8, 20000, 10000, 5, 600000};
+    const LnConfig cfg = net_.config();
+    ctx_ = api_.host(&cfg, &lim);
     if (!ctx_) {
-        error = std::format("Port {} ist belegt oder gesperrt", port);
+        error = net_.useLobby ? std::string("Lobby-Adresse ungueltig") : std::format("Port {} ist belegt oder gesperrt", net_.directPort);
         return false;
     }
-    log::info("Koop: Host auf Port {} (hoechstens {} Spieler)", api_.port(ctx_), maxPlayers_);
+    code_.clear(), codeLong_.clear(), failure_.clear();
+    lobbyLost_ = everRoom_ = false;
+    if (net_.useLobby) log::info("Koop: Host ueber die Lobby (hoechstens {} Spieler)", maxPlayers_);
+    else log::info("Koop: Host direkt auf Port {} (hoechstens {} Spieler)", api_.port(ctx_), maxPlayers_);
+    return true;
+}
+
+std::string CoopHost::code(bool withPin) const { return withPin ? codeLong_ : code_; }
+
+std::string CoopHost::lobbyStatus() const {
+    if (!ctx_) return "";
+    if (!failure_.empty()) return failure_;
+    if (code_.empty()) return everRoom_ ? "Lobby-Verbindung verloren – neuer Versuch …" : (net_.useLobby ? "Verbinde mit der Lobby …" : "Starte …");
+    return "";
+}
+
+bool CoopHost::takeFailure(std::string& why) {
+    if (failure_.empty() || everRoom_) return false;
+    why = failure_;
     return true;
 }
 
@@ -232,8 +240,24 @@ void CoopHost::beforeUpdate(double dt) {
     LnEvent ev;
     for (int guard = 0; guard < 2000 && api_.poll(ctx_, &ev); ++guard) {
         if (ev.type == LN_EV_CONNECTED) onConnected(ev.peer, ev.name);
-        else if (ev.type == LN_EV_DISCONNECTED) onDisconnected(ev.peer, ev.reason);
+        else if (ev.type == LN_EV_DISCONNECTED && ev.peer < 0) {  // der Raum selbst (Lobby nicht erreichbar ...)
+            failure_ = reasonText(ev.reason);
+            log::warn("Koop: Raum nicht offen: {}", failure_);
+        } else if (ev.type == LN_EV_DISCONNECTED) onDisconnected(ev.peer, ev.reason);
         else if (ev.type == LN_EV_MESSAGE) onMessage(ev.peer, ev.channel, ev.data, ev.len);
+        else if (ev.type == LN_EV_ROOM) {
+            char buf[LN_CODE_MAX] = {};
+            code_ = ev.len > 0 ? std::string((const char*)ev.data, (size_t)std::min(ev.len, LN_CODE_MAX - 1)) : std::string();
+            codeLong_ = ev.len > 0 && api_.code(ctx_, 1, buf, sizeof(buf)) ? std::string(buf) : std::string();
+            if (!code_.empty()) {
+                failure_.clear();
+                if (everRoom_) toastSelf("Lobby wieder erreichbar – neuer Beitrittscode: " + code_, 6.0f);
+                everRoom_ = true;
+                log::info("Koop: Beitrittscode bereit");
+            } else {
+                toastSelf("Verbindung zur Lobby verloren – neue Beitritte erst mit neuem Code.", 5.0f);
+            }
+        }
     }
     // Wiederverbinden verfallen lassen
     for (size_t i = 0; i < guests_.size();) {
@@ -287,7 +311,13 @@ void CoopHost::onMessage(int peer, int channel, const u8* data, int len) {
         if (++g->invalid > kMaxInvalid) {
             log::warn("Koop: {} sendet ungueltige Nachrichten ({}) - getrennt", g->name, nc::rejectName(r));
             api_.drop(ctx_, peer, LN_R_PROTOCOL, 0);
-            onDisconnected(peer, LN_R_PROTOCOL);  // ln_drop meldet selbst keine Trennung
+            // V13.3: kein Platz zum Wiederverbinden fuer Regelbrecher (sonst belegen sie 120 s lang einen Platz)
+            const int gid = g->id;
+            remember(*g);
+            std::erase_if(guests_, [&](const auto& q) { return q.get() == g; });
+            if (gid) eventAll(nc::EventKind::Left, gid, LN_R_PROTOCOL, {}, "");
+            rosterDirty_ = true;
+            rebuildPawnList();
             ++counters.kicked;
         }
         return;
@@ -408,6 +438,14 @@ void CoopHost::sendWelcome(Guest& g, bool reconnected) {
     w.supply = (u16)std::clamp((int)std::lround(s_->supplyScale() * 100.0), 100, 300);
     send(g, m, true);
     g.invHash = 0;
+    // V13.3: der geteilte Stand dieser Ebene (was schon aufgenommen und abgelegt ist) - auch nach dem Wiederverbinden.
+    // Ohne ihn saehe ein spaeter Gast Funde, die es beim Host nicht mehr gibt
+    std::vector<u32> pk;
+    std::vector<GameSession::NetWorldEvent> drops;
+    s_->netWorldState(pk, drops);
+    for (u32 h : pk) sendEvent(g, nc::EventKind::Picked, (i32)h, 0, {}, "");
+    for (const auto& d : drops)
+        if (nc::kindOk(d.itemKind)) sendEvent(g, nc::EventKind::Dropped, (i32)d.hash, 1, d.pos, d.itemKind);
 }
 
 void CoopHost::handleInput(Guest& g, const nc::Input& in) {
@@ -544,13 +582,22 @@ void CoopHost::flushWorld() {
         else if (nc::kindOk(w.itemKind)) eventAll(nc::EventKind::Dropped, (i32)w.hash, 1, w.pos, w.itemKind);
     }
     s_->netWorldOut.clear();
+    // V13.3: Klaenge fuer die Gaeste (Ansprechen, Knicken des Leuchtstabs) - ausser fuer den, der sie selbst schon hoert
+    for (const auto& ns : s_->netSoundOut) {
+        if (!nc::kindOk(ns.sound)) continue;
+        for (auto& g : guests_)
+            if (g->connected() && g->st == net::ConnState::Connected && g->id != ns.except)
+                sendEvent(*g, nc::EventKind::Sound, 0, (i32)std::lround(std::clamp(ns.volume, 0.0f, 1.0f) * 100.0f), ns.pos, ns.sound);
+    }
+    s_->netSoundOut.clear();
     for (const auto& [pos, dur] : s_->netBlackoutOut) eventAll(nc::EventKind::Blackout, 0, (i32)std::lround(dur * 10.0f), pos, "");
     s_->netBlackoutOut.clear();
     using PE = Presence::Event;
     for (const PE& e : s_->netFigureOut) {
         if (e.type == PE::Step) continue;  // Schritte erzeugen die Puppen beim Gast selbst
         const bool world = e.type == PE::Growl || e.type == PE::Bark || e.type == PE::Whine || e.type == PE::TakeOff || e.type == PE::Knock ||
-                           e.type == PE::Drop || e.type == PE::Drag || e.type == PE::Breath || e.type == PE::Rustle;
+                           e.type == PE::Drop || e.type == PE::Drag || e.type == PE::Breath || e.type == PE::Rustle ||
+                           e.type == PE::Reply || e.type == PE::Shriek;  // V13.3: Skin-Stealer antwortet / stuermt los
         if (e.type == PE::Flicker) {
             eventAll(nc::EventKind::Flicker, 0, 0, e.pos, "");
             continue;
@@ -853,12 +900,12 @@ void CoopHost::cycleSpectate() {
 
 std::vector<PlayerInfo> CoopHost::players() const {
     std::vector<PlayerInfo> out;
-    out.push_back({0, hostName_, s_ && !s_->stats().dead, selfReady_, true, true, 0});
+    out.push_back({0, hostName_, s_ && !s_->stats().dead, selfReady_, true, true, 0, 0, 0});
     for (const auto& g : guests_) {
         if (!g->id || !g->pawn) continue;
-        PlayerInfo i{g->id, g->name, g->pawn->alive, g->pawn->ready, g->connected(), false, 0};
+        PlayerInfo i{g->id, g->name, g->pawn->alive, g->pawn->ready, g->connected(), false, 0, 0, 0};
         LnStats st{};
-        if (g->connected() && api_.stats(ctx_, g->peer, &st)) i.rttMs = (int)st.rttMs;
+        if (g->connected() && api_.stats(ctx_, g->peer, &st)) i.rttMs = (int)st.rttMs, i.path = st.path, i.lossPct = (int)std::lround(st.loss * 100.0f);
         out.push_back(i);
     }
     return out;
@@ -926,7 +973,8 @@ std::string CoopHost::status() const {
 CoopClient::CoopClient(NetApi api, u32 buildHash) : api_(api), build_(buildHash) {}
 CoopClient::~CoopClient() { stop(); }
 
-bool CoopClient::connect(const std::string& host, u16 port, const JoinKey& key, const std::string& name, std::string& error) {
+bool CoopClient::connect(const NetSettings& net, const std::string& directAddress, const std::string& code, const std::string& name,
+                         std::string& error) {
     if (!api_.ok()) {
         error = "Netz nicht verfuegbar";
         return false;
@@ -935,14 +983,25 @@ bool CoopClient::connect(const std::string& host, u16 port, const JoinKey& key, 
         error = "Name: 1-16 Zeichen (Buchstaben, Ziffern, Leerzeichen, _ -)";
         return false;
     }
+    if (net.useLobby && net.lobby.empty()) {
+        error = "Keine Lobby eingetragen (koop.json, siehe MULTIPLAYER_SETUP.md). Direkt: Adresse und langer Code.";
+        return false;
+    }
+    if (!net.useLobby && directAddress.empty()) {
+        error = "Adresse des Hosts fehlt.";
+        return false;
+    }
+    if (ctx_) api_.close(ctx_), ctx_ = nullptr;
     name_ = name;
-    ctx_ = api_.connect(host.c_str(), port, key.b.data(), name.c_str());
+    const LnConfig cfg = net.config();
+    ctx_ = api_.join(&cfg, net.useLobby ? nullptr : directAddress.c_str(), code.c_str(), name.c_str());
     if (!ctx_) {
-        error = "Adresse nicht aufloesbar";
+        error = "Beitritt nicht moeglich";
         return false;
     }
     state_ = State::Connecting;
     reason_.clear();
+    progress_ = net.useLobby ? "Verbinde mit der Lobby …" : "Verbinde mit dem Host …";
     return true;
 }
 
@@ -965,6 +1024,8 @@ void CoopClient::stop() {
         s_->pawns.clear();
         s_->netAction = nullptr;
     }
+    s_ = nullptr;  // V13.3: die Sitzung gehoert der App; nach dem Trennen (und Wiederverbinden) nie mehr anfassen
+    pendingWorld_.clear();
 }
 
 void CoopClient::sendMsg(const nc::Msg& m, bool reliable) {
@@ -986,10 +1047,13 @@ void CoopClient::pump() {
             m.join.token = token_;  // beim Wiederverbinden der alte
             sendMsg(m, true);
         } else if (ev.type == LN_EV_DISCONNECTED) {
-            static const char* why[] = {"", "getrennt", "Zeitlimit", "falscher Schluessel", "Host ist voll", "andere Version", "Protokollfehler",
-                                        "gesperrt", "entfernt", "zu viele Nachrichten", "Host nicht erreichbar"};
-            if (reason_.empty()) reason_ = ev.reason >= 0 && ev.reason <= 10 ? why[ev.reason] : "getrennt";
+            if (reason_.empty()) reason_ = reasonText(ev.reason);
             state_ = State::Closed;
+        } else if (ev.type == LN_EV_PROGRESS) {
+            progress_ = ev.reason == LN_P_LOBBY        ? "Verbinde mit der Lobby …"
+                        : ev.reason == LN_P_SIGNALING  ? "Host gefunden – tausche Verbindungsdaten …"
+                        : ev.reason == LN_P_CONNECTING ? "Suche einen Weg zum Host (direkt oder ueber das Relay) …"
+                                                       : "Pruefe den Code …";
         } else if (ev.type == LN_EV_MESSAGE) {
             onMessage(ev.channel, ev.data, ev.len);
         }
@@ -1073,6 +1137,10 @@ void CoopClient::attach(GameSession& s) {
     state_ = State::Playing;
     s.pawns.clear();
     for (auto& o : others_) s.pawns.push_back(o.get());
+    // V13.3: was vor der Sitzung kam (Stand beim Beitritt, Ereignisse waehrend des Ebenenwechsels), jetzt anwenden
+    std::vector<nc::Event> held;
+    held.swap(pendingWorld_);
+    for (const nc::Event& e : held) applyEvent(e);
 }
 
 void CoopClient::action(int kind, u32 arg) {
@@ -1256,6 +1324,11 @@ void CoopClient::applyEvent(const nc::Event& e) {
                                     3.0f});
         return;
     }
+    const bool world = e.kind == (u8)nc::EventKind::Picked || e.kind == (u8)nc::EventKind::Dropped;
+    if (world && (!s_ || pendingChange_)) {  // V13.3: gilt fuer die Sitzung, die noch gebaut wird
+        if (pendingWorld_.size() < 4096) pendingWorld_.push_back(e);
+        return;
+    }
     if (!s_) return;
     GameSession& s = *s_;
     switch ((nc::EventKind)e.kind) {
@@ -1356,6 +1429,12 @@ void CoopClient::cycleSpectate() {
 int CoopClient::rttMs() const {
     LnStats st{};
     return ctx_ && api_.stats(ctx_, 0, &st) ? (int)st.rttMs : 0;
+}
+
+LnStats CoopClient::netStats() const {
+    LnStats st{};
+    if (ctx_) api_.stats(ctx_, 0, &st);
+    return st;
 }
 
 }  // namespace lim::coop

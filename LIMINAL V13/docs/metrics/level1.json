@@ -29,8 +29,8 @@
   "max_over_median": 174.64
  },
  "sight": {
-  "median": 36.75,
-  "p90": 91.225,
+  "median": 36.25,
+  "p90": 86.975,
   "points": 942
  },
  "pillar_wall_gaps": {
@@ -39,7 +39,7 @@
   "min": 1.0
  },
  "furniture": {
-  "rooms_checked": 18,
+  "rooms_checked": 45,
   "blocked": []
  }
 }

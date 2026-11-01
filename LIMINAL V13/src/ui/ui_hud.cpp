@@ -180,7 +180,7 @@ void Ui::drawHud(Host& h, double dt) {
     r_->setAlpha(look);
     drawHotbar(h, *ses);
     r_->setAlpha(1.0f);
-    drawCoopHud(h);  // V13.2 Koop (Beta)
+    drawCoopHud(h);  // V13.2/V13.3 Koop
 
     double cd = st.deathCountdown();
     std::string prompt = ses->targetPrompt();
@@ -453,6 +453,8 @@ void Ui::drawDead(Host& h) {
              caught ? "E S   H A T   D I C H   E R W I S C H T"
              : cause == "wasser" ? "D U   B I S T   E R T R U N K E N"
              : cause == "tiefe"  ? "E S   H A T   D I C H   G E H O L T"
+             : cause == "pilz"   ? "D E R   P I L Z   H A T   D I C H"           // V13.3 (KREATUR_Crawler.md)
+             : cause == "garten" ? "D U   B I S T   E I N E   P F L A N Z E"   // V13.3 (Garden)
                                  : "D U   H A S T   D E N   V E R S T A N D   V E R L O R E N",
              rgba8(226, 104, 92), gfx::FontFace::Bold, gfx::Align::Center);
     r_->rect(x + w * 0.5f - 60 * s, y + 94 * s, 120 * s, 1.5f * s, rgba8(200, 84, 72, 170));
@@ -480,6 +482,8 @@ void Ui::drawDead(Host& h) {
         const std::string& cause = ses->deathCause();
         const char* hint = cause == "wasser" ? "Was geholfen hätte: rechtzeitig auftauchen; nicht zu lange im kalten Wasser bleiben."
                            : cause == "tiefe" ? "Was geholfen hätte: nicht so lange über der Tiefe bleiben. Licht nach unten hält es kurz fern."
+                           : cause == "pilz" ? "Was geholfen hätte: nichts Offenes trinken, nicht durch weiß befallene Pfützen waten; früh Mandelwasser."
+                           : cause == "garten" ? "Was geholfen hätte: den Garden nicht zu lange durchstreifen. Draußen erholt man sich langsam."
                            : role == 0   ? "Was geholfen hätte: nicht rennen. Hinsehen, stehen bleiben, Lampe aus, langsam zurück ins Licht."
                            : role == 1 ? "Was geholfen hätte: ihm nie den Rücken zukehren, nicht rennen. Ansehen, wenn es knurrt, dann langsam weg."
                            : role == 2 ? "Was geholfen hätte: kein Licht auf das Nest. Lampe aus, ruhig an der Wand vorbei."

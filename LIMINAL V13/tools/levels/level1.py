@@ -50,9 +50,10 @@ for x in (16, 47):
     m.opening(a1, a3, width=8, at=x)
 for x in (86, 109):
     m.opening(a2, a3, width=8, at=x)
-# freistehende, fleckige Wandscheiben (die Hallen sind weit, aber nicht leer)
-for (r, x0, y0, x1, y1) in ((a1, 24, 18, 25, 33), (a1, 40, 40, 56, 41), (a2, 92, 22, 93, 40), (a3, 30, 72, 46, 73),
-                            (a3, 70, 80, 71, 92), (a3, 96, 68, 97, 82)):
+# freistehende, fleckige Wandscheiben (die Hallen sind weit, aber nicht leer); V13.3: 6 m statt 12-18 m (korrigierte
+# Sichtachsen-Messung zaehlt die Scheiben jetzt: P90 79,7 m < 85 m)
+for (r, x0, y0, x1, y1) in ((a1, 24, 18, 25, 24), (a1, 40, 40, 46, 41), (a2, 92, 22, 93, 28), (a3, 30, 72, 36, 73),
+                            (a3, 70, 80, 71, 86), (a3, 96, 68, 97, 74)):
     m.block(r, x0, y0, x1, y1, HALL_H, hidden=False)
 
 # --- Hallen: Gothic (Boegen, runde Saeulen) -----------------------------------------------------------------------
@@ -83,9 +84,13 @@ def columns(r, step=7, rows=2):
     R = m.R(r)
     ys = [R.y0 + round((R.h) * (k + 1) / (rows + 1)) for k in range(rows)]
     for y in ys:
-        for x in range(R.x0 + 5, R.x1 - 4, step):
+        xs = list(range(R.x0 + 5, R.x1 - 4, step))
+        for x in xs:
             m.block(r, x, y, x + 1, y + 1, GOTH_H, hidden=True)
             m.obj('column_round', x + 0.5, y + 0.5, 0.0, 0.0)
+        # V13.3 (Kritikrunde 1): Arkadenboegen zwischen den Saeulen einer Reihe (Wiki: geschwungene Bauweise, Boegen)
+        for xa, xb in zip(xs, xs[1:]):
+            m.obj('arcade_gothic', (xa + xb) / 2 + 0.5, y + 0.5, GOTH_H, math.pi / 2)
 
 
 for r in gothic:
@@ -342,12 +347,30 @@ for k, s in enumerate(pipe_segs):
     for j in range(1 + int(dens * 4)):
         y = R.y0 + 0.3 + (j % max(1, R.h)) * 0.35 if R.h > 1 else R.y0 + 0.3
         z = top - 0.12 - 0.17 * (j // max(1, R.h))
-        pipe_line(s, R.x0, R.x1, min(R.y1 - 0.3, y), z, j % 2, walls=(False, False))
+        lower = j // max(1, R.h) >= 1  # V13.3: untere Lage ohne Gewindestange durchs obere Rohr (Varianten 2/3)
+        pipe_line(s, R.x0, R.x1, min(R.y1 - 0.3, y), z, (2 if lower else 0) + j % 2, walls=(False, False))
     for (fx, fy, fyaw) in m.wall_faces(s, margin=1):
         if rng.random() < 0.08 + 0.25 * dens:
             m.obj('gauge', fx, fy, R.floor + 1.5 + rng.random() * 0.3, fyaw, variant=rng.randrange(2))
     for x in range(R.x0 + 2, R.x1 - 1, 5):
         m.light(s, x + 0.5, R.cy, 0, 0.5 - 0.2 * dens, 3.6, z=top - 0.05, panel=True, color=WARM)
+    # V13.3 (Kritikrunde 5): 140 m gleicher Rohrgang - alle 10-18 m eine Stelle mit Fallrohr bis zum Boden, Leck mit
+    # Pfuetze, Verteiler; die Dichte steigt wie die der Rohre zum Uebergang nach Level 2
+    faces = m.wall_faces(s, margin=1)
+    nxt = R.x0 + rng.randint(4, 9)
+    for (fx, fy, fyaw) in sorted(faces, key=lambda f: f[0]):
+        if fx < nxt or abs(math.sin(fyaw)) < 0.5:
+            continue
+        nxt = fx + rng.randint(10, 18) - 6 * dens
+        v_ = rng.randrange(2)
+        px, py = fx + math.cos(fyaw) * 0.15, fy + math.sin(fyaw) * 0.15
+        for zc in range(int(top - 0.3)):
+            m.obj('pipe_drop', px, py, R.floor + zc + 0.5, fyaw, variant=v_, tag='pipes')
+        if rng.random() < 0.5 + 0.4 * dens:
+            m.spawn('deco', px + math.cos(fyaw) * 0.4, py + math.sin(fyaw) * 0.4, R.floor, rng.random() * 6.28, set='puddle',
+                    weight=1.0)
+        if rng.random() < 0.4:
+            m.obj('junction_box', fx + 0.9, fy, R.floor + 1.5, fyaw, tag='deco')
 
 # --- Hallen: Rohre unter der Decke, Pfuetzen darunter, Kisten, Haufen, Schaltkaesten, Tische, farbige Stuetzen -----
 for r in aquila:
@@ -507,7 +530,7 @@ for r in garden:
             px, py = R.x0 + 2 + m.rng.random() * (R.w - 4), R.y0 + 2 + m.rng.random() * (R.h - 4)
             if not any(m.blocked(px + dx, py + dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1)):
                 m.obj(name, px, py, R.floor, m.rng.random() * 6.28, variant=m.rng.randrange(3) if name == 'moss_patch' else 0)
-    battens(r, 7, 7, 0.75, 7.0, (0.92, 1.0, 0.86), 0.35)
+    battens(r, 6, 6, 0.85, 8.0, (0.92, 1.0, 0.86), 0.25)  # V13.3 Kritikrunde 1: war zu dunkel fuer Pflanzen
 
 # Fabled: Holzvertaefelung und Moebel in Zinnoberrot, Neon an Waenden und Stuetzen, farbige Kabel von der Decke
 for r in [fabled] + fab_rooms:
@@ -520,7 +543,7 @@ for r in [fabled] + fab_rooms:
             v = m.rng.randrange(4)
             m.obj('neon_tube', fx, fy, R.floor + 2.4, fyaw, variant=v, tag='light')
             col = [(1.0, 0.25, 0.3), (0.3, 1.0, 0.45), (0.35, 0.5, 1.0), (0.75, 0.35, 1.0)][v]
-            m.light(r, fx + math.cos(fyaw) * 0.3, fy + math.sin(fyaw) * 0.3, 1, 0.55, 5.0, int(round(math.cos(fyaw))),
+            m.light(r, fx + math.cos(fyaw) * 0.3, fy + math.sin(fyaw) * 0.3, 1, 0.8, 6.5, int(round(math.cos(fyaw))),  # V13.3 Runde 6: 0,55/5 m
                     int(round(math.sin(fyaw))), z=R.floor + 2.4, panel=False, color=col)
         elif m.rng.random() < 0.06:
             m.obj('neon_sign', fx, fy, R.floor + 2.0, fyaw, variant=m.rng.randrange(2), tag='light')
@@ -538,8 +561,8 @@ for r in [fabled] + fab_rooms:
             if not any(m.blocked(px + dx, py + dy) for dx in (-0.6, 0, 0.6) for dy in (-0.6, 0, 0.6)):
                 m.obj(name, px, py, R.floor, a_)
     if r != fabled:
-        bulb(r, inten=0.45, radius=3.6)
-battens(fabled, 8, 8, 0.45, 6.0, WARM, 0.5)
+        bulb(r, inten=0.7, radius=4.5)  # V13.3 Runde 6: Kammern waren schwarz (0,45/3,6 m)
+battens(fabled, 7, 7, 0.6, 7.0, WARM, 0.35)  # V13.3 Kritikrunde 5: war bis auf die Neonroehren schwarz
 
 # --- Funde, Notizen, Wesen, Sicherungspunkte ------------------------------------------------------------------------
 for (r, px, py) in crate_spots[::2]:
@@ -574,6 +597,56 @@ safe_point('rohr', near, 'Vor dem Rohrgang')
 last.kw['circuit'] = C_ROOMS
 m.checkpoint('l2_tor', last.x0 + 2.5, last.cy, 0.0, 'Rohre und Messuhren')
 m.obj('safety_light', last.x0 + 2.5, last.cy, last.floor + last.height, 0.0, tag='emergency')
+# V13.3 (Kritikrunde 1): Gild-Waende waren auf langen Strecken kahl - Rohr unter der Decke entlang der Waende,
+# Verteiler, Kaesten, Lueftungsgitter und Steckdosen in unregelmaessigen Abstaenden
+for r in gd:
+    R = m.R(r)
+    top = R.floor + R.height
+    var = rng.randrange(2)
+    for (fx, fy, fyaw) in m.wall_faces(r, margin=0):
+        m.obj('pipe_run', fx + math.cos(fyaw) * 0.3, fy + math.sin(fyaw) * 0.3, top - 0.12, fyaw + math.pi / 2, variant=var,
+              tag='pipes')
+    for (fx, fy, fyaw) in m.wall_faces(r, margin=1):
+        q = rng.random()
+        if q < 0.05:
+            m.obj('power_box', fx, fy, R.floor + 1.5, fyaw, tag='deco')
+        elif q < 0.10:
+            m.obj('junction_box', fx, fy, R.floor + 1.6 + rng.random() * 0.8, fyaw, tag='deco')
+        elif q < 0.14:
+            m.obj('vent_grille', fx, fy, R.floor + 0.35, fyaw, tag='deco')
+        elif q < 0.18:
+            m.obj('outlet', fx, fy, R.floor + 0.3, fyaw, tag='deco')
+
+# V13.3: Deckenlueftungen in Gaengen und im Rohrgang (Wiki Arms: kommen aus Lueftungen/Rohren; Lager fuer presence_arms)
+for r in maze + pipe_segs:
+    R = m.R(r)
+    if min(R.w, R.h) > 3 or max(R.w, R.h) < 4 or rng.random() > 0.45:
+        continue
+    along_x = R.w >= R.h
+    n_ = max(R.w, R.h)
+    for k in range(1 + rng.randrange(max(1, min(4, n_ - 2))), n_ - 1, 9):
+        px = R.x0 + k + 0.5 if along_x else (R.x1 - 0.6 if r in pipe_segs else R.cx)
+        py = (R.y1 - 0.6 if r in pipe_segs else R.cy) if along_x else R.y0 + k + 0.5
+        if all(math.hypot(px - l[0], py - l[1]) > 1.3 for l in R.lights) and not m.blocked(px, py):
+            m.obj('ceiling_vent', px, py, R.floor + R.height, 0.0 if along_x else math.pi / 2, variant=rng.randrange(2), tag='deco')
+# V13.3 (Kritikrunde 4): Gaenge sind laut Wiki schwach beleuchtet, waermer, mit weniger Pfuetzen und kaum Vorraeten - sie
+# bleiben karg; nur kleine Variation: vereinzelte Dosen, Verteiler und Gitter an den Waenden, selten eine Pfuetze
+for r in maze:
+    R = m.R(r)
+    if min(R.w, R.h) > 3 or m.R(r).zone != 'gaenge':
+        continue
+    for (fx, fy, fyaw) in m.wall_faces(r, margin=1):
+        q = rng.random()
+        if q < 0.025:
+            m.obj('outlet', fx, fy, R.floor + 0.3, fyaw, tag='deco')
+        elif q < 0.04:
+            m.obj('junction_box', fx, fy, R.floor + 1.7 + rng.random() * 0.5, fyaw, tag='deco')
+        elif q < 0.05:
+            m.obj('vent_grille', fx, fy, R.floor + 0.35, fyaw, tag='deco')
+    if max(R.w, R.h) >= 4 and rng.random() < 0.06:
+        px, py = R.x0 + 0.5 + rng.random() * (R.w - 1), R.y0 + 0.5 + rng.random() * (R.h - 1)
+        if not m.blocked(px, py):
+            m.spawn('deco', px, py, R.floor, rng.random() * 6.28, set='puddle', weight=1.0)
 # V13.3: Wesen nach den Sicherungspunkten setzen (Abstand >= 17 m)
 # Hounds und Clumps streifen durch die Hallen (Wiki); Smiler kommen mit dem Flackern (Regie)
 for r in aquila + gothic + gd + [ouro, fabled] + garden:
@@ -585,4 +658,170 @@ for r in aquila + gothic + gd + [ouro, fabled] + garden:
             if not m.blocked(px, py) and math.hypot(px - m.start[0], py - m.start[1]) > 30 and far:
                 m.spawn('entity', px, py, R.floor, role=rng.choice(['hound', 'hound', 'clump']), tags=['hall'])
                 break
+# V13.3: Wandteile im Rohrgang entstehen vor der spaeter angelegten Tuer nach Fabled - Teile vor einer Tuer entfernen
+# (Fallrohre haben keine Halt-Regel und wuerden die Tuer verstellen)
+def _before_door(o):
+    x, y, _z = o['pos']
+    c, s_ = math.cos(o.get('yaw', 0.0)), math.sin(o.get('yaw', 0.0))
+    back = 0.4 if o['model'] == 'pipe_drop' else 0.25
+    return m.in_door(math.floor(x - c * back), math.floor(y - s_ * back)) is not None
+
+
+m.objects = [o for o in m.objects if not (o['model'] in ('gauge', 'junction_box', 'pipe_drop') and _before_door(o))]
+# --- V13.3: Erscheinungen ohne Figur (gameplay/phenomena.hpp; KREATUR_Crawler.md, KREATUR_GameMaster.md,
+# KREATUR_L1_Erscheinungen.md) - nur Platzierungen, eigener Zufall (die Karte davor bleibt unveraendert).
+# Spawnpunkte kind 'trace': fungus (befallene Stelle, Halbmesser als Tag r<m>), bottle (offenes Mandelwasser), note
+# (Lager eines Infizierten), painting (Platz vor einer Hallentuer), expel (wohin die Spielleiterin hinauswirft),
+# claws (Zimmertuer mit Krallenspuren: Schwelle, Blick in das Zimmer)
+import random as _random
+prng = _random.Random(1733)
+
+
+def _free(px, py, rad=0.6):
+    return all(not m.blocked(px + dx, py + dy) and m.at(px + dx, py + dy) >= 0 for dx in (-rad, 0, rad) for dy in (-rad, 0, rad))
+
+
+def _face_spot(r, inward):
+    faces = [f for f in m.wall_faces(r, margin=1) if _free(f[0] + math.cos(f[2]) * inward, f[1] + math.sin(f[2]) * inward, 0.7)]
+    return prng.choice(faces) if faces else None
+
+
+def _hall(ri):
+    return 'hall' in m.R(ri).kw.get('tags', [])
+
+
+def _door_into(d, ri):
+    """Mitte der Tuer und Richtung in den Raum ri."""
+    x0, y0, x1, y1 = d['rect']
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    R = m.R(ri)
+    if x1 - x0 > y1 - y0:  # Tuer in einer waagrechten Wand
+        return cx, cy, (math.pi / 2 if R.cy > cy else -math.pi / 2)
+    return cx, cy, (0.0 if R.cx > cx else math.pi)
+
+
+# Crawler-Pilz an feuchten Stellen der Aquila-Hallen (Rohre tropfen, Pfuetzen): Myzel an der Wand, Matte am Boden
+fungus_hall = []
+for r in prng.sample(aquila, 3):
+    f = _face_spot(r, 0.7)
+    if not f:
+        continue
+    fx, fy, fyaw = f
+    R = m.R(r)
+    m.obj('fungus_wall', fx, fy, R.floor, fyaw, variant=prng.randrange(2), tag='fungus')
+    gx, gy = fx + math.cos(fyaw) * 0.75, fy + math.sin(fyaw) * 0.75
+    m.obj('fungus_floor', gx, gy, R.floor, fyaw + prng.uniform(-0.4, 0.4), variant=prng.randrange(2), tag='fungus')
+    m.obj('puddle', gx, gy, R.floor, fyaw, scale=(0.45, 0.45, 1.0), variant=prng.randrange(6))  # das Wasser: Pfuetze der Karte (Spiegelung)
+    m.spawn('trace', gx, gy, R.floor, fyaw, tags=['r1.7'], set='fungus')
+    fungus_hall.append((r, gx, gy, fyaw))
+# offene Flasche neben einer befallenen Stelle in der Halle
+if fungus_hall:
+    r, gx, gy, fyaw = fungus_hall[0]
+    for off in (1.9, -1.9, 2.5, -2.5, 1.4, -1.4):
+        bx, by = gx + math.cos(fyaw + math.pi / 2) * off + math.cos(fyaw) * 0.3, gy + math.sin(fyaw + math.pi / 2) * off + math.sin(fyaw) * 0.3
+        if _free(bx, by, 0.3):
+            m.spawn('trace', bx, by, m.R(r).floor, prng.random() * 6.28, set='bottle')
+            break
+# Lager eines Infizierten in einem Zimmer der Gaenge: verpilzter Schlafsack, Myzel an der Wand, Zettel, offene Flasche
+camp_rooms = [c for c in cells if m.R(c).type in ('zimmer', 'buero') and min(m.R(c).w, m.R(c).h) >= 4]
+camp_room = None
+for r in prng.sample(camp_rooms, len(camp_rooms)):
+    f = _face_spot(r, 1.0)
+    if not f:
+        continue
+    fx, fy, fyaw = f
+    R = m.R(r)
+    cx, cy = fx + math.cos(fyaw) * 0.95, fy + math.sin(fyaw) * 0.95
+    m.obj('fungus_wall', fx, fy, R.floor, fyaw, variant=2, tag='fungus')
+    m.obj('fungus_camp', cx, cy, R.floor, fyaw, tag='fungus')
+    m.spawn('trace', cx, cy, R.floor, fyaw, tags=['r1.6'], set='fungus')
+    m.spawn('trace', cx, cy, R.floor, fyaw, tags=['r2.2'], set='note')
+    for off in (-1.25, 1.25, -0.9, 0.9):
+        bx, by = cx + math.cos(fyaw + math.pi / 2) * off + math.cos(fyaw) * 0.5, cy + math.sin(fyaw + math.pi / 2) * off + math.sin(fyaw) * 0.5
+        if _free(bx, by, 0.25):
+            m.spawn('trace', bx, by, R.floor, prng.random() * 6.28, set='bottle')
+            break
+    camp_room = r
+    break
+# verpilzter Kadaver in einem Krankenzimmer am Hallenrand (dunkel, feucht unter dem Bett)
+for r in [b_ for b_ in band if m.R(b_).type == 'krankenzimmer'][1:2]:
+    R = m.R(r)
+    for _try in range(20):
+        px, py = R.x0 + 1.5 + prng.random() * (R.w - 3), R.y0 + 1.5 + prng.random() * (R.h - 3)
+        if _free(px, py, 0.7):
+            m.obj('fungus_floor', px, py, R.floor, prng.random() * 6.28, variant=2, tag='fungus')
+            m.spawn('trace', px, py, R.floor, 0.0, tags=['r1.2'], set='fungus')
+            break
+# eine weitere offene Flasche in einem Zimmer der Gaenge (verlockend, an der Wand)
+for r in prng.sample([c for c in cells if c != camp_room], 6):
+    p = _face_spot(r, 0.45)
+    if p:
+        R = m.R(r)
+        m.spawn('trace', p[0] + math.cos(p[2]) * 0.45, p[1] + math.sin(p[2]) * 0.45, R.floor, prng.random() * 6.28, set='bottle')
+        break
+
+# Gemaelde der Spielleiterin (Entity 99): Plaetze am Boden kurz vor den Tueren zu den Hallen (Seite ausserhalb der Halle)
+paint_spots = 0
+for d in m.doors:
+    if d['kind'] not in ('door', 'wide'):
+        continue
+    a_, b_ = d['a'], d['b']
+    if _hall(a_) == _hall(b_):
+        continue
+    other = b_ if _hall(a_) else a_
+    cx, cy, into = _door_into(d, other)
+    px, py = cx + math.cos(into) * 1.45, cy + math.sin(into) * 1.45
+    if m.at(px, py) != other or not _free(px, py, 0.55):
+        continue
+    m.spawn('trace', px, py, m.R(other).floor, into, set='painting')
+    paint_spots += 1
+# Hinauswurf: freie Stellen in Hallen und Gaengen (nicht im Garden)
+expel = 0
+for r in prng.sample(aquila + gothic + gd, 6) + prng.sample(cells, 4):
+    R = m.R(r)
+    for _try in range(15):
+        px, py = R.x0 + 1.5 + prng.random() * (R.w - 3), R.y0 + 1.5 + prng.random() * (R.h - 3)
+        if _free(px, py, 0.8):
+            m.spawn('trace', px, py, R.floor, prng.random() * 6.28 - math.pi, set='expel')
+            expel += 1
+            break
+# Spuren an einer Zimmertuer in den Gaengen: Krallen an der Wand neben der Tuer (Gangseite), zaehe Fluessigkeit davor
+claw_room = None
+zimmer = [c for c in cells if m.R(c).type == 'zimmer' and c != camp_room]
+for r in prng.sample(zimmer, len(zimmer)):
+    R = m.R(r)
+    doors = [d for d in m.doors if r in (d['a'], d['b'])]
+    if len(doors) != 1:
+        continue
+    d = doors[0]
+    corr = d['b'] if d['a'] == r else d['a']
+    cx, cy, into = _door_into(d, r)
+    if abs(math.sin(into)) > 0.5:
+        depth = R.y1 - cy if math.sin(into) > 0 else cy - R.y0
+    else:
+        depth = R.x1 - cx if math.cos(into) > 0 else cx - R.x0
+    if depth < 4.5:
+        continue
+    faces = [f for f in m.wall_faces(corr, margin=0)
+             if 0.9 <= math.hypot(f[0] - cx, f[1] - cy) <= 1.6 and abs(math.remainder(f[2] - (into + math.pi), 2 * math.pi)) < 0.1]
+    if not faces:
+        continue
+    fx, fy, fyaw = min(faces, key=lambda f: math.hypot(f[0] - cx, f[1] - cy))
+    Rc = m.R(corr)
+    m.obj('claw_marks', fx, fy, Rc.floor, fyaw, tag='claws')
+    ox, oy = cx - math.cos(into) * 0.75, cy - math.sin(into) * 0.75
+    m.obj('goo_trail', ox, oy, Rc.floor, into + math.pi / 2 + prng.uniform(-0.3, 0.3), tag='claws')
+    m.spawn('trace', cx + math.cos(into) * 0.6, cy + math.sin(into) * 0.6, R.floor, into, tags=['r9'], set='claws')
+    claw_room = r
+    break
+# Garden: wer zu lange blieb - eine Gestalt aus Rinde und Ranken zwischen den Farnen
+for r in garden:
+    R = m.R(r)
+    for _try in range(30):
+        px, py = R.x0 + 6 + prng.random() * (R.w - 12), R.y0 + 5 + prng.random() * (R.h - 10)
+        if _free(px, py, 1.0):
+            m.obj('plant_wanderer', px, py, R.floor, prng.random() * 6.28, variant=garden.index(r), tag='garden')
+            break
+print(f'V13.3 Erscheinungen: Pilz {len(fungus_hall)} Hallenstellen, Lager {camp_room is not None}, Gemaeldeplaetze {paint_spots}, '
+      f'Hinauswurf {expel}, Tuerspuren {claw_room is not None}')
 m.save()

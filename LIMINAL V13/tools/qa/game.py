@@ -27,8 +27,26 @@ def reset_settings(userdir):
             json.dump(j, fh, indent=1)
 
 
+def sync_data():
+    """Karten und Level-Dateien in die Kopie des Spiels uebernehmen (das Spiel liest build/Release/bin/data; ohne Neubau
+    blieben neu erzeugte Karten sonst unsichtbar)."""
+    import shutil
+    dst_root = os.path.join(os.path.dirname(EXE), 'data')
+    for sub in ('maps', 'levels'):
+        src = os.path.join(ROOT, 'data', sub)
+        dst = os.path.join(dst_root, sub)
+        if not os.path.isdir(src) or not os.path.isdir(dst):
+            continue
+        for f in os.listdir(src):
+            a, b = os.path.join(src, f), os.path.join(dst, f)
+            if not os.path.exists(b) or os.path.getmtime(a) > os.path.getmtime(b):
+                shutil.copy2(a, b)
+
+
 def run(args, script, userdir, size='1600x900', quality=2, hud=False, timeout=3600, extra_env=None):
     """Startet das Spiel und wartet. Liefert (Exitcode, Text des Protokolls dieses Laufs)."""
+    if 'LIM_EXE' not in os.environ:
+        sync_data()
     os.makedirs(userdir, exist_ok=True)
     reset_settings(userdir)
     logdir = os.path.join(userdir, 'logs')
@@ -42,6 +60,7 @@ def run(args, script, userdir, size='1600x900', quality=2, hud=False, timeout=36
         cmd.append('--no-hud')
     cmd += args.split() if isinstance(args, str) else list(args)
     code = None
+    t0 = time.time()
     for attempt in range(4):
         try:
             code = subprocess.run(cmd, env=env, timeout=timeout).returncode
@@ -51,9 +70,11 @@ def run(args, script, userdir, size='1600x900', quality=2, hud=False, timeout=36
             time.sleep(20)
     text = ''
     if os.path.isdir(logdir):
-        new = sorted(set(os.listdir(logdir)) - before)
-        if new:
-            with open(os.path.join(logdir, new[-1]), encoding='utf-8', errors='replace') as fh:
+        # das Spiel schreibt immer dieselbe Datei: die nach dem Start geaenderte(n) lesen
+        files = [os.path.join(logdir, f) for f in os.listdir(logdir)]
+        fresh = [f for f in files if os.path.getmtime(f) >= t0 - 1]
+        if fresh:
+            with open(max(fresh, key=os.path.getmtime), encoding='utf-8', errors='replace') as fh:
                 text = fh.read()
     return code, text
 

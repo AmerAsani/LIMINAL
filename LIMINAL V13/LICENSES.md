@@ -2,7 +2,7 @@
 
 Stand: 26.10.2026. **Das ist keine Rechtsberatung, und die Rechtslage ist nicht abschließend geklärt** (siehe Abschnitt 8).
 Diese Datei listet jedes fremde Material, das in V13 steckt oder als Grundlage diente, mit Quelle, Autorinnen und Autoren und Lizenz.
-**V13 fügt kein fremdes Material hinzu:** keine neuen Texturen, Modelle, Klänge oder Schriften. Neu sind eigene Modelle (Hand, sechs Wesen) und eigener Code (Abschnitte 3 und 9).
+**V13 fügt kein fremdes Material hinzu:** keine neuen Texturen, Modelle, Klänge oder Schriften. Neu sind eigene Modelle (Hand, sechs Wesen) und eigener Code (Abschnitte 3 und 9). **V13.3** fügt für den Koop-Modus fremden **Programmcode** hinzu: Netzbibliotheken, Abschnitt 7.1. ENet (V13.2) ist entfernt.
 Ältere Überlegungen: `LICENSE_REVIEW.md`, `ATTRIBUTION.md` (beide aus V11).
 
 ---
@@ -45,7 +45,7 @@ Fandom-Seiten wurden für V12 **nicht** verwendet (Auftrag: nur Wikidot).
 
 | Name im Spiel | Quelle | Lizenz | Herkunft | geplant für Level |
 |---|---|---|---|---|
-| `wallpaper_threshold` | [Wallpaper001A](https://ambientcg.com/view?id=Wallpaper001A) „Wallpaper 001 A“ | CC0-1.0 | ambientCG, abgerufen 2026-10-25, SHA-256 23d7add92ef4… | 0 |
+| `wallpaper_threshold` | [Wallpaper001A](https://ambientcg.com/view?id=Wallpaper001A) „Wallpaper 001 A“ | CC0-1.0 | ambientCG, abgerufen 2026-10-25, SHA-256 23d7add92ef4…; V13.3 zu Bahnen von 53 cm mit Stoßfugen verarbeitet (`tools/textures/wallpaper_l0.py`, Kachel 2,12 m) | 0 |
 | `wallpaper_threshold_mold` | [Wallpaper002C](https://ambientcg.com/view?id=Wallpaper002C) „Wallpaper 002 C“ | CC0-1.0 | ambientCG, abgerufen 2026-10-25, SHA-256 767a4cc16bef… | 0 |
 | `carpet_threshold` | [Fabric028](https://ambientcg.com/view?id=Fabric028) „Fabric 028“ | CC0-1.0 | ambientCG, abgerufen 2026-10-25, SHA-256 be3c5a8a3431… | 0 |
 | `ceiling_office` | [OfficeCeiling001](https://ambientcg.com/view?id=OfficeCeiling001) „Office Ceiling 001“ | CC0-1.0 | ambientCG, abgerufen 2026-10-25, SHA-256 c28085beb797… | 0 |
@@ -105,6 +105,11 @@ Fandom-Seiten wurden für V12 **nicht** verwendet (Auftrag: nur Wikidot).
   - Die Zimmernummern, das Beverly-Schild, die Inschrift der Bibliothek und alle Schilder und Tafeln in Level 36 wurden daraus als **Geometrie** erzeugt.
   - Die Schriftdatei selbst wird nicht mitgeliefert. Die OFL erlaubt die Einbettung in erzeugte Werke.
   - Der Lizenztext der OFL soll im Paket liegen; das ist noch offen (Abschnitt 8).
+- **DejaVu Sans Mono** (Bitstream-Vera-Lizenz mit den DejaVu-Änderungen, frei; https://dejavu-fonts.github.io/):
+  - Liegt den Blender-Datendateien bei (`datafiles/fonts/DejaVuSansMono.woff2`).
+  - V13.3: Ziffern in Level 5 (Zimmernummern der Hoteltüren, Typenschild des Kessels, Wagennummer „903“) als
+    **Geometrie** – Inter füllte beim Umwandeln das Loch der „4“ (überlappende Konturen der variablen Schrift).
+  - Die Schriftdatei selbst wird nicht mitgeliefert; die Lizenz erlaubt eingebettete und abgeleitete Nutzung.
 - **Oberfläche:** Segoe UI und Consolas werden zur Laufzeit aus den installierten Windows-Schriften gerastert und nicht mitgeliefert (wie in V11).
 
 ## 5. Klänge
@@ -121,8 +126,39 @@ Notizen (`data/notes.json`), Hilfe, Abspann und alle Beschriftungen sind selbst 
 |---|---|---|
 | llvm-mingw-Laufzeit (libc++, libc++abi, libunwind, compiler-rt), statisch gebunden | https://github.com/mstorsjo/llvm-mingw | Apache License 2.0 mit LLVM Exceptions |
 | mingw-w64-Laufzeit | https://www.mingw-w64.org | ZPL / MIT-ähnlich |
-| ENet 1.3.18 (UDP-Transport des Mehrspielers, in `liminal_net.dll`), unverändert in `third_party/enet` mit `LICENSE` | https://github.com/lsalzman/enet, Commit 2662c0de09e36f2a2030ccc2c528a3e4c9e8138a, abgerufen 2026-10-26 | MIT, Copyright (c) 2002-2024 Lee Salzman |
-| Windows-Kryptografie (CNG, `bcrypt.dll`) | Bestandteil von Windows, nur dynamisch aufgerufen | Windows-Lizenz (nicht mitgeliefert) |
+| Netzbibliotheken des Koop-Modus (V13.3, in `liminal_net.dll` und `liminal_lobby.exe`) | Abschnitt 7.1 | MPL-2.0, BSD-3-Clause, MIT, Apache-2.0 |
+| Windows: `bcrypt.dll` (Zufall für Mbed TLS), `winhttp.dll` (WebSocket zur Lobby mit TLS-Prüfung), `crypt32.dll` (Zertifikat der Lobby) | Bestandteil von Windows, nur in `liminal_net.dll` | Windows-Lizenz (nicht mitgeliefert) |
+| ~~ENet 1.3.18~~ (V13.2, MIT, Lee Salzman) | in V13.3 entfernt (E-033) | – |
+
+## 7.1 Netzbibliotheken des Koop-Modus (V13.3)
+
+**Bezug und Ablage:**
+- Alle aus den **offiziellen Repositories** der Projekte, abgerufen am 27.10.2026.
+- Die GitHub-Archive je Commit bzw. das Release-Archiv; SHA-256 des Archivs unten.
+- In `third_party/` liegen nur die zum Bauen nötigen Teile, **unverändert**:
+  - libdatachannel: `CMakeLists.txt`, `cmake/`, `include/`, `src/`;
+  - Mbed TLS: `include/`, `library/` ohne deren `CMakeLists.txt`/`Makefile`;
+  - nlohmann/json: nur `single_include/nlohmann/json.hpp`.
+- Weggelassen: Beispiele, Tests, Dokumentation.
+- Baueinstellungen statt Änderungen: `src/netdll/config/liminal_mbedtls_config.h` und `-include algorithm` für libdatachannel (`CMakeLists.txt`, E-033).
+
+| Bibliothek | Version / Commit | Autorinnen und Autoren | Lizenz | Quelle, SHA-256 des Archivs | in `third_party/` |
+|---|---|---|---|---|---|
+| libdatachannel | v0.24.6, `6b1e2e620f1e37f0eafeee702eaea0043cb305fd` (26.09.2026) | Paul-Louis Ageneau und Mitwirkende | **MPL-2.0** | https://github.com/paullouisageneau/libdatachannel, `e15e6426a6ac601cbfa97708e0c8089bec4cb262f622dd1f76b8350dabd5a0bd` | `libdatachannel/` |
+| libjuice (ICE, STUN, TURN-Client und -Server) | v1.7.4, `b89c792e3612faf2f12cf35bcc56857313a06be3` (26.09.2026; von libdatachannel 0.24.6 festgelegt) | Paul-Louis Ageneau und Mitwirkende | **MPL-2.0** | https://github.com/paullouisageneau/libjuice, `713b22174e8cb2e06538fa9bac2650bda21b83c86f5128813ab4dcf8f5bea9ed` | `libdatachannel/deps/libjuice/` |
+| usrsctp (SCTP) | `fec583d54493f879d2ae44a743423bf8a04371ab` (26.06.2025; festgelegt von libdatachannel 0.24.6) | Randall Stewart, Michael Tuexen und Mitwirkende | BSD-3-Clause | https://github.com/sctplab/usrsctp, `e5c114afe73c9a0ec419fab5f5b3f63f3ce57b09b90d06ea85e63dca8aed3e7c` | `libdatachannel/deps/usrsctp/` |
+| plog (Protokoll, im Spiel abgeschaltet) | `94899e0b926ac1b0f4750bfbd495167b4a6ae9ef` (15.01.2025; festgelegt von libdatachannel 0.24.6) | Sergey Podobry | MIT | https://github.com/SergiusTheBest/plog, `92a08bce559b5f28aa88d3fd9071567414b9f43a83fe2a05a6dd14f1da536072` | `libdatachannel/deps/plog/` |
+| Mbed TLS (DTLS, TLS, Zertifikate, Zufall) | 3.6.7 LTS (07.07.2026), Release-Archiv `mbedtls-3.6.7.tar.bz2` | Mbed TLS Contributors (Trusted Firmware) | Apache-2.0 (wahlweise GPL-2.0-or-later; LIMINAL nutzt Apache-2.0) | https://github.com/Mbed-TLS/mbedtls/releases/tag/mbedtls-3.6.7, `a7e8bcbec0e6f761b4af24f25677626b35f762f68eef79c08677a363212d11f6` (= veröffentlichte Prüfsumme `mbedtls-3.6.7-sha256sum.txt`) | `mbedtls/` |
+| nlohmann/json (Lobby-Nachrichten) | v3.12.0, `55f93686c01528224f448c19128836e7df245f72` (11.04.2025) | Niels Lohmann | MIT | https://github.com/nlohmann/json, `67f4cdd9ca930c9c1e130af4a437c7fc98fab77a2846fc2d2a14b4943831f8ef` | `nlohmann_json/` |
+
+**Pflichten bei der Weitergabe:**
+- **MPL-2.0** (libdatachannel, libjuice):
+  - Die Pflicht gilt je Datei. Wer das Programm weitergibt, muss sagen, wo der Quellcode dieser Dateien zu haben ist. Das steht in `licenses/THIRD_PARTY_NOTICES.txt` im Paket (`tools/package.ps1`); die Quellen liegen unverändert im Quellcode von LIMINAL.
+  - Änderungen an diesen Dateien müssten offengelegt werden; es gibt keine.
+  - Der eigene Code von LIMINAL wird dadurch nicht MPL-pflichtig.
+- **BSD-3-Clause, MIT, Apache-2.0:** Lizenztext und Urheberhinweis beilegen. Das Paket legt die Lizenzdateien nach `licenses/` (`*_LICENSE.txt`). Apache-2.0: Mbed TLS enthält keine NOTICE-Datei.
+
+**Sicherheitslage und Prüfung:** `MULTIPLAYER_BEDROHUNGSMODELL.md`, Abschnitt 9.3. Für den 27.10.2026 sind für keinen dieser Stände bekannte Lücken verzeichnet (OSV, GitHub Advisories). Vorgehen zum Wiederholen: `MULTIPLAYER_TESTS.md`, Abschnitt 7.5.
 
 ## 8. Offene Rechtsfragen (nicht geklärt)
 

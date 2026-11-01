@@ -295,6 +295,8 @@ void Presence::thinkSkinStealer(Agent& a, double dt, const Context& c, std::vect
         }
         if (a.talkT > 0.0) a.talkT -= dt, a.talk = 1.0f;
     };
+    // V13.3: angesprochen - er antwortet verraeterisch; danach ruhig zurueckweichen, sonst greift er an (presence_lure.cpp)
+    if (talkSkinStealer(a, dt, c, out, d, los)) return;
     switch (a.state) {
         case 0: {  // satt: umhergehen; schaut, wenn er einen sieht
             a.look = sees && d < 14.0f;

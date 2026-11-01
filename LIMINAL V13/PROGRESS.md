@@ -74,3 +74,67 @@ Fertig seit Stand 1: Raummetrik/Schilder/Aehnlichkeit/Laufweg/Kartenbild/Spot-We
 Laufen/unterbrochen (Worktrees, mit SendMessage fortsetzen): Mehrspieler, Audio, Ausstattung L1 A/B, L2, L3, L0+Fundstuecke, L5, L5.3+188, 903+37, 36, L1-Sektoren; Wesen Duller+Arms, Growler+Nguithr'xurh, Wrangler, Smiler-Leuchtstab+Skin-Stealer-Ruf, Level-1-Erscheinungen (Garden, Ouroboros-Arbeiter, Crawler, Jerry).
 Als Naechstes: Ergebnisse pruefen und zusammenfuehren; Level-1-Abnahme (Kritikrunden, Laufweg nachher, AUFWAND.md); weitere Wesen (Hound-Rudel, grosser Clump, Praetorian/Motten L2/L3, Cannibal Cuisine, Fenster L2, Samantha, Ants, Woodlins/Watchers, Ratten-Fallen, purpurne Wesen, Faceling-Varianten); Level 2, 3, 0, 5, 5.3, 188, 903, 37, 36.
 
+### V13.3 Zwischenstand 3 (27.10.2026, Nutzungsgrenze)
+Neu: Level 1 Teil B (Blender-Modelle) uebernommen und mit Runden 3-5 abgeschlossen (`PROPS_Level1_B.md`); propsheet stellt den Spieler in jede Kabine (vorher schwarze Bilder bei fernen Kabinen); `reviewsheet.py`, `smoke.py` (Level 1: GPU 3,6 ms, RAM-Spitze 730 MB, 0 Fehler).
+Level 2 als Naechstes (Befund): 68 von 220 Raeumen verstellt (Maschinen an der Tunnelwand + Trichterwagen im Gleistunnel lassen < 0,9 m), Hallen (Anlage, Packlager, Bueroblock) zu gross gegenueber dem Tunnelnetz (S 0,78) – Hallen verkleinern, Tunnelnetz nach Osten erweitern, Maschinen nur wo >= 1,0 m frei bleibt, Brownout- und Macchina-Bereich ergaenzen.
+Agenten: alle ausser „Props Level 1 Blender-Modelle“ (vom Nutzer gestoppt, Arbeit uebernommen) laufen bzw. sind unterbrochen; mit SendMessage fortsetzen.
+
+
+### V13.3 Zwischenstand 4 (27.10.2026, ca. 18 Uhr)
+- **Level 1 fertig bis auf Schranke c (Wesen) und g (Aufwand):**
+  - Struktur: alle zehn Ebenen grün, Raummetrik mit korrigierter Messung (E-035).
+  - Ausstattung: Teil A, Teil B und die Sektoren zusammengeführt, dazu das neue Modell `arcade_gothic`.
+  - 7 Kritikrunden (`KRITIK_Level1.md`); Laufweg 836 m durch 18 Räume; Smoke-Test grün (GPU 4,1 ms, max 8,3; RAM 808 MB; 0 Fehler).
+- **Wesen:** Duller und Arms zusammengeführt (466 Prüfungen, 0 Fehler); Duller-Haut auf Dunkelgrau korrigiert; 29 Deckenlüftungen in den Gängen.
+- **Agenten:**
+  - laufen: Mehrspieler `aa6ecde9fd4b8ff11`, Growler+Nguithr'xurh `aed8bb58cf363c623`, Wrangler `a40d77c4c87074e60`;
+  - unterbrochen, in dieser Reihenfolge fortsetzen: Smiler-Leuchtstab+Skin-Stealer-Ruf `a2a8250ed528a5ff1`, L1-Erscheinungen `a8e9e99616db9fe9e` (dazu Entity 99 „The Game Master“ als Gemälde, Wikidot Rev. 39), Audio `a1a310e23cd626c63`, dann die Ausstattung L2, L3, L0, L5, 5.3+188, 903+37, 36.
+- **Level 2:** Kritikrunde 1 erledigt (Brownout); die weiteren Runden folgen nach der Ausstattung.
+- **Offene Wesen-Wellen** (ENTITY_ABGLEICH: noch Status „fehlt/bewusst weggelassen“):
+  - Hound-Rudel und großer Clump;
+  - Deathmoths in Level 2 und 3;
+  - Cannibal Cuisine und Windows;
+  - Samantha und Ants;
+  - Woodlins und Watchers;
+  - Death-Rat-Fallen;
+  - Faceling-Varianten;
+  - Randwesen;
+  - Wow-Check der vorhandenen Wesen.
+
+### V13.3 Zwischenstand 5 (27.10.2026, Nutzungsgrenze)
+- Kritikrunde 1 (Struktur) erledigt für Level 2, 3, 0 und 5: `KRITIK_Level2.md`, `KRITIK_Level3.md`, `KRITIK_Level0.md`, `KRITIK_Level5.md`.
+- `room_metrics.py` erneuert veraltete Ausstattungs-Abzüge selbst.
+- Agenten wegen der Nutzungsgrenze angehalten (mit SendMessage fortsetzen; ihre Arbeit liegt committet in den Worktree-Zweigen):
+  - Mehrspieler `aa6ecde9fd4b8ff11`: war beim 60-Minuten-Langlauf;
+  - Growler+Nguithr'xurh `aed8bb58cf363c623`: war beim gameplay_test;
+  - Wrangler `a40d77c4c87074e60`: war beim Blender-Bau.
+- Danach in dieser Reihenfolge:
+  - Smiler/Skin-Stealer `a2a8250ed528a5ff1`;
+  - L1-Erscheinungen + Entity 99 `a8e9e99616db9fe9e`;
+  - Audio `a1a310e23cd626c63`;
+  - Ausstattung L2, L3, L0, L5, 5.3+188, 903+37, 36.
+- Offen bleiben die Kritikrunden 1 für Level 5.3, 188, 903, 37 und 36.
+
+### V13.3 Zwischenstand 6 (01.11.2026, Nutzungsgrenze)
+- **Zusammengeführt:**
+  - Wrangler;
+  - Growler und Nguithr'xurh (die Spinne nach meiner Ablehnung neu gebaut, Runden 6–11);
+  - Tests danach: gameplay 525/0, audio 106/0, coop 169/0, net 72/0, worldgen 29658/0.
+- **Kritikrunde 1 für alle zehn Ebenen erledigt:**
+  - 5.3: Gang-Kandelaber;
+  - 188: Treppe im hohen Treppenhaus;
+  - 903 und 37: keine Änderung;
+  - 36: Modelle der Sicherheitskontrolle und Lounge fehlen (Ausstattungs-Agent L36).
+- **Entscheidungen und Werkzeuge:**
+  - E-036: Laufweg bei Ebenen mit wenigen Räumen;
+  - E-037: Zeilenenden;
+  - Faceling-Test L2 robust gemacht.
+- **Angehalten** (Nutzungsgrenze), fortsetzen mit Workflow resumeFromRunId bzw. SendMessage:
+  - Workflow `wf_47b840e5-0cf` (L1-Kette 1: Smiler-Köder/Skin-Stealer-Ansprache, dann Crawler/Garden/Entity 99/Spuren);
+  - Workflow `wf_8f47b53b-d0c` (L1-Kette 2: Ouroboros-Arbeiter Index 16, dann Plague Goblins Index 17);
+  - MP-Agent `aa6ecde9fd4b8ff11` (war im 60-Minuten-Langlauf).
+- **Danach:**
+  - Ausstattungs-Agenten L2 `acc032bb367994ffc`, L3 `a6fe00bab51c07b16`, L0 `a1b72bb19ca0e0be3`, L5 `a0e27f49b0224c52f`, 5.3+188 `aa6c5b5bc78be7eb1`, 903+37 `a3d9507a3a2648424`, 36 `a400115d30c290821`;
+  - Audio `a1a310e23cd626c63`;
+  - Wesen-Wellen L2/L3/L5+ (Deathmoths, Jerry, Cannibal Cuisine, Windows, Photoshop, Swindlebird, Macchina, Death-Rat-Fallen, purpurne Wesen, Red Knight, Samantha, Ants, Woodlins, Watchers, Entity 18, Ambassadors, Entity 39);
+  - Wow-Check der vorhandenen Wesen.

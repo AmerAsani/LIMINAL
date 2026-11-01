@@ -117,6 +117,12 @@ struct Presence::Agent {
     };
     std::array<Sample, 8> samples{};
     int nSamples = 0;
+    std::shared_ptr<void> ext;  // V13.3: eigener Zustand je Wesen (in dessen Datei definiert, z. B. presence_growler.cpp)
+    // V13.3: Leuchtkoeder (Smiler: verfolgter Stab, uebergangener Stab, Stutzen) und Ansprechen (Skin-Stealer: wer, welcher
+    // Satz, Antwort in replyT s, Dauer der Begegnung, entlarvt)
+    int lureId = 0, lureSkip = 0, addrBy = -1, phrase = 0;
+    double lureT = 0.0, replyT = -1.0, chat = 0.0;
+    bool addressed = false, exposed = false;
 
     void initBody(vec3 p, float y, unsigned seed) {
         pos = p, yaw = y;
@@ -141,9 +147,15 @@ struct Presence::Agent {
             rig.setCreaturePose(cre.pose());
         }
     }
-    float height() const { return human ? anim::figureBuild(Figure::Player).height : cre.height(); }
+    float height() const {
+        if (ent == Entity::Nguithr && !human) return variant == 1 || variant == 2 ? 0.8f : 0.14f * cre.scale();  // V13.3: Netzkugeln / Spinne
+        return human ? anim::figureBuild(Figure::Player).height : cre.height();
+    }
     // Fuesse fuer die Wahrnehmung (die Motte fliegt: Mitte des Koerpers)
-    vec3 feet() const { return ent == Entity::Moth && !human ? pos - vec3{0, 0, 0.06f} : pos; }
+    vec3 feet() const {
+        if (ent == Entity::Nguithr && !human) return pos - vec3{0, 0, variant == 1 || variant == 2 ? 0.85f : (up.z < -0.5f ? 0.16f * cre.scale() : 0.0f)};  // V13.3
+        return ent == Entity::Moth && !human ? pos - vec3{0, 0, 0.06f} : pos;
+    }
 };
 
 }  // namespace lim::game

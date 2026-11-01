@@ -146,3 +146,245 @@ clang++ ... tests/net_transport_test.cpp src/netdll/transport.cpp src/netdll/sec
 - Spiel über das echte Internet mit NAT und Portfreigabe: nur über den Netzstörer nachgestellt.
 - Mehr als vier Spieler: nicht vorgesehen (abgewiesen).
 - Eine unabhängige Durchsicht durch Dritte: nicht möglich. Durchgesehen habe nur ich, entlang des Bedrohungsmodells (`MULTIPLAYER_BEDROHUNGSMODELL.md`, Abschnitt 8).
+
+## 7. V13.3: neue Verbindungsschicht (Lobby, WebRTC, Relay)
+
+Stand 27.10.2026. Alle Tests von Abschnitt 5 laufen jetzt gegen die **neue** Verbindungsschicht:
+- Lobby mit Beitrittscode;
+- libdatachannel (ICE/STUN/TURN, DTLS, SCTP);
+- Rahmung der DLL;
+- Spielprotokoll v3.
+
+ENet und die eigene Kryptografie gibt es nicht mehr; die Testvektoren für HMAC/HKDF/AES aus 5.1 entfallen mit ihnen.
+
+**Aufbau im Test** (ein Rechner, Windows 11):
+- Getrennte Loopback-Adressen wie getrennte Rechner: Host 127.0.0.3, Gäste 127.0.0.2, Lobby und TURN 127.0.0.1. So greifen die Berechtigungen des TURN-Servers wie zwischen echten Rechnern.
+- Der **Netzstörer** (UDP-Proxy im Test) stellt je Richtung Laufzeit, Schwankung, Verlust, Doppelte, Umordnung und Bandbreite ein.
+
+```
+cmake --build build/Release
+cd build/Release/bin
+../tests/net_transport_test.exe [--only codes,proto,join,wrong,paths,direct,tls,host,lobby]
+../tests/coop_test.exe data [--quick] [--only fuzz,bots,netem,relay,direct,pickup,save,full,attacks,death,journey,outage,hostabort,nopath,late,reconnect,netfuzz]
+../tests/coop_test.exe data --long 3600
+../tests/lobby_proto_fuzz.exe [runden]
+python ../../../tools/check_no_network.py
+```
+
+### 7.1 Transport (`net_transport_test`): **OK, 90 Prüfungen, 0 Fehler** (84–99 s; mehrfach)
+
+| Bereich | Was | Ergebnis |
+|---|---|---|
+| Codes, Zertifikat | kurzer/langer Code, Kleinbuchstaben, O→0, I/L→1, falsche Längen und Zeichen; Host-Zertifikat: Fingerabdruck aus PEM = beim Erzeugen; Prüfteil aus bekannten Bits; Zufall | 17/17 |
+| Lobby-Nachrichten | hin und zurück je Art; 22 Gegentests (falsche Typen, Längen, Zeichen, Steuerzeichen, „to“ vom Gast, Host-Befehle vom Gast, Schachtelung, über 8 KiB, unbekannte Fehlercodes, TURN-Zugang mit Leerzeichen); **Fuzzing 300 000 Fälle**: 7 814 angenommen, jede neu gebaut und wieder gelesen | 10/10 |
+| Beitritt über die Lobby | Code nach dem Start; Gast mit kurzem Code verbunden nach **108–187 ms**; Name beim Host; 1200 Byte ja, 1201 nein; 200 zuverlässige Nachrichten vollständig und geordnet; unzuverlässiger Kanal; Weg „direkt“; zweiter Gast mit langem Code; Trennung gemeldet; nach dem Ende des Hosts „Code unbekannt“ | 14/14 |
+| Falsche Codes, Sperre, voll, Bann | Format falsch → BADCODE; unbekannter Raum → NOROOM; falscher Prüfteil → CERT (nichts gesendet); falsches Geheimteil → BADKEY (4×); danach richtig → verbunden; voll → FULL; 5. Fehlversuch → Adresse gesperrt, auch mit richtigem Code; Bann durch den Host → Gast erfährt es, erneuter Versuch schon in der Lobby abgewiesen | 12/12 |
+| Wege | **nur Relay** (beide Seiten verbergen die IP) → beide Seiten Weg „Relay“, verbunden nach 312–531 ms; **NAT**: die Lobby verwirft alle direkten Kandidaten → über das Relay verbunden (356–380 ms); **kein Weg** (kein Relay, alle Kandidaten verworfen) → Grund „kein Verbindungsweg“ nach 20 s, kein halber Gast beim Host | 6/6 |
+| Direkt ohne Lobby | eingebaute Lobby auf einem Port; kurzer Code direkt abgelehnt (Prüfteil Pflicht); langer Code verbunden, Weg direkt, Nachricht kommt an; zweiter Raum an der eingebauten Lobby abgewiesen | 7/7 |
+| Lobby mit TLS (wss) | festgelegtes Zertifikat als PEM und als Fingerabdruck: Raum offen; **fremdes Zertifikat mit gleichem Namen: abgewiesen (CERT)**; selbst signiert gegen die Windows-Stammzertifikate: abgewiesen (CERT); Gast über wss verbunden | 5/5 |
+| Angriffe auf den Host | Gast mit gültiger Raumnummer, eigener WebRTC-Stack: Nutzdaten vor dem Hallo, Text statt Binär, 3000 Byte → je getrennt; falsche Version → Absage VERSION; kein Hallo → Zeitlimit; Flut nach gültigem Hallo (3000 in 0,2 s) → höchstens Vorrat + Rate angenommen, anhaltende Flut → getrennt; der ehrliche Gast bleibt verbunden | 10/10 |
+| Angriffe auf die Lobby | Unsinn, Binär, 20 KB, 3000-fach geschachtelt, Host-Befehl vom Gast → getrennt; stumm → nach 10 s getrennt; 12 Verbindungen bei Grenze 6 → höchstens 6 offen; 14 Raumnummern geraten → 10× unbekannt, dann gesperrt; danach 3 000 veränderte Nachrichten über 60 Verbindungen gegen eine Lobby ohne Bremse → echter Beitritt geht | 9/9 |
+
+### 7.2 Koop mit Bots (`coop_test`, vollständig): **OK, 201 Prüfungen, 0 Fehler** (714 s; Lauf vom 27.10.2026 vor der SCTP-Änderung aus 7.8 – die Abschlussläufe danach: 7.10)
+
+Bots, Momentaufnahmen, Vorhersage und Abgleich wie in 5.2, jetzt über die neuen Wege. „Ping“ ist die von SCTP gemessene Laufzeit, „Verlust“ der Anteil unbeantworteter Pings der letzten 20 s.
+
+| Weg und Netz | Ergebnis |
+|---|---|
+| Lobby, direkt, Host + 1 | Weg direkt; Vorhersage 1,8 cm im Mittel, über 10 cm in 4 von 529; Ping 11 ms |
+| Lobby, direkt, Host + 3 (vier Spieler) | Weg direkt; 1,7 cm, 14 von 1 403 über 10 cm; 0 Sprünge |
+| Netzstörer **LAN** (20 ms, ±5, 1 % Verlust), direkter Weg durch den Proxy | Weg „durch NAT“ (Proxy = fremde Adresse); 2,1 cm; Ping 30 ms; **4,7 kB/s abwärts, 5,3 kB/s aufwärts je Gast** (mit DTLS/SCTP) |
+| Netzstörer **Internet** (80 ms ±30, 3 % Verlust, 1 % doppelt, 2 % umgeordnet, 256 kbit/s) | 3,5 cm; Ping 96 ms; 3 Sprünge; 5,9/6,9 kB/s je Gast |
+| Netzstörer **schlecht** (250 ms ±80, 10 % Verlust, 5 % umgeordnet, 128 kbit/s), 2 Gäste | 6,8 cm; Ping 345 ms; größte Abweichung 8,2 m; Ort nach dem Anhalten im Rahmen. **Vorher (erster Lauf, ohne Lebensdauer):** Laufzeit 6,6 s, 19 m Abweichung → Fehler; behoben (E-033) |
+| **Nur Relay** („NAT auf beiden Seiten“: die Lobby verwirft alle direkten Kandidaten; der Verkehr zum TURN-Server läuft durch den Netzstörer, je Strecke 80 ms ±30, 3 % Verlust, 1 % doppelt, 2 % umgeordnet) | **Weg „Relay“ für alle Gäste**; 5,7 cm; Ping 165 ms; Verlust 19 % (zwei gestörte Strecken je Richtung); 3 Sprünge; Verkehr am Störer 33 kB/s je Gast (beide Strecken, TURN-Kopf) |
+| **Direkt ohne Lobby** (eingebaute Lobby, langer Code), 2 Gäste | Weg direkt; 1,7 cm |
+| Ablegen, Aufnehmen, Wettlauf, Puppen; Koop-Stand; voll | wie 5.2, bestanden |
+| Angriffe (Gast mit gültigem Code) | 8 ungültige → getrennt; Speedhack (6-fache Zeit): 20 von 31 Eingaben verworfen, höchstens Laufweite; erfundene/ferne Gegenstände abgelehnt; Flut von Absichten gedrosselt; andere Spieldaten abgewiesen; ehrlicher Gast ungestört |
+| Tod, Zuschauen, Wiedereinstieg | bestanden (Prüfung jetzt in Spielzeit) |
+| Reise | Host + 2 Gäste durch alle zehn Ebenen (12 Wechsel), gleicher Seed, beisammen, verbunden |
+| **Netzausfall** | Netzstörer verwirft 13 s lang alles → Gast merkt es nach **10,0 s**; Host führt ihn als getrennt; mit demselben Code zurück: gleiche Spielernummer, Inventar zurück |
+| **Host beendet** | Gast getrennt nach **0,07 s** („Host hat das Spiel beendet“) |
+| **Host fällt aus** (alles verworfen, wie ein abgestürzter Prozess) | Gast getrennt nach **10,0 s** („Zeitlimit“) |
+| **Kein Weg** (UDP gesperrt, kein Relay) | klare Meldung nach 20 s: „kein Verbindungsweg (Firewall/NAT) – auch das Relay war nicht erreichbar“ |
+| Wiederverbinden, Entfernen, Sperren | gleicher Code → gleiche Spielernummer, Inventar zurück; entfernt; gesperrt → erneuter Versuch abgewiesen („gesperrt“) |
+| **Fuzzing über den Netzweg** (300 s) | 15 130 veränderte und zufällige Nachrichten über 35 Verbindungen gegen den echten Host. Host: 311 abgelehnt, 2 900 gedrosselt, 11 769 von 11 993 Eingaben verworfen (Zeitbudget), 1 012 von 1 443 Absichten abgelehnt, 34 Trennungen; der ehrliche Gast spielt ungestört |
+
+Gefunden und behoben während dieser Tests:
+- Absagen kamen beim Gast nicht an (Verbindung zu früh geschlossen) → 1 s Nachlauf.
+- Drei Gäste hinter einer Adresse wurden als „voll“ abgewiesen (Grenze 2 halbe Beitritte je Adresse) → 3, eigener Grund „Host nimmt gerade andere Gäste auf“.
+- Wer wegen ungültiger Nachrichten getrennt wurde, belegte 120 s einen Platz → frei.
+- Stau veralteter Momentaufnahmen bei knapper Bandbreite → Lebensdauer 150 ms.
+
+### 7.3 Zwei echte Spielprozesse über `liminal_lobby.exe`
+
+`coop_real.ps1`, `coop_menu.ps1`, `coop_title.ps1` (Arbeitsordner):
+- `liminal_lobby.exe` läuft als eigenes Programm (127.0.0.1, TCP 27615, STUN/TURN UDP 34780).
+- Zwei `LiminalGame.exe` mit eigenen Nutzerordnern und `koop.json` (`"lobby": "ws://127.0.0.1:27615"`).
+- Der Host öffnet per Skript `coophost … lobby`, der Gast tritt per `coopjoin … lobby` mit dem Code aus einer Datei bei.
+
+| Prüfung | Ergebnis |
+|---|---|
+| Code von der Lobby, Beitritt per Code | bestanden: Lobby „Raum geöffnet“, „Gast wartet“; Gast „willkommen als Spieler 1“ |
+| Beide Figuren, Namen, Zeile „KOOP“ (ohne Beta) | bestanden (`docs/screens/koop/koop_lobby_gast.jpg`, `koop_lobby_host.jpg`) |
+| Pausenmenü „Mitspieler“: Code, lange Form, Ping, Weg | bestanden (`koop_mitspieler_host.jpg`: „Gast – unterwegs, 9 ms, direkt“; `koop_mitspieler_gast.jpg`) |
+| Koop-Menü: Beitreten mit Code, Lobby-Hinweis; Hosten direkt | bestanden (`koop_menue_beitreten.jpg`, `koop_menue_hosten_direkt.jpg`); dabei zu lange Hinweiszeilen gefunden und umbrochen |
+| Host beendet → Gast | „verlassen (Host hat das Spiel beendet)“; beide Prozesse Exit 0 |
+
+### 7.4 Sanitizer und Fuzzing der eigenen Parser
+
+```
+clang++ -std=c++20 -O1 -g -fsanitize=address,undefined ... tests/lobby_proto_fuzz.cpp src/netdll/lobby_proto.cpp src/netdll/joincode.cpp <Mbed TLS mit denselben Schaltern>
+clang++ ... tests/coop_proto_fuzz.cpp src/net/coop_proto.cpp src/net/protocol.cpp
+```
+
+| Lauf | Ergebnis |
+|---|---|
+| `lobby_proto_fuzz` 1 000 000 Runden (Lobby-Nachrichten beider Richtungen, Codes, Prüfteil, Zeichenprüfungen) unter ASan/UBSan | **OK**, 9 832 angenommen, alle neu gebaut und wieder gelesen, keine Meldung |
+| `coop_proto_fuzz` 500 000 Runden (3 000 000 Fälle, Spielprotokoll mit `kRoles` = 40) unter ASan/UBSan | **OK**, 20 641 angenommen, alle kanonisch, keine Meldung |
+
+Nicht unter Sanitizern: libdatachannel, libjuice, usrsctp, Mbed TLS als Ganzes (nur über die Netz-Tests mitbenutzt, ohne Sanitizer).
+
+### 7.5 Abhängigkeiten: Versionen und Lücken prüfen
+
+Vorgehen (wiederholbar, vor jeder Veröffentlichung):
+1. **Neueste Releases** über die GitHub-API (`/repos/<projekt>/releases/latest`) mit den Ständen in `LICENSES.md`, Abschnitt 7.1, vergleichen.
+2. **OSV:** `POST https://api.osv.dev/v1/query` mit `{"commit": "<sha>"}` je Commit.
+3. **GitHub Security Advisories** der Projekte (`/repos/<projekt>/security-advisories`) und eine Websuche nach „<projekt> CVE“.
+4. **Mbed TLS:** Prüfsumme des Release-Archivs gegen `mbedtls-<version>-sha256sum.txt` aus dem Release.
+
+Ergebnis am 27.10.2026:
+- Keine bekannten Lücken für die verwendeten Stände.
+- libdatachannel, libjuice, Mbed TLS 3.6 und nlohmann/json sind auf dem neuesten Stand.
+- usrsctp und plog stehen auf den von libdatachannel 0.24.6 festgelegten Commits.
+- Einzelheiten: `MULTIPLAYER_BEDROHUNGSMODELL.md`, Abschnitt 9.3.
+
+### 7.6 Echtwelt-Test (zwei Rechner in verschiedenen Netzen) – Anleitung
+
+**Nicht durchgeführt:** Für diese Arbeit gab es nur einen Rechner und keinen öffentlichen Server. Was im Internet anders sein kann: echte NAT-Router (auch symmetrische und CGNAT), Mobilfunk, Firmen-Firewalls, Paketverlust und Laufzeiten über Kontinente, Windows-Firewall-Abfragen.
+
+**Aufbau:**
+- **Server S:** VPS oder Rechner mit öffentlicher IP. `liminal_lobby.exe --port 27515 --turn-port 3478 --relay-ports 50000-50199 --public-host <IP oder Name>`; Firewall: TCP 27515, UDP 3478, UDP 50000–50199.
+- **Rechner A** (Host) im Heimnetz hinter einem gewöhnlichen Router, **ohne** Portfreigabe.
+- **Rechner B** (Gast) in einem **anderen** Netz, z. B. über einen Mobilfunk-Hotspot (oft CGNAT).
+- Auf A und B: `koop.json` mit `"lobby": "ws://<S>:27515"` (oder `wss://` mit Zertifikat, `MULTIPLAYER_SETUP.md`, Abschnitt 3.3).
+
+**Schritte und Erfolgskriterien:**
+
+| # | Schritt | Erfolg, wenn |
+|---|---|---|
+| 1 | A: Koop → Hosten → Über die Lobby | im Pausenmenü steht nach höchstens 3 s ein Code |
+| 2 | B: Koop → Beitreten, Code eingeben | B spielt nach höchstens 10 s; Toast „beigetreten … (direkt / direkt durch NAT / über das Relay)“ |
+| 3 | A: Pausenmenü → Mitspieler | B steht mit Ping und Weg da. Den Weg notieren: Hinter CGNAT ist „über Relay“ zu erwarten, sonst oft „direkt durch NAT“ |
+| 4 | 10 min gemeinsam spielen, Ebene wechseln | keine Trennung; keine Abweichung zwischen den Sichten (Gegenstände, Wesen); Ping-Anzeige plausibel |
+| 5 | B: „Eigene IP verbergen“ an, neu beitreten | Weg „über Relay“ |
+| 6 | B: WLAN/Hotspot 15 s trennen, dann wieder an; mit demselben Code beitreten | B kommt mit derselben Spielernummer und seinem Inventar zurück |
+| 7 | A: Spiel beenden | B meldet sofort „Host hat die Sitzung beendet“ |
+| 8 | B: falschen Code eingeben (ein Zeichen geändert) | klare Meldung („Code unbekannt“ oder „falscher Code“), kein Absturz |
+| 9 | S: `liminal_lobby.exe` während eines Spiels beenden | laufendes Spiel über direkten Weg läuft weiter; A zeigt „Lobby-Verbindung verloren“; nach Neustart von S einen neuen Code |
+| 10 | Wiederholen mit B im Firmen- oder Schulnetz | entweder verbunden (Weg notieren) oder klare Meldung „kein Verbindungsweg“ |
+
+**Zu protokollieren:** Weg, Ping und Verlust aus dem Mitspieler-Menü, die Zeit bis zum Beitritt, die Ausgabe von `liminal_lobby.exe --verbose` und `%LOCALAPPDATA%\LIMINAL\logs` beider Rechner.
+
+### 7.7 Einzelspieler unverändert (V13.3)
+
+| Test | Ergebnis |
+|---|---|
+| `gameplay_test` | OK: 446 Prüfungen, 0 Fehler |
+| `audio_test` | OK: 106 Prüfungen, 0 Fehler |
+| `worldgen_test` (V4-Referenz) | OK: 29 658 Prüfungen, 0 Fehler |
+| `supply_balance_test` | OK (0 Fehler) |
+| `net_protocol_test` (v1) | OK: 72 Prüfungen, 0 Fehler |
+| `tools/check_no_network.py` | **SAUBER**: `LiminalGame.exe` ohne Netzwerk-DLL und ohne Netzwerk-Zeichenkette, nennt weder `liminal_net` statisch noch `liminal_lobby`. `liminal_net.dll` importiert ws2_32, iphlpapi, winhttp, bcrypt, crypt32, keine Download-Bibliothek, exportiert genau elf `ln_`-Funktionen |
+
+### 7.8 Langlauf 60 min (`coop_test data --long 3600`): **Lauf 3 OK, 10 Prüfungen, 0 Fehler**
+
+Aufbau:
+- Host und 3 Bot-Gäste auf `level1`, **nur über das Relay**: Die Lobby verwirft alle direkten Kandidaten.
+- Der Verkehr zum TURN-Server läuft durch den Netzstörer: je Strecke 80 ms ±30, 3 % Verlust, 1 % doppelt, 2 % umgeordnet.
+- Bots und Host laufen, nehmen auf und legen ab. Am Ende halten alle an und gleichen ab.
+- Gemessen wird der Speicher des Testprozesses alle 5 min. In diesem Prozess laufen Host, alle drei Gäste, Lobby und TURN-Server.
+
+Drei Läufe; die ersten beiden fanden je einen Fehler, beide sind behoben:
+
+| Lauf | Ergebnis | Ursache und Behebung |
+|---|---|---|
+| 1 (27.10., vor der SCTP-Änderung) | **FEHLGESCHLAGEN**, 2 Fehler: ein Gast nach 37 min getrennt | SCTP wartete bis zu 10 s auf Wiederholungen, und die Stille-Erkennung (10 s) trennte. → SCTP wiederholt nach höchstens 2 s, mit 12 Versuchen (E-033) |
+| 2 (nach dem Merge mit `liminal-v13` 4821eab) | **FEHLGESCHLAGEN**, 1 Fehler: 1 654 Abweichungen der Prüfsumme des geteilten Stands; ein Gast wich ab etwa 4 min dauerhaft ab. Verbindung und Relay-Weg waren in Ordnung | Der Host nahm einen Fund in einem Sektor auf, den der Gast nicht geladen hatte, und der Gast verwarf die Meldung. Späte Gäste bekamen den Stand gar nicht. → Stand beim Beitritt und gemerkte Kennzahlen (Architektur, Abschnitt 9); neuer Test `late` |
+| 3 (01.11., Abschluss) | **OK, 10 Prüfungen, 0 Fehler** (3 610 s) | – |
+
+Lauf 3 im Einzelnen:
+- **Geprüft:**
+  - alle drei Gäste nach 3 610 s verbunden;
+  - Weg „Relay“ für alle;
+  - **0 Abweichungen** des geteilten Stands;
+  - keine ungültige Nachricht vom Host;
+  - Ort bei Host und Gast nach dem Anhalten im Rahmen;
+  - genug Momentaufnahmen angekommen.
+- **Gemessen:**
+  - Ping 137 ms (±19); Verlust 0 %, gemessen am Ende in Ruhe über die letzten 20 s.
+  - Vorhersage im Mittel 3,5 cm daneben, über 10 cm in 13 744 von 180 008 Momentaufnahmen (7,6 %).
+  - 97 306 kleine Korrekturen. 8 Sprünge über 2 m, der größte 87 m. Die Sprünge habe ich nicht einzeln aufgeschlüsselt; mögliche Ursachen sind Ortswechsel des Hosts (Wiedereinstieg, Übergänge) und Verlustspitzen.
+  - 19,0 kB/s abwärts und 19,3 kB/s aufwärts je Gast am Störer, für beide Strecken zusammen, mit TURN-Kopf. Der Störer verwarf 93 723 Pakete.
+  - Der Host lehnte 790 von 1 662 Absichten ab: Die Bots greifen auch nach Dingen außer Reichweite.
+  - 12 203 Eingaben wurden verworfen (Zeitbudget gegen Speedhack). Vermutlich kommen Eingaben im gestörten Netz gebündelt und doppelt an.
+
+**Speicher alle 5 min (MB):**
+
+| min | 5 | 10 | 15 | 20 | 25 | 30 | 35 | 40 | 45 | 50 | 55 | 60 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Lauf 1 | 190 | 219 | 232 | 247 | 243 | 256 | 240 | 226 | 228 | 240 | 246 | 255 |
+| Lauf 2 | 382 | 376 | 363 | 330 | 346 | 353 | 344 | 409 | 402 | 344 | 327 | 332 |
+| **Lauf 3** | 301 | 352 | 363 | 377 | 360 | 382 | 331 | 320 | 337 | 334 | 363 | 386 |
+
+Vor dem Beitritt der Gäste waren es 196 MB.
+- **Kein stetiger Anstieg** nach der Ladephase: In Lauf 3 lag der Mittelwert von Minute 5 bis 30 bei 356 MB, von Minute 35 bis 60 bei 345 MB, die Spanne bei 301–386 MB.
+- Die Schwankung kommt vom Laden und Entladen der Sektoren (beim Host 12 nach 5 min, danach 16) in vier Sitzungen.
+- Ein sehr langsames Leck unter etwa 1 MB/min lässt sich über 60 min nicht ausschließen.
+
+
+### 7.9 Nicht geprüft (V13.3)
+
+- **Echtes Internet:** zwei Rechner in verschiedenen Netzen, echte NAT-Router (symmetrisch, CGNAT), Mobilfunk, Firmen- und Schulnetze. Alles lief auf einem Rechner über Loopback-Adressen und den Netzstörer. Anleitung: 7.6.
+- **Öffentlich betriebene Lobby** auf einem Server, `wss://` mit einem Zertifikat einer öffentlichen Zertifizierungsstelle. Geprüft sind nur selbst signierte Zertifikate mit Pinning und die Ablehnung unbekannter Aussteller.
+- **Windows-Firewall-Abfrage:**
+  - Ob Windows beim Hosten über die Lobby fragt, ist nicht geprüft; alle Tests banden an Loopback-Adressen, um keine Abfrage auszulösen.
+  - Im Modus „Direkt“ fragt Windows nach den Erfahrungen aus V13.2.
+- **Last der Lobby:** viele gleichzeitige Räume, verteilte Angriffe von vielen Adressen, Relay-Verkehr vieler Spieler.
+- **Linux-Bau der Lobby:** nicht versucht.
+- **Fremde Parser unter Sanitizern:** STUN/TURN (libjuice), DTLS (Mbed TLS), SCTP (usrsctp) und WebSocket (libdatachannel) wurden nicht selbst gefuzzt.
+- **Unabhängige Durchsicht** durch Dritte: nicht möglich.
+- **Mehr als vier Spieler:** nicht vorgesehen (abgewiesen).
+- **Langlauf nach dem letzten Stand:**
+  - Der Abschlusslauf 3 (7.8) lief auf dem Stand nach dem Merge 4821eab, mit der Behebung des Stands beim Beitritt.
+  - Danach kamen zwei Änderungen dazu: die Begrenzung der gemerkten Funde mit der Regel gegen doppeltes Zählen, und der Merge mit `liminal-v13` 600c53d (neue Wesen).
+  - Für beides liefen die kürzeren Tests (7.10), nicht noch einmal 60 min.
+- **Langlauf über alle Ebenen:** Der Langlauf bleibt auf `level1`. Die Reise durch alle zehn Ebenen ist in `coop_test` kürzer geprüft (Teil `journey`).
+- **Echte Spieler:** Alle Läufe nutzten Bots. Zwei echte Spielprozesse liefen nur kurz (7.3).
+
+### 7.10 Abschlussläufe nach dem Zusammenführen mit `liminal-v13` (600c53d, 01.11.2026)
+
+Stand nach dem Merge (Wrangler, Growler, Nguithr'xurh neu), neu konfiguriert und gebaut, ohne Fehler:
+
+| Test | Ergebnis |
+|---|---|
+| `gameplay_test` | **OK: 525 Prüfungen, 0 Fehler** |
+| `audio_test` | OK: 106 Prüfungen, 0 Fehler |
+| `worldgen_test` (V4-Referenz) | OK: 29 658 Prüfungen, 0 Fehler |
+| `supply_balance_test` | OK (0 Fehler) |
+| `net_protocol_test` | OK: 72 Prüfungen, 0 Fehler |
+| `net_transport_test` | **OK: 90 Prüfungen, 0 Fehler** (86 s) |
+| `lobby_proto_fuzz`, 300 000 Runden | OK: 2 924 angenommen, alle neu gebaut und wieder gelesen |
+| `coop_test --quick` | **OK: 209 Prüfungen, 0 Fehler (262 s; nach der Korrektur des Wettlauf-Tests, siehe unten)** |
+| `tools/check_no_network.py` | SAUBER |
+
+Zum Teil `pickup` von `coop_test`:
+- **Erster Lauf nach dem Merge: 210 Prüfungen, 3 Fehler**, alle im Wettlauf um eine Flasche.
+- Wiederholt scheiterte der Teil in 2 von 5 Läufen. Ursache war eine falsche Annahme des Tests: Der „ferne“ zweite Gast stand nur 1,6 m daneben, also in Reichweite. Wer die Flasche bekommt, hängt dann davon ab, welche Absicht zuerst beim Host ankommt; manchmal war es der zweite.
+- Der Test prüft jetzt, was das Spiel zusagt: **genau einer** bekommt sie, Host und Gäste sind sich einig, und der Gewinner kann sie benutzen. Danach lief der Teil 5 von 5 Mal ohne Fehler.
+- Griffe nach fernen Dingen prüft weiterhin der Teil `attacks`.
+
+Davor, auf dem Stand nach dem Merge 4821eab mit der Behebung des Stands beim Beitritt, liefen:
+- `coop_test --quick`: OK, 209 Prüfungen, 0 Fehler (263 s);
+- der Langlauf 3 (7.8): OK.
+
+Damals scheiterte `gameplay_test` in 3 Prüfungen beim Faceling (Level 2). Das kam aus `liminal-v13` 4821eab, nicht aus dem Koop-Teil, und ist mit 600c53d behoben.

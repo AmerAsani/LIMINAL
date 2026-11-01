@@ -51,8 +51,12 @@ for y in (31, 37, 43):
     x0, y0, x1, y1 = d['rect']
     m.obj('door_mahogany_open', (x0 + x1) / 2, (y0 + y1) / 2, 0.0, 0.0)
     cells.append(c)
-ST = m.room(57, 55, 60, 66, 'treppenhaus', 'weiss', 3.0, 3.2, circuit=C_GANG, label='Treppenhaus')
+# V13.3 (Kritikrunde 1): die Treppe stieg im 3 m hohen Gang auf 3 m - oben ragte der Kopf ueber die Waende (Hof und
+# schwarzer Himmel sichtbar). Jetzt steigt sie im eigenen, 6 m hohen Treppenhaus zu einem Absatz auf 2,7 m.
+ST = m.room(57, 55, 60, 66, 'treppenhaus', 'weiss', 0.0, 6.0, circuit=C_GANG, label='Treppenhaus')
 m.door(G, ST, 'door', 3, top=2.4)
+ST2 = m.room(57, 67, 60, 69, 'treppenhaus', 'weiss', 2.7, 3.0, circuit=C_GANG, label='Treppenabsatz')
+m.door(ST, ST2, 'door', 3, top=2.4)
 
 
 # --- Wandflaechen des Hofs (Raender und Vorspruenge) ----------------------------------------------------------------------
@@ -183,9 +187,13 @@ for c in cells:
     m.obj('tube_white', C.cx, C.cy, C.floor + C.height, 0.0, tag='light')
     m.light(c, C.cx, C.cy, 0, 0.9, 4.5, z=C.floor + C.height - 0.1, panel=False, color=TUBE)
 SR = m.R(ST)
-m.obj('tube_white', SR.cx, SR.y1 - 2.5, SR.floor + SR.height, math.pi / 2, tag='light')
-m.light(ST, SR.cx, SR.y1 - 2.5, 0, 0.9, 5.0, z=SR.floor + SR.height - 0.1, panel=False, color=TUBE)
-for (fx, fy, yaw) in m.wall_faces(ST, margin=0):
+for ly_ in (SR.y0 + 2.5, SR.y1 - 2.5):
+    m.obj('tube_white', SR.cx, ly_, SR.floor + SR.height, math.pi / 2, tag='light')
+    m.light(ST, SR.cx, ly_, 0, 0.9, 5.5, z=SR.floor + SR.height - 0.1, panel=False, color=TUBE)
+SR = m.R(ST2)
+m.obj('tube_white', SR.cx, SR.cy, SR.floor + SR.height, math.pi / 2, tag='light')
+m.light(ST2, SR.cx, SR.cy, 0, 0.9, 4.5, z=SR.floor + SR.height - 0.1, panel=False, color=TUBE)
+for (fx, fy, yaw) in m.wall_faces(ST2, margin=0):
     if fy > SR.y1 - 1:
         m.obj('door_mahogany', fx, fy, SR.floor, yaw, tag='deco')  # verschlossen (Wiki)
         break
@@ -208,7 +216,7 @@ def safe_point(cid, r, label, x, y):
 
 
 m.checkpoint('fenster', 14.5, 33.5, 0.0, 'Am Eingangsfenster')
-m.obj('exit_sign_green', R.x0 + 0.005, 33.5, 3.3, 0.0, tag='emergency')  # ueber dem Eingangsfenster: der einzige Weg hinaus
+# V13.3: kein Notausgangsschild (Wiki nennt keine Schilder; der Weg hinaus ist das Eingangsfenster selbst)
 safe_point('gang', G, 'Weisser Gang', GR.cx, GR.y0 + 4.5)
 
 print('Fenster:', n_win)
