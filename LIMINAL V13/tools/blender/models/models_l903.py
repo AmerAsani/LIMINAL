@@ -1,316 +1,1336 @@
-"""V12 Level 903 (LOOK_903.md): The Metro - fahrender Wagen mit offenen Tueren und Zielanzeigen (Bildzeichen), ruhender
-Zug als Wand (Abschnitte, Kupplung, ein bewohnter Wagen), Gleis mit Schotter, lange duenne Leuchtstoffroehren,
-leuchtende Schilder in unbekannter Schrift (erfundene Zeichen), Bahnsteigkante, zugemauerte Treppe.
+"""V13.3 Level 903 ("The Metro", LEVELSPEC_903.md / LOOK_903.md) und der Metro-Wagen in Level 37 (LOOK_37.md) - neu gebaut.
+
+Alles echte Geometrie: Wagenkasten aus Profil (Schuerze, Seitenwand mit Einzug, Dachrundung), Fenster mit gerundeten Ecken,
+Gummidichtung, Kippfenster und Rahmen, Schiebetueren mit Fenster, Gummilippe und Griff, Drehgestelle (Radprofil mit Spurkranz,
+Achslager, Federn, Rahmen, Luftfedern, Motoren, Bremsen, Schleifschuh an der Stromschiene), Kupplung, Innenraum (Laengsbaenke
+mit Polstern, Haltestangen, Decke mit Lichtbaendern, Zielanzeigen mit Bildzeichen), Lackabnutzung und Schmutz ohne Graffiti.
+Gleis mit Schotterbett, Spannbetonschwellen, Schienenprofil, Befestigungen, Stromschiene und Kabelkanal; Bahnsteigkante mit
+Kantenstein und Noppenstreifen; ruhender Zug als Fassade (6-m-Abschnitte, Faltenbalg), ein bewohnter Wagen (Vorhaenge, Kisten,
+Kabel, Pflanze, Schild); Leuchtroehren, Schilder in erfundener Schrift, Treppe zugemauert und mit Brettern vernagelt.
+
+Konventionen (common.py): Meter, z oben, +x vorn. Im Spiel wird y gespiegelt (Blender +y = Spiel -y, links).
+Texturen werden im Spiel aus Weltkoordinaten projiziert - UVs sind unnoetig; Abwechslung entsteht aus Geometrie und
+mehreren Materialien (r = Rauheitsfaktor im Spiel, m = Metallzuschlag).
 """
 import math
 import random
 
 import bmesh
 import bpy
-from mathutils import Matrix
+from mathutils import Matrix, Vector
 
 import common
-from models.models_l2 import _cyl
+
+TAU = 2.0 * math.pi
 
 
-def _m():
+# =====================================================================================================================
+# Hilfen
+# =====================================================================================================================
+def _link(name, bm, mats):
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    ob = bpy.data.objects.new(name, me)
+    bpy.context.scene.collection.objects.link(ob)
+    for m in mats:
+        me.materials.append(m)
+    return ob
+
+
+def _smooth(ob, deg=40.0):
+    common.shade_auto(ob, deg)
+    return ob
+
+
+def _box(name, lo, hi, mat, bevel=0.0, seg=1):
+    """Quader; die Ecken werden je Achse sortiert (gespiegelte Angaben ergeben keine umgestuelpten Normalen)."""
+    a = tuple(min(lo[i], hi[i]) for i in range(3))
+    b = tuple(max(lo[i], hi[i]) for i in range(3))
+    return common.box(name, a, b, mat, bevel=bevel, segments=seg)
+
+
+def _cyl(name, p0, p1, r, mat, seg=12, r1=None, caps=True, smooth=True):
+    """Zylinder/Kegel von p0 nach p1."""
+    p0, p1 = Vector(p0), Vector(p1)
+    d = p1 - p0
+    bm = bmesh.new()
+    bmesh.ops.create_cone(bm, cap_ends=caps, cap_tris=False, segments=seg, radius1=r, radius2=r if r1 is None else r1,
+                          depth=d.length)
+    q = Vector((0, 0, 1)).rotation_difference(d.normalized())
+    bmesh.ops.transform(bm, matrix=Matrix.Translation((p0 + p1) / 2) @ q.to_matrix().to_4x4(), verts=bm.verts)
+    ob = _link(name, bm, [mat])
+    if smooth:
+        _smooth(ob, max(40.0, 360.0 / seg + 6))
+    return ob
+
+
+def _tube(name, pts, r, mat, seg=8, caps=True, smooth=True):
+    """Rohr entlang eines Polygonzugs (Gehrung an den Knicken)."""
+    P = [Vector(p) for p in pts]
+    n = len(P)
+    bm = bmesh.new()
+    rings, nrm = [], None
+    for i in range(n):
+        if i == 0:
+            t = (P[1] - P[0]).normalized()
+        elif i == n - 1:
+            t = (P[-1] - P[-2]).normalized()
+        else:
+            t = ((P[i] - P[i - 1]).normalized() + (P[i + 1] - P[i]).normalized()).normalized()
+        if nrm is None:
+            a = Vector((0, 0, 1)) if abs(t.z) < 0.9 else Vector((1, 0, 0))
+            nrm = t.cross(a).normalized()
+        else:
+            nrm = (nrm - t * nrm.dot(t)).normalized()
+        b = t.cross(nrm)
+        k, bd = 1.0, None
+        if 0 < i < n - 1:
+            d0, d1 = (P[i] - P[i - 1]).normalized(), (P[i + 1] - P[i]).normalized()
+            k = 1.0 / max(0.45, d0.dot(t))
+            bd = d1 - d0
+            bd = bd - t * bd.dot(t)
+            bd = bd.normalized() if bd.length > 1e-6 else None
+        ring = []
+        for j in range(seg):
+            a = TAU * j / seg
+            off = nrm * math.cos(a) + b * math.sin(a)
+            if bd is not None:
+                off = off + bd * off.dot(bd) * (k - 1.0)
+            ring.append(bm.verts.new(P[i] + off * r))
+        rings.append(ring)
+    for i in range(n - 1):
+        for j in range(seg):
+            j2 = (j + 1) % seg
+            bm.faces.new((rings[i][j], rings[i][j2], rings[i + 1][j2], rings[i + 1][j]))
+    if caps:
+        bm.faces.new(rings[0])
+        bm.faces.new(rings[-1])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    ob = _link(name, bm, [mat])
+    if smooth:
+        _smooth(ob, 60)
+    return ob
+
+
+def _lathe(name, prof, mats, seg=16, center=(0, 0, 0), axis='z', seg_mat=None, smooth=True, closed=False, sharp=35.0):
+    """Drehkoerper: prof = [(r, h)] entlang der Achse. Sichtbar ist die Seite rechts der Laufrichtung des Profils
+    (Normale (dh, -dr)). closed: Profil ist eine geschlossene Schleife."""
+    C = Vector(center)
+
+    def P(r, h, a):
+        u, v = r * math.cos(a), r * math.sin(a)
+        if axis == 'z':
+            return C + Vector((u, v, h))
+        if axis == 'y':
+            return C + Vector((u, h, v))
+        return C + Vector((h, u, v))
+
+    def A(h):
+        return Vector((0, 0, 1)) if axis == 'z' else (Vector((0, 1, 0)) if axis == 'y' else Vector((1, 0, 0)))
+
+    bm = bmesh.new()
+    rings = []
+    for (r, h) in prof:
+        if r < 1e-6:
+            rings.append([bm.verts.new(P(0, h, 0))])
+        else:
+            rings.append([bm.verts.new(P(r, h, TAU * j / seg)) for j in range(seg)])
+    ax = A(0)
+    m = len(prof) if closed else len(prof) - 1
+    for i in range(m):
+        i2 = (i + 1) % len(prof)
+        (r0, h0), (r1, h1) = prof[i], prof[i2]
+        nr, nh = (h1 - h0), -(r1 - r0)
+        for j in range(seg):
+            j2 = (j + 1) % seg
+            ra, rb = rings[i], rings[i2]
+            vs = []
+            for v in (ra[j % len(ra)], ra[j2 % len(ra)], rb[j2 % len(rb)], rb[j % len(rb)]):
+                if v not in vs:
+                    vs.append(v)
+            if len(vs) < 3:
+                continue
+            f = bm.faces.new(vs)
+            f.normal_update()
+            mid = sum((v.co for v in vs), Vector()) / len(vs)
+            radial = mid - C
+            radial = radial - ax * radial.dot(ax)
+            radial = radial.normalized() if radial.length > 1e-9 else Vector()
+            want = radial * nr + ax * nh
+            if f.normal.dot(want) < 0:
+                f.normal_flip()
+            if seg_mat:
+                f.material_index = seg_mat[i]
+    ob = _link(name, bm, mats if isinstance(mats, list) else [mats])
+    if smooth:
+        _smooth(ob, sharp)
+    return ob
+
+
+def _prism(name, poly, a0, a1, mats, axis='x', edge_mat=None, cap_mat=(0, 0), smooth=None):
+    """Polygon (u, v) entlang einer Achse von a0 nach a1 ziehen. axis 'x': (u, v) = (y, z); 'y': (x, z); 'z': (x, y)."""
+    def P(u, v, a):
+        if axis == 'x':
+            return (a, u, v)
+        if axis == 'y':
+            return (u, a, v)
+        return (u, v, a)
+    clean = []
+    for p in poly:
+        if not clean or (abs(p[0] - clean[-1][0]) > 1e-7 or abs(p[1] - clean[-1][1]) > 1e-7):
+            clean.append(p)
+    if len(clean) > 2 and abs(clean[0][0] - clean[-1][0]) < 1e-7 and abs(clean[0][1] - clean[-1][1]) < 1e-7:
+        clean.pop()
+    poly = clean
+    if len(poly) < 3:
+        return None
+    bm = bmesh.new()
+    r0 = [bm.verts.new(P(u, v, a0)) for (u, v) in poly]
+    r1 = [bm.verts.new(P(u, v, a1)) for (u, v) in poly]
+    n = len(poly)
+    for i in range(n):
+        j = (i + 1) % n
+        f = bm.faces.new((r0[i], r0[j], r1[j], r1[i]))
+        f.material_index = edge_mat[i] if edge_mat else 0
+    f0 = bm.faces.new(r0)
+    f0.material_index = cap_mat[0]
+    f1 = bm.faces.new(list(reversed(r1)))
+    f1.material_index = cap_mat[1]
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    ob = _link(name, bm, mats if isinstance(mats, list) else [mats])
+    if smooth:
+        _smooth(ob, smooth)
+    return ob
+
+
+def _loft(name, rings, mats, caps=True, smooth=None, ring_mat=None):
+    """Ringe gleicher Punktzahl (Listen von 3D-Punkten) verbinden."""
+    bm = bmesh.new()
+    R = [[bm.verts.new(Vector(p)) for p in ring] for ring in rings]
+    n = len(R[0])
+    for i in range(len(R) - 1):
+        for j in range(n):
+            j2 = (j + 1) % n
+            f = bm.faces.new((R[i][j], R[i][j2], R[i + 1][j2], R[i + 1][j]))
+            if ring_mat:
+                f.material_index = ring_mat[i]
+    if caps:
+        bm.faces.new(R[0])
+        bm.faces.new(list(reversed(R[-1])))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    ob = _link(name, bm, mats if isinstance(mats, list) else [mats])
+    if smooth:
+        _smooth(ob, smooth)
+    return ob
+
+
+def _area(pts):
+    return 0.5 * sum(pts[i][0] * pts[(i + 1) % len(pts)][1] - pts[(i + 1) % len(pts)][0] * pts[i][1] for i in range(len(pts)))
+
+
+def _decal(name, origin, u, v, pts, mat, smooth=False):
+    """Flaches Polygon (Fleck, Aufkleber, Zeichen) in der Ebene origin + a*u + b*v; Normale u x v."""
+    if _area(pts) < 0:
+        pts = list(reversed(pts))
+    o, U, V = Vector(origin), Vector(u), Vector(v)
+    bm = bmesh.new()
+    vs = [bm.verts.new(o + U * a + V * b) for (a, b) in pts]
+    f = bm.faces.new(vs)
+    f.normal_update()
+    if f.normal.dot(U.cross(V)) < 0:
+        f.normal_flip()
+    return _link(name, bm, [mat])
+
+
+def _blob(rng, rx, ry, n=9, irr=0.35, cx=0.0, cy=0.0):
+    pts = []
+    for k in range(n):
+        a = TAU * (k + rng.uniform(-0.25, 0.25)) / n
+        f = 1.0 + rng.uniform(-irr, irr)
+        pts.append((cx + math.cos(a) * rx * f, cy + math.sin(a) * ry * f))
+    return pts
+
+
+def _ribbon(pts, w):
+    """Polygon eines Strichs der Breite w entlang eines 2D-Polygonzugs (Gehrung)."""
+    n = len(pts)
+    left, right = [], []
+    for i in range(n):
+        if i == 0:
+            dx, dy = pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]
+        elif i == n - 1:
+            dx, dy = pts[-1][0] - pts[-2][0], pts[-1][1] - pts[-2][1]
+        else:
+            ax, ay = pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]
+            bx, by = pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]
+            la, lb = math.hypot(ax, ay) or 1, math.hypot(bx, by) or 1
+            dx, dy = ax / la + bx / lb, ay / la + by / lb
+        L = math.hypot(dx, dy) or 1.0
+        nx, ny = -dy / L, dx / L
+        k = 1.0
+        if 0 < i < n - 1:
+            ax, ay = pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]
+            la = math.hypot(ax, ay) or 1
+            k = 1.0 / max(0.5, (ax / la) * (dx / L) + (ay / la) * (dy / L))
+        left.append((pts[i][0] + nx * w * 0.5 * k, pts[i][1] + ny * w * 0.5 * k))
+        right.append((pts[i][0] - nx * w * 0.5 * k, pts[i][1] - ny * w * 0.5 * k))
+    return left + list(reversed(right))
+
+
+def _jitter(ob, amp, seed, axes=(1, 1, 1)):
+    rng = random.Random(seed)
+    for v in ob.data.vertices:
+        v.co.x += rng.uniform(-amp, amp) * axes[0]
+        v.co.y += rng.uniform(-amp, amp) * axes[1]
+        v.co.z += rng.uniform(-amp, amp) * axes[2]
+
+
+def _xform(objs, M):
+    for ob in objs:
+        ob.matrix_world = M @ ob.matrix_world
+
+
+def _objs_since(before):
+    return [ob for ob in bpy.context.scene.objects if ob.name not in before]
+
+
+def _names():
+    return {ob.name for ob in bpy.context.scene.objects}
+
+
+def _clip_rect(poly, x0, x1, y0, y1):
+    """Sutherland-Hodgman: Polygon (u, v) auf das Rechteck [x0, x1] x [y0, y1] beschneiden."""
+    def clip(pts, inside, inter):
+        out = []
+        for i in range(len(pts)):
+            a, b = pts[i - 1], pts[i]
+            ia, ib = inside(a), inside(b)
+            if ib:
+                if not ia:
+                    out.append(inter(a, b))
+                out.append(b)
+            elif ia:
+                out.append(inter(a, b))
+        return out
+
+    def ix(c):
+        return lambda a, b: (c, a[1] + (b[1] - a[1]) * (c - a[0]) / (b[0] - a[0]))
+
+    def iy(c):
+        return lambda a, b: (a[0] + (b[0] - a[0]) * (c - a[1]) / (b[1] - a[1]), c)
+    p = poly
+    for inside, inter in ((lambda q: q[0] >= x0, ix(x0)), (lambda q: q[0] <= x1, ix(x1)),
+                          (lambda q: q[1] >= y0, iy(y0)), (lambda q: q[1] <= y1, iy(y1))):
+        if not p:
+            return []
+        p = clip(p, inside, inter)
+    return p
+
+
+def _rrect(x0, x1, y0, y1, r, n=4):
+    """Rechteck mit gerundeten Ecken (gegen den Uhrzeigersinn)."""
+    pts = []
+    for (cx, cy, a0) in ((x1 - r, y0 + r, -90), (x1 - r, y1 - r, 0), (x0 + r, y1 - r, 90), (x0 + r, y0 + r, 180)):
+        for k in range(n + 1):
+            a = math.radians(a0 + 90.0 * k / n)
+            pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
+    return pts
+
+
+# =====================================================================================================================
+# Materialien
+# =====================================================================================================================
+def _M():
+    mt = common.material
     return {
-        'body': common.material('wagenkasten', (0.70, 0.72, 0.74), look='metal', tex='metal_aluminum', rough=0.4, metal=0.7),
-        'body_old': common.material('wagen_alt', (0.52, 0.54, 0.55), look='metal', tex='metal_aluminum', rough=0.55, metal=0.6),
-        'stripe_r': common.material('streifen_rot', (0.62, 0.10, 0.08), look='paint', rough=0.5),
-        'stripe_b': common.material('streifen_blau', (0.12, 0.24, 0.50), look='paint', rough=0.5),
-        'win': common.material('wagenfenster', (0.06, 0.07, 0.08), look='glass', rough=0.05),
-        'inner': common.material('innenwand', (0.86, 0.84, 0.78), look='paint', rough=0.5),
-        'floor': common.material('wagenboden', (0.30, 0.31, 0.30), look='paint', rough=0.8),
-        'seat': common.material('sitzbank', (0.22, 0.30, 0.48), look='fabric', rough=0.9),
-        'steel': common.material('stahl', (0.70, 0.71, 0.72), look='metal', rough=0.3, metal=1.0),
-        'dark': common.material('dunkel', (0.05, 0.05, 0.05), look='paint', rough=0.8),
-        'rubber': common.material('gummi', (0.08, 0.08, 0.08), look='rubber', rough=0.9),
-        'light': common.material('innenlicht', (1.0, 0.98, 0.92), look='glow', glow=1.4),
-        'tube': common.material('roehre', (0.95, 1.0, 1.0), look='glow', glow=2.2),
-        'ballast': common.material('schotter', (0.36, 0.34, 0.32), look='concrete', tex='concrete_rough', rough=0.95),
-        'sleeper': common.material('schwelle', (0.30, 0.29, 0.27), look='concrete', rough=0.9),
-        'rail': common.material('schiene', (0.45, 0.40, 0.36), look='metal', tex='metal_rusty_iron', rough=0.5, metal=0.8),
-        'yellow': common.material('gelb', (0.86, 0.68, 0.10), look='paint', rough=0.6),
-        'brick': common.material('ziegel_grau', (0.85, 0.85, 0.85), look='concrete', tex='bricks_dark_grey', rough=0.9),
-        'board': common.material('bretter', (0.42, 0.32, 0.22), look='wood', rough=0.85),
+        # Wagenkasten
+        'alu': mt('wagen_alu', (0.74, 0.76, 0.78), look='metal', tex='metal_aluminum', rough=0.35, metal=0.9, r=0.75, m=0.75),
+        'alu_dull': mt('wagen_alu_matt', (0.55, 0.57, 0.58), look='metal', tex='metal_aluminum', rough=0.55, metal=0.8, r=1.2, m=0.55),
+        'alu_old': mt('wagen_alt', (0.50, 0.53, 0.55), look='metal', tex='painted_metal_grey', rough=0.6, metal=0.3, r=1.0, m=0.25),
+        'paint_old': mt('wagen_alt_lack', (0.34, 0.38, 0.41), look='paint', tex='painted_metal_grey', rough=0.6, r=1.0),
+        'red': mt('wagen_rot', (0.62, 0.08, 0.06), look='carpaint', rough=0.45, r=0.8),
+        'blue': mt('streifen_blau', (0.10, 0.22, 0.52), look='paint', tex='painted_metal_grey', rough=0.55, r=1.0),
+        'blue_faded': mt('streifen_blau_blass', (0.20, 0.31, 0.52), look='paint', tex='painted_metal_grey', rough=0.7, r=1.2),
+        'rubber': mt('dichtung', (0.035, 0.035, 0.037), look='rubber', rough=0.85, r=1.0),
+        'glass': mt('scheibe', (0.045, 0.05, 0.055), look='glass', rough=0.05, r=0.06),
+        'glass_dirty': mt('scheibe_staub', (0.12, 0.12, 0.115), look='glass', rough=0.3, r=0.45),
+        'inner': mt('innen_creme', (0.83, 0.79, 0.69), look='paint', rough=0.6, r=0.85),
+        'inner_grey': mt('innen_grau', (0.50, 0.51, 0.51), look='plastic', rough=0.5, r=0.9),
+        'floor': mt('wagenboden', (0.16, 0.16, 0.165), look='rubber', rough=0.8, r=1.1),
+        'floor_worn': mt('wagenboden_abgelaufen', (0.24, 0.235, 0.23), look='rubber', rough=0.7, r=0.9),
+        'seat': mt('sitz_blau', (0.62, 0.72, 1.0), look='fabric', tex='carpet_blue_dark', rough=0.95, r=1.1),
+        'seat_worn': mt('sitz_blau_glatt', (0.52, 0.58, 0.80), look='fabric', tex='carpet_blue_dark', rough=0.8, r=0.85),
+        'shell': mt('sitzschale', (0.30, 0.32, 0.35), look='plastic', rough=0.6, r=0.9),
+        'steel': mt('edelstahl', (0.80, 0.80, 0.80), look='metal', rough=0.25, metal=1.0, r=0.5, m=0.9),
+        'chrome_worn': mt('edelstahl_matt', (0.62, 0.62, 0.62), look='metal', rough=0.45, metal=1.0, r=0.9, m=0.8),
+        'light': mt('lichtband', (1.0, 0.97, 0.90), look='glow', glow=1.4),
+        'disp_bg': mt('anzeige_schwarz', (0.018, 0.018, 0.02), look='plastic', rough=0.3, r=0.4),
+        'disp': mt('anzeige_weiss', (0.95, 0.98, 1.0), look='glow', glow=1.6),
+        'disp_amber': mt('anzeige_bernstein', (1.0, 0.62, 0.18), look='glow', glow=1.2),
+        'under': mt('unterboden', (0.10, 0.10, 0.10), look='paint', tex='painted_metal_grey', rough=0.8, r=1.25),
+        'under_brown': mt('unterboden_rost', (0.16, 0.12, 0.09), look='metal', tex='metal_rusty_iron', rough=0.8, metal=0.3, r=1.2, m=0.2),
+        'bogie': mt('drehgestell', (0.17, 0.155, 0.14), look='metal', tex='metal_rusty_iron', rough=0.7, metal=0.4, r=1.15, m=0.3),
+        'wheel': mt('rad', (0.36, 0.33, 0.30), look='metal', tex='metal_rusty_iron', rough=0.6, metal=0.6, r=1.0, m=0.5),
+        'tread': mt('laufflaeche', (0.78, 0.78, 0.77), look='metal', rough=0.2, metal=1.0, r=0.4, m=0.9),
+        'spring': mt('feder', (0.22, 0.20, 0.18), look='metal', tex='metal_rusty_iron', rough=0.6, metal=0.5, r=1.0, m=0.4),
+        'grime': mt('schmutz_braun', (0.21, 0.17, 0.13), look='paint', rough=0.9, r=1.35),
+        'grime_dark': mt('russ', (0.075, 0.068, 0.062), look='paint', rough=0.9, r=1.3),
+        'dust': mt('staub', (0.42, 0.40, 0.37), look='concrete', rough=0.95, r=1.4),
+        'yellow': mt('gelb', (0.86, 0.66, 0.08), look='paint', rough=0.6, r=0.9),
+        'yellow_worn': mt('gelb_abgenutzt', (0.62, 0.52, 0.22), look='paint', rough=0.8, r=1.2),
+        'tail': mt('schlusslicht', (0.95, 0.10, 0.06), look='glow', glow=0.9),
+        'head': mt('scheinwerfer', (1.0, 0.94, 0.80), look='glow', glow=0.35),
+        'shoe_wood': mt('isolierholz', (0.32, 0.20, 0.11), look='wood', rough=0.8, r=1.0),
+        'red_handle': mt('notgriff_rot', (0.70, 0.06, 0.04), look='plastic', rough=0.5, r=0.7),
+        'sticker_w': mt('aufkleber_weiss', (0.86, 0.85, 0.80), look='paint', rough=0.6, r=0.9),
+        'sticker_y': mt('aufkleber_gelb', (0.90, 0.72, 0.12), look='paint', rough=0.6, r=0.9),
+        'sticker_b': mt('aufkleber_blau', (0.16, 0.34, 0.62), look='paint', rough=0.6, r=0.9),
+        'sticker_r': mt('aufkleber_rot', (0.66, 0.12, 0.10), look='paint', rough=0.6, r=0.9),
+        'ink': mt('schrift_dunkel', (0.05, 0.05, 0.055), look='paint', rough=0.6, r=0.9),
+        # Gleis
+        'ballast': mt('schotter', (0.46, 0.43, 0.40), look='concrete', tex='concrete_rough', rough=0.95, r=1.4),
+        'ballast_dark': mt('schotter_dunkel', (0.30, 0.28, 0.26), look='concrete', tex='concrete_rough', rough=0.95, r=1.4),
+        'ballast_rust': mt('schotter_rost', (0.40, 0.30, 0.22), look='concrete', tex='concrete_rough', rough=0.95, r=1.4),
+        'stone_a': mt('stein_grau', (0.50, 0.49, 0.47), look='concrete', tex='concrete_chalky', rough=0.9, r=1.3),
+        'stone_b': mt('stein_dunkel', (0.33, 0.32, 0.31), look='concrete', tex='concrete_rough', rough=0.9, r=1.3),
+        'sleeper': mt('schwelle', (0.58, 0.57, 0.54), look='concrete', tex='concrete_cast', rough=0.9, r=1.25),
+        'rail': mt('schiene', (0.42, 0.33, 0.27), look='metal', tex='metal_rusty_iron', rough=0.7, metal=0.6, r=1.1, m=0.4),
+        'railhead': mt('schienenkopf', (0.80, 0.80, 0.79), look='metal', rough=0.2, metal=1.0, r=0.35, m=0.95),
+        'clip': mt('spannklemme', (0.20, 0.19, 0.18), look='metal', tex='metal_rusty_iron', rough=0.6, metal=0.6, r=1.0, m=0.5),
+        'plate': mt('rippenplatte', (0.30, 0.25, 0.21), look='metal', tex='metal_rusty_iron', rough=0.7, metal=0.5, r=1.1, m=0.4),
+        'conductor': mt('stromschiene', (0.55, 0.55, 0.56), look='metal', tex='metal_aluminum', rough=0.4, metal=0.9, r=0.8, m=0.7),
+        'cover': mt('stromschiene_abdeckung', (0.80, 0.68, 0.18), look='plastic', rough=0.7, r=1.1),
+        'insulator': mt('isolator', (0.88, 0.86, 0.80), look='ceramic', rough=0.3, r=0.5),
+        'trough': mt('kabelkanal', (0.55, 0.54, 0.51), look='concrete', tex='concrete_wall_old', rough=0.9, r=1.3),
+        'cable': mt('kabel', (0.05, 0.05, 0.05), look='rubber', rough=0.7, r=0.9),
+        # Bahnsteig, Licht, Schilder, Treppe
+        'coping': mt('kantenstein', (0.70, 0.69, 0.66), look='concrete', tex='concrete_cast', rough=0.85, r=1.1),
+        'tactile': mt('noppenplatte', (0.86, 0.67, 0.10), look='plastic', rough=0.7, r=1.15),
+        'tactile_worn': mt('noppenplatte_matt', (0.68, 0.55, 0.20), look='plastic', rough=0.8, r=1.3),
+        'joint': mt('fuge', (0.12, 0.115, 0.11), look='concrete', rough=0.95, r=1.4),
+        'tube': mt('roehre', (0.95, 1.0, 1.0), look='glow', glow=2.2),
+        'tube_end': mt('roehre_ende', (0.30, 0.30, 0.29), look='glass', rough=0.3, r=0.5),
+        'housing': mt('leuchte_alu', (0.82, 0.83, 0.84), look='metal', tex='painted_metal_white', rough=0.4, metal=0.3, r=0.9, m=0.2),
+        'socket': mt('fassung', (0.86, 0.85, 0.82), look='plastic', rough=0.5, r=0.8),
+        'sign_glow': mt('schild_licht', (0.98, 0.95, 0.78), look='glow', glow=1.1),
+        'sign_case': mt('schild_gehaeuse', (0.16, 0.17, 0.18), look='metal', tex='painted_metal_grey', rough=0.5, metal=0.3, r=0.9, m=0.25),
+        'enamel': mt('emaille_blau', (0.07, 0.15, 0.36), look='paint', rough=0.25, r=0.45),
+        'enamel_w': mt('emaille_weiss', (0.93, 0.93, 0.90), look='paint', rough=0.25, r=0.45),
+        'enamel_chip': mt('emaille_abplatzer', (0.09, 0.08, 0.075), look='metal', tex='metal_rusty_iron', rough=0.7, metal=0.5, r=1.1),
+        'rust': mt('rost', (0.36, 0.20, 0.10), look='metal', tex='metal_rusty_iron', rough=0.8, metal=0.3, r=1.3, m=0.1),
+        'rust_streak': mt('roststreifen', (0.33, 0.21, 0.13), look='paint', rough=0.9, r=1.3),
+        'tile_w': mt('treppe_fliese', (0.88, 0.87, 0.84), look='ceramic', tex='tiles_white', rough=0.3, r=0.5),
+        'step': mt('stufe', (0.56, 0.55, 0.53), look='concrete', tex='terrazzo_antique', rough=0.7, r=0.9),
+        'step_dirty': mt('stufe_staub', (0.40, 0.38, 0.35), look='concrete', tex='concrete_rough', rough=0.95, r=1.4),
+        'brick': mt('ziegel_grau', (0.82, 0.80, 0.78), look='concrete', tex='bricks_grey_black', rough=0.9, r=1.2),
+        'mortar': mt('moertel', (0.62, 0.60, 0.56), look='concrete', tex='concrete_chalky', rough=0.95, r=1.4),
+        'wood_a': mt('brett_hell', (0.62, 0.50, 0.36), look='wood', tex='wood_birch', rough=0.8, r=1.15),
+        'wood_b': mt('brett_alt', (0.44, 0.36, 0.27), look='wood', tex='wood_birch', rough=0.85, r=1.25),
+        'wood_c': mt('brett_dunkel', (0.36, 0.26, 0.18), look='wood', tex='wood_walnut_floor', rough=0.85, r=1.25),
+        'wood_end': mt('hirnholz', (0.55, 0.42, 0.28), look='wood', rough=0.9, r=1.3),
+        'nail': mt('nagel', (0.30, 0.29, 0.28), look='metal', rough=0.5, metal=0.8, r=0.9, m=0.6),
+        'paper': mt('papier', (0.86, 0.84, 0.76), look='paint', rough=0.9, r=1.3),
+        'tape': mt('klebeband_rotweiss', (0.80, 0.18, 0.12), look='plastic', rough=0.5, r=0.8),
     }
 
 
-L, WID, H = 18.0, 3.0, 2.5  # Wagen: Laenge, Breite, Innenhoehe
-
-
-def _glyphs(name, y0, z0, w, h, mat, x, seed, n=6, sign=1):
-    """Erfundene Schriftzeichen (keine echte Schrift): je Zeichen zwei bis vier Striche in einem Kasten."""
+# =====================================================================================================================
+# Erfundene Schrift (keine echte Schrift, LOOK_903 "Nicht") und Bildzeichen
+# =====================================================================================================================
+def _glyph_table(n=18, seed=9031):
+    """Zeichensatz aus Strichen: ein Stamm (senkrecht, Bogen oder Haken) und ein bis drei Anhaenge (Querstrich, Schraege,
+    Punkt, Haken). Koordinaten im Einheitskasten (0..1, 0..1)."""
     rng = random.Random(seed)
-    cw = w / n
-    for k in range(n):
-        cy = y0 + (k + 0.5) * cw
-        for j in range(rng.randint(2, 4)):
-            horiz = rng.random() < 0.5
-            a = rng.uniform(0.15, 0.85)
-            if horiz:
-                ya, yb = cy - cw * 0.35, cy + cw * rng.uniform(-0.1, 0.35)
-                za = zb = z0 + h * a
-                common.box(f'{name}{k}{j}', (x, min(ya, yb), za - h * 0.05), (x + 0.004 * sign, max(ya, yb), za + h * 0.05), mat)
+    table = []
+    for _ in range(n):
+        strokes = []
+        kind = rng.choice(('stem', 'arc', 'hook', 'stem', 'bow'))
+        sx = rng.choice((0.3, 0.5, 0.7))
+        if kind == 'stem':
+            strokes.append([(sx, 0.05), (sx, 0.95)])
+        elif kind == 'arc':
+            c, r = (0.5, 0.55), 0.38
+            a0 = rng.choice((200, 160, -20))
+            strokes.append([(c[0] + r * math.cos(math.radians(a0 + 25 * k)), c[1] + r * math.sin(math.radians(a0 + 25 * k)))
+                            for k in range(8)])
+        elif kind == 'bow':
+            strokes.append([(0.15, 0.9), (0.45, 0.95), (0.7, 0.75), (0.65, 0.45), (0.35, 0.3), (0.3, 0.05)])
+        else:
+            strokes.append([(sx, 0.95), (sx, 0.2), (sx + 0.12, 0.05), (sx + 0.35, 0.1)])
+        for _ in range(rng.randint(1, 3)):
+            a = rng.choice(('bar', 'diag', 'dot', 'tick', 'hook2'))
+            h = rng.uniform(0.25, 0.85)
+            if a == 'bar':
+                strokes.append([(rng.uniform(0.05, 0.3), h), (rng.uniform(0.6, 0.95), h + rng.uniform(-0.08, 0.08))])
+            elif a == 'diag':
+                strokes.append([(rng.uniform(0.1, 0.4), rng.uniform(0.05, 0.4)), (rng.uniform(0.6, 0.9), rng.uniform(0.6, 0.95))])
+            elif a == 'dot':
+                cx, cy = rng.uniform(0.15, 0.85), rng.choice((0.1, 0.92))
+                strokes.append([(cx - 0.045, cy), (cx + 0.045, cy)])
+            elif a == 'tick':
+                x = rng.uniform(0.15, 0.85)
+                strokes.append([(x, h), (x + rng.choice((-0.2, 0.2)), h + 0.18)])
             else:
-                zc0, zc1 = z0 + h * rng.uniform(0.1, 0.4), z0 + h * rng.uniform(0.6, 0.95)
-                yc = cy + cw * (a - 0.5) * 0.6
-                common.box(f'{name}{k}{j}', (x, yc - cw * 0.06, zc0), (x + 0.004 * sign, yc + cw * 0.06, zc1), mat)
+                x = rng.uniform(0.2, 0.6)
+                strokes.append([(x, h), (x + 0.3, h), (x + 0.3, h - 0.25)])
+        table.append(strokes)
+    return table
 
 
-def _pictogram(name, kind, x, cz, M, sign=1):
-    """Bildzeichen auf der Zielanzeige (sprachfrei): 'wave' Wellen ueber einem Becken (Level 37), 'plane' Flugzeug (36)."""
-    white = common.material('anzeige_weiss', (0.95, 0.98, 1.0), look='glow', glow=1.6)
+GLYPHS = _glyph_table()
 
-    def poly(pts, k=1.7):
-        bm = bmesh.new()
-        f = bm.faces.new([bm.verts.new((x, y * k, cz + (z - cz) * k)) for (y, z) in pts])
-        f.normal_update()
-        if f.normal.x * sign < 0:
-            f.normal_flip()
-        common.obj_from_bmesh(name, bm, white)
-    if kind == 'train':  # Wagen von vorn: Kasten, zwei Fenster, Raeder (zurueck zur Metro)
-        poly([(-0.16, cz - 0.16), (0.16, cz - 0.16), (0.16, cz + 0.18), (-0.16, cz + 0.18)])
-        dark = common.material('anzeige_dunkel', (0.02, 0.02, 0.02), look='paint', rough=0.6)
-        for wy in (-0.1, 0.03):
-            bm = bmesh.new()
-            pts = [(wy, cz + 0.02), (wy + 0.07, cz + 0.02), (wy + 0.07, cz + 0.12), (wy, cz + 0.12)]
-            f = bm.faces.new([bm.verts.new((x - sign * 0.002, y * 1.7, cz + (z - cz) * 1.7)) for (y, z) in pts])
-            f.normal_update()
-            if f.normal.x * sign < 0:
-                f.normal_flip()
-            common.obj_from_bmesh(name + '_fenster', bm, dark)
-        for wy in (-0.1, 0.1):
-            poly([(wy + 0.04 * math.cos(a), cz - 0.22 + 0.04 * math.sin(a)) for a in [k * 2 * math.pi / 12 for k in range(12)]])
-        return
+
+def _text(name, word, origin, u, v, height, mat, width=None, stroke=0.13, gap=0.25, seed=0):
+    """Zeichenfolge (Liste von Zeichen-Indizes) als flache Striche ab origin, Lauf entlang u, Hoehe entlang v."""
+    o, U, V = Vector(origin), Vector(u).normalized(), Vector(v).normalized()
+    w = height * 0.82
+    n = 0
+    for k, g in enumerate(word):
+        x0 = k * (w + w * gap)
+        for s, st in enumerate(GLYPHS[g % len(GLYPHS)]):
+            pts = [(x0 + px * w, py * height) for (px, py) in st]
+            _decal(f'{name}_{k}_{s}', o, U, V, _ribbon(pts, stroke * height), mat)
+            n += 1
+    return n
+
+
+def _word(rng, a, b):
+    return [rng.randrange(len(GLYPHS)) for _ in range(rng.randint(a, b))]
+
+
+def _pictogram(name, kind, origin, u, v, size, mat, dark):
+    """Bildzeichen (sprachfrei), Mitte in origin, Breite ~ size: 'wave' Wellen ueber einem Becken (Level 37),
+    'plane' Flugzeug (Level 36), 'train' Wagen von vorn (zurueck zur Metro)."""
+    o, U, V = Vector(origin), Vector(u).normalized(), Vector(v).normalized()
+    s = size
+
+    def poly(pts, m=mat, lift=0.0, nm=''):
+        return _decal(f'{name}{nm}', o + U.cross(V) * lift, U, V, [(x * s, y * s) for (x, y) in pts], m)
     if kind == 'wave':
         for r in range(2):
-            z0 = cz + 0.04 - r * 0.09
-            pts = [(-0.22 + 0.44 * t, z0 + 0.03 * math.sin(t * 4 * math.pi)) for t in [k / 24 for k in range(25)]]
-            pts += [(y, z - 0.025) for (y, z) in reversed(pts)]
-            poly(pts)
-        poly([(-0.26, cz - 0.17), (0.26, cz - 0.17), (0.26, cz - 0.14), (-0.26, cz - 0.14)])
+            y0 = 0.10 - r * 0.17
+            top = [(-0.42 + 0.84 * t, y0 + 0.055 * math.sin(t * 3.0 * TAU)) for t in [k / 30 for k in range(31)]]
+            poly(top + [(x, y - 0.065) for (x, y) in reversed(top)], nm=f'_welle{r}')
+        poly([(-0.46, -0.36), (0.46, -0.36), (0.46, -0.30), (-0.46, -0.30)], nm='_becken')
+        poly([(-0.46, -0.36), (-0.40, -0.36), (-0.40, -0.12), (-0.46, -0.12)], nm='_rand_l')
+        poly([(0.40, -0.36), (0.46, -0.36), (0.46, -0.12), (0.40, -0.12)], nm='_rand_r')
+        for k in range(3):  # Leiter
+            poly([(0.28, -0.28 + k * 0.08), (0.36, -0.28 + k * 0.08), (0.36, -0.25 + k * 0.08), (0.28, -0.25 + k * 0.08)], nm=f'_sprosse{k}')
+    elif kind == 'plane':
+        body = [(-0.46, -0.02), (-0.30, -0.05), (0.32, -0.05), (0.42, -0.035), (0.48, 0.0), (0.42, 0.035), (0.32, 0.05),
+                (-0.30, 0.05), (-0.40, 0.04)]
+        poly(body, nm='_rumpf')
+        poly([(0.02, 0.04), (0.14, 0.04), (-0.08, 0.36), (-0.16, 0.36)], nm='_fluegel_o')
+        poly([(-0.16, -0.36), (-0.08, -0.36), (0.14, -0.04), (0.02, -0.04)], nm='_fluegel_u')
+        poly([(-0.44, 0.03), (-0.36, 0.03), (-0.42, 0.20), (-0.48, 0.20)], nm='_leitwerk')
+        poly([(-0.46, -0.02), (-0.38, -0.02), (-0.44, -0.11), (-0.49, -0.11)], nm='_hoehe')
+    else:  # train: Wagen von vorn
+        poly(_rrect(-0.30, 0.30, -0.30, 0.38, 0.08), nm='_kasten')
+        for wx in (-0.24, 0.04):
+            poly([(wx, 0.06), (wx + 0.20, 0.06), (wx + 0.20, 0.28), (wx, 0.28)], m=dark, lift=0.002, nm=f'_fenster{wx}')
+        for wx in (-0.18, 0.18):
+            pts = [(wx + 0.05 * math.cos(TAU * k / 12), -0.16 + 0.05 * math.sin(TAU * k / 12)) for k in range(12)]
+            poly(pts, m=dark, lift=0.002, nm=f'_licht{wx}')
+        poly([(-0.36, -0.42), (0.36, -0.42), (0.36, -0.37), (-0.36, -0.37)], nm='_schiene')
+
+
+# =====================================================================================================================
+# Gleis (track_metro und unter dem Wagen)
+# =====================================================================================================================
+GAUGE = 1.435
+RAIL_PROFILE = [  # UIC-54-aehnlich (u quer, z hoch), Fuss 0.14, Steg 0.016, Kopf 0.07, Hoehe 0.159
+    (-0.070, 0.000), (0.070, 0.000), (0.070, 0.010), (0.030, 0.022), (0.009, 0.030), (0.008, 0.110), (0.020, 0.118),
+    (0.035, 0.124), (0.036, 0.152), (0.030, 0.159), (-0.030, 0.159), (-0.036, 0.152), (-0.035, 0.124), (-0.020, 0.118),
+    (-0.008, 0.110), (-0.009, 0.030), (-0.030, 0.022), (-0.070, 0.010)]
+Z_BALLAST, Z_SLEEPER, Z_RAIL0 = 0.115, 0.215, 0.225  # Weltnull = Gleisbett-Boden; Schienenoberkante 0.384
+
+
+def _rail(name, x0, x1, yc, z0, M):
+    """Schiene von x0 nach x1 (Kopf blank, Steg und Fuss rostig)."""
+    poly = [(yc + u, z0 + v) for (u, v) in RAIL_PROFILE]
+    edge = [0] * len(poly)
+    for i in (8, 9, 10):  # Kopfflaechen oben
+        edge[i] = 1
+    _prism(name, poly, x0, x1, [M['rail'], M['railhead']], axis='x', edge_mat=edge, smooth=30)
+
+
+def _sleeper(name, xc, yc, zb, M, rng):
+    """Spannbetonschwelle (B70-aehnlich): unter den Schienen breiter und hoeher, in der Mitte eingeschnuert."""
+    rings = []
+    for (y, w, h) in ((-1.30, 0.24, 0.165), (-1.0, 0.26, 0.18), (-0.42, 0.24, 0.18), (-0.30, 0.20, 0.14), (0.30, 0.20, 0.14),
+                      (0.42, 0.24, 0.18), (1.0, 0.26, 0.18), (1.30, 0.24, 0.165)):
+        wt = w - 0.06
+        rings.append([(xc - w / 2, yc + y, zb), (xc + w / 2, yc + y, zb), (xc + wt / 2, yc + y, zb + h), (xc - wt / 2, yc + y, zb + h)])
+    ob = _loft(name, rings, [M['sleeper']])
+    _jitter(ob, 0.004, rng.randrange(10 ** 6))
+    return ob
+
+
+def _fastening(name, xc, yr, z, M, side, simple=False):
+    """Schienenbefestigung an einem Schienenauflager: Rippenplatte, zwei Spannklemmen (W-Form), zwei Schwellenschrauben."""
+    _box(f'{name}_platte', (xc - 0.09, yr - 0.11, z - 0.012), (xc + 0.09, yr + 0.11, z), M['plate'])
+    if simple:
+        return
+    for s in (-1, 1):
+        yb = yr + s * 0.085
+        # W-Klemme: Federbuegel als Rohr (zwei Schlaufen auf den Schienenfuss)
+        pts = [(xc - 0.05, yb + s * 0.02, z + 0.012), (xc - 0.045, yb - s * 0.03, z + 0.03), (xc - 0.02, yb - s * 0.05, z + 0.028),
+               (xc, yb - s * 0.02, z + 0.04), (xc + 0.02, yb - s * 0.05, z + 0.028), (xc + 0.045, yb - s * 0.03, z + 0.03),
+               (xc + 0.05, yb + s * 0.02, z + 0.012)]
+        _tube(f'{name}_klemme{s}', pts, 0.0065, M['clip'], seg=5, caps=False)
+        _cyl(f'{name}_schraube{s}', (xc, yb + s * 0.005, z), (xc, yb + s * 0.005, z + 0.05), 0.016, M['clip'], seg=6)
+
+
+def _track(prefix, x0, x1, yc, ylo, yhi, zoff, M, seed, sleeper_x0, detail=True, bed=True, xs_simple=None, cell=0.14, stones=4.2,
+           hidden=None):
+    """Gleis von x0 bis x1 (Gleismitte yc), Bett von ylo bis yhi (Wand der Halle bei yhi, Bahnsteigwand bei ylo);
+    zoff: Hoehe des Hallenbodens. sleeper_x0: erste Schwelle (Raster 0.6 m, Stoss auf Stoss mit den Nachbarstuecken).
+    xs_simple(x): Schwellen unter dem Wagen einfacher; hidden(x, y): dort keine Einzelsteine (unsichtbar)."""
+    rng = random.Random(seed)
+    z = zoff
+    # --- Schotterbett: Hoehenfeld mit Steinbuckeln, zur Bahnsteigwand und zum Kabelkanal abfallend
+    if bed:
+        trough_y = yhi - 0.45  # Kabelkanal an der Wand
+        nx = max(2, int(round((x1 - x0) / cell)))
+        ys = []
+        y = ylo
+        while y < trough_y - 0.05:
+            ys.append(y)
+            y += cell * 0.93
+        ys.append(trough_y)
+        bm = bmesh.new()
+        grid = []
+        noise = random.Random(seed + 1)
+        for i in range(nx + 1):
+            x = x0 + (x1 - x0) * i / nx
+            row = []
+            for j, yy in enumerate(ys):
+                d_rail = abs(yy - yc)
+                base = Z_BALLAST if d_rail < 1.55 else Z_BALLAST - (d_rail - 1.55) * 0.18
+                base = max(0.035, base)
+                if j == 0 or j == len(ys) - 1:
+                    base = 0.03 if j == 0 else 0.06
+                h = base + (noise.uniform(-0.014, 0.022) if 0 < j < len(ys) - 1 and 0 < i < nx else 0.0)
+                row.append(bm.verts.new((x, yy, z + h)))
+            grid.append(row)
+        mats_idx = []
+        for i in range(nx):
+            for j in range(len(ys) - 1):
+                f = bm.faces.new((grid[i][j], grid[i + 1][j], grid[i + 1][j + 1], grid[i][j + 1]))
+                f.normal_update()
+                if f.normal.z < 0:
+                    f.normal_flip()
+                r = noise.random()
+                f.material_index = 1 if r < 0.22 else (2 if r < 0.27 else 0)
+                mats_idx.append(f.material_index)
+        ob = _link(f'{prefix}_schotter', bm, [M['ballast'], M['ballast_dark'], M['ballast_rust']])
+        _smooth(ob, 70)
+        # einzelne groessere Steine auf dem Bett (unregelmaessige Achtflaechner)
+        for k in range(int((x1 - x0) * (yhi - ylo) * stones)):
+            sx = rng.uniform(x0 + 0.05, x1 - 0.05)
+            sy = rng.uniform(ylo + 0.05, trough_y - 0.05)
+            if abs(sy - yc) < 1.35 and ((sx - sleeper_x0) % 0.6 < 0.17 or (sx - sleeper_x0) % 0.6 > 0.43):
+                continue  # nicht in die Schwellen
+            if hidden and hidden(sx, sy):
+                continue
+            if abs(abs(sy - yc) - (GAUGE / 2 + 0.0375)) < 0.09:
+                continue  # nicht in die Schienen
+            d_rail = abs(sy - yc)
+            base = Z_BALLAST if d_rail < 1.55 else max(0.035, Z_BALLAST - (d_rail - 1.55) * 0.18)
+            r = rng.uniform(0.022, 0.045)
+            bmr = bmesh.new()
+            bmesh.ops.create_icosphere(bmr, subdivisions=1, radius=r)
+            for v in bmr.verts:
+                v.co.x *= rng.uniform(0.7, 1.3)
+                v.co.y *= rng.uniform(0.7, 1.3)
+                v.co.z *= rng.uniform(0.45, 0.8)
+            bmesh.ops.transform(bmr, verts=bmr.verts, matrix=Matrix.Translation((sx, sy, z + base + 0.004)) @
+                                Matrix.Rotation(rng.uniform(0, TAU), 4, 'Z'))
+            _link(f'{prefix}_stein{k}', bmr, [M['stone_a'] if rng.random() < 0.6 else M['stone_b']])
+        # Kabelkanal an der Wand: Trog aus Beton, Deckel mit Griffloechern, einer verschoben
+        _box(f'{prefix}_trog', (x0, trough_y, z), (x1, yhi, z + 0.24), M['trough'])
+        L = 1.0
+        xk = x0
+        k = 0
+        while xk < x1 - 1e-6:
+            xe = min(x1, xk + L)
+            off = 0.03 if (k + seed) % 5 == 2 else 0.0
+            lid = _box(f'{prefix}_deckel{k}', (xk + 0.004 + off, trough_y + 0.03, z + 0.24), (xe - 0.004 + off, yhi - 0.02, z + 0.275),
+                       M['trough'])
+            if (k + seed) % 7 == 3:
+                lid.matrix_world = Matrix.Translation((0, 0, 0.012)) @ Matrix.Rotation(0.03, 4, 'X')
+            for gx in (xk + 0.25, xe - 0.25):
+                _box(f'{prefix}_griff{k}{gx:.2f}', (gx - 0.05, (trough_y + yhi) / 2 - 0.02, z + 0.2755),
+                     (gx + 0.05, (trough_y + yhi) / 2 + 0.02, z + 0.2765), M['joint'])
+            xk = xe
+            k += 1
+    # --- Schwellen und Befestigungen
+    x = sleeper_x0
+    k = 0
+    while x < x1 - 0.1:
+        if x > x0 + 0.1:
+            simple = xs_simple(x) if xs_simple else False
+            _sleeper(f'{prefix}_schwelle{k}', x + rng.uniform(-0.012, 0.012), yc, z + 0.035, M, rng)
+            for s in (-1, 1):
+                _fastening(f'{prefix}_bef{k}{s}', x, yc + s * (GAUGE / 2 + 0.0375), z + Z_RAIL0, M, s, simple=simple or not detail)
+        x += 0.6
+        k += 1
+    # --- Schienen
+    for s in (-1, 1):
+        _rail(f'{prefix}_schiene{s}', x0, x1, yc + s * (GAUGE / 2 + 0.0375), z + Z_RAIL0, M)
+    # --- Stromschiene (von unten bestrichen, Abdeckung oben) auf Isolatorboecken an jeder vierten Schwelle
+    yr = yc + 1.72
+    zr = z + 0.43
+    poly = [(yr - 0.04, zr - 0.012), (yr + 0.04, zr - 0.012), (yr + 0.04, zr), (yr + 0.012, zr + 0.01), (yr + 0.012, zr + 0.05),
+            (yr - 0.012, zr + 0.05), (yr - 0.012, zr + 0.01), (yr - 0.04, zr)]
+    _prism(f'{prefix}_stromschiene', poly, x0, x1, [M['conductor']], axis='x', smooth=25)
+    cov = [(yr - 0.075, zr + 0.06), (yr + 0.075, zr + 0.06), (yr + 0.085, zr + 0.045), (yr + 0.09, zr + 0.065), (yr + 0.07, zr + 0.08),
+           (yr - 0.07, zr + 0.08), (yr - 0.09, zr + 0.065), (yr - 0.085, zr + 0.045)]
+    _prism(f'{prefix}_abdeckung', cov, x0, x1, [M['cover']], axis='x', smooth=30)
+    x = sleeper_x0 + 0.6
+    k = 0
+    while x < x1 - 0.1:
+        if x > x0 + 0.1 and k % 4 == 0:
+            # Bock: Arm vom Schwellenkopf nach aussen, Isolator, Halter ueber der Schiene
+            _box(f'{prefix}_bock{k}', (x - 0.03, yc + 1.25, z + 0.20), (x + 0.03, yr + 0.12, z + 0.235), M['clip'])
+            _box(f'{prefix}_bocksteg{k}', (x - 0.025, yr + 0.10, z + 0.235), (x + 0.025, yr + 0.13, zr + 0.09), M['clip'])
+            _cyl(f'{prefix}_isolator{k}', (x, yr + 0.115, zr + 0.09), (x, yr + 0.115, zr + 0.12), 0.03, M['insulator'], seg=8)
+            _box(f'{prefix}_halter{k}', (x - 0.03, yr - 0.05, zr + 0.085), (x + 0.03, yr + 0.13, zr + 0.095), M['clip'])
+        x += 0.6
+        k += 1
+
+
+def _place(objs, M):
+    """Teile in ihre Lage bringen (Matrix in die Netze einrechnen; bei Spiegelung den Umlaufsinn umdrehen)."""
+    neg = M.determinant() < 0
+    for ob in objs:
+        me = ob.data
+        me.transform(M @ ob.matrix_world)
+        ob.matrix_world = Matrix.Identity(4)
+        if neg:
+            bm = bmesh.new()
+            bm.from_mesh(me)
+            bmesh.ops.reverse_faces(bm, faces=bm.faces)
+            bm.to_mesh(me)
+            bm.free()
+        me.update()
+
+
+def _mirror(sx, sy, sz=1.0, t=(0, 0, 0)):
+    return Matrix.Translation(t) @ Matrix.Diagonal((sx, sy, sz, 1.0))
+
+
+def _intervals(a, b, holes):
+    """[a, b] ohne die Loecher (Liste von (h0, h1))."""
+    out, x = [], a
+    for (h0, h1) in sorted(holes):
+        if h1 <= x or h0 >= b:
+            continue
+        if h0 > x:
+            out.append((x, h0))
+        x = max(x, h1)
+    if x < b:
+        out.append((x, b))
+    return out
+
+
+# =====================================================================================================================
+# Fahrender Metro-Wagen (metro_car_903, metro_car_37)
+# =====================================================================================================================
+CAR_HL = 9.0
+END_T = 0.08
+DOORS = (-6.0, 0.0, 6.0)
+DOOR_HW, DOOR_H = 0.70, 1.95
+WIN_Z0, WIN_Z1 = 0.95, 1.85
+WINDOWS = ((-8.45, -7.60), (-4.40, -3.15), (-2.85, -1.60), (1.60, 2.85), (3.15, 4.40), (7.60, 8.45))
+WALL_T = 0.06
+SIDE = [(1.42, -0.46), (1.47, -0.40), (1.49, -0.26), (1.50, -0.14), (1.50, 0.95), (1.478, 1.90), (1.468, 2.04), (1.445, 2.18)]
+ROOF = [(1.445, 2.18), (1.40, 2.29), (1.32, 2.39), (1.20, 2.47), (1.02, 2.54), (0.78, 2.595), (0.50, 2.63), (0.20, 2.648),
+        (0.0, 2.652)]
+CAR_Z = 1.11                                  # Wagenboden ueber dem Gleisbett (Karte: PLAT + 0.01)
+Z_RAILTOP = Z_RAIL0 + 0.159 - CAR_Z           # Schienenoberkante im Wagen (-0.726)
+WHEEL_R = 0.30
+Z_WHEEL = Z_RAILTOP + WHEEL_R                 # Radmitte
+BOGIES = (-6.3, 6.3)
+
+
+def _side_y(z):
+    if z <= SIDE[0][1]:
+        return SIDE[0][0]
+    for (y0, z0), (y1, z1) in zip(SIDE, SIDE[1:]):
+        if z0 <= z <= z1:
+            return y0 + (y1 - y0) * ((z - z0) / (z1 - z0) if z1 > z0 else 0.0)
+    return SIDE[-1][0]
+
+
+def _cross_section():
+    right = SIDE + ROOF[1:]
+    left = [(-y, z) for (y, z) in reversed(right)]
+    return right + left[1:]
+
+
+def _side_piece(name, x0, x1, z0, z1, s, M, inner=None, outer=None):
+    """Stueck der Seitenwand zwischen z0 und z1 (Aussenkontur mit Einzug, innen um WALL_T versetzt); Laibungen alu matt."""
+    zs = [z0] + [z for (_, z) in SIDE if z0 + 1e-6 < z < z1 - 1e-6] + [z1]
+    outer_pts = [(_side_y(z), z) for z in zs]
+    inner_pts = [(y - WALL_T, z) for (y, z) in reversed(outer_pts)]
+    poly = outer_pts + inner_pts
+    no = len(outer_pts)
+    edge = []
+    for i in range(len(poly)):
+        if i < no - 1:
+            edge.append(0)
+        elif i == no - 1 or i == len(poly) - 1:
+            edge.append(2)
+        else:
+            edge.append(1)
+    poly = [(s * y, z) for (y, z) in poly]
+    return _prism(name, poly, x0, x1, [outer or M['alu'], inner or M['inner'], M['alu_dull']], axis='x', edge_mat=edge,
+                  cap_mat=(2, 2))
+
+
+def _profile_strip(name, x0, x1, ztop, s, mat, dx=0.2, eps=0.004, zbot=-0.46):
+    """Schicht auf der Aussenhaut (Schmutz): von zbot bis ztop(x), folgt dem Profil, eps vor der Oberflaeche."""
+    nx = max(1, int(math.ceil((x1 - x0) / dx)))
+    bm = bmesh.new()
+    cols = []
+    for i in range(nx + 1):
+        x = x0 + (x1 - x0) * i / nx
+        zt = ztop(x)
+        zs = [zbot, -0.40, -0.26, -0.14, zt]  # Stuetzstellen der Kontur (zt > -0.14)
+        cols.append([bm.verts.new((x, s * (_side_y(z) + eps), z)) for z in zs])
+    for i in range(nx):
+        for k in range(4):
+            f = bm.faces.new((cols[i][k], cols[i + 1][k], cols[i + 1][k + 1], cols[i][k + 1]))
+            f.normal_update()
+            if f.normal.y * s < 0:
+                f.normal_flip()
+    return _link(name, bm, [mat])
+
+
+def _window(prefix, x0, x1, s, M, rng):
+    """Seitenfenster: gerundete Ecken (Fuellstuecke durch die Wand), Gummidichtung aussen, Kippfenster oben (Glas, Rahmen,
+    nach innen geneigt), darunter offen (Scheibe heruntergelassen - die Engine kennt keine Durchsicht), Oberkante der
+    abgesenkten Scheibe an der Bruestung, Staubkante am Kippfenster."""
+    z0, z1, rc = WIN_Z0, WIN_Z1, 0.085
+    for (cx, cz, a0) in ((x0 + rc, z0 + rc, 180), (x1 - rc, z0 + rc, 270), (x1 - rc, z1 - rc, 0), (x0 + rc, z1 - rc, 90)):
+        corner = (cx + rc * math.cos(math.radians(a0 + 45)) * 1.4142, cz + rc * math.sin(math.radians(a0 + 45)) * 1.4142)
+        arc = [(cx + rc * math.cos(math.radians(a0 + 90 - 22.5 * k)), cz + rc * math.sin(math.radians(a0 + 90 - 22.5 * k)))
+               for k in range(5)]
+        poly = [corner] + arc
+        yo = _side_y(cz)
+        _prism(f'{prefix}_ecke{a0}', poly, s * (yo - WALL_T - 0.001), s * (yo + 0.001), [M['alu_dull']], axis='y')
+    path = _rrect(x0, x1, z0, z1, rc, n=3)
+    path = path + [path[0]]
+    _tube(f'{prefix}_dichtung', [(x, s * (_side_y(z) + 0.002), z) for (x, z) in path], 0.011, M['rubber'], seg=5, caps=False)
+    # Kippfenster: Rahmen und Glas, um die Unterkante (z = 1.58) 9 Grad nach innen gekippt
+    zt0, zt1 = 1.575, z1 - 0.012
+    yh = s * (_side_y(1.6) - 0.025)
+    before = _names()
+    _box(f'{prefix}_kipp_u', (x0 + 0.02, -0.012, zt0), (x1 - 0.02, 0.012, zt0 + 0.03), M['alu_dull'])
+    _box(f'{prefix}_kipp_o', (x0 + 0.06, -0.012, zt1 - 0.028), (x1 - 0.06, 0.012, zt1), M['alu_dull'])
+    for xx in (x0 + 0.02, x1 - 0.05):
+        _box(f'{prefix}_kipp_s{xx:.2f}', (xx, -0.012, zt0), (xx + 0.03, 0.012, zt1 - 0.04), M['alu_dull'])
+    _decal(f'{prefix}_kipp_glas', (x0 + 0.05, 0.0, zt0 + 0.03), (1, 0, 0), (0, 0, 1),
+           _rrect(0.0, x1 - x0 - 0.10, 0.0, zt1 - zt0 - 0.058, 0.03, n=2), M['glass'])
+    _decal(f'{prefix}_kipp_staub', (x0 + 0.05, 0.001 * s, zt0 + 0.03), (1, 0, 0), (0, 0, 1),
+           [(0.01, 0.0), (x1 - x0 - 0.11, 0.0), (x1 - x0 - 0.11, 0.018 + rng.uniform(0, 0.01)), (0.5 * (x1 - x0), 0.03),
+            (0.01, 0.014)], M['glass_dirty'])
+    _place(_objs_since(before), Matrix.Translation((0, yh, zt0)) @ Matrix.Rotation(math.radians(9) * s, 4, 'X') @
+           Matrix.Translation((0, 0, -zt0)))
+    # Kaempfer unter dem Kippfenster und Oberkante der abgesenkten Scheibe
+    _box(f'{prefix}_kaempfer', (x0, s * (_side_y(1.56) - 0.045) - 0.012, 1.548), (x1, s * (_side_y(1.56) - 0.045) + 0.012, 1.575),
+         M['alu_dull'])
+    yb = _side_y(z0) - 0.045
+    _box(f'{prefix}_scheibenkante', (x0 + 0.03, s * yb - 0.01, z0), (x1 - 0.03, s * yb + 0.01, z0 + 0.035), M['alu_dull'])
+    _box(f'{prefix}_scheibenkante_glas', (x0 + 0.03, s * yb - 0.004, z0 - 0.002), (x1 - 0.03, s * yb + 0.004, z0 + 0.03),
+         M['glass'])
+
+
+def _door_leaf(prefix, M, rng, smudge=True):
+    """Tuerblatt im eigenen System: x 0 (Fuehrungskante) .. 0.70, y 0 (innen) .. 0.04 (aussen), z 0 .. DOOR_H.
+    Rahmen aus Aluminium, Fenster mit gerundeten Ecken, Glas, Dichtung, Gummilippe vorn, Trittschutzblech, Griff innen,
+    Warnaufkleber, Griffspuren."""
+    W, T = 0.70, 0.04
+    wx0, wx1, wz0, wz1, rc = 0.13, 0.57, 0.98, 1.76, 0.06
+    _box(f'{prefix}_unten', (0.0, 0.0, 0.0), (W, T, wz0), M['alu'])
+    _box(f'{prefix}_oben', (0.0, 0.0, wz1), (W, T, DOOR_H), M['alu'])
+    _box(f'{prefix}_links', (0.0, 0.0, wz0), (wx0, T, wz1), M['alu'])
+    _box(f'{prefix}_rechts', (wx1, 0.0, wz0), (W, T, wz1), M['alu'])
+    for (cx, cz, a0) in ((wx0 + rc, wz0 + rc, 180), (wx1 - rc, wz0 + rc, 270), (wx1 - rc, wz1 - rc, 0), (wx0 + rc, wz1 - rc, 90)):
+        corner = (cx + rc * math.cos(math.radians(a0 + 45)) * 1.4142, cz + rc * math.sin(math.radians(a0 + 45)) * 1.4142)
+        arc = [(cx + rc * math.cos(math.radians(a0 + 90 - 22.5 * k)), cz + rc * math.sin(math.radians(a0 + 90 - 22.5 * k)))
+               for k in range(5)]
+        _prism(f'{prefix}_ecke{a0}', [corner] + arc, 0.0, T, [M['alu']], axis='y')
+    _decal(f'{prefix}_glas', (0.0, T * 0.5, 0.0), (1, 0, 0), (0, 0, 1), _rrect(wx0, wx1, wz0, wz1, rc, n=3), M['glass'])
+    _decal(f'{prefix}_glas_staub', (0.0, T * 0.5 + 0.001, 0.0), (1, 0, 0), (0, 0, 1),
+           [(wx0 + 0.02, wz0 + 0.01), (wx1 - 0.02, wz0 + 0.01), (wx1 - 0.02, wz0 + 0.05), (0.5 * (wx0 + wx1), wz0 + 0.07),
+            (wx0 + 0.02, wz0 + 0.04)], M['glass_dirty'])
+    path = _rrect(wx0, wx1, wz0, wz1, rc, n=3)
+    _tube(f'{prefix}_dichtung', [(x, T + 0.002, z) for (x, z) in path + [path[0]]], 0.008, M['rubber'], seg=5, caps=False)
+    # Gummilippe an der Fuehrungskante (Wulst)
+    lip = [(0.0, 0.004), (-0.012, 0.006), (-0.022, 0.014), (-0.026, 0.02), (-0.022, 0.026), (-0.012, 0.034), (0.0, 0.036)]
+    _prism(f'{prefix}_lippe', lip, 0.01, DOOR_H - 0.01, [M['rubber']], axis='z', smooth=50)
+    # Trittschutzblech und Schmutz
+    _box(f'{prefix}_blech', (0.02, T, 0.03), (W - 0.02, T + 0.002, 0.24), M['chrome_worn'])
+    _decal(f'{prefix}_schmutz', (0.0, T + 0.0025, 0.0), (1, 0, 0), (0, 0, 1),
+           [(0.02, 0.03), (W - 0.02, 0.03), (W - 0.02, 0.05 + rng.uniform(0, 0.03)), (0.45, 0.07), (0.2, 0.05 + rng.uniform(0, 0.03)),
+            (0.02, 0.06)], M['grime'])
+    if smudge:  # Griffspuren an der Fuehrungskante
+        _decal(f'{prefix}_griffspur', (0.0, T + 0.001, 0.0), (1, 0, 0), (0, 0, 1), _blob(rng, 0.05, 0.16, 8, 0.3, 0.07, 1.25),
+               M['grime_dark'])
+    # Warnaufkleber (gelbes Dreieck mit Hand) aussen am Fenster
+    tri = [(0.30, 1.03), (0.40, 1.03), (0.35, 1.115)]
+    _decal(f'{prefix}_warn', (0.0, T * 0.5 + 0.003, 0.0), (1, 0, 0), (0, 0, 1), tri, M['sticker_y'])
+    _decal(f'{prefix}_warn_hand', (0.0, T * 0.5 + 0.0035, 0.0), (1, 0, 0), (0, 0, 1), _blob(rng, 0.016, 0.02, 7, 0.2, 0.35, 1.06),
+           M['ink'])
+    # Griff innen
+    _tube(f'{prefix}_griff', [(0.08, -0.002, 0.95), (0.08, -0.04, 0.98), (0.08, -0.04, 1.32), (0.08, -0.002, 1.35)], 0.012,
+          M['steel'], seg=6)
+
+
+def _door(prefix, d, s, M, rng, open_):
+    """Tuerportal (Dichtung, Fuehrungsschiene oben und unten, Schwelle) und zwei Tuerblaetter (aussen schiebend)."""
+    yo = _side_y(1.0)
+    for k in (-1, 1):
+        before = _names()
+        _door_leaf(f'{prefix}_blatt{k}', M, rng)
+        if open_:
+            M_ = Matrix.Translation((d + k * 0.685, s * (yo + 0.004), 0.0)) @ Matrix.Diagonal((k, s, 1.0, 1.0))
+        else:
+            M_ = Matrix.Translation((d + k * 0.001, s * (yo - 0.042), 0.0)) @ Matrix.Diagonal((k, s, 1.0, 1.0))
+        _place(_objs_since(before), M_)
+    # Portal: Dichtungsstreifen an den Kanten der Oeffnung
+    for k in (-1, 1):
+        x = d + k * DOOR_HW
+        _box(f'{prefix}_portal{k}', (min(x, x - k * 0.025), s * yo - 0.012, 0.0), (max(x, x - k * 0.025), s * yo + 0.012, DOOR_H),
+             M['rubber'])
+    _box(f'{prefix}_portal_o', (d - DOOR_HW, s * _side_y(1.95) - 0.012, DOOR_H - 0.025), (d + DOOR_HW, s * _side_y(1.95) + 0.012, DOOR_H),
+         M['rubber'])
+    # Fuehrungsschiene oben (Abdeckung) und unten
+    y1 = _side_y(2.0)
+    _box(f'{prefix}_schiene_o', (d - 1.44, s * y1, 1.955), (d + 1.44, s * (y1 + 0.085), 2.035),
+         M['alu_dull'], bevel=0.008)
+    _box(f'{prefix}_schiene_u', (d - 1.44, min(s * 1.48, s * 1.55), -0.07), (d + 1.44, max(s * 1.48, s * 1.55), -0.035), M['under'])
+    # Schwelle mit gelber Kante
+    _box(f'{prefix}_schwelle', (d - DOOR_HW, min(s * 1.25, s * 1.505), -0.004), (d + DOOR_HW, max(s * 1.25, s * 1.505), 0.006),
+         M['chrome_worn'])
+    _box(f'{prefix}_schwelle_gelb', (d - DOOR_HW, min(s * 1.46, s * 1.505), 0.0061), (d + DOOR_HW, max(s * 1.46, s * 1.505), 0.0066),
+         M['yellow'])
+    # Tuerleuchte innen ueber der Tuer (aus)
+    _box(f'{prefix}_leuchte', (d - 0.08, s * (yo - WALL_T) - 0.03 * s, 1.97), (d + 0.08, s * (yo - WALL_T), 2.0), M['shell'])
+
+
+def _bench(prefix, x0, x1, s, M, rng):
+    """Laengsbank: Sitzschale mit Heizungsblende, Polster je Sitz (0.44 m), Rueckenpolster, einzelne Sitze abgewetzt."""
+    shell = [(1.44, 0.08), (1.02, 0.08), (1.02, 0.36), (0.975, 0.40), (0.975, 0.43), (1.44, 0.43)]
+    _prism(f'{prefix}_schale', [(s * y, z) for (y, z) in shell], x0, x1, [M['shell']], axis='x')
+    # Blende mit Luftschlitzen
+    n = int((x1 - x0 - 0.1) / 0.07)
+    for k in range(n):
+        x = x0 + 0.08 + k * 0.07
+        _decal(f'{prefix}_schlitz{k}', (x, s * (1.02 - 0.0015), 0.13), (s, 0, 0), (0, 0, 1), [(0, 0), (0.035, 0), (0.035, 0.17), (0, 0.17)],
+               M['ink'])
+    seat = [(1.42, 0.43), (0.99, 0.43), (0.972, 0.448), (0.978, 0.474), (1.0, 0.488), (1.10, 0.494), (1.42, 0.49)]
+    back = [(1.435, 0.50), (1.405, 0.50), (1.36, 0.56), (1.335, 0.70), (1.345, 0.88), (1.39, 0.935), (1.435, 0.935)]
+    nseat = max(1, int((x1 - x0) / 0.465))
+    w = (x1 - x0) / nseat
+    for k in range(nseat):
+        a, b = x0 + k * w + 0.012, x0 + (k + 1) * w - 0.012
+        worn = rng.random() < 0.3
+        _prism(f'{prefix}_sitz{k}', [(s * y, z) for (y, z) in seat], a, b, [M['seat_worn'] if worn else M['seat']], axis='x', smooth=45)
+        _prism(f'{prefix}_lehne{k}', [(s * y, z) for (y, z) in back], a, b, [M['seat']], axis='x', smooth=45)
+        if rng.random() < 0.12:  # geflickter Riss (Klebeband)
+            _decal(f'{prefix}_flick{k}', (a + w * 0.4, s * 1.18, 0.4945), (1, 0, 0), (0, 1, 0),
+                   [(0, 0), (0.12, 0.01), (0.11, 0.05), (0.0, 0.045)], M['grime_dark'])
+
+
+def _partition(prefix, x, s, M, facing):
+    """Trennwand am Bankende (zur Tuer hin) mit Haltestange bis zur Decke."""
+    pts = [(1.44, 0.06), (1.0, 0.06)] + [(1.0 + 0.14 - 0.14 * math.cos(math.radians(a)), 0.92 + 0.14 * math.sin(math.radians(a)))
+                                          for a in (0, 30, 60, 90)] + [(1.44, 1.06)]
+    _prism(f'{prefix}_wand', [(s * y, z) for (y, z) in pts], x - 0.015, x + 0.015, [M['inner_grey']], axis='x')
+    xp = x + facing * 0.03
+    _cyl(f'{prefix}_stange', (xp, s * 0.97, 0.0), (xp, s * 0.97, 2.25), 0.019, M['steel'], seg=10)
+    _cyl(f'{prefix}_fuss', (xp, s * 0.97, 0.0), (xp, s * 0.97, 0.03), 0.04, M['chrome_worn'], seg=10)
+    _cyl(f'{prefix}_kopf', (xp, s * 0.97, 2.21), (xp, s * 0.97, 2.25), 0.04, M['chrome_worn'], seg=10)
+    _tube(f'{prefix}_buegel', [(xp, s * 0.97, 1.06), (xp, s * 1.2, 1.06), (xp, s * 1.40, 1.10)], 0.014, M['steel'], seg=6)
+
+
+def _grab_rail(prefix, x0, x1, s, M):
+    y, z, zc = s * 0.93, 1.87, 2.24
+    _tube(f'{prefix}_stange', [(x0, y, zc), (x0, y, z + 0.06), (x0 + 0.06, y, z), (x1 - 0.06, y, z), (x1, y, z + 0.06), (x1, y, zc)],
+          0.016, M['steel'], seg=7)
+    n = max(1, int((x1 - x0) / 1.4))
+    for k in range(1, n):
+        x = x0 + (x1 - x0) * k / n
+        _cyl(f'{prefix}_halter{k}', (x, y, z), (x, y, zc), 0.011, M['chrome_worn'], seg=6)
+
+
+def _ceiling(M, L):
+    side = [(1.44, 1.995), (1.38, 2.10), (1.25, 2.19), (1.05, 2.252), (0.80, 2.285), (0.62, 2.298)]
+    for s in (-1, 1):
+        poly = side + [(y, z + 0.015) for (y, z) in reversed(side)]
+        _prism(f'decke_seite{s}', [(s * y, z) for (y, z) in poly], -L, L, [M['inner']], axis='x', smooth=35)
+        # Lichtband: Kanal mit Streuscheibe
+        _box(f'licht_kanal{s}', (-L, min(s * 0.40, s * 0.62), 2.298), (L, max(s * 0.40, s * 0.62), 2.36), M['inner_grey'])
+        _box(f'licht{s}', (-L + 0.25, min(s * 0.43, s * 0.59), 2.292), (L - 0.25, max(s * 0.43, s * 0.59), 2.300), M['light'])
+    _box('decke_mitte', (-L, -0.40, 2.36), (L, 0.40, 2.375), M['inner'])
+    x = -L + 0.6
+    k = 0
+    while x < L - 0.6:  # Lueftungsgitter in der Mitte
+        for j in range(5):
+            _decal(f'luefter{k}_{j}', (x + j * 0.05, -0.18, 2.3595), (0, 1, 0), (1, 0, 0), [(0, 0), (0.36, 0), (0.36, 0.025), (0, 0.025)],
+                   M['ink'])
+        x += 1.5
+        k += 1
+
+
+def _display(prefix, x, sgn, M, kind, size=0.30, w=0.56, z0=1.94, z1=2.27):
+    """Zielanzeige an der Stirnwand innen (Gehaeuse, schwarze Front, Bildzeichen oder dunkel). sgn: Blick in -sgn*x."""
+    xf = x - sgn * 0.06
+    _box(f'{prefix}_gehaeuse', (min(x, xf), -w - 0.03, z0 - 0.03), (max(x, xf), w + 0.03, z1 + 0.03), M['shell'], bevel=0.01)
+    U = (0, -sgn, 0)
+    _decal(f'{prefix}_front', (xf - sgn * 0.001, 0.0, 0.0), U, (0, 0, 1), [(-w, z0), (w, z0), (w, z1), (-w, z1)], M['disp_bg'])
+    if kind:
+        _pictogram(f'{prefix}_zeichen', kind, (xf - sgn * 0.002, 0.0, (z0 + z1) / 2 + 0.01), U, (0, 0, 1), size, M['disp'],
+                   M['disp_bg'])
+        # Statuszeile (Leuchtpunkte) unter dem Bildzeichen
+        for k in range(9):
+            _decal(f'{prefix}_punkt{k}', (xf - sgn * 0.002, 0.0, 0.0), U, (0, 0, 1),
+                   [(-0.20 + k * 0.05, z0 + 0.018), (-0.18 + k * 0.05, z0 + 0.018), (-0.18 + k * 0.05, z0 + 0.034),
+                    (-0.20 + k * 0.05, z0 + 0.034)], M['disp_amber'])
     else:
-        poly([(-0.25, cz - 0.02), (0.22, cz - 0.02), (0.26, cz), (0.22, cz + 0.02), (-0.25, cz + 0.02)])  # Rumpf
-        poly([(-0.02, cz), (0.06, cz), (-0.08, cz + 0.16), (-0.14, cz + 0.16)])  # Fluegel
-        poly([(-0.02, cz), (0.06, cz), (-0.08, cz - 0.16), (-0.14, cz - 0.16)])
-        poly([(-0.25, cz), (-0.2, cz), (-0.26, cz + 0.08), (-0.29, cz + 0.08)])  # Leitwerk
+        # dunkle Anzeige: nur ein schwacher Punktrest
+        _decal(f'{prefix}_rest', (xf - sgn * 0.002, 0.0, 0.0), U, (0, 0, 1),
+               [(-0.30, z0 + 0.14), (-0.27, z0 + 0.14), (-0.27, z0 + 0.17), (-0.30, z0 + 0.17)], M['disp_amber'])
+
+
+def _car_end(prefix, sgn, M, rng, kind, front):
+    """Stirnseite bei x = sgn*9: Wand aus dem Querschnitt (Tuer, zwei Fenster), Eckpfosten, Rammschutz, Kupplung,
+    Scheinwerfer/Schlusslichter, Anzeige aussen und innen."""
+    xo = sgn * CAR_HL
+    xi = sgn * (CAR_HL - END_T)
+    a0, a1 = min(xo, xi), max(xo, xi)
+    CS = _cross_section()
+    rects = [(-2, 2, -0.46, 0.0), (-2, -0.36, 0.0, 1.0), (0.36, 2, 0.0, 1.0), (-2, -1.26, 1.0, 1.84), (-0.56, -0.36, 1.0, 1.84),
+             (0.36, 0.56, 1.0, 1.84), (1.26, 2, 1.0, 1.84), (-2, -0.36, 1.84, 1.90), (0.36, 2, 1.84, 1.90), (-2, 2, 1.90, 3.0)]
+    for k, (y0, y1, z0, z1) in enumerate(rects):
+        poly = _clip_rect(CS, y0, y1, z0, z1)
+        if len(poly) >= 3:
+            _prism(f'{prefix}_wand{k}', poly, a0, a1, [M['alu_dull'], M['inner'], M['alu']], axis='x', edge_mat=[0] * len(poly),
+                   cap_mat=(1, 2) if sgn > 0 else (2, 1))
+    # Fenster der Stirn: Glas, Dichtung; Scheibenwischer am rechten
+    for (y0, y1) in ((0.56, 1.26), (-1.26, -0.56)):
+        _decal(f'{prefix}_glas{y0}', (sgn * (CAR_HL - END_T * 0.5), 0, 0), (0, 1, 0), (0, 0, 1), [(y0, 1.0), (y1, 1.0), (y1, 1.84), (y0, 1.84)],
+               M['glass'])
+        path = _rrect(y0, y1, 1.0, 1.84, 0.05, n=2)
+        _tube(f'{prefix}_dichtung{y0}', [(xo + sgn * 0.002, y, z) for (y, z) in path + [path[0]]], 0.01, M['rubber'], seg=5, caps=False)
+    _box(f'{prefix}_wischer', (xo + sgn * 0.004 - 0.004, 0.70, 1.05), (xo + sgn * 0.012 + 0.004, 0.72, 1.55), M['ink'])
+    ob = _box(f'{prefix}_wischblatt', (-0.006, -0.006, -0.22), (0.006, 0.006, 0.22), M['rubber'])
+    ob.matrix_world = Matrix.Translation((xo + sgn * 0.012, 0.86, 1.30)) @ Matrix.Rotation(math.radians(28), 4, 'X')
+    # Stirntuer (geschlossen) mit Fenster, Griff innen und aussen
+    dx0, dx1 = min(xo - sgn * 0.02, xo - sgn * 0.06), max(xo - sgn * 0.02, xo - sgn * 0.06)
+    for (y0, y1, z0, z1) in ((-0.36, 0.36, 0.0, 1.05), (-0.36, 0.36, 1.75, 1.90), (-0.36, -0.22, 1.05, 1.75), (0.22, 0.36, 1.05, 1.75)):
+        _box(f'{prefix}_tuer{y0}{z0}', (dx0, y0, z0), (dx1, y1, z1), M['alu'])
+    _decal(f'{prefix}_tuerglas', (sgn * (CAR_HL - 0.04), 0, 0), (0, 1, 0), (0, 0, 1), [(-0.22, 1.05), (0.22, 1.05), (0.22, 1.75), (-0.22, 1.75)],
+           M['glass'])
+    for side in (-1, 1):
+        xg = (dx1 + 0.03) if side * sgn > 0 else (dx0 - 0.03)
+        xg0 = dx1 if side * sgn > 0 else dx0
+        _tube(f'{prefix}_tuergriff{side}', [(xg0, 0.26, 0.98), (xg, 0.26, 0.98), (xg, 0.12, 0.98), (xg0, 0.12, 0.98)], 0.011, M['steel'], seg=6)
+    _box(f'{prefix}_tuerblech', (min(dx0, dx1) - 0.002, -0.33, 0.03), (max(dx0, dx1) + 0.002, 0.33, 0.25), M['chrome_worn'])
+    # Eckpfosten (gefast) entlang des Profils
+    for s in (-1, 1):
+        rings = []
+        for (y, z) in SIDE:
+            rings.append([(xo + sgn * 0.006, s * (y + 0.006), z), (xo - sgn * 0.05, s * (y + 0.006), z), (xo - sgn * 0.05, s * (y - 0.004), z),
+                          (xo + sgn * 0.006, s * (y - 0.05), z)])
+        _loft(f'{prefix}_eckpfosten{s}', rings, [M['alu_dull']])
+    # Rammschutz mit Rippen, Kupplung (Scharfenberg-Art), Luftschlaeuche
+    ax = (xo, xo + sgn * 0.09)
+    _box(f'{prefix}_ramm', (min(ax), -0.95, -0.26), (max(ax), 0.95, -0.02), M['under'])
+    for k in range(4):
+        z = -0.23 + k * 0.06
+        _box(f'{prefix}_rippe{k}', (min(xo, xo + sgn * 0.11), -0.92, z), (max(xo, xo + sgn * 0.11), 0.92, z + 0.025), M['under'], bevel=0.006)
+    _box(f'{prefix}_zugeinr', (min(xo, xo + sgn * 0.16), -0.15, -0.44), (max(xo, xo + sgn * 0.16), 0.15, -0.20), M['bogie'])
+    _cyl(f'{prefix}_kuppl_schaft', (xo + sgn * 0.16, 0, -0.32), (xo + sgn * 0.48, 0, -0.32), 0.06, M['bogie'], seg=10)
+    _box(f'{prefix}_kuppl_kopf', (min(xo + sgn * 0.48, xo + sgn * 0.62), -0.17, -0.44), (max(xo + sgn * 0.48, xo + sgn * 0.62), 0.17, -0.20),
+         M['under_brown'], bevel=0.02, seg=2)
+    _cyl(f'{prefix}_kuppl_kegel', (xo + sgn * 0.62, 0.08, -0.32), (xo + sgn * 0.72, 0.08, -0.32), 0.045, M['wheel'], seg=10, r1=0.012)
+    _cyl(f'{prefix}_kuppl_trichter', (xo + sgn * 0.615, -0.08, -0.32), (xo + sgn * 0.625, -0.08, -0.32), 0.05, M['grime_dark'], seg=10)
+    _box(f'{prefix}_kuppl_kontakt', (min(xo + sgn * 0.46, xo + sgn * 0.60), -0.12, -0.53), (max(xo + sgn * 0.46, xo + sgn * 0.60), 0.12, -0.44),
+         M['under'])
+    for s in (-1, 1):
+        _tube(f'{prefix}_luftschlauch{s}', [(xo, s * 0.45, -0.20), (xo + sgn * 0.08, s * 0.47, -0.30), (xo + sgn * 0.10, s * 0.50, -0.44),
+                                            (xo + sgn * 0.05, s * 0.55, -0.50)], 0.022, M['rubber'], seg=6)
+        _box(f'{prefix}_hahn{s}', (min(xo + sgn * 0.03, xo + sgn * 0.08), s * 0.55 - 0.03, -0.53), (max(xo + sgn * 0.03, xo + sgn * 0.08), s * 0.55 + 0.03, -0.49),
+             M['red_handle'])
+    # Scheinwerfer und Schlusslichter (vorn weiss an, hinten rot an)
+    for s in (-1, 1):
+        for (yy, r, lens) in ((1.00, 0.085, 'head'), (0.74, 0.05, 'tail')):
+            on = (front and lens == 'head') or (not front and lens == 'tail')
+            for nm, prof, mat in (('ring', [(r + 0.025, 0.0), (r + 0.02, 0.03), (r, 0.035), (r - 0.005, 0.03)], M['alu_dull']),
+                                  ('linse', [(r - 0.004, 0.028), (r * 0.6, 0.036), (0.0, 0.039)], M[lens] if on else M['glass'])):
+                p = [(rr, sgn * h) for (rr, h) in prof]
+                if sgn < 0:
+                    p = list(reversed(p))
+                _lathe(f'{prefix}_{nm}{s}{yy}', p, [mat], seg=16, center=(xo, s * yy, 0.32), axis='x')
+    # Wagennummer (erfundene Zeichen) unten links aussen
+    rngw = random.Random(77 + sgn)
+    _text(f'{prefix}_nummer', _word(rngw, 3, 4), (xo + sgn * 0.003, -1.25 if sgn > 0 else 1.25, 0.62), (0, 1 if sgn > 0 else -1, 0), (0, 0, 1),
+          0.07, M['ink'])
+    # Anzeigen: innen ueber der Stirntuer, aussen ueber der Tuer
+    _display(f'{prefix}_anzeige_innen', xi, sgn, M, kind, size=0.30, w=0.56)
+    _box(f'{prefix}_anzeige_aussen', (min(xo, xo + sgn * 0.03), -0.42, 1.93), (max(xo, xo + sgn * 0.03), 0.42, 2.17), M['shell'], bevel=0.008)
+    _decal(f'{prefix}_anzeige_aussen_front', (xo + sgn * 0.031, 0, 0), (0, sgn, 0), (0, 0, 1), [(-0.39, 1.95), (0.39, 1.95), (0.39, 2.15), (-0.39, 2.15)],
+           M['disp_bg'])
+    if kind:
+        _pictogram(f'{prefix}_anzeige_aussen_zeichen', kind, (xo + sgn * 0.032, 0.0, 2.05), (0, sgn, 0), (0, 0, 1), 0.17, M['disp'], M['disp_bg'])
+    # Notbremsgriff und Feuerloescher innen
+    _box(f'{prefix}_notbremse', (min(xi, xi - sgn * 0.05), 0.48, 1.45), (max(xi, xi - sgn * 0.05), 0.60, 1.62), M['red_handle'], bevel=0.008)
+    if sgn > 0:
+        _cyl(f'{prefix}_loescher', (xi - 0.12, -1.2, 0.06), (xi - 0.12, -1.2, 0.52), 0.07, M['red_handle'], seg=12)
+        _cyl(f'{prefix}_loescher_kopf', (xi - 0.12, -1.2, 0.52), (xi - 0.12, -1.2, 0.60), 0.025, M['ink'], seg=8)
+        _box(f'{prefix}_loescher_halter', (xi - 0.06, -1.29, 0.20), (xi, -1.11, 0.24), M['ink'])
+
+
+def _bogie(prefix, bx, dz, M, rng):
+    """Drehgestell: Radsaetze (Radprofil mit Spurkranz, blanke Laufflaeche), Achslager mit Deckel, Lenker und
+    Schraubenfedern, Rahmen mit Hornfuehrungen, Querträger, Luftfedern, Fahrmotoren, Getriebe, Klotzbremsen,
+    Schleifschuh am Stromabnehmerbalken, Kabel."""
+    zw = Z_WHEEL + dz
+    wheel = [(0.06, 0.58), (0.125, 0.58), (0.135, 0.60), (0.16, 0.655), (0.24, 0.668), (0.262, 0.652), (0.270, 0.645), (0.300, 0.645),
+             (0.322, 0.650), (0.327, 0.660), (0.320, 0.672), (0.302, 0.688), (0.300, 0.735), (0.294, 0.790), (0.282, 0.800),
+             (0.262, 0.800), (0.24, 0.776), (0.16, 0.762), (0.135, 0.80), (0.125, 0.82), (0.06, 0.82)]
+    for ax in (bx - 1.0, bx + 1.0):
+        for s in (-1, 1):
+            prof = [(r, s * h) for (r, h) in wheel]
+            segm = [1 if 9 <= i <= 13 else 0 for i in range(len(prof))]
+            if _area(prof) < 0:
+                prof = list(reversed(prof))
+                segm = list(reversed(segm[:-1])) + [segm[-1]]
+                segm = [segm[(i - 1) % len(segm)] for i in range(len(segm))]
+            _lathe(f'{prefix}_rad{ax:.1f}{s}', prof, [M['wheel'], M['tread']], seg=18, center=(ax, 0, zw), axis='y', seg_mat=segm,
+                   closed=True, sharp=30)
+            # Achslager, Deckel, Schrauben
+            _cyl(f'{prefix}_lager{ax:.1f}{s}', (ax, s * 0.83, zw), (ax, s * 1.0, zw), 0.105, M['bogie'], seg=14)
+            _cyl(f'{prefix}_deckel{ax:.1f}{s}', (ax, s * 1.0, zw), (ax, s * 1.03, zw), 0.085, M['under_brown'], seg=14)
+            for b in range(4):
+                a = TAU * b / 4 + 0.4
+                _cyl(f'{prefix}_bolzen{ax:.1f}{s}{b}', (ax + 0.06 * math.cos(a), s * 1.03, zw + 0.06 * math.sin(a)),
+                     (ax + 0.06 * math.cos(a), s * 1.045, zw + 0.06 * math.sin(a)), 0.011, M['wheel'], seg=6)
+            # Lenker (Achslager-Arme) und zwei Schraubenfedern
+            _box(f'{prefix}_lenker{ax:.1f}{s}', (ax - 0.30, s * 0.86 - 0.05, zw - 0.10), (ax + 0.30, s * 0.86 + 0.05 if s > 0 else s * 0.86 + 0.05,
+                                                                                         zw - 0.045), M['bogie'], bevel=0.01)
+            for fx in (ax - 0.22, ax + 0.22):
+                pts = []
+                turns, n_t = 2.5, 7
+                for k in range(int(turns * n_t) + 1):
+                    t = k / n_t
+                    a = TAU * t
+                    pts.append((fx + 0.052 * math.cos(a), s * 0.86 + 0.052 * math.sin(a), zw - 0.04 + 0.19 * t / turns))
+                _tube(f'{prefix}_feder{fx:.2f}{s}', pts, 0.012, M['spring'], seg=4, caps=False)
+            # Klotzbremse innen am Rad
+            bxk = ax - math.copysign(0.315, ax - bx)
+            _box(f'{prefix}_klotz{ax:.1f}{s}', (bxk - 0.03, s * 0.70 - 0.065, zw - 0.09), (bxk + 0.03, s * 0.70 + 0.065, zw + 0.09), M['under_brown'])
+            bxa = bxk - math.copysign(0.09, ax - bx)
+            _box(f'{prefix}_bremse{ax:.1f}{s}', (bxa - 0.06, s * 0.74 - 0.08, zw - 0.02), (bxa + 0.06, s * 0.74 + 0.08, zw + 0.12), M['bogie'], bevel=0.012)
+        _cyl(f'{prefix}_achse{ax:.1f}', (ax, -1.0, zw), (ax, 1.0, zw), 0.065, M['wheel'], seg=10)
+    # Rahmen: Langtraeger mit Hornfuehrungen und Mittelabsenkung (Luftfedern)
+    frame = [(-1.45, 0.16), (-1.22, 0.16), (-1.22, -0.03), (-1.13, -0.03), (-1.13, 0.16), (-0.87, 0.16), (-0.87, -0.03), (-0.78, -0.03),
+             (-0.78, 0.16), (-0.55, 0.04), (0.55, 0.04), (0.78, 0.16), (0.78, -0.03), (0.87, -0.03), (0.87, 0.16), (1.13, 0.16),
+             (1.13, -0.03), (1.22, -0.03), (1.22, 0.16), (1.45, 0.16), (1.45, 0.29), (0.62, 0.29), (0.42, 0.14), (-0.42, 0.14),
+             (-0.62, 0.29), (-1.45, 0.29)]
+    for s in (-1, 1):
+        _prism(f'{prefix}_rahmen{s}', [(bx + x, zw + z) for (x, z) in frame], s * 0.86 - 0.07, s * 0.86 + 0.07, [M['bogie']], axis='y')
+        # Gurtbleche oben (etwas breiter) als Kante
+        _box(f'{prefix}_gurt{s}', (bx - 1.45, s * 0.86 - 0.085, zw + 0.27), (bx - 0.62, s * 0.86 + 0.085, zw + 0.29), M['bogie'])
+        _box(f'{prefix}_gurt2{s}', (bx + 0.62, s * 0.86 - 0.085, zw + 0.27), (bx + 1.45, s * 0.86 + 0.085, zw + 0.29), M['bogie'])
+        # Luftfeder (Balg) zwischen Rahmenmitte und Wagenkasten
+        h0, h1 = zw + 0.14, -0.13
+        prof = [(0.11, h0), (0.15, h0 + 0.02), (0.17, (h0 + h1) / 2), (0.15, h1 - 0.02), (0.11, h1)]
+        _lathe(f'{prefix}_luftfeder{s}', [(r, h - h0) for (r, h) in prof], [M['rubber']], seg=14, center=(bx, s * 0.86, h0), axis='z')
+        _cyl(f'{prefix}_federteller{s}', (bx, s * 0.86, h1), (bx, s * 0.86, -0.12), 0.13, M['under'], seg=14)
+        # Stromabnehmerbalken (Holz) und Schleifschuh (unter die Stromschiene greifend)
+        _box(f'{prefix}_schuhbalken{s}', (bx - 1.12, s * 1.06 - 0.025, zw - 0.07), (bx + 1.12, s * 1.06 + 0.025, zw + 0.01), M['shoe_wood'])
+        for xx in (bx - 1.0, bx + 1.0):
+            _box(f'{prefix}_balkenhalter{xx:.1f}{s}', (xx - 0.04, s * 1.03 - 0.02, zw - 0.08), (xx + 0.04, s * 1.03 + 0.03, zw + 0.02), M['bogie'])
+        _tube(f'{prefix}_schuharm{s}', [(bx, s * 1.08, zw - 0.03), (bx, s * 1.40, zw - 0.10), (bx, s * 1.60, Z_RAILTOP + 0.025 + dz)], 0.022,
+              M['bogie'], seg=6)
+        _box(f'{prefix}_schuh{s}', (bx - 0.16, s * 1.71 - 0.09, Z_RAILTOP + 0.018 + dz), (bx + 0.16, s * 1.71 + 0.09, Z_RAILTOP + 0.034 + dz),
+             M['tread'])
+        _tube(f'{prefix}_schuhkabel{s}', [(bx + 0.1, s * 1.55, Z_RAILTOP + 0.06 + dz), (bx + 0.3, s * 1.35, zw - 0.05), (bx + 0.45, s * 1.22, -0.14)],
+              0.012, M['cable'], seg=5)
+    # Quertraeger, Drehzapfen, Fahrmotoren mit Getriebe
+    for qx in (bx - 0.30, bx + 0.30):
+        _cyl(f'{prefix}_quer{qx:.2f}', (qx, -0.86, zw + 0.08), (qx, 0.86, zw + 0.08), 0.065, M['bogie'], seg=10)
+    _box(f'{prefix}_zapfen', (bx - 0.22, -0.55, zw + 0.12), (bx + 0.22, 0.55, -0.12), M['under'], bevel=0.02)
+    for mx in (-1, 1):
+        cx = bx + mx * 0.53
+        _cyl(f'{prefix}_motor{mx}', (cx, -0.42, zw + 0.02), (cx, 0.36, zw + 0.02), 0.15, M['bogie'], seg=14)
+        for k in range(5):
+            _cyl(f'{prefix}_motorrippe{mx}{k}', (cx, -0.30 + k * 0.14, zw + 0.02), (cx, -0.28 + k * 0.14, zw + 0.02), 0.158, M['under'],
+                 seg=14, smooth=True)
+        _box(f'{prefix}_getriebe{mx}', (min(cx, bx + mx * 1.0) - 0.02, -0.56, zw - 0.12), (max(cx, bx + mx * 1.0) + 0.02, -0.44, zw + 0.12),
+             M['under_brown'], bevel=0.02)
+        _tube(f'{prefix}_motorkabel{mx}', [(cx, 0.36, zw + 0.10), (cx + mx * 0.05, 0.50, zw + 0.25), (cx + mx * 0.1, 0.62, -0.13)], 0.018,
+              M['cable'], seg=5)
+
+
+def _underframe(M, rng):
+    """Unterboden: Langtraeger hinter der Schuerze, Geraetekaesten zwischen den Drehgestellen, Luftbehaelter, Kabelkanaele."""
+    _box('bodenplatte_unten', (-CAR_HL + END_T, -1.40, -0.15), (CAR_HL - END_T, 1.40, -0.12), M['under'])
+    for s in (-1, 1):
+        _box(f'langtraeger{s}', (-CAR_HL + END_T, min(s * 1.28, s * 1.38), -0.40), (CAR_HL - END_T, max(s * 1.28, s * 1.38), -0.12), M['under'])
+    # Stromrichter mit Kuehlrippen zur Bahnsteigseite
+    _box('stromrichter', (-4.45, -1.18, -0.60), (-2.45, 0.25, -0.13), M['under'], bevel=0.015)
+    for k in range(12):
+        x = -4.35 + k * 0.165
+        _box(f'kuehlrippe{k}', (x, -1.24, -0.56), (x + 0.012, -1.18, -0.20), M['under'])
+    _box('batterie', (-2.20, 0.30, -0.52), (-1.0, 1.22, -0.13), M['under_brown'], bevel=0.012)
+    for k in range(3):
+        _box(f'batterie_griff{k}', (-2.1 + k * 0.4, 1.22, -0.36), (-1.95 + k * 0.4, 1.245, -0.33), M['wheel'])
+    for (y, r) in ((-0.78, 0.16), (-0.38, 0.16)):
+        _cyl(f'luftbehaelter{y}', (-0.85, y, -0.38), (1.35, y, -0.38), r, M['under'], seg=16)
+        for xx in (-0.95, 1.45):
+            _lathe(f'luftbehaelter_boden{y}{xx}', [(r, 0.0), (r * 0.8, 0.05 * (1 if xx > 0 else -1)), (0.0, 0.07 * (1 if xx > 0 else -1))],
+                   [M['under']], seg=16, center=(1.35 if xx > 0 else -0.85, y, -0.38), axis='x')
+        for xx in (-0.45, 0.95):
+            _lathe(f'luftbehaelter_band{y}{xx}', [(r + 0.008, 0.0), (r + 0.008, 0.04)], [M['under_brown']], seg=16, center=(xx, y, -0.38), axis='x')
+    _box('bremswiderstand', (1.70, -1.15, -0.52), (3.40, -0.05, -0.13), M['under'], bevel=0.012)
+    for k in range(9):
+        z = -0.48 + k * 0.035
+        ob = _box(f'lamelle{k}', (1.75, -0.012, -0.012), (3.35, 0.012, 0.012), M['under_brown'])
+        ob.matrix_world = Matrix.Translation((0, -1.16, z)) @ Matrix.Rotation(0.6, 4, 'X')
+    _box('kompressor', (3.60, 0.25, -0.56), (4.50, 1.15, -0.13), M['under'], bevel=0.015)
+    for k in range(2):
+        _cyl(f'zylinderkopf{k}', (3.85 + k * 0.4, 0.70, -0.56), (3.85 + k * 0.4, 0.70, -0.64), 0.09, M['bogie'], seg=12)
+    for s in (-1, 1):
+        _cyl(f'kabelkanal{s}', (-8.6, s * 0.62, -0.19), (8.6, s * 0.62, -0.19), 0.035, M['under'], seg=8)
+    _cyl('hauptluftleitung', (-8.8, 0.95, -0.21), (8.8, 0.95, -0.21), 0.018, M['under_brown'], seg=6)
+
+
+def _build_car(minus, plus, track, dz, seed):
+    """Fahrender Metro-Wagen (Boden; Ursprung Mitte Wagenboden, 18 x 3 m entlang x; Bahnsteigseite -y mit offenen
+    Tueren, Wandseite +y geschlossen; die Karte sperrt die Wandseite ohnehin). Wiki: der Wagen nimmt Ziele an - die
+    Zielanzeigen innen an beiden Enden zeigen Bildzeichen (-x: minus, +x: plus)."""
+    M = _M()
+    rng = random.Random(seed)
+    L = CAR_HL - END_T
+    # --- Wagenkasten: Seitenwaende aus Baendern um Tueren und Fenster
+    for s in (-1, 1):
+        doors = [(d - DOOR_HW, d + DOOR_HW) for d in DOORS]
+        _side_piece(f'schuerze{s}', -L, L, -0.46, 0.0, s, M, inner=M['under'])
+        for k, (a, b) in enumerate(_intervals(-L, L, doors)):
+            _side_piece(f'unten{s}_{k}', a, b, 0.0, WIN_Z0, s, M)
+            _side_piece(f'ueber{s}_{k}', a, b, WIN_Z1, DOOR_H, s, M)
+            for j, (c, e) in enumerate(_intervals(a, b, WINDOWS)):
+                _side_piece(f'pfeiler{s}_{k}_{j}', c, e, WIN_Z0, WIN_Z1, s, M)
+        _side_piece(f'oben{s}', -L, L, DOOR_H, SIDE[-1][1], s, M)
+        # Regenrinne, Zierstreifen (rot) und Linie, Riffelung unten
+        _cyl(f'rinne{s}', (-CAR_HL, s * (SIDE[-1][0] + 0.004), 2.18), (CAR_HL, s * (SIDE[-1][0] + 0.004), 2.18), 0.012, M['alu_dull'], seg=6)
+        for k, (a, b) in enumerate(_intervals(-L, L, doors)):
+            _box(f'streifen{s}_{k}', (a, min(s * 1.5, s * 1.505), 0.55), (b, max(s * 1.5, s * 1.505), 0.68), M['red'])
+            _box(f'linie{s}_{k}', (a, min(s * 1.5, s * 1.503), 0.715), (b, max(s * 1.5, s * 1.503), 0.727), M['ink'])
+            for r in range(5):
+                z = 0.10 + r * 0.085
+                poly = [(s * 1.5, z), (s * 1.509, z + 0.008), (s * 1.509, z + 0.03), (s * 1.5, z + 0.038)]
+                _prism(f'riffel{s}_{k}_{r}', poly, a + 0.02, b - 0.02, [M['alu']], axis='x')
+            # Abplatzer im roten Streifen an den Tuerkanten
+            for e, edge in enumerate((a, b)):
+                if rng.random() < 0.7:
+                    cx = edge + (0.06 if e == 0 else -0.06)
+                    _decal(f'abplatzer{s}_{k}_{e}', (cx, s * 1.5062, 0.6), (0, 0, 1), (1, 0, 0) if s > 0 else (-1, 0, 0),
+                           _blob(rng, 0.025, 0.04, 7, 0.45), M['alu_dull'])
+        # Fenster
+        for (a, b) in WINDOWS:
+            _window(f'fenster{s}_{a:.2f}', a, b, s, M, rng)
+            # Schmutzfahnen unter den Fensterecken
+            for xc in (a + 0.06, b - 0.06):
+                if rng.random() < 0.75:
+                    ln = rng.uniform(0.15, 0.32)
+                    _decal(f'fahne{s}_{xc:.2f}', (xc, s * (_side_y(0.9) + 0.003), WIN_Z0 - 0.02), (0, 0, -1), (1, 0, 0) if s < 0 else (-1, 0, 0),
+                           [(0, -0.012), (ln * 0.5, -0.008), (ln, 0.0), (ln * 0.5, 0.009), (0, 0.013)], M['grime'])
+        # Tueren: Bahnsteigseite (-y) offen, Wandseite geschlossen
+        for d in DOORS:
+            _door(f'tuer{s}_{d:.0f}', d, s, M, rng, open_=(s < 0))
+        # Schmutzrand unten (Bremsstaub), an den Tueren unter der Schwelle
+        def ztop(x, s=s):
+            v = -0.02 + 0.05 * math.sin(x * 2.3 + s) + 0.03 * math.sin(x * 5.7) + rng.uniform(-0.02, 0.02)
+            for d in DOORS:
+                if abs(x - d) < DOOR_HW + 0.05:
+                    v = min(v, -0.04)
+            return max(-0.10, v)
+        _profile_strip(f'bremsstaub{s}', -L, L, ztop, s, M['grime'], dx=0.25)
+        # Wasserlaeufe von der Regenrinne
+        for k in range(7):
+            xc = rng.uniform(-8.5, 8.5)
+            if any(abs(xc - d) < 0.8 for d in DOORS):
+                continue
+            ln = rng.uniform(0.12, 0.30)
+            zb = 2.17 - ln
+            u = Vector((0, s * (_side_y(zb) - _side_y(2.17)), zb - 2.17)).normalized()
+            _decal(f'lauf{s}_{k}', (xc, s * (_side_y(2.17) + 0.004), 2.17), u, (1, 0, 0) if s < 0 else (-1, 0, 0),
+                   [(0, -0.01), (ln, -0.003), (ln, 0.003), (0, 0.012)], M['grime_dark'])
+    # Dach (Schale ueber die ganze Laenge)
+    outer = ROOF + [(-y, z) for (y, z) in reversed(ROOF[:-1])]
+    inner = [(y * 0.965, z - 0.05) for (y, z) in reversed(outer)]
+    _prism('dach', outer + inner, -CAR_HL, CAR_HL, [M['alu']], axis='x', smooth=30)
+    # --- Stirnseiten
+    _car_end('stirn_m', -1, M, rng, minus, front=True)
+    _car_end('stirn_p', 1, M, rng, plus, front=False)
+    # --- Innenraum
+    _box('boden', (-L, -1.44, -0.12), (L, 1.44, 0.0), M['floor'])
+    for d in DOORS:  # abgelaufene Flaechen an den Tueren (Bahnsteigseite staerker)
+        _decal(f'lauf_tuer{d}', (d, -0.95, 0.001), (1, 0, 0), (0, 1, 0), _blob(rng, 0.75, 0.42, 11, 0.25), M['floor_worn'])
+        _decal(f'lauf_tuer2{d}', (d, 0.0, 0.0012), (1, 0, 0), (0, 1, 0), _blob(rng, 0.5, 0.3, 9, 0.3), M['floor_worn'])
+    _decal('lauf_mitte', (0, 0, 0.0008), (1, 0, 0), (0, 1, 0), [(-8.4, -0.18), (8.4, -0.2), (8.5, 0.0), (8.4, 0.2), (-8.4, 0.18), (-8.5, 0)],
+           M['floor_worn'])
+    benches = [(-L + 0.06, -6.0 - 0.88), (-6.0 + 0.88, -0.88), (0.88, 6.0 - 0.88), (6.0 + 0.88, L - 0.06)]
+    for s in (-1, 1):
+        for k, (a, b) in enumerate(benches):
+            _bench(f'bank{s}_{k}', a, b, s, M, rng)
+            _grab_rail(f'griff{s}_{k}', a + 0.08, b - 0.08, s, M)
+            for (x, facing) in ((a, -1), (b, 1)):
+                if abs(abs(x) - L) > 0.2:
+                    _partition(f'trenn{s}_{k}_{facing}', x + facing * 0.015, s, M, facing)
+    for d in DOORS:
+        _cyl(f'mittelstange{d}', (d, 0.0, 0.0), (d, 0.0, 2.36), 0.019, M['steel'], seg=10)
+        _cyl(f'mittelstange_fuss{d}', (d, 0.0, 0.0), (d, 0.0, 0.03), 0.045, M['chrome_worn'], seg=10)
+    _ceiling(M, L)
+    # Innen: Bruestungsleiste unter den Fenstern
+    for s in (-1, 1):
+        for k, (a, b) in enumerate(_intervals(-L, L, [(d - DOOR_HW, d + DOOR_HW) for d in DOORS])):
+            _box(f'leiste{s}_{k}', (a, min(s * (1.5 - WALL_T), s * (1.5 - WALL_T - 0.03)), WIN_Z0 - 0.03),
+                 (b, max(s * (1.5 - WALL_T), s * (1.5 - WALL_T - 0.03)), WIN_Z0), M['inner_grey'])
+    # --- Unterboden, Drehgestelle
+    _underframe(M, rng)
+    for bx in BOGIES:
+        _bogie(f'dg{bx:.0f}', bx, dz, M, rng)
+    if track:  # Gleis unter dem Wagen (die Karte laesst unter dem Wagen 86..116 aus): Weltnull = -CAR_Z
+        _track('gleis', -14.5, 15.5, 0.0, -2.0, 3.0, -CAR_Z, M, seed + 5, -14.2, detail=True, xs_simple=lambda x: abs(x) < 9.4,
+               cell=0.2, stones=2.0, hidden=lambda x, y: abs(x) < 8.9 and abs(y) < 1.45)
+
+
+def build_metro_car_903():
+    """Fahrender Metro-Wagen in Level 903 (vorn Wellen = Level 37, hinten Flugzeug = Level 36), mit Gleis darunter."""
+    _build_car('wave', 'plane', track=True, dz=0.0, seed=903)
 
 
 def build_metro_car_37():
-    """Derselbe Wagen, wie er in Level 37 haelt: vorn dunkle Anzeige, hinten ein Wagen-Bildzeichen (zurueck zur Metro)."""
-    build_metro_car_903(minus=None, plus='train')
+    """Derselbe Wagen, wie er in Level 37 haelt: vorn (in der Fliesenwand) dunkle Anzeige, hinten ein Wagen-Bildzeichen
+    (zurueck zur Metro). Kein Gleis; die Raeder stehen knapp im Wasser (Drehgestelle 12 cm tiefer)."""
+    _build_car(None, 'train', track=False, dz=-0.12, seed=37)
 
 
-def build_metro_car_903(minus='wave', plus='plane'):
-    """Fahrender Metro-Wagen (Boden, Ursprung Mitte Wagenboden, 18 x 3 m, entlang x): Kasten mit Streifen, Fenster,
-    je Seite drei offene Tueren, Innenraum mit Baenken, Stangen, Licht; an den Stirnseiten innen Zielanzeigen mit
-    Bildzeichen (-x: Wellen = Level 37, +x: Flugzeug = Level 36). Wiki: der Wagen nimmt Ziele an."""
-    M = _m()
-    doors = (-6.0, 0.0, 6.0)
-    common.box('boden', (-L / 2, -WID / 2, -0.12), (L / 2, WID / 2, 0.0), M['floor'])
-    common.box('dach', (-L / 2, -WID / 2, H), (L / 2, WID / 2, H + 0.12), M['body'], bevel=0.05, segments=3)
-    common.box('decke_innen', (-L / 2 + 0.06, -WID / 2 + 0.06, H - 0.02), (L / 2 - 0.06, WID / 2 - 0.06, H), M['inner'])
-    for s in (-1, 1):
-        y0, y1 = (s * WID / 2 - 0.06, s * WID / 2) if s > 0 else (-WID / 2, -WID / 2 + 0.06)
-        xs = [-L / 2] + [v for d in doors for v in (d - 0.7, d + 0.7)] + [L / 2]
-        for k in range(0, len(xs), 2):
-            a, b = xs[k], xs[k + 1]
-            common.box(f'seite{s}{k}', (a, y0, -0.6), (b, y1, H), M['body'])
-            yo = y1 + 0.004 if s > 0 else y0 - 0.004
-            common.box(f'streifen{s}{k}', (a, min(y1, yo) if s > 0 else yo, 0.55), (b, max(y1, yo) if s > 0 else y0, 0.7), M['stripe_r'])
-            # Fenster: Leuchtflaeche innen sichtbar, dunkle Scheibe aussen
-            for wx in [a + 0.5 + 1.25 * j for j in range(int((b - a - 0.6) / 1.25))]:
-                common.box(f'fenster{s}{k}{wx}', (wx, min(y0, yo) - 0.001, 1.0), (wx + 1.0, max(y1, yo) + 0.001, 1.9), M['win'])
-        for d in doors:  # Sturz ueber der Tuer, Tuerblaetter in die Wand geschoben
-            common.box(f'sturz{s}{d}', (d - 0.7, y0, 2.05), (d + 0.7, y1, H), M['body'])
-            for side in (-1, 1):  # Tuerblaetter in die Wandtaschen geschoben
-                xa, xb = (d + 0.7, d + 1.35) if side > 0 else (d - 1.35, d - 0.7)
-                common.box(f'blatt{s}{d}{side}', (xa, min(y0, y1) - s * 0.03, 0.0), (xb, max(y0, y1) - s * 0.03, 2.05), M['body'])
-    for s in (-1, 1):  # Stirnwaende mit Fenster und Zielanzeige
-        x0, x1 = (L / 2 - 0.08, L / 2) if s > 0 else (-L / 2, -L / 2 + 0.08)
-        common.box(f'stirn{s}', (x0, -WID / 2, -0.6), (x1, WID / 2, H), M['body'])
-        xi = x0 - 0.002 if s > 0 else x1 + 0.002
-        common.box(f'anzeige{s}', (min(xi, xi - s * 0.03), -0.6, 1.72), (max(xi, xi - s * 0.03), 0.6, 2.42), M['dark'])
-        kind = plus if s > 0 else minus
-        if kind:
-            _pictogram(f'zeichen{s}', kind, xi - s * 0.032, 2.07, M, sign=-s)
-    # Innenraum: Laengsbaenke, Stangen, Lichtband
-    for s in (-1, 1):
-        for (a, b) in ((-L / 2 + 0.3, -6.8), (-5.2, -0.8), (0.8, 5.2), (6.8, L / 2 - 0.3)):
-            ya, yb = (WID / 2 - 0.5, WID / 2 - 0.06) if s > 0 else (-WID / 2 + 0.06, -WID / 2 + 0.5)
-            common.box(f'bank{s}{a}', (a, ya, 0.0), (b, yb, 0.45), M['seat'], bevel=0.03)
-            common.box(f'lehne{s}{a}', (a, WID / 2 - 0.16 if s > 0 else -WID / 2 + 0.06, 0.45), (b, WID / 2 - 0.06 if s > 0 else -WID / 2 + 0.16, 0.95), M['seat'], bevel=0.03)
-    for x in (-7.5, -3.0, 3.0, 7.5):
-        _cyl(f'stange{x}', (x, 0.0, 0.0), (x, 0.0, H), 0.02, M['steel'], seg=10)
-    _cyl('haltestange_l', (-L / 2 + 0.5, -0.6, 1.95), (L / 2 - 0.5, -0.6, 1.95), 0.016, M['steel'], seg=8)
-    _cyl('haltestange_r', (-L / 2 + 0.5, 0.6, 1.95), (L / 2 - 0.5, 0.6, 1.95), 0.016, M['steel'], seg=8)
-    common.box('lichtband', (-L / 2 + 0.5, -0.12, H - 0.06), (L / 2 - 0.5, 0.12, H - 0.02), M['light'])
-    # Fahrwerk unter dem Boden
-    for x in (-6.5, 6.5):
-        common.box(f'drehgestell{x}', (x - 1.2, -1.1, -0.95), (x + 1.2, 1.1, -0.15), M['dark'])
-        for wx in (x - 0.8, x + 0.8):
-            for s in (-1, 1):
-                _cyl(f'rad{x}{wx}{s}', (wx, s * 0.72, -0.65), (wx, s * 0.82, -0.65), 0.38, M['rail'], seg=16)
-
-
-def _dormant_side(M, home=False, seed=1):
-    """6 m Abschnitt der Seitenwand des ruhenden Zugs (Wandteil, Flaeche x = 0, Blick +x, z = 0 = Wagenboden):
-    Kasten, Streifen, zwei Fenster, eine geschlossene Tuer, Dachkante; dunkel innen - oder bewohnt."""
-    rng = random.Random(seed)
-    common.box('kasten', (0.0, -3.0, -0.5), (0.08, 3.0, 2.5), M['body_old'])
-    common.box('dachkante', (0.0, -3.0, 2.5), (0.25, 3.0, 2.75), M['body_old'], bevel=0.06, segments=3)
-    common.box('streifen', (0.08, -3.0, 0.55), (0.085, 3.0, 0.7), M['stripe_b'])
-    inside = M['win']
-    for wy in (-2.3, 0.9):
-        common.box(f'fensterrahmen{wy}', (0.08, wy - 0.04, 0.96), (0.09, wy + 1.44, 1.0), M['rubber'])
-        if not home:
-            common.box(f'fenster{wy}', (0.08, wy, 1.0), (0.086, wy + 1.4, 1.9), inside)
-            continue
-        # bewohnt: zugezogene Vorhaenge mit Falten, in der Mitte ein schmaler, warm leuchtender Spalt
-        cloth = common.material('vorhang', (0.46, 0.20, 0.12), look='fabric', rough=0.9)
-        fold = common.material('vorhang_falte', (0.30, 0.12, 0.07), look='fabric', rough=0.9)
-        slit = common.material('spalt', (1.0, 0.70, 0.42), look='glow', glow=1.2)
-        common.box(f'spalt{wy}', (0.08, wy + 0.64, 1.0), (0.084, wy + 0.76, 1.9), slit)
-        for (a, b) in ((wy, wy + 0.64), (wy + 0.76, wy + 1.4)):
-            common.box(f'vorhang{wy}{a}', (0.084, a, 1.0), (0.09, b, 1.9), cloth)
-            for k in range(4):
-                fy = a + (k + 0.5) * (b - a) / 4
-                common.box(f'falte{wy}{a}{k}', (0.09, fy - 0.025, 1.0), (0.094, fy + 0.025, 1.9), fold)
-    if home:
-        inside = common.material('spalt', (1.0, 0.70, 0.42), look='glow', glow=1.2)
-    common.box('tuer', (0.08, -0.7, 0.0), (0.09, 0.7, 2.05), M['body_old'])
-    common.box('tuerfuge', (0.09, -0.01, 0.0), (0.092, 0.01, 2.05), M['rubber'])
-    for s in (-1, 1):
-        common.box(f'tuerfenster{s}', (0.09, s * 0.35 - 0.2, 1.1), (0.094, s * 0.35 + 0.2, 1.85), inside)
-    if home:  # Wiki: Wagen als Unterkunft und Handelsposten
-        common.box('schild', (0.09, 0.95, 2.05), (0.1, 2.25, 2.4), M['board'])
-        _glyphs('schild_z', 1.0, 2.1, 1.2, 0.25, M['dark'], 0.1, seed + 7, n=5)
-        _cyl('topf', (0.35, -2.6, 0.0), (0.35, -2.6, 0.32), 0.15, common.material('topf', (0.55, 0.30, 0.18), look='ceramic', rough=0.7), seg=14)
-        for k in range(5):
-            a = k * 1.25
-            _cyl(f'blatt{k}', (0.35, -2.6, 0.3), (0.35 + math.cos(a) * 0.22, -2.6 + math.sin(a) * 0.22, 0.65 + 0.04 * k), 0.02,
-                 common.material('pflanze', (0.20, 0.36, 0.16), look='paint', rough=0.8), seg=5)
-    else:
-        for k in range(rng.randint(1, 3)):  # Aufkleber, verblasst
-            y = rng.uniform(-2.6, 2.2)
-            common.box(f'aufkleber{k}', (0.086, y, rng.uniform(0.8, 2.1)), (0.088, y + rng.uniform(0.15, 0.4), rng.uniform(0.9, 2.3)),
-                       common.material(f'aufkleber{k}', [(0.8, 0.7, 0.2), (0.2, 0.5, 0.7), (0.8, 0.8, 0.8)][k % 3], look='paint', rough=0.7))
-
-
-def build_metro_dormant_a():
-    """Ruhender Zug (Wiki: auf dem rechten Gleis ein ruhender Wagen ueber die ganze Laenge), 6 m Abschnitt."""
-    _dormant_side(_m(), seed=3)
-
-
-def build_metro_dormant_b():
-    _dormant_side(_m(), seed=11)
-
-
-def build_metro_dormant_home():
-    """Ein Abschnitt des ruhenden Zugs als Unterkunft (Wiki: Wagen als Stuetzpunkte, Motels, Handelsposten)."""
-    _dormant_side(_m(), home=True, seed=5)
-
-
-def build_metro_dormant_coupling():
-    """Wagenuebergang des ruhenden Zugs (Wandteil, 1 m): Faltenbalg, Kupplung."""
-    M = _m()
-    for k in range(7):
-        common.box(f'falte{k}', (0.0, -0.45 + k * 0.13, 0.0), (0.05 + 0.03 * (k % 2), -0.38 + k * 0.13, 2.3), M['rubber'])
-    common.box('kupplung', (0.0, -0.4, -0.3), (0.15, 0.4, -0.1), M['dark'])
-
-
-# --- Gleis, Bahnsteig, Licht, Schilder, Treppe -----------------------------------------------------------------------------
+# =====================================================================================================================
+# Gleis, Bahnsteigkante
+# =====================================================================================================================
 def build_track_metro():
-    """Gleis (Boden, 6 m entlang x, 5 m breit): Schotterbett, Betonschwellen, zwei Schienen, Stromschiene."""
-    M = _m()
-    common.box('schotter', (-3.0, -2.5, 0.0), (3.0, 2.5, 0.12), M['ballast'])
-    for k in range(10):
-        x = -2.7 + k * 0.6
-        common.box(f'schwelle{k}', (x - 0.12, -1.25, 0.12), (x + 0.12, 1.25, 0.24), M['sleeper'])
-    for s in (-1, 1):
-        common.box(f'fuss{s}', (-3.0, s * 0.7175 - 0.06, 0.24), (3.0, s * 0.7175 + 0.06, 0.26), M['rail'])
-        common.box(f'steg{s}', (-3.0, s * 0.7175 - 0.01, 0.26), (3.0, s * 0.7175 + 0.01, 0.36), M['rail'])
-        common.box(f'kopf{s}', (-3.0, s * 0.7175 - 0.035, 0.36), (3.0, s * 0.7175 + 0.035, 0.4), M['rail'])
-    common.box('stromschiene', (-3.0, 1.7, 0.3), (3.0, 1.78, 0.38), M['steel'])
-    for x in (-2.0, 1.0):
-        common.box(f'isolator{x}', (x - 0.05, 1.68, 0.12), (x + 0.05, 1.8, 0.3), M['yellow'])
-
-
-def build_platform_edge():
-    """Bahnsteigkante (Boden, 1 m entlang x, Kante bei y = +0.5): Kantenstein, gelbe Linie mit Noppen."""
-    M = _m()
-    common.box('stein', (-0.5, 0.2, -0.02), (0.5, 0.52, 0.005), common.material('kantenstein', (0.62, 0.62, 0.60), look='concrete', tex='concrete_rough', rough=0.8))
-    common.box('linie', (-0.5, -0.15, 0.0), (0.5, 0.1, 0.008), M['yellow'])
-    for i in range(5):
-        for j in range(2):
-            _cyl(f'noppe{i}{j}', (-0.4 + i * 0.2, -0.08 + j * 0.12, 0.008), (-0.4 + i * 0.2, -0.08 + j * 0.12, 0.016), 0.025, M['yellow'], seg=8)
-
-
-def build_tube_long():
-    """Lange, duenne Leuchtstoffroehre (Deckenteil, 3 m entlang x; Wiki: lange duenne Leuchten entlang der Wege)."""
-    M = _m()
-    common.box('schiene', (-1.5, -0.04, -0.06), (1.5, 0.04, 0.0), M['steel'])
-    _cyl('roehre', (-1.45, 0.0, -0.09), (1.45, 0.0, -0.09), 0.018, M['tube'], seg=10)
-    for x in (-1.0, 1.0):
-        _cyl(f'pendel{x}', (x, 0.0, -0.06), (x, 0.0, 0.0), 0.004, M['steel'], seg=4)
-
-
-def _hanging_sign(seed, arrow):
-    M = _m()
-    panel = common.material('schild_licht', (0.98, 0.94, 0.70), look='glow', glow=1.1)
-    ink = common.material('schild_schrift', (0.06, 0.06, 0.07), look='paint', rough=0.6)
-    for s in (-1, 1):
-        _cyl(f'pendel{s}', (0.0, s * 0.9, -0.6), (0.0, s * 0.9, 0.0), 0.008, M['steel'], seg=6)
-    common.box('gehaeuse', (-0.07, -1.1, -1.0), (0.07, 1.1, -0.6), M['dark'], bevel=0.01)
-    for sg in (-1, 1):
-        x = sg * 0.071
-        common.box(f'licht{sg}', (min(x, x + sg * 0.002), -1.05, -0.97), (max(x, x + sg * 0.002), 1.05, -0.63), panel)
-        _glyphs(f'z{sg}', -0.95, -0.94, 1.5, 0.28, ink, x + sg * 0.002, seed, n=6, sign=sg)
-        if arrow:
-            ya = 0.75
-            common.box(f'pfeil{sg}', (min(x, x + sg * 0.004), 0.62, -0.81), (max(x, x + sg * 0.004), 0.95, -0.77), ink)
-            common.box(f'pfeil_k{sg}', (min(x, x + sg * 0.004), 0.86, -0.87), (max(x, x + sg * 0.004), 0.92, -0.71), ink)
-
-
-def build_sign_903_a():
-    """Haengendes Leuchtschild (Deckenteil, Decke bei z = 0) mit Zeichen in unbekannter Schrift (Wiki) und Pfeil."""
-    _hanging_sign(903, True)
-
-
-def build_sign_903_b():
-    _hanging_sign(1903, False)
-
-
-def build_sign_903_wall():
-    """Stationsschild an der Wand (Wandteil, 4 m lang, Mitte im Ursprung): dunkelblaue Tafel, helle Zeichen."""
-    M = _m()
-    board = common.material('stationstafel', (0.10, 0.16, 0.34), look='paint', rough=0.5)
-    ink = common.material('stationsschrift', (0.92, 0.92, 0.90), look='paint', rough=0.5)
-    common.box('rahmen', (0.0, -2.05, -0.38), (0.05, 2.05, 0.38), M['steel'], bevel=0.01)
-    common.box('tafel', (0.05, -2.0, -0.33), (0.055, 2.0, 0.33), board)
-    _glyphs('z', -1.7, -0.22, 3.4, 0.44, ink, 0.055, 9031, n=7)
-
-
-def build_stairs_barricaded():
-    """Treppe nach oben, zugemauert und vernagelt (Boden, Treppe entlang +x, 2,4 x 6 m; Wiki: Treppen tauchen auf, sind
-    aber immer versperrt oder zugemauert): Stufen, Gelaender, oben Ziegelwand, davor Bretter."""
-    M = _m()
-    W_ = 2.4
-    for k in range(12):
-        x = -3.0 + k * 0.35
-        common.box(f'stufe{k}', (x, -W_ / 2, -1.2), (x + 0.35, W_ / 2, k * 0.2), M['brick'])
-    for s in (-1, 1):
-        common.box(f'wange{s}', (-3.0, s * W_ / 2 - (0.12 if s > 0 else 0), 0.0), (3.0, s * W_ / 2 + (0.0 if s > 0 else 0.12), 1.0), M['brick'])
-        _cyl(f'handlauf{s}', (-3.0, s * (W_ / 2 - 0.06), 1.0), (1.2, s * (W_ / 2 - 0.06), 3.0), 0.025, M['steel'], seg=8)
-    common.box('mauer', (1.2, -W_ / 2, 0.0), (1.45, W_ / 2, 4.2), M['brick'])
-    rng = random.Random(4)
-    for k in range(5):
-        ob = common.box(f'brett{k}', (0.0, -W_ / 2 - 0.1, -0.08), (0.03, W_ / 2 + 0.1, 0.08), M['board'])
-        ob.matrix_world = Matrix.Translation((-3.05, 0.0, 0.4 + k * 0.32)) @ Matrix.Rotation(rng.uniform(-0.12, 0.12), 4, 'X')
-    for s in (-1, 1):
-        common.box(f'pfosten{s}', (-3.1, s * W_ / 2 - 0.05, 0.0), (-3.02, s * W_ / 2 + 0.05, 1.8), M['board'])
-    # Ursprung an den Fuss der Treppe (vor den Brettern) legen: dort ist Bahnsteig, dahinter sperrt ein Block
-    for ob in bpy.context.scene.objects:
-        ob.matrix_world = Matrix.Translation((3.15, 0.0, 0.0)) @ ob.matrix_world
+    """Gleis (Boden, 6 m entlang x; 5 m quer von der Hallenwand bei +y bis zur Bahnsteigwand bei -y, Gleismitte unter
+    der Wagenmitte bei y = -0.5): Schotterbett mit Einzelsteinen, Spannbetonschwellen (0.6 m), Rippenplatten,
+    Spannklemmen und Schrauben, Schienen (blanker Kopf, rostiger Steg), Stromschiene mit Abdeckung auf Isolatorboecken,
+    Kabelkanal mit Deckeln an der Wand."""
+    _track('gleis', -3.0, 3.0, -0.5, -2.5, 2.5, 0.0, _M(), 1903, -2.7)
