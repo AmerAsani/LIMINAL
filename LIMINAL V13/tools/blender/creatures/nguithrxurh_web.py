@@ -61,7 +61,7 @@ def build_web(J, moths):
             fluid.append(A.cone(b, q + Z * 0.01, q - Z * L, 0.006, 0.0035, k=0.006))
             fluid.append(A.ell(b, q - Z * (L + 0.004), (0, 0, 1), (0.008, 0.0075, 0.0075), k=0.004))
         groups.append({'name': f'stoff{k}', 'fm': 'ent_sedative', 'parts': fluid,
-                       'disp': lambda P, k=k: -0.0012 * sdf.fbm(P, 60, 2, seed=1610 + k), 'h': 0.0012, 'cav_scale': 0.006, 'merge': 'stoff'})
+                       'disp': lambda P, k=k: -0.0012 * sdf.fbm(P, 60, 2, seed=1610 + k), 'h': 0.0015, 'cav_scale': 0.006, 'merge': 'stoff'})
         # Huelle aus Seide: birnenfoermig (zum Faden hin zusammengezogen), klumpig, matt und faserig; wenige schmale Risse, durch
         # die der Stoff glaenzt (Runde 1: runde, glaenzende Kugeln mit Loechern - wirkten wie Christbaumkugeln, Lampen)
         shell = [A.ell(b, c - Z * r * 0.08, (1, 0, 0), (r, r * 0.97, r * 0.92), k=0.0),
@@ -99,7 +99,7 @@ def build_web(J, moths):
         def silk_disp(P, k=k):
             return -0.0009 * (sdf.ridged(P * np.array([1.0, 1.0, 2.5]), 180, 2, seed=1620 + k) - 0.5) - 0.0006 * sdf.fbm(P, 400, 1, seed=1630 + k)
 
-        groups.append({'name': f'huelle{k}', 'fm': 'ent_silk', 'parts': shell + wraps, 'disp': silk_disp, 'h': 0.0012, 'cav_scale': 0.008,
+        groups.append({'name': f'huelle{k}', 'fm': 'ent_silk', 'parts': shell + wraps, 'disp': silk_disp, 'h': 0.0015, 'cav_scale': 0.008,
                        'merge': 'seide'})
         # Faden: von der Kugel bis 2 m ueber den Anker (reicht durch die Decke)
         top = J[sacJ(k, 0)] + Z * 2.0

@@ -232,12 +232,12 @@ void CreatureAnimator::updateGrowler(float dt, const Input& in) {
     const float trem = (0.006f + 0.01f * g.stat + 0.012f * g.confuse) * s;
     const vec3 shake = (L * std::sin(time_ * 31.0f) + U * std::sin(time_ * 23.0f + 1.0f) + F * std::sin(time_ * 27.0f + 2.0f)) * trem;
     float pelvisZ = (B[PELVIS].z + 0.04f * std::cos(2.0f * ph) * (moving ? 1.0f : 0.0f) + 0.2f * g.rear) * s;
-    pelvisZ = pelvisZ * (1.0f - 0.72f * dead);
+    pelvisZ = pelvisZ * (1.0f - 0.8f * dead);  // Runde 5: die Leiche stand noch halb - jetzt liegt sie
     const vec3 lungeOff = F * (0.55f * s * g.lunge);
     const vec3 P = pos_ + F * (B[PELVIS].x * s) + L * (g.sway * 0.12f * s) + U * pelvisZ + lungeOff * 0.5f + shake * 0.4f;
     // Drehung des Oberkoerpers: Beugung um L (vor), Rollen um F, Hinwenden um U; tot: vornueber auf den Boden
-    const R3 Rt = rotAx(U, g.twistY) * rotAx(L, g.pitch + 1.05f * dead) * rotAx(F, -g.sway * 0.55f - 0.25f * dead);
-    const R3 Rlow = rotAx(U, g.twistY * 0.4f) * rotAx(L, g.pitch * 0.45f + 0.55f * dead) * rotAx(F, -g.sway * 0.3f);
+    const R3 Rt = rotAx(U, g.twistY) * rotAx(L, g.pitch + 1.42f * dead) * rotAx(F, -g.sway * 0.55f - 0.3f * dead);
+    const R3 Rlow = rotAx(U, g.twistY * 0.4f) * rotAx(L, g.pitch * 0.45f + 0.95f * dead) * rotAx(F, -g.sway * 0.3f);
     const vec3 Pb = B[PELVIS];
     auto T = [&](int j) { return P + Mb * (Rt * ((B[(size_t)j] - Pb) * s)) + lungeOff * 0.5f + shake; };
     J[ROOT] = pos_;

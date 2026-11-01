@@ -71,7 +71,7 @@ def build(J, bones):
     body.append(A.ell(B_PRO, (0.046, 0, 0.040), (1, 0, 0.2), (0.019, 0.024, 0.017), k=0.008))
     body.append(A.ell(B_PRO, (0.051, 0, 0.051), (1, 0, 0), (0.007, 0.008, 0.006), k=0.004))  # Augenhuegel
     for s in (1, -1):
-        eyes.append(A.ell(B_PRO, (0.0545, s * 0.0047, 0.0548), A.unit((1, s * 0.5, 0.3)), (0.0042, 0.0042, 0.0042), k=0.0))
+        eyes.append(A.ell(B_PRO, (0.0548, s * 0.0036, 0.0553), A.unit((1, s * 0.5, 0.3)), (0.0026, 0.0026, 0.0026), k=0.0))  # Runde 4: zu gross (Comic)
     # Brustplatten unten, wo die Beine ansetzen
     body.append(A.ell(B_PRO, (0.012, 0, 0.024), (1, 0, 0), (0.03, 0.022, 0.009), k=0.006))
     # --- Hinterleib: weich, gegliedert (Ringe in der Verschiebung), wulstig ------------------------------------------
@@ -81,7 +81,8 @@ def build(J, bones):
         b = B_OPI0 if x > -0.065 else B_OPI1
         body.append(A.ell(b, (x, 0, z), (1, 0, 0), (0.014, ry, rz), k=0.008))
     # Runde 1: einfarbig wie Holz - dunkle Platten: Kopfschild (Propeltidium) und je Hinterleibsring ein Rueckenschild
-    plates = [A.ell(B_PRO, (0.03, 0, 0.050), (1, 0, 0.15), (0.024, 0.019, 0.0045), k=0.0)]
+    plates = [A.ell(B_PRO, (0.03, 0, 0.0525), (1, 0, 0.15), (0.026, 0.02, 0.006), k=0.0),  # Runde 4: lag im Kopf - jetzt obenauf
+              A.ell(B_PRO, (0.052, 0, 0.0535), (1, 0, 0), (0.008, 0.0085, 0.0045), k=0.0)]  # dunkler Augenhuegel
     for x, ry, rz, z in segs[:-1]:
         b = B_OPI0 if x > -0.065 else B_OPI1
         plates.append(A.ell(b, (x, 0, z + rz * 0.93), (1, 0, 0), (0.0085, ry * 0.62, 0.0032), k=0.0))
@@ -102,7 +103,8 @@ def build(J, bones):
                 q = p0 + (p2 - p0) * t
                 inward = A.unit(-Z * np.sign(fz) + np.array([0, -s * 0.3, 0]))
                 chit.append(A.cone(b, q, q + inward * rng.uniform(0.0025, 0.004), 0.0012, 0.0002))
-        body += bristles(b, base, base + d * 0.03, 0.012, 14, rng, 0.004, 0.009)
+        body += bristles(b, base, base + d * 0.03, 0.013, 30, rng, 0.005, 0.013)
+        plates.append(A.ell(b, base + d * 0.016 + Z * 0.012, d, (0.022, 0.009, 0.007), up=Z, k=0.0))  # Runde 4: helle, glatte Backen - dunkler Ruecken der Cheliceren
     # --- Pedipalpen: dick, beinartig, behaart, mit blassem Haftkissen ---------------------------------------------------
     for si in range(2):
         a, k, t = J[PPB[si]], J[PPB[si] + 1], J[PPB[si] + 2]
@@ -138,7 +140,7 @@ def build(J, bones):
     def hair_disp(P):  # Haarstraehnen, Ringe des Hinterleibs
         ring = 0.5 + 0.5 * np.sin(P[:, 0] * 330.0)
         back = (P[:, 0] < -0.012).astype(float)
-        return -0.0005 * (sdf.ridged(P * np.array([1.0, 2.2, 2.2]), 900, 2, seed=1601) - 0.5) + 0.0007 * ring * back
+        return -0.0012 * (sdf.ridged(P * np.array([1.0, 2.2, 2.2]), 900, 2, seed=1601) - 0.5) + 0.0007 * ring * back  # Runde 4: glatt wie Plastik
 
     groups.append({'name': 'koerper', 'fm': 'ent_solifuge', 'parts': [p for p in body if p.bone in (B_PRO, B_OPI0, B_OPI1) and p.g.get('ra', 1) > 0.001],
                    'disp': hair_disp, 'h': 0.00035, 'cav_scale': 0.003, 'merge': 'koerper'})
