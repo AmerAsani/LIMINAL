@@ -185,6 +185,8 @@ bool Presence::ouroSet(const std::string& key, double v) {
     } else if (key == "tower") {
         s->towerPhase = std::clamp((int)v, 0, (int)TP_LIFT), s->towerT = 0.0;
         if (s->towerPhase == TP_STAND) s->tilt = 0.0f, s->tiltV = 0.0f, s->standDur = 600.0;
+        // knirschen: ueber den regulaeren Uebergang im naechsten Schritt (Knirschen und Warnleuchte kuendigen es an)
+        if (s->towerPhase == TP_CREAK) s->towerPhase = TP_STAND, s->tilt = 0.0f, s->tiltV = 0.0f, s->standDur = 0.0;
         if (s->towerPhase == TP_DOWN || s->towerPhase == TP_LIFT) s->tilt = 1.0f, s->tiltV = 0.0f;
         if (s->towerPhase == TP_FALL) s->tilt = 0.04f, s->tiltV = 0.2f;
     } else if (key == "weld") {  // 1: gleich zuenden, 0: aus

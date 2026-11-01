@@ -3399,8 +3399,9 @@ static void testV133Ouroboros(const std::string& dataDir) {
     for (int j = 0; j < 5; ++j) {
         if (!info.has[(size_t)j]) continue;
         ++workers;
-        const world::Tile* t = s->world().tileIfLoaded(ifloor(info.pos[(size_t)j].x), ifloor(info.pos[(size_t)j].y));
-        inRoom += t && t->room && t->room->type && t->room->type->key == "ouroboros" ? 1 : 0;
+        // gegen das Rechteck des Sektors (die Kachel unter einem fernen Arbeiter muss nicht geladen sein)
+        const vec3 wp = info.pos[(size_t)j];
+        inRoom += wt && wt->room && wp.x >= (float)wt->room->x0 && wp.x <= (float)wt->room->x1 && wp.y >= (float)wt->room->y0 && wp.y <= (float)wt->room->y1 ? 1 : 0;
     }
     check(workers == 5 && inRoom == 5, std::format("Ouroboros: fuenf Arbeiter, alle im Sektor ({} von {})", inRoom, workers));
     check(P.count(Role::Ouroboros) == 7, std::format("Ouroboros: Arbeiter, Mauer und Geruest ({} Wesen)", P.count(Role::Ouroboros)));
@@ -3420,10 +3421,15 @@ static void testV133Ouroboros(const std::string& dataDir) {
         if (in.has[1] && in.task[1] == anim::ob::K_HAMMER) {
             const vec3 eye{(float)s->player().x, (float)s->player().y, (float)s->player().eye()};
             const vec3 toEye = normalize(eye - in.head[1]);
-            const vec3 work = in.wall + vec3{0, 0, 0.9f};
             ++samples;
             looked += dot(in.face[1], toEye) > 0.8f ? 1 : 0;
-            atWork += dot(normalize(vec3{in.face[1].x, in.face[1].y, 0.0f}), normalize(vec3{work.x - in.head[1].x, work.y - in.head[1].y, 0.0f})) > 0.5f ? 1 : 0;
+            // zur Mauer: waagrecht zur Mauerflaeche hin, und der Blick trifft sie innerhalb ihrer Laenge
+            const vec3 fh = normalize(vec3{in.face[1].x, in.face[1].y, 0.0f});
+            const float side = dot(in.head[1] - in.wall, F1) >= 0.0f ? 1.0f : -1.0f;
+            const float toward = -side * dot(fh, F1);
+            const float dist = std::fabs(dot(in.head[1] - in.wall, F1));
+            const float along = dot(in.head[1] - in.wall, L1) + (toward > 0.05f ? dot(fh, L1) * dist / toward : 1e9f);
+            atWork += toward > 0.7f && std::fabs(along) < anim::ob::kWallL * 0.5f + 0.3f ? 1 : 0;
         }
         return false;
     });
