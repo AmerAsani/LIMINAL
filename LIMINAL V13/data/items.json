@@ -43,6 +43,20 @@
       "max_stack": 16,
       "hold_offset": 0.11
     },
+    // V13.3: offenes Mandelwasser (KREATUR_Crawler.md) - liegt in Level 1 bei den befallenen Stellen. Mandelwasser,
+    // aber unversiegelt: wer es trinkt, steckt sich mit dem Crawler-Pilz an (Wiki: keine unversiegelten Fluessigkeiten)
+    {
+      "key": "almond_open",
+      "name": "Mandelwasser (offen)",
+      "description": "+20 % Verstand. Der Deckel fehlt – wer weiß, was darin schwimmt.",
+      "sanity": 20.0,
+      "model": "prop:almond_open",
+      "icon": "almond_open",
+      "scale": 1.0,
+      "use_sound": "drink",
+      "max_stack": 16,
+      "hold_offset": 0.11
+    },
     {
       "key": "battery",
       "name": "Batterie",
@@ -54,6 +68,18 @@
       "use_sound": "battery",
       "max_stack": 8,
       "hold_offset": 0.03
+    },
+    // V13.3: Leuchtstab (KREATUR_Smiler.md) - mit F knicken und werfen: leuchtet eine Minute gruen. Smiler gehen zum
+    // staerkeren Licht (Wiki, Level 1: Licht als Koeder wegwerfen). Fundstueck auf den Ebenen mit Smilern (spawn_rules)
+    {
+      "key": "glowstick",
+      "name": "Leuchtstab",
+      "description": "F: knicken und werfen – leuchtet eine Minute grün. Smiler gehen zum stärkeren Licht.",
+      "model": "glowstick",
+      "icon": "glowstick",
+      "scale": 1.0,
+      "max_stack": 6,
+      "hold_offset": 0.0
     },
     // V9: Sicherungen - eine aus jeder Ebene. Mit allen dreien faehrt ein Aufzug weiter als je zuvor.
     {
@@ -70,6 +96,13 @@
       "key": "fuse_hotel", "name": "Sicherung (Hotel)",
       "description": "Aus einem Sicherungskasten des Hotels. Eine von dreien.",
       "model": "fuse", "icon": "fuse", "scale": 1.0, "max_stack": 1, "rare": true, "hold_offset": 0.03
+    },
+    // V13.3: Beil (KREATUR_PlagueGoblins.md; Level 1 der Seite: Plague Goblins lassen sich mit Messer oder Axt verscheuchen).
+    // Wird nicht verbraucht: "benutzen" schwingt es (verscheucht, wer davor steht; trifft bis 1,8 m)
+    {
+      "key": "hatchet", "name": "Beil",
+      "description": "Altes Beil mit Eschenstiel. Benutzen: schwingen – verscheucht kleine Diebe, trifft aus der Nähe.",
+      "model": "hatchet", "icon": "hatchet", "scale": 1.0, "max_stack": 1, "hold_offset": 0.0
     },
     // V11: Level 3 - der Aufzug nach oben braucht Strom
     {

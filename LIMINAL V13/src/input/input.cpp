@@ -304,4 +304,21 @@ std::string Input::clipboardText() {
     return out;
 }
 
+// V13.3: Text in die Zwischenablage (Beitrittscode kopieren)
+void Input::setClipboardText(const std::string& text) {
+    if (!OpenClipboard(nullptr)) return;
+    EmptyClipboard();
+    if (HGLOBAL g = GlobalAlloc(GMEM_MOVEABLE, (text.size() + 1) * sizeof(wchar_t))) {
+        if (wchar_t* w = (wchar_t*)GlobalLock(g)) {
+            for (size_t i = 0; i < text.size(); ++i) w[i] = (unsigned char)text[i];
+            w[text.size()] = 0;
+            GlobalUnlock(g);
+            if (!SetClipboardData(CF_UNICODETEXT, g)) GlobalFree(g);
+        } else {
+            GlobalFree(g);
+        }
+    }
+    CloseClipboard();
+}
+
 }  // namespace lim::input

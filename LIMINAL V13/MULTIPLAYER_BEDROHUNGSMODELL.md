@@ -2,6 +2,8 @@
 
 Stand 26.10.2026. Dieses Dokument entstand **vor** jeder Netzwerkzeile, wie im Auftrag verlangt. Es baut auf den früheren Analysen auf (`MULTIPLAYER_ASSESSMENT.md` aus V11, `MULTIPLAYER.md` aus V12) und macht daraus verbindliche Regeln. Es beschreibt, was ein Mehrspielermodus in LIMINAL gefährden würde und welche Regeln jede Umsetzung einhalten muss. Die Entscheidung, ob der Modus in V13 eingeschaltet wird, steht in `MULTIPLAYER_ENTSCHEIDUNG.md`, die Prüfungen in `MULTIPLAYER_TESTS.md`.
 
+**V13.3 (27.10.2026):** neue Verbindungsschicht (Lobby mit Beitrittscode, WebRTC/DTLS, Relay); Umsetzung, neue Bedrohungen, Abhängigkeiten und Restrisiken in **Abschnitt 9**. Die Abschnitte 1–8 beschreiben den Stand bis V13.2.
+
 Kein Teil dieses Dokuments behauptet, ein Mehrspielermodus sei „vollkommen sicher“. Ein Netzwerkmodus vergrößert die Angriffsfläche immer; das Ziel ist, das Risiko klein, bekannt und überprüfbar zu halten.
 
 ## 1. Ausgangslage
@@ -109,3 +111,111 @@ Seit V13.2 gibt es den Koop-Modus als Beta (`MULTIPLAYER_ARCHITEKTUR.md`, `MULTI
 - Der Host ist vertrauenswürdig gesetzt. Er kann Werte und Inventare der Gäste nach Belieben setzen und Meldungen schicken (geprüft auf Länge und Zeichen, nicht auf Inhalt).
 - Fuzzing über den echten Netzweg lief Minuten, nicht Stunden; die Prüfschicht selbst lief 12 Millionen Fälle unter Sanitizern.
 
+## 9. V13.3: neue Verbindungsschicht (Lobby, WebRTC, Relay)
+
+Stand 27.10.2026. Der Verbindungsaufbau ist ersetzt (`MULTIPLAYER_ARCHITEKTUR.md`, Abschnitte 4–8; Wahl: `MULTIPLAYER_RECHERCHE.md`, E-033). Die Regeln aus Abschnitt 6 gelten weiter; Regel 7 („keine eigene Kryptografie“) ist jetzt auch für den Handshake erfüllt. Die eigene Schicht aus V13.2 (HMAC-Beweis, AES-GCM über CNG) und ENet sind entfernt.
+
+### 9.1 Neue Vertrauensgrenzen und Angreifer
+
+| # | Grenze | Neu, weil |
+|---|---|---|
+| 5 | **Lobby** (`liminal_lobby.exe`, im Internet) ↔ Spiel | Die Lobby reicht Verbindungsbeschreibungen weiter; sie ist ein Dienst im Netz und kann angegriffen werden oder selbst bösartig sein |
+| 6 | **TURN-Relay** ↔ Spiel | Das Relay leitet Pakete weiter und sieht Adressen |
+| 7 | **Fremde Bibliotheken** (libdatachannel, libjuice, usrsctp, Mbed TLS) | Parser für STUN, DTLS, SCTP und WebSocket laufen auf Daten aus dem Netz |
+
+| Angreifer (zusätzlich zu Abschnitt 4) | Fähigkeiten |
+|---|---|
+| Böswilliger Betreiber der Lobby (oder wer sie übernommen hat) | sieht IPs, Namen, Raumnummern, Beschreibungen; kann Beschreibungen tauschen (Mann in der Mitte), Räume verweigern |
+| Angreifer zwischen Spiel und Lobby | liest und ändert `ws://`; bei `wss://` nur, wenn das Zertifikat nicht geprüft würde |
+| Scanner gegen die Lobby | rät Raumnummern, flutet Verbindungen und Nachrichten |
+| Missbrauch des Relays | nutzt TURN als offenes Relay für fremden Verkehr |
+
+### 9.2 Bedrohungen und Umsetzung in V13.3
+
+| # | Umsetzung V13.3 | Prüfung (`MULTIPLAYER_TESTS.md`, Abschnitt 7) |
+|---|---|---|
+| S1 Fremder als Gast | Code: Raumnummer (Lobby) + Geheimteil (30 Bit, prüft nur der Host im DTLS-Kanal, Vergleich in fester Zeit); 5 Fehlversuche je Adresse → 10 min abgewiesen; die Lobby sperrt nach 10 unbekannten Räumen 10 min und begrenzt Versuche auf 20/min je Adresse | falsches Geheimteil, Sperre nach 5, Code raten |
+| S1' Fremder als **Host** (Mann in der Mitte) | DTLS prüft den Fingerabdruck aus der Beschreibung. Langer Code: der Gast prüft 60 Bit dieses Fingerabdrucks, **bevor** er das Geheimteil sendet. Lobby mit `wss://`: Zertifikat von Windows geprüft oder festgelegt | falscher Prüfteil → Absage ohne Senden; fremdes Lobby-Zertifikat, unbekannte Zertifizierungsstelle → abgewiesen |
+| S2 Gefälschte Absender | ICE prüft jede Adresse mit Kurzzeit-Zugangsdaten (STUN-Integrität); DTLS-Cookies gegen Verstärkung (libdatachannel); die Lobby läuft über TCP | Bibliothek (nicht eigens geprüft) |
+| T1 Zustände statt Eingaben | unverändert (Spielprotokoll) | Angriffe, Netz-Fuzzing |
+| T2 Werte außerhalb | unverändert | Fuzzing |
+| T3 Wiederholung | DTLS-Fenster gegen Wiederholung (Bibliothek); Folgenummern im Spiel | Bibliothek; Spiel unverändert |
+| T4 Veränderung auf dem Weg | DTLS 1.2 (AEAD), Vorwärtsgeheimnis durch ECDHE (V13.2 hatte keins). **Zusatz:** die DLL verlangt, dass der von DTLS geprüfte Fingerabdruck vorliegt und zur Beschreibung passt (Abschnitt 9.4) | Verbindungstests, Fingerabdruck geprüft |
+| I1 Speicher nach außen | Längen nur innerhalb geprüfter Nachrichten; Lobby baut weitergereichte Nachrichten neu | Fuzzing der Lobby-Nachrichten (300 000 Fälle) |
+| I2 Adressen anderer Gäste | Gäste verbinden sich nur mit dem Host; Option „Eigene IP verbergen“ (nur Relay). Grenze: Abschnitt 9.5 | Relay-Weg auf getrennten Adressen |
+| I3 Pfade, Rechnernamen | keine im Netz; die Lobby protokolliert keine IP | Durchsicht |
+| D1 Flut | DLL: 120/s und Vorrat 60 je Gast, anhaltend → getrennt; höchstens 256 Nachrichten je Kanal und Bild (Rest bleibt in der Bibliothek); Lobby: 30/s je Verbindung | Flut gegen Host und Lobby |
+| D2 Speicher | Nachrichten bis 1200+1 Byte (DLL), 4 KiB (Bibliothek), 8 KiB und Tiefe 4 (Lobby); Eingang der Rückrufe höchstens 2048 Einträge; unzuverlässiger Puffer 16 KiB; beim Gast: Weltereignisse vor dem Laden höchstens 4096, gemerkte ferne Funde höchstens 16 384 | Übergröße, tiefe Schachtelung |
+| D3 Rechenzeit | unverändert; Lobby: Nachrichten je Durchgang begrenzt | Lobby-Fuzzing |
+| D4 Hängende Verbindungen | Beitritt 20 s, Stille 10 s (Ping 2/s), Lobby: ohne Anmeldung 10 s, wartende Gäste 60 s, Räume 12 h | Zeitlimit ohne Hallo, Netzausfall, Host fällt aus |
+| D5 Wiederverbinden in Schleife | Lobby: 12 Verbindungen und 20 Beitritte/min je Adresse; Host: 4 halbe Beitritte, 3 je Adresse | Verbindungsflut gegen die Lobby |
+| E1 Codeausführung durch Parser | eigene Parser: feste Felder (DLL), nlohmann/json mit Größen- und Tiefengrenze (Lobby). Fremde Parser: STUN, DTLS, SCTP, WebSocket, HTTP (Bibliotheken, Abschnitt 9.3) | Fuzzing eigener Parser; Netz-Fuzzing des Hosts |
+| E2 Daten als Code | unverändert | – |
+| E3 Rollen vertauscht | Spielprotokoll unverändert; Lobby: Host-Befehle nur vom Host, „to“ nur vom Host | Gast sendet Host-Befehl → getrennt |
+
+**Neue Bedrohungen:**
+
+| # | Bedrohung | Gegenmaßnahme | Prüfung |
+|---|---|---|---|
+| L1 | Lobby überlasten (Verbindungen, Räume, Nachrichten) | Grenzen je Adresse und insgesamt (Architektur, Abschnitt 6); Verstöße trennen | Angriffe auf die Lobby, 3 000 veränderte Nachrichten über das Netz |
+| L2 | Raumnummern raten | 30 Bit, Ratenbremse, Sperre; selbst ein Treffer nützt ohne Geheimteil nichts | Code raten |
+| L3 | Lobby bösartig/übernommen | Lobby sieht das Geheimteil nicht; mit langem Code kann sie den Host nicht vortäuschen. **Mit kurzem Code** könnte eine bösartige Lobby Beschreibungen tauschen und sich dazwischenschalten (Restrisiko) | Prüfteil-Test |
+| L4 | `wss://` ohne Prüfung | WinHTTP/Schannel prüft (Kette, Name, Sperrlisten) oder festgelegtes Zertifikat; geprüft, bevor die erste Lobby-Nachricht geht | TLS-Tests |
+| L5 | TURN als offenes Relay | nur mit Zugangsdaten je Raum (zufällig, höchstens 12 h), Obergrenze an Zuteilungen je Raum (4 × Plätze) und insgesamt (1000) | Bibliothek; Zugangsdaten nicht eigens angegriffen |
+| L6 | Eingebaute Lobby (Direkt) offen im LAN | ein Raum; „Host“ nur über die eigene Loopback-Adresse; dieselben Grenzen; der lange Code ist Pflicht | zweiter Raum abgewiesen |
+
+### 9.3 Abhängigkeiten: Versionen und bekannte Lücken (27.10.2026)
+
+Abfrage: OSV (Commit-Abfrage), GitHub Security Advisories der Projekte, Websuche (`MULTIPLAYER_RECHERCHE.md`, Abschnitt 4).
+
+| Baustein | Stand | Bekannte Lücken für diesen Stand | Aktuell? |
+|---|---|---|---|
+| libdatachannel | v0.24.6 (`6b1e2e62`, 26.09.2026) | keine | neuester Release |
+| libjuice | v1.7.4 (`b89c792e`, 26.09.2026) | keine | neuester Release |
+| usrsctp | `fec583d5` (26.06.2025; von libdatachannel 0.24.6 festgelegt) | keine; ältere (CVE-2019-20503) behoben | Hauptzweig hat neuere Commits (10/2026), es gibt keine Releases |
+| Mbed TLS | 3.6.7 LTS (07.07.2026, SHA-256 des Archivs geprüft) | keine bekannte offene für 3.6.7 | neueste 3.6 (4.x wird von libdatachannel nicht unterstützt) |
+| plog | `94899e0b` | keine | nicht neuester Release (1.1.11); nur Protokollausgabe, abgeschaltet |
+| nlohmann/json | 3.12.0 | keine | neuester Release |
+| coturn (nicht verwendet, Vergleich) | – | CVE-2026-62959, CVE-2026-68552 (behoben in 4.15.0) | – |
+
+Lehre aus CVE-2026-103936 (`@libp2p/webrtc`, Absturz durch ungeprüfte Werte an libdatachannel): Alle Aufrufe der Bibliothek in `try/catch`, Werte aus dem Netz vorher auf Länge und Zeichen geprüft.
+
+### 9.4 Funde beim Lesen der Bibliotheken (nicht gemeldet)
+
+1. **DTLS mit Mbed TLS:**
+   - Befund: `MBEDTLS_SSL_VERIFY_OPTIONAL`; ein Gegenüber ohne Zertifikat würde nicht abgewiesen. Ein falscher Fingerabdruck bricht dagegen ab.
+   - **Gegenmaßnahme in der DLL:** `remoteFingerprint()` muss gesetzt und gleich dem aus der Beschreibung sein, sonst Trennung.
+2. **WebSocket-Client unter Windows:**
+   - Befund: libdatachannel schaltet die TLS-Prüfung ab („not supported on Windows“); mit Mbed TLS ohne Prüfung sogar `VERIFY_NONE`.
+   - **Gegenmaßnahme:** Die Verbindung zur Lobby läuft über WinHTTP. Der Server-Teil der Lobby nutzt libdatachannel weiter; er prüft keine Client-Zertifikate.
+3. **Relay-Politik:**
+   - Befund: `TransportPolicy::Relay` filtert nur die gemeldeten eigenen Kandidaten. libjuice prüft Wege auch von der eigenen Adresse aus.
+   - Abschnitt 9.5.
+
+Status: Nicht an die Entwickler gemeldet (dafür wäre ein Konto nötig). Empfehlung: melden, sobald ein Konto des Projekts besteht.
+
+### 9.5 Restrisiken V13.3 (zusätzlich zu Abschnitt 7)
+
+- **Kurzer Code vertraut der Lobby:**
+  - Eine bösartige oder übernommene Lobby kann sich bei kurzem Code zwischen Host und Gast schalten (Beschreibungen tauschen) und so auch das Geheimteil erfahren.
+  - Der lange Code verhindert das. Im Modus „Direkt“ ist er Pflicht.
+- **Lobby und Relay sind ein Ziel im Internet:**
+  - Die Grenzen dämpfen Überlast, ein verteilter Angriff (viele Adressen) kann die Lobby trotzdem auslasten. Laufende Spiele auf direktem Weg sind davon nicht betroffen, neue Beitritte schon.
+- **Fremde Parser:**
+  - STUN/TURN (libjuice), DTLS (Mbed TLS), SCTP (usrsctp, groß und alt), WebSocket/HTTP (libdatachannel, WinHTTP) verarbeiten Daten aus dem Netz, bevor eigener Code sie sieht.
+  - SCTP läuft erst nach DTLS, also nur mit Gegenstellen, die die Signalisierung durchlaufen haben.
+  - Diese Teile wurden **nicht** selbst gefuzzt (nur über die eigenen Netz-Tests mitbenutzt).
+- **„Eigene IP verbergen“ hängt am TURN-Server:**
+  - libjuice sendet Prüfpakete auch von der eigenen Adresse an die Relay-Adresse der Gegenseite. Der TURN-Server stellt sie nur zu, wenn die Absender-IP in den Berechtigungen der Gegenseite steht. Bei getrennten Rechnern ist das nicht so; nachgestellt auf getrennten Loopback-Adressen.
+  - Ein anderer TURN-Server mit lockeren Berechtigungen könnte das ändern.
+- **Host sieht IPs der Gäste** bei direktem Weg (wie vorher); Gäste sehen einander nicht.
+- **Lobby-Betreiber sieht IPs** (nur im Speicher). Datenschutzpflichten beim Betreiber (`MULTIPLAYER_SETUP.md`, Abschnitt 5).
+- **Nur über UDP:** In Netzen ohne UDP gibt es keinen Weg. Das ist kein Sicherheits-, aber ein Verfügbarkeitsrisiko.
+- **Nicht über das echte Internet geprüft:** alle Tests liefen auf einem Rechner (Loopback, Netzstörer). Eine Anleitung für den Test mit zwei Rechnern in verschiedenen Netzen steht in `MULTIPLAYER_TESTS.md`, Abschnitt 7.6.
+- **Durchsicht:** wieder nur durch mich, entlang dieser Tabelle. Dabei gefunden und behoben:
+  - Absagen kamen beim Gast nicht an, weil die Verbindung sofort geschlossen wurde → jetzt 1 s Nachlauf;
+  - Regelbrecher belegten 120 s einen Platz;
+  - der Gast sah Wesen-Rollen über 5 nicht in Ereignissen;
+  - im 60-min-Langlauf über das gestörte Relay stand der Verkehr einmal über 10 s still: SCTP wartete bis zu 10 s auf Wiederholungen, die Stille-Erkennung trennte einen Gast → Wartezeit höchstens 2 s, 12 Versuche (E-033).
+  - im zweiten Langlauf wich der geteilte Stand eines Gastes nach etwa 4 min dauerhaft ab: Der Host nahm einen Fund in einem Sektor auf, den der Gast nicht geladen hatte; ein später Gast bekam den Stand gar nicht → Stand beim Beitritt, gemerkte Kennzahlen, beides begrenzt (Architektur, Abschnitt 9). Kein Sicherheitsfehler, aber ein Gast sah Funde, die es nicht mehr gab.
+  - Eine unabhängige Durchsicht durch Dritte gibt es weiterhin nicht.

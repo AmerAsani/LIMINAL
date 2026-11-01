@@ -17,9 +17,16 @@
   "presence": { "hound": true, "smiler": true, "gestalt": false, "blackout": true, "clump": 0.45,
                "faceling": { "mode": "irritable", "group": [2, 4], "every": 200 },
                "wretch": { "mode": "mixed", "group": [1, 1], "every": 240, "chance": 0.3 },
-               "rat": { "mode": "bald", "group": [2, 4], "every": 140 } },
+               "rat": { "mode": "bald", "group": [2, 4], "every": 140 },
+               // V13.3 (KREATUR_Wrangler.md): vor allem Maennchen graben sich durch den Boden und brechen in die Gaenge; keine Jungtiere
+               "wrangler": { "mode": "mixed", "every": 260, "chance": 0.15 },
+               // V13.3: junge Growler (klein, leuchtend, verschmelzen in engen Gaengen; chance: Leichen in den Gaengen),
+               // kleine Nguithr'xurh ueber den Maschinen (fressen Insekten und Deathmoths - Menschen selten: chance)
+               "growler": { "mode": "young", "group": [2, 3], "every": 210, "chance": 0.5 },
+               "nguithrxurh": { "mode": "small", "group": [2, 3], "every": 160, "chance": 0.25 } },
   "next_level": "level3",
-  "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0 },
+  // V13.3 (KREATUR_Smiler.md): Leuchtstaebe liegen herum, eher in dunklen Raeumen - Koeder fuer Smiler
+  "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0, "glowstick": 0.03, "glowstick_dark": 0.12 },
 
   "zones": [
     { "key": "beton", "fixture": "tube", "name": "Tunnel",
@@ -28,6 +35,19 @@
       "fog_density": 0.045, "ambient": 0.045, "light_style": "authored",
       "wall_pattern": "concrete", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.1,
       "wall_tex": "concrete_chalky", "floor_tex": "concrete_floor", "ceil_tex": "concrete_cast", "damp_band": [0.0, 0.9, 0.7] },
+    // V13.3 (Wikidot Level 2): Bereiche im dauerhaften Brownout; verlassene Macchina-Werkstatt mit Werkzeug und Teilen
+    { "key": "brownout", "fixture": "tube", "name": "Brownout",
+      "wall": [0.62, 0.57, 0.50], "floor": [0.36, 0.34, 0.31], "ceil": [0.44, 0.42, 0.39],
+      "trim": [0.24, 0.22, 0.20], "lamp": [1.00, 0.72, 0.42], "fog": [0.016, 0.013, 0.010],
+      "fog_density": 0.06, "ambient": 0.02, "light_style": "authored",
+      "wall_pattern": "concrete", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.1,
+      "wall_tex": "concrete_chalky", "floor_tex": "concrete_floor", "ceil_tex": "concrete_cast", "damp_band": [0.0, 1.0, 0.66] },
+    { "key": "macchina", "fixture": "tube", "name": "Macchina-Werkstatt",
+      "wall": [0.52, 0.55, 0.58], "floor": [0.34, 0.35, 0.36], "ceil": [0.42, 0.43, 0.45],
+      "trim": [0.20, 0.22, 0.25], "lamp": [0.45, 0.60, 1.00], "fog": [0.012, 0.015, 0.022],
+      "fog_density": 0.05, "ambient": 0.025, "light_style": "authored",
+      "wall_pattern": "concrete", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.1,
+      "wall_tex": "metal_rusty_iron", "floor_tex": "concrete_floor", "ceil_tex": "concrete_cast" },
     { "key": "ziegel", "fixture": "tube", "name": "Ziegeltunnel",
       "wall": [0.44, 0.40, 0.36], "floor": [0.38, 0.36, 0.33], "ceil": [0.46, 0.44, 0.41],
       "trim": [0.26, 0.22, 0.18], "lamp": [1.00, 0.90, 0.78], "fog": [0.024, 0.019, 0.015],
@@ -106,6 +126,7 @@
     { "key": "tunnel", "label": "Tunnel", "category": "corridor" },
     { "key": "tunnel_heiss", "label": "Heißer Tunnel", "category": "corridor" },
     { "key": "kammer", "label": "Kammer", "category": "normal" },
+    { "key": "macchina_werkstatt", "label": "Macchina-Werkstatt", "category": "normal" },
     { "key": "maschinenraum", "label": "Maschinenraum", "category": "normal" },
     { "key": "lagerraum", "label": "Lagerraum", "category": "normal" },
     { "key": "anlage", "label": "Anlage", "category": "large" },

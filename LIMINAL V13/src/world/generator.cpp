@@ -1006,6 +1006,13 @@ static Surface surfaceOf(props::Look l) {
     return Surface::PropPaint;
 }
 
+u16 propMaterial(MaterialBank& bank, const props::MatDesc& d) {
+    const int tl = d.tex.empty() ? -1 : importedLayer(d.tex);
+    const u8 l = tl < 0 ? (u8)255 : (u8)tl;
+    return bank.get({d.r, d.g, d.b}, PlanePattern::None, WallPattern::Plain, d.glow > 0.0f, {}, 0.72, surfaceOf(d.look), {l, l, l},
+                    {d.rough, d.metal});
+}
+
 void Generator::addProp(Sector& sec, const props::Model* m, float x, float y, float z, float yaw, float sx, float sy, float sz) const {
     if (!m) return;
     Sector::Prop p;

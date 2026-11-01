@@ -14,6 +14,7 @@ Gemessen aus der festen Karte (data/maps) und der Ausstattung im Spiel (build/qa
     python tools/qa/room_metrics.py --check [level ...]   zusaetzlich gegen tools/qa/metric_limits.json (Exitcode 1)
 """
 import json
+import subprocess
 import math
 import os
 import sys
@@ -78,8 +79,8 @@ def furniture_blocks(g, props):
         if n.startswith(FLOOR_SKIP) or not p['room'] or len(p['room']) < 3 or not p['room'][2]:
             continue
         lo, hi, s = p['lo'], p['hi'], p['s']
-        if (hi[2] - lo[2]) * s[2] < 0.3 or p['p'][2] - p['floor'] > 0.5:
-            continue  # flach oder nicht am Boden (Wand, Decke)
+        if (hi[2] - lo[2]) * s[2] < 0.3 or p['p'][2] - p['floor'] > 0.5 or p['p'][2] + lo[2] * s[2] - p['floor'] > 1.0:
+            continue  # flach, nicht am Boden (Wand, Decke) oder erst ueber 1 m (Rohrbuendel ueber Kopf)
         by_room.setdefault(tuple(p['room'][2]), []).append(p)
     bad, checked = [], 0
     door_rects = [d['rect'] for d in g.m['doors']]
@@ -121,10 +122,12 @@ def furniture_blocks(g, props):
     return bad, checked
 
 
-def measure(level):
+def measure(level, exempt=()):
     g = Grid(level)
     rng = np.random.default_rng(7)
-    rooms = [(i, r) for i, r in enumerate(g.rooms)]
+    # V13.3: Raumtypen mit begruendeter Ausnahme (metric_limits.json exempt_types, Begruendung in STRUKTURTYP.md) zaehlen
+    # nicht fuer Decke und Gangbreite (z. B. Aufzugskabinen, laut Wiki beengte Kesselgaenge)
+    rooms = [(i, r) for i, r in enumerate(g.rooms) if r['type'] not in exempt]
     area = np.array([(r['rect'][2] - r['rect'][0]) * (r['rect'][3] - r['rect'][1]) for _, r in rooms], float)
     corr = np.array([g.corridor(i) for i, _ in rooms])
     height = np.array([r['height'] for _, r in rooms], float)
@@ -133,6 +136,10 @@ def measure(level):
     sl = sight_lines(g, rng)
     props = []
     pp = os.path.join(ROOT, 'build', 'qa', f'props_{level}.json')
+    mp = os.path.join(ROOT, 'data', 'maps', f'{level}.json')
+    if not os.path.exists(pp) or os.path.getmtime(pp) < os.path.getmtime(mp):
+        # V13.3: Abzug aelter als die Karte - neu erzeugen (sonst prueft die Moebelregel alte Positionen)
+        subprocess.run([sys.executable, os.path.join(ROOT, 'tools', 'qa', 'propdump.py'), level], check=False)
     if os.path.exists(pp):
         with open(pp, encoding='utf-8') as fh:
             props = json.load(fh)['props']
@@ -188,7 +195,7 @@ def main():
     fails = 0
     print(f"{'Ebene':10} {'Raeume':>6} {'Decke min/med':>13} {'Gang min/med':>12} {'Flaeche med':>11} {'Sicht med/p90':>13} {'gross':>5} {'Stuetze<1m':>10} {'verstellt':>9}")
     for lv in levels:
-        m = measure(lv)
+        m = measure(lv, tuple(limits.get(lv, {}).get('exempt_types', ())))
         with open(os.path.join(od, f'{lv}.json'), 'w', encoding='utf-8') as fh:
             json.dump(m, fh, indent=1)
         print(f"{NAMES[lv]:10} {m['rooms']:6d} {m['ceiling_rooms']['min']:6.2f}/{m['ceiling_rooms']['median']:<6.2f} "

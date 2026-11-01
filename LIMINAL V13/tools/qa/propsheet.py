@@ -9,11 +9,29 @@ Bilder je Klasse -> docs/screens/props/<level>/<runde>/<name>[_v<N>].jpg, Uebers
     python tools/qa/propsheet.py level1 [--round vorher] [--only crate_a,rack@3] [--size 1280x720]
 
 Voraussetzung: build/qa/props_<level>.json (tools/qa/propdump.py; fehlt die Datei, wird sie erzeugt).
+
+Klassen, die (noch) nicht in der Karte stehen (V13.3, neue Ausstattung):
+
+    python tools/qa/propsheet.py level1 --round r1 --extra scaffold@1:floor,neon_tube@2:wall:2.2,vines_ceiling:ceiling
+        [--extra-like crate_a] [--tag sektoren]
+
+  --extra name[@v]:mount[:z],...  nimmt Modelle aus data/models/<name>[@v].glb ohne Vorkommen in der Karte in die
+        Studio-Szene auf. mount = floor | wall | ceiling. z (nur Wand, Standard 0) = Hoehe des Modellursprungs ueber dem
+        Boden (Wandleuchten, Schilder; Wandmodelle mit Ursprung am Boden brauchen kein z). Wandmodelle stehen mit der
+        Rueckseite (x = 0) an der Wand, Deckenmodelle mit z = 0 an der Decke, Bodenmodelle auf dem Boden.
+        Die Grenzen (lo/hi) kommen aus der .glb (Knoten-Transformationen angewendet, glTF -> Spielachsen).
+        Zone, Raumtyp und Raumhoehe wie die erste Klasse des Bogens (--extra-like <klasse>: wie diese Klasse der Karte;
+        sonst die erste per --only gewaehlte Klasse; ohne --only nur Extras -> erstes Objekt der Karte).
+        Ein Name@v mit v > 0 setzt die Variante (Datei <name>@<v>.glb). Mit --extra und ohne --only werden NUR die
+        Extras aufgenommen.
+  --tag t  haengt t an den Namen der Uebersicht an (docs/screens/<level>/props_uebersicht_<runde>_<t>.jpg), damit
+        parallele Arbeiten an derselben Ebene sich die Uebersicht nicht ueberschreiben.
 """
 import argparse
 import json
 import math
 import os
+import struct
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -40,6 +58,8 @@ def class_key(name, v):
 
 def mount_of(p):
     """Wie haelt das Objekt? floor | wall | ceiling | opening."""
+    if p.get('mount'):  # --extra: Befestigung vorgegeben
+        return p['mount']
     n = p['name']
     lo, hi, s = p['lo'], p['hi'], p['s']
     if not p['room'] or not p['room'][0] and not p['solid']:
@@ -75,6 +95,105 @@ def pick_classes(dump, only):
         want = set(only)
         keys = [k for k in keys if k in want or k.split('@')[0] in want]
     return [(k, seen[k]) for k in keys]
+
+
+def _quat_mat(q):
+    x, y, z, w = q
+    return [[1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
+            [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
+            [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)]]
+
+
+def _node_mat(nd):
+    """4x4 (Zeilen) aus matrix oder TRS eines glTF-Knotens."""
+    if 'matrix' in nd:
+        m = nd['matrix']  # spaltenweise
+        return [[m[c * 4 + r] for c in range(4)] for r in range(4)]
+    t = nd.get('translation', [0, 0, 0])
+    r = _quat_mat(nd.get('rotation', [0, 0, 0, 1]))
+    s = nd.get('scale', [1, 1, 1])
+    return [[r[0][0] * s[0], r[0][1] * s[1], r[0][2] * s[2], t[0]],
+            [r[1][0] * s[0], r[1][1] * s[1], r[1][2] * s[2], t[1]],
+            [r[2][0] * s[0], r[2][1] * s[1], r[2][2] * s[2], t[2]],
+            [0, 0, 0, 1]]
+
+
+def _mul(a, b):
+    return [[sum(a[i][k] * b[k][j] for k in range(4)) for j in range(4)] for i in range(4)]
+
+
+def glb_bounds(path):
+    """Grenzen (lo, hi) eines .glb in Spielachsen (x vorn, y rechts, z oben) und Zahl der Dreiecke."""
+    with open(path, 'rb') as fh:
+        data = fh.read()
+    length = struct.unpack_from('<I', data, 8)[0]
+    off, js, binc = 12, None, b''
+    while off < length:
+        clen, ctype = struct.unpack_from('<II', data, off)
+        chunk = data[off + 8: off + 8 + clen]
+        if ctype == 0x4E4F534A:
+            js = json.loads(chunk.decode('utf-8'))
+        elif ctype == 0x004E4942:
+            binc = chunk
+        off += 8 + clen
+    lo, hi, tris = [1e9] * 3, [-1e9] * 3, 0
+    ident = [[1 if i == j else 0 for j in range(4)] for i in range(4)]
+
+    def visit(ni, parent):
+        nonlocal tris
+        nd = js['nodes'][ni]
+        M = _mul(parent, _node_mat(nd))
+        if 'mesh' in nd:
+            for prim in js['meshes'][nd['mesh']]['primitives']:
+                a = js['accessors'][prim['attributes']['POSITION']]
+                bv = js['bufferViews'][a['bufferView']]
+                start = bv.get('byteOffset', 0) + a.get('byteOffset', 0)
+                stride = bv.get('byteStride', 12) or 12
+                for k in range(a['count']):
+                    x, y, z = struct.unpack_from('<3f', binc, start + k * stride)
+                    w = [M[r][0] * x + M[r][1] * y + M[r][2] * z + M[r][3] for r in range(3)]
+                    g = (w[0], w[2], w[1])  # glTF (Y oben) -> Spiel (Z oben), wie props/glb_import.cpp
+                    for c in range(3):
+                        lo[c] = min(lo[c], g[c])
+                        hi[c] = max(hi[c], g[c])
+                if 'indices' in prim:
+                    tris += js['accessors'][prim['indices']]['count'] // 3
+        for ch in nd.get('children', []):
+            visit(ch, M)
+
+    scene = js['scenes'][js.get('scene', 0)]
+    for ni in scene['nodes']:
+        visit(ni, ident)
+    return [round(v, 3) for v in lo], [round(v, 3) for v in hi], tris
+
+
+def extra_classes(spec, template, rooms):
+    """--extra name[@v]:mount[:z],... -> Klassen wie aus dem propdump (Raum/Zone/Hoehe der Vorlage)."""
+    out = []
+    for item in [s for s in spec.split(',') if s]:
+        parts = item.split(':')
+        if len(parts) < 2 or parts[1] not in ('floor', 'wall', 'ceiling'):
+            raise SystemExit(f'--extra: "{item}" - erwartet name[@v]:floor|wall|ceiling[:z]')
+        name, v = (parts[0].split('@') + ['0'])[:2]
+        v = int(v)
+        fn = os.path.join(ROOT, 'data', 'models', name + (f'@{v}' if v else '') + '.glb')
+        if not os.path.exists(fn):
+            raise SystemExit(f'--extra: {fn} fehlt (Modell zuerst bauen)')
+        lo, hi, tris = glb_bounds(fn)
+        mt = parts[1]
+        fl, rh = room_of(template, rooms)  # Boden und Hoehe des Vorlagenraums (wie build_studio)
+        ceil = fl + rh
+        if mt == 'wall':
+            z = fl + (float(parts[2]) if len(parts) > 2 else 0.0)
+        elif mt == 'ceiling':
+            z = ceil
+        else:
+            z = fl
+        p = {'name': name, 'v': v, 'p': [0.0, 0.0, z], 'yaw': 0.0, 's': [1.0, 1.0, 1.0], 'floor': fl, 'ceil': ceil,
+             'solid': 0, 'back': 0.0 if mt == 'wall' else 9.0, 'around': 9.0, 'lo': lo, 'hi': hi, 'tris': tris,
+             'room': list(template['room']), 'mount': mt}
+        out.append((class_key(name, v), p))
+    return out
 
 
 def room_of(p, rooms):
@@ -250,6 +369,9 @@ def main():
     ap.add_argument('--only', default='')
     ap.add_argument('--size', default='1280x720')
     ap.add_argument('--settle', type=int, default=14)
+    ap.add_argument('--extra', default='', help='name[@v]:floor|wall|ceiling[:z],... (Klassen ohne Vorkommen in der Karte)')
+    ap.add_argument('--extra-like', default='', help='Klasse der Karte als Vorlage fuer Zone/Raumtyp/Hoehe der Extras')
+    ap.add_argument('--tag', default='', help='Zusatz im Namen der Uebersicht')
     a = ap.parse_args()
     dp = os.path.join(QA, f'props_{a.level}.json')
     if not os.path.exists(dp):
@@ -258,7 +380,18 @@ def main():
     with open(dp, encoding='utf-8') as fh:
         dump = json.load(fh)
     only = [s for s in a.only.split(',') if s]
-    classes = pick_classes(dump, only)
+    classes = pick_classes(dump, only) if (only or not a.extra) else []
+    if a.extra:
+        if a.extra_like:
+            like = pick_classes(dump, [a.extra_like])
+            if not like:
+                raise SystemExit(f'--extra-like: {a.extra_like} kommt in der Karte nicht vor')
+            template = like[0][1]
+        elif classes:
+            template = classes[0][1]
+        else:
+            template = next(p for p in dump['props'] if p['room'] and p['room'][0])
+        classes = classes + extra_classes(a.extra, template, dump['rooms'])
     if not classes:
         raise SystemExit('keine Klassen')
     lp, booths = build_studio(a.level, classes, dump['rooms'])
@@ -294,10 +427,10 @@ def main():
         for ln in log.splitlines():
             if 'FEHLER' in ln.upper() or 'error' in ln:
                 print('  ', ln[:200])
-    compose(a.level, a.round, booths, plan)
+    compose(a.level, a.round, booths, plan, a.tag)
 
 
-def compose(level, rnd, booths, plan):
+def compose(level, rnd, booths, plan, tag=""):
     from PIL import Image, ImageDraw
     out = os.path.join(ROOT, 'docs', 'screens', 'props', level, rnd)
     os.makedirs(out, exist_ok=True)
@@ -332,7 +465,7 @@ def compose(level, rnd, booths, plan):
         d.text((x + 4, y + 184), k, fill=(255, 255, 255))
     od = os.path.join(ROOT, 'docs', 'screens', level)
     os.makedirs(od, exist_ok=True)
-    U.save(os.path.join(od, f'props_uebersicht_{rnd}.jpg'), quality=82)
+    U.save(os.path.join(od, f"props_uebersicht_{rnd}{'_' + tag if tag else ''}.jpg"), quality=82)
     print(f'{len(booths)} Klassen -> {out}')
 
 

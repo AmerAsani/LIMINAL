@@ -393,6 +393,8 @@ void Renderer::onChunkLoaded(const world::ChunkData& cd) { world_.addChunk(gpu_,
 void Renderer::onChunkUnloaded(const world::ChunkData& cd) { world_.removeChunk(gpu_, cd); }
 void Renderer::clearWorld() {
     world_.clear(gpu_);
+    propMeshes_.clear();  // V13.3: Materialien der neuen Welt haben andere Nummern
+    ++propGen_;
     historyValid_ = false;
 }
 void Renderer::syncMaterials(const world::MaterialBank& bank) { world_.syncMaterials(gpu_, bank); }
@@ -523,6 +525,7 @@ void Renderer::gbufferPass(const Frustum& frustum, vec3 camPos, const std::vecto
             oc.attached = d.attached ? 1.0f : (d.dynamic ? 1.0f / 3.0f : 0.0f);
             oc.boneOffset = m.skinned ? ((u32)d.bones * 3u | (d.dualQuat ? 0x80000000u : 0u)) : 0u;
             oc.clip = d.clip;
+            oc.fx = d.fx;  // V13.3
             gpu_.update(objectCb_, &oc, sizeof(oc));
             UINT stride = m.skinned ? (UINT)sizeof(SkinVertex) : (UINT)sizeof(MeshVertex), offset = 0;
             ctx->IASetVertexBuffers(0, 1, m.vb.buf.addr(), &stride, &offset);
@@ -586,8 +589,8 @@ void Renderer::renderScene(const CameraState& cam, const SceneParams& p, const s
     f.proj = {proj.at(0, 0), proj.at(1, 1), nearZ, 0};
     f.ringParams = {(float)world_.ringSize(), 1.0f / (float)world_.ringSize(), (float)(frame_ % 1024), nearZ};
     f.post = {p.redEdge, p.redPulse, p.menuDim, p.desaturate};
-    f.post2 = {settings_.exposureBias + std::log2(std::clamp(p.moodExposure, 0.1f, 4.0f)), settings_.filmGrain, settings_.vignette,
-               settings_.displayMode == 0 ? settings_.chromatic : 0.0f};
+    f.post2 = {settings_.exposureBias + std::log2(std::clamp(p.moodExposure, 0.1f, 4.0f)), settings_.filmGrain + p.grainBoost, settings_.vignette,
+               settings_.displayMode == 0 ? settings_.chromatic + p.chromaBoost : 0.0f};
     f.post3 = {(float)settings_.displayMode, (float)ow, (float)oh,
                settings_.bloom ? settings_.bloomStrength : 0.0f};
     // z: V6 Nachschaerfen (Post), 0 = aus
@@ -598,7 +601,7 @@ void Renderer::renderScene(const CameraState& cam, const SceneParams& p, const s
                bo ? (float)(p.blackoutSeed + 1) + std::clamp(p.blackoutAmount, 0.0f, 1.0f) * 0.9f : 0.0f};
     f.wave = {p.blackoutOrigin.x, p.blackoutOrigin.y, bo ? p.blackoutFront : -1.0f, p.noNearFade ? 1.0f : 0.0f};
     world_.setBlackout(bo ? p.blackoutSeed : -1, p.blackoutAmount, p.blackoutOrigin, p.blackoutFront);
-    f.extra = {(float)world_.updatePuddles(gpu_, cam.pos, 40.0f), 0, 0, 0};  // V13.3: Pfuetzen
+    f.extra = {(float)world_.updatePuddles(gpu_, cam.pos, 40.0f), p.fungus, p.garden, p.jester};  // V13.3: Pfuetzen, Level-1-Erscheinungen
     // V10: Knochen und Schattenkapseln der Figuren
     if (p.bones && !p.bones->empty())
         gpu_.update(bones_, p.bones->data(), (u32)(std::min<size_t>(p.bones->size(), kBoneRows) * sizeof(vec4)));
@@ -711,7 +714,7 @@ void Renderer::renderScene(const CameraState& cam, const SceneParams& p, const s
         static const int kCount[4] = {0, 450, 900, 1600};  // V6: Menge je Stufe
         const int count = kCount[particles];
         PassConstants pc{};
-        pc.p0 = {(float)count, 6.5f, 0.10f, 0.0f};
+        pc.p0 = {(float)count, 6.5f, 0.10f * (1.0f + 2.5f * p.dustBoost), p.dustFall};  // V13.3: Beben - Staub rieselt
         pc.p1 = {(float)std::min<u32>(nLights, 24u), 0, 0, 0};
         gpu_.update(passCb_, &pc, sizeof(pc));
         ctx->VSSetConstantBuffers(0, 4, cbs);
