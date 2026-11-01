@@ -612,6 +612,10 @@ const std::vector<const char*>& entityVariants(Entity e) {
     // V13.3: Plague Goblins - 1 Spaeher, 2 Torwaechterin, 3 das Portal der Bande
     static const std::vector<const char*> gbv{"ent_goblin", "ent_goblin_scout", "ent_goblin_gate", "ent_goblin_portal"};
     if (e == Entity::Goblin) return gbv;
+    // V13.3 Teil 4 (Level 2): Fensterwesen im Stahlfenster der Ebene; Deathmoths - 1 Maennchen mit Ruessel, 2 Weibchen (klein)
+    static const std::vector<const char*> wnv{"ent_window", "ent_window_l2"}, mov{"ent_moth", "ent_moth_l2", "ent_moth"};
+    if (e == Entity::Window) return wnv;
+    if (e == Entity::Moth) return mov;
     return e == Entity::Faceling ? fc : (e == Entity::Rat ? rat : (e == Entity::SkinStealer ? ss : none));
 }
 

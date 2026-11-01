@@ -61,6 +61,7 @@ void Presence::setGrace(double s) {
     nextDuller_ = std::max(nextDuller_, s * 0.6), nextArms_ = std::max(nextArms_, s * 0.3);  // V13.3
     nextWrangler_ = std::max(nextWrangler_, s * 0.8);     // V13.3
     nextGrowler_ = std::max(nextGrowler_, s * 0.5), nextNguithr_ = std::max(nextNguithr_, s * 0.3), corpseT_ = std::max(corpseT_, s * 0.5);  // V13.3
+    nextWindowL2_ = std::max(nextWindowL2_, s * 0.5), nextMothL2_ = std::max(nextMothL2_, s * 0.3);  // V13.3 Teil 4
 }
 
 void Presence::remove(size_t i) { agents_.erase(agents_.begin() + (std::ptrdiff_t)i); }
@@ -1094,12 +1095,16 @@ void Presence::think(Agent& a, double dt, const Context& c, std::vector<Event>& 
         if (a.role == Role::Growler || a.role == Role::Nguithr) prepGN(a, c);  // V13.3
         if (a.role == Role::Ouroboros) prepOuroboros(a, c);                 // V13.3
         if (a.role == Role::Goblin) prepGoblin(a, c);                       // V13.3
+        if (a.role == Role::Moth && a.variant > 0) prepMothL2(a);           // V13.3 Teil 4
         return;
     }
     switch (a.role) {
         case Role::Smiler: thinkSmiler(a, dt, c, out); break;
         case Role::Hound: thinkHound(a, dt, c, out); break;
-        case Role::Moth: thinkMoth(a, dt, c, out); break;
+        case Role::Moth:
+            if (a.variant > 0) thinkMothL2(a, dt, c, out);  // V13.3 Teil 4: Level 2, ohne Nest
+            else thinkMoth(a, dt, c, out);
+            break;
         case Role::Gestalt: thinkGestalt(a, dt, c, out); break;
         case Role::Clump: thinkClump(a, dt, c, out); break;
         case Role::Faceling: thinkFaceling(a, dt, c, out); break;  // V13.2
@@ -1344,6 +1349,10 @@ void Presence::regie(double dt, const Context& c, std::vector<Event>& out) {
             else if (r == Role::Gestalt) spawnGestalt(c, out, fd);
             else if (r == Role::Clump) {
                 if (!spawnClump(c, out, true)) log::info("Praesenz: erzwungenes Buendel nicht moeglich (kein Lager)");
+            } else if (r == Role::Window && windowL2(c)) {  // V13.3 Teil 4: Level 2 - ein Fenster an einem Gangende
+                if (!spawnWindowL2(c, out, true)) log::info("Praesenz: erzwungenes Fenster nicht moeglich (kein Gangende)");
+            } else if (r == Role::Moth && mothL2(c)) {  // V13.3 Teil 4: Level 2 - Motten an einer Leuchte
+                if (!spawnMothL2(c, out, true)) log::info("Praesenz: erzwungene Motten nicht moeglich (keine brennende Leuchte)");
             } else if (r == Role::Window) {  // V13.2: Fenster der Ebene (neu verteilt)
                 windowsPlaced_ = false;
             } else if (r == Role::Duller) {  // V13.3: gleich an eine Wand neben dem Spieler (Skripte, Tests)
@@ -1451,6 +1460,8 @@ void Presence::regie(double dt, const Context& c, std::vector<Event>& out) {
     if (c.mode > 0 && !c.suspended && c.kin) {
         if (!windowsPlaced_) placeWindows(c);
         regieWrangler(dt, c, out);  // V13.3
+        regieWindowL2(dt, c, out);  // V13.3 Teil 4: Level 2
+        regieMothL2(dt, c, out);
         for (int k = 0; k < world::KIN_WINDOW; ++k) {
             const world::KinDef& K = c.kin[k];
             if (!K.on) continue;
@@ -1579,6 +1590,7 @@ void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
             if (a.role == Role::Growler || a.role == Role::Nguithr) prepGN(a, c);  // V13.3: Groesse, Netzkugeln
             if (a.role == Role::Ouroboros) prepOuroboros(a, c);                 // V13.3: Aufgabe, Mauer, Geruest
             if (a.role == Role::Goblin) prepGoblin(a, c);                       // V13.3: Zustand, Groesse, Portal
+            if (a.role == Role::Moth && a.variant > 0) prepMothL2(a);           // V13.3 Teil 4: kleiner (Level 2)
             a.sight = perceive(c.view, *c.world, a.feet(), a.height());
             if (a.role == Role::Smiler) {
                 const double ph = time_ * 1.35 + 0.4 * std::sin(time_ * 0.31);
@@ -1663,7 +1675,7 @@ void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
         for (size_t i = before; i < agents_.size();) {
             Agent& a = *agents_[i];
             bool visible = false;
-            if (multi && a.role != Role::Nest && a.role != Role::Moth && a.role != Role::Arms)  // V13.3: Arms im Schacht
+            if (multi && a.role != Role::Nest && (a.role != Role::Moth || a.variant > 0) && a.role != Role::Arms)  // V13.3: Arms im Schacht; Motten in Level 2 an Leuchten
                 for (const Tgt& t : tgts) visible = visible || perceive(*t.v, *c.world, a.feet(), a.height()).level > 0.2f;
             if (visible) {
                 log::info("Praesenz: {} verworfen - ein Mitspieler saehe es erscheinen", roleName(a.role));

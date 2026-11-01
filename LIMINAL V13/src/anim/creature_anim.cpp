@@ -221,6 +221,10 @@ void CreatureAnimator::update(double dtIn, const Input& in) {
             const float yawRate = dt > 0.0f ? wrapPi(yaw_ - yawBefore) / dt : 0.0f;
             spring(bank_, bankV_, std::clamp(yawRate * speed_ * 0.35f, -0.75f, 0.75f), 5.0f, dt);
             updateMoth(dt, in);
+            if (scale_ != 1.0f) {  // V13.3 Teil 4: kleinere Motten (Level 2) - Gelenke und Knochen um den Ankerpunkt
+                for (vec3& j : pose_.j) j = pos_ + (j - pos_) * scale_;
+                pose_.s.assign(sk_->bones.size(), scale_);
+            }
             break;
         }
         case Entity::Gestalt: updateGestalt(dt, in); break;

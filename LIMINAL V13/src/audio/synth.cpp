@@ -25,6 +25,7 @@ std::unordered_map<std::string, Sound> synthesizeAll(JobSystem& jobs, int rate) 
     addGoblinSounds(defs, rate);     // V13.3: Plague Goblins
     addLureSounds(defs, rate);      // V13.3: Leuchtstab, Ansprechen
     addPhenomenaSounds(defs, rate);  // V13.3: Erscheinungen von Level 1
+    addL2Sounds(defs, rate);         // V13.3 Teil 4: Level 2 (Fenster, Motten, Ratten)
     std::vector<Sound> out(defs.size());
     jobs.parallelFor((int)defs.size(), [&](int i) { out[(size_t)i] = defs[(size_t)i].make(); });
     std::unordered_map<std::string, Sound> map;

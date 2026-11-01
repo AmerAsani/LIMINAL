@@ -64,6 +64,7 @@ WALL_MOUNT = {'outlet', 'vent_grille', 'painting', 'power_box', 'wall_sconce', '
               'metro_dormant_a', 'metro_dormant_b', 'metro_dormant_home', 'metro_dormant_coupling', 'sign_903_wall',  # V12 L903
               'formwork', 'ivy_wall', 'neon_tube', 'neon_sign', 'panel_vermilion', 'pipe_wall',  # V13.3 L1-Sektoren
               'fungus_wall', 'claw_marks',  # V13.3 L1-Erscheinungen (Crawler-Pilz, Tuerspuren)
+              'skin_hung', 'skin_scratches',  # V13.3 L2: Spuren der Skin-Stealer (KREATUR_L2_Spuren.md)
               'departure_board', 'exit_sign_36', 'storefront_a', 'storefront_b', 'storefront_c', 'storefront_closed', 'gate_sign_c30', 'gate_sign_c31', 'gate_sign_c32', 'gate_sign_c33', 'gate_sign_c34', 'gate_door_closed', 'gate_door_boarding', 'clock_36', 'clock_36_b', 'water_fountain', 'restroom_sign'}  # V12 L36
 DOOR_MODELS = {'steel_door', 'hotel_door', 'damaged_door'}
 CEILING_MOUNT = {'batten', 'highbay', 'chandelier', 'safety_light', 'ceiling_vent',
@@ -88,6 +89,7 @@ FLOOR_MOUNT = {'chair', 'rack', 'bed', 'barrel', 'cart', 'pump', 'wardrobe', 'tr
                'fungus_floor', 'fungus_camp', 'goo_trail', 'plant_wanderer',  # V13.3 L1-Erscheinungen
                'xray_scanner', 'security_gate', 'tray_stack', 'lounge_chair', 'lounge_table',  # V13.3 L36
                'macchina_parts', 'macchina_tools',  # V13.3 L2
+               'skin_shed', 'skin_lair', 'food_scraps',  # V13.3 L2: Spuren der Skin-Stealer (KREATUR_L2_Spuren.md), Futter der Death Rats
                'carousel_36', 'luggage_pile', 'checkin_counter', 'bta_booth', 'travelator', 'travelator_stopped', 'seats_row', 'gate_counter', 'camp_c32'}  # V12 L36
 
 

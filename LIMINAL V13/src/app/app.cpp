@@ -243,7 +243,7 @@ void App::scriptStep() {
                         : n == "window" ? R::Window : n == "hound" ? R::Hound : n == "smiler" ? R::Smiler : n == "clump" ? R::Clump
                         : n == "duller" ? R::Duller : n == "arms" ? R::Arms : n == "wrangler" ? R::Wrangler
                         : n == "growler" ? R::Growler : n == "nguithrxurh" ? R::Nguithr : n == "ouroboros" ? R::Ouroboros
-                        : n == "goblin" ? R::Goblin : R::Gestalt;  // V13.3
+                        : n == "goblin" ? R::Goblin : n == "moth" ? R::Moth : R::Gestalt;  // V13.3; Teil 4: Motten (Level 2)
             auto& pr = session_->presence();
             if (!pr.has(r)) {
                 log::warn("Skript: near - kein {}", game::Presence::roleName(r));
@@ -251,6 +251,8 @@ void App::scriptStep() {
                 const vec3 at = pr.posOf(r);
                 auto& w = session_->world();
                 float baseZ = r == R::Window ? at.z - 1.9f : at.z, aimZ = r == R::Window ? at.z : at.z + (r == R::Rat ? 0.1f : 1.0f);
+                if (r == R::Moth)  // V13.3 Teil 4: Motten an der Decke - der Boden darunter, Blick auf die Motte
+                    if (const world::Tile* t0 = w.tileIfLoaded(ifloor(at.x), ifloor(at.y))) baseZ = t0->floor, aimZ = at.z;
                 if (r == R::Nguithr)  // V13.3: die Netzkugeln an der Decke - der Boden darunter, Blick auf die Kugeln
                     if (const world::Tile* t0 = w.tileIfLoaded(ifloor(at.x), ifloor(at.y))) baseZ = t0->floor, aimZ = at.z - 0.6f;
                 bool placed = false;
@@ -1481,7 +1483,10 @@ void App::handleEvents() {
                         if (role == Role::Goblin) at(std::format("goblin_step_{}", n % 3), e.pos, 0.18f + 0.35f * e.intensity, 12.0f, 0.94f + 0.14f * var);
                         break;
                     // V11 Buendel: Klopfen im Schacht, Herabfallen, Schleifen, Ausholen
-                    case PE::Knock: at(std::format("clump_knock_{}", n % 3), e.pos, 0.9f, 30.0f); break;
+                    case PE::Knock:
+                        if (role == Role::Moth) at(std::format("moth_tap_{}", n % 3), e.pos, 0.5f, 9.0f, 0.9f + 0.2f * var);  // V13.3 Teil 4: ans Glas der Roehre
+                        else at(std::format("clump_knock_{}", n % 3), e.pos, 0.9f, 30.0f);
+                        break;
                     case PE::Drop:
                         if (role == Role::Arms) {  // V13.3: die Krallen schnappen ins Leere
                             at("arms_snap", e.pos, 0.9f, 16.0f, 0.95f + 0.1f * var);
@@ -1518,7 +1523,8 @@ void App::handleEvents() {
                     case PE::Lost: break;
                     // V13.2: neue Wesen
                     case PE::Hit:
-                        at(std::format("hit_body_{}", n % 2), e.pos, 0.9f, 14.0f, 0.9f + 0.15f * var);
+                        if (role == Role::Moth) at("moth_bite", e.pos, 0.85f, 10.0f, 0.95f + 0.1f * var);  // V13.3 Teil 4: Weibchen beisst
+                        else at(std::format("hit_body_{}", n % 2), e.pos, 0.9f, 14.0f, 0.9f + 0.15f * var);
                         hitFlash_ = std::max(hitFlash_, std::clamp(e.intensity / 40.0f, 0.2f, 0.7f));  // nur eigene Treffer kommen hier an
                         break;
                     case PE::Mimic:
@@ -1540,7 +1546,10 @@ void App::handleEvents() {
                         else at("goblin_stash", e.pos, 0.9f, 8.0f);
                         break;
                     case PE::Take: at("goblin_stash", e.pos, 0.6f, 10.0f, 0.95f + 0.1f * var); break;
-                    case PE::Hiss: at("goblin_hiss", e.pos, 1.0f, 24.0f); break;
+                    case PE::Hiss:
+                        if (role == Role::Moth) at("moth_buzz", e.pos, 0.6f + 0.4f * e.intensity, 12.0f);  // V13.3 Teil 4: gereizte Motten um den Kopf
+                        else at("goblin_hiss", e.pos, 1.0f, 24.0f);
+                        break;
                     case PE::Screech: at(std::format("goblin_screech_{}", n % 2), e.pos, 1.0f, 28.0f, 0.96f + 0.08f * var); break;
                     case PE::Portal: at(e.intensity > 0.5f ? "goblin_portal_open" : "goblin_portal_close", e.pos, 1.0f, 46.0f); break;
                     case PE::Perish: at("goblin_death", e.pos, 1.0f, 30.0f); break;
@@ -1570,6 +1579,9 @@ void App::handleEvents() {
                     case PE::Burst:
                         if (role == Role::Duller) at("duller_burst", e.pos, 1.0f, 30.0f);
                         else if (role == Role::Wrangler) at(std::format("wrangler_burst_{}{}", e.intensity > 0.75f ? 'm' : 'f', n % 2), e.pos, 1.0f, 40.0f);  // V13.3
+                        // V13.3 Teil 4: Fensterwesen in Level 2 - es bildet sich (Glas, Rahmen, Aussenluft) / ferner Wind und Voegel
+                        else if (role == Role::Window && e.intensity > 0.5f) at("window_form", e.pos, 0.9f, 26.0f);
+                        else if (role == Role::Window) at(std::format("window_air_{}", n % 3), e.pos, 0.55f, 22.0f, 0.96f + 0.08f * var);
                         else at("arms_vent", e.pos, 0.35f, 9.0f);
                         break;
                     case PE::Burn: at("arms_burn", e.pos, 1.0f, 30.0f); break;
@@ -1591,7 +1603,11 @@ void App::handleEvents() {
                     case PE::Lurch: at("growler_surge", e.pos, 1.0f, 34.0f); break;
                     case PE::Merge: at("growler_merge", e.pos, 1.0f, 40.0f); break;
                     case PE::Collapse: at("growler_collapse", e.pos, 0.5f + 0.5f * e.intensity, 30.0f); break;
-                    case PE::Snip: at("ngui_snip", e.pos, 0.45f, 9.0f, 0.95f + 0.1f * var); break;
+                    case PE::Snip:
+                        // V13.3 Teil 4: Death Rat am Fass (0: schleckt) und an Essensresten (1: nagt)
+                        if (role == Role::Rat) at(std::format("rat_{}_{}", e.intensity > 0.5f ? "gnaw" : "lap", n % 3), e.pos, 0.5f, 9.0f, 0.95f + 0.1f * var);
+                        else at("ngui_snip", e.pos, 0.45f, 9.0f, 0.95f + 0.1f * var);
+                        break;
                     case PE::SacBurst:
                         at(std::format("ngui_burst_{}", n % 2), e.pos, 0.75f, 14.0f, 0.95f + 0.1f * var);
                         // Koop (Gast): die Kugel platzt auf mir - die Wirkung rechnet der Host, das Bild hier selbst

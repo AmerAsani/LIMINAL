@@ -94,7 +94,10 @@ struct StyleOverride {
 // V13.3: "ouroboros" (Arbeiter der Baustelle; group: Arbeiter, rooms: Raumtyp des Sektors)
 // V13.3: "goblin" (Plague Goblins; group: Koerper der Bande ohne Portal, every: Abstand der Auftritte, chance: Anteil der Banden,
 // die einem Geschwaechten gleich zusetzen)
-enum KinIndex : int { KIN_FACELING, KIN_SKINSTEALER, KIN_WRETCH, KIN_RAT, KIN_WINDOW, KIN_DULLER, KIN_ARMS, KIN_WRANGLER, KIN_GROWLER, KIN_NGUITHR, KIN_OUROBOROS, KIN_GOBLIN, KIN_COUNT };  // V13.3: Duller, Arms, Wrangler
+// V13.3 Teil 4: "moth" (Deathmoths ohne Nest an den Leuchten - Level 2: klein, meist friedlich; group: Motten je Leuchte,
+// every: Abstand der Gruppen, chance: Anteil der Gruppen mit einem Weibchen, das gereizt zubeisst); "window" mode "end":
+// Fensterwesen entstehen an Gangenden (Spawnpunkte "entity"/"window" der Karte), count: hoechstens so viele zugleich
+enum KinIndex : int { KIN_FACELING, KIN_SKINSTEALER, KIN_WRETCH, KIN_RAT, KIN_WINDOW, KIN_DULLER, KIN_ARMS, KIN_WRANGLER, KIN_GROWLER, KIN_NGUITHR, KIN_OUROBOROS, KIN_GOBLIN, KIN_MOTH, KIN_COUNT };  // V13.3: Duller, Arms, Wrangler; KIN_MOTH: Deathmoths ohne Nest (Level 2)
 struct KinDef {
     bool on = false;
     std::string mode;                // je Wesen (Faceling: peaceful|irritable|armed|lethal; Skin-Stealer: skin|true;

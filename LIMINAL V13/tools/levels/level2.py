@@ -547,5 +547,174 @@ for o in m.objects:
         v_ = rng.randrange(VARIANTS[o['model']])
         if v_:
             o['variant'] = v_
+
+# --- V13.3 Teil 4 (KREATUR_Fensterwesen.md, KREATUR_L2_Spuren.md): Gangenden fuer die Fensterwesen, Spuren der
+# Skin-Stealer. Eigener Zufallsgenerator, nach allen anderen Platzierungen - die Anordnung der Ebene bleibt gleich.
+import random as _random  # noqa: E402
+
+t4 = _random.Random(4402)
+ends_open = {r: set() for r in junctions.values()}
+for d in m.doors:
+    for a, b in ((d['a'], d['b']), (d['b'], d['a'])):
+        if a in ends_open:
+            A, B = m.R(a), m.R(b)
+            ends_open[a].add((1, 0) if B.x0 >= A.x1 else (-1, 0) if B.x1 <= A.x0 else (0, 1) if B.y0 >= A.y1 else (0, -1))
+
+
+def t4_free(x, y, r=0.9, zmax=2.6):
+    """Kein Objekt (ausser Deckenleuchten) und kein Spawnpunkt im Umkreis r."""
+    for o in m.objects:
+        if math.hypot(o['pos'][0] - x, o['pos'][1] - y) < r and o['model'] not in mapkit_ceiling:
+            return False
+    for s_ in m.spawns:
+        if math.hypot(s_['pos'][0] - x, s_['pos'][1] - y) < r:
+            return False
+    return not m.blocked(x, y)
+
+
+import mapkit as _mapkit  # noqa: E402
+mapkit_ceiling = _mapkit.CEILING_MOUNT
+
+# Fensterwesen (Wikidot Level 2: selten, am Ende von Gaengen): Stirnwand einer Sackgasse - dort entsteht das Fenster,
+# wenn niemand hinsieht (presence_window_l2.cpp). Spawnpunkt 0,3 m vor der Wand, Blick in den Gang.
+win_ends = []
+for r, dirs in sorted(ends_open.items()):
+    if len(dirs) != 1:
+        continue
+    R = m.R(r)
+    (ox, oy), = dirs
+    if ox:
+        x = R.x0 + 0.3 if ox > 0 else R.x1 - 0.3
+        y, yaw = R.y0 + R.h / 2, (0.0 if ox > 0 else math.pi)
+        wx = R.x0 if ox > 0 else R.x1
+        wy = y
+    else:
+        y = R.y0 + 0.3 if oy > 0 else R.y1 - 0.3
+        x, yaw = R.x0 + R.w / 2, (math.pi / 2 if oy > 0 else -math.pi / 2)
+        wx, wy = x, (R.y0 if oy > 0 else R.y1)
+    if math.hypot(x - m.start[0], y - m.start[1]) < 35 or min(R.w, R.h) < 2 or not t4_free(wx, wy, 0.85):
+        continue
+    if any(math.hypot(x - p[0], y - p[1]) < 28 for p in win_ends):
+        continue
+    win_ends.append((x, y))
+    m.spawn('entity', x, y, R.floor, yaw, role='window', tags=['end'])
+print('Fensterwesen: Gangenden', len(win_ends))
+
+# Spuren der Skin-Stealer (Wikidot Level 2: nach dem Stromausfall fort oder verhungert; Hitze reizte sie)
+traces = []
+
+
+def t4_place(model, x, y, z, yaw, variant=0, r=1.0):
+    if not t4_free(x, y, r):
+        return False
+    m.obj(model, x, y, z, yaw, variant=variant, tag='deco')
+    traces.append((model, x, y))
+    return True
+
+
+# die Lagerstelle: in einer Ecke einer kuehlen Kammer weit vom Start, dazu Kratzspuren, eine aufgehaengte Haut, ein Schaedel
+lair_room = None
+cand = [r for r in C.values() if m.R(r).type == 'kammer' and zone_at(m.R(r).cx, m.R(r).cy) not in ('heiss',)
+        and min(m.R(r).w, m.R(r).h) >= 4 and math.hypot(m.R(r).cx - m.start[0], m.R(r).cy - m.start[1]) > 60]
+t4.shuffle(cand)
+for r in cand:
+    R = m.R(r)
+    for (cx_, cy_, yaw) in ((R.x0, R.y0, 0.0), (R.x1, R.y0, math.pi / 2), (R.x1, R.y1, math.pi), (R.x0, R.y1, -math.pi / 2)):
+        c_, s_ = math.cos(yaw), math.sin(yaw)
+        ox, oy = cx_ + (0.95 * c_ - 0.9 * s_), cy_ + (0.95 * s_ + 0.9 * c_)
+        near_door = any(m.in_door(math.floor(cx_ + dx), math.floor(cy_ + dy)) for dx in (-2.5, -1.5, -0.5, 0.5, 1.5) for dy in (-2.5, -1.5, -0.5, 0.5, 1.5))
+        if near_door or not all(t4_free(ox + ax, oy + ay, 0.6) for ax in (-0.6, 0.6) for ay in (-0.6, 0.6)):
+            continue
+        if t4_place('skin_lair', ox, oy, R.floor, yaw, r=0.3):
+            lair_room = r
+            m.obj('skull', ox + 0.75 * c_ + 0.55 * s_, oy + 0.75 * s_ - 0.55 * c_, R.floor, yaw + 2.2, tag='deco')
+            break
+    if lair_room is not None:
+        break
+if lair_room is not None:
+    faces = [f for f in m.wall_faces(lair_room, margin=1) if t4_free(f[0] + math.cos(f[2]) * 0.3, f[1] + math.sin(f[2]) * 0.3, 0.7)]
+    t4.shuffle(faces)
+    used = []
+    for f in faces:
+        if any(math.hypot(f[0] - u[0], f[1] - u[1]) < 1.4 for u in used):
+            continue
+        model = 'skin_hung' if not any(t == 'skin_hung' for t, _, _ in traces) else 'skin_scratches'
+        m.obj(model, f[0], f[1], m.R(lair_room).floor, f[2], tag='deco')
+        traces.append((model, f[0], f[1]))
+        used.append(f)
+        if len(used) >= 3:
+            break
+# abgestreifte Haeute: zwei in kuehlen Gaengen, eine geschmolzen in den heissen Tunneln; Kratzspuren in der Hitze
+segs = [r for r in segments if r is not None and min(m.R(r).w, m.R(r).h) == 2 and max(m.R(r).w, m.R(r).h) >= 6
+        and math.hypot(m.R(r).cx - m.start[0], m.R(r).cy - m.start[1]) > 40]
+t4.shuffle(segs)
+want = [('skin_shed', 0, False), ('skin_shed', 0, False), ('skin_shed', 1, True)]
+for model, var, hot in want:
+    for r in segs:
+        R = m.R(r)
+        if (R.type == 'tunnel_heiss') != hot or any(math.hypot(R.cx - x, R.cy - y) < 25 for _, x, y in traces):
+            continue
+        yaw = (0.0 if R.w > R.h else math.pi / 2) + (math.pi if t4.random() < 0.5 else 0.0)
+        if t4_place(model, R.cx, R.cy, R.floor, yaw, variant=var, r=1.3):
+            break
+hot_segs = [r for r in segs if m.R(r).type == 'tunnel_heiss']
+for r in hot_segs[:6]:
+    faces = [f for f in m.wall_faces(r, margin=1) if t4_free(f[0] + math.cos(f[2]) * 0.3, f[1] + math.sin(f[2]) * 0.3, 0.8)]
+    if faces and sum(1 for t, _, _ in traces if t == 'skin_scratches') < 5:
+        f = t4.choice(faces)
+        m.obj('skin_scratches', f[0], f[1], m.R(r).floor, f[2], tag='deco')
+        traces.append(('skin_scratches', f[0], f[1]))
+print('Spuren der Skin-Stealer:', ', '.join(f'{t} ({x:.0f}, {y:.0f})' for t, x, y in traces))
+
+# Death Rats (KREATUR_DeathRat.md; Wikidot Level 2: sie fressen die Fluessigkeiten in Faessern und Essensreste): neben
+# einem Teil der Faesser liegen Essensreste in einer Lache aus dem leckenden Fass (presence_rat_l2.cpp sucht beides)
+t4r = _random.Random(4403)
+# die Ebene hatte nur drei Faesser - die Seite nennt Oelfaesser auf Wagen in den Gaengen: Fassgruppen an Kammerwaenden
+barrel_spots = [tuple(o['pos'][:2]) for o in m.objects if o['model'] == 'barrel']
+rooms_b = [r for r in C.values() if m.R(r).type in ('kammer', 'lagerraum') and r != lair_room] + \
+          [r for r in segments if r is not None and min(m.R(r).w, m.R(r).h) >= 3]
+t4r.shuffle(rooms_b)
+for r in rooms_b:
+    if len(barrel_spots) >= 20:
+        break
+    R = m.R(r)
+    faces = [f for f in m.wall_faces(r, margin=1)]
+    t4r.shuffle(faces)
+    for (fx, fy, fyaw) in faces[:6]:
+        c_, s_ = math.cos(fyaw), math.sin(fyaw)
+        x, y = fx + c_ * 0.4, fy + s_ * 0.4
+        if any(math.hypot(x - p[0], y - p[1]) < 15 for p in barrel_spots) or math.hypot(x - m.start[0], y - m.start[1]) < 25:
+            continue
+        if m.in_door(math.floor(x), math.floor(y)) is not None or not t4_free(x, y, 0.75):
+            continue
+        if min(R.w, R.h) < 4 and not all(not m.blocked(fx + c_ * d_, fy + s_ * d_) for d_ in (0.5, 1.5)):
+            continue
+        n_ = t4r.choice((1, 2, 2, 3))
+        for j in range(n_):  # nebeneinander an der Wand
+            off = (j - (n_ - 1) / 2) * 0.62
+            px, py = x - s_ * off, y + c_ * off
+            if j and (m.at(px, py) != r or not t4_free(px, py, 0.3) or m.in_door(math.floor(px), math.floor(py)) is not None):
+                continue
+            m.obj('barrel', px, py, R.floor, t4r.uniform(0, 6.28), variant=t4r.randrange(3), tag='deco')
+        barrel_spots.append((x, y))
+        break
+food = 0
+for o in list(m.objects):
+    if o['model'] != 'barrel' or t4r.random() > 0.5:
+        continue
+    bx, by, bz = o['pos']
+    away = None
+    for (dx, dy) in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        if m.at(bx - dx * 0.75, by - dy * 0.75) < 0 and m.at(bx + dx * 0.9, by + dy * 0.9) >= 0:
+            away = (dx, dy)
+            break
+    if away is None:
+        continue
+    fx, fy = bx + away[0] * 0.55, by + away[1] * 0.55
+    if m.at(fx, fy) < 0 or m.in_door(math.floor(fx), math.floor(fy)) is not None or not t4_free(fx, fy, 0.42):
+        continue
+    m.obj('food_scraps', fx, fy, bz, math.atan2(away[1], away[0]) + t4r.uniform(-0.4, 0.4), variant=t4r.randrange(2), tag='deco')
+    food += 1
+print('Essensreste an Faessern:', food)
 m.save()
 print('Knicke mit Schraege:', chamfers)

@@ -59,7 +59,7 @@ bool Presence::spawnKin(Role r, const Context& c, std::vector<Event>& out) {
     const bool rat = r == Role::Rat;
     // ausser Sicht, 14..30 m Weg (Ratten 8..20 m); erlaubter Raum; Wretch bevorzugt das Dunkel (die Seite: im Schatten)
     vec3 p;
-    bool ok = false;
+    bool ok = rat && ratFoodSpawn(c, p);  // V13.3 Teil 4: Level 2 - nahe an Faessern und Essensresten, ausser Sicht
     const auto allowed = [&](vec3 q) { return roomAllowed(c, q, k); };
     for (int tries = 0; tries < 8 && !ok; ++tries) {
         // erst nah (14..30 m Weg), sonst weiter (Raeume der Art koennen weiter weg liegen - die Gaenge in Level 188)
@@ -504,6 +504,7 @@ void Presence::thinkRat(Agent& a, double dt, const Context& c, std::vector<Event
     const bool scare = d < (c.player->sprinting ? 6.0f : 3.0f) || (a.light > 0.5f && d < 6.0f);
     switch (a.state) {
         case 0: {  // schnueffeln, fressen, huschen
+            if (ratFeed(a, dt, c, out, scare)) break;  // V13.3 Teil 4: trinkt am Fass, frisst Reste (presence_rat_l2.cpp)
             if (a.provoke > 2.5 && d < 1.6f && a.cool <= 0.0) {  // bedraengt: beisst zu
                 a.reach = 1.0f;
                 a.cool = 3.0;
@@ -558,6 +559,7 @@ void Presence::placeWindows(const Context& c) {
     windowsPlaced_ = true;
     if (!c.kin || !c.kin[world::KIN_WINDOW].on) return;
     const world::KinDef& K = c.kin[world::KIN_WINDOW];
+    if (K.mode == "end") return;  // V13.3 Teil 4: Level 2 - Fenster entstehen an Gangenden (presence_window_l2.cpp)
     const world::Sector* sec = c.world->sectorIfReady(c.player->x, c.player->y);
     if (!sec) {
         windowsPlaced_ = false;  // spaeter noch einmal

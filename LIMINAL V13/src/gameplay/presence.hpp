@@ -291,6 +291,10 @@ public:
     bool showcasePos(vec3& pos, float& yaw) const;  // V13 (Tests): Lage der zuletzt gezeigten Vorfuehrung
     // V13.2 (Tests): Eigenschaft des ersten Wesens dieser Rolle setzen (hungry, pleads, mode, provoke) bzw. lesen (variant)
     bool kinSet(Role r, const std::string& key, double v);
+    // V13.3 Teil 4 (Tests, Skripte): naechster Auftritt eines Fensters am Gangende und einer Mottengruppe in Level 2 (s)
+    void l2Timers(double window, double moth) { nextWindowL2_ = window, nextMothL2_ = moth; }
+    // V13.3 Teil 4 (Tests): das i-te Wesen dieser Rolle (ohne Vorfuehrungen) - Ort, Zustand, Variante; false: keins
+    bool agentInfo(Role r, int i, vec3& pos, int& state, int& variant) const;
     int variantOf(Role r) const;
     vec3 headOf(Role r) const;  // V13.2 (Tests): Kopf des ersten Wesens dieser Rolle
     // V13.3: Growler - Staerke des telepathischen Rauschens beim Spieler dieses Rechners (0..1: Bild und Klang verzerrt),
@@ -436,6 +440,18 @@ private:
     bool spawnGoblin(const Context& c, std::vector<Event>& out, bool forced);
     void thinkGoblin(Agent& a, double dt, const Context& c, std::vector<Event>& out);
     void prepGoblin(Agent& a, const Context& c);  // Zustand, Groesse, Leuchten -> Animation (auch Puppen und Vorfuehrungen)
+    // V13.3 Teil 4, Level 2: Fenster am Gangende (presence_window_l2.cpp), kleine Motten an den Roehren
+    // (presence_moth_l2.cpp), Ratten an Faessern und Essensresten (presence_rat_l2.cpp)
+    bool windowL2(const Context& c) const;
+    void regieWindowL2(double dt, const Context& c, std::vector<Event>& out);
+    bool spawnWindowL2(const Context& c, std::vector<Event>& out, bool forced);
+    bool mothL2(const Context& c) const;
+    void regieMothL2(double dt, const Context& c, std::vector<Event>& out);
+    bool spawnMothL2(const Context& c, std::vector<Event>& out, bool forced);
+    void thinkMothL2(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    void prepMothL2(Agent& a);  // Massstab nach Variante (auch Puppen und Vorfuehrungen)
+    bool ratFoodSpawn(const Context& c, vec3& out);
+    bool ratFeed(Agent& a, double dt, const Context& c, std::vector<Event>& out, bool scare);
     bool roomAllowed(const Context& c, vec3 p, int kin) const;
     bool wander(Agent& a, double dt, const Context& c, double speed, int kin);
     // V13.3 (presence_lure.cpp): Smiler am Leuchtkoeder (true: das Licht hat ihn, der Rest von thinkSmiler entfaellt);
@@ -486,6 +502,8 @@ private:
     // V13.3: Plague Goblins - die Bande (Zustand in presence_goblin.cpp), naechster Auftritt
     std::shared_ptr<void> goblinCtl_;
     double nextGoblin_ = 50.0;
+    // V13.3 Teil 4, Level 2: naechstes Fenster, naechste Mottengruppe
+    double nextWindowL2_ = 45.0, nextMothL2_ = 8.0;
 };
 
 }  // namespace lim::game
