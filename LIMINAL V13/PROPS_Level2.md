@@ -25,20 +25,20 @@ Umbau auf das 15-m-Tunnelnetz). Bögen: `docs/screens/props/level2/vorher/<name>
 | door_level3 | 1 | Durchbruch | 1.01 x 0.98 x 2.52 | 396 | 1736 | 1 | 12: Blatt, Zarge, Beschlag, Bänder, Pinsel-„3“, Spuren … |
 | door_plywood | 1 | Wand | 0.09 x 1.06 x 2.10 | 644 | 2332 | 15 | 14: Sperrholz, Lagen hell/dunkel, nass, Bohle, Schloss, Sprühfarbe … |
 | door_steel_cream | 1 | Wand | 0.13 x 1.02 x 2.10 | 1064 | 1714 | 7 | 15: Blatt, Zarge, Beschlag, Sprühfarbe, Zettel, Klebeband … |
-| door_steel_grey | 1 | Wand | 0.13 x 1.02 x 2.10 | 1184 | 1482 | 14 | 17: Blatt, Zarge, Schließer, Trittblech, Blechschild … |
+| door_steel_grey | 1 | Wand | 0.13 x 1.02 x 2.10 | 1184 | 1482 | 14 | 17: Blatt (grauer Lack ohne Textur), Zarge, Schließer, Trittblech, Blechschild … |
 | door_steel_white | 1 | Wand | 0.13 x 1.02 x 2.10 | 1065 | 1426 | 4 | 17: Blatt, Zarge, Schließer, Warn- und Verbotsschild … |
 | door_window | 1 | Wand | 0.13 x 1.02 x 2.10 | 944 | 1320 | 9 | 14: Blatt, Glasleisten, schwarzes Glas, Kratzer … |
 | door_wood_old | 1 | Wand | 0.14 x 1.05 x 2.10 | 1292 | 2416 | 14 | 15: Altanstrich, vergrautes/faules Holz, Langbänder, Kastenschloss, Emailleschild … |
 | folding_chair | 1 | Boden | 0.44 x 0.41 x 0.86 | 328 | 1492 | 7 | 6: Rahmen, Sitz/Lehne, Kappen, Niete, Rost |
 | hopper_wagon | 1 | Boden | 2.17 x 1.37 x 1.35 | 348 | 6780 | 1 | 7: Rost (Trichter), Rahmen, Farbreste, Schotter, Steine … |
-| junction_box | 1 | Wand | 0.23 x 0.62 x 1.74 | 336 | 1792 | 271 | 13: Lack (Textur), verzinkt, Warnzeichen, Typenschild, Kreppband … |
-| mach_cabinet | 1 | Boden (Wand) | 0.57 x 1.01 x 2.17 | 956 | 3056 | 196 | 23: Lack, Sockel, Kunststoff, Meldeleuchten, Skalen, Ruß … |
-| mach_pump | 1 | Boden (Wand) | 0.88 x 1.50 x 1.69 | 1752 | 9014 | 3 | 23: Motor, Gehäuse, Grundrahmen, Druckrohr, Schutzblech, Ölauge … |
-| mach_tank | 1 | Boden (Wand) | 1.13 x 1.18 x 2.55 | 2624 | 6896 | 6 | 18: Kessellack (Textur), Schweißnähte, Rohr, Schieber, Messing … |
+| junction_box | 4 | Wand (Mitte 1,5 m) | v0 0.23 x 0.62 x 1.74, v1 0.19 x 0.30 x 1.77, v2 0.12 x 0.25 x 1.85, v3 0.14 x 0.33 x 2.80 | 336 | 1792/1998/1560/2146 | 271 (71/54/70/76) | 39: v0 Stahlblech (Textur); v1 Gusseisen, Porzellan, Bleimantel, Emaille; v2 Bakelit, Holzbrett, Bergmannrohr, Stoffkabel; v3 Kunststoff, Rauchglas, Kabelkanal, Filzstift … |
+| mach_cabinet | 3 | Boden (Wand) | v0 0.57 x 1.01 x 2.17, v1 0.64 x 0.88 x 2.07, v2 0.60 x 0.93 x 1.61 | 956 | 3056/4834/3236 | 196 (60/72/64) | 55: v0 Lack, Filterlüfter, Meldeleuchten; v1 Lack, Winkeleisen, Bakelit, Schiefer, Kupfer, Emaille; v2 Beige, Wangen, Bedienplatte, Prägeband, Leuchtmelder … |
+| mach_pump | 2 | Boden (Wand) | v0 0.88 x 1.50 x 1.69, v1 0.91 x 1.63 x 1.43 | 1752 | 9014/6828 | 3 (2/1) | 29: v0 Motor, Spiralgehäuse, Grundrahmen …; v1 Guss, Zierlinie, Messing, Lederriemen … |
+| mach_tank | 2 | Boden (Wand) | v0 1.13 x 1.18 x 2.55, v1 1.06 x 1.46 x 1.58 | 2624 | 6896/9600 | 6 (4/2) | 25: v0 Kessellack, Schweißnähte …; v1 Mennige (Textur), Gusssättel, Wasserglas, Kalk … |
 | pallet | 4 | Boden | 1.21 x 0.83 x 0.15 | 352 | 3154/5956/3140/6414 | 6 | 17: Holz (vier Töne), Brandstempel, Karton (trocken/innen/nass/Rand), Klebeband … |
 | pipe_bundle_a | 1 | Boden (Wand, oben) | 0.32 x 5.00 x 0.48 | 976 | 7168 | 49 | 16: Rohre grau/rot/gelb, Flansche, Schieber, Kompensator, Manometer … |
 | pipe_bundle_b | 1 | Boden (Wand, oben) | 0.28 x 5.00 x 1.12 | 732 | 5606 | 51 | 15: Alu-Mantel, Mineralwolle, Reparaturschelle, Kugelhahn … |
-| pipe_riser | 1 | Boden (Wand) | 0.37 x 0.46 x 2.11 | 820 | 4190 | 195 | 16: Lack (Textur), Kennringe, Alu-Mantel, Wolle, Schieber … |
+| pipe_riser | 2 | Boden (Wand) | v0 0.37 x 0.46 x 2.11, v1 0.32 x 0.41 x 2.13 | 820 | 4190/3808 | 195 (96/99) | 25: v0 Lack, Kennringe, Alu-Mantel, Wolle …; v1 Guss (Textur), Bleistemmung, Mörtel, verzinkt, Messing, Kalk, Weißrost … |
 | rail_track | 1 | Boden | 5.06 x 1.07 x 0.16 | 936 | 7048 | 22 | 9: Schiene (Rost), Schwellen, faule Enden, Schotterbett, Steine … |
 | stepladder | 1 | Boden | 0.70 x 0.46 x 1.63 | 312 | 2346 | 0* | 9: Alu, Kunststoff, Gummi, Aufkleber, Farbspritzer |
 | toolbox | 1 | Boden | 0.50 x 0.24 x 0.29 | 308 | 1410 | 2 | 7: roter Lack (Textur), Stahl, Fett, Rost |
@@ -53,9 +53,10 @@ Umbau auf das 15-m-Tunnelnetz). Bögen: `docs/screens/props/level2/vorher/<name>
 \* stepladder und trolley_flatbed stehen in der Liste `LOOSE` der Karte, wurden im aktuellen Zufallslauf aber nicht gesetzt;
 Bögen mit Ersatzeintrag im Abzug.
 
-**Dreiecke der Ebene:** Ausstattung gesamt 3,53 Mio. (`build/qa/props_level2.json`, 1837 Objekte, alle Klassen), vorher
-0,88 Mio. Die vielfach gesetzten Klassen sind bewusst sparsam: Verteilerkasten 271 × 1,8k, Schaltschrank 196 × 3,1k,
-Steigleitung 195 × 4,2k, Rohrbündel 100 × 5,6–7,2k, Röhren 481 × 0,6k.
+**Dreiecke der Ebene:** Ausstattung gesamt 3,65 Mio. nach der Nachforderung (Karte mit gewählten Varianten, 1827
+Objekte; vor den Varianten 3,53 Mio.), vorher 0,88 Mio. Die vielfach gesetzten Klassen sind bewusst sparsam:
+Verteilerkasten 271 × 1,6–2,1k, Schaltschrank 196 × 3,1–4,8k, Steigleitung 195 × 3,8–4,2k, Rohrbündel 100 × 5,6–7,2k,
+Röhren 481 × 0,6k.
 
 **Übersichten je Runde:** `docs/screens/level2/props_uebersicht_vorher.jpg`, `…_r1.jpg` … `…_r5.jpg`,
 `…_final.jpg`; kompakte Prüfbögen (zwei Nahansichten je Klasse, 50 cm im Licht und mit streifender Lampe):
@@ -142,13 +143,63 @@ Steigleitung 195 × 4,2k, Rohrbündel 100 × 5,6–7,2k, Röhren 481 × 0,6k.
 - Die Kabinen für Durchbruch und Ecke (door_level3, chamfer_26) zeigen im Studio vor allem Rückseiten. Geprüft wurde
   deshalb im Spiel (siehe r5).
 
+## Nachforderung: Bauarten aus verschiedenen Epochen
+
+Anlass: 196 gleiche Schaltschränke und 271 gleiche Verteiler widersprechen dem Wiki. Laut `LEVELSPEC_2.md` (Wände)
+stehen dort Maschinen „verschiedener Bauarten aus früheren Epochen, willkürlich gesetzt, nicht aufeinander abgestimmt“.
+
+**Varianten** (`build_<name>__vN` → `data/models/<name>@N.glb`). Jede Variante ist eine eigene Bauart mit eigener
+Silhouette, nicht nur umgefärbt:
+
+| Klasse | v0 (bisher) | neue Varianten |
+|---|---|---|
+| mach_cabinet | 1990er: grauer Schrank, zwei Türen, Sichtfenster, Filterlüfter (Lüftungsgitter) | **v1** 1950er Schalttafel aus genietetem Stahl: Unterschrank mit Lüftungsschlitzen, Knebelgriff und Emailleschild Hochspannung; schräges Pult mit offenem dreipoligem Messerschalter auf Schiefer; zurückgesetzte Tafel mit drei runden Zeigerinstrumenten, Paketschaltern und Meldelampen; Gesims, Winkeleisen mit Nietreihen. **v2** 1970er Steuerpult: beiger Kasten mit gerundeten Kanten und braunen Wangen, schräge Bedienplatte mit Kippschaltern und Prägeband, Drehknöpfe, Schlüsselschalter mit steckendem Schlüssel, Rückwand mit eckigen Leuchtmeldern (einer leuchtet noch), Profilinstrumente |
+| junction_box | gestrichenes Stahlblech mit Rohren zur Decke | **v1** 1930er Gusseisen mit zwei Porzellan-Schraubkappen, Panzerrohr, Bleikabel. **v2** 1950er Bakelit-Paketschalter auf Holzbrett, Bergmannrohr (Messingmantel), Stoffkabel zur Porzellan-Abzweigdose. **v3** Kunststoff neu: Klappdeckel mit Rauchglasfenster, Verschraubungen, Kabelkanal bis zum Boden, Filzstift „UV 2.3“ |
+| mach_pump | Normpumpe mit Drehstrommotor | **v1** 1920er Kolbenpumpe: Gussbett mit Zierlinie, Pumpenzylinder, Ventilkasten, Windkessel mit Manometer, Kreuzkopf in Gleitbahnen, Pleuel, Kurbelwelle in Stehlagern mit Messingölern, Schwungrad mit abgesprungenem Lederriemen |
+| mach_tank | stehender, geschweißter Druckbehälter | **v1** 1930er liegender Kessel, genietet: Mennige-Anstrich, Rund- und Längsnähte mit Nietreihen, Dom mit Hebelsicherheitsventil (Hebel, Gewicht), Mannloch mit Bügeln, Wasserstandsglas, Speiseleitung mit Schieber, Gusssättel |
+| pipe_riser | lackierte DN100 mit Schieber, gedämmte DN50 | **v1** Gussfallrohr DN150 mit Muffen (Bleistemmung), Reinigungsöffnung, Gussschellen; verzinkte DN25 mit Kugelhahn und Wasserzähler (aufgeklappter Deckel, Anhänger); undichte Muffe mit Rost- und Kalkfahne |
+
+**door_steel_grey:** jetzt schlichter grauer Lack ohne Textur. Mit `painted_metal_grey` wirkte die Tür rostig, mit
+`painted_metal_white` im warmen Licht weiß.
+
+**Karte** (`tools/levels/level2.py`): Nach allen Platzierungen wird je Objekt
+`variant = rng.randrange(n)` gezogen (`VARIANTS = {mach_cabinet: 3, junction_box: 4, mach_pump: 2, mach_tank: 2,
+pipe_riser: 2}`). Weil erst am Ende gezogen wird, bleibt die Anordnung der Ebene unverändert, nur die Bauart ändert
+sich. Verteilung im aktuellen Lauf: Schrank 60/72/64, Verteiler 71/54/70/76, Pumpe 2/1, Kessel 4/2, Steigleitung 96/99.
+
+**Runden** (Vergleichsbögen: je Klasse eine Zeile, Varianten nebeneinander, 50 cm und 2 m):
+- **var_r1** (`docs/screens/level2/props_varianten_r1.jpg`): Silhouetten klar verschieden.
+  - Die Lacktextur ergab auf dunklem Lack (Schalttafel, Kolbenpumpe) ein Tarnmuster aus Rostflecken.
+  - Steuerpult: Trittspuren lasen sich als Löcher, der Staubfilm machte die Bedienplatte hell.
+  - Weißer Kalkfleck unter dem Kessel, helle Staubflecken auf dem Pumpenbett.
+  - Die graue Tür wirkte weiß mit Rostflächen.
+  - Zwei Fehler der Objektprüfung: Blitzpfeil-Umriss überschnitt sich selbst; Fasen dicker als das Blech
+    (entartete Dreiecke).
+  - Änderungen:
+    - Lack ohne Textur, Rost als gezielte Flecken und Läufer.
+    - Trittspuren gedeckt, Staubfilm schmal.
+    - Kalk kleiner und dunkler; Staub dunkler.
+    - Kunststoffverteiler grauer und schmutziger, Schalttafel mit weniger Nieten.
+- **var_r2** (`…_r2.jpg`): Schalttafel türkis, Kolbenpumpe mintgrün (zu nah am grünen Motor von v0), Tür weiterhin
+  zu hell.
+  - Änderungen: Schalttafel dunkler grün, Kolbenpumpe schwarz mit roter Zierlinie, Tür mittelgrau.
+- **Stichprobe im Spiel** (`docs/screens/level2/props_varianten_spiel.jpg`, je Variante ein Vorkommen aus der Karte):
+  - Im selben Tunnel stehen Schalttafel und zwei Steuerpulte nebeneinander, so wie im Wiki.
+  - Gusseisen- und Bakelitverteiler hängen nebeneinander; der Kunststoffverteiler mit Kanal bis zum Boden.
+  - Das Gussfallrohr steht neben einem Steuerpult.
+  - Kolbenpumpe und liegender Kessel stehen frei in der Anlage; die graue Tür ist jetzt grau.
+  - Keine Durchdringungen mit den Rohrbündeln: Pult 1,61 m, Schalttafel 2,07 m, Bündel ab 2,13 m.
+- **final** (`…_final.jpg`, Bögen `docs/screens/props/level2/final/<klasse>_v<N>.jpg`, Übersicht
+  `docs/screens/level2/props_uebersicht_final_varianten.jpg`): keine neuen Befunde.
+
 ## Prüfungen
-- `python tools/qa/validate_models.py <alle eigenen Klassen>`: 41 Modelle, 0 Fehler. Gesamtlauf: 356 Modelle, 72 mit
+- `python tools/qa/validate_models.py <alle eigenen Klassen>`: 41 Modelle, 0 Fehler; nach der Nachforderung 49 Modelle
+  (mit den 8 neuen Varianten), 0 Fehler. Gesamtlauf: 356 Modelle, 72 mit
   Fehlern. Die Fehler betreffen Wesen und andere Ebenen, dazu das ungenutzte V12-Modell `door_oversize`, das nicht neu
   gebaut wurde.
 - `gameplay_test`: 525 Prüfungen, 0 Fehler. „Halt der Ausstattung“: level2 1507 Objekte, 0 ohne Halt; gesamt 10493, 0
-  ohne Halt.
-- `python tools/qa/room_metrics.py --check`: Raummetrik OK, Level 2 verstellt 0/181.
+  ohne Halt (auch nach der Nachforderung).
+- `python tools/qa/room_metrics.py --check`: Raummetrik OK, Level 2 verstellt 0/181 (auch nach der Nachforderung).
 
 ## Restmängel (ehrlich)
 - **Kartenkollisionen**, nicht im Modell lösbar:
@@ -163,11 +214,15 @@ Steigleitung 195 × 4,2k, Rohrbündel 100 × 5,6–7,2k, Röhren 481 × 0,6k.
   Glas.
 - **Studiogrenzen**: Bei Wandobjekten, die die Karte als Bodenobjekte führt (Schrank, Pumpe, Kessel, Bündel,
   Steigleitung), steht im Studio keine Wand dahinter. Wandläufer schweben dort sichtbar in der Luft.
-- **Stückzahl und Wiederholung**: Je Klasse gibt es eine Fassung. 271 gleiche Verteiler und 196 gleiche Schränke
-  wiederholen sich sichtbar. Varianten wären besser, kosten aber Dreiecke.
-- door_steel_grey ist durch die Lacktextur stark rostig, eher „rostig mit grauem Lack“ als „grau“.
+- **Wiederholung**: Schrank (3), Verteiler (4), Pumpe, Kessel und Steigleitung (je 2) haben jetzt Bauarten aus
+  verschiedenen Epochen. Rohrbündel, Röhren und die übrigen Klassen gibt es weiter nur in einer Fassung.
+- **Maße der Varianten**: Die Schalttafel (v1) ragt mit dem Messerschaltergriff 0,64 m vor die Wand (Karte rechnet mit
+  0,6 m). Die Kolbenpumpe (v1) ist 1,63 m breit, mit dem Riemen auf dem Boden. Die Raummetrik bleibt grün.
+- In der freien Anlagenhalle enden die Wandanschlüsse der Varianten wie bei v0 in der Luft, weil dort keine Wand
+  dahinter steht.
 - Die Tür nach Level 3 ist im Studio kaum zu beurteilen. Im Spiel wurde nur aus einer Richtung geprüft.
 
 ## Aufwand
 - Etwa 13 Stunden Agentenzeit (27.10. ca. 9 h bis Runde r1, 01.11. ca. 4 h für Merge, Macchina, r2–r5, final, Tests).
 - Runden: vorher, Testbögen, r1–r5, final (7 Kontaktbogen-Läufe über alle Klassen, dazu Einzeltests).
+- Nachforderung Varianten: etwa 2 Stunden, Runden var_r1, var_r2, Stichprobe im Spiel, final.
