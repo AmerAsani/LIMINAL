@@ -414,3 +414,23 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
   - eine 2 cm tiefe Öffnung im Bündchen (Wand 3–4 mm, im Netz zerfranst);
   - Beugefalten mit 3,4 mm Tiefe (zu viele umgeklappte Dreiecke bei 160° Beugung, Test B-001);
   - eine Mischzone am Ellbogen von ±3 cm (48 umgeklappte Dreiecke von außen, Grenze 46).
+
+## E-034 Abnahme-Reihenfolge mit vorgezogener Asset-Arbeit (V13.3, 27.10.2026)
+
+- **Auftrag:** Die Ebenen werden in der Reihenfolge 1, 2, 3, 0, 5, 5.3, 188, 903, 37, 36 abgenommen (Schranken a–g).
+- **Entscheidung:**
+  - Die Abnahmen (Kritikrunden der Ebene, Laufweg, Prüfungen, Aufwand) laufen streng in dieser Reihenfolge im Hauptstrang.
+  - Ausstattung und Wesen späterer Ebenen dürfen vorher in eigenen Zweigen entstehen (höchstens drei Agenten gleichzeitig).
+  - Eine Ebene gilt erst als abgenommen, wenn ihre eigenen Runden mit den zusammengeführten Assets gelaufen sind.
+- **Grund:** Blender-Modelle und Wesen brauchen Stunden je Klasse. Nacheinander ließe sich das nicht schaffen. Die Reihenfolge bestimmt, was zuerst fertig und geprüft ist, nicht was zuerst begonnen wird.
+
+## E-035 Raummetrik: Grenzen je Ebene und Messkorrektur (V13.3, 27.10.2026)
+
+- **Grenzen:** Die Grenzen stehen in `tools/qa/metric_limits.json` und sind je Ebene aus dem Wiki-Strukturtyp abgeleitet (`STRUKTURTYP.md`).
+  - Labyrinthe mit Gängen (Level 2, 3) haben kürzere Sichtachsen als Hallen.
+  - Level 5 nimmt Kesselgänge und Aufzugskabinen von der Gangbreite aus (Wiki: eng). Level 188 erlaubt kein Notausgangsschild.
+- **Korrektur (27.10.):** `maplib.Grid` zählte sichtbare Blöcke als begehbar und durchsichtig, also auch freistehende Wandscheiben.
+  - Neu: Begehbarkeit sperren verdeckte Blöcke, Gruben und sichtbare Blöcke ab 1,5 m. Niedrigere Blöcke sind Podeste, z. B. der Bahnsteig in Level 903.
+  - Sicht auf Augenhöhe sperren Wände, Stützen und Blöcke ab 1,5 m.
+  - Nach der Korrektur verletzte nur Level 1 eine Grenze (Sichtachse P90 79,7 m < 85 m). Die Aquila-Wandscheiben wurden von 12–18 m auf 6 m gekürzt.
+- **Grund:** Eine Grenze, die eine falsche Messung besteht, beweist nichts. Die Messung wurde korrigiert, nicht die Grenze gelockert.

@@ -354,6 +354,23 @@ for k, s in enumerate(pipe_segs):
             m.obj('gauge', fx, fy, R.floor + 1.5 + rng.random() * 0.3, fyaw, variant=rng.randrange(2))
     for x in range(R.x0 + 2, R.x1 - 1, 5):
         m.light(s, x + 0.5, R.cy, 0, 0.5 - 0.2 * dens, 3.6, z=top - 0.05, panel=True, color=WARM)
+    # V13.3 (Kritikrunde 5): 140 m gleicher Rohrgang - alle 10-18 m eine Stelle mit Fallrohr bis zum Boden, Leck mit
+    # Pfuetze, Verteiler; die Dichte steigt wie die der Rohre zum Uebergang nach Level 2
+    faces = m.wall_faces(s, margin=1)
+    nxt = R.x0 + rng.randint(4, 9)
+    for (fx, fy, fyaw) in sorted(faces, key=lambda f: f[0]):
+        if fx < nxt or abs(math.sin(fyaw)) < 0.5:
+            continue
+        nxt = fx + rng.randint(10, 18) - 6 * dens
+        v_ = rng.randrange(2)
+        px, py = fx + math.cos(fyaw) * 0.15, fy + math.sin(fyaw) * 0.15
+        for zc in range(int(top - 0.3)):
+            m.obj('pipe_drop', px, py, R.floor + zc + 0.5, fyaw, variant=v_, tag='pipes')
+        if rng.random() < 0.5 + 0.4 * dens:
+            m.spawn('deco', px + math.cos(fyaw) * 0.4, py + math.sin(fyaw) * 0.4, R.floor, rng.random() * 6.28, set='puddle',
+                    weight=1.0)
+        if rng.random() < 0.4:
+            m.obj('junction_box', fx + 0.9, fy, R.floor + 1.5, fyaw, tag='deco')
 
 # --- Hallen: Rohre unter der Decke, Pfuetzen darunter, Kisten, Haufen, Schaltkaesten, Tische, farbige Stuetzen -----
 for r in aquila:
@@ -526,7 +543,7 @@ for r in [fabled] + fab_rooms:
             v = m.rng.randrange(4)
             m.obj('neon_tube', fx, fy, R.floor + 2.4, fyaw, variant=v, tag='light')
             col = [(1.0, 0.25, 0.3), (0.3, 1.0, 0.45), (0.35, 0.5, 1.0), (0.75, 0.35, 1.0)][v]
-            m.light(r, fx + math.cos(fyaw) * 0.3, fy + math.sin(fyaw) * 0.3, 1, 0.55, 5.0, int(round(math.cos(fyaw))),
+            m.light(r, fx + math.cos(fyaw) * 0.3, fy + math.sin(fyaw) * 0.3, 1, 0.8, 6.5, int(round(math.cos(fyaw))),  # V13.3 Runde 6: 0,55/5 m
                     int(round(math.sin(fyaw))), z=R.floor + 2.4, panel=False, color=col)
         elif m.rng.random() < 0.06:
             m.obj('neon_sign', fx, fy, R.floor + 2.0, fyaw, variant=m.rng.randrange(2), tag='light')
@@ -544,8 +561,8 @@ for r in [fabled] + fab_rooms:
             if not any(m.blocked(px + dx, py + dy) for dx in (-0.6, 0, 0.6) for dy in (-0.6, 0, 0.6)):
                 m.obj(name, px, py, R.floor, a_)
     if r != fabled:
-        bulb(r, inten=0.45, radius=3.6)
-battens(fabled, 8, 8, 0.45, 6.0, WARM, 0.5)
+        bulb(r, inten=0.7, radius=4.5)  # V13.3 Runde 6: Kammern waren schwarz (0,45/3,6 m)
+battens(fabled, 7, 7, 0.6, 7.0, WARM, 0.35)  # V13.3 Kritikrunde 5: war bis auf die Neonroehren schwarz
 
 # --- Funde, Notizen, Wesen, Sicherungspunkte ------------------------------------------------------------------------
 for (r, px, py) in crate_spots[::2]:
@@ -612,6 +629,24 @@ for r in maze + pipe_segs:
         py = (R.y1 - 0.6 if r in pipe_segs else R.cy) if along_x else R.y0 + k + 0.5
         if all(math.hypot(px - l[0], py - l[1]) > 1.3 for l in R.lights) and not m.blocked(px, py):
             m.obj('ceiling_vent', px, py, R.floor + R.height, 0.0 if along_x else math.pi / 2, variant=rng.randrange(2), tag='deco')
+# V13.3 (Kritikrunde 4): Gaenge sind laut Wiki schwach beleuchtet, waermer, mit weniger Pfuetzen und kaum Vorraeten - sie
+# bleiben karg; nur kleine Variation: vereinzelte Dosen, Verteiler und Gitter an den Waenden, selten eine Pfuetze
+for r in maze:
+    R = m.R(r)
+    if min(R.w, R.h) > 3 or m.R(r).zone != 'gaenge':
+        continue
+    for (fx, fy, fyaw) in m.wall_faces(r, margin=1):
+        q = rng.random()
+        if q < 0.025:
+            m.obj('outlet', fx, fy, R.floor + 0.3, fyaw, tag='deco')
+        elif q < 0.04:
+            m.obj('junction_box', fx, fy, R.floor + 1.7 + rng.random() * 0.5, fyaw, tag='deco')
+        elif q < 0.05:
+            m.obj('vent_grille', fx, fy, R.floor + 0.35, fyaw, tag='deco')
+    if max(R.w, R.h) >= 4 and rng.random() < 0.06:
+        px, py = R.x0 + 0.5 + rng.random() * (R.w - 1), R.y0 + 0.5 + rng.random() * (R.h - 1)
+        if not m.blocked(px, py):
+            m.spawn('deco', px, py, R.floor, rng.random() * 6.28, set='puddle', weight=1.0)
 # V13.3: Wesen nach den Sicherungspunkten setzen (Abstand >= 17 m)
 # Hounds und Clumps streifen durch die Hallen (Wiki); Smiler kommen mit dem Flackern (Regie)
 for r in aquila + gothic + gd + [ouro, fabled] + garden:
@@ -623,4 +658,14 @@ for r in aquila + gothic + gd + [ouro, fabled] + garden:
             if not m.blocked(px, py) and math.hypot(px - m.start[0], py - m.start[1]) > 30 and far:
                 m.spawn('entity', px, py, R.floor, role=rng.choice(['hound', 'hound', 'clump']), tags=['hall'])
                 break
+# V13.3: Wandteile im Rohrgang entstehen vor der spaeter angelegten Tuer nach Fabled - Teile vor einer Tuer entfernen
+# (Fallrohre haben keine Halt-Regel und wuerden die Tuer verstellen)
+def _before_door(o):
+    x, y, _z = o['pos']
+    c, s_ = math.cos(o.get('yaw', 0.0)), math.sin(o.get('yaw', 0.0))
+    back = 0.4 if o['model'] == 'pipe_drop' else 0.25
+    return m.in_door(math.floor(x - c * back), math.floor(y - s_ * back)) is not None
+
+
+m.objects = [o for o in m.objects if not (o['model'] in ('gauge', 'junction_box', 'pipe_drop') and _before_door(o))]
 m.save()

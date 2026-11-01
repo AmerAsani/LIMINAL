@@ -45,3 +45,40 @@ Winkeln (162–173), Ouroboros-Baustelle unverändert gut. Neue Befunde:
 2. Korrigierte Messung aller Ebenen: nur Level 1 verletzt eine Grenze (Sichtachse P90 79,7 m < 85 m) – die Wandscheiben
    waren 12–18 m lang. Gekürzt auf 6 m: Median 36,8 m, P90 86,2 m, Raummetrik aller zehn Ebenen grün; Ähnlichkeit und
    Schilder unverändert grün.
+
+## Runde 4 (Gänge, `--seed 11`: 236 m durch 18 Räume, Bögen `wegbilder_r4_*`)
+
+Befund: Die Gänge sind wie im Wiki eng, schwach beleuchtet, warm und fast leer; die Zimmer (Polster, Bilder, Ziegel,
+Kranken) lesen sich gut. Sie sind aber auf langen Strecken steril: keine Dose, kein Kasten, keine Pfütze.
+Änderung: kleine Variation, ohne den Charakter zu ändern:
+- Steckdosen, Verteiler und Gitter an 5 % der Wandkacheln;
+- in 6 % der Gangstücke eine Pfütze (Wiki: in den Gängen weniger Pfützen als in den Hallen);
+- auf Wunsch des Duller/Arms-Agenten Deckenlüftungen in Gängen und im Rohrgang (21–29 je nach Karte), als Lager für die Arms.
+
+## Runde 5 (Fabled und Rohrgang, neuer Schalter `walkway.py --zone fabled`: 447 m durch 15 Räume, `wegbilder_r5_*`)
+
+Befunde:
+1. **Fabled fast schwarz** (000–035): Nur die Neonröhren sind sichtbar; Holz und Zinnoberrot gehen verloren.
+2. **Rohrgang eintönig** (072–107): 140 m derselbe Querschnitt. Rohre an einer Wand, Messuhren, sonst nichts.
+Änderungen:
+- Fabled: Leuchtbänder 7 m statt 8 m, 0,6 statt 0,45, 35 % statt 50 % tot; Nebel 0,045 → 0,03, Grundlicht 0,035 → 0,05.
+- Rohrgang: alle 10–18 m (zum Übergang nach Level 2 dichter) eine Stelle mit Fallrohr bis zum Boden (`pipe_drop`,
+  bisher ungenutztes Modell), einem Leck mit Pfütze und einem Verteiler.
+- Wandteile vor einer erst später angelegten Tür (Rohrgang → Fabled) werden entfernt; sonst stünde ein Fallrohr vor der Tür.
+
+## Runde 6 (gleicher Weg, `wegbilder_r6_*`)
+
+Nachweis Rohrgang: Fallrohre, Verteiler und Pfützen gliedern den Gang (055–063). Neuer Befund: Die Fabled-Kammern
+(010, 014, 036–041) sind weiterhin fast schwarz, die Halle nur in Lichtinseln lesbar.
+Änderung: Neonröhren 0,55 → 0,8 (Reichweite 5 → 6,5 m), Kammer-Glühbirnen 0,45 → 0,7 (3,6 → 4,5 m), Grundlicht 0,065.
+
+## Runde 7 (gleicher Weg, `wegbilder_r7_*`)
+
+Nachweis: Fabled lesbar – Täfelung, zinnoberrote Schränke, Tische, Bänke und Paravents, Neonröhren und -schilder, farbige
+Kabel von der Decke (008, 012, 013, 018, 034, 035). Die Halle bleibt dunkel mit Lichtinseln (gewollt: dunkelster
+Wohnbereich). Keine weiteren Befunde, die eine Änderung verlangen.
+
+## Abnahme d)
+
+7 Runden über alle Bereiche: Aquila, Gothic, Gild, Garden, Ouroboros, Fabled, Gänge mit Zimmern und Rohrgang.
+Laufweg e): 836 m durch 18 Räume, alle 4 m ein Bild (r1–r3).

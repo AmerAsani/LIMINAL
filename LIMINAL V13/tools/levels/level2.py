@@ -238,9 +238,9 @@ for r in segments:
     if max(R.w, R.h) >= 4:
         if R.zone == 'brownout':  # V13.3: Dauer-Brownout - wenige, schwache, flackernde Roehren
             R.kw['flicker'] = 1
-            tube_run(r, ORANGE, step=4, dead_group=0.55)
+            tube_run(r, ORANGE, step=4, dead_group=0.45)  # V13.3 Kritikrunde 1: war schwarz (0,55 tot, 0,35)
             for l_ in R.lights:
-                l_[3] = 0.35
+                l_[3] = 0.45
             continue
         tube_run(r, ORANGE if R.zone == 'heiss' else (WHITE if R.zone == 'beton' or rng.random() < 0.6 else ORANGE))
 tube_run(gleis, WHITE, step=4, dead_group=0.35, lit_near=(m.start[0], m.start[1]))
@@ -271,7 +271,7 @@ m.obj('tube_white', vr.cx, vr.cy, vr.floor + vr.height, 0.0, tag='light')
 m.light(vor3, vr.cx, vr.cy, 0, 0.7, 4.0, z=vr.floor + vr.height - 0.12, panel=False, color=WHITE)
 # violette Notlichter (seit dem Ausfall, vereinzelt; eigene Batterie)
 for r in list(junctions.values()) + [gleis]:
-    if rng.random() < (0.12 if r != gleis else 1.0):
+    if rng.random() < (1.0 if r == gleis else 0.5 if m.R(r).zone == 'brownout' else 0.12):  # V13.3: im Brownout oefter
         faces = m.wall_faces(r, margin=0)
         for (fx, fy, fyaw) in (rng.sample(faces, min(len(faces), 6 if r == gleis else 1)) if faces else []):
             m.obj('violet_lamp', fx, fy, m.R(r).floor + 2.1, fyaw, tag='emergency')
@@ -314,7 +314,8 @@ def furnish_tunnel(r):
     width = min(R.w, R.h)
     other_ok = width >= 3
     max_depth = width - 1.0 - 0.37 - (0.6 if other_ok else 0.0)
-    for yaw, rl in runs.items():
+    # V13.3: Maschinenseite zuerst, damit Tueren gegenueber ihren Platz pruefen koennen
+    for yaw, rl in sorted(runs.items(), key=lambda kv: kv[0] != mach_side):
         c, s = math.cos(yaw), math.sin(yaw)
         for run in rl:
             k = 0
@@ -335,6 +336,11 @@ def furnish_tunnel(r):
                     k += n + 1
                     continue
                 if u < 0.22 and yaw != mach_side:
+                    # V13.3 (Kritikrunde 1): keine Tuer gegenueber einer Maschine in engen Tunneln (Weg < 0,9 m)
+                    if width < 3 and any(m.blocked(fx + c * (width - 0.5) - s * d, fy + s * (width - 0.5) + c * d)
+                                         for d in (-0.7, 0.0, 0.7)):
+                        k += 1
+                        continue
                     m.obj(rng.choice(DOORS), fx, fy, R.floor, yaw, tag='deco')
                     k += 3
                     continue

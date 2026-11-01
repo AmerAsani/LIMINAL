@@ -184,7 +184,7 @@ def tubes(r, step=4, inten=0.55, radius=4.5, color=DIM, dead=0.25, bulb_chance=0
 
 
 for r in gaenge:
-    tubes(r, step=4 if m.R(r).w > 2 and m.R(r).h > 2 else 5)
+    tubes(r, step=4, dead=0.2)  # V13.3 Kritikrunde 1: enge Gaenge hatten 5 m und 25 % tot - lange Strecken unlesbar
 for r in (abgang, buero, vor):
     tubes(r, step=3, inten=0.6, dead=0.0, bulb_chance=0.0)
 R = m.R(kab)
