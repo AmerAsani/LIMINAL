@@ -160,8 +160,10 @@ CreatureSkeleton gb::makeSkeleton() {
     for (int q = 0; q < kStrands; ++q) {
         const vec3 d = strandDir(q);
         k.j(cloakJ(q, 0), vec3{0.03f, 0, 0.44f} + d * 0.062f);
-        k.j(cloakJ(q, 1), vec3{0.0f, 0, 0.28f} + d * 0.1f);   // Runde 1: bis zum Boden ein dunkler Kegel - jetzt knielang
-        k.j(cloakJ(q, 2), vec3{-0.01f, 0, 0.14f} + d * 0.122f);
+        // Runde 1: bis zum Boden ein dunkler Kegel; Runde 6: knielang noch immer Glocken wie Spielfiguren - jetzt ein Cape bis zur
+        // Huefte, darunter die geschuppten Vogelbeine
+        k.j(cloakJ(q, 1), vec3{0.0f, 0, 0.31f} + d * 0.092f);
+        k.j(cloakJ(q, 2), vec3{-0.01f, 0, 0.2f} + d * 0.108f);
     }
     k.j(CANE_A, {0.13f, -0.105f, 0.0f});
     k.j(CANE_B, {0.10f, -0.095f, 0.36f});
@@ -671,8 +673,8 @@ void CreatureAnimator::updateGoblin(float dt, const Input& in) {
             const vec3 dk = strandDir(k);
             const vec3 radial = nrmG(tFwd * dk.x + L * dk.y, F);
             const vec3 anchor = ringC + radial * (0.062f * S);
-            const vec3 midRest = J[PELVIS] + tUp * (0.065f * S) + radial * (0.1f * S);
-            vec3 hemRest = midRest + radial * (0.025f * S) - U * (0.14f * S);
+            const vec3 midRest = J[PELVIS] + tUp * (0.095f * S) + radial * (0.092f * S);
+            vec3 hemRest = midRest + radial * (0.018f * S) - U * (0.11f * S);
             // gespreizt: die vorderen und seitlichen Saeume folgen den Haenden nach aussen
             if (g.flare > 0.01f && (k <= 1 || k >= 4)) {
                 const int s = k <= 1 ? 0 : 1;

@@ -84,7 +84,7 @@ def cloak_disp(Q):  # grobes Tuch: Koeper, Knitter, Flicken-Kanten; der Saum zer
     weave = 0.00035 * np.sin(Q[:, 0] * 900.0 + Q[:, 1] * 900.0) * np.sin(z * 700.0)
     crum = -0.0012 * sdf.ridged(Q * np.array([1.0, 1.0, 0.6]), 30, 2, seed=2531)
     rag = sdf.fbm(Q * np.array([1.0, 1.0, 0.35]), 22, 3, seed=2532)
-    hem = np.clip((0.215 - z) / 0.07, 0.0, 1.0)
+    hem = np.clip((0.275 - z) / 0.07, 0.0, 1.0)
     holes = np.where(rag * hem > 0.22, 0.012 * hem, 0.0)
     return weave + crum + holes
 
@@ -292,8 +292,8 @@ def cloak_groups(J, caste, rng):
         a = STRAND_ANG[k]
         d = np.array([math.cos(a), math.sin(a), 0.0])
         Ak, Mk, Hk = J[cloakJ(k, 0)], J[cloakJ(k, 1)], J[cloakJ(k, 2)]
-        if caste == 2:
-            Hk = Hk + (Hk - Mk) * 0.25 - Z * 0.02
+        if caste == 2:  # das feinere Cape der Torwaechterin reicht tiefer
+            Hk = Hk + (Hk - Mk) * 0.7 - Z * 0.02
         # Runde 2: jede Bahn war ein flaches Brett (Pappe) - jetzt drei schmale, gegeneinander versetzte Streifen je Bahn: runde
         # Falten, die nach unten tiefer werden
         tg = np.array([-math.sin(a), math.cos(a), 0.0])
@@ -334,8 +334,9 @@ def mask_groups(J, caste, rng):
     # Zaehne bleiben ganz darin)
     tip = np.array([0.33, 0, 0.449])
     bk = [np.array([0.145, 0, 0.505]), np.array([0.235, 0, 0.477]), tip]
-    m += shell + [A.tube(B_MASK, bk[0], bk[1], (0.03, 0.04), (0.016, 0.026), k=0.02),
-                  A.tube(B_MASK, bk[1], tip, (0.016, 0.026), (0.003, 0.0045), k=0.01),
+    # Runde 7: die groesseren Saegezaehne stachen unten durch den Maskenschnabel - er ist unten tiefer
+    m += shell + [A.tube(B_MASK, bk[0] - Z * 0.004, bk[1] - Z * 0.004, (0.032, 0.047), (0.019, 0.031), k=0.02),
+                  A.tube(B_MASK, bk[1] - Z * 0.004, tip, (0.019, 0.031), (0.003, 0.0045), k=0.01),
                   A.cone(B_MASK, tip, tip + np.array([0.008, 0, -0.008]), 0.0035, 0.0008, k=0.004)]
     m.append(A.ell(B_MASK, (0.113, 0, 0.515), X, (0.036, 0.046, 0.054), op='sub', k=0.004))  # hinten offen (Schale)
     if caste == 0:  # glatt, ohne Merkmale - nur zwei schmale Schlitze, durch die die Augen schimmern
