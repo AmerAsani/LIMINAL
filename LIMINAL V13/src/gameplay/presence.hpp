@@ -135,6 +135,10 @@ public:
             Spill,       // ein toter Goblin verliert, was er im Umhang trug (item: was; die Sitzung legt es hin)
             Gift,        // Handel: die Bande legt etwas hin (item: was)
             Perish,      // ein Goblin stirbt (Todesschrei); die anderen fliehen
+            // V13.3: Leuchtkoeder und Ansprechen (KREATUR_Smiler.md, KREATUR_SkinStealer.md)
+            Lured,       // Smiler wendet sich dem staerkeren Licht eines Leuchtstabs zu (strength 1: folgt, 0: stutzt nur)
+            Reply,       // Skin-Stealer antwortet auf das Ansprechen - nachgeahmt, falsch betont (strength: (Satz*3+Art+0,5)/16)
+            Shriek,      // Skin-Stealer: die Tarnung faellt, er stuermt los (Rennen, erneutes Ansprechen, zu lange Naehe)
         } type;
         Role role = Role::Smiler;
         vec3 pos;
@@ -162,6 +166,12 @@ public:
         double health = 100.0;                           // V13.3: Geschwaechte (die Seite: Allein, Schwache) werden bedraengt
     };
 
+    // V13.3: Leuchtkoeder - geworfener, leuchtender Leuchtstab: Ort und Leuchtkraft (die eingeschaltete Lampe zaehlt 1)
+    struct Lure {
+        vec3 pos;
+        float strength = 0.0f;
+        int id = 0;
+    };
     struct Context {
         const Player* player = nullptr;
         Viewer view;
@@ -202,6 +212,9 @@ public:
         bool hatchet = false;
         const std::vector<Loose>* loose = nullptr;
         double health = 100.0;
+        // V13.3 (KREATUR_Smiler.md): leuchtende Leuchtstaebe; Smiler folgen dem staerkeren Licht (0) oder stutzen nur (1, Level 3)
+        const std::vector<Lure>* lures = nullptr;
+        int smilerBait = 0;
     };
 
     // V13.2 Koop: Zustand eines Wesens fuer die Momentaufnahme (Host) und die Puppe beim Gast
@@ -329,6 +342,13 @@ public:
     int goblinSwing(int target, vec3 eye, vec3 look);
     GoblinInfo goblinInfo() const;
     bool goblinSet(const std::string& key, double v);
+    // V13.3 Ansprechen (KREATUR_SkinStealer.md): die menschenaehnliche Gestalt (Skin-Stealer, Faceling, Wretch), die man
+    // von eye aus in Blickrichtung look in hoechstens maxDist m ansieht (beim Gast: Puppen); head: ihr Kopf
+    bool speakable(world::World& w, vec3 eye, vec3 look, float maxDist, vec3* head = nullptr) const;
+    // ein Spieler spricht sie an (Einzelspieler/Host; by: Spieler, phrase: welcher Satz) - nur der Skin-Stealer antwortet
+    bool address(world::World& w, vec3 eye, vec3 look, int by, int phrase);
+    bool exposedOf(Role r) const;  // V13.3 (Tests): Skin-Stealer entlarvt (hat verraeterisch geantwortet)
+    bool luredOf(Role r) const;    // V13.3 (Tests): Smiler folgt gerade einem Leuchtstab
 
 private:
     struct Agent;
@@ -418,6 +438,10 @@ private:
     void prepGoblin(Agent& a, const Context& c);  // Zustand, Groesse, Leuchten -> Animation (auch Puppen und Vorfuehrungen)
     bool roomAllowed(const Context& c, vec3 p, int kin) const;
     bool wander(Agent& a, double dt, const Context& c, double speed, int kin);
+    // V13.3 (presence_lure.cpp): Smiler am Leuchtkoeder (true: das Licht hat ihn, der Rest von thinkSmiler entfaellt);
+    // Skin-Stealer angesprochen (true: diese Runde erledigt)
+    bool baitSmiler(Agent& a, double dt, const Context& c, std::vector<Event>& out, float d, bool dark);
+    bool talkSkinStealer(Agent& a, double dt, const Context& c, std::vector<Event>& out, float d, bool los);
     void updateHive(double dt, const Context& c, std::vector<Event>& out);
     bool walkTo(Agent& a, const NavField& f, double speed, double dt, const Context& c);
     bool hiddenSpawn(const Context& c, int lo, int hi, bool behind, vec3& out, const std::function<bool(vec3)>& ok = {});

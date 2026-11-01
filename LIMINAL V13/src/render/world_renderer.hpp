@@ -72,6 +72,7 @@ enum FixedMaterial : u32 {
     FM_ENT_PG_HAT, FM_ENT_PG_SILVER, FM_ENT_PG_SAND, FM_ENT_PG_VOID, FM_ENT_PG_RIM, FM_ENT_PG_LOOT,
     FM_ENT_PG_SKIN,  // Runde 2: das kahle Gesicht unter der Maske (die Maske hat die Federn abgerieben - Auslegung)
     FM_ITEM_HATCHET_WOOD, FM_ITEM_HATCHET_HEAD,
+    FM_ITEM_GLOWSTICK, FM_ITEM_GLOWSTICK_LIT, FM_ITEM_GLOWSTICK_DIM, FM_ITEM_GLOWSTICK_CAP,  // V13.3: Leuchtstab (Koeder)
     FM_FIG_END,
 };
 static_assert(FM_FIG_END <= kFixedMaterials);

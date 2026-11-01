@@ -33,7 +33,8 @@
                // ohne Portal; every: Abstand der Auftritte, s; chance: Anteil der Banden, die einem Geschwaechten zusetzen)
                "goblin": { "group": [9, 12], "every": 260, "chance": 0.6 } },
   "next_level": "level2",
-  "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0 },
+  // V13.3 (KREATUR_Smiler.md): Leuchtstaebe liegen herum, eher in dunklen Raeumen - Koeder fuer Smiler
+  "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0, "glowstick": 0.015, "glowstick_dark": 0.08 },
 
   "zones": [
     { "key": "aquila", "name": "Aquila",
@@ -191,6 +192,10 @@
     "deco":    { "chance": 0.75 },
     "fusebox": { "count": [0, 0] }
   },
+
+  // V13.3: Erscheinungen ohne Figur (gameplay/phenomena.hpp; Orte: Spawnpunkte "trace" der Karte) - Crawler-Pilz,
+  // Garden-Verwandlung, Gemaelde vor den Hallentueren mit der Spielleiterin (Entity 99), Spuren an einer Zimmertuer
+  "phenomena": { "fungus": true, "garden": true, "paintings": true, "jester": true, "claws": true, "painting_count": 4 },
 
   // Klang (Wiki: still und hallend, Scheppern und Grollen durch die Rohre unter der Decke; Tropfen in Pfuetzen)
   "audio": {

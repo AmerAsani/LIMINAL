@@ -1032,6 +1032,30 @@ std::vector<u8> generateItemIcon(const std::string& kind, int size) {
                 const float hl = std::exp(-std::pow((y + 0.018f) * 40.0f, 2.0f)) * 0.22f;
                 r += hl, g += hl, b += hl;
             }
+        } else if (kind == "glowstick") {
+            // V13.3: Leuchtstab schraeg - gruen schimmernde Huelle mit hellem Kern, dunkle Kappe mit Oese oben rechts
+            float c = 0.7071f, s = 0.7071f;
+            float x = (u - 0.5f) * c - (v - 0.5f) * s, y = (u - 0.5f) * s + (v - 0.5f) * c;
+            const float ay = std::fabs(y);
+            if (x > -0.36f && x < 0.22f && ay < 0.075f) {
+                a = 1;
+                r = 0.30f, g = 0.85f, b = 0.25f;
+                const float core = std::exp(-std::pow(y * 26.0f, 2.0f));
+                r += core * 0.45f, g += core * 0.15f, b += core * 0.35f;
+                if (x < -0.31f) {  // gerundetes Ende
+                    const float k = (x + 0.31f) / 0.05f;
+                    if (k * k + (y / 0.075f) * (y / 0.075f) > 1.0f) a = 0;
+                }
+            } else if (x >= 0.22f && x < 0.33f && ay < 0.088f) {
+                a = 1;
+                r = 0.20f, g = 0.30f, b = 0.17f;
+                if (x > 0.255f && x < 0.27f) r *= 0.7f, g *= 0.7f, b *= 0.7f;
+                float hl = std::exp(-std::pow((y + 0.04f) * 24.0f, 2.0f)) * 0.18f;
+                r += hl, g += hl, b += hl;
+            } else {
+                const float dx = x - 0.385f, rr = std::sqrt(dx * dx + y * y);
+                if (std::fabs(rr - 0.045f) < 0.014f) a = 1, r = 0.22f, g = 0.32f, b = 0.18f;
+            }
         } else if (kind == "battery") {
             // V7: stehende Monozelle, Kupferband oben, Pluspol
             float x = std::fabs(u - 0.5f);
@@ -1044,6 +1068,25 @@ std::vector<u8> generateItemIcon(const std::string& kind, int size) {
                 if (v < 0.4f) r = 0.78f, g = 0.46f, b = 0.2f;
                 if (v > 0.5f && v < 0.6f && x < 0.1f && std::fmod(u * 40.0f, 1.0f) < 0.55f) r = g = b = 0.85f;
                 float hl = std::exp(-std::pow((u - 0.43f) * 22.0f, 2.0f)) * 0.3f;
+                r += hl, g += hl, b += hl;
+            }
+        } else if (kind == "almond_open") {
+            // V13.3: offenes Mandelwasser - Flasche ohne Deckel, trueb, weisser Flaum am Hals (KREATUR_Crawler.md)
+            float x = std::fabs(u - 0.5f);
+            bool neck = v >= 0.2f && v < 0.3f && x < 0.08f + (v - 0.2f) * 1.2f;
+            bool body = v >= 0.3f && v < 0.92f && x < 0.2f;
+            bool fluff = v > 0.13f && v < 0.24f && x < 0.11f &&
+                         std::sin(u * 91.0f) * std::sin(v * 77.0f) + 0.35f > (v - 0.13f) * 6.0f;
+            if (fluff) a = 1, r = 0.93f, g = 0.92f, b = 0.86f;
+            else if (neck || body) {
+                a = 1;
+                r = 0.74f, g = 0.76f, b = 0.66f;  // trueb, gelblich
+                if (body && v > 0.48f && v < 0.76f) {
+                    r = 0.70f, g = 0.60f, b = 0.44f;
+                    if (v > 0.57f && v < 0.63f && x < 0.12f) r = 0.32f, g = 0.22f, b = 0.12f;
+                }
+                if (body && v > 0.78f && std::sin(u * 60.0f + v * 40.0f) > 0.6f) r = 0.9f, g = 0.9f, b = 0.84f;  // Flocken
+                float hl = std::exp(-std::pow((u - 0.42f) * 22.0f, 2.0f)) * 0.22f;
                 r += hl, g += hl, b += hl;
             }
         } else {

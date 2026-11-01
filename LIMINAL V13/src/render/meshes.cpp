@@ -49,6 +49,11 @@ void MeshLibrary::init(Gpu& gpu) {
     add(gpu, "fuse", makeFuseItem(), FM_ITEM_FUSE);
     HatchetParts hx = makeHatchet();  // V13.3: Beil
     addGroup(gpu, "hatchet", {{hx.handle, FM_ITEM_HATCHET_WOOD}, {hx.head, FM_ITEM_HATCHET_HEAD}});
+    // V13.3: Leuchtstab - ungeknickt (Fund, erloschene Huelle), geknickt hell und matt (Koeder, KREATUR_Smiler.md)
+    GlowstickParts gs = makeGlowstick();
+    addGroup(gpu, "glowstick", {{gs.tube, FM_ITEM_GLOWSTICK}, {gs.cap, FM_ITEM_GLOWSTICK_CAP}});
+    addGroup(gpu, "glowstick_lit", {{gs.tube, FM_ITEM_GLOWSTICK_LIT}, {gs.cap, FM_ITEM_GLOWSTICK_CAP}});
+    addGroup(gpu, "glowstick_dim", {{gs.tube, FM_ITEM_GLOWSTICK_DIM}, {gs.cap, FM_ITEM_GLOWSTICK_CAP}});
     addViewmodel(gpu);
 }
 

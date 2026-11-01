@@ -408,6 +408,28 @@ void Body::update(double dt, const Player& p) {
             w = t < 0.1f ? smoothT(t / 0.1f) : smoothT((dur - t) / (dur - 0.1f));
             target = eye_ + hf * (0.28f + 0.22f * smoothT(t / 0.16f)) - hu * (0.24f - 0.08f * smoothT(t / 0.16f)) + R * 0.15f;
             if (t >= dur) gesture_ = Gesture::None;
+        } else if (gesture_ == Gesture::Throw) {
+            // V13.3 Leuchtstab: vor der Brust knicken und schuetteln, ueber die Schulter ausholen, nach vorn schleudern
+            // (Loslassen bei 0,62 s - GameSession wirft dann), zuruecksinken
+            const float dur = 0.95f;
+            const vec3 front = eye_ + hf * 0.40f - hu * 0.20f + R * 0.10f;
+            const vec3 back = eye_ - hf * 0.06f + hu * 0.05f + R * 0.30f;
+            const vec3 release = eye_ + hf * 0.58f + hu * 0.02f + R * 0.14f;
+            if (t < 0.38f) {
+                w = smoothT(t / 0.18f);
+                target = front + hu * (t > 0.16f ? std::sin((t - 0.16f) * 46.0f) * 0.025f : 0.0f);
+            } else if (t < 0.55f) {
+                w = 1.0f;
+                target = lerp(front, back, smoothT((t - 0.38f) / 0.17f));
+            } else if (t < 0.66f) {
+                w = 1.0f;
+                target = lerp(back, release, smoothT((t - 0.55f) / 0.11f));
+            } else {
+                w = smoothT((dur - t) / (dur - 0.66f));
+                target = release;
+            }
+            showHeld_ = t > 0.04f && t < 0.62f;
+            if (t >= dur) gesture_ = Gesture::None;
         } else {
             const float dur = 1.05f;
             w = t < 0.25f ? smoothT(t / 0.25f) : (t > 0.8f ? smoothT((dur - t) / (dur - 0.8f)) : 1.0f);

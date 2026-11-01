@@ -11,6 +11,7 @@ cbuffer ObjectCB : register(b2)
                         // V10: 1/3 = bewegte Figur (TAA nimmt weniger Verlauf)
     uint gBoneOffset;   // V10: erste Zeile der Knochenmatrizen dieser Figur
     float4 gClip;       // V13: Schnittkugel (xyz Mitte, w Radius; 0 = keine)
+    float4 gFx;         // V13.3: Zeichen auf der Haut (x Pilz, y Ranken)
 };
 
 // V10: Knochenmatrizen aller Figuren dieses Bildes (je Matrix 3 Zeilen, float3x4)
@@ -209,6 +210,77 @@ GBufferOut shadeTriplanar(GpuMaterial m, uint layer, float3 bp, float3 bn, float
     o.misc = float4(rough, saturate(orm.b + m.metalness), 0.0, 1.0);
     o.emissive = 0.0;
     return o;
+}
+
+// V13.3: Zeichen auf der Haut (KREATUR_Crawler.md, KREATUR_L1_Erscheinungen.md). gFx.x Pilz: weisse, flauschige Flecken
+// mit geroetetem Hof, ab 0,55 fiebrig-fleckige Haut. gFx.y Garden: duenne gruene Triebe winden sich ueber Hand und
+// Finger, Blattansaetze; ab 0,55 verholzt die Haut zu Rinde. Muster in der Ruhepose (wandert nicht mit der Bewegung).
+float vnoise3(float3 p)
+{
+    float3 c = floor(p), f = frac(p);
+    f = f * f * (3.0 - 2.0 * f);
+    uint3 u = (uint3)(int3)(c + 8192.0);
+    float r[8];
+    [unroll] for (uint k = 0; k < 8; ++k)
+    {
+        uint3 q = u + uint3(k & 1u, (k >> 1) & 1u, (k >> 2) & 1u);
+        r[k] = hash01(q.x * 73856093u ^ q.y * 19349663u ^ q.z * 83492791u);
+    }
+    return lerp(lerp(lerp(r[0], r[1], f.x), lerp(r[2], r[3], f.x), f.y), lerp(lerp(r[4], r[5], f.x), lerp(r[6], r[7], f.x), f.y), f.z);
+}
+
+void skinMarks(inout GBufferOut g, float3 bp)
+{
+    float3 nW = g.normal.xyz * 2.0 - 1.0;
+    float3 alb = g.albedo.rgb;
+    float ao = g.albedo.a, rough = g.misc.r, sss = g.misc.a;
+    if (gFx.x > 0.001)
+    {
+        const float c = saturate(gFx.x);
+        const float n = 0.62 * vnoise3(bp * 55.0) + 0.38 * vnoise3(bp * 140.0 + 31.0);
+        const float th = 0.97 - c * 0.6;
+        const float spot = smoothstep(th, th + 0.045, n);
+        const float rim = smoothstep(th - 0.1, th, n) * (1.0 - spot);
+        const float fz = vnoise3(bp * 900.0), fz2 = vnoise3(bp * 2300.0 + 7.0);
+        alb = lerp(alb, alb * float3(1.08, 0.80, 0.80), rim * 0.6);  // entzuendeter Hof
+        alb = lerp(alb, alb * float3(1.12, 0.76, 0.76), smoothstep(0.55, 1.0, c) * 0.4 * vnoise3(bp * 22.0 + 3.0));  // Fieber
+        const float3 white = float3(0.88, 0.86, 0.80) * (0.62 + 0.38 * fz) * (0.85 + 0.15 * fz2);
+        alb = lerp(alb, white, spot);
+        rough = lerp(rough, 1.0, spot);
+        ao *= 1.0 - 0.3 * rim;
+        sss = lerp(sss, 0.2, spot);
+        const float3 j = float3(vnoise3(bp * 650.0 + 1.3), vnoise3(bp * 650.0 + 5.1), vnoise3(bp * 650.0 + 9.7)) - 0.5;
+        nW = normalize(nW + j * 1.6 * spot);
+    }
+    if (gFx.y > 0.001)
+    {
+        const float c = saturate(gFx.y);
+        const float w = vnoise3(bp * 16.0) * 2.2;
+        const float d1 = abs(frac(bp.x * 31.0 + bp.y * 8.0 + bp.z * 19.0 + w) - 0.5);
+        const float d2 = abs(frac(-bp.x * 11.0 + bp.y * 29.0 + bp.z * 15.0 + w * 1.3 + 0.37) - 0.5);
+        const float width = 0.05 + 0.08 * c;
+        const float reach = smoothstep(0.78 - c * 1.6, 0.88 - c * 1.6, vnoise3(bp * 6.5 + 11.0));
+        const float vine = max(1.0 - smoothstep(width * 0.6, width, d1),
+                               (1.0 - smoothstep(width * 0.5, width * 0.85, d2)) * smoothstep(0.35, 0.5, c)) * reach;
+        const float leaf = smoothstep(0.80, 0.86, vnoise3(bp * 58.0 + 2.0)) * reach * smoothstep(0.2, 0.35, c);
+        const float bark = smoothstep(1.0, 0.92, 1.0 - saturate((c - 0.5) * 2.4) * vnoise3(bp * 8.0 + 5.0) * 1.6);
+        const float groove = smoothstep(0.3, 0.5, abs(frac(bp.z * 38.0 + bp.x * 9.0 + vnoise3(bp * 22.0) * 3.5) - 0.5)) *
+                             (0.6 + 0.4 * vnoise3(bp * 90.0));
+        const float3 vg = float3(0.075, 0.13, 0.045) * (0.7 + 0.5 * (1.0 - d1 / max(width, 1e-3)));  // Trieb: dunkel, matt
+        alb = lerp(alb, alb * float3(0.86, 0.95, 0.8), smoothstep(0.3, 0.8, c) * 0.4);  // bleich, gruenstichig
+        alb = lerp(alb, lerp(float3(0.27, 0.22, 0.17), float3(0.15, 0.12, 0.09), groove), bark);
+        alb = lerp(alb, vg, vine);
+        alb = lerp(alb, float3(0.12, 0.22, 0.07), leaf);
+        rough = lerp(rough, 0.95, max(bark, vine * 0.6));
+        ao *= 1.0 - 0.35 * bark * groove;
+        sss = lerp(sss, 0.0, max(bark, vine));
+        const float3 j = float3(vnoise3(bp * 420.0 + 2.3), vnoise3(bp * 420.0 + 6.1), vnoise3(bp * 420.0 + 8.7)) - 0.5;
+        nW = normalize(nW + j * (0.9 * bark + 0.5 * vine));
+    }
+    g.albedo = float4(saturate(alb), ao);
+    g.normal.xyz = nW * 0.5 + 0.5;
+    g.misc.r = rough;
+    g.misc.a = sss;
 }
 
 // V10: die Wesen. Triplanar in der Ruhepose (v laeuft an den Seiten nach oben - Fasern und
@@ -452,6 +524,8 @@ GBufferOut PSMain(VSOut i, bool front : SV_IsFrontFace)
         // V13: Haut laesst Licht eindringen (Anteil im Glanzkanal, lighting.hlsl); in Falten und Ritzen weniger
         if ((m.layers >> 30) & 1u)
             g.misc.a = 1.0 - 0.8 * (1.0 - 0.5 * saturate(i.uv.y));
+        if (((m.layers >> 30) & 1u) && (gFx.x > 0.001 || gFx.y > 0.001))  // V13.3: Pilz, Ranken
+            skinMarks(g, i.bindPos);
         return g;
     }
     if ((m.layers >> 24) & 1u)  // V6: Glasfront mit Faechern (Automat)

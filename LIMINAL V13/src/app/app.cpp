@@ -421,6 +421,51 @@ void App::scriptStep() {
                       (u64)pmc.PeakWorkingSetSize >> 20, renderer_->gpuTimer().summary());
         } else if (cmd == "give" && session_) {  // V9: Item ins Inventar (Tests)
             session_->inventory().add(arg);
+        } else if (cmd == "phen" && session_) {  // V13.3 (Tests, Bilder): Erscheinungen - phen infect <s> | garden <s> | claws |
+            // look <set> <i> <abstand> [winkel grad] [hoehe]: vor eine Stelle stellen und hinsehen (set: paint, jester, fungus,
+            // note, claws, bottle, expel); jester: auf das Bild der Spielleiterin treten (session_phenomena.cpp)
+            game::Phenomena& P = session_->phenomena();
+            char what[32] = {}, set[32] = {};
+            double a = 0, d = 2.5, ang = 0, eh = 1.6;
+            int i = 0;
+            std::sscanf(arg.c_str(), "%31s", what);
+            const std::string w = what;
+            if (w == "infect" && std::sscanf(arg.c_str(), "%*s %lf", &a) == 1) P.infect(0), P.ailment(0).infectT = a;
+            else if (w == "garden" && std::sscanf(arg.c_str(), "%*s %lf", &a) == 1) P.ailment(0).garden = a;
+            else if (w == "claws") for (auto& cd : P.clawDoors()) cd.cool = 0.01;
+            else if (w == "jester" || (w == "look" && std::sscanf(arg.c_str(), "%*s %31s %d %lf %lf %lf", set, &i, &d, &ang, &eh) >= 2)) {
+                const std::string s = w == "jester" ? "jester" : set;
+                vec3 at;
+                float yaw = 0.0f;
+                bool ok = true;
+                if (s == "paint" && i < (int)P.paintings().size()) at = P.paintings()[(size_t)i].pos, yaw = P.paintings()[(size_t)i].yaw;
+                else if (s == "jester") {
+                    ok = false;
+                    for (const auto& pt : P.paintings())
+                        if (pt.jester) at = pt.pos, yaw = pt.yaw, ok = true;
+                } else if (s == "fungus" && i < (int)P.fungusZones().size()) at = P.fungusZones()[(size_t)i].pos, yaw = P.fungusZones()[(size_t)i].yaw;
+                else if (s == "note" && i < (int)P.noteSpots().size()) at = P.noteSpots()[(size_t)i].pos, yaw = P.noteSpots()[(size_t)i].yaw;
+                else if (s == "bottle" && i < (int)P.bottleSpots().size()) at = P.bottleSpots()[(size_t)i].pos, yaw = P.bottleSpots()[(size_t)i].yaw;
+                else if (s == "expel" && i < (int)P.expelSpots().size()) at = P.expelSpots()[(size_t)i].pos, yaw = P.expelSpots()[(size_t)i].yaw;
+                else if (s == "claws" && i < (int)P.clawDoors().size()) at = P.clawDoors()[(size_t)i].spot.pos, yaw = P.clawDoors()[(size_t)i].spot.yaw;
+                else ok = false;
+                if (!ok) {
+                    log::error("Skript: phen {} - keine solche Stelle", arg);
+                    scriptFailed_ = true;
+                } else {
+                    auto& pl = session_->player();
+                    const double t = yaw + ang * 0.0174533;
+                    const double px = w == "jester" ? at.x : at.x + std::cos(t) * d, py = w == "jester" ? at.y : at.y + std::sin(t) * d;
+                    pl.x = px, pl.y = py, pl.z = session_->world().tile(ifloor(px), ifloor(py)).floor;
+                    if (w != "jester") {
+                        pl.angle = std::atan2(at.y - py, at.x - px);
+                        pl.pitch = -std::atan2(eh - 0.3, std::max(0.3, d));
+                    }
+                    session_->body().reset();
+                    resetHistory_ = true;
+                    log::info("Skript: phen {} -> ({:.2f}, {:.2f}) Ziel ({:.2f}, {:.2f})", arg, px, py, at.x, at.y);
+                }
+            }
         } else if (cmd == "health" && session_) {  // V9: Health setzen (Tests)
             session_->stats().health = std::clamp(std::atof(arg.c_str()), 1.0, 100.0);
         } else if (cmd == "sanity" && session_) {  // V7: Sanity setzen (Tests)
@@ -475,6 +520,27 @@ void App::scriptStep() {
             if (arg == "off") figCam_.on = false;
             else if (std::sscanf(arg.c_str(), "%f %f %f %f %f", &az, &el, &d, &h, &ahead) >= 3) figCam_ = {true, az, el, d, h, ahead};
             resetHistory_ = true;
+        } else if (cmd == "grace" && session_) {  // V13.3 (Bilder): grace <s> - so lange kein Auftritt der Regie (presence erzwingt weiter)
+            session_->presence().setGrace(std::atof(arg.c_str()));
+        } else if (cmd == "lurecam" && session_) {  // V13.3 (Bilder): lurecam <az> <el> <abstand> [hoehe] - freie Kamera auf den neuesten Leuchtstab
+            float az = 0, el = 20, d = 2.0f, h = 0.0f;
+            std::sscanf(arg.c_str(), "%f %f %f %f", &az, &el, &d, &h);
+            const auto& ls = session_->lures().lures();
+            if (ls.empty()) {
+                log::warn("Skript: lurecam - kein Leuchtstab");
+            } else {
+                const vec3 t = ls.back().pos + vec3{0, 0, h};
+                float a = az * 0.0174533f;
+                const float e = el * 0.0174533f;
+                if (az >= 900.0f && session_->presence().has(game::Presence::Role::Smiler)) {  // 1000 +/- Grad: vom Smiler aus hinter dem Stab
+                    const vec3 sp = session_->presence().posOf(game::Presence::Role::Smiler);
+                    a = std::atan2(t.y - sp.y, t.x - sp.x) + (az - 1000.0f) * 0.0174533f;
+                }
+                const vec3 c = t + vec3{std::cos(a) * std::cos(e), std::sin(a) * std::cos(e), std::sin(e)} * d, dv = t - c;
+                freeCam_ = {true, c, std::atan2(dv.y, dv.x) * 57.29578f, std::atan2(dv.z, std::max(std::hypot(dv.x, dv.y), 1e-4f)) * 57.29578f, 0.0f};
+                log::info("Skript: lurecam auf ({:.2f}, {:.2f}, {:.2f})", t.x, t.y, t.z);
+                resetHistory_ = true;
+            }
         } else if (cmd == "vmcam") {  // V13 (Tests): vmcam <az> <el> <abstand> | vmcam off - Kamera um die Hand
             float az = 0, el = 0, d = 0.5f;
             if (arg == "off") vmCam_.on = false;
@@ -502,6 +568,13 @@ void App::scriptStep() {
             const int n = std::sscanf(arg.c_str(), "%f %f %f %f %f %f %f %f", &v[0], &v[1], &v[2], &v[3], &v[4], &v[5], &v[6], &v[7]);
             if (arg == "off") testLight_.on = false;
             else if (n >= 6) testLight_ = {true, {v[0], v[1], v[2]}, normalize(vec3{v[3] - v[0], v[4] - v[1], v[5] - v[2]}), v[6], v[7]};
+            else if (arg.rfind("eye", 0) == 0 && session_) {  // V13.3 (Bilder): testlight eye [staerke] [kegel] - ueber dem Kopf in Blickrichtung
+                float pw = 0.6f, cone = 40.0f;
+                std::sscanf(arg.c_str() + 3, "%f %f", &pw, &cone);
+                const auto& pl = session_->player();
+                const vec3 f = forwardFromAngles((float)pl.angle, (float)pl.pitch);
+                testLight_ = {true, session_->body().eye() + vec3{0, 0, 0.25f} + f * 0.3f, f, pw, cone};  // vor dem Kopf (kein Schatten des eigenen Kopfes)
+            }
             resetHistory_ = true;
         } else if (cmd == "worldlight") {  // V13.3 (Tests): Leuchten der Welt skalieren (0 = dunkel)
             worldLight_ = (float)std::atof(arg.c_str());
@@ -1555,6 +1628,21 @@ void App::handleEvents() {
                         break;
                     case PE::Shove: at("ouro_shove", e.pos, 0.9f, 6.0f); break;
                     case PE::Dissolve: at("ouro_dissolve", e.pos, 0.8f, 26.0f); break;
+                    // V13.3: Smiler am Leuchtkoeder, Skin-Stealer antwortet / stuermt los (KREATUR_Smiler.md, KREATUR_SkinStealer.md)
+                    case PE::Lured:
+                        at("smiler_lured", e.pos, 0.75f, 24.0f);
+                        ui_.toast(session_->world().level().smilerBait == 1 ? "Der Smiler stutzt nur – hier lässt er sich kaum ablenken."
+                                                                             : "Der Smiler wendet sich dem Licht zu – jetzt ruhig weg.",
+                                  3.2f);
+                        break;
+                    case PE::Reply: {  // Gast: ohne Angabe (intensity 1) - irgendeine der Antworten
+                        const int k = e.intensity < 0.99f ? (int)(e.intensity * 16.0f) : (int)(n % 12);
+                        at(std::format("skin_reply_{}", std::clamp(k, 0, 11)), e.pos, 0.85f, 24.0f);
+                        static bool replyHint = false;  // einmal je Spielstart: der Rat des Wikis (Level 1)
+                        if (!replyHint) replyHint = true, ui_.toast("Das ist kein Mensch. Ruhig zurückweichen – nicht rennen, nicht noch einmal ansprechen.", 4.5f);
+                        break;
+                    }
+                    case PE::Shriek: at("skin_shriek", e.pos, 1.0f, 34.0f); break;
                     default: break;
                 }
                 break;
@@ -1649,7 +1737,8 @@ void App::updateAudio(double dt) {
         if (uw && uwId < 0) uwId = audio_->startLoop("underwater", 0.5f, audio::Bus::Effects);
         if (!uw && uwId >= 0) audio_->stopLoop(uwId), uwId = -1;
         // V13.3: betaeubt (Nguithr'xurh) klingt alles dumpf
-        if (!st.dead) audio_->setMuffle(std::max(uw ? 0.8f : 0.0f, 0.6f * s.presence().stupor(s.netSelfId)));
+        // V13.3: Fieber und Rinde in den Ohren (Erscheinungen)
+        if (!st.dead) audio_->setMuffle(std::max({uw ? 0.8f : 0.0f, 0.6f * s.presence().stupor(s.netSelfId), s.phenomena().muffle(0)}));
     }
     // V13.3: das Rauschen eines Growlers - im Kopf (ohne Richtung), je naeher, desto lauter; die Betaeubung klingt in den Ohren
     {
@@ -1880,6 +1969,11 @@ void App::renderWorld(double dt, bool clean) {
         dim += ((menu ? 1.0f : 0.0f) - dim) * (float)std::min(1.0, dt * 8.0);
         sp.menuDim = state_ == State::Title ? 0.7f : dim * 0.85f;
         sp.desaturate = (float)std::clamp((25.0 - st.sanity) / 25.0, 0.0, 1.0) * 0.45f;
+        if (state_ == State::Playing) {  // V13.3: Pilz, Garden, Einladung der Spielleiterin (session_phenomena.cpp)
+            sp.fungus = s.phenomena().fungusFx(0);
+            sp.garden = s.phenomena().gardenFx(0);
+            sp.jester = s.phenomena().jesterFx(0);
+        }
         // V9/V10: eine nahe, jagende Entity entzieht dem Bild die Farbe; ein Angriff faerbt den Rand rot
         if (playing) {
             sp.desaturate = std::min(0.85f, sp.desaturate + s.presence().threatProximity() * 0.4f);
@@ -1936,6 +2030,8 @@ void App::renderWorld(double dt, bool clean) {
         for (auto& v : visible_) {
             if (*v.meshId == -2) {
                 *v.meshId = renderer_->meshId(*v.model);
+                if (*v.meshId < 0 && v.model->rfind("prop:", 0) == 0)  // V13.3: bewegliche Ausstattung (Gemaelde)
+                    *v.meshId = renderer_->propMesh(v.model->substr(5), s.world().bank());
                 // V13: Nachweis, welches Netz fuer ein Wesen gezeichnet wird (einmal je Name; Quelle steht beim Hochladen)
                 if (v.model->rfind("ent_", 0) == 0) {
                     static std::set<std::string> logged;
@@ -1951,6 +2047,7 @@ void App::renderWorld(double dt, bool clean) {
                 md.material = v.material == game::kShadowLook ? (int)gfx::FM_ENT_SHADOW : v.material;  // V10
                 md.clip = v.clip;  // V13
                 md.dualQuat = v.dualQuat;  // V13.2
+                md.fx = v.fx;              // V13.3: Pilz, Ranken (KREATUR_Crawler.md)
                 draws_.push_back(md);
             }
         }
@@ -1994,6 +2091,21 @@ void App::renderWorld(double dt, bool clean) {
                 L.soft = 0.3f;
                 L.size = 0.012f;
                 L.shadows = ++others <= 2;
+                sp.extraLights.push_back(L);
+            }
+            // V13.3: Leuchtstaebe (geworfen, in der Hand) - gruenes Licht nach allen Seiten, die zwei naechsten mit Schatten
+            std::vector<game::GameSession::GlowLight> glows;
+            s.glowLights(glows, 30.0f);
+            for (size_t gi = 0; gi < glows.size() && gi < 4 && sp.extraLights.size() < 9; ++gi) {
+                gfx::ExtraLight L;
+                L.pos = glows[gi].pos;
+                L.dir = {0.0f, 0.0f, 1.0f};
+                L.color = vec3{0.34f, 1.0f, 0.22f} * (0.8f * glows[gi].power);
+                L.range = 2.5f + 4.5f * glows[gi].power;
+                L.spill = 1.0f;
+                L.size = 0.06f;
+                L.soft = 0.12f;
+                L.shadows = gi < 2;
                 sp.extraLights.push_back(L);
             }
         }
@@ -2100,7 +2212,7 @@ void App::renderWorld(double dt, bool clean) {
             L.shadows = false;
             sp.extraLights.push_back(L);
         }
-        if (clean) sp.menuDim = sp.redEdge = sp.desaturate = 0.0f;
+        if (clean) sp.menuDim = sp.redEdge = sp.desaturate = sp.fungus = sp.garden = sp.jester = 0.0f;
         renderer_->renderScene(cam, sp, draws_);
     }
 }

@@ -54,7 +54,7 @@ struct BodyPose {
 
 class Body {
 public:
-    enum class Gesture { None, Grab, Use, Toss, Swing };  // V13.3: Swing - das Beil (ausholen, Hieb, zurueck)
+    enum class Gesture { None, Grab, Use, Toss, Swing, Throw };  // V13.3: Swing - das Beil (ausholen, Hieb, zurueck); Throw: Leuchtstab knicken, ausholen, werfen (Loslassen 0,62 s)
 
     // Nach Player::update aufrufen (pausiert: dt = 0)
     void update(double dt, const Player& p);
@@ -115,6 +115,7 @@ public:
     float vmForearmError() const { return vmForearmErr_; }
     float vmSlide() const { return vmSlide_; }
     bool holdsItem() const { return showHeld_; }
+    vec3 heldPos() const { return heldPos_; }  // V13.3: Ort des gehaltenen Items (Licht des Leuchtstabs in der Hand)
     // V7: "Der Andere" - gleiche Figur, aber gestreckt, ohne Gesicht, nicht an die Kamera gebunden
     void setGhost() {
         ghost_ = true;

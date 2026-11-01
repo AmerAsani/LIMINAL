@@ -166,6 +166,12 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     // V13.3: Beil - Eschenstiel (geoelt, abgegriffen), geschmiedeter Kopf (dunkel, die Schneide blank geschliffen)
     materialData_[FM_ITEM_HATCHET_WOOD] = GpuMaterial{{0.62f, 0.45f, 0.28f}, 0, all(L_WOOD), 0.7f, 0, 0.25f};
     materialData_[FM_ITEM_HATCHET_HEAD] = GpuMaterial{{0.24f, 0.24f, 0.25f}, 0, all(L_METAL), 0.42f, 1.0f, 0.3f};
+    // V13.3: Leuchtstab - Huelle aus mattem, durchscheinendem Kunststoff (ungeknickt blass gelbgruen, glaenzend); geknickt
+    // leuchtet die Fluessigkeit gruen (hell, gegen Ende matt); Kappe aus festem, dunklerem Kunststoff
+    materialData_[FM_ITEM_GLOWSTICK] = GpuMaterial{{0.58f, 0.72f, 0.42f}, 0, all(L_DIFFUSER), 0.3f, 0, 0.05f};
+    materialData_[FM_ITEM_GLOWSTICK_LIT] = GpuMaterial{{0.30f, 1.0f, 0.18f}, 1.6f, all(L_DIFFUSER), 0.3f, 0, 0.0f};
+    materialData_[FM_ITEM_GLOWSTICK_DIM] = GpuMaterial{{0.30f, 0.95f, 0.18f}, 0.7f, all(L_DIFFUSER), 0.3f, 0, 0.0f};
+    materialData_[FM_ITEM_GLOWSTICK_CAP] = GpuMaterial{{0.30f, 0.42f, 0.24f}, 0, all(L_PLASTER), 0.55f, 0, 0.1f};
     // V10: Figuren - Haut, Stoff und Haar triplanar (Toenung x helle Textur), Augen und Ausweis mit UV
     auto tri = [&](u32 l) { return all(l) | kMatFlagTriplanar; };
     materialData_[FM_SKIN_PLAYER] = GpuMaterial{{0.95f, 0.86f, 0.8f}, 0, tri(L_SKIN), 1.0f, 0, 0.3f};

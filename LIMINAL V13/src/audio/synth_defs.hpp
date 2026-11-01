@@ -26,5 +26,7 @@ void addGrowlerSounds(std::vector<SoundDef>& d, int rate);   // V13.3: synth_gro
 void addNguithrSounds(std::vector<SoundDef>& d, int rate);   // V13.3: synth_nguithrxurh.cpp
 void addOuroborosSounds(std::vector<SoundDef>& d, int rate); // V13.3: synth_ouroboros.cpp (Ouroboros-Arbeiter)
 void addGoblinSounds(std::vector<SoundDef>& d, int rate);    // V13.3: synth_goblin.cpp (Plague Goblins, Beil)
+void addLureSounds(std::vector<SoundDef>& d, int rate);      // V13.3 synth_lure.cpp: Leuchtstab, Ansprechen (Spieler, Skin-Stealer)
+void addPhenomenaSounds(std::vector<SoundDef>& d, int rate);  // V13.3 synth_phenomena.cpp: Pilz, Garden, Spielleiterin, Tuerspuren
 
 }  // namespace lim::audio

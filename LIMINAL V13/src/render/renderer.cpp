@@ -393,6 +393,8 @@ void Renderer::onChunkLoaded(const world::ChunkData& cd) { world_.addChunk(gpu_,
 void Renderer::onChunkUnloaded(const world::ChunkData& cd) { world_.removeChunk(gpu_, cd); }
 void Renderer::clearWorld() {
     world_.clear(gpu_);
+    propMeshes_.clear();  // V13.3: Materialien der neuen Welt haben andere Nummern
+    ++propGen_;
     historyValid_ = false;
 }
 void Renderer::syncMaterials(const world::MaterialBank& bank) { world_.syncMaterials(gpu_, bank); }
@@ -523,6 +525,7 @@ void Renderer::gbufferPass(const Frustum& frustum, vec3 camPos, const std::vecto
             oc.attached = d.attached ? 1.0f : (d.dynamic ? 1.0f / 3.0f : 0.0f);
             oc.boneOffset = m.skinned ? ((u32)d.bones * 3u | (d.dualQuat ? 0x80000000u : 0u)) : 0u;
             oc.clip = d.clip;
+            oc.fx = d.fx;  // V13.3
             gpu_.update(objectCb_, &oc, sizeof(oc));
             UINT stride = m.skinned ? (UINT)sizeof(SkinVertex) : (UINT)sizeof(MeshVertex), offset = 0;
             ctx->IASetVertexBuffers(0, 1, m.vb.buf.addr(), &stride, &offset);
@@ -598,7 +601,7 @@ void Renderer::renderScene(const CameraState& cam, const SceneParams& p, const s
                bo ? (float)(p.blackoutSeed + 1) + std::clamp(p.blackoutAmount, 0.0f, 1.0f) * 0.9f : 0.0f};
     f.wave = {p.blackoutOrigin.x, p.blackoutOrigin.y, bo ? p.blackoutFront : -1.0f, p.noNearFade ? 1.0f : 0.0f};
     world_.setBlackout(bo ? p.blackoutSeed : -1, p.blackoutAmount, p.blackoutOrigin, p.blackoutFront);
-    f.extra = {(float)world_.updatePuddles(gpu_, cam.pos, 40.0f), 0, 0, 0};  // V13.3: Pfuetzen
+    f.extra = {(float)world_.updatePuddles(gpu_, cam.pos, 40.0f), p.fungus, p.garden, p.jester};  // V13.3: Pfuetzen, Level-1-Erscheinungen
     // V10: Knochen und Schattenkapseln der Figuren
     if (p.bones && !p.bones->empty())
         gpu_.update(bones_, p.bones->data(), (u32)(std::min<size_t>(p.bones->size(), kBoneRows) * sizeof(vec4)));

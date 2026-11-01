@@ -182,6 +182,7 @@ struct FindsDef {
     double exitStart = 120.0;   // Notausgaenge erst ab dieser Entfernung vom Start (m)
     double exitRange = 600.0;   // ... und bis zur vollen Haeufigkeit nach weiteren Metern
     double exitMax = 0.035;     // hoechste Chance je Raum
+    double glowstick = 0.0, glowstickDark = 0.0;  // V13.3: Leuchtstaebe je Raum (hell / dunkel) - Koeder fuer Smiler
 };
 
 // V8: Die zusammenhaengende Welt ("data/world.json"). Alle Ebenen liegen in EINER Welt: um den
@@ -252,6 +253,7 @@ struct LevelDef {
     int presenceRegion = 0;  // V11: Regie der Entities auf einer festen Karte (0 Innenraeume, 1 Tiefgeschoss, 2 Hotel)
     // V11: welche Entities die Ebene ueberhaupt kennt ("presence": {"hound": false, ...}; fehlt = ja)
     bool allowHound = true, allowSmiler = true, allowGestalt = true, allowBlackout = true;
+    int smilerBait = 0;  // V13.3: presence.smiler_bait - "follow" (0, Smiler folgen einem Leuchtstab) oder "hesitate" (1, stutzen nur)
     bool allowClump = false;  // V11: Buendel (nur wo die Karte Lager hat)
     double clumpRate = 1.0;   // V11: Anteil der Gelegenheiten, bei denen es einzieht (Level 1: selten)
     std::array<KinDef, KIN_COUNT> kin;  // V13.2
@@ -260,6 +262,7 @@ struct LevelDef {
     bool mapped() const { return map != nullptr; }
     // V11: Daten fuer Klang, Ausstattung und Spawnregeln der Ebene (roh, werden von den Systemen gelesen)
     Json audio, dressing, spawnRules;
+    Json phenomena;  // V13.3: Erscheinungen ohne Figur (gameplay/phenomena.hpp: Pilz, Garden, Gemaelde, Tuerspuren)
     std::string displayTitle;  // eigener Titel im Spiel (Weg B, LICENSE_REVIEW.md)
     // V8: zusammenhaengende Welt (leer = ein einzelnes Level wie bisher)
     std::vector<RegionDef> regions;
