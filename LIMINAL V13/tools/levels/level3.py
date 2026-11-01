@@ -462,4 +462,14 @@ safe_point('kessel', b1, 'Kesselraum')
 safe_point('aufzug', vor, 'Vor dem Aufzug')
 safe_point('buero', buero, 'Kammer am Hauptgang')
 
+# V13.3: Bauarten der haeufig gesetzten Ausstattung (PROPS_Level3.md). Erst nach allen Platzierungen gezogen, damit die
+# Anordnung der Ebene unveraendert bleibt; nur die Bauart wechselt.
+VARIANTS = {'switch_cabinet': 3, 'generator': 2, 'window_brick': 3, 'pipe_black': 2, 'painting_angel': 2,
+            'painting_angel_scribbled': 2, 'conveyor': 2, 'column_greek': 2, 'mach_cabinet': 3, 'junction_box': 4}
+for o in m.objects:
+    if o['model'] in VARIANTS:
+        v_ = rng.randrange(VARIANTS[o['model']])
+        if v_:
+            o['variant'] = v_
+
 m.save()

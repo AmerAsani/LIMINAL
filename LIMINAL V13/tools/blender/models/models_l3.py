@@ -751,8 +751,7 @@ def build_bars_w3():
 _LANES = [(-0.150, 0.009, 'k_red', 1), (-0.120, 0.016, 'k_black', 1), (-0.080, 0.021, 'k_black', 1),
           (-0.036, 0.013, 'k_grey', 1), (0.002, 0.019, 'k_black', 1), (0.044, 0.015, 'k_cream', 1),
           (0.086, 0.022, 'k_black', 1), (0.132, 0.012, 'k_grey', 1),
-          (-0.058, 0.013, 'k_black', 2), (0.022, 0.012, 'k_grey', 2), (0.066, 0.011, 'k_cream', 2), (0.108, 0.014, 'k_black', 2),
-          (-0.020, 0.024, 'k_black', 3), (0.074, 0.017, 'k_black', 3)]
+          (-0.058, 0.013, 'k_black', 2), (0.066, 0.011, 'k_cream', 2), (-0.020, 0.024, 'k_black', 3)]
 _RUNG_TOP = -0.280
 _RUNGS = (-0.375, -0.125, 0.125, 0.375)
 
@@ -797,18 +796,15 @@ def _cable_tray(v):
             K.add(P['hole'], bm_poly(pts if s < 0 else list(reversed(pts))))
     # Sprossen: Hutprofil 40 x 20, unten offen
     for x in _RUNGS:
-        K.box(galv, (x - 0.020, -0.178, -0.300), (x + 0.020, 0.178, _RUNG_TOP), bev=0.0015)
+        K.box(galv, (x - 0.020, -0.178, -0.300), (x + 0.020, 0.178, _RUNG_TOP))
         K.add(P['hole'], bm_poly([(x - 0.012, -0.176, -0.3003), (x - 0.012, 0.176, -0.3003), (x + 0.012, 0.176, -0.3003),
                                   (x + 0.012, -0.176, -0.3003)]))
-        for s in (-1, 1):
-            bolt(K, P['steel'], (x, s * 0.1802, -0.290), (0, s, 0), d=0.007, washer=False, rot=rng.random())
     # Stossverbinder bei x = 0,5 (Lasche aussen an beiden Holmen, 4 Schrauben)
     for s in (-1, 1):
         y0, y1 = (0.1802, 0.1824) if s > 0 else (-0.1824, -0.1802)
         K.box(P['galv_dark'], (0.44, y0, -0.296), (0.56, y1, -0.246), bev=0.0008)
         for xx in (0.462, 0.538):
-            for zz in (-0.285, -0.258):
-                bolt(K, P['steel'], (xx, s * 0.1824, zz), (0, s, 0), d=0.006, washer=False, rot=rng.random())
+            bolt(K, P['steel'], (xx, s * 0.1824, -0.271), (0, s, 0), d=0.006, washer=False, rot=rng.random())
     # Rost und Zinkbluete an Holmen und Sprossen
     for j in range(rng.randrange(3, 6)):
         s = rng.choice((-1, 1))
@@ -830,7 +826,7 @@ def _cable_tray(v):
         return pick
 
     def cable(pts, r, cm, seg=None):
-        seg = seg or (8 if r >= 0.018 else 6)
+        seg = seg or (6 if r >= 0.018 else 5)
         K.add_split(bm_sweep(pts, r, seg, caps=False), dusty(cm))
 
     xs = [-0.5 + 0.125 * i for i in range(9)]
@@ -854,11 +850,13 @@ def _cable_tray(v):
         amp = 0.005 if layer == 1 else 0.012
         ph = rng.uniform(0, TAU)
         pts = []
-        for x in xs:
+        xs_c = xs if (r >= 0.018 or layer > 1) else [-0.5, -0.17, 0.17, 0.5]  # duenne Kabel: wenige Punkte
+        for x in xs_c:
             inner = math.sin(math.pi * (x + 0.5)) ** 2 if abs(x) < 0.42 else 0.0
             dy = inner * amp * math.sin(ph + x * 7.0)
-            pts.append((x, y + dy, z0 - _sag(x, r) * (1.0 if layer == 1 else 0.6) + inner * (0.002 * math.sin(ph * 2 + x * 9) if layer > 1 else 0.0)))
-        cable(pts, r, C[ck], 7 if r >= 0.02 else 5)
+            sg = _sag(x, r) if (xs_c is xs or abs(x) > 0.45) else (0.002 + 0.10 * r) * 0.6
+            pts.append((x, y + dy, z0 - sg * (1.0 if layer == 1 else 0.6) + inner * (0.002 * math.sin(ph * 2 + x * 9) if layer > 1 else 0.0)))
+        cable(pts, r, C[ck], 6 if r >= 0.018 else 4)
 
     # Kabelbinder an Sprossen (um ein dickes Kabel und die Sprosse)
     def strap(x, y, r, m):
@@ -895,8 +893,8 @@ def _cable_tray(v):
             y = s * 0.2
             K.cyl(galv, (hx, y, -0.352), (hx, y, -0.02), 0.005, 6)
             K.add(P['steel'], bm_cyl(0.0085, 0.028, 6, z0=-0.03), T(hx, y, 0) @ R(rng.random(), 'Z'))
-            K.add(P['steel'], bm_cyl(0.016, 0.003, 10, z0=-0.003), T(hx, y, 0))
-            bolt(K, P['steel'], (hx, y, -0.3405), (0, 0, -1), d=0.010)
+            K.add(P['steel'], bm_cyl(0.016, 0.003, 6, z0=-0.003), T(hx, y, 0))
+            bolt(K, P['steel'], (hx, y, -0.3405), (0, 0, -1), d=0.010, washer=False)
             K.add(P['steel'], bm_cyl(0.0088, 0.008, 6, z0=0.0), T(hx, y, -0.2995) @ R(rng.random(), 'Z'))
             ya, yb = (0.160, 0.186) if s > 0 else (-0.186, -0.160)
             K.box(P['galv_dark'], (hx - 0.015, ya, -0.2425), (hx + 0.015, yb, -0.2395))
@@ -964,155 +962,221 @@ def _ring_layer(K, m, outer, inner, x0, deform=None):
 
 
 def _switch_cabinet(v):
+    """Drei Bauarten: v0 grauer Zweituerer (1980er) mit Instrumenten, Hauptschalter, Meldeleuchten; v1 schmaler
+    Eintuerer auf Winkelfuessen (1950er, ockeroliv), grosser Drehschalter, zwei Instrumente, stark verwittert;
+    v2 blaugrauer Dreituerer (1970er) mit Lueftungshaube, Sichtfenstern, Meldeleuchtenreihe und Not-Aus."""
     P = _pal()
     K = Kit(deg=40.0)
     rng = random.Random(1200 + v)
-    col = [(0.64, 0.65, 0.61), (0.62, 0.50, 0.22), (0.30, 0.35, 0.42)][v]
-    paint = mat(f'schranklack{v}', col, 'paint', r=0.85)
-    paint_worn = mat(f'schranklack_alt{v}', tuple(c * 0.86 for c in col), 'paint', r=1.2)
+    cfg = [dict(col=(0.64, 0.65, 0.61), W=0.6, n=2, base='sockel', roof='dach', wear=1.0),
+           dict(col=(0.50, 0.46, 0.25), W=0.45, n=1, base='fuesse', roof='flach', wear=1.9),
+           dict(col=(0.30, 0.35, 0.42), W=0.6, n=3, base='sockel', roof='haube', wear=1.2)][v]
+    W, n = cfg['W'], cfg['n']
+    paint = mat(f'schranklack{v}', cfg['col'], 'paint', r=0.85 if v != 1 else 1.1)
+    paint_worn = mat(f'schranklack_alt{v}', tuple(c * 0.86 for c in cfg['col']), 'paint', r=1.2)
     base = mat('sockel_schwarz', (0.07, 0.07, 0.07), 'paint', tex='painted_metal_grey', r=1.2)
-    D = 0.46
-    # Sockel, Korpus, Dach mit Tropfkante
-    K.box(base, (0.02, -0.59, 0.0), (D - 0.01, 0.59, 0.1), bev=0.003)
-    K.box(paint, (0.0, -0.6, 0.1), (D, 0.6, 1.96), bev=0.004, seg=2)
-    K.box(paint, (0.0, -0.612, 1.96), (D + 0.026, 0.612, 1.995), bev=0.003, seg=2)
-    K.box(paint, (D + 0.020, -0.612, 1.944), (D + 0.026, 0.612, 1.962), bev=0.0015)
-    # Tueren: links fest, rechts minimal verzogen
-    for s in (-1, 1):
-        y0, y1 = (0.003, 0.586) if s > 0 else (-0.586, -0.003)
-        Md = Matrix.Identity(4)
-        if s > 0:
-            Md = T(D + 0.012, 0.592, 0) @ R(math.radians(-0.6), 'Z') @ T(-(D + 0.012), -0.592, 0)
-        K.add(paint, bm_box((D, y0, 0.13), (D + 0.019, y1, 1.93), 0.003, 2), Md)
-        # Kiemen unten (Schlitz dunkel, Lamelle schraeg)
-        for i in range(5):
-            z = 0.24 + i * 0.042
-            yc = (y0 + y1) / 2
-            K.add(P['hole'], bm_poly([(D + 0.0193, yc - 0.1, z), (D + 0.0193, yc + 0.1, z), (D + 0.0193, yc + 0.1, z + 0.014),
-                                      (D + 0.0193, yc - 0.1, z + 0.014)]), Md)
-            lam = bm_box((-0.0015, -0.1, -0.0015), (0.0015, 0.1, 0.019))
-            K.add(paint, lam, Md @ T(D + 0.0205, yc, z) @ R(math.radians(-35), 'Y'))
-        # Scharniere aussen
-        for z in (0.35, 1.03, 1.71):
-            K.cyl(P['steel_dark'], (D + 0.012, s * 0.593, z - 0.035), (D + 0.012, s * 0.593, z + 0.035), 0.0075, 8)
-            K.cyl(P['steel_dark'], (D + 0.012, s * 0.593, z + 0.035), (D + 0.012, s * 0.593, z + 0.041), 0.004, 6)
-    # Dichtung im Mittelspalt
-    K.box(P['black_rubber'], (D - 0.004, -0.0035, 0.135), (D + 0.012, 0.0035, 1.925))
-    # Verschluss rechts: Mulde, Schwenkhebel, Schliesszylinder
-    K.box(P['black_plastic'], (D + 0.019, 0.032, 0.92), (D + 0.025, 0.074, 1.12), bev=0.002)
-    K.box(P['black_plastic'], (D + 0.025, 0.043, 0.95), (D + 0.037, 0.063, 1.085), bev=0.003, seg=2)
-    K.cyl(P['steel_bright'], (D + 0.025, 0.053, 1.103), (D + 0.031, 0.053, 1.103), 0.0075, 10)
-    K.box(P['hole'], (D + 0.0312, 0.0515, 1.098), (D + 0.0315, 0.0545, 1.108))
-    # Instrumente links oben
-    meters = [(-0.43, 'A'), (-0.31, 'V'), (-0.19, 'KW')] if v != 2 else [(-0.40, 'A'), (-0.24, 'V')]
     stencil_b = mat('schrift_schwarz', (0.03, 0.03, 0.03), 'stencil')
-    K.box(P['black_plastic'], (D + 0.019, meters[0][0] - 0.06, 1.52), (D + 0.023, meters[-1][0] + 0.06, 1.70), bev=0.002)
-    for k, (yc, lab) in enumerate(meters):
-        missing = (v == 1 and k == 1)
-        if missing:
-            K.add(P['hole'], bm_poly([(D + 0.0232, yc - 0.044, 1.566), (D + 0.0232, yc + 0.044, 1.566), (D + 0.0232, yc + 0.044, 1.654),
-                                      (D + 0.0232, yc - 0.044, 1.654)]))
+    yellow = mat('schalter_gelb', (0.85, 0.68, 0.10), 'plastic', r=0.9)
+    red = mat('schalter_rot', (0.62, 0.06, 0.04), 'plastic', r=0.7)
+    D = 0.46
+    z0 = 0.10
+    if cfg['base'] == 'sockel':
+        K.box(base, (0.02, -W + 0.01, 0.0), (D - 0.01, W - 0.01, 0.1), bev=0.003)
+    else:  # Winkelfuesse
+        z0 = 0.16
+        for sx in (0.02, D - 0.05):
+            for sy in (-W + 0.01, W - 0.04):
+                K.box(paint, (sx, sy, 0.0), (sx + 0.03, sy + 0.03, z0 + 0.04))
+                K.box(paint, (sx - 0.01, sy - 0.01, 0.0), (sx + 0.04, sy + 0.04, 0.006))
+        K.box(paint, (0.02, -W + 0.01, z0 - 0.03), (D - 0.02, W - 0.01, z0))
+    K.box(paint, (0.0, -W, z0), (D, W, 1.96), bev=0.004, seg=2)
+    if cfg['roof'] == 'dach':
+        K.box(paint, (0.0, -W - 0.012, 1.96), (D + 0.026, W + 0.012, 1.995), bev=0.003, seg=2)
+        K.box(paint, (D + 0.020, -W - 0.012, 1.944), (D + 0.026, W + 0.012, 1.962), bev=0.0015)
+        ztop = 1.995
+    elif cfg['roof'] == 'flach':
+        K.box(paint, (0.0, -W, 1.96), (D + 0.004, W, 1.975), bev=0.003)
+        ztop = 1.975
+    else:  # Haube mit Lueftungsschlitzen vorn
+        hood = bm_prism([(0.0, 1.96), (D + 0.02, 1.96), (D + 0.02, 1.985), (D - 0.06, 2.04), (0.0, 2.04)], -W - 0.01, W + 0.01)
+        K.add(paint, hood, Matrix(((1, 0, 0, 0), (0, 0, 1, 0), (0, 1, 0, 0), (0, 0, 0, 1))))
+        for k in range(10):
+            yy = -W + 0.08 + k * (2 * W - 0.16) / 9
+            za, zb = 1.985 + 0.025 * 0.6875 + 0.001, 1.985 + 0.065 * 0.6875 + 0.001
+            K.add(P['hole'], bm_poly([Vector((D - 0.005, yy - 0.04, za)), Vector((D - 0.005, yy + 0.04, za)),
+                                      Vector((D - 0.045, yy + 0.04, zb)), Vector((D - 0.045, yy - 0.04, zb))]))
+        ztop = 2.04
+    # Tueren
+    gap = 0.003
+    edges = [(-W + 0.014) + (2 * W - 0.028) * i / n for i in range(n + 1)]
+    doors = [(edges[i] + gap, edges[i + 1] - gap) for i in range(n)]
+    zd0, zd1 = z0 + 0.03, 1.93
+    for i, (y0, y1) in enumerate(doors):
+        hinge_left = (i < n - 1) or n == 1
+        if n == 2:
+            hinge_left = (i == 0)
+        Md = Matrix.Identity(4)
+        if i == n - 1 and n > 1:  # rechte Tuer minimal verzogen
+            hy = y1 + 0.006
+            Md = T(D + 0.012, hy, 0) @ R(math.radians(-0.6), 'Z') @ T(-(D + 0.012), -hy, 0)
+        K.add(paint, bm_box((D, y0, zd0), (D + 0.019, y1, zd1), 0.003, 2), Md)
+        yc = (y0 + y1) / 2
+        wl = min(0.1, (y1 - y0) / 2 - 0.05)
+        for k in range(5):  # Kiemen unten
+            z = zd0 + 0.11 + k * 0.042
+            K.add(P['hole'], bm_poly([(D + 0.0193, yc - wl, z), (D + 0.0193, yc + wl, z), (D + 0.0193, yc + wl, z + 0.014),
+                                      (D + 0.0193, yc - wl, z + 0.014)]), Md)
+            K.add(paint, bm_box((-0.0015, -wl, -0.0015), (0.0015, wl, 0.019)), Md @ T(D + 0.0205, yc, z) @ R(math.radians(-35), 'Y'))
+        hy = y0 - 0.006 if hinge_left else y1 + 0.006
+        for z in (zd0 + 0.22, (zd0 + zd1) / 2, zd1 - 0.22):
+            K.cyl(P['steel_dark'], (D + 0.012, hy, z - 0.035), (D + 0.012, hy, z + 0.035), 0.0075, 8)
+        ly = y1 - 0.035 if hinge_left else y0 + 0.035  # Schwenkhebel an der Oeffnungsseite
+        if n == 2 and i == 0:
             continue
-        K.box(P['black_plastic'], (D + 0.023, yc - 0.048, 1.562), (D + 0.03, yc + 0.048, 1.658), bev=0.002)
-        K.add(P['white_plastic'], bm_poly([(D + 0.0302, yc - 0.042, 1.568), (D + 0.0302, yc + 0.042, 1.568),
-                                            (D + 0.0302, yc + 0.042, 1.652), (D + 0.0302, yc - 0.042, 1.652)]))
-        # Skalenbogen und Zeiger
-        cz = 1.578
-        arc_o = [(yc + 0.062 * math.cos(a), cz + 0.062 * math.sin(a)) for a in [math.radians(130 - 80 * t / 10) for t in range(11)]]
-        arc_i = [(yc + 0.056 * math.cos(a), cz + 0.056 * math.sin(a)) for a in [math.radians(130 - 80 * t / 10) for t in range(11)]]
+        K.box(P['black_plastic'], (D + 0.019, ly - 0.021, 0.92), (D + 0.025, ly + 0.021, 1.12), bev=0.002)
+        K.box(P['black_plastic'], (D + 0.025, ly - 0.01, 0.95), (D + 0.037, ly + 0.01, 1.085), bev=0.003, seg=2)
+        K.cyl(P['steel_bright'], (D + 0.025, ly, 1.103), (D + 0.031, ly, 1.103), 0.0075, 10)
+    for i in range(n - 1):  # Dichtung in den Spalten
+        yy = edges[i + 1]
+        K.box(P['black_rubber'], (D - 0.004, yy - 0.0035, zd0 + 0.005), (D + 0.012, yy + 0.0035, zd1 - 0.005))
+
+    def meter(yc, zc, lab, scale=1.0, missing=False):
+        h = 0.044 * scale
+        if missing:
+            K.add(P['hole'], bm_poly([(D + 0.0232, yc - h, zc - h), (D + 0.0232, yc + h, zc - h), (D + 0.0232, yc + h, zc + h), (D + 0.0232, yc - h, zc + h)]))
+            return
+        K.box(P['black_plastic'], (D + 0.019, yc - h - 0.004, zc - h - 0.004), (D + 0.03, yc + h + 0.004, zc + h + 0.004), bev=0.002)
+        K.add(P['white_plastic'], bm_poly([(D + 0.0302, yc - h + 0.002, zc - h + 0.002), (D + 0.0302, yc + h - 0.002, zc - h + 0.002),
+                                            (D + 0.0302, yc + h - 0.002, zc + h - 0.002), (D + 0.0302, yc - h + 0.002, zc + h - 0.002)]))
+        cz = zc - h + 0.01
+        ro, ri = 0.062 * scale, 0.056 * scale
         b = bmesh.new()
-        vo = [b.verts.new((D + 0.0305, y, z)) for (y, z) in arc_o]
-        vi = [b.verts.new((D + 0.0305, y, z)) for (y, z) in arc_i]
-        for i in range(10):
-            b.faces.new((vi[i], vi[i + 1], vo[i + 1], vo[i]))
+        A = [(yc + ro * math.cos(a), cz + ro * math.sin(a)) for a in [math.radians(130 - 80 * t / 10) for t in range(11)]]
+        B = [(yc + ri * math.cos(a), cz + ri * math.sin(a)) for a in [math.radians(130 - 80 * t / 10) for t in range(11)]]
+        vo = [b.verts.new((D + 0.0305, y, z)) for (y, z) in A]
+        vi = [b.verts.new((D + 0.0305, y, z)) for (y, z) in B]
+        for k in range(10):
+            b.faces.new((vi[k], vi[k + 1], vo[k + 1], vo[k]))
         b.normal_update()
         b.faces.ensure_lookup_table()
         if b.faces[0].normal.x < 0:
             bmesh.ops.reverse_faces(b, faces=b.faces)
         K.add(P['black_plastic'], b)
-        for t in range(0, 11, 2):
-            a = math.radians(130 - 80 * t / 10)
-            p0 = (yc + 0.062 * math.cos(a), cz + 0.062 * math.sin(a))
-            p1 = (yc + 0.068 * math.cos(a), cz + 0.068 * math.sin(a))
-            dy, dz = -math.sin(a) * 0.0008, math.cos(a) * 0.0008
-            K.add(P['black_plastic'], bm_poly([(D + 0.0305, p0[0] - dy, p0[1] - dz), (D + 0.0305, p0[0] + dy, p0[1] + dz),
-                                               (D + 0.0305, p1[0] + dy, p1[1] + dz), (D + 0.0305, p1[0] - dy, p1[1] - dz)]))
-        a = math.radians(rng.uniform(95, 125) if k != 2 else 129)
-        tip = (yc + 0.064 * math.cos(a), cz + 0.064 * math.sin(a))
-        nrm = (-math.sin(a) * 0.0009, math.cos(a) * 0.0009)
+        a = math.radians(rng.uniform(95, 125))
+        tip = (yc + 0.064 * scale * math.cos(a), cz + 0.064 * scale * math.sin(a))
+        nr = (-math.sin(a) * 0.0009, math.cos(a) * 0.0009)
         K.add(mat('zeiger', (0.55, 0.06, 0.04), 'paint', r=0.8),
-              bm_poly([(D + 0.0308, yc - nrm[0], cz - nrm[1]), (D + 0.0308, yc + nrm[0], cz + nrm[1]), (D + 0.0308, tip[0], tip[1])]))
-        text(K, stencil_b, lab, (D + 0.0306, yc - 0.006 * len(lab), 1.6), (0, 1, 0), (0, 0, 1), 0.012)
-    # Beschriftung, Warnzeichen, Hauptschalter, Meldeleuchten rechts oben
-    label = ['UV-3', 'NV-1', 'UV-7'][v]
-    K.box(P['black_plastic'], (D + 0.019, 0.17, 1.755), (D + 0.022, 0.43, 1.815), bev=0.001)
-    text(K, mat('schild_weiss', (0.92, 0.92, 0.88), 'sign'), label, (D + 0.0222, 0.19, 1.765), (0, 1, 0), (0, 0, 1), 0.04, w=0.05, gap=0.1)
-    sign_quad(K, mat('warnzeichen', (1.0, 1.0, 1.0), 'sign'), 41, (D + 0.0195, 0.30, 1.64), (0, 1, 0), (0, 0, 1), 0.11, 0.11)
-    yellow = mat('schalter_gelb', (0.85, 0.68, 0.10), 'plastic', r=0.9)
-    red = mat('schalter_rot', (0.62, 0.06, 0.04), 'plastic', r=0.7)
-    K.box(yellow, (D + 0.019, 0.255, 1.255), (D + 0.024, 0.345, 1.345), bev=0.002)
-    K.cyl(red, (D + 0.024, 0.30, 1.30), (D + 0.042, 0.30, 1.30), 0.024, 16)
-    K.add(red, bm_box((0.0, -0.011, -0.055), (0.022, 0.011, 0.035), 0.004, 2), T(D + 0.04, 0.30, 1.30) @ R(math.radians(-40), 'X'))
-    text(K, stencil_b, '0', (D + 0.0242, 0.262, 1.327), (0, 1, 0), (0, 0, 1), 0.012)
-    text(K, stencil_b, 'I', (D + 0.0242, 0.330, 1.327), (0, 1, 0), (0, 0, 1), 0.012)
-    lamps = [('gruen', (0.10, 0.45, 0.12)), ('rot', (0.55, 0.06, 0.04)), ('weiss', (0.85, 0.84, 0.78))]
-    for k, (nm, c) in enumerate(lamps):
-        yc = 0.20 + k * 0.05
-        K.cyl(P['steel'], (D + 0.019, yc, 1.46), (D + 0.026, yc, 1.46), 0.016, 12)
-        lit = (k == 0 and v == 0)
-        lm = mat(f'meldeleuchte_{nm}{"_an" if lit else ""}', c, 'glow' if lit else 'plastic', glow=0.7 if lit else 0.0, r=0.35)
-        K.add(lm, bm_lathe([(0.0115, 0.0), (0.011, 0.006), (0.007, 0.011), (0.0, 0.0125)], 12, cap0=False), frame((D + 0.026, yc, 1.46), (1, 0, 0)))
+              bm_poly([(D + 0.0308, yc - nr[0], cz - nr[1]), (D + 0.0308, yc + nr[0], cz + nr[1]), (D + 0.0308, tip[0], tip[1])]))
+        text(K, stencil_b, lab, (D + 0.0306, yc - 0.006 * len(lab), zc + h * 0.35), (0, 1, 0), (0, 0, 1), 0.012)
+
+    def lamps(y0, zc, cols, lit):
+        for k, (nm, c) in enumerate(cols):
+            yc = y0 + k * 0.05
+            K.cyl(P['steel'], (D + 0.019, yc, zc), (D + 0.026, yc, zc), 0.016, 12)
+            on = k in lit
+            lm = mat(f'meldeleuchte_{nm}{"_an" if on else ""}', c, 'glow' if on else 'plastic', glow=0.7 if on else 0.0, r=0.35)
+            K.add(lm, bm_lathe([(0.0115, 0.0), (0.011, 0.006), (0.007, 0.011), (0.0, 0.0125)], 12, cap0=False), frame((D + 0.026, yc, zc), (1, 0, 0)))
+
+    def mainswitch(yc, zc, size=1.0):
+        h = 0.045 * size
+        K.box(yellow, (D + 0.019, yc - h, zc - h), (D + 0.024, yc + h, zc + h), bev=0.002)
+        K.cyl(red, (D + 0.024, yc, zc), (D + 0.042, yc, zc), 0.024 * size, 16)
+        K.add(red, bm_box((0.0, -0.011 * size, -0.055 * size), (0.022, 0.011 * size, 0.035 * size), 0.004, 2), T(D + 0.04, yc, zc) @ R(math.radians(-40), 'X'))
+        text(K, stencil_b, '0', (D + 0.0242, yc - h + 0.007, zc + h - 0.018), (0, 1, 0), (0, 0, 1), 0.012)
+        text(K, stencil_b, 'I', (D + 0.0242, yc + h - 0.015, zc + h - 0.018), (0, 1, 0), (0, 0, 1), 0.012)
+
+    def label(yc, zc, s, w=0.26):
+        K.box(P['black_plastic'], (D + 0.019, yc - w / 2, zc), (D + 0.022, yc + w / 2, zc + 0.06), bev=0.001)
+        text(K, mat('schild_weiss', (0.92, 0.92, 0.88), 'sign'), s, (D + 0.0222, yc - w / 2 + 0.02, zc + 0.01), (0, 1, 0), (0, 0, 1), 0.04, w=0.05, gap=0.1)
+    warn = mat('warnzeichen', (1.0, 1.0, 1.0), 'sign')
+    if v == 0:
+        K.box(P['black_plastic'], (D + 0.019, -0.49, 1.52), (D + 0.023, -0.13, 1.70), bev=0.002)
+        for k, lab in enumerate(('A', 'V', 'KW')):
+            meter(-0.43 + k * 0.12, 1.61, lab)
+        label(0.30, 1.755, 'UV-3')
+        sign_quad(K, warn, 41, (D + 0.0195, 0.30, 1.64), (0, 1, 0), (0, 0, 1), 0.11, 0.11)
+        mainswitch(0.30, 1.30)
+        lamps(0.20, 1.46, [('gruen', (0.10, 0.45, 0.12)), ('rot', (0.55, 0.06, 0.04)), ('weiss', (0.85, 0.84, 0.78))], {0})
+    elif v == 1:
+        meter(-0.12, 1.66, 'A', 1.1)
+        meter(0.12, 1.66, 'V', 1.1, missing=True)
+        mainswitch(0.0, 1.30, 1.6)
+        label(0.0, 1.44, 'NV-1', 0.24)
+        sign_quad(K, warn, 41, (D + 0.0195, -0.25, 1.82), (0, 1, 0), (0, 0, 1), 0.09, 0.09)
+        lamps(-0.06, 1.12, [('rot', (0.55, 0.06, 0.04)), ('weiss', (0.85, 0.84, 0.78)), ('gruen', (0.10, 0.45, 0.12))], set())
+        # Kabel von unten herauf in den Schrank (zwischen den Fuessen)
+        for k in range(3):
+            yy = -0.15 + k * 0.15
+            K.tube(P['black_rubber'], catmull([(0.10 + 0.05 * k, yy, z0 - 0.03), (0.12 + 0.05 * k, yy + 0.02, 0.08), (0.08 + 0.06 * k, yy + 0.05, 0.012),
+                                               (-0.02, yy + 0.08, 0.012)], 3), 0.014, 6)
+    else:
+        for i, (y0, y1) in enumerate(doors):
+            yc = (y0 + y1) / 2
+            K.box(P['black_plastic'], (D + 0.019, yc - 0.13, 1.38), (D + 0.024, yc + 0.13, 1.80), bev=0.003)
+            K.add(P['glass'], bm_poly([(D + 0.0242, yc - 0.115, 1.395), (D + 0.0242, yc + 0.115, 1.395), (D + 0.0242, yc + 0.115, 1.785),
+                                       (D + 0.0242, yc - 0.115, 1.785)]))
+            decal(K, P['glass_dirty'], (D + 0.0248, yc, 1.42), (0, 1, 0), (0, 0, 1), 0.10, 0.025, 1250 + i, n=10, lift=0.0)
+            label(yc, 1.84, f'F{i + 1}', 0.12)
+        cols = [('gelb', (0.85, 0.62, 0.10)), ('gelb', (0.85, 0.62, 0.10)), ('weiss', (0.85, 0.84, 0.78)), ('rot', (0.55, 0.06, 0.04)),
+                ('gruen', (0.10, 0.45, 0.12)), ('gruen', (0.10, 0.45, 0.12))]
+        yc = (doors[1][0] + doors[1][1]) / 2
+        lamps(yc - 0.125, 1.30, cols, {1, 4})
+        K.box(yellow, (D + 0.019, yc - 0.05, 1.10), (D + 0.024, yc + 0.05, 1.20), bev=0.003)
+        K.cyl(P['black_plastic'], (D + 0.024, yc, 1.15), (D + 0.04, yc, 1.15), 0.018, 12)
+        K.add(red, bm_lathe([(0.0, 0.0), (0.032, 0.0), (0.034, 0.008), (0.028, 0.018), (0.0, 0.022)], 16), frame((D + 0.04, yc, 1.15), (1, 0, 0)))
+        sign_quad(K, warn, 41, (D + 0.0195, yc, 1.00), (0, 1, 0), (0, 0, 1), 0.10, 0.10)
     # Seitliche Kiemen
     for s in (-1, 1):
         for i in range(4):
             z = 1.72 + i * 0.036
-            yy = s * 0.6005
+            yy = s * (W + 0.0005)
             pts = [(0.30, yy, z), (0.42, yy, z), (0.42, yy, z + 0.012), (0.30, yy, z + 0.012)]
-            if s > 0:
-                pts = list(reversed(pts))
-            K.add(P['hole'], bm_poly(pts))
-            K.add(paint, bm_box((-0.06, -0.0015, -0.0015), (0.06, 0.0015, 0.016)), T(0.36, s * 0.602, z) @ R(math.radians(35 * s), 'X'))
+            K.add(P['hole'], bm_poly(list(reversed(pts)) if s > 0 else pts))
+            K.add(paint, bm_box((-0.06, -0.0015, -0.0015), (0.06, 0.0015, 0.016)), T(0.36, s * (W + 0.002), z) @ R(math.radians(35 * s), 'X'))
     # Erdungsleitung gruen-gelb an der linken Seite, in die Wand
-    path = catmull([(0.09, -0.606, 0.19), (0.09, -0.618, 0.13), (0.075, -0.63, 0.03), (0.04, -0.65, 0.008), (-0.03, -0.66, 0.008)], 4)
+    path = catmull([(0.09, -W - 0.006, 0.19 + z0 - 0.1), (0.09, -W - 0.018, 0.13), (0.075, -W - 0.03, 0.03), (0.04, -W - 0.05, 0.008),
+                    (-0.03, -W - 0.06, 0.008)], 4)
     half = [(math.cos(a), math.sin(a)) for a in [math.pi * k / 4 for k in range(5)]]
     K.tube(mat('ader_gruen', (0.10, 0.42, 0.12), 'plastic', r=1.0), path, 0.0055, prof=half, closed=False)
     K.tube(mat('ader_gelb', (0.80, 0.66, 0.08), 'plastic', r=1.0), path, 0.0055, prof=[(-x, -y) for x, y in half], closed=False)
-    bolt(K, P['steel'], (0.09, -0.6, 0.19), (0, -1, 0), d=0.008)
-    # Gebrauchsspuren: Abplatzer an Kanten, Rost unten, Griffspuren, Kratzer, Staub auf dem Dach
+    bolt(K, P['steel'], (0.09, -W, 0.19 + z0 - 0.1), (0, -1, 0), d=0.008)
+    # Gebrauchsspuren
     fx = D + 0.0195
-    for j in range(30 + 10 * (v == 1)):
-        s = rng.choice((-1, 1))
-        edge = rng.choice(('mid', 'out', 'bot', 'bot', 'top'))
-        if edge == 'mid':
-            y, z = s * rng.uniform(0.004, 0.02), rng.uniform(0.2, 1.9)
-        elif edge == 'out':
-            y, z = s * rng.uniform(0.565, 0.584), rng.uniform(0.2, 1.9)
+    wear = cfg['wear']
+    for j in range(int(30 * wear)):
+        y0, y1 = doors[rng.randrange(n)]
+        edge = rng.choice(('a', 'b', 'bot', 'bot', 'top'))
+        if edge == 'a':
+            y, z = y0 + rng.uniform(0.0, 0.016), rng.uniform(zd0 + 0.1, zd1)
+        elif edge == 'b':
+            y, z = y1 - rng.uniform(0.0, 0.016), rng.uniform(zd0 + 0.1, zd1)
         elif edge == 'bot':
-            y, z = s * rng.uniform(0.02, 0.58), rng.uniform(0.133, 0.15)
+            y, z = rng.uniform(y0 + 0.02, y1 - 0.02), rng.uniform(zd0 + 0.003, zd0 + 0.02)
         else:
-            y, z = s * rng.uniform(0.02, 0.58), rng.uniform(1.91, 1.927)
+            y, z = rng.uniform(y0 + 0.02, y1 - 0.02), rng.uniform(zd1 - 0.02, zd1 - 0.003)
         m = P['rust'] if rng.random() < 0.45 else P['steel_dark']
         decal(K, m, (fx, y, z), (0, 1, 0), (0, 0, 1), rng.uniform(0.004, 0.014), rng.uniform(0.004, 0.02), 1300 + v * 50 + j, n=7, lift=0.0004)
-    for s in (-1, 1):
-        for j in range(3 + 2 * (v == 1)):
-            y = s * rng.uniform(0.05, 0.55)
-            decal(K, P['rust'], (fx, y, 0.15), (0, 1, 0), (0, 0, 1), rng.uniform(0.05, 0.14), rng.uniform(0.018, 0.05), 1400 + v * 30 + j + 9 * s,
+    for (y0, y1) in doors:
+        for j in range(int(3 * wear)):
+            y = rng.uniform(y0 + 0.05, y1 - 0.05)
+            decal(K, P['rust'], (fx, y, zd0 + 0.02), (0, 1, 0), (0, 0, 1), rng.uniform(0.04, 0.12), rng.uniform(0.018, 0.05) * wear, 1400 + v * 30 + j,
                   n=9, lift=0.0006)
-            streak(K, P['rust_dark'], (fx + 0.0007, y, 0.17), (0, 1, 0), (0, 0, -1), rng.uniform(0.008, 0.02), rng.uniform(0.02, 0.05), j * 7 + s)
-    decal(K, P['grime'], (fx, 0.06, 1.0), (0, 1, 0), (0, 0, 1), 0.05, 0.11, 1500 + v, n=10, lift=0.0003)
-    decal(K, paint_worn, (fx, 0.085, 1.02), (0, 1, 0), (0, 0, 1), 0.035, 0.09, 1501 + v, n=10, lift=0.0002)
+            streak(K, P['rust_dark'], (fx + 0.0007, y, zd0 + 0.04), (0, 1, 0), (0, 0, -1), rng.uniform(0.008, 0.02), rng.uniform(0.02, 0.05), j * 7 + v)
+    hy = doors[-1][0] + 0.06
+    decal(K, P['grime'], (fx, hy, 1.0), (0, 1, 0), (0, 0, 1), 0.05, 0.11, 1500 + v, n=10, lift=0.0003)
+    decal(K, paint_worn, (fx, hy + 0.025, 1.02), (0, 1, 0), (0, 0, 1), 0.035, 0.09, 1501 + v, n=10, lift=0.0002)
     for j in range(6):
         a = rng.uniform(-0.6, 0.6)
-        streak(K, P['steel_bright'], (fx + 0.0009, 0.05 + rng.uniform(-0.03, 0.03), 1.0 + rng.uniform(-0.08, 0.08)),
+        streak(K, P['steel_bright'], (fx + 0.0009, hy + rng.uniform(-0.03, 0.03), 1.0 + rng.uniform(-0.08, 0.08)),
                (0, math.cos(a), math.sin(a)), (0, math.sin(a), -math.cos(a)), 0.0016, rng.uniform(0.03, 0.09), 1600 + j, n=3)
     for j in range(3):
-        decal(K, P['dust_light'], (rng.uniform(0.18, 0.3), -0.32 + 0.32 * j + rng.uniform(-0.05, 0.05), 1.9955), (1, 0, 0), (0, 1, 0),
-              rng.uniform(0.08, 0.12), rng.uniform(0.1, 0.16), 1700 + v * 5 + j, n=11, lift=0.0004, irr=0.25)
-    for s in (-1, 1):  # Rostlaeufer an den Seiten vom Dach
-        for j in range(2):
+        decal(K, P['dust_light'], (rng.uniform(0.18, 0.3), (-0.32 + 0.32 * j) * W / 0.6, ztop + 0.0005), (1, 0, 0), (0, 1, 0),
+              rng.uniform(0.08, 0.12), rng.uniform(0.1, 0.16) * W / 0.6, 1700 + v * 5 + j, n=11, lift=0.0004, irr=0.25)
+    for s in (-1, 1):
+        for j in range(2 + (v == 1)):
             x = rng.uniform(0.1, 0.4)
-            streak(K, P['rust'], (x, s * 0.6008, 1.955), (-s, 0, 0), (0, 0, -1), rng.uniform(0.01, 0.025),
-                   rng.uniform(0.1, 0.35), 1800 + j + 5 * s + v)
+            streak(K, P['rust'], (x, s * (W + 0.0008), 1.955), (-s, 0, 0), (0, 0, -1), rng.uniform(0.01, 0.025), rng.uniform(0.1, 0.35) * wear,
+                   1800 + j + 5 * s + v)
     return K.finish()
 
 
@@ -1316,11 +1380,11 @@ def flange_pair(K, mf, mb, mg, p, axis, rp, rng, nb=8, rf=None, t=0.02):
     p, ax = Vector(p), Vector(axis).normalized()
     rf = rf or rp * 1.7 + 0.03
     M = frame(p, ax)
-    K.add(mf, bm_lathe([(rp * 1.02, -t - 0.0015), (rf, -t - 0.0015), (rf, -0.0015), (rp * 1.25, -0.0015)], 24, cap0=False, cap1=False), M)
-    K.add(mf, bm_lathe([(rp * 1.25, 0.0015), (rf, 0.0015), (rf, t + 0.0015), (rp * 1.02, t + 0.0015)], 24, cap0=False, cap1=False), M)
+    K.add(mf, bm_lathe([(rp * 1.02, -t - 0.0015), (rf, -t - 0.0015), (rf, -0.0015), (rp * 1.25, -0.0015)], 20, cap0=False, cap1=False), M)
+    K.add(mf, bm_lathe([(rp * 1.25, 0.0015), (rf, 0.0015), (rf, t + 0.0015), (rp * 1.02, t + 0.0015)], 20, cap0=False, cap1=False), M)
     for z0, z1 in ((-t - 0.0015, -t - 0.035), (t + 0.0015, t + 0.035)):  # Schweisshals
-        K.add(mf, bm_lathe([(rp * 1.30, z0), (rp * 1.02, z1)] if z1 > 0 else [(rp * 1.02, z1), (rp * 1.30, z0)], 24, cap0=False, cap1=False), M)
-    K.add(mg, bm_lathe([(rp * 1.25, -0.0015), (rp * 1.45, -0.0015), (rp * 1.45, 0.0015), (rp * 1.25, 0.0015)], 24, cap0=False, cap1=False), M)
+        K.add(mf, bm_lathe([(rp * 1.30, z0), (rp * 1.02, z1)] if z1 > 0 else [(rp * 1.02, z1), (rp * 1.30, z0)], 20, cap0=False, cap1=False), M)
+    K.add(mg, bm_lathe([(rp * 1.25, -0.0015), (rp * 1.45, -0.0015), (rp * 1.45, 0.0015), (rp * 1.25, 0.0015)], 20, cap0=False, cap1=False), M)
     rb = (rp * 1.25 + rf) / 2 + 0.004
     db = min(0.02, (rf - rp) * 0.32)
     a0 = rng.uniform(0, 0.3)
@@ -1641,19 +1705,19 @@ def build_pipe_black():
     pipes = [(0.084, 0.185, 2.10, 2.78, 0.26), (0.057, 0.150, 1.72, 2.56, 0.18)]
     for (r, px, pz, L, br) in pipes:
         path = bent_path([(-0.06, -L, pz), (px, -L, pz), (px, L, pz), (-0.06, L, pz)], br, 6)
-        K.tube(lack, path, r, 20, caps=False)
+        K.tube(lack, path, r, 16, caps=False)
         for s in (-1, 1):  # Mauerkragen
             K.add(mortar, bm_lathe([(r + 0.045, 0.0), (r + 0.03, 0.012), (r + 0.004, 0.016)], 20, cap0=False, cap1=False), frame((0.0, s * L, pz), X))
             K.add(P['galv_dark'], bm_lathe([(r + 0.004, 0.0), (r + 0.004, 0.026)], 20, cap0=False, cap1=False), frame((0.0, s * L, pz), X))
     # Flansche
-    flange_pair(K, flg, P['steel_dark'], P['black_rubber'], (0.185, -1.20, 2.10), Y, 0.084, rng, nb=8)
-    flange_pair(K, P['rust'], P['rust_dark'], P['black_rubber'], (0.185, 1.30, 2.10), Y, 0.084, rng, nb=8)
-    flange_pair(K, flg, P['steel_dark'], P['black_rubber'], (0.150, -0.55, 1.72), Y, 0.057, rng, nb=8)
-    flange_pair(K, P['rust_dark'], P['rust_dark'], P['black_rubber'], (0.150, 2.00, 1.72), Y, 0.057, rng, nb=8)
+    flange_pair(K, flg, P['steel_dark'], P['black_rubber'], (0.185, -1.20, 2.10), Y, 0.084, rng, nb=6)
+    flange_pair(K, P['rust'], P['rust_dark'], P['black_rubber'], (0.185, 1.30, 2.10), Y, 0.084, rng, nb=6)
+    flange_pair(K, flg, P['steel_dark'], P['black_rubber'], (0.150, -0.55, 1.72), Y, 0.057, rng, nb=6)
+    flange_pair(K, P['rust_dark'], P['rust_dark'], P['black_rubber'], (0.150, 2.00, 1.72), Y, 0.057, rng, nb=6)
     # Absperrschieber auf dem unteren Rohr (Spindel zum Gang, Handrad)
     vy = 0.62
     for s in (-1, 1):
-        flange_pair(K, flg, P['steel_dark'], P['black_rubber'], (0.150, vy + s * 0.11, 1.72), Y, 0.057, rng, nb=8, rf=0.115)
+        flange_pair(K, flg, P['steel_dark'], P['black_rubber'], (0.150, vy + s * 0.11, 1.72), Y, 0.057, rng, nb=6, rf=0.115)
     K.add(flg, bm_lathe([(0.0, -0.09), (0.07, -0.085), (0.095, -0.03), (0.095, 0.03), (0.07, 0.085), (0.0, 0.09)], 20), frame((0.15, vy, 1.72), Y))
     K.add(flg, bm_box((-0.05, -0.075, -0.06), (0.15, 0.075, 0.06), 0.02, 2), T(0.15, vy, 1.72))
     K.add(flg, bm_lathe([(0.0, 0.0), (0.07, 0.0), (0.07, 0.03), (0.04, 0.05), (0.035, 0.16), (0.03, 0.20), (0.0, 0.205)], 16),
@@ -1732,10 +1796,10 @@ def build_sludge_pool():
 # (verschmutzt, mit Kitt), teils gesprungen, zerbrochen mit Scherben oder fehlend. Betonsims, Rost am Rahmen.
 # Wandflaeche x = 0, Mitte im Ursprung.
 # =====================================================================================================================
-def build_window_brick():
+def _window_brick(v):
     P = _pal()
     K = Kit(deg=40.0)
-    rng = random.Random(1313)
+    rng = random.Random(1313 + v)
     frame_m = mat('fensterlack', (0.17, 0.20, 0.19), 'paint', r=1.1)
     putty = mat('kitt', (0.55, 0.53, 0.48), 'concrete', r=1.4)
     mortar = mat('fuge', (0.46, 0.43, 0.38), 'concrete', r=1.5)
@@ -1781,7 +1845,11 @@ def build_window_brick():
         K.box(frame_m, (fd - 0.006, -W / 2, z - tw / 2), (fd, W / 2, z + tw / 2), bev=0.0015)
         K.box(frame_m, (0.0, -W / 2, z - 0.003), (fd - 0.006, W / 2, z + 0.003))
     # Scheiben
-    states = ['heil', 'heil', 'sprung', 'fehlt', 'scherben', 'heil', 'sprung', 'scherben', 'heil', 'fehlt', 'sprung', 'scherben']
+    states = [['heil', 'heil', 'sprung', 'fehlt', 'scherben', 'heil', 'sprung', 'scherben', 'heil', 'fehlt', 'sprung', 'scherben'],
+              ['weiss'] * 8 + ['heil', 'heil', 'fehlt', 'scherben'],
+              ['heil'] * 7 + ['sprung', 'sprung', 'fehlt', 'scherben', 'heil']][v]
+    white = mat('glas_gekalkt', (0.72, 0.71, 0.66), 'paint', r=1.35)
+    white2 = mat('glas_gekalkt_hell', (0.82, 0.81, 0.76), 'paint', r=1.4)
     rng.shuffle(states)
     gx = fd - 0.012
     for i in range(cols):
@@ -1790,11 +1858,17 @@ def build_window_brick():
             z0 = -H / 2 + j * (ph + tw)
             y1, z1 = y0 + pw, z0 + ph
             st = states[i * rows + j]
-            if st in ('heil', 'sprung'):
+            if st in ('heil', 'sprung', 'weiss'):
                 for (a0, a1, b0, b1) in ((y0, y1, z0, z0 + 0.009), (y0, y1, z1 - 0.009, z1), (y0, y0 + 0.009, z0, z1), (y1 - 0.009, y1, z0, z1)):
                     K.box(putty, (gx, a0, b0), (gx + 0.008, a1, b1))
             if st == 'heil':
                 K.add(P['glass'] if rng.random() < 0.6 else P['glass_dirty'], bm_poly([(gx, y0, z0), (gx, y1, z0), (gx, y1, z1), (gx, y0, z1)]))
+            elif st == 'weiss':  # von innen gekalkt (Werkhallen), Pinselstriche
+                K.add(white, bm_poly([(gx, y0, z0), (gx, y1, z0), (gx, y1, z1), (gx, y0, z1)]))
+                for q in range(3):
+                    zz = rng.uniform(z0 + 0.05, z1 - 0.05)
+                    streak(K, white2, (gx + 0.0006, y0 + 0.02, zz), (0, 0, 1), (0, 1, 0), rng.uniform(0.02, 0.05), pw - 0.04, 5150 + i * 9 + j * 3 + q, n=5,
+                           lift=0.0)
             elif st == 'sprung':  # Sprung: Scheibe in Stuecke mit feinen Luecken
                 cy, cz = rng.uniform(y0 + 0.08, y1 - 0.08), rng.uniform(z0 + 0.08, z1 - 0.08)
                 corners = [(y0, z0), (y1, z0), (y1, z1), (y0, z1)]
@@ -1852,7 +1926,38 @@ def build_window_brick():
     for j in range(5):
         decal(K, P['rust'], (0.02, rng.uniform(-0.75, 0.75), -H / 2 - fw - 0.002), (1, 0, -0.107), (0, 1, 0), 0.02, rng.uniform(0.01, 0.03),
               5500 + j, n=8, lift=0.0012)
+    if v == 2:  # Schutzgitter aus Drahtgeflecht vor dem Fenster, an vier Winkeln
+        gm = P['galv_dark']
+        gy, gz, gxm = W / 2 + 0.04, H / 2 + 0.04, 0.085
+        for (lo, hi) in (((gxm, -gy, -gz), (gxm + 0.006, gy, -gz + 0.025)), ((gxm, -gy, gz - 0.025), (gxm + 0.006, gy, gz)),
+                         ((gxm, -gy, -gz), (gxm + 0.006, -gy + 0.025, gz)), ((gxm, gy - 0.025, -gz), (gxm + 0.006, gy, gz))):
+            K.box(gm, lo, hi, bev=0.001)
+        for k in range(1, int(2 * gy / 0.05)):
+            y = -gy + k * 0.05
+            K.box(gm, (gxm + 0.001, y - 0.0018, -gz + 0.01), (gxm + 0.0046, y + 0.0018, gz - 0.01))
+        for k in range(1, int(2 * gz / 0.05)):
+            z = -gz + k * 0.05
+            K.box(gm, (gxm + 0.0046, -gy + 0.01, z - 0.0018), (gxm + 0.0082, gy - 0.01, z + 0.0018))
+        for sy in (-1, 1):
+            for sz in (-1, 1):
+                K.box(gm, (0.0, sy * gy - 0.015, sz * gz - 0.015), (gxm, sy * gy + 0.015, sz * gz + 0.015))
+                bolt(K, P['steel'], (gxm + 0.006, sy * (gy - 0.012), sz * (gz - 0.012)), (1, 0, 0), d=0.01)
+        for j in range(10):
+            decal(K, P['rust'], (gxm + 0.0088, rng.uniform(-gy, gy), rng.uniform(-gz, gz)), (0, 1, 0), (0, 0, 1), rng.uniform(0.01, 0.04),
+                  rng.uniform(0.01, 0.06), 5600 + j, n=7, lift=0.0)
     return K.finish()
+
+
+def build_window_brick():
+    _window_brick(0)
+
+
+def build_window_brick__v1():
+    _window_brick(1)
+
+
+def build_window_brick__v2():
+    _window_brick(2)
 
 
 # =====================================================================================================================
@@ -2536,9 +2641,9 @@ def build_train_bogie():
 # Polster mit Gurt, Voluten (Schnecken mit Auge) vorn und hinten, Abakus, Kaempferblock bis zur Decke. Marmor,
 # unten verschmutzt, Abplatzer an Kanten, Laufspuren vom Kapitell.
 # =====================================================================================================================
-def build_column_greek():
+def _column_greek(v):
     K = Kit(deg=35.0)
-    rng = random.Random(1717)
+    rng = random.Random(1717 + v)
     S = mat('marmor', (0.95, 0.92, 0.86), 'concrete', tex='marble_white', r=0.8)
     Sd = mat('marmor_schmutz', (0.70, 0.66, 0.60), 'concrete', tex='marble_white', r=1.1)
     Sdk = mat('marmor_dunkel', (0.55, 0.51, 0.46), 'concrete', tex='marble_white', r=1.2)
@@ -2584,7 +2689,8 @@ def build_column_greek():
                     u = (k - 0.5) / (per - 1)
                     d = 0.024 * math.sin(math.pi * u) * fade
                 rr = (r - d) * (0.994 if joint else 1.0)
-                ring.append(bmS.verts.new((rr * math.cos(a), rr * math.sin(a), z)))
+                off = (0.011, 0.006) if (v == 1 and 2.95 < z < 4.35) else (0.0, 0.0)
+                ring.append(bmS.verts.new((rr * math.cos(a) + off[0], rr * math.sin(a) + off[1], z)))
         rings.append(ring)
     nn = nfl * per
     for i in range(len(rings) - 1):
@@ -2624,6 +2730,11 @@ def build_column_greek():
         for dx in (-0.035, 0.0, 0.035):
             K.add(S, bm_lathe([(0.101, -0.008), (0.112, 0.0), (0.101, 0.008)], 28, cap0=False, cap1=False), frame((dx, yv, vz), (1, 0, 0)))
         for fx in (-1, 1):
+            if v == 1 and s == 1 and fx == 1:  # Volute abgebrochen: rauer Stumpf
+                st = bm_sphere(1.0, 10, 7)
+                jitter(st, 0.18, 6.0, 9)
+                K.add(Sdk, st, T(0.38, yv + 0.01, vz - 0.01) @ Matrix.Diagonal((0.05, 0.10, 0.09, 1.0)))
+                continue
             # Spirale (log.) auf der Stirnflaeche, erhabenes Band
             pts = []
             for k in range(48):
@@ -2651,7 +2762,34 @@ def build_column_greek():
         nrm = [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0)][side]
         uu = Vector((0, 0, 1)).cross(Vector(nrm))
         decal(K, Sdk, p, uu, (0, 0, 1), rng.uniform(0.02, 0.06), rng.uniform(0.008, 0.02), 1720 + j, n=8, lift=0.0008)
+    if v == 1:  # Riss im Schaft (Zickzack), Fleck vom Kapitell
+        a, t = TAU * 2 / 24, 5.6
+        pts = []
+        for k in range(14):  # entlang eines Stegs (sonst schwebt der Riss ueber den Kanneluren)
+            pts.append((a, t))
+            t -= rng.uniform(0.15, 0.3)
+        def rz(z):
+            tt = (z - z0) / (z1 - z0)
+            return 0.44 - 0.07 * tt ** 1.4 + 0.012 * math.sin(math.pi * tt) + 0.0025
+
+        def pc(ang, z):
+            return Vector((rz(z) * math.cos(ang), rz(z) * math.sin(ang), z))
+        for (a0, t0), (a1, t1) in zip(pts, pts[1:]):
+            bb = bm_poly([pc(a0 - 0.006, t0), pc(a0 + 0.006, t0), pc(a1 + 0.006, t1), pc(a1 - 0.006, t1)])
+            bb.normal_update()
+            for f in bb.faces:
+                if f.normal.dot(Vector((math.cos(a0), math.sin(a0), 0))) < 0:
+                    f.normal_flip()
+            K.add(Sdk, bb)
     return K.finish()
+
+
+def build_column_greek():
+    _column_greek(0)
+
+
+def build_column_greek__v1():
+    _column_greek(1)
 
 
 # =====================================================================================================================
@@ -2674,13 +2812,13 @@ def _blob_pts(cy, cz, ry, rz, n, seed, irr=0.25, rot=0.0):
     return out
 
 
-def _angel_painting(scribble):
+def _angel_painting(scribble, v=0):
     K = Kit(deg=35.0)
-    rng = random.Random(4242)
-    gilt = mat('blattgold', (0.70, 0.53, 0.25), 'metal', r=0.85, m=0.7)
-    gilt_d = mat('blattgold_dunkel', (0.36, 0.27, 0.13), 'metal', r=1.2, m=0.5)
+    rng = random.Random(4242 + v)
+    gilt = mat('blattgold', (0.70, 0.53, 0.25), 'metal', r=0.85, m=0.7) if v == 0 else mat('rahmen_nuss', (0.26, 0.16, 0.09), 'concrete', r=1.1)
+    gilt_d = mat('blattgold_dunkel', (0.36, 0.27, 0.13), 'metal', r=1.2, m=0.5) if v == 0 else mat('rahmen_nuss_dunkel', (0.13, 0.08, 0.05), 'concrete', r=1.3)
     bole = mat('poliment_rot', (0.40, 0.14, 0.08), 'paint', r=1.2)
-    canvas = mat('leinwand_grund', (0.11, 0.08, 0.055), 'fabric', r=1.1)
+    canvas = mat('leinwand_grund', (0.11, 0.08, 0.055), 'fabric', r=1.1) if v == 0 else mat('leinwand_nacht', (0.045, 0.055, 0.09), 'fabric', r=1.1)
     W, H, fw = 1.0, 1.3, 0.06
     # Rahmen: Profil (Abstand vom Lichtmass nach aussen, Tiefe x), Gehrung durch Rechteck-Schleifen
     prof = [(0.0, 0.010), (0.0, 0.016), (0.004, 0.019), (0.008, 0.020), (0.010, 0.026), (0.016, 0.023), (0.022, 0.024), (0.028, 0.031),
@@ -2707,7 +2845,7 @@ def _angel_painting(scribble):
             bmesh.ops.reverse_faces(b, faces=b.faces)
         K.add(gilt_d if i in recess else gilt, b)
     # Eckornamente (Muschel mit Rippen)
-    for sy in (-1, 1):
+    for sy in (-1, 1) if v == 0 else ():
         for sz in (-1, 1):
             c = Vector((0.038, sy * (W / 2 + 0.035), sz * (H / 2 + 0.035)))
             K.add(gilt, bm_sphere(1.0, 10, 6), T(*c) @ Matrix.Diagonal((0.012, 0.03, 0.03, 1.0)))
@@ -2730,8 +2868,16 @@ def _angel_painting(scribble):
     def L(m, pts, k=0, cuts=0):
         _paint_layer(K, m, pts, x0 + 0.00025 * k, cuts)
     # Lichtschein hinter der Figur (drei Stufen)
-    for k, (c, ry, rz) in enumerate((((0.30, 0.22, 0.12), 0.44, 0.56), ((0.45, 0.34, 0.17), 0.33, 0.44), ((0.62, 0.50, 0.28), 0.20, 0.27))):
-        L(mat(f'schein{k}', c, 'paint', r=0.9), _blob_pts(0.0, 0.18, ry, rz, 24, 4400 + k, 0.12), k + 1)
+    glow = [((0.30, 0.22, 0.12), 0.44, 0.56), ((0.45, 0.34, 0.17), 0.33, 0.44), ((0.62, 0.50, 0.28), 0.20, 0.27)] if v == 0 else [
+        ((0.08, 0.11, 0.18), 0.46, 0.60), ((0.13, 0.17, 0.26), 0.34, 0.46), ((0.30, 0.32, 0.36), 0.17, 0.22)]
+    for k, (c, ry, rz) in enumerate(glow):
+        L(mat(f'schein{k}_{v}', c, 'paint', r=0.9), _blob_pts(0.0, 0.18 + 0.04 * v, ry, rz, 24, 4400 + k + 10 * v, 0.12), k + 1)
+    if v == 1:  # Sterne
+        for j in range(26):
+            y, z = rng.uniform(-0.46, 0.46), rng.uniform(-0.2, 0.62)
+            if abs(y) < 0.3 and z < 0.55:
+                continue
+            L(mat('stern', (0.78, 0.74, 0.60), 'paint', r=0.9), _blob_pts(y, z, 0.004, 0.004, 5, 4450 + j, 0.2), 2)
     # Boden
     L(mat('boden_gemalt', (0.16, 0.14, 0.08), 'paint', r=0.9), [(-0.5, -0.65), (0.5, -0.65), (0.5, -0.52)] +
       [(0.5 - k * 0.1, -0.50 + 0.03 * math.sin(k * 1.3)) for k in range(11)], 1)
@@ -2752,8 +2898,8 @@ def _angel_painting(scribble):
     # Gewand mit Faltenschatten, Mantel
     robe = mat('gewand_weiss', (0.84, 0.82, 0.76), 'paint', r=0.85)
     robe_s = mat('gewand_schatten', (0.56, 0.55, 0.53), 'paint', r=0.9)
-    mantle = mat('mantel_blau', (0.16, 0.24, 0.40), 'paint', r=0.85)
-    mantle_s = mat('mantel_blau_dunkel', (0.08, 0.12, 0.22), 'paint', r=0.9)
+    mantle = mat('mantel_blau', (0.16, 0.24, 0.40), 'paint', r=0.85) if v == 0 else mat('mantel_rot', (0.44, 0.10, 0.07), 'paint', r=0.85)
+    mantle_s = mat('mantel_blau_dunkel', (0.08, 0.12, 0.22), 'paint', r=0.9) if v == 0 else mat('mantel_rot_dunkel', (0.22, 0.05, 0.04), 'paint', r=0.9)
     L(robe, [(-0.10, 0.20), (0.10, 0.20), (0.13, 0.05), (0.16, -0.25), (0.22, -0.55), (0.10, -0.60), (-0.08, -0.60), (-0.22, -0.55),
              (-0.16, -0.25), (-0.13, 0.05)], 9, cuts=1)
     for k in range(5):
@@ -2767,6 +2913,15 @@ def _angel_painting(scribble):
     skin_s = mat('haut_schatten', (0.58, 0.42, 0.32), 'paint', r=0.9)
     L(skin, _blob_pts(0.0, 0.03, 0.035, 0.06, 10, 4600, 0.1), 13)
     L(skin_s, [(-0.004, -0.02), (0.004, -0.02), (0.003, 0.08), (-0.003, 0.08)], 14)
+    if v == 1:  # Lilie in der Hand (Verkuendigung)
+        green = mat('stiel_gruen', (0.16, 0.26, 0.10), 'paint', r=0.9)
+        K.tube(green, [Vector((x0 + 0.0036, 0.03 + 0.12 * t, -0.02 + 0.55 * t - 0.1 * t * t)) for t in [k / 8 for k in range(9)]], (0.0004, 0.004), 4,
+               caps=False)
+        for j in range(4):
+            L(mat('lilie_weiss', (0.86, 0.84, 0.76), 'paint', r=0.85), _blob_pts(0.10 + 0.03 * math.sin(j), 0.30 + 0.06 * j, 0.022, 0.012, 8, 4620 + j, 0.2,
+                                                                                  rot=0.5 + j), 16)
+        for j in range(3):
+            L(green, _blob_pts(0.07 + 0.03 * j, 0.10 + 0.08 * j, 0.025, 0.007, 7, 4630 + j, 0.1, rot=0.7), 16)
     # Kopf, Haar, Nimbus, Gesicht
     gold = mat('nimbus_gold', (0.78, 0.60, 0.26), 'metal', r=0.75, m=0.6)
     ring_o = [(0.15 * math.cos(a), 0.36 + 0.15 * math.sin(a)) for a in [TAU * k / 32 for k in range(32)]]
@@ -2804,25 +2959,32 @@ def _angel_painting(scribble):
         L(flake, _blob_pts(rng.uniform(-0.42, 0.42), rng.uniform(-0.55, 0.55), rng.uniform(0.005, 0.015), rng.uniform(0.004, 0.012), 8,
                            4900 + j, 0.3), 20)
     L(P_hole := mat('loch', (0.012, 0.012, 0.012), 'plastic', r=1.5), [(0.36, -0.60), (0.44, -0.62), (0.40, -0.55)], 21)
-    if scribble:
-        ink = mat('kritzel_schwarz', (0.02, 0.02, 0.02), 'paint', r=0.6)
-        for j in range(9):
-            pts = []
-            cy, cz = rng.uniform(-0.02, 0.02), 0.355 + rng.uniform(-0.03, 0.03)
-            a = rng.uniform(0, TAU)
-            for k in range(40):
-                a += rng.uniform(0.35, 0.8)
-                r0 = 0.03 + 0.03 * math.sin(k * 0.3 + j) + rng.uniform(-0.01, 0.01)
-                pts.append(Vector((x0 + 0.0060 + 0.00004 * k, cy + r0 * math.cos(a) * 1.1, cz + r0 * math.sin(a) * 1.3)))
-            K.tube(ink, pts, (0.0004, 0.0018), 4, caps=False)
-        for s in (-1, 1):  # Augen ausgestrichen
-            K.tube(ink, [(x0 + 0.0078, s * 0.04, 0.38), (x0 + 0.0078, s * 0.005, 0.35), (x0 + 0.0078, s * 0.04, 0.345)], (0.0005, 0.003), 4,
-                   caps=False)
-        for j in range(5):  # Kratzer durch den Nimbus
-            a = rng.uniform(0, TAU)
-            K.tube(mat('kratzer_hell', (0.70, 0.66, 0.56), 'paint', r=1.2),
-                   [(x0 + 0.0075, 0.12 * math.cos(a), 0.36 + 0.12 * math.sin(a)), (x0 + 0.0075, 0.16 * math.cos(a + 0.2), 0.36 + 0.16 * math.sin(a + 0.2))],
-                   (0.0003, 0.0012), 3, caps=False)
+    if scribble:  # Gesicht uebermalt (LEVELSPEC_3): breite Pinselstriche mit Laeufern, nicht zerkratzt
+        cz = 0.355
+        if v == 0:
+            ink = mat('uebermalung_schwarz', (0.025, 0.022, 0.02), 'paint', r=0.7)
+            for j in range(6):
+                a = rng.uniform(-0.6, 0.6) + (math.pi / 2 if j % 2 else 0.0)
+                c = (rng.uniform(-0.03, 0.03), cz + rng.uniform(-0.04, 0.04))
+                L_ = rng.uniform(0.14, 0.22)
+                d = (math.cos(a), math.sin(a))
+                pts = []
+                for k in range(9):
+                    t = k / 8 - 0.5
+                    pts.append((c[0] + d[0] * L_ * t - d[1] * (0.02 + 0.004 * math.sin(k * 2.3 + j)), c[1] + d[1] * L_ * t + d[0] * (0.02 + 0.004 * math.sin(k * 2.3 + j))))
+                for k in range(8, -1, -1):
+                    t = k / 8 - 0.5
+                    pts.append((c[0] + d[0] * L_ * t + d[1] * (0.02 + 0.004 * math.cos(k * 1.7 + j)), c[1] + d[1] * L_ * t - d[0] * (0.02 + 0.004 * math.cos(k * 1.7 + j))))
+                _paint_layer(K, ink, pts, x0 + 0.0060 + 0.0002 * j, 0)
+            for j in range(4):  # Laeufer
+                y = rng.uniform(-0.06, 0.06)
+                streak(K, ink, (x0 + 0.0074, y, cz - 0.05), (0, 1, 0), (0, 0, -1), rng.uniform(0.006, 0.012), rng.uniform(0.05, 0.2), 4960 + j, n=6, lift=0.0)
+        else:
+            ink = mat('uebermalung_rotbraun', (0.20, 0.07, 0.05), 'paint', r=0.75)
+            _paint_layer(K, ink, _blob_pts(0.0, cz + 0.01, 0.10, 0.13, 22, 4970, 0.25), x0 + 0.0060, 0)
+            for j in range(6):
+                y = rng.uniform(-0.08, 0.08)
+                streak(K, ink, (x0 + 0.0063, y, cz - 0.08), (0, 1, 0), (0, 0, -1), rng.uniform(0.008, 0.02), rng.uniform(0.08, 0.35), 4980 + j, n=7, lift=0.0)
     return K.finish()
 
 
@@ -2830,8 +2992,16 @@ def build_painting_angel():
     _angel_painting(False)
 
 
+def build_painting_angel__v1():
+    _angel_painting(False, 1)
+
+
 def build_painting_angel_scribbled():
     _angel_painting(True)
+
+
+def build_painting_angel_scribbled__v1():
+    _angel_painting(True, 1)
 
 
 # =====================================================================================================================
@@ -3085,7 +3255,7 @@ def stone_pick(seed):
             return 1
         if n.z > 0.72 and cav < 0.25:
             return 2
-        if abs(n.z) < 0.5 and noise.noise(Vector((c.x * 9 + seed, c.y * 9, c.z * 1.4))) > 0.42:
+        if abs(n.z) < 0.5 and noise.noise(Vector((c.x * 9 + seed, c.y * 9, c.z * 1.4))) > 0.6:
             return 3
         return 0
     return pick
@@ -3098,31 +3268,36 @@ def build_skull():
     Poren; Knochen vergilbt, Schmutz in Hoehlen und unten."""
     X = Xf()
     parts = [
-        X.ell((-0.008, 0, 0.112), (0.094, 0.071, 0.068)),
-        X.ell((0.042, 0, 0.110), (0.058, 0.060, 0.060), k=0.025),
-        X.ell((-0.060, 0, 0.098), (0.040, 0.052, 0.050), k=0.02),
-        X.ell((0.035, 0.084, 0.086), (0.045, 0.022, 0.034), k=0.015, op='sub'),
-        X.ell((0.035, -0.084, 0.086), (0.045, 0.022, 0.034), k=0.015, op='sub'),
-        X.ell((0.074, 0, 0.064), (0.036, 0.046, 0.040), k=0.016),
-        X.tube((0.088, -0.046, 0.097), (0.088, 0.046, 0.097), (0.011, 0.010), (0.011, 0.010), k=0.01),
-        X.ell((0.078, 0.054, 0.070), (0.020, 0.018, 0.020), k=0.01),
-        X.ell((0.078, -0.054, 0.070), (0.020, 0.018, 0.020), k=0.01),
-        X.tube((0.072, 0.060, 0.068), (0.010, 0.068, 0.072), (0.006, 0.008), (0.005, 0.007), k=0.008),
-        X.tube((0.072, -0.060, 0.068), (0.010, -0.068, 0.072), (0.006, 0.008), (0.005, 0.007), k=0.008),
-        X.ell((0.086, 0, 0.034), (0.030, 0.036, 0.016), k=0.012),
-        X.tube((0.104, 0, 0.074), (0.098, 0, 0.090), (0.005, 0.005), (0.006, 0.005), k=0.006),
-        # Augenhoehlen, Nase
-        X.ell((0.097, 0.030, 0.082), (0.030, 0.018, 0.017), k=0.006, op='sub'),
-        X.ell((0.097, -0.030, 0.082), (0.030, 0.018, 0.017), k=0.006, op='sub'),
-        X.ell((0.070, 0.028, 0.082), (0.030, 0.014, 0.013), k=0.004, op='sub'),
-        X.ell((0.070, -0.028, 0.082), (0.030, 0.014, 0.013), k=0.004, op='sub'),
-        X.ell((0.112, 0, 0.057), (0.028, 0.010, 0.016), k=0.004, op='sub'),
-        # Unterkiefer: Kinn, Koerper, Aeste
-        X.ell((0.106, 0, 0.013), (0.013, 0.020, 0.012), k=0.008),
-        X.tube((0.104, 0.012, 0.012), (0.035, 0.050, 0.012), (0.008, 0.013), (0.007, 0.012), k=0.008),
-        X.tube((0.104, -0.012, 0.012), (0.035, -0.050, 0.012), (0.008, 0.013), (0.007, 0.012), k=0.008),
-        X.tube((0.035, 0.050, 0.012), (0.022, 0.055, 0.058), (0.007, 0.012), (0.006, 0.010), k=0.006),
-        X.tube((0.035, -0.050, 0.012), (0.022, -0.055, 0.058), (0.007, 0.012), (0.006, 0.010), k=0.006),
+        X.ell((-0.005, 0, 0.112), (0.096, 0.070, 0.068)),                                 # Hirnschale
+        X.ell((0.040, 0, 0.110), (0.058, 0.060, 0.058), k=0.025),                         # Stirn
+        X.ell((-0.065, 0, 0.098), (0.038, 0.052, 0.050), k=0.02),                         # Hinterhaupt
+        X.ell((0.030, 0.083, 0.090), (0.045, 0.020, 0.034), k=0.012, op='sub'),           # Schlaefengruben
+        X.ell((0.030, -0.083, 0.090), (0.045, 0.020, 0.034), k=0.012, op='sub'),
+        X.box((0.076, 0, 0.078), (0.012, 0.034, 0.012), rnd=0.020, k=0.03),               # Mittelgesicht (Augenpartie)
+        X.ell((0.084, 0, 0.052), (0.026, 0.040, 0.026), k=0.025),                         # Oberkieferkoerper
+        X.tube((0.090, -0.047, 0.098), (0.090, 0.047, 0.098), (0.010, 0.008), (0.010, 0.008), k=0.012),  # Brauenwulst
+        X.ell((0.090, 0.056, 0.072), (0.014, 0.010, 0.022), k=0.012),                     # Jochbein (seitlicher Rand)
+        X.ell((0.090, -0.056, 0.072), (0.014, 0.010, 0.022), k=0.012),
+        X.tube((0.082, 0.060, 0.067), (0.010, 0.067, 0.071), (0.0055, 0.008), (0.005, 0.007), k=0.012),  # Jochbogen
+        X.tube((0.082, -0.060, 0.067), (0.010, -0.067, 0.071), (0.0055, 0.008), (0.005, 0.007), k=0.012),
+        X.ell((-0.005, 0.058, 0.048), (0.012, 0.010, 0.016), k=0.01),                     # Warzenfortsatz
+        X.ell((-0.005, -0.058, 0.048), (0.012, 0.010, 0.016), k=0.01),
+        X.ell((0.082, 0, 0.036), (0.024, 0.034, 0.010), k=0.010),                         # Oberkiefer (Zahnbogen)
+        X.tube((0.108, 0, 0.076), (0.100, 0, 0.090), (0.005, 0.005), (0.006, 0.005), k=0.005),   # Nasenbein
+        # Augenhoehlen (tief), Nasenoeffnung, Wangengrube
+        X.ell((0.108, 0.031, 0.083), (0.040, 0.0185, 0.0175), k=0.005, op='sub'),
+        X.ell((0.108, -0.031, 0.083), (0.040, 0.0185, 0.0175), k=0.005, op='sub'),
+        X.ell((0.080, 0.030, 0.083), (0.035, 0.015, 0.014), k=0.003, op='sub'),
+        X.ell((0.080, -0.030, 0.083), (0.035, 0.015, 0.014), k=0.003, op='sub'),
+        X.ell((0.116, 0, 0.056), (0.022, 0.0115, 0.0175), k=0.004, op='sub'),
+        X.ell((0.118, 0.035, 0.058), (0.012, 0.012, 0.012), k=0.008, op='sub'),
+        X.ell((0.118, -0.035, 0.058), (0.012, 0.012, 0.012), k=0.008, op='sub'),
+        # Unterkiefer
+        X.ell((0.108, 0, 0.012), (0.012, 0.022, 0.012), k=0.008),
+        X.tube((0.104, 0.014, 0.012), (0.030, 0.048, 0.010), (0.007, 0.014), (0.007, 0.013), k=0.008),
+        X.tube((0.104, -0.014, 0.012), (0.030, -0.048, 0.010), (0.007, 0.014), (0.007, 0.013), k=0.008),
+        X.tube((0.030, 0.048, 0.010), (0.020, 0.056, 0.058), (0.006, 0.013), (0.006, 0.010), k=0.006),
+        X.tube((0.030, -0.048, 0.010), (0.020, -0.056, 0.058), (0.006, 0.013), (0.006, 0.010), k=0.006),
     ]
     # Zaehne oben und unten (ein Zahn fehlt), Mund geschlossen
     rng = random.Random(12)
@@ -3143,16 +3318,16 @@ def build_skull():
         sag = np.exp(-((P[:, 1] - wig) / 0.0012) ** 2) * (P[:, 2] > 0.14) * (P[:, 0] < 0.05)
         cor = np.exp(-((P[:, 0] - 0.035 - 0.002 * np.sin(P[:, 1] * 400)) / 0.0012) ** 2) * (P[:, 2] > 0.11)
         return d + 0.0009 * np.maximum(sag, cor)
-    ob = sculpt('schaedel', parts, 0.0011, sut, target=5200)
-    bone = [mat('knochen', (0.80, 0.73, 0.58), 'ceramic', r=1.6), mat('knochen_schmutz', (0.42, 0.34, 0.24), 'ceramic', r=1.7),
-            mat('knochen_erde', (0.26, 0.21, 0.15), 'concrete', r=1.5), mat('zahn', (0.82, 0.76, 0.58), 'ceramic', r=1.0)]
+    ob = sculpt('schaedel', parts, 0.0011, sut, target=8000)
+    bone = [mat('knochen', (0.80, 0.73, 0.58), 'ceramic', r=1.6), mat('knochen_schmutz', (0.60, 0.53, 0.42), 'ceramic', r=1.7),
+            mat('knochen_erde', (0.38, 0.31, 0.23), 'concrete', r=1.5), mat('zahn', (0.82, 0.76, 0.58), 'ceramic', r=1.0)]
 
     def pick(c, n, cav, edge):
         if 0.012 < c.z < 0.03 and c.x > 0.055 and abs(c.y) < 0.04:
             return 3
-        if cav > 0.5:
+        if cav > 0.62:
             return 2
-        if cav > 0.28 or c.z < 0.012:
+        if cav > 0.36 or c.z < 0.010:
             return 1
         return 0
     paint_by(ob, parts, sut, bone, pick, cav_scale=0.006)
@@ -3204,29 +3379,30 @@ def build_greek_torso():
     # Himation (Unterkoerper): Falten, die vom Knie zur Huefte ziehen
     prof = [(base - 0.02, 0.21, 0.27, 0.04), (base + 0.05, 0.19, 0.25, 0.04), (0.45, 0.15, 0.21, 0.03), (0.70, 0.14, 0.20, 0.02),
             (0.90, 0.14, 0.215, 0.0), (1.00, 0.135, 0.20, -0.005)]
-    folds = [(lambda z: 0.07 * np.clip((1.0 - z) / 0.8, 0.15, 1.0), 9, lambda z: 0.6 + 0.9 * z),
-             (lambda z: 0.035 * np.clip((1.0 - z) / 0.8, 0.2, 1.0), 15, lambda z: 1.3 - 0.5 * z)]
-    fn, lo, hi = _loft_field(prof, folds, base - 0.02, 1.0, 1, bumps=[((0.16, 0.08, 0.60), (0.08, 0.08, 0.10), 0.22)])
+    folds = [(lambda z: 0.11 * np.clip((1.0 - z) / 0.8, 0.15, 1.0), 9, lambda z: 0.6 + 1.4 * z),
+             (lambda z: 0.05 * np.clip((1.0 - z) / 0.8, 0.2, 1.0), 15, lambda z: 1.3 - 0.9 * z),
+             (lambda z: 0.02, 23, 0.7)]
+    fn, lo, hi = _loft_field(prof, folds, base - 0.02, 1.0, 1, bumps=[((0.16, 0.08, 0.60), (0.08, 0.08, 0.11), 0.30)])
     parts.append(FieldPart(fn, lo, hi, k=0.04))
     # Gerollter Mantelsaum um die Huefte (schraeg)
     for k in range(10):
         a0, a1 = TAU * k / 10, TAU * (k + 1) / 10
         z0 = 0.96 + 0.05 * math.sin(a0 + 0.5)
         z1 = 0.96 + 0.05 * math.sin(a1 + 0.5)
-        parts.append(X.tube((0.135 * math.cos(a0) * 1.05, 0.205 * math.sin(a0) * 1.05, z0), (0.135 * math.cos(a1) * 1.05, 0.205 * math.sin(a1) * 1.05, z1),
-                            (0.03, 0.03), (0.03, 0.03), k=0.015))
+        parts.append(X.tube((0.135 * math.cos(a0) * 1.04, 0.205 * math.sin(a0) * 1.04, z0), (0.135 * math.cos(a1) * 1.04, 0.205 * math.sin(a1) * 1.04, z1),
+                            (0.022, 0.018), (0.022, 0.018), k=0.03))
     # Oberkoerper (Chiton liegt eng an)
     parts += [
         X.ell((-0.01, 0, 0.98), (0.13, 0.18, 0.12), k=0.06),
         X.ell((0.03, 0, 1.13), (0.11, 0.135, 0.12), k=0.06),
         X.ell((0.0, 0, 1.30), (0.11, 0.15, 0.17), k=0.06),
-        X.ell((0.095, 0.072, 1.355), (0.058, 0.062, 0.058), k=0.04),
-        X.ell((0.095, -0.072, 1.355), (0.058, 0.062, 0.058), k=0.04),
-        X.ell((-0.01, 0.165, 1.46), (0.07, 0.08, 0.06), k=0.05),
-        X.ell((-0.01, -0.165, 1.46), (0.07, 0.08, 0.06), k=0.05),
+        X.ell((0.090, 0.074, 1.345), (0.052, 0.058, 0.050), k=0.06),
+        X.ell((0.090, -0.074, 1.345), (0.052, 0.058, 0.050), k=0.06),
+        X.ell((-0.01, 0.150, 1.46), (0.065, 0.07, 0.055), k=0.05),
+        X.ell((-0.01, -0.150, 1.46), (0.065, 0.07, 0.055), k=0.05),
         X.cone((0.0, 0, 1.46), (0.012, 0, 1.62), 0.058, 0.05, k=0.04),
-        X.cone((-0.01, 0.20, 1.46), (0.0, 0.26, 1.36), 0.052, 0.046, k=0.03),
-        X.cone((-0.01, -0.20, 1.46), (0.0, -0.26, 1.36), 0.052, 0.046, k=0.03),
+        X.cone((-0.01, 0.185, 1.45), (0.0, 0.212, 1.20), 0.052, 0.045, k=0.03),
+        X.cone((-0.01, -0.185, 1.45), (0.0, -0.212, 1.20), 0.052, 0.045, k=0.03),
         X.ell((0.135, 0.0, 1.12), (0.012, 0.008, 0.009), k=0.004, op='sub'),
         X.tube((-0.105, 0, 1.42), (-0.10, 0, 1.08), (0.008, 0.008), (0.006, 0.006), k=0.02, op='sub'),
         # Zehen des linken Fusses
@@ -3240,8 +3416,8 @@ def build_greek_torso():
         parts.append(X.tube((0.13, y, 1.28), (0.12, y * 1.3, 1.05), (0.004, 0.004), (0.004, 0.004), k=0.006, op='sub'))
     # Bruchflaechen: Hals, Arme, ein Ausbruch im Gewand unten
     parts.append(cutter((0.012, 0, 1.585), (0.15, 0.1, 1.0), (0.012, 0, 1.6), 0.09, amp=0.008, seed=4))
-    parts.append(cutter((0.0, 0.25, 1.37), (0.1, 0.8, -0.6), (0.0, 0.25, 1.37), 0.08, amp=0.008, seed=5))
-    parts.append(cutter((0.0, -0.245, 1.38), (0.0, -0.85, -0.5), (0.0, -0.245, 1.38), 0.08, amp=0.008, seed=6))
+    parts.append(cutter((0.0, 0.203, 1.33), (0.25, 0.35, -0.90), (0.0, 0.205, 1.25), 0.12, amp=0.009, seed=5))
+    parts.append(cutter((0.0, -0.203, 1.36), (0.15, -0.30, -0.94), (0.0, -0.205, 1.27), 0.12, amp=0.009, seed=6))
     parts.append(cutter((0.14, -0.20, 0.40), (0.7, -0.7, 0.1), (0.14, -0.20, 0.40), 0.11, amp=0.01, seed=7))
     disp = weather(0.0018, 14.0, 0.0022, 45.0, 9)
     ob = sculpt('torso', parts, 0.004, disp, target=13000)
@@ -3395,75 +3571,125 @@ def _angel_hand_parts():
     return hands
 
 
-def _angel_wing_parts(s):
-    """Fluegel einer Seite (gefaltet, erhoben): Vorderrand vom Schulterblatt zum Handgelenk (oben), Handschwingen
-    faechern vom Handgelenk nach hinten unten bis zur Fluegelspitze, Armschwingen bilden die Innenkante, darueber
-    grosse, mittlere und kleine Deckfedern als Schuppen. Federn leicht gebogen, unterschiedlich lang und breit,
-    dachziegelartig gestaffelt; Flaeche leicht gewoelbt (Spreizung 30 Grad)."""
+def _poly_sdf(poly):
+    """Vorzeichenbehafteter Abstand zu einem Polygon (2D, numpy), innen negativ."""
+    A = np.asarray(poly, dtype=np.float64)
+    B = np.roll(A, -1, axis=0)
+
+    def fn(Q):
+        d2 = np.full(len(Q), 1e9)
+        inside = np.zeros(len(Q), dtype=bool)
+        for a, b in zip(A, B):
+            e = b - a
+            w = Q - a
+            t = np.clip((w @ e) / (e @ e), 0.0, 1.0)
+            dd = w - np.outer(t, e)
+            d2 = np.minimum(d2, np.einsum('ij,ij->i', dd, dd))
+            c1 = (a[1] <= Q[:, 1]) & (b[1] > Q[:, 1])
+            c2 = (a[1] > Q[:, 1]) & (b[1] <= Q[:, 1])
+            xc = a[0] + (Q[:, 1] - a[1]) * e[0] / (e[1] if abs(e[1]) > 1e-12 else 1e-12)
+            inside ^= (c1 | c2) & (Q[:, 0] < xc)
+        d = np.sqrt(d2)
+        return np.where(inside, -d, d)
+    return fn
+
+
+def _angel_wing(s):
+    """Fluegel einer Seite als ein Stueck Stein (wie gehauen): gewoelbte Platte mit Umriss eines gefalteten, erhobenen
+    Fluegels (Vorderrand vom Schulterblatt zum Handgelenk oben, Spitze unten hinten), zum Rand duenner; darin
+    gehauene Federn - oben Schuppen der Deckfedern in versetzten Reihen, darunter Schwingen mit Furchen und Kiel,
+    die vom Handgelenk auffaechern, unten ausgezackter Rand aus Federspitzen. Liefert (Teile, Verschiebung)."""
     fz = ANGEL_FZ
-    rng = random.Random(70 + s)
     al = math.radians(30)
     U = np.array([-math.cos(al), s * math.sin(al), 0.0])
     Vv = np.array([-0.10, 0.0, 1.0])
     Vv /= np.linalg.norm(Vv)
     N = np.cross(U, Vv) * s
     N /= np.linalg.norm(N)
-    Xw = Xf(np.stack([U, Vv, N], axis=1), (-0.11, s * 0.10, fz + 1.57))
+    Rw = np.stack([U, Vv, N], axis=1)
+    org = np.array((-0.11, s * 0.10, fz + 1.57))
+    # Umriss: Vorderrand, Oberseite, Aussenrand mit Federspitzen, Unterkante mit Spitzen der Armschwingen
+    top = [(0.0, -0.10), (0.0, 0.05), (0.04, 0.34), (0.09, 0.60), (0.15, 0.72), (0.24, 0.78), (0.33, 0.77), (0.42, 0.70)]
+    edge = [(0.50, 0.52), (0.57, 0.25), (0.60, -0.05), (0.59, -0.35), (0.55, -0.62), (0.47, -0.93), (0.40, -0.88), (0.31, -0.82),
+            (0.22, -0.74), (0.14, -0.64), (0.07, -0.50), (0.025, -0.33)]
+    top = [(x * 1.25, y) for x, y in top]
+    edge = [(x * 1.25, y) for x, y in edge]
+    poly = list(top)
+    for a, b in zip([top[-1]] + edge[:-1], edge):  # Federspitzen als Boegen zwischen den Stuetzpunkten
+        ax, ay = a
+        bx, by = b
+        n = 3
+        for k in range(1, n + 1):
+            t = k / n
+            x, y = ax + (bx - ax) * t, ay + (by - ay) * t
+            nx, ny = (by - ay), -(bx - ax)
+            ln = math.hypot(nx, ny) or 1.0
+            bump = 0.012 * math.sin(math.pi * t) if k < n else -0.004
+            poly.append((x + nx / ln * bump, y + ny / ln * bump))
+    sd2 = _poly_sdf(poly)
+    H = np.array((0.30, 0.74))  # Hand: Ursprung der Handschwingen
 
-    def cup(u, v):  # Woelbung nach aussen
-        return 0.06 * math.sin(math.pi * min(max(u / 0.62, 0.0), 1.0)) * (0.55 + 0.45 * math.cos(v * 1.3))
-    wing = []
-    bone = [(0.0, 0.0), (0.07, 0.34), (0.12, 0.64), (0.20, 0.73), (0.29, 0.74)]
-    for a, b in zip(bone, bone[1:]):
-        wing.append(Xw.tube((a[0], a[1], cup(*a)), (b[0], b[1], cup(*b)), (0.030, 0.034), (0.024, 0.028), up=(0, 0, 1), k=0.025))
+    def cup(u, v):
+        return 0.07 * np.sin(np.pi * np.clip(u / 0.78, 0, 1)) * (0.55 + 0.45 * np.cos(v * 1.3))
 
-    def feather(base, tip, wdt, th, z0, bend=0.05, kk=0.004):
-        b0 = np.array([base[0], base[1], 0.0])
-        t0 = np.array([tip[0], tip[1], 0.0])
-        d = t0 - b0
-        ln = float(np.linalg.norm(d))
-        perp = np.array([d[1], -d[0], 0.0]) / ln  # in der Ebene, nach hinten
-        m0 = (b0 + t0) / 2 + perp * bend * ln * (1 if perp[0] > 0 else -1)
-        pts = [b0, m0, t0]
-        for p in pts:
-            p[2] = cup(p[0], p[1]) + z0
-        m0[2] += 0.004
-        out = [Xw.tube(pts[0], pts[1], (wdt * 0.30, th * 0.55), (wdt * 0.50, th * 0.48), up=(0, 0, 1), k=kk),
-               Xw.tube(pts[1], pts[2], (wdt * 0.50, th * 0.48), (wdt * 0.40, th * 0.34), up=(0, 0, 1), k=kk)]
-        q = [p + np.array([0, 0, th * 0.42]) for p in (b0 + (m0 - b0) * 0.15, m0, m0 + (t0 - m0) * 0.8)]
-        out.append(Xw.tube(q[0], q[1], (0.0034, 0.003), (0.0026, 0.0024), up=(0, 0, 1), k=0.003))
-        out.append(Xw.tube(q[1], q[2], (0.0026, 0.0024), (0.0014, 0.0012), up=(0, 0, 1), k=0.003))
-        return out
-    # Armschwingen (unten, innen): Basis entlang des Arms, Spitzen bilden die Innenkante
-    for k in range(12):
-        t = k / 11
-        base = (0.015 + 0.105 * t, 0.06 + 0.56 * t)
-        tip = (0.05 + 0.30 * t + rng.uniform(-0.01, 0.01), -0.50 - 0.40 * t + rng.uniform(-0.02, 0.02))
-        wing += feather(base, tip, 0.10 + rng.uniform(-0.01, 0.01), 0.020, 0.000 + 0.003 * k, bend=0.04)
-    # Handschwingen: Basis an der Hand, Spitzen am Aussenrand nach unten bis zur Fluegelspitze
-    for k in range(10):
-        t = k / 9
-        base = (0.30 - 0.16 * t, 0.735 - 0.07 * t)
-        tip = (0.60 - 0.18 * t * t + rng.uniform(-0.012, 0.012), 0.12 - 1.06 * t + rng.uniform(-0.02, 0.02))
-        wing += feather(base, tip, 0.11 + rng.uniform(-0.01, 0.012), 0.020, 0.030 + 0.003 * k, bend=0.06)
-    # grosse Deckfedern ueber den Basen der Schwingen
-    for k in range(14):
-        t = k / 13
-        bx, by = 0.03 + 0.20 * t, 0.10 + 0.60 * t
-        wing += feather((bx, by), (bx + 0.09 + 0.03 * t, by - 0.36 + 0.06 * t), 0.085, 0.018, 0.062 + 0.002 * k, bend=0.05, kk=0.003)
-    # mittlere Deckfedern
-    for k in range(16):
-        t = k / 15
-        bx, by = 0.035 + 0.22 * t, 0.16 + 0.56 * t
-        wing += feather((bx, by), (bx + 0.06, by - 0.18), 0.07, 0.018, 0.084 + 0.0015 * k, bend=0.05, kk=0.003)
-    # kleine Deckfedern (Schuppen am Vorderrand) und Daumenfittich
-    for k in range(20):
-        t = k / 19
-        bx, by = 0.02 + 0.25 * t + 0.015 * math.sin(t * 3.0), 0.12 + 0.62 * t - 0.12 * max(0.0, t - 0.75)
-        wing += feather((bx - 0.005, by + 0.025), (bx + 0.03, by - 0.065), 0.050, 0.016, 0.100, bend=0.03, kk=0.002)
-    for k in range(3):
-        wing += feather((0.20 + 0.02 * k, 0.76), (0.27 + 0.03 * k, 0.60 - 0.02 * k), 0.05, 0.016, 0.110 + 0.002 * k, bend=0.08, kk=0.002)
-    return wing
+    def local(P):
+        return (P - org) @ Rw
+
+    def fn(P):
+        Q = local(P)
+        u, v, w = Q[:, 0], Q[:, 1], Q[:, 2] - cup(Q[:, 0], Q[:, 1])
+        d2 = sd2(np.stack([u, v], axis=1))
+        th = 0.034 + 0.060 * np.clip((v + 0.4) / 1.1, 0, 1) * np.clip(1.0 - (u - 0.05) / 0.75, 0.35, 1.0)
+        rr = th * 0.45
+        qx = d2 + rr
+        qy = np.abs(w) - th * 0.5 + rr
+        return np.sqrt(np.maximum(qx, 0) ** 2 + np.maximum(qy, 0) ** 2) + np.minimum(np.maximum(qx, qy), 0) - rr
+    corners = np.array([[u, v, w] for u in (-0.02, 0.80) for v in (-0.97, 0.82) for w in (-0.08, 0.17)])
+    cw = corners @ Rw.T + org
+    lo, hi = cw.min(axis=0), cw.max(axis=0)
+    part = FieldPart(fn, lo, hi, k=0.03)
+    root = Pell(org + U * 0.03 + Vv * 0.05, (0.07, 0.09, 0.06), k=0.04, rot=Rw)
+    base = weather(0.0007, 20.0, 0.0009, 60.0, 50 + s)
+
+    def disp(P):
+        Q = local(P)
+        u, v = Q[:, 0], Q[:, 1]
+        dE = -sd2(np.stack([u, v], axis=1))  # Abstand nach innen vom Rand
+        # Zone: Deckfedern oberhalb einer Linie, Schwingen darunter
+        zc = 0.14 + 0.30 * np.clip(u / 0.6, 0, 1)          # Grenzlinie (v) der Deckfedern, steigt nach hinten
+        in_cov = np.clip((v - zc) / 0.03, 0, 1) + np.clip((0.10 - u) / 0.03, 0, 1) * np.clip((v + 0.05) / 0.05, 0, 1)
+        in_cov = np.clip(in_cov, 0, 1)
+        # Schuppen der Deckfedern: Reihen parallel zum Vorderrand, nach innen groesser (kleine, mittlere, grosse)
+        s_coord = v * 0.95 + u * 0.3
+        dl = np.maximum(0.0, (0.80 - v) * 0.30 + (u - 0.10) * 0.55)   # Abstand vom Vorderrand (grob)
+        scale = np.zeros(len(P))
+        for (r0, r1, rh, sw, sd) in ((0.0, 0.10, 0.045, 0.042, 3), (0.10, 0.22, 0.075, 0.058, 4), (0.22, 0.60, 0.13, 0.075, 5)):
+            rc = dl - r0
+            row = np.floor(rc / rh)
+            jit = (sdf._hash(row.astype(np.int64), np.zeros(len(P), dtype=np.int64), np.zeros(len(P), dtype=np.int64), sd) - 0.5) * sw * 0.5
+            sx = (s_coord + (row % 2) * sw * 0.5 + jit) % sw - sw * 0.5
+            ry = rc - row * rh
+            cy = rh - sw * 0.5
+            du = np.where(ry > cy, np.abs(np.hypot(sx, ry - cy) - sw * 0.5), np.abs(np.abs(sx) - sw * 0.5))
+            band = ((dl >= r0) & (dl < r1)).astype(np.float64)
+            scale = np.maximum(scale, band * np.clip(1.0 - du / 0.007, 0, 1))
+        # Schwingen: Furchen entlang der Federrichtung (faechern von der Hand), Kiel in der Mitte
+        ang = np.arctan2(v - H[1], u - H[0])
+        dphi = 0.075
+        f = (ang / dphi) % 1.0
+        groove = np.clip(1.0 - np.abs(f - 0.5) / 0.09, 0, 1)
+        keel = np.clip(1.0 - np.minimum(f, 1.0 - f) / 0.06, 0, 1)
+        # innere Armschwingen: Furchen senkrecht (entlang v) mit Abstand in u
+        f2 = ((u - 0.01) / 0.075) % 1.0
+        groove2 = np.clip(1.0 - np.abs(f2 - 0.5) / 0.09, 0, 1)
+        keel2 = np.clip(1.0 - np.minimum(f2, 1.0 - f2) / 0.06, 0, 1)
+        sec = np.clip((0.36 - u) / 0.08, 0, 1) * np.clip((0.15 - v) / 0.2, 0, 1)
+        g = groove * (1 - sec) + groove2 * sec
+        kl = keel * (1 - sec) + keel2 * sec
+        fl = (1.0 - in_cov) * np.clip(dE / 0.02, 0, 1)
+        d = base(P) + 0.006 * fl * g ** 0.8 - 0.0018 * fl * kl + 0.0045 * in_cov * scale * np.clip(dE / 0.015, 0, 1)
+        return d
+    return [root, part], disp
 
 
 def _angel_pedestal():
@@ -3573,9 +3799,8 @@ def _angel_sculpt(part, target=None):
         paint_by(ob, P, disp, S, stone_pick(5), cav_scale=0.02)
     else:
         s = 1 if part == 'fluegel1' else -1
-        P = _angel_wing_parts(s)
-        disp = weather(0.0008, 20.0, 0.001, 60.0, 50 + s)
-        ob = sculpt(f'engel_fluegel{s}', P, 0.004, disp, target=target or 6000)
+        P, disp = _angel_wing(s)
+        ob = sculpt(f'engel_fluegel{s}', P, 0.0035, disp, target=target or 6000)
         paint_by(ob, P, disp, S, stone_pick(8 + s), cav_scale=0.015)
     ob.data.set_sharp_from_angle(angle=math.radians(55))
     return ob
@@ -3602,6 +3827,282 @@ def build_angel_statue():
     _angel_pedestal()
     for part in ('gewand', 'haende', 'kopf', 'fluegel1', 'fluegel-1'):
         _angel_sculpt(part)
+
+
+# =====================================================================================================================
+# Varianten (andere Bauarten) fuer haeufig gesetzte Klassen
+# =====================================================================================================================
+def build_generator__v1():
+    """Umformersatz (1930er): Motor und Gleichstromgenerator auf gusseisernem Grundbett, drei Lagerboecke mit
+    Messingoelern, Kupplung unter Lochblechschutz, offener Kollektor mit Buerstenbruecke und Kupferlitzen,
+    Klemmenkasten, Feldsteller mit Handrad, Instrumententafel auf Stuetzen. Dunkelgruener Gusslack, Oel, Rost."""
+    P = _pal()
+    K = Kit(deg=40.0)
+    rng = random.Random(7171)
+    cast = mat('umformer_lack', (0.18, 0.24, 0.22), 'paint', r=1.2)
+    cast_d = mat('umformer_lack_alt', (0.13, 0.16, 0.15), 'paint', r=1.35)
+    copper = mat('kupfer', (0.62, 0.36, 0.20), 'metal', r=0.7)
+    mica = mat('glimmer', (0.12, 0.08, 0.05), 'plastic', r=0.9)
+    brass = mat('messing', (0.62, 0.46, 0.20), 'metal', r=0.7)
+    X, Y, Z = Vector((1, 0, 0)), Vector((0, 1, 0)), Vector((0, 0, 1))
+    zc = 0.66
+    # Grundbett mit Rippen und Ankerschrauben
+    K.box(cast, (-1.50, -0.50, 0.0), (1.50, 0.50, 0.16), bev=0.02, seg=2)
+    for s in (-1, 1):
+        for k in range(7):
+            x = -1.35 + k * 0.45
+            y0, y1 = (0.48, 0.53) if s > 0 else (-0.53, -0.48)
+            K.box(cast, (x - 0.02, y0, 0.0), (x + 0.02, y1, 0.14), bev=0.006)
+    for x in (-1.40, 1.40):
+        for s in (-1, 1):
+            bolt(K, P['steel_dark'], (x, s * 0.42, 0.16), Z, d=0.024, stub=0.03)
+    # Lagerboecke mit Oelern, Welle
+    for x in (-1.32, 1.38):
+        K.box(cast, (x - 0.09, -0.17, 0.16), (x + 0.09, 0.17, zc - 0.02), bev=0.02, seg=2)
+        K.add(cast, bm_lathe([(0.0, -0.09), (0.10, -0.09), (0.11, -0.07), (0.11, 0.07), (0.10, 0.09), (0.0, 0.09)], 20), frame((x, 0, zc), X))
+        for s in (-1, 1):
+            bolt(K, P['steel_dark'], (x, s * 0.13, zc + 0.02), Z, d=0.016, stub=0.015)
+        K.add(brass, bm_lathe([(0.0, 0.0), (0.018, 0.0), (0.02, 0.05), (0.03, 0.08), (0.03, 0.10), (0.0, 0.102)], 12), T(x, 0, zc + 0.10))
+        K.add(P['glass'], bm_cyl(0.026, 0.02, 12, z0=0.06), T(x, 0, zc + 0.10))
+    K.add(P['steel'], bm_cyl(0.05, 2.9, 14, z0=-1.45), frame((0, 0, zc), X))
+    # Motor (Rippengehaeuse, Lagerschilde mit Schlitzen, Fuesse)
+    prof = [(0.36, 0.0)]
+    for k in range(14):
+        x0 = 0.03 + k * 0.065
+        prof += [(0.36, x0), (0.39, x0 + 0.01), (0.39, x0 + 0.03), (0.36, x0 + 0.04)]
+    prof += [(0.36, 0.98)]
+    K.add(cast, bm_lathe(prof, 32, cap0=False, cap1=False), frame((-1.18, 0, zc), X))
+    for xs, sg in ((-1.18, -1), (-0.20, 1)):
+        K.add(cast, bm_lathe([(0.36, 0.0), (0.33, 0.04), (0.22, 0.07), (0.10, 0.08), (0.0, 0.08)], 32), frame((xs, 0, zc), X * sg))
+        for k in range(8):
+            a = TAU * k / 8 + 0.2
+            c = Vector((xs + sg * 0.062, 0.26 * math.cos(a), zc + 0.26 * math.sin(a)))
+            tg = Vector((0, -math.sin(a), math.cos(a))) * 0.04
+            rd = Vector((0, math.cos(a), math.sin(a))) * 0.012
+            pts = [c - tg - rd, c + tg - rd, c + tg + rd, c - tg + rd]
+            bb = bm_poly(pts)
+            bb.normal_update()
+            for f in bb.faces:
+                if f.normal.x * sg < 0:
+                    f.normal_flip()
+            K.add(P['hole'], bb)
+    for s in (-1, 1):
+        K.box(cast, (-1.10, s * 0.30 - 0.06, 0.16), (-0.28, s * 0.30 + 0.06, 0.34), bev=0.01)
+    K.box(cast, (-0.85, -0.16, zc + 0.36), (-0.55, 0.16, zc + 0.56), bev=0.012, seg=2)
+    for xx in (-0.83, -0.57):
+        for yy in (-0.14, 0.14):
+            bolt(K, P['steel'], (xx, yy, zc + 0.56), Z, d=0.008)
+    # Kupplung unter Lochblechschutz
+    for xs in (-0.10, 0.10):
+        K.add(P['steel_dark'], bm_cyl(0.16, 0.05, 24, z0=-0.025), frame((xs * 0.6, 0, zc), X))
+    gpts = [(math.sin(a), math.cos(a)) for a in [math.pi * k / 12 for k in range(13)]]
+    guard = bm_sweep([Vector((-0.17, 0, zc)), Vector((0.17, 0, zc))], 0.23, 12, caps=False, prof=gpts, closed=False)
+    K.add(P['galv'], guard)
+    for k in range(5):
+        for j in range(7):
+            a = math.pi * (j + 1) / 8
+            K.add(P['hole'], bm_poly([Vector((-0.13 + k * 0.065 + dx, 0.2312 * math.cos(a + da), zc + 0.2312 * math.sin(a + da)))
+                                      for dx, da in ((-0.012, 0.05), (0.012, 0.05), (0.012, -0.05), (-0.012, -0.05))]))
+    # Generator mit Rippen, offener Kollektor mit Buerstenbruecke
+    prof = [(0.38, 0.0)]
+    for k in range(13):
+        x0 = 0.03 + k * 0.065
+        prof += [(0.38, x0), (0.41, x0 + 0.01), (0.41, x0 + 0.03), (0.38, x0 + 0.04)]
+    prof += [(0.38, 0.92), (0.30, 0.96), (0.20, 0.98), (0.0, 0.985)]
+    K.add(cast, bm_lathe(prof, 32, cap0=False, cap1=False), frame((0.20, 0, zc), X))
+    K.add(cast, bm_lathe([(0.38, 0.0), (0.34, 0.04), (0.20, 0.06), (0.0, 0.06)], 32), frame((0.20, 0, zc), -X))
+    for s in (-1, 1):
+        K.box(cast, (0.30, s * 0.30 - 0.06, 0.16), (1.06, s * 0.30 + 0.06, 0.32), bev=0.01)
+    cx0 = 1.18
+    K.add(copper, bm_cyl(0.17, 0.14, 32, caps=True, z0=0.0), frame((cx0, 0, zc), X))
+    for k in range(24):
+        a = TAU * k / 24
+        c = Vector((cx0 + 0.07, 0.1705 * math.cos(a), zc + 0.1705 * math.sin(a)))
+        K.add(mica, bm_box((-0.07, -0.003, -0.0015), (0.07, 0.003, 0.0015)), Matrix.Translation(c) @ Matrix.Rotation(a, 4, 'X'))
+    K.add(cast, bm_lathe([(0.24, -0.02), (0.29, -0.02), (0.29, 0.02), (0.24, 0.02)], 32, cap0=False, cap1=False), frame((cx0 + 0.07, 0, zc), X))
+    for k in range(4):
+        a = TAU * k / 4 + math.pi / 4
+        d = Vector((0, math.cos(a), math.sin(a)))
+        p_out = Vector((cx0 + 0.07, 0, zc)) + d * 0.265
+        p_in = Vector((cx0 + 0.07, 0, zc)) + d * 0.19
+        K.add(P['black_plastic'], bm_box((-0.02, -0.015, 0.0), (0.02, 0.015, 0.07)), frame(p_in, d))
+        K.cyl(P['steel_dark'], p_in + d * 0.07, p_out, 0.006, 6)
+        K.tube(copper, catmull([p_in + d * 0.05 + Vector((0.02, 0, 0)), p_in + d * 0.11 + Vector((0.05, 0, 0)), p_out + Vector((0.04, 0, 0))], 3),
+               (0.006, 0.002), 4)
+    # Feldsteller mit Handrad und Instrumententafel (+x), Kabel zum Boden (-y)
+    K.box(cast, (0.55, -0.20, zc + 0.38), (0.85, 0.20, zc + 0.58), bev=0.01, seg=2)
+    handwheel(K, mat('handrad_schwarz', (0.05, 0.05, 0.05), 'paint', r=1.0), P['steel'], (0.70, 0.0, zc + 0.64), Z, 0.10, 4, rng)
+    K.cyl(P['steel'], (0.70, 0, zc + 0.58), (0.70, 0, zc + 0.64), 0.008, 6)
+    for s in (-1, 1):
+        K.box(cast, (1.52, s * 0.25 - 0.025, 0.0), (1.57, s * 0.25 + 0.025, 1.25))
+    K.box(P['black_plastic'], (1.50, -0.32, 1.02), (1.58, 0.32, 1.42), bev=0.008)
+    white = mat('skala', (0.85, 0.84, 0.78), 'plastic', r=0.9)
+    for yy in (-0.15, 0.15):
+        K.add(brass, bm_lathe([(0.0, 0.0), (0.085, 0.0), (0.085, 0.02), (0.078, 0.025), (0.0, 0.025)], 20), frame((1.58, yy, 1.24), X))
+        K.add(white, bm_cyl(0.075, 0.002, 20, z0=0.0255), frame((1.58, yy, 1.24), X))
+        a = math.radians(rng.uniform(150, 200))
+        tip = Vector((1.6085, yy + 0.06 * math.cos(a), 1.24 + 0.06 * math.sin(a)))
+        nn = Vector((0, -math.sin(a), math.cos(a))) * 0.002
+        K.add(P['black_plastic'], bm_poly([Vector((1.6085, yy, 1.24)) - nn, tip, Vector((1.6085, yy, 1.24)) + nn]))
+    for k in range(3):
+        x = 0.70 + k * 0.10
+        K.tube(P['black_rubber'], catmull([(x, -0.20, zc + 0.45), (x, -0.32, zc + 0.4), (x - 0.02, -0.45, 0.3), (x - 0.05, -0.6, 0.03),
+                                           (x - 0.10, -0.85, 0.025), (x - 0.15, -1.20, 0.025)], 3), 0.024, 8)
+    K.tube(P['steel'], catmull([(-0.70, -0.16, zc + 0.46), (-0.70, -0.30, zc + 0.40), (-0.72, -0.45, 0.2), (-0.75, -0.55, 0.03), (-0.8, -1.2, 0.03)], 3),
+           0.022, 8)
+    # Gebrauchsspuren
+    for j in range(16):
+        cdecal(K, P['oil'] if j % 3 == 0 else (P['rust'] if j % 3 == 1 else cast_d), (-1.18, 0, zc), X, Y, 0.392, rng.uniform(-math.pi, 0.5),
+               rng.uniform(0.05, 0.95), rng.uniform(0.15, 0.4), rng.uniform(0.03, 0.12), 7500 + j, n=10, lift=0.0004)
+    for j in range(8):
+        cdecal(K, P['rust'] if j % 2 else cast_d, (0.20, 0, zc), X, Y, 0.412, rng.uniform(-math.pi, 0.5), rng.uniform(0.05, 0.9),
+               rng.uniform(0.15, 0.4), rng.uniform(0.03, 0.1), 7600 + j, n=10, lift=0.0004)
+    decal(K, P['oil'], (0.0, 0.0, 0.1605), (1, 0, 0), (0, 1, 0), 0.5, 0.25, 7700, n=14, lift=0.0)
+    decal(K, P['oil'], (-0.6, 0.65, 0.0009), (1, 0, 0), (0, 1, 0), 0.4, 0.15, 7701, n=12, lift=0.0)
+    return K.finish()
+
+
+def build_conveyor__v1():
+    """Rollenbahn (Schwerkraft) 6 m: Holme aus C-Profil, 26 Tragrollen, Beine mit Verband, gelber Endanschlag,
+    Seitenfuehrung; darauf eine Lattenkiste, zwei Jutesaecke und ein Karton."""
+    P = _pal()
+    K = Kit(deg=40.0)
+    rng = random.Random(3131)
+    paint = mat('rollenbahn_lack', (0.46, 0.40, 0.20), 'paint', r=1.05)
+    yellow = mat('schutz_gelb', (0.82, 0.62, 0.08), 'paint', r=1.0)
+    wood = mat('kiste_holz', (0.52, 0.40, 0.26), 'concrete', r=1.3)
+    wood_d = mat('kiste_holz_dunkel', (0.36, 0.27, 0.17), 'concrete', r=1.4)
+    jute = mat('jute', (0.50, 0.42, 0.28), 'fabric', r=1.4)
+    Zt = 0.90
+    for s in (-1, 1):
+        prof = [(0.33, 0.80), (0.33, 0.90), (0.29, 0.90), (0.29, 0.894), (0.324, 0.894), (0.324, 0.806), (0.29, 0.806), (0.29, 0.80)]
+        prof = [(s * y, z) for (y, z) in prof]
+        K.add(paint, bm_prism(prof, -2.92, 2.92), Matrix(((0, 0, 1, 0), (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 0, 1))))
+    for k in range(26):
+        x = -2.80 + k * 0.224
+        K.add(P['galv'], bm_cyl(0.03, 0.57, 12, z0=-0.285), frame((x, 0, Zt - 0.03), (0, 1, 0)))
+        K.add(P['steel'], bm_cyl(0.008, 0.66, 6, z0=-0.33), frame((x, 0, Zt - 0.03), (0, 1, 0)))
+        if rng.random() < 0.3:
+            cdecal(K, P['rust'], (x, 0, Zt - 0.03), (0, 1, 0), (1, 0, 0), 0.0305, rng.uniform(0, TAU), rng.uniform(-0.2, 0.2), 0.8, 0.06, 3300 + k, n=8,
+                   lift=0.0)
+    for x in (-2.55, 0.0, 2.55):
+        for s in (-1, 1):
+            y = s * 0.30
+            K.box(paint, (x - 0.025, y - 0.025, 0.01), (x + 0.025, y + 0.025, 0.80), bev=0.003)
+            K.box(P['steel_dark'], (x - 0.06, y - 0.06, 0.0), (x + 0.06, y + 0.06, 0.01))
+            bolt(K, P['steel'], (x + 0.04, y + 0.04, 0.01), (0, 0, 1), d=0.01, stub=0.01)
+        K.box(paint, (x - 0.015, -0.29, 0.30), (x + 0.015, 0.29, 0.33))
+        K.cyl(paint, (x - 0.01, -0.28, 0.33), (x - 0.01, 0.28, 0.78), 0.01, 6)
+    for s in (-1, 1):
+        K.box(paint, (-2.9, s * 0.30 - 0.003, 0.90), (2.9, s * 0.30 + 0.003, 0.97))
+        for x in (-2.0, 0.0, 2.0):
+            K.box(paint, (x - 0.01, min(s * 0.30, s * 0.33), 0.90), (x + 0.01, max(s * 0.30, s * 0.33), 0.97))
+    K.box(yellow, (2.88, -0.32, 0.90), (2.94, 0.32, 1.02), bev=0.005)
+    for k in range(4):
+        K.box(P['black_plastic'], (2.941, -0.30 + k * 0.16, 0.92), (2.942, -0.22 + k * 0.16, 1.0))
+    # Lattenkiste
+    cx = -1.6
+    for (z0, z1) in ((Zt, Zt + 0.02),):
+        for k in range(5):
+            K.box(wood, (cx - 0.30, -0.22 + k * 0.1, z0), (cx + 0.30, -0.15 + k * 0.1, z1), bev=0.002)
+    for s in (-1, 1):
+        for k in range(4):
+            K.box(wood if k % 2 else wood_d, (cx - 0.30, s * 0.22 - 0.01, Zt + 0.03 + k * 0.08), (cx + 0.30, s * 0.22 + 0.01, Zt + 0.09 + k * 0.08), bev=0.002)
+        for xs in (-0.28, 0.28):
+            K.box(wood_d, (cx + xs - 0.025, s * 0.235 - 0.012, Zt + 0.02), (cx + xs + 0.025, s * 0.235 + 0.012, Zt + 0.36), bev=0.002)
+    for xs in (-1, 1):
+        for k in range(4):
+            K.box(wood, (cx + xs * 0.30 - 0.01, -0.22, Zt + 0.03 + k * 0.08), (cx + xs * 0.30 + 0.01, 0.22, Zt + 0.09 + k * 0.08), bev=0.002)
+    for k in range(5):
+        K.box(wood, (cx - 0.30, -0.22 + k * 0.1, Zt + 0.34), (cx + 0.30, -0.15 + k * 0.1, Zt + 0.36), bev=0.002)
+    text(K, mat('schrift_schablone', (0.08, 0.06, 0.05), 'stencil'), 'L3-07', (cx - 0.12, -0.2325, Zt + 0.20), (1, 0, 0), (0, 0, 1), 0.05, w=0.04)
+    # Jutesaecke (gequetschte Kissenform)
+    for (sx, sy, rot) in ((0.3, -0.02, 0.2), (0.85, 0.05, -0.15)):
+        b = bm_sphere(1.0, 14, 9)
+        for v in b.verts:
+            v.co.x *= 0.30
+            v.co.y *= 0.20
+            v.co.z = (v.co.z * 0.5 + 0.5) * 0.13 * (1.0 - 0.3 * v.co.x ** 2) - 0.0
+            v.co += Vector(noise.noise_vector(v.co * 18 + Vector((sx, sy, 0)))) * 0.008
+        b.normal_update()
+        K.add(jute, b, T(sx, sy, Zt + 0.002) @ R(rot, 'Z'))
+        K.tube(mat('schnur', (0.40, 0.32, 0.20), 'fabric', r=1.3), [Vector((sx + 0.27 * math.cos(rot), sy + 0.27 * math.sin(rot), Zt + 0.06)) +
+                                                                    Vector((0.02 * math.cos(a), 0.02 * math.sin(a), 0.02 * math.sin(a))) for a in
+                                                                    [TAU * k / 8 for k in range(8)]], 0.004, 4, caps=False, path_closed=True)
+    _carton(K, P, (2.0, 0.0, Zt + 0.0005), (0.42, 0.32, 0.30), 0.25, 34)
+    for j in range(20):
+        s = rng.choice((-1, 1))
+        decal(K, P['rust'] if j % 3 else P['steel_dark'], (rng.uniform(-2.8, 2.8), s * 0.3302, rng.uniform(0.805, 0.895)),
+              (0, 0, 1) if s > 0 else (0, 0, -1), (1, 0, 0), rng.uniform(0.006, 0.02), rng.uniform(0.01, 0.06), 3400 + j, n=8, lift=0.0)
+    return K.finish()
+
+
+def build_pipe_black__v1():
+    """Andere Leitungsfuehrung: eine Gussleitung DN200 auf Rohrboecken (tief, 1,5 m) mit Inspektions-T und Blindflansch,
+    Manometer am Stutzen, ein Ende knickt in den Boden, das andere in die Wand; darueber eine duenne Leitung auf
+    Wandkonsolen. Am Blindflansch tropft es: Lauf am Bock, Lache, Kruste."""
+    P = _pal()
+    K = Kit(deg=40.0)
+    rng = random.Random(616)
+    lack = mat('rohrlack_schwarz', (0.045, 0.042, 0.040), 'paint', r=0.75)
+    guss = mat('guss_schwarz', (0.07, 0.065, 0.06), 'paint', r=1.2)
+    mortar = mat('moertel', (0.50, 0.47, 0.42), 'concrete', tex='concrete_rough', r=1.4)
+    X, Y = Vector((1, 0, 0)), Vector((0, 1, 0))
+    R1, px, pz = 0.11, 0.24, 1.50
+    path = bent_path([(px, -2.75, -0.06), (px, -2.75, pz), (px, 2.70, pz), (-0.06, 2.70, pz)], 0.32, 7)
+    K.tube(guss, path, R1, 18, caps=False)
+    K.add(mortar, bm_lathe([(R1 + 0.05, 0.0), (R1 + 0.035, 0.012), (R1 + 0.004, 0.016)], 20, cap0=False, cap1=False), frame((px, -2.75, 0.0), (0, 0, 1)))
+    K.add(mortar, bm_lathe([(R1 + 0.05, 0.0), (R1 + 0.035, 0.012), (R1 + 0.004, 0.016)], 20, cap0=False, cap1=False), frame((0.0, 2.70, pz), X))
+    for y in (-1.55, 1.25):
+        flange_pair(K, P['rust_dark'] if y > 0 else guss, P['steel_dark'], P['black_rubber'], (px, y, pz), Y, R1, rng, nb=8)
+    # Inspektions-T mit Blindflansch (zum Gang)
+    ty = 0.35
+    K.add(guss, bm_cyl(R1 * 0.85, 0.20, 18, z0=0.0), frame((px, ty, pz), X))
+    M = frame((px + 0.20, ty, pz), X)
+    K.add(P['rust'], bm_lathe([(0.0, 0.0), (R1 * 1.6, 0.0), (R1 * 1.6, 0.03), (0.0, 0.032)], 22), M)
+    for k in range(8):
+        a = TAU * (k + 0.5) / 8
+        q = M @ Vector((R1 * 1.35 * math.cos(a), R1 * 1.35 * math.sin(a), 0.03))
+        bolt(K, P['steel_dark'], q, X, d=0.018, stub=0.012, washer=False)
+    # Manometer am Stutzen
+    K.cyl(P['steel'], (px, -0.9, pz + R1), (px, -0.9, pz + 0.30), 0.012, 8)
+    gc = Vector((px + 0.02, -0.9, pz + 0.36))
+    K.add(P['steel_dark'], bm_lathe([(0.0, -0.02), (0.07, -0.02), (0.075, 0.0), (0.075, 0.015), (0.0, 0.016)], 20), frame(gc, X))
+    K.add(mat('zifferblatt', (0.86, 0.85, 0.80), 'plastic', r=0.8), bm_cyl(0.066, 0.002, 20, z0=0.016), frame(gc, X))
+    a = math.radians(200)
+    K.add(P['black_plastic'], bm_poly([gc + Vector((0.0185, 0, 0.003)), gc + Vector((0.0185, 0.05 * math.cos(a), 0.05 * math.sin(a))), gc + Vector((0.0185, 0, -0.003))]))
+    # Rohrboecke mit Sattel und Buegel
+    for y in (-2.05, -0.30, 2.0):
+        K.box(P['steel_dark'], (px - 0.04, y - 0.04, 0.0), (px + 0.04, y + 0.04, pz - R1 - 0.03), bev=0.004)
+        K.box(P['steel_dark'], (px - 0.12, y - 0.12, 0.0), (px + 0.12, y + 0.12, 0.012))
+        K.box(P['steel_dark'], (px - 0.15, y - 0.05, pz - R1 - 0.04), (px + 0.15, y + 0.05, pz - R1 - 0.01), bev=0.004)
+        ub = [Vector((px - R1 - 0.008, y, pz - R1 - 0.04)), Vector((px - R1 - 0.008, y, pz))]
+        ub += [Vector((px - (R1 + 0.008) * math.cos(t), y, pz + (R1 + 0.008) * math.sin(t))) for t in [math.pi * k / 10 for k in range(1, 10)]]
+        ub += [Vector((px + R1 + 0.008, y, pz)), Vector((px + R1 + 0.008, y, pz - R1 - 0.04))]
+        K.tube(P['steel'], ub, 0.008, 6)
+        for dx, dy in ((-0.08, -0.08), (0.08, 0.08)):
+            bolt(K, P['steel'], (px + dx, y + dy, 0.012), (0, 0, 1), d=0.014, stub=0.012)
+        decal(K, P['rust'], (px + 0.0405, y, 0.08), (0, 1, 0), (0, 0, 1), 0.03, 0.06, int(6100 + y * 10), lift=0.0)
+    # duenne Leitung oben auf Wandkonsolen
+    r2, px2, pz2 = 0.038, 0.11, 2.12
+    path2 = bent_path([(-0.06, -2.4, pz2), (px2, -2.4, pz2), (px2, 2.4, pz2), (-0.06, 2.4, pz2)], 0.12, 5)
+    K.tube(lack, path2, r2, 12, caps=False)
+    for y in (-1.6, 0.0, 1.6):
+        K.box(P['galv'], (0.0, y - 0.02, pz2 - r2 - 0.03), (px2 + r2 + 0.03, y + 0.02, pz2 - r2), bev=0.002)
+        K.tube(P['steel'], [Vector((px2 - (r2 + 0.005) * math.cos(t), y, pz2 + (r2 + 0.005) * math.sin(t))) for t in [math.pi * k / 8 for k in range(9)]],
+               0.005, 5)
+    flange_pair(K, lack, P['steel_dark'], P['black_rubber'], (px2, 0.8, pz2), Y, r2, rng, nb=4)
+    # Rost, Laeufer, Leck am Blindflansch
+    for j in range(12):
+        y = rng.uniform(-2.5, 2.5)
+        cdecal(K, P['rust'] if j % 2 else P['rust_dark'], (px, 0, pz), Y, X, R1, rng.uniform(-0.9, 0.9) + math.pi / 2, y, rng.uniform(0.2, 0.5),
+               rng.uniform(0.05, 0.18), 6200 + j, n=10, lift=0.0012)
+    lx = px + 0.23
+    K.add(P['sludge'], bm_lathe([(0.0, -0.016), (0.006, -0.012), (0.0075, -0.004), (0.004, 0.003), (0.0, 0.004)], 10), T(lx, ty, pz - R1 * 1.6))
+    streak(K, P['sludge'], (px + 0.0412, -0.30 + 0.02, pz - R1 - 0.05), (0, 1, 0), (0, 0, -1), 0.02, pz - R1 - 0.1, 6300, n=10)
+    sludge(K, P, (lx + 0.05, ty), 0.28, 63)
+    sludge(K, P, (px + 0.1, -0.28), 0.14, 64)
+    return K.finish()
 
 
 # --- Ende der Builder ---
