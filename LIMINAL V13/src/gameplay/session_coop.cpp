@@ -259,7 +259,11 @@ void GameSession::netRemoveItem(u32 hash) {
     });
     // V13.3: der Fund liegt hier (noch) nicht geladen (ferner Sektor) - merken, beim Laden nicht erzeugen; sonst stimmte
     // der geteilte Stand nie wieder (im Langlauf gefunden) und der Gast saehe einen Fund, den es nicht mehr gibt
-    if (!known) netPendingPicked_.insert(hash);
+    // Doppelt gemeldet (Stand beim Wiederverbinden mit derselben Sitzung) zaehlt nicht doppelt; die Menge ist begrenzt
+    // (Speicher, falls ein Host Unsinn meldet - die Pruefsumme zeigt das dann als Abweichung)
+    if (!known)
+        for (const std::string& id : picked) known = known || worldItemHash(id) == hash;
+    if (!known && netPendingPicked_.size() < kMaxNetPendingPicked) netPendingPicked_.insert(hash);
     std::erase_if(dropped_, [&](const DroppedItem& d) { return d.netHash == hash; });
     for (ecs::Entity e : gone) {
         if (target_ == e) target_ = ecs::kNull;

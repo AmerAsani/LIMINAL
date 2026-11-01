@@ -165,7 +165,7 @@ ENet und die eigene Kryptografie gibt es nicht mehr; die Testvektoren für HMAC/
 cmake --build build/Release
 cd build/Release/bin
 ../tests/net_transport_test.exe [--only codes,proto,join,wrong,paths,direct,tls,host,lobby]
-../tests/coop_test.exe data [--quick] [--only fuzz,bots,netem,relay,direct,pickup,save,full,attacks,death,journey,outage,hostabort,nopath,reconnect,netfuzz]
+../tests/coop_test.exe data [--quick] [--only fuzz,bots,netem,relay,direct,pickup,save,full,attacks,death,journey,outage,hostabort,nopath,late,reconnect,netfuzz]
 ../tests/coop_test.exe data --long 3600
 ../tests/lobby_proto_fuzz.exe [runden]
 python ../../../tools/check_no_network.py

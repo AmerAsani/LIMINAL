@@ -443,6 +443,7 @@ private:
     bool slamPending_ = false;
     void updateHaunt(double dt);
     static constexpr size_t kMaxDropped = 400;
+    static constexpr size_t kMaxNetPendingPicked = 16384;  // V13.3 Koop (Gast): gemeldete, hier nicht geladene Funde
     // V9
     // V10
     Presence presence_;

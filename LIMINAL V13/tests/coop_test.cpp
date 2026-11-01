@@ -1498,6 +1498,8 @@ static void testLateJoin() {
         guest->registry().each<game::Pickup>([&](ecs::Entity, game::Pickup& pk) { after += game::worldItemHash(pk.worldId) == hash ? 1 : 0; });
         checkN(before == 0 && after == 0, std::format("Gast: Fund vor dem Laden gemeldet, danach nicht erzeugt (vorher {}, nachher {})", before, after));
         checkN(guest->sharedHash() == host->sharedHash(), "Gast: Pruefsumme gleich der des Hosts");
+        guest->netRemoveItem(hash);  // doppelt gemeldet (Stand nach dem Wiederverbinden mit derselben Sitzung)
+        checkN(guest->sharedHash() == host->sharedHash(), "Gast: doppelte Meldung zaehlt nicht doppelt");
     }
     // b) ueber das Netz: der Host hat schon etwas aufgenommen und abgelegt, dann tritt ein zweiter Gast bei; er bekommt den
     //    Stand mit dem Willkommen (Ereignisse werden gehalten, bis seine Sitzung steht)
