@@ -3507,6 +3507,33 @@ static void testV133Ouroboros(const std::string& dataDir) {
               std::format("Ouroboros: wer im Fallstreifen steht, wird beim Aufschlag getroffen ({:.0f} -> {:.0f})", h1, s->stats().health));
         check(hitT > 2.5, std::format("Ouroboros: der Treffer kommt erst nach der Ankuendigung ({:.1f} s)", hitT));
     }
+    // --- Schweissen: Funkenflug nur am Brenner im Band, erst nach dem Zuenden; ausserhalb des Bands nichts ------------------------
+    {
+        s->stats().health = 100.0;
+        P.ouroSet("tower", 0);
+        step(*s, ev, 0.3);
+        info = P.ouroInfo();
+        const vec3 spark = loc(info.tower, info.towerYaw, -0.6f, 0.3f), beside = loc(info.tower, info.towerYaw, -0.6f, 2.0f);
+        put(*s, beside, info.tower + vec3{0, 0, 1.0f});
+        ev.clear();
+        P.ouroSet("weld", 1);
+        step(*s, ev, 8.0);
+        check(count(ev, PE::Weld, 0.75f) > 0 && count(ev, PE::Hit) == 0 && s->stats().health > 99.9,
+              "Ouroboros: Funken treffen neben dem Band nicht (Lichtbogen brennt)");
+        put(*s, spark, info.tower + vec3{0, 0, 1.0f});
+        ev.clear();
+        P.ouroSet("weld", 1);
+        double t = 0.0, igniteT = -1.0, hitT = -1.0;
+        step(*s, ev, 3.0, [&] {
+            t += 1.0 / 60.0;
+            if (igniteT < 0.0 && count(ev, PE::Weld) - count(ev, PE::Weld, 0.5f) > 0) igniteT = t;
+            if (hitT < 0.0 && count(ev, PE::Hit) > 0) hitT = t;
+            return false;
+        });
+        check(igniteT >= 0.0 && hitT > 0.0 && hitT - igniteT >= 0.9,
+              std::format("Ouroboros: am Brenner verbrennen Funken - erst nach dem Zuenden ({:.1f} s)", hitT - igniteT));
+        check(s->stats().health < 99.9 && s->stats().health > 80.0, std::format("Ouroboros: Funken brennen wenig ({:.0f})", s->stats().health));
+    }
     // --- Mauer: Warnklang, einreissen, Presslufthammer - Schaden nur innerhalb des Absperrbands, erst wenn er laeuft -----------
     {
         s->stats().health = 100.0;

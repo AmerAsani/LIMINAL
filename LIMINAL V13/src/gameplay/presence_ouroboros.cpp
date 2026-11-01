@@ -189,8 +189,8 @@ bool Presence::ouroSet(const std::string& key, double v) {
         if (s->towerPhase == TP_CREAK) s->towerPhase = TP_STAND, s->tilt = 0.0f, s->tiltV = 0.0f, s->standDur = 0.0;
         if (s->towerPhase == TP_DOWN || s->towerPhase == TP_LIFT) s->tilt = 1.0f, s->tiltV = 0.0f;
         if (s->towerPhase == TP_FALL) s->tilt = 0.04f, s->tiltV = 0.2f;
-    } else if (key == "weld") {  // 1: gleich zuenden, 0: aus
-        s->weldOn = false, s->weldIgnite = v > 0.5, s->weldT = 0.0;
+    } else if (key == "weld") {  // 1: gleich zuenden - ueber den regulaeren Weg (Zuenden 1 s als Ankuendigung, dann Lichtbogen)
+        s->weldOn = false, s->weldIgnite = false, s->weldT = v > 0.5 ? 0.0 : 3.0;
     } else if (key == "kill") {  // Arbeiter mit dieser Aufgabe vergeht (Bilder)
         for (auto& a : agents_)
             if (a->role == Role::Ouroboros && a->variant <= 1 && !a->showcase && wag(*a).job == (int)v) a->state = ob::K_DISSOLVE, a->stateT = 0.0;
