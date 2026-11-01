@@ -295,3 +295,96 @@ Ergebnis am 27.10.2026:
 | `supply_balance_test` | OK (0 Fehler) |
 | `net_protocol_test` (v1) | OK: 72 Prüfungen, 0 Fehler |
 | `tools/check_no_network.py` | **SAUBER**: `LiminalGame.exe` ohne Netzwerk-DLL und ohne Netzwerk-Zeichenkette, nennt weder `liminal_net` statisch noch `liminal_lobby`. `liminal_net.dll` importiert ws2_32, iphlpapi, winhttp, bcrypt, crypt32, keine Download-Bibliothek, exportiert genau elf `ln_`-Funktionen |
+
+### 7.8 Langlauf 60 min (`coop_test data --long 3600`): **Lauf 3 OK, 10 Prüfungen, 0 Fehler**
+
+Aufbau:
+- Host und 3 Bot-Gäste auf `level1`, **nur über das Relay**: Die Lobby verwirft alle direkten Kandidaten.
+- Der Verkehr zum TURN-Server läuft durch den Netzstörer: je Strecke 80 ms ±30, 3 % Verlust, 1 % doppelt, 2 % umgeordnet.
+- Bots und Host laufen, nehmen auf und legen ab. Am Ende halten alle an und gleichen ab.
+- Gemessen wird der Speicher des Testprozesses alle 5 min. In diesem Prozess laufen Host, alle drei Gäste, Lobby und TURN-Server.
+
+Drei Läufe; die ersten beiden fanden je einen Fehler, beide sind behoben:
+
+| Lauf | Ergebnis | Ursache und Behebung |
+|---|---|---|
+| 1 (27.10., vor der SCTP-Änderung) | **FEHLGESCHLAGEN**, 2 Fehler: ein Gast nach 37 min getrennt | SCTP wartete bis zu 10 s auf Wiederholungen, und die Stille-Erkennung (10 s) trennte. → SCTP wiederholt nach höchstens 2 s, mit 12 Versuchen (E-033) |
+| 2 (nach dem Merge mit `liminal-v13` 4821eab) | **FEHLGESCHLAGEN**, 1 Fehler: 1 654 Abweichungen der Prüfsumme des geteilten Stands; ein Gast wich ab etwa 4 min dauerhaft ab. Verbindung und Relay-Weg waren in Ordnung | Der Host nahm einen Fund in einem Sektor auf, den der Gast nicht geladen hatte, und der Gast verwarf die Meldung. Späte Gäste bekamen den Stand gar nicht. → Stand beim Beitritt und gemerkte Kennzahlen (Architektur, Abschnitt 9); neuer Test `late` |
+| 3 (01.11., Abschluss) | **OK, 10 Prüfungen, 0 Fehler** (3 610 s) | – |
+
+Lauf 3 im Einzelnen:
+- **Geprüft:**
+  - alle drei Gäste nach 3 610 s verbunden;
+  - Weg „Relay“ für alle;
+  - **0 Abweichungen** des geteilten Stands;
+  - keine ungültige Nachricht vom Host;
+  - Ort bei Host und Gast nach dem Anhalten im Rahmen;
+  - genug Momentaufnahmen angekommen.
+- **Gemessen:**
+  - Ping 137 ms (±19); Verlust 0 %, gemessen am Ende in Ruhe über die letzten 20 s.
+  - Vorhersage im Mittel 3,5 cm daneben, über 10 cm in 13 744 von 180 008 Momentaufnahmen (7,6 %).
+  - 97 306 kleine Korrekturen. 8 Sprünge über 2 m, der größte 87 m. Die Sprünge habe ich nicht einzeln aufgeschlüsselt; mögliche Ursachen sind Ortswechsel des Hosts (Wiedereinstieg, Übergänge) und Verlustspitzen.
+  - 19,0 kB/s abwärts und 19,3 kB/s aufwärts je Gast am Störer, für beide Strecken zusammen, mit TURN-Kopf. Der Störer verwarf 93 723 Pakete.
+  - Der Host lehnte 790 von 1 662 Absichten ab: Die Bots greifen auch nach Dingen außer Reichweite.
+  - 12 203 Eingaben wurden verworfen (Zeitbudget gegen Speedhack). Vermutlich kommen Eingaben im gestörten Netz gebündelt und doppelt an.
+
+**Speicher alle 5 min (MB):**
+
+| min | 5 | 10 | 15 | 20 | 25 | 30 | 35 | 40 | 45 | 50 | 55 | 60 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Lauf 1 | 190 | 219 | 232 | 247 | 243 | 256 | 240 | 226 | 228 | 240 | 246 | 255 |
+| Lauf 2 | 382 | 376 | 363 | 330 | 346 | 353 | 344 | 409 | 402 | 344 | 327 | 332 |
+| **Lauf 3** | 301 | 352 | 363 | 377 | 360 | 382 | 331 | 320 | 337 | 334 | 363 | 386 |
+
+Vor dem Beitritt der Gäste waren es 196 MB.
+- **Kein stetiger Anstieg** nach der Ladephase: In Lauf 3 lag der Mittelwert von Minute 5 bis 30 bei 356 MB, von Minute 35 bis 60 bei 345 MB, die Spanne bei 301–386 MB.
+- Die Schwankung kommt vom Laden und Entladen der Sektoren (beim Host 12 nach 5 min, danach 16) in vier Sitzungen.
+- Ein sehr langsames Leck unter etwa 1 MB/min lässt sich über 60 min nicht ausschließen.
+
+
+### 7.9 Nicht geprüft (V13.3)
+
+- **Echtes Internet:** zwei Rechner in verschiedenen Netzen, echte NAT-Router (symmetrisch, CGNAT), Mobilfunk, Firmen- und Schulnetze. Alles lief auf einem Rechner über Loopback-Adressen und den Netzstörer. Anleitung: 7.6.
+- **Öffentlich betriebene Lobby** auf einem Server, `wss://` mit einem Zertifikat einer öffentlichen Zertifizierungsstelle. Geprüft sind nur selbst signierte Zertifikate mit Pinning und die Ablehnung unbekannter Aussteller.
+- **Windows-Firewall-Abfrage:**
+  - Ob Windows beim Hosten über die Lobby fragt, ist nicht geprüft; alle Tests banden an Loopback-Adressen, um keine Abfrage auszulösen.
+  - Im Modus „Direkt“ fragt Windows nach den Erfahrungen aus V13.2.
+- **Last der Lobby:** viele gleichzeitige Räume, verteilte Angriffe von vielen Adressen, Relay-Verkehr vieler Spieler.
+- **Linux-Bau der Lobby:** nicht versucht.
+- **Fremde Parser unter Sanitizern:** STUN/TURN (libjuice), DTLS (Mbed TLS), SCTP (usrsctp) und WebSocket (libdatachannel) wurden nicht selbst gefuzzt.
+- **Unabhängige Durchsicht** durch Dritte: nicht möglich.
+- **Mehr als vier Spieler:** nicht vorgesehen (abgewiesen).
+- **Langlauf nach dem letzten Stand:**
+  - Der Abschlusslauf 3 (7.8) lief auf dem Stand nach dem Merge 4821eab, mit der Behebung des Stands beim Beitritt.
+  - Danach kamen zwei Änderungen dazu: die Begrenzung der gemerkten Funde mit der Regel gegen doppeltes Zählen, und der Merge mit `liminal-v13` 600c53d (neue Wesen).
+  - Für beides liefen die kürzeren Tests (7.10), nicht noch einmal 60 min.
+- **Langlauf über alle Ebenen:** Der Langlauf bleibt auf `level1`. Die Reise durch alle zehn Ebenen ist in `coop_test` kürzer geprüft (Teil `journey`).
+- **Echte Spieler:** Alle Läufe nutzten Bots. Zwei echte Spielprozesse liefen nur kurz (7.3).
+
+### 7.10 Abschlussläufe nach dem Zusammenführen mit `liminal-v13` (600c53d, 01.11.2026)
+
+Stand nach dem Merge (Wrangler, Growler, Nguithr'xurh neu), neu konfiguriert und gebaut, ohne Fehler:
+
+| Test | Ergebnis |
+|---|---|
+| `gameplay_test` | **OK: 525 Prüfungen, 0 Fehler** |
+| `audio_test` | OK: 106 Prüfungen, 0 Fehler |
+| `worldgen_test` (V4-Referenz) | OK: 29 658 Prüfungen, 0 Fehler |
+| `supply_balance_test` | OK (0 Fehler) |
+| `net_protocol_test` | OK: 72 Prüfungen, 0 Fehler |
+| `net_transport_test` | **OK: 90 Prüfungen, 0 Fehler** (86 s) |
+| `lobby_proto_fuzz`, 300 000 Runden | OK: 2 924 angenommen, alle neu gebaut und wieder gelesen |
+| `coop_test --quick` | **OK: 209 Prüfungen, 0 Fehler (262 s; nach der Korrektur des Wettlauf-Tests, siehe unten)** |
+| `tools/check_no_network.py` | SAUBER |
+
+Zum Teil `pickup` von `coop_test`:
+- **Erster Lauf nach dem Merge: 210 Prüfungen, 3 Fehler**, alle im Wettlauf um eine Flasche.
+- Wiederholt scheiterte der Teil in 2 von 5 Läufen. Ursache war eine falsche Annahme des Tests: Der „ferne“ zweite Gast stand nur 1,6 m daneben, also in Reichweite. Wer die Flasche bekommt, hängt dann davon ab, welche Absicht zuerst beim Host ankommt; manchmal war es der zweite.
+- Der Test prüft jetzt, was das Spiel zusagt: **genau einer** bekommt sie, Host und Gäste sind sich einig, und der Gewinner kann sie benutzen. Danach lief der Teil 5 von 5 Mal ohne Fehler.
+- Griffe nach fernen Dingen prüft weiterhin der Teil `attacks`.
+
+Davor, auf dem Stand nach dem Merge 4821eab mit der Behebung des Stands beim Beitritt, liefen:
+- `coop_test --quick`: OK, 209 Prüfungen, 0 Fehler (263 s);
+- der Langlauf 3 (7.8): OK.
+
+Damals scheiterte `gameplay_test` in 3 Prüfungen beim Faceling (Level 2). Das kam aus `liminal-v13` 4821eab, nicht aus dem Koop-Teil, und ist mit 600c53d behoben.

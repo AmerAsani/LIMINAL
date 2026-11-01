@@ -824,25 +824,32 @@ static void testPickupAndPuppets() {
         std::this_thread::sleep_for(std::chrono::milliseconds(8));
     }
     check(h != 0, "Gast hat die Flasche im Blick");
+    game::Pawn* pb = g.host->pawnOf(b.c->selfId());
+    // V13.3: beide stehen in Reichweite (der zweite etwa 1,6 m daneben) - wer zuerst ankommt, haengt vom Netz ab. Geprueft
+    // wird, dass genau einer die Flasche bekommt und Host und Gaeste sich einig sind (ferne Griffe: Teil "attacks")
+    if (pb) note(std::format("Abstand der beiden Figuren beim Host {:.2f} m", std::hypot(pb->player.x - pa->player.x, pb->player.y - pa->player.y)));
     if (h) {
         a.s->interact();
-        b.s->netAction(1, h);  // Wettlauf: der zweite (weit weg) will dieselbe
+        b.s->netAction(1, h);  // Wettlauf: der zweite will im selben Bild dieselbe
     }
     g.run(2.0);
-    check(pa->inventory.count("almond") == 1 && a.s->inventory().count("almond") == 1, "Gast hat die Flasche (Host und Gast)");
-    game::Pawn* pb = g.host->pawnOf(b.c->selfId());
-    check(pb && pb->inventory.count("almond") == 0 && b.s->inventory().count("almond") == 0, "der zweite bekommt sie nicht");
+    const int hostA = pa->inventory.count("almond"), hostB = pb ? pb->inventory.count("almond") : -1;
+    const int gastA = a.s->inventory().count("almond"), gastB = b.s->inventory().count("almond");
+    check(pb && hostA + hostB == 1 && gastA == hostA && gastB == hostB,
+          std::format("Wettlauf: genau einer hat die Flasche, Host und Gast einig (Sammler {}/{}, Zweiter {}/{})", hostA, gastA, hostB, gastB));
     check(g.hs->itemCount() == hostItems0 && a.s->itemCount() == gastItems0, "aus der Welt verschwunden (Host und Gast)");
     check(a.s->sharedHash() == g.hs->sharedHash() && b.s->sharedHash() == g.hs->sharedHash(), "geteilter Zustand nach dem Aufnehmen gleich");
     // benutzen: der Host wendet es an (Verstand steigt)
-    pa->stats.sanity = 40.0;
+    Bot& w = hostB == 1 ? b : a;
+    game::Pawn* pw = hostB == 1 ? pb : pa;
+    pw->stats.sanity = 40.0;
     int aslot = -1;
     for (int i = 0; i < game::Inventory::kSize; ++i)
-        if (a.s->inventory().slots[(size_t)i] && a.s->inventory().slots[(size_t)i]->kind == "almond") aslot = i;
-    if (aslot >= 0) a.s->useSlot(aslot);
+        if (w.s->inventory().slots[(size_t)i] && w.s->inventory().slots[(size_t)i]->kind == "almond") aslot = i;
+    if (aslot >= 0) w.s->useSlot(aslot);
     g.run(1.5);
-    check(pa->stats.sanity > 60.0 && a.s->stats().sanity > 60.0 && a.s->inventory().count("almond") == 0,
-          std::format("benutzt: Verstand beim Host {:.0f}, beim Gast {:.0f}", pa->stats.sanity, a.s->stats().sanity));
+    check(pw->stats.sanity > 60.0 && w.s->stats().sanity > 60.0 && w.s->inventory().count("almond") == 0,
+          std::format("benutzt ({}): Verstand beim Host {:.0f}, beim Gast {:.0f}", hostB == 1 ? "Zweiter" : "Sammler", pw->stats.sanity, w.s->stats().sanity));
     // ein Hound beim Gast: die Puppe folgt dem Original (100 ms zurueck)
     g.hs->presence().force(game::Presence::Role::Hound, 9.0);
     g.run(3.0, [&] { return a.s->presence().has(game::Presence::Role::Hound); });

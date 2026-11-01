@@ -1,6 +1,6 @@
 # LIMINAL V13 – Entscheidung Mehrspieler
 
-## V13.3: Koop ohne Router-Einstellungen, Beta-Etikett entfernt (Stand 27.10.2026, E-033)
+## V13.3: Koop ohne Router-Einstellungen, Beta-Etikett entfernt (Stand 01.11.2026, E-033)
 
 **Der Koop-Modus heißt jetzt „Koop“ (ohne „Beta“).**
 - Beitritt mit Code über eine Lobby, ohne Portfreigabe. Kein direkter Weg → automatisch über das Relay.
@@ -14,10 +14,13 @@ Bedingungen des Auftrags für das Entfernen des Beta-Etiketts:
 | Bedingung | Stand | Beleg |
 |---|---|---|
 | Recherche abgeschlossen | erfüllt | `MULTIPLAYER_RECHERCHE.md` (fünf Spiele, neun Lösungen, Quellen) |
-| bewährte Bibliothek integriert | erfüllt | libdatachannel 0.24.6, libjuice 1.7.4, Mbed TLS 3.6.7 LTS, usrsctp; unverändert in `third_party/` (`LICENSES.md`, Abschnitt 7.1) |
-| alle Tests grün | erfüllt | `MULTIPLAYER_TESTS.md`, Abschnitt 7: Transport, Koop mit Bots über alle Wege, Angriffe, Fuzzing, Reise, Langlauf 60 min; Einzelspieler-Tests unverändert grün |
+| bewährte Bibliothek integriert, keine eigene Kryptografie | erfüllt | libdatachannel 0.24.6, libjuice 1.7.4, Mbed TLS 3.6.7 LTS, usrsctp; unverändert in `third_party/` mit Version, Commit, Prüfsumme, Autor, Lizenz (`LICENSES.md`, Abschnitt 7.1). Eigener Handshake und AES aus V13.2 entfernt |
+| alle Tests grün | erfüllt | `MULTIPLAYER_TESTS.md`, Abschnitt 7.10 (nach dem letzten Merge 600c53d): `net_transport_test` 90/0, `coop_test --quick` 209/0, Lobby-Fuzzing 300 000 Runden, `check_no_network` sauber; Einzelspieler: `gameplay_test` 525/0, `audio_test` 106/0, `worldgen_test` 29 658/0, `supply_balance_test`, `net_protocol_test` 72/0 |
+| Langlauf ≥ 60 min, Speicher alle 5 min | erfüllt | Abschnitt 7.8, Lauf 3: 3 610 s über das gestörte Relay mit Host und 3 Gästen; alle verbunden, 0 Abweichungen des geteilten Stands; Speicher 301–386 MB ohne stetigen Anstieg. Die Läufe 1 und 2 fanden zwei Fehler (SCTP-Stillstand, geteilter Stand bei fernen Funden). Beide sind behoben und erneut geprüft |
+| NAT/Relay, Störungen, Abbrüche, Wiederverbinden, Angriffe | erfüllt | Abschnitt 7.2 und 7.10: nur Relay, Netzstörer (LAN/Internet/schlecht), Netzausfall, Host beendet und fällt aus, kein Weg, Wiederverbinden, Entfernen, Sperren, Fuzzing über den Netzweg, später Beitritt |
+| Abhängigkeiten auf bekannte Lücken geprüft | erfüllt | `LICENSES.md`, Abschnitt 7.1; `MULTIPLAYER_BEDROHUNGSMODELL.md`, Abschnitt 9.3 |
 | Bedrohungsmodell aktualisiert | erfüllt | `MULTIPLAYER_BEDROHUNGSMODELL.md`, Abschnitt 9 |
-| Restrisiken dokumentiert | erfüllt | ebenda, Abschnitt 9.5; `MULTIPLAYER_SETUP.md`, Abschnitt 5 (Datenschutz) |
+| Restrisiken und Ungeprüftes dokumentiert | erfüllt | ebenda, Abschnitt 9.5; `MULTIPLAYER_TESTS.md`, Abschnitt 7.9; `MULTIPLAYER_SETUP.md`, Abschnitt 5 (Datenschutz) |
 
 **Offen, ehrlich benannt** (nicht Teil der Bedingungen, aber Bedingungen aus V13):
 - **Unabhängige Durchsicht durch Dritte:** weiterhin nicht möglich.
@@ -25,6 +28,9 @@ Bedingungen des Auftrags für das Entfernen des Beta-Etiketts:
   - Die eigenen Parser liefen Hunderttausende Fälle, der Netzweg 5 min, der Langlauf 60 min.
   - Die Parser der Bibliotheken (STUN, DTLS, SCTP) habe ich nicht selbst gefuzzt; sie sind Teil von OSS-Fuzz bzw. gepflegter Projekte.
 - **Kein Test über das echte Internet:** Es fehlen zwei Rechner in verschiedenen Netzen, echte NAT-Router und Mobilfunk. Alles lief auf einem Rechner mit Netzstörer. Die Anleitung für den Echttest steht in `MULTIPLAYER_TESTS.md`, Abschnitt 7.6.
+- **Langlauf nach dem letzten Stand:**
+  - Die 60 min liefen vor dem Merge 600c53d und vor der Begrenzung der gemerkten Funde.
+  - Danach liefen nur die kürzeren Tests (`MULTIPLAYER_TESTS.md`, Abschnitt 7.9).
 - **Lobby öffentlich betreiben:** Das macht der Herausgeber (`MULTIPLAYER_SETUP.md`). Ohne eingetragene Lobby geht nur „Direkt“.
 
 ---
