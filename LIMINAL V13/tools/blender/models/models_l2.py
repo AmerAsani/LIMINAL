@@ -629,7 +629,7 @@ def handwheel(G, M3, c, axis, R, rng, spokes=5, paint=None, steel=None, rust=Non
     rr = rim_r or max(0.006, R * 0.085)
     # Kranz: Torus mit ovalem Querschnitt, Griffmulden (Radius wellig), leicht windschief
     ph = rng.uniform(0, TAU)
-    seg2 = 6
+    seg2 = 6 if R > 0.1 else 5
     vs, fs = [], []
     nmu = 12 if spokes >= 5 else 8
     for j in range(seg):
@@ -678,7 +678,7 @@ def handwheel(G, M3, c, axis, R, rng, spokes=5, paint=None, steel=None, rust=Non
         for (q0, q1, ww0, ww1) in ((p0, p1, w0, (w0 + w1) / 2), (p1, p2, (w0 + w1) / 2, w1)):
             L = (q1 - q0).length
             Ms = M @ along(q0, q1, up=Vector((0, 0, 1)).cross(d) if True else None)
-            G.add(paint, lathe([(0, 0), (ww0, 0), (ww1, L), (0, L)], 6, sx=1.0, sy=0.65), Ms)
+            G.add(paint, lathe([(0, 0), (ww0, 0), (ww1, L), (0, L)], 5, sx=1.0, sy=0.65), Ms)
     # Rost an den Speichenansaetzen, Fett am Nabenrand
     for k in range(min(spokes, 3)):
         a = TAU * rng.randrange(spokes) / spokes
@@ -1165,7 +1165,7 @@ def _tube(kind):
         x0, x1 = (0.615, 0.627) if s > 0 else (-0.627, -0.615)
         G.add(cap, box((x0, -0.031, zb - 0.002), (x1, 0.031, zt + 0.002), bev=0.003))
         x = s * 0.598  # Fassung G13 mit Drehteil
-        G.add(holder, box((x - 0.011, -0.017, zr - 0.018), (x + 0.011, 0.017, zb + 0.001), bev=0.004))
+        G.add(holder, box((x - 0.011, -0.017, zr - 0.018), (x + 0.011, 0.017, zb + 0.001)))
     L = 0.575  # Roehre: Glas mit geschwaerzten Enden, Alu-Kappen mit zwei Stiften
     for x0, x1, m_ in ((-L, -L + 0.035, endb), (-L + 0.035, L - 0.035, glass), (L - 0.035, L, endb)):
         G.add(m_, lathe([(0.013, 0.0), (0.013, x1 - x0)], 10), along((x0, 0, zr), (x1, 0, zr)))
@@ -1176,9 +1176,8 @@ def _tube(kind):
             G.add(C['steel'], cyl(0.0012, 0.006, 4), along((s * (L + 0.016), dy, zr), (s * (L + 0.022), dy, zr)))
     for x in (-0.42, 0.42):  # Deckenrosette, Haken, Drahtseil, Seilklemme
         G.add(body, lathe([(0, -0.006), (0.014, -0.005), (0.018, 0), (0, 0)], 8), Matrix.Translation((x, 0, 0)))
-        G.add(C['steel'], torus(0.005, 0.0011, 6, 3), mt((x, 0, -0.012), (math.pi / 2, 0, 0)))
         G.add(C['steel'], cyl(0.0009, abs(zt + 0.012) - 0.006, 4), along((x, 0, -0.016), (x, 0, zt + 0.004)))
-        G.add(C['steel_dark'], cyl(0.0035, 0.012, 6), along((x, 0, zt + 0.014), (x, 0, zt + 0.002)))
+        G.add(C['steel_dark'], cyl(0.0035, 0.012, 4), along((x, 0, zt + 0.014), (x, 0, zt + 0.002)))
     p0 = Vector((0.627, 0.0, -0.075))  # Kabel: Verschraubung an der Endkappe, Bogen zur Decke, Schelle
     G.add(C['black'], lathe([(0, 0), (0.007, 0), (0.007, 0.006), (0.005, 0.012), (0, 0.012)], 8), along(p0 - Vector((0.002, 0, 0)), p0 + Vector((0.01, 0, 0))))
     sag = rng.uniform(0.07, 0.1)
@@ -1285,42 +1284,41 @@ def build_junction_box():
     D, Wy, Hz = 0.205, 0.30, 0.40
     for sy in (-1, 1):  # Befestigungslaschen, Schrauben in die Wand
         for sz in (-1, 1):
-            G.add(C['zinc'], box((0.0, sy * Wy - 0.012, sz * (Hz + 0.02) - 0.02), (0.003, sy * Wy + 0.012, sz * (Hz + 0.02) + 0.02), bev=0.001))
-            screw_head(G, C['steel'], (0.003, sy * Wy, sz * (Hz + 0.03)), (1, 0, 0), 0.006, C['black'])
+            G.add(C['zinc'], box((0.0, sy * Wy - 0.012, sz * (Hz + 0.02) - 0.02), (0.003, sy * Wy + 0.012, sz * (Hz + 0.02) + 0.02)))
+            screw_head(G, C['steel'], (0.003, sy * Wy, sz * (Hz + 0.03)), (1, 0, 0), 0.006, kind='flat', seg=6)
     G.add(paint, box((0.0, -Wy, -Hz), (D, Wy, Hz), bev=0.009, seg=2))
     G.add(C['black'], box((D - 0.001, -Wy + 0.012, -Hz + 0.012), (D + 0.002, Wy - 0.012, Hz - 0.012)))  # Dichtung
     xd = D + 0.020
-    G.add(paint, box((D + 0.002, -Wy + 0.006, -Hz + 0.006), (xd, Wy - 0.006, Hz - 0.006), bev=0.006, seg=2))
+    G.add(paint, box((D + 0.002, -Wy + 0.006, -Hz + 0.006), (xd, Wy - 0.006, Hz - 0.006), bev=0.005, seg=1))
     for z in (-0.28, 0.28):  # Scharniere links
-        G.add(C['zinc'], cyl(0.0065, 0.07, 10), along((D + 0.008, -Wy - 0.002, z - 0.035), (D + 0.008, -Wy - 0.002, z + 0.035)))
-        G.add(C['zinc'], cyl(0.0035, 0.08, 6), along((D + 0.008, -Wy - 0.002, z - 0.04), (D + 0.008, -Wy - 0.002, z + 0.04)))
+        G.add(C['zinc'], cyl(0.0065, 0.07, 8), along((D + 0.008, -Wy - 0.002, z - 0.035), (D + 0.008, -Wy - 0.002, z + 0.035)))
     for z in (-0.22, 0.22):  # Vierkantverschluesse
         c = Vector((xd, 0.24, z))
-        G.add(C['black'], lathe([(0, 0), (0.016, 0), (0.016, 0.004), (0.013, 0.007), (0, 0.007)], 14), along(c, c + Vector((1, 0, 0))))
+        G.add(C['black'], lathe([(0, 0), (0.016, 0), (0.016, 0.004), (0.013, 0.007), (0, 0.007)], 10), along(c, c + Vector((1, 0, 0))))
         G.add(C['steel'], box((0.0, -0.004, -0.004), (0.004, 0.004, 0.004)), Matrix.Translation(c + Vector((0.005, 0, 0))) @ Matrix.Rotation(0.4, 4, 'X'))
         G.add(C['grime'], blob(c, (0, 1, 0), (0, 0, 1), 0.045, 0.06, rng, 12, 2, 0.4, off=0.0009))
-    for k in range(6):  # Lueftungskiemen
-        z = -Hz + 0.06 + k * 0.016
-        G.add(C['hole'], box((xd - 0.0005, -0.12, z), (xd + 0.0004, 0.12, z + 0.006)))
-        G.add(paint, box((xd, -0.12, z + 0.006), (xd + 0.007, 0.12, z + 0.0085), bev=0.0008))
+    for k in range(4):  # Lueftungskiemen
+        z = -Hz + 0.06 + k * 0.02
+        G.add(C['hole'], box((xd - 0.0005, -0.12, z), (xd + 0.0004, 0.12, z + 0.008)))
+        G.add(paint, box((xd, -0.12, z + 0.008), (xd + 0.007, 0.12, z + 0.0105)))
     _warn_triangle(G, C, FX((xd + 0.0002, -0.04, 0.20)), 0.10)
     _plate_lines(G, C, FX((xd + 0.0002, -0.15, 0.32)), 0.07, 0.035, rng, 3)
     tape = mat('kreppband', (0.80, 0.76, 0.62), 'paint', r=1.35)
     G.add(tape, box((0.0, -0.08, -0.0125), (0.0006, 0.08, 0.0125)), Matrix.Translation((xd, 0.02, -0.05)) @ Matrix.Rotation(0.03, 4, 'X'))
     for i in range(3):
         G.add(C['ink'], box((0.0006, -0.07 + i * 0.05, -0.004), (0.0009, -0.035 + i * 0.05, 0.004)), Matrix.Translation((xd, 0.02, -0.05)) @ Matrix.Rotation(0.03, 4, 'X'))
-    for y, r in ((-0.17, 0.016), (0.0, 0.0125), (0.15, 0.0125)):  # Verschraubungen und Rohre zur Decke
+    for y, r in ((-0.17, 0.016), (0.12, 0.0125)):  # Verschraubungen und Rohre zur Decke
         top = Vector((0.11, y, Hz))
         G.add(C['zinc'], nut_shape(r * 1.55, 0.012), along(top, top + Vector((0, 0, 1))))
-        G.add(C['zinc'], lathe([(0, 0), (r * 1.25, 0), (r * 1.2, 0.012), (r * 1.05, 0.018), (0, 0.018)], 10), along(top + Vector((0, 0, 0.012)), top + Vector((0, 0, 1))))
+        G.add(C['zinc'], lathe([(0, 0), (r * 1.25, 0), (r * 1.2, 0.012), (r * 1.05, 0.018), (0, 0.018)], 8), along(top + Vector((0, 0, 0.012)), top + Vector((0, 0, 1))))
         path = [top + Vector((0, 0, 0.02)), Vector((0.11, y, Hz + 0.12)), Vector((r + 0.012, y, Hz + 0.26)), Vector((r + 0.012, y, 1.3))]
-        G.add(C['zinc'], tube(path, r, 8, bend=0.06, bseg=3, caps=False))
-        for z in (0.62, 1.1):
-            G.add(C['zinc'], cyl(r * 1.18, 0.04, 10), along((r + 0.012, y, z), (r + 0.012, y, z + 0.04)))
-        for z in (0.85, 1.22):
+        G.add(C['zinc'], tube(path, r, 7, bend=0.06, bseg=3, caps=False))
+        for z in (0.80,):
+            G.add(C['zinc'], cyl(r * 1.18, 0.04, 7, cap=False), along((r + 0.012, y, z), (r + 0.012, y, z + 0.04)))
+        for z in (1.15,):
             G.add(C['zinc'], _saddle(r + 0.012, r), Matrix.Translation((0, y, z)))
             for sy in (-1, 1):
-                screw_head(G, C['steel'], (0.0018, y + sy * (r + 0.011), z), (1, 0, 0), 0.0035, seg=5)
+                screw_head(G, C['steel'], (0.0018, y + sy * (r + 0.011), z), (1, 0, 0), 0.0035, kind='flat', seg=5)
     G.add(C['zinc'], tube([(D - 0.01, -Wy + 0.002, -0.05), (D + 0.012, -Wy - 0.01, -0.02), (D + 0.012, -Wy + 0.004, 0.02)], 0.002, 5, sx=3.0, bend=0.008))
     Sb = lambda u, v: (Vector((xd + 0.0009, u, v)), Vector((1, 0, 0)))  # noqa: E731
     nx = lambda m: Vector((1, 0, 0))  # noqa: E731
@@ -1329,7 +1327,7 @@ def build_junction_box():
         G.add(C['rust_stain'], orient(streak_uv(Sb, y, -Hz + 0.03 if y != 0.24 else -0.23, 0.011, 0.04 if y != 0.24 else 0.12, rng, 5), nx))
     Sd = lambda u, v: (Vector((D * 0.5 + u, Wy + 0.0009, v)), Vector((0, 1, 0)))  # noqa: E731
     G.add(C['rust'], orient(strip_uv(Sd, -D * 0.45, D * 0.45, -Hz + 0.004, 0.025, rng, 10, 0.8), lambda m: Vector((0, 1, 0))))
-    chips_on_plane(G, C['steel_dark'], (xd + 0.0009, 0.0, 0.0), (0, 1, 0), (0, 0, 1), 0.57, 0.77, rng, 9, 0.004, 0.012)
+    chips_on_plane(G, C['steel_dark'], (xd + 0.0009, 0.0, 0.0), (0, 1, 0), (0, 0, 1), 0.57, 0.77, rng, 7, 0.004, 0.012)
     G.deform(dent_fn((xd, 0.12, -0.25), (-1, 0, 0), 0.05, 0.006))
     G.build('verteiler', angle=40.0)
 
@@ -1349,14 +1347,13 @@ def build_mach_cabinet():
     for sx in (0, 1):  # Sockel: Eckstuecke und Blende
         for sy in (-1, 1):
             x0 = 0.01 if sx == 0 else D - 0.09
-            G.add(plinth, box((x0, sy * W - (0.09 if sy > 0 else 0.0), 0.0), (x0 + 0.09, sy * W + (0.0 if sy > 0 else 0.09), H0), bev=0.004))
-    G.add(plinth, box((0.03, -W + 0.09, 0.0), (D - 0.015, W - 0.09, H0 - 0.004), bev=0.002))
+            G.add(plinth, box((x0, sy * W - (0.09 if sy > 0 else 0.0), 0.0), (x0 + 0.09, sy * W + (0.0 if sy > 0 else 0.09), H0)))
+    G.add(plinth, box((0.03, -W + 0.09, 0.0), (D - 0.015, W - 0.09, H0 - 0.004)))
     G.add(paint, box((0.0, -W, H0), (D, W, H1), bev=0.006, seg=2))
-    G.add(paint, box((0.0, -W - 0.004, H1 - 0.002), (D + 0.008, W + 0.004, H1 + 0.018), bev=0.005, seg=2))
-    for sy in (-1, 1):  # Kranoesen
-        for x in (0.07, D - 0.07):
-            G.add(C['steel_dark'], torus(0.022, 0.006, 10, 4), mt((x, sy * (W - 0.07), H1 + 0.045), (math.pi / 2, 0, math.pi / 4 * sy)))
-            G.add(C['steel_dark'], cyl(0.014, 0.012, 10), along((x, sy * (W - 0.07), H1 + 0.018), (x, sy * (W - 0.07), H1 + 0.03)))
+    G.add(paint, box((0.0, -W - 0.004, H1 - 0.002), (D + 0.008, W + 0.004, H1 + 0.018), bev=0.005, seg=1))
+    for sy, x in ((-1, 0.07), (1, D - 0.07)):  # Kranoesen (diagonal)
+        G.add(C['steel_dark'], torus(0.022, 0.006, 8, 3), mt((x, sy * (W - 0.07), H1 + 0.045), (math.pi / 2, 0, math.pi / 4 * sy)))
+        G.add(C['steel_dark'], cyl(0.014, 0.012, 8), along((x, sy * (W - 0.07), H1 + 0.018), (x, sy * (W - 0.07), H1 + 0.03)))
     xd = D
     G.add(C['black'], box((xd - 0.001, -W + 0.01, H0 + 0.01), (xd + 0.003, W - 0.01, H1 - 0.01)))
     doors = [(-W + 0.004, -0.002), (0.002, W - 0.004)]
@@ -1365,7 +1362,7 @@ def build_mach_cabinet():
               Matrix.Rotation(0.0 if k == 0 else 0.003, 4, 'X'))
         yh = y0 - 0.001 if k == 0 else y1 + 0.001
         for z in (0.35, 1.1, 1.85):  # Scharnierbolzen
-            G.add(C['steel_dark'], cyl(0.006, 0.06, 8), along((xd + 0.012, yh, z), (xd + 0.012, yh, z + 0.06)))
+            G.add(C['steel_dark'], cyl(0.006, 0.06, 6), along((xd + 0.012, yh, z), (xd + 0.012, yh, z + 0.06)))
     xf = xd + 0.024
     y = 0.035  # Schwenkhebelgriff mit Schliesszylinder (rechte Tuer an der Mittelfuge)
     G.add(C['black'], prism(rrect(0.04, 0.17, 0.01, 2), 0.0, 0.006), FX((xf, y, 1.05)))
@@ -1373,7 +1370,7 @@ def build_mach_cabinet():
     G.add(C['steel'], lathe([(0, 0), (0.008, 0), (0.008, 0.004), (0, 0.004)], 10), along((xf + 0.022, y, 1.09), (xf + 0.03, y, 1.09)))
     G.add(C['hole'], box((xf + 0.0255, y - 0.001, 1.086), (xf + 0.0262, y + 0.001, 1.094)))
     G.add(C['grime'], blob((xf + 0.0005, y, 1.05), (0, 1, 0), (0, 0, 1), 0.07, 0.12, rng, 14, 2, 0.4, off=0.0009))
-    chips_on_plane(G, C['steel_dark'], (xf + 0.0009, y, 1.05), (0, 1, 0), (0, 0, 1), 0.10, 0.22, rng, 7, 0.003, 0.009, edge=False)
+    chips_on_plane(G, C['steel_dark'], (xf + 0.0009, y, 1.05), (0, 1, 0), (0, 0, 1), 0.10, 0.22, rng, 4, 0.003, 0.009, edge=False)
     yc, zc, fw, fh = -0.25, 1.45, 0.34, 0.40  # Sichtfenster mit Reiheneinbaugeraeten
     G.add(C['alu'], prism(rrect(fw + 0.03, fh + 0.03, 0.012, 2), 0.0, 0.008), FX((xf, yc, zc)))
     G.add(mat('glas_dunkel', (0.05, 0.06, 0.06), 'glass'), box((xf - 0.004, yc - fw / 2, zc - fh / 2), (xf + 0.0085, yc + fw / 2, zc + fh / 2)))
@@ -1381,25 +1378,24 @@ def build_mach_cabinet():
     for y in (0.15, 0.32):
         G.add(C['black'], box((xf, y - 0.048, 1.502), (xf + 0.012, y + 0.048, 1.598), bev=0.003))
         G.add(face, box((xf + 0.012, y - 0.04, 1.51), (xf + 0.0125, y + 0.04, 1.59)))
-        for t in range(9):
-            G.add(C['ink'], box((xf + 0.0125, -0.0006, 0.028), (xf + 0.0128, 0.0006, 0.036)), Matrix.Translation((0, y, 1.52)) @ Matrix.Rotation(math.radians(-45 + t * 11.25), 4, 'X'))
+        G.add(C['ink'], lathe([(0.034, 0.0), (0.028, 0.0)], 12, a0=math.radians(45), a1=math.radians(135)), FX((xf + 0.0127, y, 1.52)))
         G.add(C['red'], box((xf + 0.0128, -0.0008, 0.0), (xf + 0.0132, 0.0008, 0.05)), Matrix.Translation((0, y, 1.52)) @ Matrix.Rotation(rng.uniform(-0.5, 0.3), 4, 'X'))
-    for k, rgb in enumerate([(0.62, 0.10, 0.08), (0.15, 0.55, 0.15), (0.80, 0.55, 0.10), (0.85, 0.85, 0.80)]):
-        y = 0.10 + k * 0.08
-        G.add(C['steel'], lathe([(0, 0), (0.016, 0), (0.016, 0.006), (0.013, 0.008), (0, 0.008)], 12), along((xf, y, 1.36), (xf + 1, y, 1.36)))
-        G.add(mat(f'meldeleuchte{k}', rgb, 'glass', r=1.5), dome(0.011, 0.012, 10), along((xf + 0.008, y, 1.36), (xf + 1, y, 1.36)))
-    G.add(C['steel'], lathe([(0, 0), (0.016, 0), (0.016, 0.006), (0, 0.006)], 12), along((xf, 0.14, 1.22), (xf + 1, 0.14, 1.22)))
+    for k, rgb in enumerate([(0.62, 0.10, 0.08), (0.15, 0.55, 0.15), (0.80, 0.55, 0.10)]):
+        y = 0.12 + k * 0.09
+        G.add(C['steel'], lathe([(0, 0), (0.016, 0), (0.016, 0.006), (0.013, 0.008), (0, 0.008)], 8), along((xf, y, 1.36), (xf + 1, y, 1.36)))
+        G.add(mat(f'meldeleuchte{k}', rgb, 'glass', r=1.5), dome(0.011, 0.012, 8), along((xf + 0.008, y, 1.36), (xf + 1, y, 1.36)))
+    G.add(C['steel'], lathe([(0, 0), (0.016, 0), (0.016, 0.006), (0, 0.006)], 8), along((xf, 0.14, 1.22), (xf + 1, 0.14, 1.22)))
     G.add(C['black'], box((0.0, -0.006, -0.02), (0.022, 0.006, 0.02), bev=0.003), Matrix.Translation((xf + 0.006, 0.14, 1.22)) @ Matrix.Rotation(0.6, 4, 'X'))
-    G.add(C['warn_yel'], lathe([(0, 0), (0.035, 0), (0.035, 0.004), (0, 0.004)], 16), along((xf, 0.32, 1.22), (xf + 1, 0.32, 1.22)))
-    G.add(C['red'], lathe([(0, 0), (0.012, 0), (0.012, 0.018), (0.022, 0.02), (0.022, 0.028), (0.018, 0.034), (0, 0.036)], 14), along((xf + 0.004, 0.32, 1.22), (xf + 1, 0.32, 1.22)))
+    G.add(C['warn_yel'], lathe([(0, 0), (0.035, 0), (0.035, 0.004), (0, 0.004)], 12), along((xf, 0.32, 1.22), (xf + 1, 0.32, 1.22)))
+    G.add(C['red'], lathe([(0, 0), (0.012, 0), (0.012, 0.018), (0.022, 0.02), (0.022, 0.028), (0.018, 0.034), (0, 0.036)], 10), along((xf + 0.004, 0.32, 1.22), (xf + 1, 0.32, 1.22)))
     _plate_lines(G, C, FX((xf + 0.0002, 0.25, 1.92)), 0.12, 0.06, rng, 5)
     _warn_triangle(G, C, FX((xf + 0.0002, -0.25, 1.76)), 0.10)
     for y in (-0.25, 0.25):  # Filterluefter mit Lamellen
-        G.add(plast, box((xf, y - 0.125, 0.25), (xf + 0.014, y + 0.125, 0.50), bev=0.004))
-        for k in range(9):
-            z = 0.272 + k * 0.024
-            G.add(C['hole'], box((xf + 0.0135, y - 0.105, z), (xf + 0.0145, y + 0.105, z + 0.014)))
-            G.add(plast, box((xf + 0.012, y - 0.105, z + 0.012), (xf + 0.022, y + 0.105, z + 0.016)))
+        G.add(plast, box((xf, y - 0.125, 0.25), (xf + 0.014, y + 0.125, 0.50), bev=0.003))
+        G.add(C['hole'], box((xf + 0.0135, y - 0.105, 0.27), (xf + 0.0145, y + 0.105, 0.48)))
+        for k in range(6):
+            z = 0.275 + k * 0.034
+            G.add(plast, box((xf + 0.012, y - 0.105, z + 0.012), (xf + 0.022, y + 0.105, z + 0.018)))
     nx = lambda m: Vector((1, 0, 0))  # noqa: E731
     Sf = lambda u, v: (Vector((xf + 0.0009, u, v)), Vector((1, 0, 0)))  # noqa: E731
     G.add(mat('russ', (0.06, 0.055, 0.05), 'paint', r=1.4), orient(streak_uv(Sf, -0.25, 0.51, 0.16, 0.30, rng, 7, down=1.0, taper=0.9), nx))
@@ -1521,7 +1517,7 @@ def gauge(G, C, p, nrm, R, rng, stem=0.05):
     G.add(C['steel'], torus(R * 0.93, 0.004, 14, 3), along(fz, fz + n))
 
 
-def gate_valve(G, Vm, C, P, v, rng, R_wheel=0.1, stem_dir=(1, 0, 0), yoke=0.03, rf=None, nb=None, wheel_paint=None):
+def gate_valve(G, Vm, C, P, v, rng, R_wheel=0.1, stem_dir=(1, 0, 0), yoke=0.03, rf=None, nb=None, wheel_paint=None, spokes=None, own_flanges=True):
     """Keilflachschieber zwischen zwei Flanschen im Rohr P (Mitte bei Laenge v): Gussgehaeuse, Hals, Deckelflansch mit
     sechs Schrauben, Oberteil, Joch mit zwei Armen und Jochmutter, steigende Spindel mit Gewinde und Fett, Ventilrad.
     Vm: 'body', 'fl', 'bolt'. Liefert die halbe Baulaenge (fuer die Rohrstuecke)."""
@@ -1533,16 +1529,17 @@ def gate_valve(G, Vm, C, P, v, rng, R_wheel=0.1, stem_dir=(1, 0, 0), yoke=0.03, 
     sd = Vector(stem_dir).normalized()
     for s in (-1, 1):
         fc = c + P.d * s * (Lb / 2)
-        flange(G, {'fl': Vm['body'], 'bolt': Vm['bolt']}, fc, P.d * s, r * 1.05, rf, 0.02, 0, side=0, hub=False)
+        if own_flanges:
+            flange(G, {'fl': Vm['body'], 'bolt': Vm['bolt']}, fc, P.d * s, r * 1.05, rf, 0.02, 0, side=0, hub=False)
         flange(G, {'fl': Vm['fl'], 'bolt': Vm['bolt']}, fc + P.d * s * 0.002, -P.d * s, r, rf, 0.022, nb, side=-1)
-    G.add(Vm['body'], lathe([(r * 1.04, 0), (r * 1.25, Lb * 0.18), (r * 1.32, Lb * 0.5), (r * 1.25, Lb * 0.82), (r * 1.04, Lb)], 18),
+    G.add(Vm['body'], lathe([(r * 1.04, 0), (r * 1.25, Lb * 0.18), (r * 1.32, Lb * 0.5), (r * 1.25, Lb * 0.82), (r * 1.04, Lb)], 14),
           along(c - P.d * (Lb / 2), c + P.d * (Lb / 2)))
     G.add(C['rust_dark'], lathe([(r * 1.335, Lb * 0.32), (r * 1.335, Lb * 0.68)], 8, a0=math.pi * 1.2, a1=math.pi * 1.8),
           along(c - P.d * (Lb / 2), c + P.d * (Lb / 2), up=sd))
     neck0, neck1 = c + sd * r * 0.6, c + sd * r * 1.25
-    G.add(Vm['body'], lathe([(0, 0), (r * 1.05, 0), (r * 0.9, (neck1 - neck0).length), (0, (neck1 - neck0).length)], 16, sy=0.62),
+    G.add(Vm['body'], lathe([(0, 0), (r * 1.05, 0), (r * 0.9, (neck1 - neck0).length), (0, (neck1 - neck0).length)], 12, sy=0.62),
           along(neck0, neck1, up=P.d))
-    G.add(Vm['body'], lathe([(0, 0), (r * 1.35, 0), (r * 1.35, 0.018), (0, 0.018)], 18, sy=0.7), along(neck1, neck1 + sd, up=P.d))
+    G.add(Vm['body'], lathe([(0, 0), (r * 1.35, 0), (r * 1.35, 0.018), (0, 0.018)], 12, sy=0.7), along(neck1, neck1 + sd, up=P.d))
     xx, yy, zz = frame_z(sd, up=P.d)
     for k in range(4):
         a = TAU * (k + 0.5) / 4
@@ -1558,7 +1555,7 @@ def gate_valve(G, Vm, C, P, v, rng, R_wheel=0.1, stem_dir=(1, 0, 0), yoke=0.03, 
     G.add(Vm['body'], lathe([(0, 0), (r * 0.35 + 0.01, 0), (r * 0.35 + 0.01, 0.022), (0, 0.022)], 12), along(top - sd * 0.011, top + sd, up=P.d))
     rs = max(0.007, r * 0.16)
     spindle(G, C['steel'], bon1 + sd * 0.005, top + sd * 0.05, rs, pitch=0.009, seg=8, grease=C['grease'])
-    handwheel(G, C, top + sd * 0.03, sd, R_wheel, rng, spokes=5 if R_wheel > 0.08 else 4, paint=wheel_paint or C['red'], seg=24 if R_wheel > 0.08 else 18)
+    handwheel(G, C, top + sd * 0.03, sd, R_wheel, rng, spokes=spokes or (5 if R_wheel > 0.08 else 4), paint=wheel_paint or C['red'], seg=20 if R_wheel > 0.08 else 16)
     return Lb / 2
 
 
@@ -1590,13 +1587,10 @@ def ubolt(G, matl, c, axis, r, arm_dir, leg=None):
         pts.append(c + side * math.cos(a) * rr - ad * math.sin(a) * rr)
     pts.append(c + ad * leg - side * rr)
     G.add(matl, tube(pts, 0.0042, 5))
-    for s in (1, -1):
-        q = c + ad * (leg - 0.012) + side * rr * s
-        G.add(matl, nut_shape(0.0085, 0.008), along(q, q + ad))
 
 
 def build_pipe_riser():
-    """Steigleitungen Boden-Decke an der Wand: DN100 (lackiert, Kennringe Wasser) mit zwei Flanschverbindungen,
+    """Steigleitungen Boden-Decke an der Wand: DN100 (lackiert, Kennringe Wasser) mit Flanschverbindung,
     Absperrschieber mit Ventilrad zum Raum, Rostuebergaengen an Flanschen und am Boden; DN50 gedaemmt (Alu-Mantel mit
     Ueberlappungen, Spannbaendern, Endkappen; aufgerissene Stelle mit Mineralwolle und abstehendem Blech); zwei
     Wandkonsolen (C-Schiene, Ausleger, Rundstahlbuegel), Manschetten an Boden und Decke."""
@@ -1610,54 +1604,52 @@ def build_pipe_riser():
     vz = 1.15
     Lb2 = max(0.16, rp * 3.0) / 2
     for z0, z1 in ((0.0, 0.4485), (0.4515, vz - Lb2 - 0.002), (vz + Lb2 + 0.002, 2.6)):
-        G.add(paintA, cyl(rp, z1 - z0, 16, cap=False), along((xA, yA, z0), (xA, yA, z1)))
-    flange_pair(G, Fm, PA, 0.45, rp, rf, 0.02, 8, C)
+        G.add(paintA, cyl(rp, z1 - z0, 12, cap=False), along((xA, yA, z0), (xA, yA, z1)))
+    flange_pair(G, Fm, PA, 0.45, rp, rf, 0.02, 4, C)
     Vm = {'body': mat('guss_schieber', (0.20, 0.22, 0.22), 'paint', r=1.3), 'fl': paintA, 'bolt': C['steel_dark']}
-    gate_valve(G, Vm, C, PA, vz, rng, R_wheel=0.095, stem_dir=(1, 0, 0), yoke=0.025)
+    gate_valve(G, Vm, C, PA, vz, rng, R_wheel=0.095, stem_dir=(1, 0, 0), yoke=0.025, spokes=4, own_flanges=False)
     green = mat('kennring_gruen', (0.15, 0.40, 0.20), 'paint', r=1.0)
     for z, m_ in ((1.58, green), (1.62, C['paper']), (1.66, green)):
-        G.add(m_, cyl(rp + 0.0012, 0.04, 16, cap=False), along((xA, yA, z - 0.02), (xA, yA, z + 0.02)))
+        G.add(m_, cyl(rp + 0.0012, 0.04, 12, cap=False), along((xA, yA, z - 0.02), (xA, yA, z + 0.02)))
     rust_ring(G, C, PA, 0.0, rng, 0.09, 1, heavy=True)
     rust_ring(G, C, PA, 0.4285, rng, 0.05, -1)
-    rust_ring(G, C, PA, 0.4715, rng, 0.04, 1)
-    rust_ring(G, C, PA, 2.6, rng, 0.06, -1)
     for _ in range(3):
         G.add(C['rust_stain'], orient(streak_uv(PA.S(0.0014), rng.uniform(0, TAU), vz - Lb2 - 0.03, 0.25, rng.uniform(0.12, 0.3),
                                                 rng, 6, down=-1.0), PA.nrm))
     # DN50 gedaemmt
     xB, yB, rB, rc = 0.095, 0.10, 0.030, 0.062
     PB = Pipe((xB, yB, 0.0), (xB, yB, 2.6), rB)
-    G.add(C['steel_dark'], cyl(rB, 0.37, 12, cap=False), along((xB, yB, 0.0), (xB, yB, 0.37)))
-    G.add(C['steel_dark'], cyl(rB, 0.21, 12, cap=False), along((xB, yB, 2.39), (xB, yB, 2.6)))
+    G.add(C['steel_dark'], cyl(rB, 0.37, 8, cap=False), along((xB, yB, 0.0), (xB, yB, 0.37)))
+    G.add(C['steel_dark'], cyl(rB, 0.21, 8, cap=False), along((xB, yB, 2.39), (xB, yB, 2.6)))
     rust_ring(G, C, PB, 0.0, rng, 0.12, 1, heavy=True)
     clad = mat('alu_mantel', (0.50, 0.51, 0.50), 'metal', r=1.2, m=0.55)
     wool = mat('mineralwolle', (0.60, 0.50, 0.27), 'fabric', r=1.5)
     Mb = lambda z0, z1: along((xB, yB, z0), (xB, yB, z1))  # noqa: E731
-    G.add(clad, lathe([(rB + 0.0015, 0.0), (rc, 0.035)], 14), Mb(0.36, 1.0))
-    G.add(clad, lathe([(rc, -0.035), (rB + 0.0015, 0.0)], 14), Mb(2.4, 3.0))
+    G.add(clad, lathe([(rB + 0.0015, 0.0), (rc, 0.035)], 10), Mb(0.36, 1.0))
+    G.add(clad, lathe([(rc, -0.035), (rB + 0.0015, 0.0)], 10), Mb(2.4, 3.0))
     for z0, z1 in ((0.395, 1.40), (1.38, 1.52), (1.80, 2.365)):
-        G.add(clad, cyl(rc, z1 - z0, 14, cap=False), Mb(z0, z1))
-        G.add(clad, cyl(rc + 0.0012, 0.03, 14, cap=False), Mb(z1 - 0.03, z1))
+        G.add(clad, cyl(rc, z1 - z0, 10, cap=False), Mb(z0, z1))
+        G.add(clad, cyl(rc + 0.0012, 0.03, 10, cap=False), Mb(z1 - 0.03, z1))
     G.add(clad, lathe([(rc, 0.0), (rc, 0.28)], 8, a0=math.radians(100), a1=math.radians(260)), Mb(1.52, 1.80))
-    vs, fs = lathe([(0.050, 0.0), (0.058, 0.035), (0.056, 0.07), (0.059, 0.105), (0.055, 0.14), (0.060, 0.175), (0.056, 0.21), (0.058, 0.245), (0.050, 0.28)], 14,
+    vs, fs = lathe([(0.050, 0.0), (0.058, 0.035), (0.056, 0.07), (0.059, 0.105), (0.055, 0.14), (0.060, 0.175), (0.056, 0.21), (0.058, 0.245), (0.050, 0.28)], 7,
                    a0=math.radians(-100), a1=math.radians(100))
     vs = [v + Vector((v.x, v.y, 0)).normalized() * 0.008 * nz(v, 70.0) for v in vs]
     G.add(wool, (vs, fs), Mb(1.52, 1.80))
     G.add(clad, lathe([(rc + 0.002, 0.0), (rc + 0.002, 0.10)], 4, a0=math.radians(-60), a1=math.radians(-20)), Mb(1.80, 2.0) @ Matrix.Rotation(-0.35, 4, 'Y'))
-    for z in (0.75, 1.25, 1.95, 2.25):
-        G.add(C['steel'], cyl(rc + 0.0022, 0.016, 14, cap=False), Mb(z, z + 0.016))
+    for z in (0.75, 2.05):
+        G.add(C['steel'], cyl(rc + 0.0022, 0.016, 10, cap=False), Mb(z, z + 0.016))
     # Wandkonsolen
     for z in (0.80, 1.95):
         G.add(C['zinc'], strut_h(-0.27, 0.19, z - 0.0205))
         for y in (-0.24, 0.16):
-            bolt(G, C['steel'], (0.021, y, z), (1, 0, 0), 0.007, washer=True)
+            bolt(G, C['steel'], (0.021, y, z), (1, 0, 0), 0.007, washer=False)
         for (x, y, r) in ((xA, yA, rp), (xB, yB, rc)):
-            G.add(C['zinc'], box((0.021, y - 0.0205, z - 0.0205), (x - r - 0.004, y + 0.0205, z + 0.0205), bev=0.002))
+            G.add(C['zinc'], box((0.021, y - 0.0205, z - 0.0205), (x - r - 0.004, y + 0.0205, z + 0.0205)))
             ubolt(G, C['zinc'], (x, y, z), (0, 0, 1), r, (-1, 0, 0), leg=x - 0.03)
     for (x, y, r) in ((xA, yA, rp), (xB, yB, rB)):  # Manschetten
-        G.add(C['zinc'], lathe([(r + 0.002, 0.0), (r + 0.03, 0.0), (r + 0.028, 0.006), (r + 0.002, 0.012)], 16),
+        G.add(C['zinc'], lathe([(r + 0.002, 0.0), (r + 0.03, 0.0), (r + 0.028, 0.006), (r + 0.002, 0.012)], 10),
               Matrix.Translation((x, y, 0.0)))
-        G.add(C['zinc'], lathe([(r + 0.002, -0.012), (r + 0.028, -0.006), (r + 0.03, 0.0), (r + 0.002, 0.0)], 16), Matrix.Translation((x, y, 2.6)))
+        G.add(C['zinc'], lathe([(r + 0.002, -0.012), (r + 0.028, -0.006), (r + 0.03, 0.0), (r + 0.002, 0.0)], 10), Matrix.Translation((x, y, 2.6)))
     G.add(C['grime'], blob((xA + 0.08, yA, 0.0005), (1, 0, 0), (0, 1, 0), 0.10, 0.08, rng, 12, 2, 0.5, off=0.0))
     G.build('steigleitung', angle=40.0)
 
@@ -1666,8 +1658,8 @@ def build_pipe_riser():
 # Rohrbuendel (5-m-Module, Ende an Ende): gemeinsame Hauptleitungen mit halben Flanschverbindungen an den Modulgrenzen
 # ---------------------------------------------------------------------------------------------------------------------
 TRUNK = [  # (x, z, r_rohr, r_flansch, Schrauben, Lack)
-    (0.150, 2.28, 0.0699, 0.125, 8, 'grau'),
-    (0.105, 2.02, 0.0445, 0.100, 8, 'rot'),
+    (0.150, 2.28, 0.0699, 0.125, 6, 'grau'),
+    (0.105, 2.02, 0.0445, 0.100, 4, 'rot'),
     (0.085, 1.86, 0.0302, 0.0825, 4, 'gelb'),
 ]
 
@@ -1684,7 +1676,7 @@ def _bundle_mats():
 def _saddle_h(x, z, r):
     """Kabelschelle an der Wand fuer ein waagrechtes Kabel (Achse entlang y bei x, z)."""
     t, w = 0.001, 0.006
-    arc = [Vector((x + (r + t) * math.cos(a), 0.0, z + (r + t) * math.sin(a))) for a in [-math.pi / 2 + math.pi * i / 6.0 for i in range(7)]]
+    arc = [Vector((x + (r + t) * math.cos(a), 0.0, z + (r + t) * math.sin(a))) for a in [-math.pi / 2 + math.pi * i / 3.0 for i in range(4)]]
     path = [Vector((0.0006, 0, z - r - 0.012)), Vector((0.0006, 0, z - r - t))] + arc + [Vector((0.0006, 0, z + r + t)), Vector((0.0006, 0, z + r + 0.012))]
     return sweep(path, [(-w, -t / 2), (w, -t / 2), (w, t / 2), (-w, t / 2)], up=(0, 1, 0))
 
@@ -1695,20 +1687,20 @@ def _bundle_trunk(G, C, PM, rng, skip=()):
         P = Pipe((x, -2.5, z), (x, 2.5, z), r)
         pipes.append(P)
         if k not in skip:
-            G.add(PM[pm], cyl(r, 5.0, 18 if r > 0.05 else 14, cap=False), P.M)
+            G.add(PM[pm], cyl(r, 5.0, 14 if r > 0.05 else 12, cap=False), P.M)
         Fm = {'fl': PM[pm], 'bolt': C['steel_dark']}
         end_flange(G, Fm, P, True, r, rf, 0.022, nb, heads=True)
         end_flange(G, Fm, P, False, r, rf, 0.022, nb, heads=False)
         rust_ring(G, C, P, 0.056, rng, 0.05, 1)
         rust_ring(G, C, P, 4.944, rng, 0.05, -1)
-        pipe_spots(G, C, P, rng, 3 + k)
+        pipe_spots(G, C, P, rng, 2 + k)
     for j, (x, z) in enumerate(((0.016, 1.74), (0.040, 1.73))):  # Kabel in Durchhaengen
         rk = 0.0085 if j == 0 else 0.0065
         for s in range(4):
             y0, y1 = -2.5 + s * 1.25, -2.5 + (s + 1) * 1.25
             sag = 0.018 + 0.006 * ((s + j) % 2)
-            pts = [Vector((x, y0 + (y1 - y0) * t / 6, z - sag * math.sin(math.pi * t / 6))) for t in range(7)]
-            G.add(C['black'], tube(pts, rk, 6, caps=False))
+            pts = [Vector((x, y0 + (y1 - y0) * t / 4, z - sag * math.sin(math.pi * t / 4))) for t in range(5)]
+            G.add(C['black'], tube(pts, rk, 5, caps=False))
         for y in (-1.25, 0.0, 1.25):
             G.add(C['zinc'], _saddle_h(x, z, rk), Matrix.Translation((0, y, 0)))
     for y in (-1.25, 1.25):  # Konsolen
@@ -1717,7 +1709,7 @@ def _bundle_trunk(G, C, PM, rng, skip=()):
             bolt(G, C['steel'], (0.021, y, z), (1, 0, 0), 0.007)
         for (x, z, r, rf, nb, pm) in TRUNK:
             zt = z - r - 0.002
-            G.add(C['zinc'], box((0.021, y - 0.0205, zt - 0.041), (x + r * 0.7, y + 0.0205, zt), bev=0.002))
+            G.add(C['zinc'], box((0.021, y - 0.0205, zt - 0.041), (x + r * 0.7, y + 0.0205, zt)))
             ubolt(G, C['zinc'], (x, y, z), (0, 1, 0), r, (0, 0, -1), leg=r + 0.05)
     return pipes
 
@@ -1740,13 +1732,13 @@ def build_pipe_bundle_a():
     P1, P2, P3 = _bundle_trunk(G, C, PM, rng, skip=(0, 1))
     x1, z1 = P1.a.x, P1.a.z
     yk0, yk1 = -0.62, -0.38  # Kompensator (Faltenbalg) zwischen zwei Flanschen
-    G.add(PM['grau'], cyl(P1.r, yk0 - 0.024 + 2.5, 18, cap=False), P1.M)
-    G.add(PM['grau'], cyl(P1.r, 2.5 - yk1 - 0.024, 18, cap=False), along((x1, yk1 + 0.024, z1), (x1, 2.5, z1)))
+    G.add(PM['grau'], cyl(P1.r, yk0 - 0.024 + 2.5, 14, cap=False), P1.M)
+    G.add(PM['grau'], cyl(P1.r, 2.5 - yk1 - 0.024, 14, cap=False), along((x1, yk1 + 0.024, z1), (x1, 2.5, z1)))
     Fm1 = {'fl': PM['grau'], 'bolt': C['steel_dark']}
-    flange(G, Fm1, (x1, yk0, z1), (0, 1, 0), P1.r, 0.125, 0.022, 8, side=1)
-    flange(G, Fm1, (x1, yk1, z1), (0, -1, 0), P1.r, 0.125, 0.022, 8, side=1)
-    prof = [(P1.r + (0.03 if i % 2 else 0.012), 0.004 + (yk1 - yk0 - 0.008) * i / 18) for i in range(19)]
-    G.add(C['steel'], lathe(prof, 20), along((x1, yk0, z1), (x1, yk1, z1)))
+    flange(G, Fm1, (x1, yk0, z1), (0, 1, 0), P1.r, 0.125, 0.022, 4, side=1)
+    flange(G, Fm1, (x1, yk1, z1), (0, -1, 0), P1.r, 0.125, 0.022, 4, side=1)
+    prof = [(P1.r + (0.03 if i % 2 else 0.012), 0.004 + (yk1 - yk0 - 0.008) * i / 12) for i in range(13)]
+    G.add(C['steel'], lathe(prof, 14), along((x1, yk0, z1), (x1, yk1, z1)))
     for a in (math.radians(45), math.radians(225)):
         d = Vector((math.cos(a), 0, math.sin(a))) * 0.108
         p0, p1 = Vector((x1, yk0 - 0.05, z1)) + d, Vector((x1, yk1 + 0.05, z1)) + d
@@ -1763,27 +1755,24 @@ def build_pipe_bundle_a():
     G.add(PM['rot'], cyl(P2.r, yv - Lb2 - 0.004 + 2.5, 14, cap=False), P2.M)
     G.add(PM['rot'], cyl(P2.r, 2.5 - (yv + Lb2 + 0.004), 14, cap=False), along((P2.a.x, yv + Lb2 + 0.004, P2.a.z), (P2.a.x, 2.5, P2.a.z)))
     Vm = {'body': mat('guss_schieber', (0.20, 0.22, 0.22), 'paint', r=1.3), 'fl': PM['rot'], 'bolt': C['steel_dark']}
-    gate_valve(G, Vm, C, Pipe((P2.a.x, yv - 1, P2.a.z), (P2.a.x, yv + 1, P2.a.z), P2.r), 1.0, rng, R_wheel=0.075, stem_dir=(1, 0, 0), yoke=0.02, rf=0.1)
+    gate_valve(G, Vm, C, Pipe((P2.a.x, yv - 1, P2.a.z), (P2.a.x, yv + 1, P2.a.z), P2.r), 1.0, rng, R_wheel=0.075, stem_dir=(1, 0, 0), yoke=0.02, rf=0.1,
+               own_flanges=False)
     P4 = Pipe((0.13, -2.5, 0.35), (0.13, 2.5, 0.35), 0.057)  # tiefe Gussleitung mit Muffen
-    G.add(PM['guss'], cyl(P4.r, 5.0, 16, cap=False), P4.M)
+    G.add(PM['guss'], cyl(P4.r, 5.0, 12, cap=False), P4.M)
     Fm4 = {'fl': PM['guss'], 'bolt': C['steel_dark']}
-    end_flange(G, Fm4, P4, True, P4.r, 0.1, 0.02, 8, heads=True)
-    end_flange(G, Fm4, P4, False, P4.r, 0.1, 0.02, 8, heads=False)
+    end_flange(G, Fm4, P4, True, P4.r, 0.1, 0.02, 4, heads=True)
+    end_flange(G, Fm4, P4, False, P4.r, 0.1, 0.02, 4, heads=False)
     for y in (-1.5, 1.0):
-        G.add(PM['guss'], lathe([(P4.r, -0.01), (P4.r + 0.014, 0.0), (P4.r + 0.016, 0.012), (P4.r + 0.016, 0.085), (P4.r + 0.012, 0.095), (P4.r, 0.098)], 16),
+        G.add(PM['guss'], lathe([(P4.r, -0.01), (P4.r + 0.014, 0.0), (P4.r + 0.016, 0.012), (P4.r + 0.016, 0.085), (P4.r + 0.012, 0.095), (P4.r, 0.098)], 12),
               along((0.13, y, 0.35), (0.13, y + 1, 0.35)))
         rust_ring(G, C, P4, y + 2.5 + 0.1, rng, 0.05, 1, heavy=True)
     for y in (-2.0, -0.25, 1.75):  # Bodenstuetzen: Fussplatte, Stiel, Sattel, Buegel
-        G.add(C['steel_dark'], box((0.06, y - 0.06, 0.0), (0.20, y + 0.06, 0.008), bev=0.002))
-        for sx in (-1, 1):
-            bolt(G, C['steel'], (0.13 + sx * 0.05, y, 0.008), (0, 0, 1), 0.006)
-        G.add(C['steel_dark'], box((0.115, y - 0.015, 0.008), (0.145, y + 0.015, 0.35 - P4.r - 0.006), bev=0.002))
-        G.add(C['steel_dark'], box((0.07, y - 0.02, 0.35 - P4.r - 0.012), (0.19, y + 0.02, 0.35 - P4.r - 0.002), bev=0.002))
+        G.add(C['steel_dark'], box((0.06, y - 0.06, 0.0), (0.20, y + 0.06, 0.008)))
+        G.add(C['steel_dark'], box((0.115, y - 0.015, 0.008), (0.145, y + 0.015, 0.35 - P4.r - 0.006)))
+        G.add(C['steel_dark'], box((0.07, y - 0.02, 0.35 - P4.r - 0.012), (0.19, y + 0.02, 0.35 - P4.r - 0.002)))
         ubolt(G, C['zinc'], (0.13, y, 0.35), (0, 1, 0), P4.r, (0, 0, -1), leg=P4.r + 0.02)
         G.add(C['rust_stain'], blob((0.13, y, 0.0006), (1, 0, 0), (0, 1, 0), 0.09, 0.07, rng, 12, 2, 0.5, off=0.0))
-    pipe_spots(G, C, P4, rng, 6, smax=0.05)
-    for P in (P2, P3):
-        pipe_spots(G, C, P, rng, 3, smax=0.02)
+    pipe_spots(G, C, P4, rng, 3, smax=0.05)
     G.build('rohrbuendel_a', angle=40.0)
 
 
@@ -1802,33 +1791,33 @@ def build_pipe_bundle_b():
     x, z = P1.a.x, P1.a.z
     My = lambda y0, y1: along((x, y0, z), (x, y1, z))  # noqa: E731
     Gc = Geo()
-    Gc.add(clad, lathe([(P1.r + 0.001, 0.0), (rc, 0.05)], 20), My(-2.36, 0.0))
-    Gc.add(clad, lathe([(rc, -0.05), (P1.r + 0.001, 0.0)], 20), My(2.36, 3.0))
+    Gc.add(clad, lathe([(P1.r + 0.001, 0.0), (rc, 0.05)], 16), My(-2.36, 0.0))
+    Gc.add(clad, lathe([(rc, -0.05), (P1.r + 0.001, 0.0)], 16), My(2.36, 3.0))
     tear = (0.55, 0.85)
     y = -2.31
     while y < 2.31 - 1e-6:
         y1 = min(y + 1.0, 2.31)
         if y < tear[0] < y1:
-            Gc.add(clad, cyl(rc, tear[0] - y, 20, cap=False), My(y, tear[0]))
+            Gc.add(clad, cyl(rc, tear[0] - y, 16, cap=False), My(y, tear[0]))
             Gc.add(clad, lathe([(rc, 0.0), (rc, tear[1] - tear[0])], 12, a0=math.radians(250), a1=math.radians(510)), My(tear[0], tear[1]))
             vs, fs = lathe([(rc - 0.012, 0.0), (rc - 0.004, 0.05), (rc - 0.008, 0.10), (rc - 0.002, 0.15), (rc - 0.007, 0.2), (rc - 0.003, 0.25), (rc - 0.012, 0.30)], 10,
                            a0=math.radians(150), a1=math.radians(250))
             vs = [v + Vector((v.x, v.y, 0)).normalized() * 0.008 * nz(v, 45.0) for v in vs]
             G.add(wool, (vs, fs), My(tear[0], tear[1]))
-            Gc.add(clad, cyl(rc, y1 - tear[1], 20, cap=False), My(tear[1], y1))
+            Gc.add(clad, cyl(rc, y1 - tear[1], 16, cap=False), My(tear[1], y1))
             Gc.add(clad, lathe([(rc + 0.002, 0.0), (rc + 0.002, 0.16)], 4, a0=math.radians(250), a1=math.radians(285)),
                    My(tear[0] + 0.05, tear[0] + 1) @ Matrix.Rotation(0.25, 4, 'X'))
         else:
-            Gc.add(clad, cyl(rc, y1 - y, 20, cap=False), My(y, y1))
+            Gc.add(clad, cyl(rc, y1 - y, 16, cap=False), My(y, y1))
         if y1 < 2.31 - 1e-6:
-            Gc.add(clad, cyl(rc + 0.0013, 0.035, 20, cap=False), My(y1 - 0.035, y1))
+            Gc.add(clad, cyl(rc + 0.0013, 0.035, 16, cap=False), My(y1 - 0.035, y1))
         y = y1
-    for yb in (-1.9, -1.4, -0.9, -0.4, 0.1, 1.1, 1.6, 2.1):
-        Gc.add(C['steel'], cyl(rc + 0.0025, 0.018, 20, cap=False), My(yb, yb + 0.018))
+    for yb in (-1.8, -0.8, 0.2, 1.4):
+        Gc.add(C['steel'], cyl(rc + 0.0025, 0.018, 16, cap=False), My(yb, yb + 0.018))
     Pc = Pipe((x, -2.31, z), (x, 2.31, z), rc)
-    for _ in range(9):
-        Gc.add(C['grime'], orient(blob_uv(Pc.S(0.0032), rng.uniform(-2.4, 0.6), rng.uniform(0.2, 4.4), rng.uniform(0.15, 0.35), rng.uniform(0.08, 0.3), rng, 10, 2, 0.5), Pc.nrm))
     for _ in range(6):
+        Gc.add(C['grime'], orient(blob_uv(Pc.S(0.0032), rng.uniform(-2.4, 0.6), rng.uniform(0.2, 4.4), rng.uniform(0.15, 0.35), rng.uniform(0.08, 0.3), rng, 10, 2, 0.5), Pc.nrm))
+    for _ in range(4):
         Gc.add(C['dust'], orient(blob_uv(Pc.S(0.0036), rng.uniform(1.2, 1.9), rng.uniform(0.2, 4.4), 0.3, rng.uniform(0.2, 0.5), rng, 10, 2, 0.4), Pc.nrm))
     Gc.deform(dent_fn((x + rc * 0.7, -1.2, z - rc * 0.7), (-1, 0, 1), 0.07, 0.012))
     G.merge(Gc)
@@ -3130,6 +3119,277 @@ def build_folding_chair():
         G.add(C['steel_dark'], blob(p, Vector((-math.sin(a), math.cos(a), 0)), (0, 0, 1), rng.uniform(0.006, 0.018), rng.uniform(0.004, 0.012), rng, 8, 1, 0.5, off=0.0005))
     G.deform(dent_fn((-0.19, 0.08, 0.76), (-1, 0, 0), 0.05, 0.008), mats=[seat])
     G.build('klappstuhl', angle=40.0)
+
+
+# =====================================================================================================================
+# Macchina-Werkstatt (Wikidot Level 2: verlassene Macchina-Bereiche mit Werkzeug und Teilen). Die Karte stellt beide
+# Stuecke 0,6 m vor eine Wand und dreht sie so, dass lokal +x zur Wand zeigt: Vorderseite (Arbeitsseite) ist -x.
+# =====================================================================================================================
+FXN_R = Matrix(((0, 0, -1, 0), (-1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 0, 1)))  # lokal x -> -y, y -> +z, z -> -x
+
+
+def FXN(p, roll=0.0):
+    """Lokale xy-Ebene auf eine Flaeche mit Normale -x legen (Vorderseite der Werkstattstuecke)."""
+    return Matrix.Translation(Vector(p)) @ FXN_R @ Matrix.Rotation(roll, 4, 'Z')
+
+
+def _gear_outline(nt, ra, rf_, w0=0.45, w1=0.25):
+    pts = []
+    for i in range(nt):
+        a = TAU * i / nt
+        for da, rr in ((-w0, rf_), (-w1, ra), (w1, ra), (w0, rf_)):
+            aa = a + da * TAU / nt / 2
+            pts.append((rr * math.cos(aa), rr * math.sin(aa)))
+    return pts
+
+
+def _helix(c, axis_len, r, turns, n_per=10):
+    pts = []
+    n = int(turns * n_per)
+    for i in range(n + 1):
+        a = TAU * i / n_per
+        pts.append(Vector((c[0] + r * math.cos(a), c[1] + r * math.sin(a), c[2] + axis_len * i / n)))
+    return pts
+
+
+def _wrench(L, s):
+    """Doppelmaulschluessel als Umriss (Laenge L entlang x, Maulweite s), Mitte im Ursprung."""
+    h = s * 0.55
+    jaw = s * 1.15
+    pts = [(-L / 2 + jaw, -h * 0.5), (L / 2 - jaw, -h * 0.5)]
+    # rechtes Maul (offen nach +x, leicht schraeg)
+    pts += [(L / 2 - jaw * 0.6, -jaw), (L / 2, -jaw * 0.75), (L / 2, -s * 0.5), (L / 2 - s * 0.7, -s * 0.5), (L / 2 - s * 0.7, s * 0.5),
+            (L / 2, s * 0.5), (L / 2, jaw * 0.75), (L / 2 - jaw * 0.6, jaw)]
+    pts += [(L / 2 - jaw, h * 0.5), (-L / 2 + jaw, h * 0.5)]
+    pts += [(-L / 2 + jaw * 0.6, jaw), (-L / 2, jaw * 0.75), (-L / 2, s * 0.45), (-L / 2 + s * 0.65, s * 0.45), (-L / 2 + s * 0.65, -s * 0.45),
+            (-L / 2, -s * 0.45), (-L / 2, -jaw * 0.75), (-L / 2 + jaw * 0.6, -jaw)]
+    return pts
+
+
+def build_macchina_parts():
+    """Werkbank der Macchina-Werkstatt (1,5 x 0,7 m, Vorderseite -x): Gussbeine mit Querstreben, dicke Holzplatte mit
+    Stahlkante, Ablage mit Teilekiste; darauf ein halb zerlegtes Getriebe (Zahnraeder mit Zaehnen, Welle), eine
+    Kurbelwelle, Druckfedern, eine Kupferrohrwendel, ein Zylinder mit Kolben, ein angefangener gelenkiger Messingarm,
+    eine Teileschale mit Muttern, eine Oelkanne, ein Lappen und ein Schraubstock; alles verstaubt, Oel auf dem Holz."""
+    rng = random.Random(121)
+    C = M_common()
+    G = Geo()
+    iron = mat('guss_werkbank', (0.17, 0.18, 0.18), 'paint', tex='painted_metal_grey', r=1.25)
+    top = mat('werkbank_holz', (0.40, 0.33, 0.24), 'wood', r=1.2)
+    crate = mat('kiste_holz', (0.45, 0.38, 0.28), 'concrete', r=1.35)
+    brass = mat('messing_alt', (0.55, 0.43, 0.22), 'metal', r=0.9, m=0.7)
+    copper = mat('kupfer', (0.58, 0.34, 0.20), 'metal', r=0.9, m=0.7)
+    x0, x1, yw, zt = -0.30, 0.40, 0.75, 0.86
+    # Gestell: vier Beine (Winkelprofil), Fussplatten, Querstreben, Ablage
+    for x in (x0 + 0.04, x1 - 0.04):
+        for y in (-yw + 0.06, yw - 0.06):
+            G.add(iron, prism([(-0.03, -0.03), (0.03, -0.03), (0.03, -0.024), (-0.024, -0.024), (-0.024, 0.03), (-0.03, 0.03)], 0.0, zt - 0.06),
+                  Matrix.Translation((x, y, 0.0)) @ Matrix.Rotation((0 if x < 0 else math.pi / 2) + (0 if y < 0 else -math.pi / 2), 4, 'Z'))
+            G.add(iron, box((x - 0.045, y - 0.045, 0.0), (x + 0.045, y + 0.045, 0.008), bev=0.002))
+    for y in (-yw + 0.06, yw - 0.06):
+        G.add(iron, box((x0 + 0.04, y - 0.015, 0.16), (x1 - 0.04, y + 0.015, 0.20)))
+    G.add(iron, box((x1 - 0.06, -yw + 0.06, 0.16), (x1 - 0.03, yw - 0.06, 0.20)))
+    G.add(crate, box((x0 + 0.03, -yw + 0.06, 0.20), (x1 - 0.03, yw - 0.06, 0.218)))
+    # Platte mit Stahlkante vorn
+    G.add(top, box((x0, -yw, zt - 0.06), (x1, yw, zt), bev=0.004))
+    G.add(C['steel_dark'], box((x0 - 0.004, -yw, zt - 0.062), (x0, yw, zt + 0.002), bev=0.001))
+    # Teilekiste auf der Ablage mit Zahnraedern/Wellen darin
+    G.add(crate, box((-0.15, -0.55, 0.218), (0.25, -0.10, 0.40), bev=0.004))
+    G.add(C['hole'], box((-0.13, -0.53, 0.399), (0.23, -0.12, 0.401)))
+    for k in range(3):
+        G.add(C['rust'], prism(_gear_outline(16, 0.07, 0.062), 0.0, 0.02), mt((0.0 + k * 0.06, -0.33 + k * 0.05, 0.40 + k * 0.005), (0.3 * k, 0.2, 0.0)))
+    # Getriebe zerlegt: grosses Zahnrad liegend, Ritzel, Welle, Gehaeusehaelfte
+    Mg = Matrix.Translation((0.05, 0.35, zt))
+    G.add(brass, prism(_gear_outline(30, 0.15, 0.137), 0.0, 0.03), Mg)
+    G.add(brass, lathe([(0.0, 0.03), (0.045, 0.03), (0.045, 0.05), (0.0, 0.05)], 16), Mg)
+    G.add(C['hole'], cyl(0.02, 0.0008, 12), Mg @ Matrix.Translation((0, 0, 0.0505)))
+    for k in range(5):
+        a = TAU * k / 5
+        G.add(C['hole'], cyl(0.022, 0.0008, 10), Mg @ Matrix.Translation((math.cos(a) * 0.09, math.sin(a) * 0.09, 0.0302)))
+    G.add(brass, prism(_gear_outline(12, 0.05, 0.043), 0.0, 0.03), mt((-0.12, 0.52, zt), (0, 0, 0.3)))
+    G.add(C['steel'], cyl(0.016, 0.42, 10), along((-0.18, 0.12, zt + 0.016), (0.20, 0.25, zt + 0.016)))
+    housing = mat('getriebe_alt', (0.22, 0.27, 0.25), 'paint', tex='painted_metal_grey', r=1.2)
+    G.add(housing, lathe([(0.0, 0.0), (0.12, 0.0), (0.13, 0.02), (0.13, 0.09), (0.12, 0.10), (0.06, 0.10), (0.06, 0.12), (0.0, 0.12)], 20, a0=0.0, a1=math.pi),
+          Matrix.Translation((0.20, -0.10, zt)) @ Matrix.Rotation(math.pi / 2, 4, 'Y') @ Matrix.Translation((0, 0, -0.06)))
+    for k in range(6):
+        a = math.pi * (k + 0.5) / 6
+        bolt(G, C['steel_dark'], (0.26, -0.10 + math.cos(a) * 0.115, zt + math.sin(a) * 0.115), (1, 0, 0), 0.006, washer=False)
+    # Kurbelwelle (gekroepft) vorn liegend
+    cw = [(x0 + 0.06, -0.62, zt + 0.02), (x0 + 0.06, -0.52, zt + 0.02), (x0 + 0.06, -0.50, zt + 0.07), (x0 + 0.06, -0.42, zt + 0.07),
+          (x0 + 0.06, -0.40, zt + 0.02), (x0 + 0.06, -0.30, zt + 0.02)]
+    G.add(C['steel_dark'], tube(cw, 0.014, 8, bend=0.012, bseg=2))
+    for y in (-0.51, -0.41):
+        G.add(C['steel_dark'], box((-0.03, -0.012, -0.03), (0.03, 0.012, 0.05)), Matrix.Translation((x0 + 0.06, y, zt + 0.03)))
+    # Druckfedern und Kupferwendel
+    for k, (x, y) in enumerate(((x0 + 0.12, -0.20), (x0 + 0.20, -0.16))):
+        G.add(C['steel'], tube(_helix((0, 0, 0), 0.12, 0.022, 6, 8), 0.0032, 5, caps=True), mt((x, y, zt + 0.025), (0, math.pi / 2, 0.4 * k)))
+    G.add(copper, tube(_helix((0, 0, 0), 0.16, 0.05, 4, 10), 0.005, 6), mt((0.28, 0.60, zt + 0.055), (math.pi / 2, 0, 0.0)))
+    # Zylinder mit Kolben und Pleuel
+    G.add(C['steel_dark'], lathe([(0.0, 0.0), (0.055, 0.0), (0.055, 0.012), (0.045, 0.014), (0.045, 0.13), (0.055, 0.135), (0.055, 0.15), (0.0, 0.15)], 16),
+          Matrix.Translation((0.25, 0.08, zt)))
+    for k in range(6):
+        G.add(C['steel_dark'], lathe([(0.0, 0.0), (0.054, 0.0), (0.054, 0.004), (0.0, 0.004)], 16), Matrix.Translation((0.25, 0.08, zt + 0.025 + k * 0.018)))
+    G.add(C['steel'], lathe([(0.0, 0.0), (0.04, 0.0), (0.04, 0.05), (0.0, 0.05)], 14), mt((0.08, -0.25, zt + 0.04), (math.pi / 2, 0, 0.8)))
+    G.add(C['steel'], box((-0.008, -0.004, 0.0), (0.008, 0.004, 0.16)), mt((0.10, -0.22, zt + 0.004), (math.pi / 2 - 0.05, 0, 0.8)))
+    # angefangener Gelenkarm (Messing): drei Glieder mit Gelenkkugeln, Kabel
+    p = Vector((-0.05, 0.05, zt + 0.03))
+    d = Vector((0.0, -1.0, 0.0))
+    for k in range(3):
+        L = [0.22, 0.18, 0.12][k]
+        q = p + d * L
+        G.add(brass, lathe([(0.0, 0.0), (0.026 - k * 0.004, 0.0), (0.022 - k * 0.004, L), (0.0, L)], 10), along(p, q))
+        G.add(brass, dome(0.03 - k * 0.004, 0.06 - k * 0.008, 10), along(p - Vector((0, 0, 0.028 - k * 0.004)), p + Vector((0, 0, 1))))
+        a = rng.uniform(-0.5, 0.5)
+        d = Matrix.Rotation(a, 3, 'Z') @ d
+        p = q
+    G.add(C['black'], tube([(-0.05, 0.05, zt + 0.056), (-0.02, -0.12, zt + 0.05), (0.02, -0.30, zt + 0.045), (0.0, -0.45, zt + 0.04)], 0.004, 5, bend=0.05))
+    for k in range(3):  # Finger (Greifer)
+        a = TAU * k / 3
+        G.add(brass, box((-0.004, -0.004, 0.0), (0.004, 0.004, 0.05)), Matrix.Translation(p) @ Matrix.Rotation(a, 4, 'Z') @ Matrix.Rotation(1.1, 4, 'X'))
+    # Teileschale mit Muttern
+    tray = [(-0.10, -0.06), (0.10, -0.06), (0.10, 0.06), (-0.10, 0.06)]
+    G.add(C['zinc'], box((-0.11, 0.48, zt), (0.09, 0.62, zt + 0.004)))
+    for (a, b) in (((-0.11, 0.48), (0.09, 0.484)), ((-0.11, 0.616), (0.09, 0.62)), ((-0.11, 0.48), (-0.106, 0.62)), ((0.086, 0.48), (0.09, 0.62))):
+        G.add(C['zinc'], box((a[0], a[1], zt), (b[0], b[1], zt + 0.03)))
+    for _ in range(14):
+        G.add(C['steel_dark'], nut_shape(0.008, 0.007), mt((rng.uniform(-0.09, 0.07), rng.uniform(0.50, 0.60), zt + 0.004), (rng.uniform(-0.3, 0.3), rng.uniform(-0.3, 0.3), 0)))
+    # Oelkanne, Lappen, Schraubstock
+    can = mat('oelkanne', (0.48, 0.38, 0.14), 'metal', r=1.0, m=0.5)
+    G.add(can, lathe([(0.0, 0.0), (0.07, 0.0), (0.07, 0.035), (0.03, 0.07), (0.012, 0.08), (0.0, 0.08)], 14), Matrix.Translation((x0 + 0.12, 0.62, zt)))
+    G.add(can, tube([(x0 + 0.12, 0.62, zt + 0.07), (x0 + 0.08, 0.66, zt + 0.16), (x0 + 0.02, 0.69, zt + 0.21)], 0.004, 6))
+    rag = mat('lappen', (0.42, 0.36, 0.30), 'fabric', r=1.5)
+    vs, fs = [], []
+    for j in range(5):
+        for i in range(5):
+            x, y = -0.08 + 0.04 * i, -0.08 + 0.04 * j
+            vs.append(Vector((x, y, 0.004 + 0.012 * abs(nz((x, y, 0), 25.0)))))
+    for j in range(4):
+        for i in range(4):
+            a = j * 5 + i
+            fs.append((a, a + 1, a + 6, a + 5))
+    G.add(rag, (vs, fs), mt((x0 + 0.15, 0.30, zt), (0, 0, 0.4)))
+    vise = mat('schraubstock', (0.20, 0.30, 0.38), 'paint', r=1.1)
+    Mv = Matrix.Translation((x0 + 0.02, -0.66, zt))
+    G.add(vise, box((0.0, -0.06, 0.0), (0.20, 0.06, 0.05), bev=0.006), Mv)
+    G.add(vise, box((0.14, -0.065, 0.05), (0.20, 0.065, 0.13), bev=0.005), Mv)
+    G.add(vise, box((0.0, -0.065, 0.05), (0.06, 0.065, 0.13), bev=0.005), Mv)
+    for xx in (0.06, 0.14):
+        G.add(C['steel_dark'], box((xx - 0.004 if xx > 0.1 else xx, -0.06, 0.09), (xx if xx > 0.1 else xx + 0.004, 0.06, 0.13)), Mv)
+    G.add(C['steel'], cyl(0.009, 0.16, 8), Mv @ along((-0.10, 0, 0.08), (0.06, 0, 0.08)))
+    G.add(C['steel'], cyl(0.006, 0.16, 6), Mv @ along((-0.10, -0.08, 0.08), (-0.10, 0.08, 0.08)))
+    # Staub und Oel
+    for _ in range(9):
+        G.add(C['dust'], blob((rng.uniform(x0 + 0.05, x1 - 0.05), rng.uniform(-0.7, 0.7), zt + 0.0006), (1, 0, 0), (0, 1, 0), rng.uniform(0.06, 0.18),
+                              rng.uniform(0.05, 0.14), rng, 12, 2, 0.4, off=0.0))
+    for _ in range(4):
+        G.add(C['oil'], blob((rng.uniform(x0 + 0.05, x1 - 0.05), rng.uniform(-0.7, 0.7), zt + 0.0009), (1, 0, 0), (0, 1, 0), rng.uniform(0.03, 0.08),
+                             rng.uniform(0.02, 0.06), rng, 12, 2, 0.5, off=0.0))
+    G.build('macchina_teile', angle=40.0)
+
+
+def build_macchina_tools():
+    """Werkzeugwand der Macchina-Werkstatt (Vorderseite -x): Schubladenschrank (eine Lade offen), Stahlrahmen mit
+    Lochplatte, aufgemalte Schattenumrisse, an Haken: Maulschluessel in Groessen, Hammer, Faeustel, Saege mit Zahnung,
+    Schraubendreher, Zange, Rohrzange, Kabelrolle; fehlende Werkzeuge nur als Umriss; verstaubt, Rost."""
+    rng = random.Random(123)
+    C = M_common()
+    G = Geo()
+    cab = mat('werkzeugschrank', (0.30, 0.36, 0.32), 'paint', tex='painted_metal_grey', r=1.2)
+    board = mat('lochplatte', (0.46, 0.44, 0.38), 'paint', r=1.3)
+    shadow = mat('schattenumriss', (0.12, 0.12, 0.11), 'paint', r=1.3)
+    wood = mat('stiel_holz', (0.50, 0.38, 0.25), 'wood', r=1.1)
+    x0, x1, yw = -0.25, 0.45, 0.60
+    # Schubladenschrank
+    G.add(cab, box((x0 + 0.02, -yw, 0.0), (x1, yw, 0.82), bev=0.006, seg=2))
+    for k in range(4):
+        z0, z1 = 0.06 + k * 0.19, 0.06 + k * 0.19 + 0.17
+        open_ = (k == 1)
+        dx = -0.18 if open_ else 0.0
+        G.add(cab, box((x0 + dx, -yw + 0.03, z0), (x0 + 0.02 + dx, yw - 0.03, z1), bev=0.003))
+        G.add(C['steel'], box((x0 - 0.012 + dx, -0.18, z1 - 0.05), (x0 + dx, 0.18, z1 - 0.035), bev=0.002))
+        G.add(C['paper'], box((x0 - 0.0006 + dx, 0.24, z1 - 0.06), (x0 + dx, 0.34, z1 - 0.03)))
+        if open_:  # offene Lade: Seitenwaende, Boden, Werkzeug darin
+            for s in (-1, 1):
+                G.add(cab, box((x0 - 0.18, s * (yw - 0.03) - (0.01 if s > 0 else 0), z0 + 0.01), (x0 + 0.02, s * (yw - 0.03) + (0.0 if s > 0 else 0.01), z1 - 0.02)))
+            G.add(cab, box((x0 - 0.18, -yw + 0.03, z0 + 0.01), (x0 + 0.02, yw - 0.03, z0 + 0.02)))
+            for i in range(5):
+                G.add(C['steel'], prism(_wrench(0.16 + 0.02 * i, 0.012 + 0.003 * i), 0.0, 0.005), mt((x0 - 0.08, -0.45 + i * 0.18, z0 + 0.021), (0, 0, 1.5 + rng.uniform(-0.2, 0.2))))
+            for i in range(3):
+                G.add(mat('griff_rot', (0.55, 0.10, 0.07), 'plastic', r=0.9), lathe([(0, 0), (0.012, 0), (0.014, 0.08), (0.01, 0.1), (0, 0.1)], 8),
+                      mt((x0 - 0.12, 0.25 + i * 0.07, z0 + 0.035), (0, math.pi / 2, 0.1)))
+    G.add(cab, box((x0 + 0.02, -yw - 0.01, 0.82), (x1, yw + 0.01, 0.85), bev=0.004))
+    # Rahmen und Lochplatte (Vorderseite bei x = 0.38)
+    xb = 0.38
+    for s in (-1, 1):
+        G.add(C['steel_dark'], box((xb, s * yw - (0.03 if s > 0 else 0), 0.85), (xb + 0.04, s * yw + (0.0 if s > 0 else 0.03), 1.92), bev=0.003))
+    G.add(C['steel_dark'], box((xb, -yw, 1.88), (xb + 0.04, yw, 1.92), bev=0.003))
+    G.add(board, box((xb + 0.01, -yw + 0.03, 0.87), (xb + 0.016, yw - 0.03, 1.88)))
+    hv, hf = [], []
+    for j in range(16):
+        for i in range(30):
+            y = -yw + 0.06 + i * (2 * yw - 0.12) / 29
+            z = 0.92 + j * 0.06
+            b = len(hv)
+            hv += [Vector((xb + 0.0094, y + 0.003, z - 0.003)), Vector((xb + 0.0094, y - 0.003, z - 0.003)), Vector((xb + 0.0094, y - 0.003, z + 0.003)),
+                   Vector((xb + 0.0094, y + 0.003, z + 0.003))]
+            hf.append((b, b + 1, b + 2, b + 3))
+    G.add(C['hole'], orient((hv, hf), lambda m: Vector((-1, 0, 0))))
+    xs = xb + 0.0092  # Werkzeug vor der Platte
+
+    def hook(y, z):
+        G.add(C['steel'], tube([(xb + 0.01, y, z), (xb - 0.03, y, z), (xb - 0.04, y, z + 0.015)], 0.0025, 4, bend=0.008, bseg=2))
+    # Maulschluessel (vier), dazu ein fehlender als Umriss
+    for i in range(5):
+        L, s = 0.14 + 0.03 * i, 0.010 + 0.003 * i
+        y, z = -0.50 + i * 0.075, 1.45
+        if i == 2:
+            G.add(shadow, prism(_wrench(L * 1.08, s * 1.15), 0.0, 0.0005), FXN((xs, y, z), roll=math.pi / 2))
+            continue
+        G.add(shadow, prism(_wrench(L * 1.08, s * 1.15), 0.0, 0.0005), FXN((xs, y, z), roll=math.pi / 2))
+        G.add(C['steel'], prism(_wrench(L, s), 0.0, 0.005), FXN((xs - 0.0006, y, z), roll=math.pi / 2 + rng.uniform(-0.05, 0.05)))
+        hook(y, z + L / 2 - 0.01)
+    # Hammer und Faeustel (Faeustel fehlt: nur Umriss)
+    for k, (y, hl, hw) in enumerate(((0.05, 0.30, 0.10), (0.25, 0.26, 0.12))):
+        z = 1.40
+        G.add(shadow, prism([(-0.012, -hl / 2), (0.012, -hl / 2), (0.012, hl / 2 - 0.02), (hw / 2, hl / 2 - 0.02), (hw / 2, hl / 2 + 0.02), (-hw / 2, hl / 2 + 0.02),
+                             (-hw / 2, hl / 2 - 0.02), (-0.012, hl / 2 - 0.02)], 0.0, 0.0005), FXN((xs, y, z)))
+        if k == 1:
+            continue
+        G.add(wood, lathe([(0.0, 0.0), (0.012, 0.0), (0.014, hl * 0.6), (0.011, hl), (0.0, hl)], 8), along((xs - 0.016, y, z - hl / 2), (xs - 0.016, y, z + hl / 2 - 0.02)))
+        G.add(C['steel_dark'], box((-0.016, -hw / 2, -0.018), (0.016, hw / 2, 0.018), bev=0.004), Matrix.Translation((xs - 0.018, y, z + hl / 2)))
+        hook(y + 0.03, z + hl / 2 - 0.05)
+        hook(y - 0.03, z + hl / 2 - 0.05)
+    # Saege mit Zahnung
+    blade = [(-0.0, 0.0)]
+    n = 24
+    Lb = 0.42
+    for i in range(n + 1):
+        blade.append((Lb * i / n, -0.004 if i % 2 else 0.0))
+    blade = [(0.0, 0.0)] + [(x, y) for x, y in blade[1:]] + [(Lb, 0.06), (0.0, 0.11)]
+    G.add(C['steel'], prism(blade, 0.0, 0.0012), FXN((xs - 0.001, -0.45, 1.08)))
+    G.add(wood, prism([(-0.13, 0.0), (0.0, 0.0), (0.0, 0.12), (-0.13, 0.12), (-0.15, 0.06)], 0.0, 0.022), FXN((xs - 0.002, -0.45, 1.06)))
+    hook(-0.30, 1.17)
+    # Schraubendreher (Reihe), Zange, Rohrzange, Kabelrolle
+    for i in range(6):
+        y = 0.05 + i * 0.05
+        G.add(mat(f'griff{i % 3}', [(0.55, 0.10, 0.07), (0.70, 0.55, 0.10), (0.10, 0.25, 0.55)][i % 3], 'plastic', r=0.9),
+              lathe([(0, 0), (0.012, 0), (0.014, 0.07), (0.01, 0.1), (0, 0.1)], 8), along((xs - 0.02, y, 1.20), (xs - 0.02, y, 1.30)))
+        G.add(C['steel'], cyl(0.003, 0.08 + 0.02 * (i % 2), 5), along((xs - 0.02, y, 1.20), (xs - 0.02, y, 1.12 - 0.02 * (i % 2))))
+    G.add(C['steel_dark'], box((xs - 0.015, 0.02, 1.30), (xs - 0.005, 0.36, 1.31)))
+    for s in (-1, 1):
+        G.add(C['steel_dark'], prism([(-0.008, 0.0), (0.008, 0.0), (0.012, 0.15), (-0.004, 0.15)], 0.0, 0.006), FXN((xs - 0.002 - (0.006 if s > 0 else 0), 0.48, 1.10), roll=s * 0.12))
+    G.add(C['steel_dark'], cyl(0.006, 0.02, 8), along((xs - 0.002, 0.48, 1.24), (xs - 0.02, 0.48, 1.24)))
+    G.add(C['red'], prism([(-0.01, 0.0), (0.01, 0.0), (0.012, 0.32), (-0.012, 0.32)], 0.0, 0.012), FXN((xs - 0.002, 0.40, 1.48)))
+    G.add(C['steel_dark'], prism([(-0.02, 0.32), (0.05, 0.32), (0.05, 0.40), (-0.02, 0.40)], 0.0, 0.016), FXN((xs - 0.002, 0.40, 1.48)))
+    G.add(mat('kabel_schwarz', (0.08, 0.08, 0.08), 'rubber', r=1.2), torus(0.09, 0.012, 16, 6, sz=1.6), FXN((xs - 0.03, -0.20, 1.70)))
+    hook(-0.20, 1.80)
+    # Staub auf dem Schrank, Rost am Sockel, Abplatzer
+    for _ in range(5):
+        G.add(C['dust'], blob((rng.uniform(x0 + 0.05, xb - 0.03), rng.uniform(-0.55, 0.55), 0.8506), (1, 0, 0), (0, 1, 0), rng.uniform(0.06, 0.14), rng.uniform(0.05, 0.1),
+                              rng, 12, 2, 0.4, off=0.0))
+    Sf = lambda u, v: (Vector((x0 - 0.0009, -u, v)), Vector((-1, 0, 0)))  # noqa: E731
+    G.add(C['rust'], orient(strip_uv(Sf, -yw + 0.02, yw - 0.02, 0.004, 0.04, rng, 14, 0.8), lambda m: Vector((-1, 0, 0))))
+    G.build('macchina_werkzeug', angle=40.0)
 
 
 # =====================================================================================================================
