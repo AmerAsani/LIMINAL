@@ -30,9 +30,9 @@ def _m():
         'blind': mat('lamelle', (0.86, 0.83, 0.74), 'paint', r=0.7),
         'blind_d': mat('lamelle_staub', (0.66, 0.63, 0.56), 'paint', r=1.0),
         'cord': mat('kordel', (0.80, 0.77, 0.68), 'fabric', r=1.3),
-        'mahogany': mat('mahagoni', (0.36, 0.13, 0.08), 'wood', 'wood_walnut_floor', r=0.6),
-        'mahogany_d': mat('mahagoni_dunkel', (0.22, 0.075, 0.045), 'wood', 'wood_walnut_floor', r=0.7),
-        'mahogany_w': mat('mahagoni_abgegriffen', (0.46, 0.20, 0.12), 'wood', 'wood_walnut_floor', r=0.5),
+        'mahogany': mat('mahagoni', (0.36, 0.13, 0.08), 'wood', 'wood_walnut_floor', r=1.5),
+        'mahogany_d': mat('mahagoni_dunkel', (0.22, 0.075, 0.045), 'wood', 'wood_walnut_floor', r=1.7),
+        'mahogany_w': mat('mahagoni_abgegriffen', (0.46, 0.20, 0.12), 'wood', 'wood_walnut_floor', r=1.3),
         'brass': mat('messing', (0.78, 0.60, 0.30), 'metal', r=0.45),
         'brass_d': mat('messing_angelaufen', (0.45, 0.34, 0.18), 'metal', r=0.75, m=0.6),
         'concrete': mat('beton_weiss', (0.93, 0.93, 0.92), 'concrete', 'concrete_white', r=1.2),
@@ -158,11 +158,14 @@ def _glow_room(g, warm=False, strength=0.35):
     """Erleuchteter Raum: Leuchtflaeche mit hellerer Mitte (Lampe) und dunkleren Raendern."""
     c0 = (1.0, 0.72, 0.48) if warm else (0.80, 0.76, 0.66)
     edge = mat('raumlicht_rand' + ('_warm' if warm else ''), _mix(c0, (0.2, 0.15, 0.1), 0.45), 'glow', glow=strength * 0.7)
-    mid = mat('raumlicht' + ('_warm' if warm else ''), c0, 'glow', glow=strength)
     g.face([(0.003, -W / 2 - 0.004, -H / 2 - 0.004), (0.003, W / 2 + 0.004, -H / 2 - 0.004), (0.003, W / 2 + 0.004, H / 2 + 0.004),
             (0.003, -W / 2 - 0.004, H / 2 + 0.004)], edge, out=(1, 0, 0))
-    pts = [(0.0035, 0.42 * math.cos(a), 0.15 + 0.62 * math.sin(a)) for a in [2 * math.pi * i / 14 for i in range(14)]]
-    g.face(pts, mid, out=(1, 0, 0))
+    # weicher Abfall zur Lampe hin (oben, etwas seitlich): Ringe mit steigender Staerke
+    for k in range(4):
+        f = 1.0 - k * 0.22
+        mk = mat('raumlicht%d' % k + ('_warm' if warm else ''), _mix(c0, (0.2, 0.15, 0.1), 0.38 - 0.1 * k), 'glow', glow=strength * (0.78 + 0.08 * k))
+        pts = [(0.0032 + 0.0003 * k, 0.04 + 0.5 * f * math.cos(a), 0.05 + 0.2 * (1 - f) + 0.8 * f * math.sin(a)) for a in [2 * math.pi * i / 16 for i in range(16)]]
+        g.face(pts, mk, out=(1, 0, 0))
 
 
 def _window(kind='dark', blind=0.0, tilt=0.9, seed=1, figure=False, glow=None, bent=(), skew=0.0, dirt=0.0):
@@ -177,10 +180,11 @@ def _window(kind='dark', blind=0.0, tilt=0.9, seed=1, figure=False, glow=None, b
         um = mat('umriss', (0.012, 0.011, 0.012), 'paint', r=1.0)
         yc = 0.14
         pts = []
-        for (y, z) in [(-0.2, -H / 2), (0.2, -H / 2), (0.19, -0.3), (0.17, 0.05), (0.2, 0.18), (0.21, 0.3), (0.18, 0.38), (0.1, 0.43),
-                       (0.055, 0.47), (0.05, 0.52), (0.07, 0.6), (0.065, 0.68), (0.035, 0.73), (0.0, 0.745), (-0.035, 0.73), (-0.065, 0.68),
-                       (-0.07, 0.6), (-0.05, 0.52), (-0.055, 0.47), (-0.1, 0.43), (-0.18, 0.38), (-0.21, 0.3), (-0.2, 0.18), (-0.17, 0.05),
-                       (-0.19, -0.3)]:
+        # Gestalt ab der Huefte (Fensterbank 1,0 m ueber dem Boden): Schultern bei -0,42, Kopf bis -0,1 (wie das Fensterwesen)
+        for (y, z) in [(-0.17, -H / 2), (0.17, -H / 2), (0.16, -0.7), (0.18, -0.55), (0.2, -0.47), (0.19, -0.43), (0.14, -0.4), (0.07, -0.385),
+                       (0.05, -0.36), (0.045, -0.33), (0.065, -0.29), (0.07, -0.22), (0.06, -0.15), (0.035, -0.11), (0.0, -0.1), (-0.035, -0.11),
+                       (-0.06, -0.15), (-0.07, -0.22), (-0.065, -0.29), (-0.045, -0.33), (-0.05, -0.36), (-0.07, -0.385), (-0.14, -0.4),
+                       (-0.19, -0.43), (-0.2, -0.47), (-0.18, -0.55), (-0.16, -0.7)]:
             pts.append((0.0045, yc + y, z))
         g.face(pts, um, out=(1, 0, 0))
     if blind > 0:
@@ -421,8 +425,8 @@ def build_birch_circle():
     rng = random.Random(188)
     g = Geo()
     R, Hc = 3.5, 0.12
-    birch = [mat('birke_%d' % k, c, 'wood', 'wood_birch', r=0.9) for k, c in enumerate(((0.80, 0.86, 0.98), (0.74, 0.80, 0.92), (0.86, 0.90, 1.0)))]
-    grey = mat('birke_vergraut', (0.62, 0.62, 0.62), 'wood', 'wood_birch', r=1.1)
+    birch = [mat('birke_%d' % k, c, 'wood', 'wood_birch', r=1.8) for k, c in enumerate(((0.80, 0.86, 0.98), (0.74, 0.80, 0.92), (0.86, 0.90, 1.0)))]
+    grey = mat('birke_vergraut', (0.62, 0.62, 0.62), 'wood', 'wood_birch', r=2.0)
     gap_m = mat('fuge_dunkel', (0.06, 0.05, 0.04), 'paint', r=1.3)
     screw = mat('schraube', (0.30, 0.30, 0.30), 'metal', r=0.7)
     moss = mat('moos_rand', (0.24, 0.32, 0.10), 'fabric', 'moss', r=1.4)
@@ -443,12 +447,20 @@ def build_birch_circle():
         if abs(ym) < 0.9:  # Deckel: Dielen dort mit Fuge getrennt
             hx = math.sqrt(0.81 - ym * ym)
             segs = [(-half, -hx - 0.004), (-hx + 0.004, hx - 0.004), (hx + 0.004, half)]
+        Rr = R - 0.05
+
+        def xr(y):
+            return math.sqrt(max(0.0, Rr * Rr - y * y))
         for (xa, xb) in segs:
             if xb - xa < 0.05:
                 continue
-            g.face([(xa, y0, Hc), (xb, y0, Hc), (xb, y1, Hc), (xa, y1, Hc)], m, out=(0, 0, 1))
-            for (yy, s) in ((y0, -1), (y1, 1)):
-                g.face([(xa, yy, Hc - 0.02), (xb, yy, Hc - 0.02), (xb, yy, Hc), (xa, yy, Hc)], m, out=(0, s, 0))
+            ys = (y0, ym, y1)
+            left = [(-xr(y), y) for y in ys] if xa <= -half + 1e-6 else [(xa, y) for y in (y0, y1)]
+            right = [(xr(y), y) for y in ys] if xb >= half - 1e-6 else [(xb, y) for y in (y0, y1)]
+            top = [right[0]] + right[1:] + list(reversed(left))
+            g.face([(x, y, Hc) for (x, y) in top], m, out=(0, 0, 1))
+            for (yy, s, a_, b_) in ((y0, -1, left[0][0], right[0][0]), (y1, 1, left[-1][0], right[-1][0])):
+                g.face([(a_, yy, Hc - 0.02), (b_, yy, Hc - 0.02), (b_, yy, Hc), (a_, yy, Hc)], m, out=(0, s, 0))
             for xx in [x for x in (-2.4, -1.2, 0.0, 1.2, 2.4) if xa + 0.03 < x < xb - 0.03]:  # Schrauben ueber den Lagern
                 for yy in (y0 + 0.025, y1 - 0.025):
                     g.face([(xx - 0.004, yy - 0.004, Hc + 0.0005), (xx + 0.004, yy - 0.004, Hc + 0.0005), (xx + 0.004, yy + 0.004, Hc + 0.0005),
@@ -464,7 +476,7 @@ def build_birch_circle():
             nA = Vector((a[0] * n2.x, a[1] * n2.x, n2.z))
             nB = Vector((b[0] * n2.x, b[1] * n2.x, n2.z))
             g.face([(a[0] * ra, a[1] * ra, za), (b[0] * ra, b[1] * ra, za), (b[0] * rb, b[1] * rb, zb), (a[0] * rb, a[1] * rb, zb)],
-                   birch[0] if k != 1 else birch[1], out=-(nA + nB) if False else (nA + nB), nrm=[nA, nB, nB, nA])
+                   birch[0] if k != 1 else birch[1], out=(nA + nB), nrm=[nA, nB, nB, nA])
     for i in range(0, 64, 2):  # Moos und Vergrauung unten am Rand
         a, b = P[i], P[(i + 1) % 64]
         hm = rng.uniform(0.01, 0.04)
@@ -581,33 +593,51 @@ def build_table_188():
 
 def build_walkway_glass():
     """Galerie mit Glasbruestung an der Wand (Wandteil, 1 m entlang y, Boden der Galerie bei z = 0, ragt 1,6 m vor;
-    Wiki: Glasgelaender und Stege): Betonplatte mit Tropfkante, Bodenschiene mit Deckblech und Schrauben, Glasscheibe mit
-    gruener Kante, Handlauf aus Edelstahl in U-Kappe, Fugen zwischen den Scheiben."""
+    Wiki: Glasgelaender und Stege): Betonplatte mit Fase und Tropfkante, Stahlkonsole (Doppel-T, zur Spitze schlanker)
+    unter jedem Modul, Randprofil aus Stahl, Bodenschiene mit Deckblech und Schrauben, Glasscheibe mit Spiegelung und
+    gruener Kante, U-Kappe und Handlauf aus Edelstahl, Fugen zwischen den Scheiben."""
     M = _m()
     g = Geo()
     C = M['concrete']
+    St = M['steel']
     g.face([(0.0, -0.5, 0.0), (1.48, -0.5, 0.0), (1.48, 0.5, 0.0), (0.0, 0.5, 0.0)], C, out=(0, 0, 1))
-    g.face([(0.0, -0.5, -0.25), (1.6, -0.5, -0.25), (1.6, 0.5, -0.25), (0.0, 0.5, -0.25)], C, out=(0, 0, -1))
-    g.face([(1.6, -0.5, -0.25), (1.6, 0.5, -0.25), (1.6, 0.5, -0.06), (1.6, -0.5, -0.06)], C, out=(1, 0, 0))
-    g.face([(1.55, -0.5, -0.252), (1.56, -0.5, -0.252), (1.56, 0.5, -0.252), (1.55, 0.5, -0.252)], M['seal'], out=(0, 0, -1))  # Tropfkante
-    for s in (-1, 1):
-        g.face([(0.0, s * 0.5, -0.25), (1.6, s * 0.5, -0.25), (1.6, s * 0.5, -0.06), (1.48, s * 0.5, 0.0), (0.0, s * 0.5, 0.0)], C, out=(0, s, 0))
-    # Bodenschiene (U) mit Deckblech
-    prof = [(1.48, 0.0), (1.48, 0.07), (1.5, 0.075), (1.505, 0.06), (1.565, 0.06), (1.57, 0.075), (1.6, 0.07), (1.6, -0.06)]
-    sweep(g, [(x, z) for (x, z) in prof], [(0, -0.5, 0), (0, 0.5, 0)], (0, 0, 1), M['steel_inox'], smooth=40, flip=True)
+    g.face([(0.0, -0.5, -0.2), (1.55, -0.5, -0.2), (1.55, 0.5, -0.2), (0.0, 0.5, -0.2)], C, out=(0, 0, -1))
+    for s_ in (-1, 1):
+        g.face([(0.0, s_ * 0.5, -0.2), (1.55, s_ * 0.5, -0.2), (1.55, s_ * 0.5, 0.0), (0.0, s_ * 0.5, 0.0)], C, out=(0, s_, 0))
+    # Randprofil (C) aus Stahl an der Stirn, mit Tropfkante
+    sweep(g, [(1.55, 0.0), (1.605, 0.0), (1.605, -0.25), (1.6, -0.25), (1.6, -0.2), (1.55, -0.2)], [(0, -0.5, 0), (0, 0.5, 0)], (0, 0, 1), St,
+          smooth=20, flip=True)
+    # Konsole unter der Platte (Doppel-T, schlanker zur Spitze)
+    for (y0, y1) in ((-0.004, 0.004),):
+        web = [(0.0, -0.2), (1.5, -0.2), (1.5, -0.25), (0.0, -0.37)]
+        for yy, s_ in ((y0, -1), (y1, 1)):
+            g.face([(x, yy, z) for (x, z) in web], St, out=(0, s_, 0))
+        g.box((0.0, -0.05, -0.385), (0.02, 0.05, -0.2), St, skip=('-x',))  # Wandplatte
+        g.face([(0.0, -0.04, -0.37), (1.5, -0.04, -0.25), (1.5, 0.04, -0.25), (0.0, 0.04, -0.37)], St, out=(0.08, 0, -1))
+        g.face([(1.5, -0.04, -0.25), (1.5, 0.04, -0.25), (1.5, 0.04, -0.2), (1.5, -0.04, -0.2)], St, out=(1, 0, 0))
+        for zz in (-0.24, -0.34):
+            for yy in (-0.03, 0.03):
+                g.face([(0.0205, yy - 0.006, zz - 0.006), (0.0205, yy + 0.006, zz - 0.006), (0.0205, yy + 0.006, zz + 0.006), (0.0205, yy - 0.006, zz + 0.006)],
+                       M['black'], out=(1, 0, 0))
+    # Bodenschiene (U) mit Deckblech und Schrauben
+    prof = [(1.48, 0.0), (1.48, 0.07), (1.5, 0.075), (1.505, 0.06), (1.565, 0.06), (1.57, 0.075), (1.6, 0.07), (1.6, 0.0)]
+    sweep(g, prof, [(0, -0.5, 0), (0, 0.5, 0)], (0, 0, 1), M['steel_inox'], smooth=40, flip=True)
     for yy in (-0.3, 0.0, 0.3):
         old = g.M
         g.M = Matrix.Translation((1.6, yy, 0.035)) @ Matrix.Rotation(math.pi / 2, 4, 'Y')
         lathe(g, [(0.0, 0.0), (0.008, 0.0), (0.0065, 0.003), (0.0, 0.0035)], M['steel_inox'], seg=6)
         g.M = old
-    # Glasscheibe (deckend im Spiel: dunkle, glatte Flaechen, gruene Kante oben)
-    glass = mat('glas_bruestung', (0.20, 0.25, 0.25), 'glass')
+    # Glasscheibe (im Spiel deckend): glatte, leicht getoente Flaechen, Spiegelstreifen, gruene Kanten
+    glass = mat('glas_bruestung', (0.30, 0.38, 0.38), 'glass')
+    refl = mat('glas_spiegelung', (0.55, 0.62, 0.62), 'glass')
     edge = mat('glas_kante', (0.25, 0.45, 0.38), 'glass')
     g.box((1.524, -0.494, 0.06), (1.546, 0.494, 1.0), glass, skip=('-z',), mats={'+z': edge, '-y': edge, '+y': edge})
+    for (ya, w) in ((-0.3, 0.08), (0.1, 0.03)):
+        g.face([(1.5465, ya, 0.07), (1.5465, ya + w, 0.07), (1.5465, ya + w + 0.35, 0.99), (1.5465, ya + 0.35, 0.99)], refl, out=(1, 0, 0))
     # Handlauf: U-Kappe und Rundrohr
     sweep(g, [(1.518, 0.98), (1.518, 1.01), (1.552, 1.01), (1.552, 0.98)], [(0, -0.5, 0), (0, 0.5, 0)], (0, 0, 1), M['steel_inox'], smooth=20, flip=True)
-    P = [(1.535, y, 1.05) for y in (-0.5, 0.5)]
-    tube(g, P, 0.024, M['steel_inox'], sides=10)
+    tube(g, [(1.535, -0.5, 1.05), (1.535, 0.5, 1.05)], 0.024, M['steel_inox'], sides=10)
+    tube(g, [(1.535, 0.0, 1.01), (1.535, 0.0, 1.03)], 0.008, M['steel_inox'], sides=6)
     g.build('galerie')
 
 

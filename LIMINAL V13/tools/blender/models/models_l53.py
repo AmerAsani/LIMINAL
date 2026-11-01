@@ -316,11 +316,11 @@ def _mix(c, d, t):
 # ======================================================================================================================
 def _m():
     return {
-        'walnut': mat('nussbaum', (0.40, 0.25, 0.15), 'wood', 'wood_walnut_floor', r=0.85),
-        'walnut_d': mat('nussbaum_dunkel', (0.26, 0.155, 0.095), 'wood', 'wood_walnut_floor', r=0.9),
-        'walnut_w': mat('nussbaum_abgegriffen', (0.50, 0.33, 0.20), 'wood', 'wood_walnut_floor', r=0.7),
+        'walnut': mat('nussbaum', (0.40, 0.25, 0.15), 'wood', 'wood_walnut_floor', r=2.0),
+        'walnut_d': mat('nussbaum_dunkel', (0.26, 0.155, 0.095), 'wood', 'wood_walnut_floor', r=2.2),
+        'walnut_w': mat('nussbaum_abgegriffen', (0.50, 0.33, 0.20), 'wood', 'wood_walnut_floor', r=1.6),
         'groove': mat('fuge_dunkel', (0.05, 0.035, 0.025), 'paint', r=1.4),
-        'dust': mat('staub', (0.44, 0.41, 0.37), 'paint', r=1.5),
+        'dust': mat('staub', (0.27, 0.23, 0.18), 'paint', r=1.5),
         'iron': mat('schmiedeeisen', (0.07, 0.07, 0.068), 'paint', r=0.75, m=0.45),
         'iron_w': mat('schmiedeeisen_blank', (0.20, 0.19, 0.18), 'metal', r=0.6),
         'brass': mat('messing_alt', (0.74, 0.56, 0.28), 'metal', r=0.5),
@@ -639,7 +639,7 @@ def _row(g, BK, rng, y0, y1, zb, fmt, xf_lo, xf_hi, tops_below, dust_mat=None, m
             _emit_lean(g, BK, rng, t, h, min(h * 0.72, xf - 0.04))
             g.M = old
     if dust_mat is not None:  # Staub auf der Kante vor den Buechern
-        g.face([(xf_lo - 0.02, y0, zb + 0.0006), (0.428, y0, zb + 0.0006), (0.428, y1, zb + 0.0006), (xf_lo - 0.02, y1, zb + 0.0006)],
+        g.face([(xf_lo - 0.012, y0, zb + 0.0006), (0.424, y0, zb + 0.0006), (0.424, y1, zb + 0.0006), (xf_lo - 0.012, y1, zb + 0.0006)],
                dust_mat, out=(0, 0, 1))
 
 
@@ -1351,9 +1351,9 @@ def build_door_old_open():
     M = _m()
     rng = random.Random(9)
     g = Geo()
-    oak = mat('eiche_alt', (0.34, 0.26, 0.18), 'wood', 'wood_walnut_floor', r=1.2)
-    oak_d = mat('eiche_dunkel', (0.20, 0.15, 0.10), 'wood', 'wood_walnut_floor', r=1.3)
-    rot = mat('holz_morsch', (0.16, 0.12, 0.09), 'wood', 'wood_walnut_floor', r=1.5)
+    oak = mat('eiche_alt', (0.34, 0.26, 0.18), 'wood', 'wood_walnut_floor', r=2.6)
+    oak_d = mat('eiche_dunkel', (0.20, 0.15, 0.10), 'wood', 'wood_walnut_floor', r=2.6)
+    rot = mat('holz_morsch', (0.16, 0.12, 0.09), 'wood', 'wood_walnut_floor', r=3.0)
     iron = mat('eisen_geschmiedet', (0.10, 0.09, 0.085), 'metal', r=1.1, m=0.35)
     rust = mat('rost_band', (0.36, 0.20, 0.11), 'paint', r=1.35)
     W, H = 1.0, 2.15
@@ -1560,8 +1560,8 @@ def build_inscription_bibliotheca():
     M = _m()
     g = Geo()
     granite = mat('granit', (0.23, 0.22, 0.22), 'ceramic', 'terrazzo_antique', r=0.9)
-    marble = mat('marmor_tafel', (0.96, 0.95, 0.92), 'ceramic', 'marble_white', r=0.55)
-    patina = mat('marmor_patina', (0.72, 0.68, 0.60), 'ceramic', 'marble_white', r=0.8)
+    marble = mat('marmor_tafel', (0.96, 0.95, 0.92), 'ceramic', 'marble_white', r=2.5)
+    patina = mat('marmor_patina', (0.72, 0.68, 0.60), 'ceramic', 'marble_white', r=3.5)
     # Rahmen: Profil mit Gehrung um das Rechteck (u nach aussen, v entlang +x)
     Yh, Zh = 1.64, 0.205
     prof = [(0.0, 0.05), (0.012, 0.058), (0.03, 0.062), (0.05, 0.055), (0.062, 0.042), (0.075, 0.02), (0.08, 0.0)]
@@ -1655,51 +1655,112 @@ def _painting(scene, gilt, tone, seed):
     g.build('gemaelde')
 
 
-def _figure(cv, y, z0, h, robe, skin, hair, lean=0.0, arm=1, cloak=None):
-    """Stehende Gestalt im Gewand: Umriss, Faltenschatten, Mantel, Kopf mit Haar, Arm mit Hand."""
+def _figure(cv, y, z0, h, robe, skin, hair, lean=0.0, arm=1, cloak=None, beard=False, hold=None):
+    """Stehende Gestalt im Gewand, Licht von links oben: Schuhe, Tunika mit welligem Saum, Schattenseite, Falten mit
+    Lichtkanten, Guertel, Mantel ueber der linken Schulter, Arm mit Aermel und Hand, Hals, Kopf mit Haar, Gesichtsschatten,
+    Augen, Nase; beard: grauer Bart; hold: 'buch' oder 'rolle' in der Hand."""
     w = h * 0.25
-    sh = _mix(robe, (0.0, 0.0, 0.0), 0.45)
-    hi = _mix(robe, (1.0, 0.95, 0.85), 0.25)
-    body = [(y - w * 0.6, z0), (y + w * 0.6, z0), (y + w * 0.45 + lean, z0 + h * 0.5), (y + w * 0.42 + lean, z0 + h * 0.76),
-            (y + w * 0.2 + lean, z0 + h * 0.83), (y - w * 0.2 + lean, z0 + h * 0.83), (y - w * 0.42 + lean, z0 + h * 0.76),
-            (y - w * 0.45 + lean, z0 + h * 0.5)]
+    L = lean
+    sh = _mix(robe, (0.02, 0.01, 0.0), 0.5)
+    hi = _mix(robe, (1.0, 0.95, 0.82), 0.3)
+
+    def P(u, v):  # u quer (in w), v hoch (in h); oben mit Neigung
+        return (y + u * w + L * v / 0.85, z0 + v * h)
+    for s in (-1, 1):  # Schuhe
+        cv.ell(y + s * w * 0.22, z0 + h * 0.006, w * 0.16, h * 0.012, (0.16, 0.11, 0.07), n=8)
+    hem = [P(-0.62, 0.02), P(-0.3, 0.0), P(0.0, 0.015), P(0.3, 0.0), P(0.62, 0.02)]
+    body = hem + [P(0.5, 0.3), P(0.4, 0.5), P(0.46, 0.68), P(0.5, 0.76), P(0.38, 0.82), P(0.15, 0.84), P(-0.15, 0.84), P(-0.38, 0.82),
+                  P(-0.5, 0.76), P(-0.46, 0.68), P(-0.4, 0.5), P(-0.5, 0.3)]
     cv.poly(body, robe)
-    cv.poly([(y + w * 0.05, z0), (y + w * 0.6, z0), (y + w * 0.45 + lean, z0 + h * 0.5), (y + w * 0.3 + lean, z0 + h * 0.62)], sh)
-    for k in range(3):  # Falten
-        yy = y - w * 0.35 + k * w * 0.3
-        cv.poly([(yy, z0 + 0.004), (yy + w * 0.06, z0 + 0.004), (yy + w * 0.04 + lean * 0.5, z0 + h * 0.45), (yy + w * 0.01 + lean * 0.5, z0 + h * 0.45)], sh)
-    cv.poly([(y - w * 0.4 + lean, z0 + h * 0.55), (y - w * 0.2 + lean, z0 + h * 0.56), (y - w * 0.25 + lean, z0 + h * 0.78), (y - w * 0.4 + lean, z0 + h * 0.74)], hi)
-    if cloak:
-        cv.poly([(y - w * 0.62, z0 + h * 0.05), (y - w * 0.2, z0 + h * 0.08), (y + w * 0.1 + lean, z0 + h * 0.8), (y - w * 0.42 + lean, z0 + h * 0.8)], cloak)
-    hc = (y + lean * 1.1, z0 + h * 0.91)
-    cv.ell(hc[0], hc[1] - h * 0.07, w * 0.12, h * 0.04, _mix(skin, (0, 0, 0), 0.2), n=8)  # Hals
-    cv.ell(hc[0], hc[1], h * 0.058, h * 0.072, skin, n=12)
-    cv.ell(hc[0] - h * 0.012, hc[1] + h * 0.03, h * 0.06, h * 0.045, hair, n=10)
-    cv.ell(hc[0] + h * 0.022, hc[1] - h * 0.005, h * 0.02, h * 0.035, _mix(skin, (0, 0, 0), 0.3), n=6)  # Schatten im Gesicht
-    ax = y + arm * w * 0.38 + lean
-    cv.poly([(ax, z0 + h * 0.76), (ax + arm * w * 0.5, z0 + h * 0.6), (ax + arm * w * 0.44, z0 + h * 0.54), (ax - arm * w * 0.05, z0 + h * 0.68)], robe)
-    cv.ell(ax + arm * w * 0.52, z0 + h * 0.575, h * 0.022, h * 0.028, skin, n=7)
+    cv.poly([P(0.12, 0.012), P(0.3, 0.0), P(0.62, 0.02), P(0.5, 0.3), P(0.4, 0.5), P(0.46, 0.68), P(0.5, 0.76), P(0.38, 0.82), P(0.28, 0.6), P(0.2, 0.3)],
+            sh)
+    for (u0, u1) in ((-0.38, -0.3), (-0.12, -0.02), (0.12, 0.2)):  # Falten: Schatten und Lichtkante
+        cv.poly([P(u0, 0.02), P(u0 + 0.07, 0.02), P((u0 + u1) / 2 + 0.02, 0.48), P((u0 + u1) / 2, 0.48)], sh)
+        cv.poly([P(u0 - 0.06, 0.02), P(u0 - 0.01, 0.02), P((u0 + u1) / 2 - 0.02, 0.46), P((u0 + u1) / 2 - 0.035, 0.46)], hi)
+    cv.poly([P(-0.42, 0.49), P(0.42, 0.49), P(0.41, 0.52), P(-0.41, 0.52)], _mix(robe, (0.6, 0.45, 0.15), 0.5))  # Guertel
+    cv.poly([P(-0.44, 0.56), P(-0.3, 0.57), P(-0.32, 0.78), P(-0.46, 0.75)], hi)
+    if cloak:  # Mantel ueber der linken Schulter, faellt rechts herab
+        csh = _mix(cloak, (0.02, 0.01, 0.0), 0.45)
+        cv.poly([P(-0.52, 0.8), P(-0.2, 0.84), P(0.35, 0.5), P(0.62, 0.22), P(0.66, 0.04), P(0.36, 0.06), P(0.3, 0.3), P(-0.1, 0.55), P(-0.5, 0.62)], cloak)
+        cv.poly([P(0.35, 0.5), P(0.62, 0.22), P(0.66, 0.04), P(0.5, 0.05), P(0.46, 0.3)], csh)
+        cv.poly([P(-0.5, 0.62), P(-0.1, 0.55), P(-0.08, 0.58), P(-0.48, 0.66)], csh)
+    # Arm mit Aermel und Hand
+    sx = 0.42 * arm
+    elbow = P(sx + 0.12 * arm, 0.6)
+    hand = P(sx + 0.5 * arm, 0.62) if hold else P(sx + 0.1 * arm, 0.44)
+    a0, a1 = P(sx - 0.1 * arm, 0.8), P(sx + 0.1 * arm, 0.78)
+    cv.poly([a0, a1, (elbow[0] + 0.03 * w * arm, elbow[1]), (elbow[0] - 0.12 * w * arm, elbow[1] + 0.02 * h)], robe)
+    cv.poly([(elbow[0] - 0.12 * w * arm, elbow[1] + 0.02 * h), (elbow[0] + 0.05 * w * arm, elbow[1] - 0.01 * h), (hand[0], hand[1] - 0.012 * h),
+             (hand[0] - 0.02 * w * arm, hand[1] + 0.02 * h)], _mix(robe, (0.02, 0.01, 0.0), 0.2))
+    cv.ell(hand[0], hand[1], w * 0.09, h * 0.022, skin, n=8)
+    if hold == 'buch':
+        cv.poly([(hand[0] - 0.08 * w, hand[1] + 0.01 * h), (hand[0] + 0.25 * w * arm, hand[1] + 0.03 * h), (hand[0] + 0.24 * w * arm, hand[1] + 0.08 * h),
+                 (hand[0] - 0.09 * w, hand[1] + 0.06 * h)], (0.42, 0.14, 0.08))
+    elif hold == 'rolle':
+        cv.poly([(hand[0], hand[1] - 0.05 * h), (hand[0] + 0.05 * w, hand[1] - 0.05 * h), (hand[0] + 0.05 * w, hand[1] + 0.09 * h),
+                 (hand[0], hand[1] + 0.09 * h)], (0.86, 0.80, 0.64))
+    # Hals und Kopf
+    hx, hz = P(0.0, 0.915)
+    cv.poly([(hx - w * 0.1, z0 + h * 0.83), (hx + w * 0.1, z0 + h * 0.83), (hx + w * 0.09, z0 + h * 0.89), (hx - w * 0.09, z0 + h * 0.89)],
+            _mix(skin, (0, 0, 0), 0.25))
+    hw, hh = h * 0.055, h * 0.07
+    cv.ell(hx, hz, hw, hh, skin, n=14)
+    cv.poly([(hx + hw * 0.15, hz + hh * 0.9), (hx + hw * 0.95, hz + hh * 0.3), (hx + hw * 0.85, hz - hh * 0.5), (hx + hw * 0.3, hz - hh * 0.95),
+             (hx + hw * 0.1, hz - hh * 0.3)], _mix(skin, (0.1, 0.02, 0.0), 0.35))  # Schattenseite des Gesichts
+    hair_pts = [(hx - hw * 1.05, hz - hh * 0.1), (hx - hw * 1.0, hz + hh * 0.6), (hx - hw * 0.5, hz + hh * 1.08), (hx + hw * 0.3, hz + hh * 1.1),
+                (hx + hw * 1.0, hz + hh * 0.7), (hx + hw * 1.05, hz + hh * 0.1), (hx + hw * 0.7, hz + hh * 0.45), (hx, hz + hh * 0.62),
+                (hx - hw * 0.7, hz + hh * 0.4)]
+    cv.poly(hair_pts, hair)
+    for s in (-1, 1):  # Augen
+        cv.poly([(hx + s * hw * 0.38 - hw * 0.13, hz + hh * 0.1), (hx + s * hw * 0.38 + hw * 0.13, hz + hh * 0.1), (hx + s * hw * 0.38 + hw * 0.1, hz + hh * 0.2),
+                 (hx + s * hw * 0.38 - hw * 0.1, hz + hh * 0.2)], (0.10, 0.07, 0.05))
+    cv.poly([(hx + hw * 0.02, hz + hh * 0.05), (hx + hw * 0.12, hz - hh * 0.32), (hx - hw * 0.05, hz - hh * 0.3)], _mix(skin, (0.1, 0.02, 0.0), 0.45))
+    if beard:
+        cv.poly([(hx - hw * 0.8, hz - hh * 0.2), (hx + hw * 0.8, hz - hh * 0.2), (hx + hw * 0.5, hz - hh * 1.3), (hx, hz - hh * 1.55), (hx - hw * 0.5, hz - hh * 1.3)],
+                (0.74, 0.72, 0.68))
+
+
+def _sky(cv, W, H, top, bot, z_lo, n=8):
+    """Himmel mit weichem Verlauf (n Baender, ueberlappend)."""
+    for k in range(n):
+        t0, t1 = k / n, (k + 1) / n
+        c = _mix(top, bot, (t0 + t1) / 2)
+        za = H / 2 - (H / 2 - z_lo) * t0
+        zb = H / 2 - (H / 2 - z_lo) * t1 - 0.01
+        cv.poly([(-W / 2, zb), (W / 2, zb), (W / 2, za), (-W / 2, za)], c)
+
+
+def _cloud(cv, y, z, s, c):
+    for (dy, dz, ry, rz, f) in ((0.0, 0.0, 1.0, 0.24, 0.0), (-0.45, 0.06, 0.55, 0.2, 0.08), (0.35, 0.09, 0.6, 0.26, 0.12), (0.05, 0.14, 0.45, 0.2, 0.2)):
+        cv.ell(y + dy * s, z + dz * s, ry * s, rz * s, _mix(c, (1.0, 0.98, 0.92), f), n=12)
 
 
 def _scene_temple(cv, W, H, rng):
-    """Landschaft mit Rundtempel, Zypressen und fuenf Gestalten (eigenes Motiv)."""
-    sky = [(0.30, 0.40, 0.48), (0.40, 0.48, 0.52), (0.55, 0.58, 0.54), (0.68, 0.64, 0.52), (0.74, 0.66, 0.48)]
-    for k, c in enumerate(sky):
-        z0 = H / 2 - (k + 1) * H * 0.12
-        cv.poly([(-W / 2, z0 - 0.02), (W / 2, z0 - 0.02), (W / 2, H / 2 - k * H * 0.12), (-W / 2, H / 2 - k * H * 0.12)], c)
-    for (y, z, ry) in ((-0.4, 0.38, 0.16), (0.25, 0.42, 0.22), (0.55, 0.33, 0.12)):  # Wolken
-        cv.ell(y, z, ry, 0.035, (0.80, 0.78, 0.70), n=12)
-        cv.ell(y + ry * 0.3, z + 0.02, ry * 0.6, 0.03, (0.86, 0.84, 0.76), n=10)
-    hills = [((0.42, 0.50, 0.55), 0.0, 0.09), ((0.36, 0.42, 0.40), -0.06, 0.07), ((0.30, 0.33, 0.22), -0.13, 0.06)]
-    for (c, zb, amp) in hills:  # Ferne in Luftperspektive
-        pts = [(-W / 2, -H / 2 + 0.2)] + [(-W / 2 + W * t, zb + amp * math.sin(math.pi * t * 2.3 + zb * 9) + 0.02 * math.sin(t * 17))
-                                         for t in [i / 16 for i in range(17)]] + [(W / 2, -H / 2 + 0.2)]
+    """Landschaft mit Rundtempel, Zypressen, Pinien, ferner Stadt und fuenf Gestalten (eigenes Motiv)."""
+    _sky(cv, W, H, (0.26, 0.36, 0.46), (0.76, 0.68, 0.50), -0.02)
+    for (y, z, s) in ((-0.42, 0.37, 0.14), (0.22, 0.41, 0.18), (0.6, 0.3, 0.1)):
+        _cloud(cv, y, z, s, (0.78, 0.76, 0.68))
+    hills = [((0.46, 0.52, 0.56), 0.02, 0.07), ((0.38, 0.44, 0.42), -0.05, 0.06), ((0.30, 0.34, 0.22), -0.12, 0.05)]
+    for k, (c, zb, amp) in enumerate(hills):  # Ferne in Luftperspektive
+        pts = [(-W / 2, -H / 2 + 0.2)] + [(-W / 2 + W * t, zb + amp * math.sin(math.pi * t * 2.3 + zb * 9) + 0.015 * math.sin(t * 17 + k))
+                                         for t in [i / 18 for i in range(19)]] + [(W / 2, -H / 2 + 0.2)]
         cv.poly(pts, c)
+        if k == 0:  # ferne Stadt mit Tuermen
+            for i in range(7):
+                yy = 0.05 + i * 0.045
+                th = 0.03 + 0.02 * ((i * 7) % 3)
+                cv.poly([(yy, 0.02), (yy + 0.03, 0.02), (yy + 0.03, 0.02 + th), (yy + 0.015, 0.03 + th), (yy, 0.02 + th)], (0.50, 0.54, 0.56))
     cv.poly([(-W / 2, -H / 2), (W / 2, -H / 2), (W / 2, -0.17), (-W / 2, -0.2)], (0.33, 0.27, 0.15))
+    cv.poly([(-W / 2, -0.2), (W / 2, -0.17), (W / 2, -0.21), (-W / 2, -0.24)], (0.38, 0.33, 0.18))
     cv.poly([(-0.1, -H / 2), (0.25, -H / 2), (0.08, -0.19), (0.03, -0.19)], (0.50, 0.42, 0.28))  # Weg
     for (y, z, h) in ((-0.72, -0.2, 0.42), (0.62, -0.18, 0.5), (0.7, -0.2, 0.36), (-0.12, -0.12, 0.2)):  # Zypressen
-        cv.poly([(y - 0.035, z), (y + 0.035, z), (y + 0.022, z + h * 0.7), (y, z + h), (y - 0.022, z + h * 0.7)], (0.12, 0.16, 0.08))
-        cv.poly([(y + 0.005, z), (y + 0.035, z), (y + 0.022, z + h * 0.7), (y + 0.004, z + h * 0.9)], (0.08, 0.10, 0.05))
+        cv.poly([(y - 0.035, z), (y + 0.035, z), (y + 0.024, z + h * 0.55), (y + 0.012, z + h * 0.85), (y, z + h), (y - 0.012, z + h * 0.85),
+                 (y - 0.024, z + h * 0.55)], (0.12, 0.16, 0.08))
+        cv.poly([(y + 0.004, z), (y + 0.035, z), (y + 0.024, z + h * 0.55), (y + 0.012, z + h * 0.85), (y + 0.003, z + h * 0.95)], (0.07, 0.09, 0.05))
+    for (y, z) in ((0.36, -0.13), (0.47, -0.11)):  # Pinien
+        cv.poly([(y - 0.006, z), (y + 0.006, z), (y + 0.004, z + 0.16), (y - 0.004, z + 0.16)], (0.22, 0.15, 0.09))
+        cv.ell(y, z + 0.18, 0.09, 0.03, (0.16, 0.22, 0.10), n=12)
+        cv.ell(y + 0.02, z + 0.19, 0.06, 0.02, (0.24, 0.30, 0.14), n=10)
     # Rundtempel: Stufen, Saeulen (Licht und Schatten), Gebaelk, Kuppel
     st, sd = (0.74, 0.68, 0.56), (0.48, 0.42, 0.34)
     tx = -0.42
@@ -1707,21 +1768,26 @@ def _scene_temple(cv, W, H, rng):
         cv.poly([(tx - 0.24 + k * 0.02, -0.24 + k * 0.025), (tx + 0.24 - k * 0.02, -0.24 + k * 0.025), (tx + 0.24 - k * 0.02, -0.215 + k * 0.025),
                  (tx - 0.24 + k * 0.02, -0.215 + k * 0.025)], st if k % 2 else sd)
     cv.poly([(tx - 0.19, -0.165), (tx + 0.19, -0.165), (tx + 0.19, 0.18), (tx - 0.19, 0.18)], (0.20, 0.17, 0.13))  # Cella dunkel
+    cv.poly([(tx - 0.04, -0.165), (tx + 0.04, -0.165), (tx + 0.04, 0.06), (tx - 0.04, 0.06)], (0.10, 0.08, 0.06))  # Tuer
     for k in range(6):
         y = tx - 0.18 + k * 0.072
         cv.poly([(y, -0.165), (y + 0.032, -0.165), (y + 0.03, 0.18), (y + 0.002, 0.18)], st)
         cv.poly([(y + 0.02, -0.165), (y + 0.032, -0.165), (y + 0.03, 0.18), (y + 0.02, 0.18)], sd)
+        cv.poly([(y - 0.004, 0.165), (y + 0.036, 0.165), (y + 0.036, 0.18), (y - 0.004, 0.18)], st)  # Kapitell
     cv.poly([(tx - 0.21, 0.18), (tx + 0.21, 0.18), (tx + 0.21, 0.23), (tx - 0.21, 0.23)], st)
     cv.poly([(tx - 0.21, 0.18), (tx + 0.21, 0.18), (tx + 0.21, 0.195), (tx - 0.21, 0.195)], sd)
     dome = [(tx + 0.19 * math.cos(a), 0.23 + 0.13 * math.sin(a)) for a in [math.pi * (1 - i / 10) for i in range(11)]]
     cv.poly(dome, (0.56, 0.52, 0.44))
     cv.poly([(tx + 0.05, 0.23), (tx + 0.19, 0.23)] + [(tx + 0.19 * math.cos(a), 0.23 + 0.13 * math.sin(a)) for a in [i * math.pi / 2 / 5 for i in range(1, 5)]] +
             [(tx + 0.05, 0.36)], (0.40, 0.36, 0.30))
+    cv.poly([(tx - 0.012, 0.358), (tx + 0.012, 0.358), (tx + 0.008, 0.39), (tx - 0.008, 0.39)], st)  # Laterne
     skin, hair = (0.70, 0.52, 0.38), (0.24, 0.16, 0.10)
     robes = [((0.55, 0.12, 0.09), (0.18, 0.24, 0.44)), ((0.16, 0.22, 0.44), None), ((0.62, 0.46, 0.20), (0.50, 0.12, 0.10)),
              ((0.22, 0.34, 0.22), None), ((0.48, 0.42, 0.38), (0.30, 0.20, 0.30))]
-    for k, (y, h, lean, arm) in enumerate(((-0.02, 0.6, 0.02, 1), (0.16, 0.64, -0.01, -1), (0.34, 0.58, 0.03, 1), (0.5, 0.62, -0.02, -1), (0.68, 0.5, 0.0, -1))):
-        _figure(cv, y, -H * 0.43, h, robes[k][0], skin, hair, lean, arm, robes[k][1])
+    for k, (y, h, lean, arm, beard, hold) in enumerate(((-0.02, 0.6, 0.02, 1, True, 'rolle'), (0.16, 0.64, -0.01, -1, False, None),
+                                                       (0.34, 0.58, 0.03, 1, False, 'buch'), (0.5, 0.62, -0.02, -1, True, None),
+                                                       (0.68, 0.5, 0.0, -1, False, None))):
+        _figure(cv, y, -H * 0.43, h, robes[k][0], skin, (0.70, 0.68, 0.64) if beard else hair, lean, arm, robes[k][1], beard, hold)
 
 
 def _scene_arcade(cv, W, H, rng):
@@ -1755,7 +1821,7 @@ def _scene_arcade(cv, W, H, rng):
     skin, hair = (0.70, 0.52, 0.38), (0.22, 0.15, 0.10)
     cv.poly([(-0.14, -0.26), (0.14, -0.26), (0.14, 0.14), (0.1, 0.18), (-0.1, 0.18), (-0.14, 0.14)], (0.60, 0.46, 0.20))  # Thron
     cv.poly([(0.08, -0.26), (0.14, -0.26), (0.14, 0.14), (0.08, 0.16)], (0.40, 0.30, 0.12))
-    _figure(cv, 0.0, -0.24, 0.42, (0.50, 0.10, 0.10), skin, (0.75, 0.72, 0.68), 0.0, 1, (0.18, 0.22, 0.42))
+    _figure(cv, 0.0, -0.24, 0.42, (0.50, 0.10, 0.10), skin, (0.75, 0.72, 0.68), 0.0, 1, (0.18, 0.22, 0.42), beard=True)
     cv.poly([(-0.075, -0.03), (0.0, -0.045), (0.0, 0.01), (-0.07, 0.025)], (0.88, 0.84, 0.72))  # Buch
     cv.poly([(0.0, -0.045), (0.075, -0.03), (0.07, 0.025), (0.0, 0.01)], (0.80, 0.76, 0.64))
     robes = [(0.16, 0.22, 0.44), (0.22, 0.34, 0.22), (0.62, 0.46, 0.20), (0.32, 0.18, 0.32)]
@@ -1797,22 +1863,34 @@ def _ceiling_arms(variant):
         g.face([(x, y, -0.008 - layer * 0.0003) for (x, y) in pts], m, out=(0, 0, -1))
     poly([(-0.8, -0.8), (0.8, -0.8), (0.8, 0.8), (-0.8, 0.8)], stuck, 0)
     # Stuckring (Profil, haengt bis 3 cm herab), innen Kehle
-    lathe(g, [(0.62, -0.008), (0.63, -0.02), (0.66, -0.03), (0.7, -0.028), (0.73, -0.018), (0.76, -0.008)], stuck, seg=40, flip=True,
+    lathe(g, [(0.62, -0.008), (0.63, -0.02), (0.66, -0.03), (0.7, -0.028), (0.73, -0.018), (0.76, -0.008)], stuck, seg=40,
           mats=[stuck_d, stuck, stuck, stuck, stuck_d])
-    lathe(g, [(0.58, -0.008), (0.59, -0.014), (0.605, -0.012), (0.615, -0.008)], M['gold_w'], seg=40, flip=True)
+    lathe(g, [(0.58, -0.008), (0.59, -0.014), (0.605, -0.012), (0.615, -0.008)], M['gold_w'], seg=40)
     field = [(0.0, 0.2, 0.30), (0.12, 0.10, 0.08)][variant]
     poly([(math.cos(a) * 0.62, math.sin(a) * 0.62) for a in [k * 2 * math.pi / 40 for k in range(40)]], mat('wappen_feld', field, 'paint', r=1.0), 1)
     leaf = mat('lorbeer', (0.22, 0.30, 0.15), 'paint', r=1.0)
     leaf2 = mat('lorbeer_hell', (0.34, 0.42, 0.22), 'paint', r=1.0)
-    for k in range(28):
-        a = k * 2 * math.pi / 28
-        if abs(math.sin(a)) > 0.93 and math.sin(a) > 0:
+    stem = mat('lorbeer_zweig', (0.30, 0.24, 0.12), 'paint', r=1.0)
+    for k in range(40):  # Zweig des Kranzes (oben offen)
+        a0, a1 = k * 2 * math.pi / 40, (k + 1) * 2 * math.pi / 40
+        if math.sin((a0 + a1) / 2) > 0.92:
             continue
-        cx, cy = math.cos(a) * 0.53, math.sin(a) * 0.53
-        da = a + math.pi / 2
-        p = [(cx + math.cos(da) * 0.045, cy + math.sin(da) * 0.045), (cx + math.cos(a) * 0.018, cy + math.sin(a) * 0.018),
-             (cx - math.cos(da) * 0.045, cy - math.sin(da) * 0.045), (cx - math.cos(a) * 0.018, cy - math.sin(a) * 0.018)]
-        poly(p, leaf if k % 2 else leaf2, 2)
+        poly([(math.cos(a0) * 0.527, math.sin(a0) * 0.527), (math.cos(a1) * 0.527, math.sin(a1) * 0.527), (math.cos(a1) * 0.534, math.sin(a1) * 0.534),
+              (math.cos(a0) * 0.534, math.sin(a0) * 0.534)], stem, 2)
+    for k in range(34):  # Lorbeerblaetter paarweise schraeg zum Zweig, je Seite zur Mitte oben wachsend
+        a = k * 2 * math.pi / 34 + 0.05
+        if math.sin(a) > 0.88:
+            continue
+        grow = 1.0 if math.cos(a) >= 0 else -1.0
+        for sd in (-1, 1):
+            cx, cy = math.cos(a) * (0.53 + sd * 0.024), math.sin(a) * (0.53 + sd * 0.024)
+            d = a + grow * math.pi / 2 + sd * grow * 0.6
+            tx, ty = math.cos(d), math.sin(d)
+            nx, ny = -ty, tx
+            L, Wl = 0.034, 0.012
+            p = [(cx - tx * L, cy - ty * L), (cx - tx * L * 0.3 + nx * Wl, cy - ty * L * 0.3 + ny * Wl), (cx + tx * L, cy + ty * L),
+                 (cx - tx * L * 0.3 - nx * Wl, cy - ty * L * 0.3 - ny * Wl)]
+            poly(p, leaf if (k + (sd > 0)) % 2 else leaf2, 3)
     red = mat('wappen_rot', (0.55, 0.10, 0.08), 'paint', r=0.9)
     gold = mat('wappen_gold', (0.80, 0.63, 0.28), 'metal', r=0.7, m=0.5)
     blue = mat('wappen_blau', (0.12, 0.20, 0.45), 'paint', r=0.9)
@@ -1846,7 +1924,8 @@ def _ceiling_arms(variant):
     for x in (-0.12, 0.0, 0.12):
         g.face([(x - 0.012, 0.42, -0.0102), (x + 0.012, 0.42, -0.0102), (x + 0.012, 0.444, -0.0102), (x - 0.012, 0.444, -0.0102)], red, out=(0, 0, -1))
     # Schriftband unter dem Schild
-    band = [(-0.36, -0.48), (-0.2, -0.44), (0.0, -0.46), (0.2, -0.44), (0.36, -0.48), (0.33, -0.53), (0.2, -0.5), (0.0, -0.52), (-0.2, -0.5), (-0.33, -0.53)]
+    band = [(-0.26, -0.44), (-0.13, -0.415), (0.0, -0.43), (0.13, -0.415), (0.26, -0.44), (0.24, -0.48), (0.13, -0.455), (0.0, -0.47), (-0.13, -0.455),
+            (-0.24, -0.48)]
     poly(band, mat('band_weiss', (0.84, 0.80, 0.70), 'paint', r=1.0), 6)
     # Eckrosetten des Stuckfelds, abgeplatzte Farbe, Wasserrand
     for (sx, sy) in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
@@ -1893,52 +1972,76 @@ def _strip(g, rows, front, back, th=0.0005):
 
 def build_wallpaper_peel():
     """Abgeloeste Tapete (Wandteil, 1 m; Wiki: im Eingangsgang war die Tapete alt und abgeblaettert): Fehlstelle mit
-    altem Putz, Rissen und freiliegendem Lattenwerk, weisse Reisskante, eingerollter Streifen (Damast aussen, Papier innen),
-    kleine Locke, Wasserrand auf der Tapete."""
+    altem, grauem Putz, Rissen und freiliegendem Lattenwerk, weisse Reisskante, Wasserrand mit Laeufen; die Bahn hat sich
+    oben geloest und haengt nach vorn ueber (Rueckseite mit Kleisterflecken sichtbar, unten eingerollt), kleine Locken
+    an den Raendern."""
     rng = random.Random(41)
     g = Geo()
     damask = mat('damast', (0.70, 0.66, 0.62), 'paint', 'wallpaper_damask_red', r=0.85)
-    back = mat('tapete_rueckseite', (0.80, 0.74, 0.62), 'paint', r=1.3)
-    plaster = mat('putz_alt', (0.66, 0.60, 0.50), 'concrete', r=1.4)
-    lath = mat('latte', (0.36, 0.26, 0.17), 'wood', 'wood_walnut_floor', r=1.4)
-    dark = mat('putz_loch', (0.08, 0.06, 0.05), 'paint', r=1.4)
-    stain = mat('wasserrand', (0.42, 0.24, 0.14), 'paint', r=1.0)
+    back = mat('tapete_rueckseite', (0.78, 0.71, 0.56), 'paint', r=1.3)
+    paste = mat('kleisterfleck', (0.62, 0.53, 0.38), 'paint', r=1.1)
+    edge = mat('reisskante', (0.86, 0.82, 0.72), 'paint', r=1.3)
+    plaster = mat('putz_alt', (0.55, 0.50, 0.42), 'concrete', 'plaster_white', r=1.4)
+    lath = mat('latte', (0.34, 0.25, 0.16), 'wood', 'wood_walnut_floor', r=1.4)
+    dark = mat('putz_loch', (0.06, 0.05, 0.04), 'paint', r=1.4)
+    stain = mat('wasserrand', (0.36, 0.20, 0.11), 'paint', r=1.0)
+    zc = 1.92
     pts = []
-    for k in range(20):
-        a = 2 * math.pi * k / 20
-        r = rng.uniform(0.78, 1.0)
-        pts.append((math.cos(a) * 0.3 * r, 1.88 + math.sin(a) * 0.42 * r))
-    # Wasserrand um die Fehlstelle (auf der Tapete)
-    g.face([(0.0012, y * 1.25, 1.88 + (z - 1.88) * 1.2 - 0.04) for (y, z) in pts], stain, out=(1, 0, 0))
-    g.face([(0.0014, y * 1.17, 1.88 + (z - 1.88) * 1.13 - 0.03) for (y, z) in pts], damask, out=(1, 0, 0))
-    g.face([(0.0018, y * 1.05, 1.88 + (z - 1.88) * 1.05) for (y, z) in pts], back, out=(1, 0, 0))  # Reisskante
-    g.face([(0.0022, y, z) for (y, z) in pts], plaster, out=(1, 0, 0))
-    hole = [(0.11 * math.cos(a) * rng.uniform(0.7, 1.0) - 0.03, 1.82 + 0.15 * math.sin(a) * rng.uniform(0.7, 1.0)) for a in [2 * math.pi * k / 10 for k in range(10)]]
-    g.face([(0.0025, y, z) for (y, z) in hole], dark, out=(1, 0, 0))
-    for k in range(5):  # Latten im Loch
-        z = 1.7 + k * 0.055
-        g.face([(0.0028, -0.13, z), (0.0028, 0.07, z), (0.0028, 0.07, z + 0.035), (0.0028, -0.13, z + 0.035)], lath, out=(1, 0, 0))
-    g.face([(0.0026, -0.17, 1.66), (0.0026, 0.1, 1.66), (0.0026, 0.1, 1.67), (0.0026, -0.17, 1.67)], dark, out=(1, 0, 0))
-    for (y, z, ln, a) in ((0.12, 2.05, 0.14, -0.6), (-0.18, 1.7, 0.12, 0.8), (0.05, 2.15, 0.08, 0.2)):  # Risse im Putz
-        g.face([(0.0027, y, z), (0.0027, y + 0.002, z), (0.0027, y + ln * math.sin(a) + 0.002, z - ln), (0.0027, y + ln * math.sin(a), z - ln)],
-               mat('putz_riss', (0.25, 0.21, 0.17), 'paint', r=1.3), out=(1, 0, 0))
-    # eingerollter Streifen von der Oberkante der Fehlstelle
+    for k in range(22):
+        a = 2 * math.pi * k / 22
+        r = rng.uniform(0.8, 1.0)
+        pts.append((math.cos(a) * 0.28 * r, zc + math.sin(a) * 0.36 * r))
+    # Wasserrand mit Laeufen nach unten (auf der Tapete)
+    st = [(y * 1.22, zc + (z - zc) * 1.18 - (0.06 if z < zc else 0.0)) for (y, z) in pts]
+    g.face([(0.0010, y, z) for (y, z) in st], stain, out=(1, 0, 0))
+    g.face([(0.0012, y * 0.97, zc + (z - zc) * 0.97 + 0.01) for (y, z) in st], damask, out=(1, 0, 0))
+    for (y, ln) in ((-0.12, 0.16), (0.05, 0.22), (0.17, 0.1)):  # Laeufe
+        g.face([(0.0011, y - 0.012, zc - 0.36), (0.0011, y + 0.012, zc - 0.36), (0.0011, y + 0.006, zc - 0.36 - ln), (0.0011, y - 0.004, zc - 0.36 - ln)],
+               stain, out=(1, 0, 0))
+    g.face([(0.0016, y * 1.045, zc + (z - zc) * 1.04) for (y, z) in pts], edge, out=(1, 0, 0))  # Reisskante
+    g.face([(0.0020, y, z) for (y, z) in pts], plaster, out=(1, 0, 0))
+    hole = [(0.1 * math.cos(a) * rng.uniform(0.75, 1.0) + 0.03, zc + 0.05 + 0.13 * math.sin(a) * rng.uniform(0.75, 1.0)) for a in [2 * math.pi * k / 10 for k in range(10)]]
+    g.face([(0.0024, y * 1.12, zc + 0.05 + (z - zc - 0.05) * 1.12) for (y, z) in hole], mat('putz_bruch', (0.70, 0.66, 0.58), 'concrete', 'plaster_white', r=1.5),
+           out=(1, 0, 0))
+    g.face([(0.0026, y, z) for (y, z) in hole], dark, out=(1, 0, 0))
+    for k in range(4):  # Latten im Loch
+        z = zc - 0.07 + k * 0.055
+        g.face([(0.0029, -0.06, z), (0.0029, 0.12, z), (0.0029, 0.12, z + 0.034), (0.0029, -0.06, z + 0.034)], lath, out=(1, 0, 0))
+    for (y, z, ln, a) in ((0.14, 2.12, 0.16, -0.6), (-0.17, 1.82, 0.13, 0.8), (0.06, 2.2, 0.09, 0.2), (-0.05, 1.72, 0.12, -0.3)):  # Risse
+        g.face([(0.0027, y, z), (0.0027, y + 0.0022, z), (0.0027, y + ln * math.sin(a) + 0.0018, z - ln), (0.0027, y + ln * math.sin(a), z - ln)],
+               mat('putz_riss', (0.22, 0.19, 0.15), 'paint', r=1.3), out=(1, 0, 0))
+    # Bahn: unten an der Fehlstelle noch fest (Gelenk bei z = 1,60), oben geloest und nach vorn uebergekippt -> haengt
+    # vor der Wand herab, Rueckseite nach aussen, das Ende rollt sich ein
+    hinge = zc - 0.32
     rows = []
-    for k in range(13):
-        t = k / 12
-        z = 2.3 - 0.85 * t
-        x = 0.002 + 0.1 * t ** 2
-        if t > 0.75:  # Rolle unten
-            a = (t - 0.75) / 0.25 * math.pi * 1.4
-            x = 0.002 + 0.1 * 0.5625 + 0.035 * math.sin(a)
-            z = 2.3 - 0.85 * 0.75 - 0.035 * (1 - math.cos(a))
-        w0, w1 = -0.16 + 0.02 * t, 0.14 - 0.03 * t
+    for k in range(15):
+        t = k / 14
+        a = math.pi * 0.92 * min(1.0, t * 1.6)  # Umschlag ueber das Gelenk
+        rr = 0.035
+        if t < 0.625:  # Falz ueber dem Gelenk
+            x, z = 0.002 + rr * (1 - math.cos(a)), hinge + rr * math.sin(a)
+        else:
+            u = (t - 0.625) / 0.375
+            x = 0.002 + 2 * rr + 0.012 * u
+            z = hinge - 0.24 * u
+            if u > 0.7:  # Rolle am Ende
+                b = (u - 0.7) / 0.3 * math.pi * 1.3
+                x = 0.002 + 2 * rr + 0.0084 + 0.022 * math.sin(b)
+                z = hinge - 0.168 - 0.022 * (1 - math.cos(b))
+        w0, w1 = -0.15 + 0.01 * t, 0.17 - 0.02 * t
         rows.append(((x, w0, z), (x, w1, z)))
     _strip(g, rows, damask, back)
-    rows = []
-    for k in range(7):  # kleine Locke rechts unten
-        t = k / 6
-        a = t * math.pi * 1.2
-        rows.append(((0.002 + 0.025 * math.sin(a), 0.2 + 0.04 * t, 1.5 + 0.03 * (1 - math.cos(a))), (0.002 + 0.025 * math.sin(a), 0.32, 1.5 + 0.03 * (1 - math.cos(a)))))
-    _strip(g, rows, damask, back)
+    # Kleisterflecken auf der sichtbaren Rueckseite (vor der Bahn)
+    for (y, z, r0) in ((-0.05, hinge - 0.08, 0.035), (0.08, hinge - 0.15, 0.025), (0.0, hinge - 0.03, 0.02)):
+        g.face([(0.002 + 2 * 0.035 + 0.012 * 0.5 + 0.0012, y + r0 * math.cos(a) * rng.uniform(0.7, 1.1), z + r0 * math.sin(a) * rng.uniform(0.7, 1.1))
+                for a in [2 * math.pi * i / 8 for i in range(8)]], paste, out=(1, 0, 0))
+    for (yc, zz, s) in ((-0.24, zc + 0.12, -1), (0.25, zc + 0.02, 1)):  # Locken an den Raendern (Rueckseite sichtbar)
+        rows = []
+        for k in range(6):
+            t = k / 5
+            a = t * math.pi * 1.1
+            x = 0.002 + 0.016 * math.sin(a)
+            yy = yc + s * 0.016 * (1 - math.cos(a))
+            rows.append(((x, yy, zz - 0.09), (x, yy, zz + 0.09)))
+        _strip(g, rows, damask, back)
     g.build('tapete')
