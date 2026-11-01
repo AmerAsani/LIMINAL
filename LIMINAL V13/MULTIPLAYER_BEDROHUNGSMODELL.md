@@ -145,7 +145,7 @@ Stand 27.10.2026. Der Verbindungsaufbau ist ersetzt (`MULTIPLAYER_ARCHITEKTUR.md
 | I2 Adressen anderer Gäste | Gäste verbinden sich nur mit dem Host; Option „Eigene IP verbergen“ (nur Relay). Grenze: Abschnitt 9.5 | Relay-Weg auf getrennten Adressen |
 | I3 Pfade, Rechnernamen | keine im Netz; die Lobby protokolliert keine IP | Durchsicht |
 | D1 Flut | DLL: 120/s und Vorrat 60 je Gast, anhaltend → getrennt; höchstens 256 Nachrichten je Kanal und Bild (Rest bleibt in der Bibliothek); Lobby: 30/s je Verbindung | Flut gegen Host und Lobby |
-| D2 Speicher | Nachrichten bis 1200+1 Byte (DLL), 4 KiB (Bibliothek), 8 KiB und Tiefe 4 (Lobby); Eingang der Rückrufe höchstens 2048 Einträge; unzuverlässiger Puffer 16 KiB | Übergröße, tiefe Schachtelung |
+| D2 Speicher | Nachrichten bis 1200+1 Byte (DLL), 4 KiB (Bibliothek), 8 KiB und Tiefe 4 (Lobby); Eingang der Rückrufe höchstens 2048 Einträge; unzuverlässiger Puffer 16 KiB; beim Gast: Weltereignisse vor dem Laden höchstens 4096, gemerkte ferne Funde höchstens 16 384 | Übergröße, tiefe Schachtelung |
 | D3 Rechenzeit | unverändert; Lobby: Nachrichten je Durchgang begrenzt | Lobby-Fuzzing |
 | D4 Hängende Verbindungen | Beitritt 20 s, Stille 10 s (Ping 2/s), Lobby: ohne Anmeldung 10 s, wartende Gäste 60 s, Räume 12 h | Zeitlimit ohne Hallo, Netzausfall, Host fällt aus |
 | D5 Wiederverbinden in Schleife | Lobby: 12 Verbindungen und 20 Beitritte/min je Adresse; Host: 4 halbe Beitritte, 3 je Adresse | Verbindungsflut gegen die Lobby |
@@ -217,4 +217,5 @@ Status: Nicht an die Entwickler gemeldet (dafür wäre ein Konto nötig). Empfeh
   - Regelbrecher belegten 120 s einen Platz;
   - der Gast sah Wesen-Rollen über 5 nicht in Ereignissen;
   - im 60-min-Langlauf über das gestörte Relay stand der Verkehr einmal über 10 s still: SCTP wartete bis zu 10 s auf Wiederholungen, die Stille-Erkennung trennte einen Gast → Wartezeit höchstens 2 s, 12 Versuche (E-033).
+  - im zweiten Langlauf wich der geteilte Stand eines Gastes nach etwa 4 min dauerhaft ab: Der Host nahm einen Fund in einem Sektor auf, den der Gast nicht geladen hatte; ein später Gast bekam den Stand gar nicht → Stand beim Beitritt, gemerkte Kennzahlen, beides begrenzt (Architektur, Abschnitt 9). Kein Sicherheitsfehler, aber ein Gast sah Funde, die es nicht mehr gab.
   - Eine unabhängige Durchsicht durch Dritte gibt es weiterhin nicht.

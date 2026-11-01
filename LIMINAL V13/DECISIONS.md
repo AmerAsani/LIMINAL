@@ -455,6 +455,9 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
   - **SCTP für Echtzeit:** Wiederholung höchstens nach 2 s, 12 Versuche (statt 10 s und 5).
     - Anlass: Im ersten 60-min-Langlauf über das gestörte Relay trennte die Stille-Erkennung nach 37 min einen Gast; SCTP hatte über 10 s nichts gesendet.
     - Ergebnis des Langlaufs danach: `MULTIPLAYER_TESTS.md`, Abschnitt 7.8.
+  - **Stand beim Beitritt:** Der Host schickt nach dem Willkommen alle aufgenommenen und abgelegten Dinge der Ebene; der Gast merkt sich gemeldete Funde, die er noch nicht geladen hat.
+    - Anlass: Im zweiten Langlauf wich der geteilte Stand eines Gastes dauerhaft ab (Fund in einem beim Gast nicht geladenen Sektor), und ein später Gast sah schon aufgenommene Funde.
+    - Verworfen: die ganze Welt im Willkommen übertragen (größer, und die Welt entsteht ohnehin aus dem Seed).
   - **Absagen mit 1 s Nachlauf,** sonst kam die Absage beim Gast nicht an (er meldete „kein Weg“ statt „falscher Code“).
   - **Wer wegen ungültiger Nachrichten getrennt wird, behält keinen Platz** (vorher 120 s belegt).
   - **Obergrenze `kRoles` = 40** im Spielprotokoll (Format gleich). Unbekannte Rollen zeigt der Gast nicht an.

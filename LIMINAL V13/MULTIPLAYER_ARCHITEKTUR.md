@@ -207,6 +207,11 @@ Keine eigene Kryptografie. Verschlüsselung und Echtheit der Gegenstelle macht D
 ## 9. Welt und Synchronisierung
 
 - **Welt aus dem Seed:** Die Ebenen sind feste Karten, Funde verteilt der Spawnplan nach Seed. Host und Gäste erzeugen dieselbe Welt (der Willkommensgruß überträgt Ebene, Seed des Laufs und Schwierigkeit). Prüfsumme der Welt zum Vergleich.
+- **Stand beim Beitritt (V13.3):**
+  - Nach dem Willkommen schickt der Host den geteilten Stand der Ebene als Ereignisse: alle aufgenommenen Funde (Kennzahl) und alle abgelegten Dinge (Kennzahl, Art, Ort). Das gilt auch beim Wiederverbinden.
+  - Der Gast hält Aufgenommen/Abgelegt fest, bis seine Sitzung der Ebene steht (nach dem Willkommen und während eines Ebenenwechsels; höchstens 4096), und wendet sie dann an.
+  - Meldet der Host einen Fund, der beim Gast (noch) nicht geladen ist (ferner Sektor), merkt sich der Gast die Kennzahl (höchstens 16 384) und erzeugt den Fund beim Laden nicht. Eine doppelte Meldung zählt nicht doppelt.
+  - Anlass: Im zweiten 60-min-Langlauf wich der geteilte Stand eines Gastes dauerhaft ab (`MULTIPLAYER_TESTS.md`, Abschnitt 7.8).
 - **Zustandsänderungen** (zuverlässiger Kanal, Ereignisse mit fortlaufender Nummer):
   - Gegenstand aufgenommen (id)
   - Gegenstand abgelegt (id, Art, Ort)
