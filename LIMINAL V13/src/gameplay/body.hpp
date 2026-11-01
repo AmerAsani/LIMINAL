@@ -54,7 +54,7 @@ struct BodyPose {
 
 class Body {
 public:
-    enum class Gesture { None, Grab, Use, Toss };
+    enum class Gesture { None, Grab, Use, Toss, Swing };  // V13.3: Swing - das Beil (ausholen, Hieb, zurueck)
 
     // Nach Player::update aufrufen (pausiert: dt = 0)
     void update(double dt, const Player& p);

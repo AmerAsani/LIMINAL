@@ -242,7 +242,8 @@ void App::scriptStep() {
             const R r = n == "faceling" ? R::Faceling : n == "skinstealer" ? R::SkinStealer : n == "wretch" ? R::Wretch : n == "rat" ? R::Rat
                         : n == "window" ? R::Window : n == "hound" ? R::Hound : n == "smiler" ? R::Smiler : n == "clump" ? R::Clump
                         : n == "duller" ? R::Duller : n == "arms" ? R::Arms : n == "wrangler" ? R::Wrangler
-                        : n == "growler" ? R::Growler : n == "nguithrxurh" ? R::Nguithr : n == "ouroboros" ? R::Ouroboros : R::Gestalt;  // V13.3
+                        : n == "growler" ? R::Growler : n == "nguithrxurh" ? R::Nguithr : n == "ouroboros" ? R::Ouroboros
+                        : n == "goblin" ? R::Goblin : R::Gestalt;  // V13.3
             auto& pr = session_->presence();
             if (!pr.has(r)) {
                 log::warn("Skript: near - kein {}", game::Presence::roleName(r));
@@ -351,7 +352,7 @@ void App::scriptStep() {
             const int kind = n == "hound" ? 1 : n == "moth" ? 2 : n == "gestalt" ? 3 : n == "nest" ? 4 : n == "clump" ? 5 : n == "faceling" ? 6
                              : n == "skinstealer" ? 7 : n == "wretch" ? 8 : n == "rat" ? 9 : n == "window" ? 10 : n == "player" ? 99
                              : n == "duller" ? 11 : n == "arms" ? 12 : n == "wrangler" ? 13
-                             : n == "growler" ? 14 : n == "nguithrxurh" ? 15 : n == "ouroboros" ? 16 : 0;  // V13.3
+                             : n == "growler" ? 14 : n == "nguithrxurh" ? 15 : n == "ouroboros" ? 16 : n == "goblin" ? 17 : 0;  // V13.3
             auto& pl = session_->player();
             vec3 at{(float)(pl.x + std::cos(pl.angle) * dist), (float)(pl.y + std::sin(pl.angle) * dist), 0.0f};
             at.z = session_->world().tile(ifloor(at.x), ifloor(at.y)).floor;
@@ -395,6 +396,7 @@ void App::scriptStep() {
                 if (n == "growler") r = R::Growler;  // V13.3
                 if (n == "nguithrxurh") r = R::Nguithr;
                 if (n == "ouroboros") r = R::Ouroboros;  // V13.3: die Baustelle im Sektor Ouroboros
+                if (n == "goblin") r = R::Goblin;        // V13.3: eine Bande Plague Goblins (Portal ausser Sicht)
                 session_->presence().force(r, dist);
             }
         } else if (cmd == "audioinfo") {  // V11 (Tests): Zustand der Klanglandschaft ins Protokoll
@@ -1242,7 +1244,7 @@ void App::handleEvents() {
                 break;
             case game::GameEvent::InventoryFull: ui_.toast(e.text, e.duration); break;
             case game::GameEvent::Consume:
-                ui_.toast(e.text, e.duration);
+                if (!e.text.empty()) ui_.toast(e.text, e.duration);  // V13.3: das Beil schwingt ohne Meldung
                 if (!e.sound.empty()) audio_->play(e.sound, 0.9f);
                 break;
             case game::GameEvent::Footstep: {
@@ -1395,6 +1397,8 @@ void App::handleEvents() {
                         if (role == Role::Growler) at(std::format("growler_drag_{}", n % 3), e.pos, 0.35f + 0.5f * e.intensity, 22.0f, 0.88f + 0.16f * var);
                         // V13.3: Ouroboros-Arbeiter - schwere Gummistiefel
                         if (role == Role::Ouroboros) at(std::format("ouro_step_{}", n % 3), e.pos, 0.3f + 0.35f * e.intensity, 18.0f, 0.92f + 0.12f * var);
+                        // V13.3: Plague Goblins - Krallen tickern auf dem Boden, der Umhang streift nach
+                        if (role == Role::Goblin) at(std::format("goblin_step_{}", n % 3), e.pos, 0.18f + 0.35f * e.intensity, 12.0f, 0.94f + 0.14f * var);
                         break;
                     // V11 Buendel: Klopfen im Schacht, Herabfallen, Schleifen, Ausholen
                     case PE::Knock: at(std::format("clump_knock_{}", n % 3), e.pos, 0.9f, 30.0f); break;
@@ -1437,7 +1441,29 @@ void App::handleEvents() {
                         at(std::format("hit_body_{}", n % 2), e.pos, 0.9f, 14.0f, 0.9f + 0.15f * var);
                         hitFlash_ = std::max(hitFlash_, std::clamp(e.intensity / 40.0f, 0.2f, 0.7f));  // nur eigene Treffer kommen hier an
                         break;
-                    case PE::Mimic: at(std::format("skin_mimic_{}", n % 6), e.pos, 0.55f + 0.3f * e.intensity, 26.0f, 0.97f + 0.06f * var); break;
+                    case PE::Mimic:
+                        if (role == Role::Goblin) {  // V13.3: die Torwaechterin versucht ein Wort (heiser, gekraechzt)
+                            at(std::format("goblin_mimic_{}", n % 2), e.pos, 0.85f, 18.0f, 0.97f + 0.06f * var);
+                            break;
+                        }
+                        at(std::format("skin_mimic_{}", n % 6), e.pos, 0.55f + 0.3f * e.intensity, 26.0f, 0.97f + 0.06f * var);
+                        break;
+                    // V13.3: Plague Goblins - Kraechzen/Schnattern, Rucksack, Aufheben, Drohen, Sprung, Portal, Tod
+                    case PE::Croak:
+                        if (e.intensity < 0.25f) at(std::format("goblin_chatter_{}", n % 3), e.pos, 0.5f, 16.0f, 0.93f + 0.14f * var);
+                        else if (e.intensity < 0.75f) at(std::format("goblin_croak_{}", n % 3), e.pos, 0.8f, 26.0f, 0.94f + 0.12f * var);
+                        else at(std::format("goblin_squawk_{}", n % 2), e.pos, 1.0f, 42.0f, 0.96f + 0.08f * var);
+                        break;
+                    case PE::Steal:
+                        if (e.intensity < 0.25f) at("goblin_rummage", e.pos, 0.95f, 6.0f);
+                        else if (e.intensity < 0.75f) at(std::format("goblin_chatter_{}", n % 3), e.pos, 0.8f, 12.0f, 1.1f);
+                        else at("goblin_stash", e.pos, 0.9f, 8.0f);
+                        break;
+                    case PE::Take: at("goblin_stash", e.pos, 0.6f, 10.0f, 0.95f + 0.1f * var); break;
+                    case PE::Hiss: at("goblin_hiss", e.pos, 1.0f, 24.0f); break;
+                    case PE::Screech: at(std::format("goblin_screech_{}", n % 2), e.pos, 1.0f, 28.0f, 0.96f + 0.08f * var); break;
+                    case PE::Portal: at(e.intensity > 0.5f ? "goblin_portal_open" : "goblin_portal_close", e.pos, 1.0f, 46.0f); break;
+                    case PE::Perish: at("goblin_death", e.pos, 1.0f, 30.0f); break;
                     case PE::Whisper: at(std::format("window_whisper_{}", n % 4), e.pos, 0.35f + 0.5f * e.intensity, 12.0f); break;
                     case PE::Plead: at(std::format("wretch_plead_{}", n % 3), e.pos, 0.7f, 20.0f, 0.95f + 0.1f * var); break;
                     case PE::Gurgle:

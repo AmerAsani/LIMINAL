@@ -62,6 +62,13 @@ enum FixedMaterial : u32 {
     FM_ENT_OB_OVERALL, FM_ENT_OB_VOID, FM_ENT_OB_EYE, FM_ENT_OB_RUBBER, FM_ENT_OB_STEEL, FM_ENT_OB_RUST, FM_ENT_OB_PAINT,
     FM_ENT_OB_WOOD, FM_ENT_OB_BRICK, FM_ENT_OB_TAPE_R, FM_ENT_OB_TAPE_W, FM_ENT_OB_SPARK, FM_ENT_OB_BEACON, FM_ENT_OB_CARD,
     FM_ENT_OB_DUST,
+    // V13.3: Plague Goblins - Federfell, Schuppenbeine, Krallen, Schnabel, Saegezaehne, Rachen, spiegelnde gelbe Augen; Masken
+    // (glatt hell, dunkles Leder, Lack der Torwaechterin), Glaslinsen, Messing, Umhang, Cape, Hut, Silberstock, Sand der Sanduhr;
+    // das Portal (Leere, Rand), Beute (Flasche); das Beil (Stiel, Kopf)
+    FM_ENT_PG_FEATHER, FM_ENT_PG_SCALE, FM_ENT_PG_TALON, FM_ENT_PG_BEAK, FM_ENT_PG_TOOTH, FM_ENT_PG_MOUTH, FM_ENT_PG_EYE,
+    FM_ENT_PG_MASK, FM_ENT_PG_LEATHER, FM_ENT_PG_ORNATE, FM_ENT_PG_GLASS, FM_ENT_PG_BRASS, FM_ENT_PG_CLOAK, FM_ENT_PG_CAPE,
+    FM_ENT_PG_HAT, FM_ENT_PG_SILVER, FM_ENT_PG_SAND, FM_ENT_PG_VOID, FM_ENT_PG_RIM, FM_ENT_PG_LOOT,
+    FM_ITEM_HATCHET_WOOD, FM_ITEM_HATCHET_HEAD,
     FM_FIG_END,
 };
 static_assert(FM_FIG_END <= kFixedMaterials);
