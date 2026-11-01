@@ -87,7 +87,7 @@ bool Presence::baitSmiler(Agent& a, double dt, const Context& c, std::vector<Eve
     if (d > 12.0f || !clearSight(*c.world, c.view.eye, face)) a.lostT = std::min(16.0, a.lostT + dt * 0.7);
     if (!dark || a.age > 170.0) return false;  // Raumlicht oder zu lange da: wie sonst verloeschen
     a.jaw = std::clamp(1.3f - dl / 4.0f, 0.3f, 0.85f);  // das Laecheln oeffnet sich, je naeher er dem Licht ist
-    if (dl > 1.1f) {
+    if (dl > 0.75f) {  // bis knapp an den Stab - dann haengt das Gesicht ueber dem Licht
         if (hdist(best->pos, a.goal) > 0.8f) {  // der Stab rutscht noch: Weg neu
             a.field.build(*c.world, ifloor(best->pos.x), ifloor(best->pos.y), 1.1f);
             a.goal = best->pos;
