@@ -447,3 +447,15 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
   - Level 903 läuft den Bahnsteig auf zwei Spuren hin und zurück.
   - Mehr Räume hinzuzufügen, nur um die Zahl zu erreichen, widerspräche dem Wiki-Strukturtyp. Teil 2 des Auftrags verbietet selbst ergänzte Zonen.
 - **Beleg:** Raumzahlen aus `data/maps/level188.json` und `level903.json`, ausgegeben von `tools/qa/room_metrics.py` (Spalte „Raeume“).
+
+## E-037 Zeilenenden (V13.3, 01.11.2026)
+
+- **Befund:** 37 Quelldateien wurden im Lauf von V13 von CRLF auf LF umgestellt, `level2.py` umgekehrt.
+  - Ursache: `sed -i` in Git Bash entfernt das CR; Python-Textschreiben unter Windows setzt es.
+  - Die Umstellungen kamen im Hauptstrang und in Agenten-Zweigen vor.
+  - `gameplay_test.cpp` kollidierte deshalb beim Zusammenführen des Wranglers als ganze Datei.
+- **Entscheidung:**
+  - Während Agenten-Zweige offen sind, wird nicht massenhaft umgestellt; das gäbe Konflikte in jedem Zweig. Jede Datei behält ihr heutiges Zeilenende.
+  - Gemischte Dateien (DECISIONS.md, PROGRESS.md) sind wieder einheitlich CRLF.
+  - Ab jetzt werden Dateien nur noch binär bearbeitet (Python `rb`/`wb`, Zeilenende der Datei beibehalten) oder mit dem Edit-Werkzeug. Nie mit `sed -i`.
+- **Wirkung auf das Spiel:** keine; Compiler, Python und JSON-Leser nehmen beide Formen.
