@@ -107,6 +107,7 @@ struct SceneParams {
     float redEdge = 0, redPulse = 0;
     float menuDim = 0, desaturate = 0;
     float moodExposure = 1.0f;  // Faktor aus der Raumhelligkeit (dunkle Zonen bleiben dunkel)
+    float grainBoost = 0.0f, chromaBoost = 0.0f;  // V13.3: zusaetzliches Filmkorn und Farbsaeume (Rauschen eines Growlers)
     bool resetHistory = false;
     // V6: Bewegung des Spielers seit dem letzten Bild (Welt -> Welt), fuer mitbewegte Objekte
     mat4 attachedReproject = mat4::identity();
@@ -119,6 +120,8 @@ struct SceneParams {
     float blackoutAmount = 0.0f;
     vec3 blackoutOrigin;          // V11: Welle des Stromausfalls
     float blackoutFront = -1.0f;  // m; < 0 keine Welle
+    // V13.3: Beben (Wrangler) - der Staub in der Luft faellt (Weg in m, aufsummiert) und leuchtet staerker (0..1)
+    float dustFall = 0.0f, dustBoost = 0.0f;
     // V10: Knochenmatrizen der Figuren dieses Bildes (je Matrix 3 Zeilen) und Kapseln fuer
     // weiche Schatten: je Figur 2 vec4 Kopf (Huellkugel xyz/r, Kapselzahl/Flags) + je Kapsel 2 vec4
     const std::vector<vec4>* bones = nullptr;

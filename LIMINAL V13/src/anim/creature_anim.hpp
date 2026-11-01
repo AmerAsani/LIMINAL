@@ -18,8 +18,12 @@
 //              winken, zuschlagen, zugreifen, flehen, Hand vor das Gesicht.
 //   Ratte      Trab, im Rennen Galopp in Spruengen; richtet sich witternd auf, frisst, beisst; der Schwanz schleift nach.
 //   Fenster    der Umriss wiegt sich und winkt; greift er zu, lehnt er sich heraus, der Arm streckt sich bis 2 m.
+//   V13.3:
+//   Wrangler   der Leib zieht Ring um Ring durch Boden, Wand oder Decke, dreht sich wie ein Bohrer und zieht sich in Wellen
+//              zusammen; der Kopf bricht heraus und schnappt zu; die Jungtiere winden sich am Ast (creature_wrangler.cpp).
 #pragma once
 
+#include <memory>
 #include <vector>
 
 #include "anim/creature.hpp"
@@ -75,6 +79,11 @@ public:
     float height() const;  // aktuelle Hoehe (geduckt)
     vec3 headPos() const;
     float wingbeat() const { return flapAmp_; }  // Deathmoth: 0 .. 1 Fluegelschlag (Klang)
+    // V13.3: Groesse des Wesens (Massstab um die Wurzel: junge, ausgewachsene, verschmolzene Growler; Spinnen je Ebene) und
+    // weitere Eingaben je Wesen (Nguithr'xurh: Anker und Zustand der Netzkugeln, siehe creature_nguithrxurh.cpp)
+    void setScale(float s) { scale_ = s; }
+    float scale() const { return scale_; }
+    void setExtra(const std::vector<float>& v) { extra_ = v; }
 
 private:
     struct Leg {
@@ -96,6 +105,11 @@ private:
     void updateBiped(float dt, const Input& in);   // V13.2: Faceling, Skin-Stealer, Wretch
     void updateRat(float dt, const Input& in);     // V13.2: Death Rat
     void updateWindow(float dt, const Input& in);  // V13.2: Fensterwesen
+    void updateDuller(float dt, const Input& in);  // V13.3: Duller (anim/creature_duller.cpp)
+    void updateArms(float dt, const Input& in);    // V13.3: Arms (anim/creature_arms.cpp)
+    void updateWrangler(float dt, const Input& in);  // V13.3: Wrangler (creature_wrangler.cpp)
+    void updateGrowler(float dt, const Input& in);  // V13.3: creature_growler.cpp
+    void updateNguithr(float dt, const Input& in);  // V13.3: creature_nguithrxurh.cpp
     // Gangzyklus fuer n Beine; rest: Ruhepunkte (Welt) dieses Bildes
     void stepLegs(float dt, int n, const float* offs, float duty, float S, const vec3* rest, float standDur, const float* weight);
     vec3 footPos(int i, const float* lift) const;
@@ -135,6 +149,7 @@ private:
     // V13.2: Gesten der Zweibeiner und des Fensterwesens
     float wave_ = 0.0f, waveV_ = 0.0f, talk_ = 0.0f, talkV_ = 0.0f, plea_ = 0.0f, pleaV_ = 0.0f;
     bool walk_ = false;  // V13.2 Zweibeiner: ging im letzten Bild (Anlauf: der hintere Fuss tritt zuerst)
+    float flow_ = 0.0f;  // V13.3 Wrangler: Weg, den der Leib gezogen ist (m)
     // V11 Buendel: je Arm die aufgesetzte Hand und der Schwung zum naechsten Griff; der Kern zieht ruckweise
     // nach und schaukelt; die Beine schleifen
     struct Grip {
@@ -160,11 +175,16 @@ private:
     };
     std::vector<Cap> cols_;
     Input last_;
+    std::vector<float> xs_;  // V13.3: Zustand weiterer Wesen (Duller: Brocken, Stolpern; Arms: Fetzen, Rauch) - Belegung je Datei
     bool stepped_ = false;
     vec3 stepPos_;
     float stepWeight_ = 0.5f;
     unsigned rng_ = 1;
     bool init_ = false;
+    // V13.3: Massstab, weitere Eingaben, eigener Zustand je Wesen (in dessen Datei definiert)
+    float scale_ = 1.0f;
+    std::vector<float> extra_;
+    std::shared_ptr<void> ext_;
 };
 
 }  // namespace lim::anim

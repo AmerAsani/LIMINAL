@@ -14,7 +14,18 @@
   // V13.2 (ENTITY_ABGLEICH.md): Skin-Stealer getarnt (die Seite: weisse Menschengestalten, die Haut tragen), Wretch
   "presence": { "hound": true, "smiler": true, "gestalt": false, "blackout": true, "clump": 0.35,
                "skinstealer": { "mode": "skin", "group": [1, 1], "every": 300, "chance": 0.25 },
-               "wretch": { "mode": "mixed", "group": [1, 1], "every": 260 } },
+               "wretch": { "mode": "mixed", "group": [1, 1], "every": 260 },
+               // V13.3 (KREATUR_Duller.md, KREATUR_Arms.md): Duller lauern hinter den Waenden der Gaenge (im Raum oder Gang dahinter;
+               // every: mittlerer Abstand der Auftritte, s); Arms kommen im Dunkeln aus den Deckenlueftungen (every: Abstand, solange
+               // es dunkel ist; chance: Anteil, mit dem es ohne Lueftung in der Naehe durch einen Riss in der Decke kommt)
+               "duller": { "every": 150 },
+               "arms": { "every": 40, "chance": 0.7 },
+               // V13.3 (KREATUR_Wrangler.md): Wrangler ziehen durch Waende, Boden oder Decke (Level 1: bebt es, leise gehen);
+               // chance: Anteil der Weibchen (davon 40 % traechtig); count: einmal je Ebene Jungtiere an einer Wand (selten)
+               "wrangler": { "mode": "mixed", "every": 320, "chance": 0.4, "count": 1 },
+               // V13.3 (KREATUR_Growler.md, KREATUR_Nguithrxurh.md): Growler ausgewachsen, einzeln; Nguithr'xurh gross, hungrig
+               "growler": { "mode": "adult", "group": [1, 1], "every": 330 },
+               "nguithrxurh": { "mode": "large", "group": [3, 4], "every": 170, "chance": 1.0 } },
   "next_level": "level2",
   "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0 },
 
@@ -108,7 +119,27 @@
       "trim": [0.34, 0.30, 0.24], "lamp": [1.00, 0.86, 0.66], "fog": [0.026, 0.023, 0.018],
       "fog_density": 0.055, "ambient": 0.03, "light_style": "authored",
       "wall_pattern": "concrete", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.1,
-      "wall_tex": "concrete_wall_old", "floor_tex": "concrete_floor", "ceil_tex": "concrete_cast", "damp_band": [0.0, 0.6, 0.8] }
+      "wall_tex": "concrete_wall_old", "floor_tex": "concrete_floor", "ceil_tex": "concrete_cast", "damp_band": [0.0, 0.6, 0.8] },
+    // V13.3 (STRUKTURTYP.md, Wikidot Level 1 "Sectors"): Ouroboros - ewige Baustelle; Garden - ueberwuchert; Fabled - Holz,
+    // Zinnoberrot, Neon und farbige Kabel
+    { "key": "ouroboros", "name": "Ouroboros",
+      "wall": [0.70, 0.69, 0.66], "floor": [0.55, 0.54, 0.51], "ceil": [0.55, 0.55, 0.53],
+      "trim": [0.30, 0.29, 0.27], "lamp": [1.00, 0.88, 0.70], "fog": [0.034, 0.031, 0.026],
+      "fog_density": 0.045, "ambient": 0.05, "light_style": "authored",
+      "wall_pattern": "concrete", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.2,
+      "wall_tex": "concrete_rough", "floor_tex": "concrete_floor", "ceil_tex": "concrete_cast", "damp_band": [0.0, 0.4, 0.82] },
+    { "key": "garden", "name": "Garden",
+      "wall": [0.62, 0.66, 0.58], "floor": [0.46, 0.48, 0.42], "ceil": [0.52, 0.55, 0.50],
+      "trim": [0.26, 0.30, 0.24], "lamp": [0.92, 1.00, 0.86], "fog": [0.022, 0.030, 0.022],
+      "fog_density": 0.03, "ambient": 0.065, "light_style": "authored",
+      "wall_pattern": "concrete", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.2,
+      "wall_tex": "concrete_wall_old", "floor_tex": "concrete_rough", "ceil_tex": "concrete_cast", "damp_band": [0.0, 1.1, 0.7] },
+    { "key": "fabled", "name": "Fabled",
+      "wall": [0.62, 0.36, 0.28], "floor": [0.42, 0.33, 0.26], "ceil": [0.40, 0.34, 0.30],
+      "trim": [0.40, 0.14, 0.10], "lamp": [1.00, 0.86, 0.66], "fog": [0.024, 0.016, 0.022],
+      "fog_density": 0.03, "ambient": 0.065, "light_style": "authored",
+      "wall_pattern": "boards", "floor_pattern": "planks", "ceil_pattern": "none", "baseboard": true, "door_height": 2.2,
+      "wall_tex": "wood_herringbone_dark", "floor_tex": "wood_walnut_floor", "ceil_tex": "concrete_cast" }
   ],
 
   // Lichtstile: authored = alle Leuchten kommen aus der Karte; hum 2 = Leuchtband (tiefer), 1 = Roehre/Birne
@@ -130,7 +161,11 @@
     { "key": "krankenzimmer", "label": "Krankenzimmer", "category": "normal" },
     { "key": "gummizelle", "label": "Gummizelle", "category": "normal" },
     { "key": "bilderraum", "label": "Raum mit Bildern", "category": "normal" },
-    { "key": "rohrgang", "label": "Rohrgang", "category": "corridor" }
+    { "key": "rohrgang", "label": "Rohrgang", "category": "corridor" },
+    { "key": "ouroboros", "label": "Baustelle (Ouroboros)", "category": "large" },
+    { "key": "garden", "label": "Überwucherte Halle (Garden)", "category": "large" },
+    { "key": "fabled", "label": "Halle unter Neon (Fabled)", "category": "large" },
+    { "key": "fabled_kammer", "label": "Alte Kammer (Fabled)", "category": "normal" }
   ],
   "corridor_types": ["gang"],
   "endless_type": "gang",

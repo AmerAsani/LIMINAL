@@ -182,3 +182,171 @@ Tests: gameplay 357/0, darunter neue Prüfungen:
   - Die rechte Hand des Körpers (Gesten: Greifen, Essen, Trinken) ist weiter die prozedurale Hand mit einem Fingerknochen.
   - Der Auftrag betrifft die Hand an der Lampe; die rechte Hand mit demselben Modell (gespiegelt, Posen Greifen/Halten) ist ein möglicher nächster Schritt.
 - **Unterarm:** Beim Blick steil nach unten weicht der Unterarm des Körpers bis 11,5° vom Unterarm des Handmodells ab (Arm-IK, Test < 12°). Das Bündchen deckt das.
+
+## V13.3: Arm
+
+Stand: 27.10.2026. Auftrag (Teil 3): Die Lampe in der Hand sieht gut aus, der Arm wirkt verkrüppelt – Ärmel und Oberarm aufgeblasen, Ellbogen und Unterarm unplausibel. Armkette Schulter – Oberarm (ca. 30 cm) – Ellbogen – Unterarm (ca. 27 cm) – Handgelenk neu, Ärmel wie eine echte Jacke, Finger unverändert.
+
+Bilder: `docs/screens/viewmodel/v13_3_<runde>_*.jpg`. Je Runde dieselben Kameras:
+- `ego_zustaende`: Spielerkamera – Ruhe, Gehen, Rennen, Drehen, Ducken (Schleichen, Taste C), Interagieren (Mandelwasser trinken, rechte Hand), Ausweichen (seitlich mit Sprung), Blick unten, Blick oben, Lampe aus, Heben, an;
+- `ego_ruhe`: Ruhe in voller Größe;
+- `debug_arm`: Debug-Kamera `vmcam` in 0,55 m um die Griffmitte, zwölf Richtungen;
+- `debug_hand`: die Nahansichten der Hand aus Teil 1 (Finger-Vergleich);
+- `aussen_armkette`: Schulteransicht mit der Ego-Haltung (`egopose 1`), Kamera um den Spieler (`figcam`) – die ganze Kette Schulter bis Hand.
+
+Hinweis: `vmcam` kreist im Rahmen der Lampe. Ab Runde 2 ist dieser Rahmen im Ego-Bild um die Lampenachse gedreht (siehe dort); relativ zur Hand stehen die Kameras gleich, nur die Umgebung erscheint gedreht.
+
+### Befund vorher (Runde 0, `v13_3_r0_*`)
+
+| Ansicht | Befund |
+|---|---|
+| Ego, Ruhe | Ein grüner Sack füllt das linke Drittel des Bildes (bis zur halben Bildhöhe), die Hand kommt unten aus einem gerundeten Ende. Die Hand wirkt daneben winzig. |
+| Debug, vorn rechts | Der Oberarm steigt von der Schulter nach oben, der Ellbogen ist ein runder Klumpen über der Hand, der Unterarm hängt kurz und dick herab. |
+| Debug, rechts | Unterarm-Ärmel so dick wie die Hand lang, bis kurz vor das Handgelenk, dann ein Sprung auf das Bündchen. |
+| Außen | Mit der Ego-Haltung steht der Ellbogen über Kopfhöhe vor dem Gesicht. |
+
+### Ursachen der Fehlproportionen
+
+1. **Ärmel = Körperform plus 2,2 cm rundum.** Der Ärmel bestand aus abgerundeten Kegeln mit demselben Aufmaß wie der Rumpf: Unterarm 6,1 cm Radius am Ellbogen und noch 5,7 cm fünf Zentimeter vor dem Handgelenk (11–12 cm dick), dann auf 3,25 cm Bündchen. Eine echte Kapuzenjacke (Größe M) ist am Ellbogen etwa 31 cm, über dem Bündchen 24 cm weit (Radius 4,9 bzw. 3,8 cm). Dazu 4 mm Stoffrauschen auch am Arm (Beulen) und eine geschlossene Halbkugel als Ende.
+2. **Haltung (Hauptursache im Ego-Bild).** Das Handmodell hält die Lampe 52° schräg in der Faust, das Handgelenk ist 33° zur Elle geknickt und 14° gestreckt. Mit dem Daumen genau oben und der Lampe in Blickrichtung fällt der Unterarm des Modells um 18° zur Hand ab. Die IK legte den Ellbogen deshalb **16 cm über die Schulter** (Oberarm 33° nach oben). Der Unterarm lief quer, nur 29 cm vor dem Auge, durchs Bild und war perspektivisch riesig. Nachgerechnet mit einem Modell der Kette (Scratchpad `armgeo.py`), es stimmt mit dem Spiel überein (Beugung 58,9°, Test 59°).
+3. **Unterarm 25,4 cm** (0,146 × Körpergröße) statt rund 27 cm.
+4. **Gewichte am Ellbogen nur aus dem Abstand zu den Knochen**, geteilt durch deren Radius: Der dünnere Unterarm bekam erst hinter dem Gelenk Gewicht, die Mischzone war breit und schief – der Ellbogen wurde zum Wulst.
+
+### Runde 1 – Ärmel und Längen (`v13_3_r1_*`)
+
+**Geändert:**
+- `src/render/figure_models.cpp`: Der Ärmel ist ein eigener Schlauch entlang der Armkette (Distanzfeld `sleeveDist`) mit dem Querschnitt einer Jacke. Radien über monotone kubische Interpolation (keine Wülste zwischen den Stützstellen):
+
+  | Stelle | Radius | Umfang |
+  |---|---|---|
+  | Schulter | Oberarm + 1,85 cm = 6,35 cm | 40 cm |
+  | Mitte Oberarm | Oberarm + 1,25 cm = 5,75 cm | 36 cm |
+  | Ellbogen | Unterarm + 1,25 cm = 4,95 cm | 31 cm |
+  | 35 % des Unterarms | Unterarm + 0,75 cm = 4,45 cm | 28 cm |
+  | vor der Raffung | Handgelenk + 1,25 cm = 3,85 cm | 24 cm |
+  | Bündchen (5,8 cm) | Handgelenk + 0,58 → 0,46 cm = 3,2 → 3,1 cm | 19–20 cm |
+
+- Zwischen Ärmel und Bündchen eine Raffung auf 1,1 cm (Naht), das Bündchen endet 0,6 cm hinter dem Handgelenk mit einer Öffnung.
+- Stoffrauschen am Arm um 65 % schwächer, im Bündchen keins.
+- Ober- und Unterarm teilen sich den Ärmel an der Ebene des Ellbogens (Winkelhalbierende, Mischzone ±4,5 cm). Mit ±3 cm klappten bei 81° Beugung von außen 48 Dreiecke in der Armbeuge um (Grenze 46) – verworfen.
+- Kapuzenjacke in Stufe 0 auf 6,5 mm statt 10,5 mm vernetzt (das Ego-Bild nutzt Stufe 0).
+- `src/anim/figures.cpp`: Unterarm 27 cm.
+
+**Befund:**
+- Besser: Der Ärmel ist schlank und verjüngt sich zum Handgelenk; die Raffung zum Bündchen ist zu sehen.
+- Schlecht: Die Öffnung des Bündchens (2 cm tief, Wand 3–4 mm) wird im 6,5-mm-Netz zerfranst (`v13_3_r1_ego_buendchen_nah.jpg`).
+- Schlecht: Die Haltung ist unverändert – der Arm kommt waagerecht vom linken Bildrand, außen steht der Ellbogen über der Schulter.
+
+### Runde 2 – Armkette und Handgelenk (`v13_3_r2_*`)
+
+**Rechnung vorab** (`armgeo.py`, Blick waagerecht, Schulter 20 cm unter und 10 cm hinter dem Auge, 17 cm seitlich): Mit Daumen oben braucht die Lampe in Blickrichtung einen Unterarm, der zur Hand abfällt. Eine natürliche Haltung – Ellbogen unter der Schulter, Unterarm steigt zur Hand – gibt es nur, wenn die Faust um die Lampenachse gedreht ist (Daumen nach außen, Handfläche schräg nach oben, wie beim Halten von unten).
+
+| Daumen nach außen | Ellbogen zur Schulter | Unterarm | Ellbogen–Auge |
+|---|---|---|---|
+| 0° (vorher) | +13 cm darüber | fällt 16° | 31 cm |
+| 20° | +7 cm | fällt 5° | 37 cm |
+| 40° | 0 cm | steigt 6° | 41 cm |
+| 50° | –4 cm darunter | steigt 12° | 42 cm |
+
+(Handgelenk 30° gestreckt, Griff 19 cm unter und 10 cm links vom Auge.)
+
+**Geändert:**
+- `tools/blender/models/hand_grip.py`: Handgelenk 30° statt 14° gestreckt. 30–35° ist die übliche Stellung im Kraftgriff. Der Unterarm kommt damit mehr von außen statt von hinten, die Beugung im Ellbogen steigt von 58° auf 66°. Neu gebaut (`vm_hand_l`). **Finger und Nägel sind punktgleich** (Vergleich der glb: größte Abweichung 0,000 mm). Handballen höchstens 2 mm, Daumenballen 0,9 mm (Glättung nahe dem Handgelenk), nur der Unterarmansatz bewegt sich (bis 7,6 mm). Die Lampenmodelle sind unverändert.
+- `src/gameplay/body.cpp`: Im Ego-Bild ist die Faust um die Lampenachse gedreht (`kLampRoll`, 40°, Daumen nach außen). Griff 2 cm tiefer (19 cm unter dem Auge) und 2 cm näher zur Mitte. Die Ansicht von außen (B-001) bleibt wie sie war.
+- `figure_models.cpp`: Statt der tiefen Öffnung eine gerundete Kante (6 mm) mit flacher Mulde; die Öffnung ist dunkel gefärbt (Färbung je Punkt, `hoodieTint`). Naht der Raffung leicht dunkler, Bündchen 12 % dunkler (Schatten der Rippen).
+
+**Befund:**
+- Besser (Ego, alle Zustände): Der Unterarm kommt von links unten aus der Bildecke und steigt zur Hand. Der Ärmel ist am Bildrand nicht mehr breiter als die halbe Bildhöhe.
+- Besser (außen): Ellbogen auf Schulterhöhe statt darüber, der Arm hält die Lampe gestreckt nach vorn. Die Kante des Bündchens ist glatt.
+- Test B-001: Ego geradeaus Dehnung 2,0 statt 3,4, umgeklappt 0 statt 1.
+- Schlecht: Der Ärmel ist ein glatter Gummischlauch – keine Falten in der Armbeuge, kein Stau über dem Bündchen.
+- Schlecht: Die Schulter mit dem gehobenen Arm ist von hinten eine dicke Kugel (`aussen_armkette`, „hinten“, „nah_hinten“).
+- Schlecht: Die Faust liegt mit 30,4–30,9° vom Blick knapp am Bildrand (Test: < 31°).
+- Grenzwertig: Die Kante des Bündchens zeigt aus 26 cm noch Facetten.
+
+### Runde 3 – Falten, Netzdichte, Schulter (`v13_3_r3_*`)
+
+**Geändert** (`figure_models.cpp`, `body.cpp`):
+- Falten als Verschiebung des Distanzfelds (`sleeveFolds`), in der Ruhepose angelegt, das Skinning nimmt sie mit:
+  - Armbeuge: drei bis vier Querfalten auf der Innenseite des Ellbogens (Gauß ±4,5 cm um das Gelenk, nur zur Beuge hin), leicht schräg zu den Seiten.
+  - Stau über dem Bündchen: der Ärmel schiebt sich auf 4–11 cm vor der Raffung in Ringen zusammen (Abstand 2 cm, Tiefe je nach Rauschen 60–100 %) und ist dort 1,2 mm weiter.
+  - Rinnen der Falten bis 30 % dunkler (Färbung je Punkt).
+- Netz der Jacke in Stufe 0: 40 % der Dreiecke bleiben (vorher 27 %), für Kante und Falten.
+- Schulter: Deltamuskel unter der Jacke nur mit halbem Aufmass; Ärmel an der Schulter 6,1 statt 6,35 cm; der Schlauch beginnt 2 cm im Deltamuskel.
+- Faust 3° weiter gedreht (43°) und 1 cm höher: Abstand zum Bildrand 29,6–29,8° statt 30,4–30,9° (Test < 31°).
+
+**Zwischenschritt verworfen:** Querfalten der Beuge mit 3,4 mm Tiefe und 2,4 cm Abstand. Bei der stärksten Beugung (Ego dicht an der Wand, 160°) klappten 320 von 27 650 Dreiecken um (Grenze 1 % = 276). Mit 2,6 mm und 2,8 cm: 267.
+
+**Befund:**
+- Besser: Der Stau über dem Bündchen liest sich als Stoff (`aussen_unterarm_falten`, `debug_arm` „vl“, „unten“).
+- Besser: Die Kante des Bündchens ist glatter (`buendchen_kante_r2_r3`), aus 26 cm aber noch mit einzelnen Facetten.
+- Schlecht: Die Ringe sind zu gleichmäßig (Ziehharmonika). An einer Stelle entsteht eine scharfe dunkle Kerbe.
+- Schlecht: Die Falten der Armbeuge sind kaum zu sehen. Im Ego-Bild liegt die Beuge ohnehin außerhalb, von außen ist sie bei gebeugtem Arm verdeckt.
+- Unklar: Die Schulter von hinten ist nur wenig schlanker (`schulter_hinten_r0_r2_r3`: Runde 0, 2, 3).
+
+### Runde 4 – ungleiche Falten, Kante, Oberarm (`v13_3_r4_*`)
+
+**Geändert** (`figure_models.cpp`):
+- Stau über dem Bündchen: Phase der Ringe großräumig verbogen (schräg, wellig), Tiefe stark wechselnd (0–100 %), einzelne Falten laufen aus; Tiefe 2,3 statt 2,6 mm.
+- Kante des Bündchens mit 9 statt 6 mm gerundet.
+- Oberarm schlanker: an der Schulter 5,8 cm (vorher 6,1), Mitte 5,5 cm (Umfang 34,5 cm, vorher 5,75 cm).
+- Neue Spielerkamera-Ansicht „Wand“ (dicht vor einer Wand, stärkste Beugung).
+
+**Befund:**
+- Besser: Die Kante des Bündchens ist auch aus 26 cm glatt und rund (`buendchen_kante_r2_r3_r4`: Runde 2, 3, 4).
+- Besser: Die Ringe sind ungleicher, die scharfe Kerbe ist zu einer flachen Delle geworden (`falten_r3_r4`).
+- Ego (`ego_unterarm_nah`): Der Ärmel liest sich als Stoff – schlank, Stau vor der Raffung, Bündchen, Handgelenk kommt heraus.
+- Wand: Die Lampe zieht wie bisher zurück und kippt; der Arm stört nicht.
+- Schlecht: Die Ringe laufen von außen gesehen (`aussen_armkette` „vr“) noch fast parallel um den Arm.
+- Offen: Schulter von hinten (siehe Restmängel).
+
+### Runde 5 – Zickzack, Kerbe, Schulteransatz, Haltung von außen (`v13_3_r5_*`)
+
+**Geändert** (`figure_models.cpp`):
+- Stau über dem Bündchen: Die Phase hängt jetzt auch vom Winkel um den Arm ab – die Falten liegen schräg im Zickzack statt als Ringe. Großräumige Verbiegung halbiert (sie erzeugte Stellen, an denen zwei Falten zusammenlaufen), Beginn der Zone weich und je Seite verschieden. Rinnen 22 statt 30 % dunkler.
+- Der Ärmelschlauch beginnt 5 statt 2 cm im Deltamuskel, an der Schulter 5,6 cm Radius.
+
+**Gegenprobe zur Kerbe:** Mit abgeschalteten Beugefalten blieb sie, mit abgeschaltetem Stau verschwand sie. Ohne Stau liegt an derselben Stelle ein Zickzack-Muster der Strickstruktur: Dort wechselt die dreiplanare Textur die Projektionsrichtung, und die Rinne einer Falte wirkt an diesem Übergang wie eine Kerbe. Weichere Falten haben sie gemildert, nicht entfernt.
+
+**Befund:**
+- Besser: Die Falten über dem Bündchen laufen schräg und ungleich (`falten_r4_r5`: oben außen Runde 4 → 5, darunter Debug „vl“ Runde 4 → 5).
+- Gleich: Ego-Bild in allen Zuständen wie Runde 4 (die Änderungen liegen im Stoff, nicht in der Haltung).
+- Neu geprüft, die Haltung von außen (`aussen_eigene_haltung`, Schulteransicht ohne `egopose`): Der Ellbogen hängt neben dem Rumpf, der Unterarm hält die Lampe vor dem Bauch, beide Ärmel schlank; vorher hingen dort zwei Ballonärmel (`v13_3_vergleich_aussen.jpg`, untere drei Zeilen).
+- Schulter von hinten: kaum verändert (Restmangel).
+
+### Ergebnis (Vorher/Nachher aus denselben Kameras)
+
+| Bild | Inhalt |
+|---|---|
+| `v13_3_vergleich_ego.jpg` | Spielerkamera: Ruhe, Rennen, Blick unten, Interagieren |
+| `v13_3_vergleich_aussen.jpg` | Außen mit Ego-Haltung („vl“, „vr“) und mit eigener Haltung (vorn, „vl“, nah vorn) |
+| `v13_3_vergleich_debug_arm.jpg` | Debug-Kamera um die Hand, 0,55 m |
+| `v13_3_vergleich_finger.jpg` | Nahansichten der Hand aus Teil 1 |
+
+- **Armkette:** Oberarm 29,9 cm, Unterarm 27,0 cm (vorher 25,4). Im Ego-Bild hängt der Ellbogen auf Schulterhöhe (vorher 16 cm darüber), Beugung 67° (vorher 59°), Abstand Ellbogen–Auge 42 statt 29 cm. Der Unterarm kommt von links unten und steigt zur Hand. Gerechnet (`armgeo.py`): Blick 37° nach unten – Ellbogen 16 cm unter der Schulter; 32° nach oben – 12 cm darüber (der Arm hebt die Lampe mit).
+- **Handgelenk:** 30° gestreckt (vorher 14°), 33° zur Elle wie bisher. Die Faust ist im Ego-Bild 43° um die Lampenachse gedreht (Daumen nach außen); Unterarm des Körpers und des Handmodells weichen höchstens 0,7° voneinander ab (vorher 0,5°, Grenze 12°).
+- **Ärmel:** Querschnitt einer Jacke von 5,6 cm (Schulter) über 4,95 cm (Ellbogen) auf 3,85 cm vor der Raffung, Bündchen 3,1–3,2 cm mit gerundeter Kante und dunkler Öffnung; Falten in der Armbeuge und Stau über dem Bündchen.
+- **Finger:** punktgleich (glb-Vergleich: Finger und Nägel 0,000 mm Abweichung). Die Nahansichten zeigen dieselbe Hand; die Bilder sind gegeneinander gedreht, weil die Debug-Kamera im gedrehten Lampenrahmen kreist (gleiche Lage zur Hand, andere Bildlage).
+- **Tests:** `gameplay_test` 446/0, darunter „Kapuzenjacke am gebeugten Ellbogen“ (B-001):
+
+  | Haltung | vorher: Dehnung / umgeklappt | nachher |
+  |---|---|---|
+  | Ego geradeaus | 3,43 / 1 von 7 684 | 2,82 / 5 von 27 416 |
+  | Ego nach unten | 2,69 / 0 | 1,95 / 1 |
+  | Ego nach oben | 3,62 / 10 | 3,23 / 7 |
+  | Ego an der Wand (160°) | 3,42 / 48 | 3,59 / 266 (Grenze 274) |
+  | außen geradeaus | 1,96 / 1 | 2,37 / 8 (Grenze 68) |
+  | außen nach unten | 1,71 / 2 | 2,09 / 21 (Grenze 68) |
+
+  Das Netz der Jacke hat in Stufe 0 jetzt 3,6-mal so viele Dreiecke; die Grenzen sind Anteile (1 % bzw. 0,25 %). Unterarm passt zum Handmodell (höchstens 0,7°), Faust im Bild (höchstens 29,8° vom Blick). `audio_test` 106/0.
+- **Kosten:** Spielerfigur Stufe 0 60 398 statt 40 666 Dreiecke; Modellieren beim Start 1,80 statt 1,43 s (im Hintergrund).
+
+### Restmängel (V13.3)
+
+- **Schulter von hinten:** Der Schulterbereich der Jacke bleibt von hinten breit und rund (`v13_3_r3_schulter_hinten_r0_r2_r3.jpg`). Ursache ist die Ruhepose (Arme 54° abgespreizt, B-001): Beim hängenden oder gehobenen Arm dreht der Ärmelansatz um das Schultergelenk und legt sich über Rumpf und Deltamuskel. Eine eigene Gewichtung oder Korrekturform für die Schulter würde B-001 erneut berühren und ist nicht umgesetzt. Im Ego-Bild ist die Schulter nicht zu sehen.
+- **Beugefalten:** In der Armbeuge kaum sichtbar – im Ego-Bild liegt die Beuge außerhalb, von außen bei gebeugtem Arm verdeckt. Tiefer gingen sie nicht: Bei 160° Beugung klappten dann zu viele Dreiecke um (Test B-001).
+- **„Ego an der Wand“** liegt mit 266 umgeklappten Dreiecken knapp unter der Grenze (274); fast alle in der Armbeuge, wo der Unterarm auf dem Oberarm liegt (Stichprobe: 62 von 67 auf der Beugeseite, verdeckt).
+- **Dreiplanare Textur:** An Übergängen der Projektionsrichtung zeigt die Strickstruktur ein Zickzack; kreuzt eine Falte dort, wirkt sie wie eine Kerbe (nur in Nahansichten der Debug-Kamera).
+- **Verdrehung im Unterarm:** Das Skelett hat einen starren Unterarmknochen ohne eigene Drehung (Pronation). Die lange Achse des Handgelenks steht dadurch 45–50° zur Lage des Ellbogens; der runde Bund verdeckt das, ein ovaler Bund ließe sich deshalb nicht passend ausrichten.
+- **Debug-Kamera:** `vmcam` kreist im gedrehten Lampenrahmen; Bilder aus Teil 1 und V13.3 sind relativ zur Hand gleich, in der Bildebene aber gedreht.
+- **Rechte Hand:** weiter die prozedurale Hand (wie in Teil 1 offen); ihr Ärmel und Bündchen sind neu.

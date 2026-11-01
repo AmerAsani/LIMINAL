@@ -413,12 +413,31 @@ void buildChunk(ChunkData& out, TileFetch fetch, void* ctx, const MaterialBank& 
         for (int lx = 0; lx < CS; ++lx) meshTile(m, out, lx, ly);
 
     // V11: Ausstattung, deren Standort in diesem Chunk liegt, zu einem Netz zusammenfassen
+    // V13.3: Pfuetzen werden Abziehbilder des Bodens (Grundriss aus dem Modell)
+    static const std::array<const props::Model*, 6> kPuddles = [] {
+        std::array<const props::Model*, 6> a{};
+        for (int v = 0; v < 6; ++v) a[(size_t)v] = props::model("puddle", v);
+        return a;
+    }();
     PropMesh& pm = out.props;
     for (const auto& sp : out.sectors) {
         if (!sp) continue;
         for (const Sector::Prop& p : sp->props) {
             const i64 px = (i64)std::floor(p.x), py = (i64)std::floor(p.y);
             if (px < X0 || px >= X0 + CS || py < Y0 || py >= Y0 + CS) continue;
+            if (std::find(kPuddles.begin(), kPuddles.end(), p.model) != kPuddles.end()) {
+                const Aabb& b = p.model->bounds;
+                const float rx = (b.hi.x - b.lo.x) * 0.5f * p.sx, ry = (b.hi.y - b.lo.y) * 0.5f * p.sy;
+                PuddleDecal d;
+                d.x = p.x + (b.lo.x + b.hi.x) * 0.5f * p.sx, d.y = p.y + (b.lo.y + b.hi.y) * 0.5f * p.sy, d.z = p.z;
+                d.radius = std::max(rx, 0.2f);
+                d.stretch = std::clamp(ry / std::max(rx, 0.05f), 0.35f, 1.0f);
+                d.angle = p.yaw;
+                d.seed = (float)((u32)(std::fabs(p.x) * 7919.0f + std::fabs(p.y) * 104729.0f) % 997u) / 997.0f;
+                d.wet = 1.45f;
+                out.puddles.push_back(d);
+                continue;
+            }
             const float c = std::cos(p.yaw), s = std::sin(p.yaw);
             for (size_t k = 0; k < p.model->parts.size(); ++k) {
                 const props::Mesh& mesh = p.model->parts[k].mesh;
