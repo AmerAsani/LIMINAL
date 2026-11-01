@@ -173,7 +173,7 @@ void GameSession::onChunk(const world::ChunkData& cd, bool loaded) {
     if (loaded) {
         // Items auf den Theken
         for (const world::ItemSpawn* it : cd.items) {
-            if (picked.count(it->id)) continue;
+            if (isPicked(it->id)) continue;
             const ItemDef* def = content_.item(it->kind);
             if (!def) continue;
             // Ausrichtung: Riegel laengs der Theke, leicht verdreht (stabil je Item)
@@ -268,7 +268,7 @@ void GameSession::spawnFinds(const world::ChunkData& cd) {
                 if (s.tx < cd.x0() || s.tx >= cd.x0() + world::CS || s.ty < cd.y0() || s.ty >= cd.y0() + world::CS) continue;
                 ecs::Entity e = ecs::kNull;
                 if (s.kind == FindSpot::Note) {
-                    if (picked.count(s.id)) continue;
+                    if (isPicked(s.id)) continue;
                     // bevorzugt eine Notiz, die noch nicht im Notizbuch steht (V9: Hinweise zuerst)
                     int idx = content_.priorityNote(journal_, world_->level().world());
                     for (u64 k = 0; k < 8 && idx < 0; ++k) {
@@ -281,7 +281,7 @@ void GameSession::spawnFinds(const world::ChunkData& cd) {
                     e = prefabs_.spawn(reg_, "note", s.pos, s.yaw);
                     if (auto* n = reg_.get<NoteFind>(e)) n->index = idx, n->id = s.id;
                 } else if (s.kind == FindSpot::Battery) {
-                    if (picked.count(s.id) || !content_.item("battery")) continue;
+                    if (isPicked(s.id) || !content_.item("battery")) continue;
                     e = prefabs_.spawn(reg_, "item_pickup", s.pos, s.yaw);
                     if (auto* p = reg_.get<Pickup>(e)) p->item = "battery", p->worldId = s.id;
                     if (auto* m = reg_.get<MeshRenderer>(e)) m->model = "battery";
@@ -292,7 +292,7 @@ void GameSession::spawnFinds(const world::ChunkData& cd) {
                     e = prefabs_.spawn(reg_, "fusebox", s.pos + into, s.yaw);
                     if (auto* fb = reg_.get<FuseBox>(e)) {
                         fb->id = s.id, fb->item = s.item;
-                        if (picked.count(s.id)) {
+                        if (isPicked(s.id)) {
                             fb->taken = true;
                             if (auto* m = reg_.get<MeshRenderer>(e)) m->model = "fusebox_empty";
                             reg_.remove<Interactable>(e);
@@ -318,7 +318,7 @@ void GameSession::spawnFinds(const world::ChunkData& cd) {
                 if (e == ecs::kNull) continue;
                 if (auto* fb = reg_.get<FuseBox>(e)) {
                     fb->id = fs.id, fb->item = fs.item;
-                    if (picked.count(fs.id)) {
+                    if (isPicked(fs.id)) {
                         fb->taken = true;
                         if (auto* m = reg_.get<MeshRenderer>(e)) m->model = "fusebox_empty";
                         reg_.remove<Interactable>(e);
@@ -333,7 +333,7 @@ void GameSession::spawnFinds(const world::ChunkData& cd) {
             for (const world::Sector::NoteSpot& ns : sec->notes) {
                 if (ns.x < (float)cd.x0() || ns.x >= (float)(cd.x0() + world::CS) || ns.y < (float)cd.y0() || ns.y >= (float)(cd.y0() + world::CS))
                     continue;
-                if (picked.count(ns.id)) continue;
+                if (isPicked(ns.id)) continue;
                 int idx = -1;
                 if (auto it = mapNotes_.find(ns.id); it != mapNotes_.end()) {
                     idx = it->second;

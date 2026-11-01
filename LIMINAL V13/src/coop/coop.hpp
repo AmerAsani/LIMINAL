@@ -221,6 +221,8 @@ private:
     bool pendingChange_ = false, pendingEscape_ = false;
     std::string pendingLevel_, pendingAnchor_;
     double pendingSupply_ = 1.0;
+    // V13.3: Aufgenommen/Abgelegt, bevor die Sitzung der Ebene steht (Willkommen, Ebenenwechsel) - beim attach nachholen
+    std::vector<net::coop::Event> pendingWorld_;
     double pingT_ = 0.0;
     u32 lastSnapTick_ = 0;
     bool anySnap_ = false;

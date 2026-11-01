@@ -1459,10 +1459,95 @@ static void testNoPath() {
     g.stopAll();
 }
 
+// V13.3: geteilter Stand bei fernen Funden und spaetem Beitritt. Im Langlauf gefunden: ein Gast verpasste einen Fund,
+// den der Host in einem beim Gast nicht geladenen Sektor aufnahm - danach stimmte die Pruefsumme nie wieder. Ein spaeter
+// Gast sah zudem Funde, die beim Host schon fort waren.
+static void testLateJoin() {
+    std::printf("Ferne Funde, spaeter Beitritt\n");
+    // a) Pruefschicht: ein Gast bekommt "aufgenommen" fuer einen Fund, den er (noch) nicht geladen hat. Der Fund darf
+    //    beim Laden nicht erscheinen, und die Pruefsumme muss der des Hosts gleichen.
+    {
+        auto host = gEnv->make("level1", 4242, "medium", "Host");
+        host->runSeed = 4242;
+        host->placeAtSpawn();
+        host->preload();
+        u32 hash = 0;
+        vec3 at{};
+        double best = 1e9;
+        const game::Player& hp = host->player();
+        host->registry().each<game::Pickup, game::Transform>([&](ecs::Entity, game::Pickup& pk, game::Transform& tr) {
+            const double d = std::hypot(tr.pos.x - hp.x, tr.pos.y - hp.y);
+            if (d < best && pk.worldId.rfind("drop:", 0) != 0) best = d, hash = game::worldItemHash(pk.worldId), at = tr.pos;
+        });
+        game::Pawn probe(3, "Pruefer", gEnv->content.difficulty(host->difficulty), &gEnv->content);
+        probe.player = game::Player(at.x + 0.4, at.y, at.z, 3.14159);
+        probe.player.pitch = -0.6;
+        std::string msg;
+        int note = -1;
+        const bool took = hash && host->pawnInteract(probe, hash, msg, note);
+        checkN(took, std::format("Host: Pruef-Figur nimmt einen Fund auf ({:.1f} m vom Start)", best));
+        auto guest = gEnv->make("level1", 4242, "medium", "Gast");
+        guest->netRole = GameSession::NetRole::Guest;
+        int before = 0;
+        guest->registry().each<game::Pickup>([&](ecs::Entity, game::Pickup& pk) { before += game::worldItemHash(pk.worldId) == hash ? 1 : 0; });
+        guest->netRemoveItem(hash);  // kommt vor dem Laden an
+        guest->runSeed = 4242;
+        guest->placeAtSpawn();
+        guest->preload();
+        int after = 0;
+        guest->registry().each<game::Pickup>([&](ecs::Entity, game::Pickup& pk) { after += game::worldItemHash(pk.worldId) == hash ? 1 : 0; });
+        checkN(before == 0 && after == 0, std::format("Gast: Fund vor dem Laden gemeldet, danach nicht erzeugt (vorher {}, nachher {})", before, after));
+        checkN(guest->sharedHash() == host->sharedHash(), "Gast: Pruefsumme gleich der des Hosts");
+    }
+    // b) ueber das Netz: der Host hat schon etwas aufgenommen und abgelegt, dann tritt ein zweiter Gast bei; er bekommt den
+    //    Stand mit dem Willkommen (Ereignisse werden gehalten, bis seine Sitzung steht)
+    Game g;
+    if (!g.start("level1", 4242)) return;
+    Bot& a = g.addBot("Frueh");
+    g.run(20.0, [&] { return g.allPlaying(); });
+    checkN(g.allPlaying(), "erster Gast spielt");
+    a.idle = true;
+    g.hostWalks = false;
+    g.run(1.0);
+    u32 hash = 0;
+    vec3 at{};
+    double best = 1e9;
+    const game::Player& hp = g.hs->player();
+    g.hs->registry().each<game::Pickup, game::Transform>([&](ecs::Entity, game::Pickup& pk, game::Transform& tr) {
+        const double d = std::hypot(tr.pos.x - hp.x, tr.pos.y - hp.y);
+        if (d < best && pk.worldId.rfind("drop:", 0) != 0) best = d, hash = game::worldItemHash(pk.worldId), at = tr.pos;
+    });
+    game::Pawn probe(3, "Pruefer", gEnv->content.difficulty(g.hs->difficulty), &gEnv->content);
+    probe.player = game::Player(at.x + 0.4, at.y, at.z, 3.14159);
+    probe.player.pitch = -0.6;
+    std::string msg;
+    int note = -1;
+    checkN(hash && g.hs->pawnInteract(probe, hash, msg, note), "Host nimmt einen Fund auf");
+    g.hs->inventory().add("almond");
+    for (int i = 0; i < game::Inventory::kSize; ++i)
+        if (const auto& sl = g.hs->inventory().slots[(size_t)i]; sl && sl->kind == "almond") {
+            g.hs->dropSlot(i, false);
+            break;
+        }
+    g.run(2.0);
+    checkN(a.s->sharedHash() == g.hs->sharedHash(), "erster Gast: Stand gleich (aufgenommen und abgelegt)");
+    Bot& b = g.addBot("Spaet");
+    g.run(20.0, [&] { return g.allPlaying(); });
+    g.run(2.0);
+    int ghost = 0;
+    if (b.s)
+        b.s->registry().each<game::Pickup>([&](ecs::Entity, game::Pickup& pk) { ghost += game::worldItemHash(pk.worldId) == hash ? 1 : 0; });
+    checkN(b.s && b.s->sharedHash() == g.hs->sharedHash() && ghost == 0,
+           std::format("spaeter Gast: Stand gleich, der aufgenommene Fund fehlt auch bei ihm ({} sichtbar)", ghost));
+    g.run(3.0);
+    checkN(a.c->counters.desync == 0 && b.c->counters.desync == 0, "keine Abweichung bei den Pruefsummen des Hosts");
+    g.stopAll();
+}
+
 int main(int argc, char** argv) {
     if (argc < 2) {
         std::printf("Aufruf: coop_test <data-Ordner> [--long Sekunden] [--quick] [--only teil,teil]\n"
-                    "  Teile: fuzz bots netem relay direct pickup save full attacks death journey outage hostabort nopath reconnect netfuzz\n");
+                    "  Teile: fuzz bots netem relay direct pickup save full attacks death journey outage hostabort nopath late reconnect netfuzz\n");
         return 2;
     }
     WSADATA wsa;
@@ -1516,6 +1601,7 @@ int main(int argc, char** argv) {
         if (want("outage")) testOutage();
         if (want("hostabort")) testHostAbort();
         if (want("nopath")) testNoPath();
+        if (want("late")) testLateJoin();
         if (want("reconnect")) testReconnectKick();
         if (want("netfuzz")) testNetFuzz(quick ? 30.0 : 300.0);
     }

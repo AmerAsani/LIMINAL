@@ -438,6 +438,14 @@ void CoopHost::sendWelcome(Guest& g, bool reconnected) {
     w.supply = (u16)std::clamp((int)std::lround(s_->supplyScale() * 100.0), 100, 300);
     send(g, m, true);
     g.invHash = 0;
+    // V13.3: der geteilte Stand dieser Ebene (was schon aufgenommen und abgelegt ist) - auch nach dem Wiederverbinden.
+    // Ohne ihn saehe ein spaeter Gast Funde, die es beim Host nicht mehr gibt
+    std::vector<u32> pk;
+    std::vector<GameSession::NetWorldEvent> drops;
+    s_->netWorldState(pk, drops);
+    for (u32 h : pk) sendEvent(g, nc::EventKind::Picked, (i32)h, 0, {}, "");
+    for (const auto& d : drops)
+        if (nc::kindOk(d.itemKind)) sendEvent(g, nc::EventKind::Dropped, (i32)d.hash, 1, d.pos, d.itemKind);
 }
 
 void CoopHost::handleInput(Guest& g, const nc::Input& in) {
@@ -1007,6 +1015,8 @@ void CoopClient::stop() {
         s_->pawns.clear();
         s_->netAction = nullptr;
     }
+    s_ = nullptr;  // V13.3: die Sitzung gehoert der App; nach dem Trennen (und Wiederverbinden) nie mehr anfassen
+    pendingWorld_.clear();
 }
 
 void CoopClient::sendMsg(const nc::Msg& m, bool reliable) {
@@ -1118,6 +1128,10 @@ void CoopClient::attach(GameSession& s) {
     state_ = State::Playing;
     s.pawns.clear();
     for (auto& o : others_) s.pawns.push_back(o.get());
+    // V13.3: was vor der Sitzung kam (Stand beim Beitritt, Ereignisse waehrend des Ebenenwechsels), jetzt anwenden
+    std::vector<nc::Event> held;
+    held.swap(pendingWorld_);
+    for (const nc::Event& e : held) applyEvent(e);
 }
 
 void CoopClient::action(int kind, u32 arg) {
@@ -1299,6 +1313,11 @@ void CoopClient::applyEvent(const nc::Event& e) {
                                     e.kind == (u8)nc::EventKind::Joined ? std::format("{} ist {}.", e.text, e.b ? "zurück" : "beigetreten")
                                                                        : std::string("Ein Mitspieler hat das Spiel verlassen."),
                                     3.0f});
+        return;
+    }
+    const bool world = e.kind == (u8)nc::EventKind::Picked || e.kind == (u8)nc::EventKind::Dropped;
+    if (world && (!s_ || pendingChange_)) {  // V13.3: gilt fuer die Sitzung, die noch gebaut wird
+        if (pendingWorld_.size() < 4096) pendingWorld_.push_back(e);
         return;
     }
     if (!s_) return;
