@@ -1340,7 +1340,7 @@ def build_mach_cabinet():
     rng = random.Random(41)
     C = M_common()
     G = Geo()
-    paint = mat('schrank_lack', (0.50, 0.54, 0.49), 'paint', r=1.1)
+    paint = mat('schrank_lack', (0.41, 0.44, 0.40), 'paint', r=1.15)
     plinth = mat('sockel', (0.10, 0.10, 0.10), 'paint', r=1.2)
     plast = mat('kunststoff_grau', (0.56, 0.57, 0.55), 'plastic', r=1.0)
     D, W, H0, H1 = 0.50, 0.5, 0.10, 2.10
@@ -1416,7 +1416,8 @@ def build_mach_cabinet():
             z = 1.70 + k * 0.035
             G.add(C['hole'], box((0.12, sy * W - (0.0009 if sy > 0 else -0.0009) * 0 + (0.0 if sy > 0 else -0.001), z), (0.38, sy * W + (0.001 if sy > 0 else 0.0), z + 0.012)))
             G.add(paint, box((0.12, sy * W - 0.002 if sy < 0 else sy * W, z + 0.012), (0.38, sy * W + 0.002 if sy > 0 else sy * W, z + 0.016)))
-        G.add(C['rust_stain'], orient(streak_uv(Ss, 0.25, 1.69, 0.05, rng.uniform(0.4, 0.9), rng, 7, taper=0.6), lambda m, s=sy: Vector((0, s, 0))))
+        G.add(mat('rostfahne_hell', (0.34, 0.27, 0.20), 'paint', r=1.3), orient(streak_uv(Ss, 0.25, 1.69, 0.12, rng.uniform(0.4, 0.9), rng, 7, taper=0.5),
+                                                                                  lambda m, s=sy: Vector((0, s, 0))))
     chips_on_plane(G, C['steel_dark'], (xf + 0.0009, 0.0, 1.1), (0, 1, 0), (0, 0, 1), 0.98, 1.95, rng, 10, 0.003, 0.010)
     G.add(C['oil'], blob((D + 0.02, -0.1, H0 + 0.0005), (1, 0, 0), (0, 1, 0), 0.05, 0.07, rng, 12, 2, 0.4, off=0.0006))
     G.deform(dent_fn((xf, -0.32, 0.75), (-1, 0, 0), 0.07, 0.008))
@@ -1628,7 +1629,7 @@ def build_pipe_riser():
     G.add(C['steel_dark'], cyl(rB, 0.21, 8, cap=False), along((xB, yB, 2.39), (xB, yB, 2.6)))
     rust_ring(G, C, PB, 0.0, rng, 0.12, 1, heavy=True)
     clad = mat('alu_mantel', (0.50, 0.51, 0.50), 'metal', r=1.2, m=0.55)
-    wool = mat('mineralwolle', (0.60, 0.50, 0.27), 'fabric', r=1.5)
+    wool = mat('mineralwolle', (0.50, 0.44, 0.30), 'fabric', r=1.5)
     Mb = lambda z0, z1: along((xB, yB, z0), (xB, yB, z1))  # noqa: E731
     G.add(clad, lathe([(rB + 0.0015, 0.0), (rc, 0.035)], 10), Mb(0.36, 1.0))
     G.add(clad, lathe([(rc, -0.035), (rB + 0.0015, 0.0)], 10), Mb(2.4, 3.0))
@@ -1640,6 +1641,8 @@ def build_pipe_riser():
                    a0=math.radians(-100), a1=math.radians(100))
     vs = [v + Vector((v.x, v.y, 0)).normalized() * 0.008 * nz(v, 70.0) for v in vs]
     G.add(wool, (vs, fs), Mb(1.52, 1.80))
+    for zz in (1.52, 1.80):  # dunkle, ausgefranste Mantelkante an der Rissstelle
+        G.add(C['grime'], lathe([(rc + 0.0008, -0.012), (rc + 0.0008, 0.012)], 8, a0=math.radians(-100), a1=math.radians(100)), Mb(zz, zz + 1))
     G.add(clad, lathe([(rc + 0.002, 0.0), (rc + 0.002, 0.10)], 4, a0=math.radians(-60), a1=math.radians(-20)), Mb(1.80, 2.0) @ Matrix.Rotation(-0.35, 4, 'Y'))
     for z in (0.75, 2.05):
         G.add(C['steel'], cyl(rc + 0.0022, 0.016, 10, cap=False), Mb(z, z + 0.016))
@@ -1825,7 +1828,7 @@ def build_pipe_bundle_b():
     for _ in range(4):
         Gc.add(C['dust'], orient(blob_uv(Pc.S(0.0036), rng.uniform(1.2, 1.9), rng.uniform(0.2, 4.4), 0.3, rng.uniform(0.2, 0.5), rng, 10, 2, 0.4), Pc.nrm))
     for k in range(3):
-        Gc.add(C['dust'], orient(blob_uv(Pc.S(0.0040), math.pi / 2 + rng.uniform(-0.15, 0.15), 0.4 + k * 1.6, 0.35, 0.75, rng, 12, 2, 0.3), Pc.nrm))
+        Gc.add(C['dust'], orient(blob_uv(Pc.S(0.0040), math.pi / 2 + rng.uniform(-0.15, 0.15), 0.9 + k * 1.4, 0.35, 0.42, rng, 12, 2, 0.3), Pc.nrm))
     Gc.deform(dent_fn((x + rc * 0.7, -1.2, z - rc * 0.7), (-1, 0, 1), 0.07, 0.012))
     G.merge(Gc)
     yr = -0.7  # rote Leitung: Reparaturschelle, Rostfahne
@@ -2374,7 +2377,7 @@ def build_door_plywood():
     sp = mat('spruehfarbe_weiss', (0.80, 0.80, 0.76), 'paint', r=1.2)
     for i in range(3):
         G.add(sp, box((xf + 0.0006, -0.18 + i * 0.07, 1.62), (xf + 0.0012, -0.15 + i * 0.07, 1.80)), Matrix.Rotation(rng.uniform(-0.04, 0.04), 4, 'X'))
-    gw = mat('holz_wasser', (0.47, 0.40, 0.31), 'concrete', r=1.35)
+    gw = mat('holz_wasser', (0.50, 0.43, 0.33), 'concrete', r=1.35)
     Sx = lambda u, v: (Vector((xf + 0.0009, u, v)), Vector((1, 0, 0)))  # noqa: E731
     for _ in range(5):  # Wasserlaeufer von oben (Tropfwasser), weich und breit
         G.add(gw, orient(streak_uv(Sx, rng.uniform(-0.38, 0.38), DH - 0.01, rng.uniform(0.05, 0.12), rng.uniform(0.4, 1.3), rng, 8, taper=0.5), lambda m: Vector((1, 0, 0))))
