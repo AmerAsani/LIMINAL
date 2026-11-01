@@ -3249,6 +3249,73 @@ static void testV133LureTalk(const std::string& dataDir) {
         check(count(ev, PE::Lured, Role::Smiler) >= 1 && luredSeen, "Leuchtstab: der Smiler wendet sich dem staerkeren Licht zu");
         check(dLure < 1.6f || dLure < dLure0 - 3.0f, std::format("Leuchtstab: er geht zum Licht ({:.1f} -> {:.1f} m)", dLure0, dLure));
         check(!s->stats().dead && !has(ev, game::GameEvent::StalkerHit), "Leuchtstab: solange er leuchtet, laesst er vom Spieler ab");
+        // Laerm ganz nah (Wiki, Level 1: nach einer Sichtung zieht ihn auch Laerm an): wer neben ihm rennt, holt ihn zurueck
+        if (P.has(Role::Smiler) && P.luredOf(Role::Smiler)) {
+            const vec3 q = P.posOf(Role::Smiler);
+            bool backed = false;
+            for (int k = 0; k < 16 && !backed; ++k) {  // ein freier Platz 3,5 m neben ihm
+                const double a = k * 0.3927, x = q.x + std::cos(a) * 3.5, y = q.y + std::sin(a) * 3.5;
+                const world::Tile* t = ww.tileIfLoaded(ifloor(x), ifloor(y));
+                if (t && t->open() && std::fabs(t->floor - pl.z) < 0.2) pl.x = x, pl.y = y, pl.vx = pl.vy = 0.0, s->body().reset(), backed = true;
+            }
+            bool released = false;
+            step(*s, ev, 1.5, [&] {
+                released = released || (P.has(Role::Smiler) && !P.luredOf(Role::Smiler));
+                return released;
+            }, [](int i) {
+                game::PlayerControl c;
+                c.forward = (i / 20) % 2 ? -1.0f : 1.0f;
+                c.sprint = true;
+                return c;
+            });
+            check(!backed || released, "Leuchtstab: wer neben ihm rennt, holt ihn vom Licht zurueck");
+        }
+    }
+    // --- Level 3 (Seite level-3): dort stutzt der Smiler nur und bleibt beim Wanderer. Geprueft in der Halle von Level 1
+    // mit der Einstellung von Level 3 (dort braucht der Smiler einen Stromausfall an einem passenden Ort) ---------------
+    {
+        check(content.level("level3", world::kLayoutV6)->smilerBait == 1 && content.level("level1", world::kLayoutV6)->smilerBait == 0,
+              "Level 3: smiler_bait = hesitate (Level 1: follow)");
+        auto L3 = std::make_shared<world::LevelDef>(*content.level("level1", world::kLayoutV6));
+        L3->smilerBait = 1;
+        auto s = std::make_unique<game::GameSession>(content, prefabs, L3, 4242, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.2);
+        auto& P = s->presence();
+        {
+            auto& pl = s->player();
+            const auto [hx, hy] = hallSpot(s->world());
+            pl.x = hx + 0.5, pl.y = hy + 0.5, pl.z = s->world().tile(hx, hy).floor;
+            s->body().reset();
+        }
+        s->preload();
+        step(*s, ev, 0.5);
+        P.force(Role::Smiler);
+        step(*s, ev, 20.0, [&] { return P.has(Role::Smiler) && P.stateOf(Role::Smiler) >= 1; });
+        if (P.has(Role::Smiler)) {
+            auto& pl = s->player();
+            const vec3 sp = P.posOf(Role::Smiler);
+            pl.angle = std::atan2(sp.y - pl.y, sp.x - pl.x), pl.pitch = 0.05;  // zu ihm hin werfen
+            s->inventory().add("glowstick");
+            s->useSlot(slotOf(*s, "glowstick"));
+            bool lured = false, released = false;
+            step(*s, ev, 6.0, [&] {
+                if (!P.has(Role::Smiler)) return true;
+                const vec3 q = P.posOf(Role::Smiler);
+                pl.angle = std::atan2(q.y - pl.y, q.x - pl.x), pl.pitch = 0.0;  // ansehen: er bleibt stehen
+                lured = lured || P.luredOf(Role::Smiler);
+                released = released || (lured && !P.luredOf(Role::Smiler));
+                return released;
+            });
+            const bool hesitated = std::any_of(ev.begin(), ev.end(), [&](const game::GameEvent& e) {
+                return e.type == game::GameEvent::Figure && e.index == (int)PE::Lured && e.role == (int)Role::Smiler && e.intensity < 0.5f;
+            });
+            check(hesitated && lured && released, "Level 3: der Smiler stutzt am Licht und wendet sich wieder dem Wanderer zu");
+        } else {
+            std::printf("  Level 3: kein Smiler erschienen (Pruefung des Stutzens uebersprungen)\n");
+        }
     }
 
     // --- Skin-Stealer: Ansprechen entlarvt, ruhiges Zurueckweichen ueberlebt, Rennen loest den Angriff aus ----------------

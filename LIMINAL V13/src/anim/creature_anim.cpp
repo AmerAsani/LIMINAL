@@ -421,7 +421,10 @@ void CreatureAnimator::updateSmiler(float dt, const Input& in) {
     auto flatDir = [&](vec3 at) { return safeNorm(vec3{at.x - upperRigid.x, at.y - upperRigid.y, 0.0f}, F); };
     if (perc_ > 0.01f) toward = toward + flatDir(in.perceiveAt) * perc_;
     if (light_ > 0.01f) toward = toward + flatDir(in.lightFrom) * light_;
-    const vec3 leanOff = toward * 0.13f + U * (0.09f * jaw_);
+    // V13.3 (Kanal bait, KREATUR_Smiler.md): am Leuchtkoeder senkt sich die obere Masse ueber das Licht, das Gesicht
+    // folgt tiefer hinab als sonst
+    spring(bait_, baitV_, in.bait, 1.1f, dt);
+    const vec3 leanOff = toward * (0.13f + 0.27f * bait_) + U * (0.09f * jaw_ - 0.36f * bait_);
     J[ROOT] = pos_;
     J[BASE] = W(B[BASE]) + lag * 0.15f + Lw * (sw2 * 0.5f);
     J[CORE] = W(B[CORE]) + lag * 0.5f + Lw * sw1 + F * (sw2 * 0.5f) + hover * 0.5f + leanOff * 0.45f;
@@ -432,7 +435,7 @@ void CreatureAnimator::updateSmiler(float dt, const Input& in) {
         const vec3 dl = at - J[UPPER];
         const float lx = dot(dl, F), ly = dot(dl, Lw);
         yw = std::clamp(std::atan2(ly, lx), -1.5f, 1.5f);
-        pt = std::clamp(std::atan2(dl.z - 0.25f, std::hypot(lx, ly)), -0.55f, 0.45f);
+        pt = std::clamp(std::atan2(dl.z - 0.25f, std::hypot(lx, ly)), -0.55f - 0.45f * bait_, 0.45f);
     };
     if (in.look) aimAt(in.lookAt, wantYaw, wantPitch);
     // V13.2: in Ruhe treibt das Gesicht kaum merklich (lebt, auch wenn es dich ansieht)

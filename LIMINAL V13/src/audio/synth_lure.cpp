@@ -102,13 +102,13 @@ float say(Buf& b, float at, const Phrase& phr, const Voice& vo, Rand& r, float t
                     voice(b, std::max(0.0f, t0 - vo.att * 0.6f), len, vs, r);
                     break;
                 }
-                case 'h': breathe(b, t0, p.len + 0.02f, false, 0.35f * p.amp * vo.gain, 0.4f, r); break;
-                case 's': noiseBand(b, t0, p.len, 5600.0f * vo.fmul, 1.4f, 0.22f * p.amp * vo.gain, false, r); break;
-                case 'f': noiseBand(b, t0, p.len, 2400.0f * vo.fmul, 0.8f, 0.18f * p.amp * vo.gain, false, r); break;
-                case 't': noiseBand(b, t0 + p.len * 0.6f, 0.02f, 3800.0f, 1.1f, 0.5f * p.amp * vo.gain, true, r); break;
+                case 'h': breathe(b, t0, p.len + 0.02f, false, 0.05f * p.amp * vo.gain, 0.4f, r); break;
+                case 's': noiseBand(b, t0, p.len, 5600.0f * vo.fmul, 1.4f, 0.0045f * p.amp * vo.gain, false, r); break;
+                case 'f': noiseBand(b, t0, p.len, 2400.0f * vo.fmul, 0.8f, 0.004f * p.amp * vo.gain, false, r); break;
+                case 't': noiseBand(b, t0 + p.len * 0.6f, 0.02f, 3800.0f, 1.1f, 0.025f * p.amp * vo.gain, true, r); break;
                 case 'd':
                 case 'b': {
-                    noiseBand(b, t0 + p.len * 0.7f, 0.012f, p.k == 'd' ? 2600.0f : 900.0f, 1.0f, 0.35f * p.amp * vo.gain, true, r);
+                    noiseBand(b, t0 + p.len * 0.7f, 0.012f, p.k == 'd' ? 2600.0f : 900.0f, 1.0f, 0.02f * p.amp * vo.gain, true, r);
                     VoiceSpec vs;
                     const float base = vo.f0;
                     vs.f0 = [=](float) { return base * 0.95f; };
@@ -125,9 +125,9 @@ float say(Buf& b, float at, const Phrase& phr, const Voice& vo, Rand& r, float t
                     vs.amp = [=](float u) { return 0.35f * p.amp * vo.gain * dsp::smooth01(u / 0.3f) * (1.0f - dsp::smooth01((u - 0.7f) / 0.3f)); };
                     vs.formants = {280.0f * vo.fmul, 1300.0f * vo.fmul, 2400.0f * vo.fmul};
                     vs.bandwidths = {90.0f, 200.0f, 300.0f};
-                    vs.breath = 0.3f;
+                    vs.breath = 0.05f;
                     voice(b, t0, p.len + 0.02f, vs, r);
-                    noiseBand(b, t0, p.len, 3200.0f, 0.9f, 0.06f * p.amp * vo.gain, false, r);
+                    noiseBand(b, t0, p.len, 3200.0f, 0.9f, 0.006f * p.amp * vo.gain, false, r);
                     break;
                 }
                 default: break;  // 'p' Pause
@@ -150,7 +150,7 @@ Sound talkCall(int rate, int v) {
     Buf b(2.0f, rate);
     Voice vo;
     vo.f0 = 124.0f + 6.0f * (float)(v % 2);  // eine ruhige, etwas belegte Stimme (gedaempft, man will nicht laut sein)
-    vo.breath = 0.16f;
+    vo.breath = 0.035f;
     const Phrase p = phrase(v);
     say(b, 0.03f, p, vo, r, lengthOf(p));
     filter(b, Biquad::HP, 90.0f, 0.7f);
@@ -219,7 +219,7 @@ Sound skinReply(int rate, int idx) {
         Phrase q = src;
         for (Syl& sy : q)
             for (Ph& ph : sy.ph) ph.len *= 1.6f;
-        vo.fmul = 0.9f, vo.droop = 0.38f, vo.vibrato = 0.035f, vo.vibHz = 3.2f, vo.rough = 0.25f, vo.subharm = 0.25f, vo.breath = 0.2f;
+        vo.fmul = 0.9f, vo.droop = 0.38f, vo.vibrato = 0.035f, vo.vibHz = 3.2f, vo.rough = 0.25f, vo.subharm = 0.25f, vo.breath = 0.06f;
         const float len = lengthOf(q);
         const float end = say(b, at + 0.15f, q, vo, r, len);
         ImpactSpec sp;

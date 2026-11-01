@@ -454,6 +454,27 @@ void App::scriptStep() {
             if (arg == "off") figCam_.on = false;
             else if (std::sscanf(arg.c_str(), "%f %f %f %f %f", &az, &el, &d, &h, &ahead) >= 3) figCam_ = {true, az, el, d, h, ahead};
             resetHistory_ = true;
+        } else if (cmd == "grace" && session_) {  // V13.3 (Bilder): grace <s> - so lange kein Auftritt der Regie (presence erzwingt weiter)
+            session_->presence().setGrace(std::atof(arg.c_str()));
+        } else if (cmd == "lurecam" && session_) {  // V13.3 (Bilder): lurecam <az> <el> <abstand> [hoehe] - freie Kamera auf den neuesten Leuchtstab
+            float az = 0, el = 20, d = 2.0f, h = 0.0f;
+            std::sscanf(arg.c_str(), "%f %f %f %f", &az, &el, &d, &h);
+            const auto& ls = session_->lures().lures();
+            if (ls.empty()) {
+                log::warn("Skript: lurecam - kein Leuchtstab");
+            } else {
+                const vec3 t = ls.back().pos + vec3{0, 0, h};
+                float a = az * 0.0174533f;
+                const float e = el * 0.0174533f;
+                if (az >= 900.0f && session_->presence().has(game::Presence::Role::Smiler)) {  // 1000 +/- Grad: vom Smiler aus hinter dem Stab
+                    const vec3 sp = session_->presence().posOf(game::Presence::Role::Smiler);
+                    a = std::atan2(t.y - sp.y, t.x - sp.x) + (az - 1000.0f) * 0.0174533f;
+                }
+                const vec3 c = t + vec3{std::cos(a) * std::cos(e), std::sin(a) * std::cos(e), std::sin(e)} * d, dv = t - c;
+                freeCam_ = {true, c, std::atan2(dv.y, dv.x) * 57.29578f, std::atan2(dv.z, std::max(std::hypot(dv.x, dv.y), 1e-4f)) * 57.29578f, 0.0f};
+                log::info("Skript: lurecam auf ({:.2f}, {:.2f}, {:.2f})", t.x, t.y, t.z);
+                resetHistory_ = true;
+            }
         } else if (cmd == "vmcam") {  // V13 (Tests): vmcam <az> <el> <abstand> | vmcam off - Kamera um die Hand
             float az = 0, el = 0, d = 0.5f;
             if (arg == "off") vmCam_.on = false;
@@ -481,6 +502,13 @@ void App::scriptStep() {
             const int n = std::sscanf(arg.c_str(), "%f %f %f %f %f %f %f %f", &v[0], &v[1], &v[2], &v[3], &v[4], &v[5], &v[6], &v[7]);
             if (arg == "off") testLight_.on = false;
             else if (n >= 6) testLight_ = {true, {v[0], v[1], v[2]}, normalize(vec3{v[3] - v[0], v[4] - v[1], v[5] - v[2]}), v[6], v[7]};
+            else if (arg.rfind("eye", 0) == 0 && session_) {  // V13.3 (Bilder): testlight eye [staerke] [kegel] - ueber dem Kopf in Blickrichtung
+                float pw = 0.6f, cone = 40.0f;
+                std::sscanf(arg.c_str() + 3, "%f %f", &pw, &cone);
+                const auto& pl = session_->player();
+                const vec3 f = forwardFromAngles((float)pl.angle, (float)pl.pitch);
+                testLight_ = {true, session_->body().eye() + vec3{0, 0, 0.25f} + f * 0.3f, f, pw, cone};  // vor dem Kopf (kein Schatten des eigenen Kopfes)
+            }
             resetHistory_ = true;
         } else if (cmd == "worldlight") {  // V13.3 (Tests): Leuchten der Welt skalieren (0 = dunkel)
             worldLight_ = (float)std::atof(arg.c_str());
@@ -1468,6 +1496,8 @@ void App::handleEvents() {
                     case PE::Reply: {  // Gast: ohne Angabe (intensity 1) - irgendeine der Antworten
                         const int k = e.intensity < 0.99f ? (int)(e.intensity * 16.0f) : (int)(n % 12);
                         at(std::format("skin_reply_{}", std::clamp(k, 0, 11)), e.pos, 0.85f, 24.0f);
+                        static bool replyHint = false;  // einmal je Spielstart: der Rat des Wikis (Level 1)
+                        if (!replyHint) replyHint = true, ui_.toast("Das ist kein Mensch. Ruhig zurückweichen – nicht rennen, nicht noch einmal ansprechen.", 4.5f);
                         break;
                     }
                     case PE::Shriek: at("skin_shriek", e.pos, 1.0f, 34.0f); break;
@@ -1873,8 +1903,8 @@ void App::renderWorld(double dt, bool clean) {
                 gfx::ExtraLight L;
                 L.pos = glows[gi].pos;
                 L.dir = {0.0f, 0.0f, 1.0f};
-                L.color = vec3{0.30f, 1.0f, 0.20f} * (1.3f * glows[gi].power);
-                L.range = 3.0f + 5.5f * glows[gi].power;
+                L.color = vec3{0.34f, 1.0f, 0.22f} * (0.8f * glows[gi].power);
+                L.range = 2.5f + 4.5f * glows[gi].power;
                 L.spill = 1.0f;
                 L.size = 0.06f;
                 L.soft = 0.12f;

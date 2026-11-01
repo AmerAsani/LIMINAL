@@ -38,7 +38,8 @@ bool Presence::baitSmiler(Agent& a, double dt, const Context& c, std::vector<Eve
     }
     // Laerm ganz in seiner Naehe (Rennen, harte Landung - Wiki, Level 1: nach einer Sichtung zieht ihn auch Laerm an):
     // er laesst vom Licht ab und wendet sich wieder dem Spieler zu (diesen Stab beachtet er nicht mehr)
-    bool noisy = (c.player->sprinting && d < 5.0f) || (c.noise >= 0.7 && d < 5.0f);
+    // (ebenso, wer ihm auf zwei Meter nahe kommt - dann hat er die Beute vor sich)
+    bool noisy = (c.player->sprinting && d < 5.0f) || (c.noise >= 0.7 && d < 5.0f) || d < 2.0f;
     if (c.pings)
         for (const auto& [where, vol] : *c.pings) noisy = noisy || (vol >= 0.5f && hdist(where, a.pos) < 5.0f);
     if (best && noisy) {
@@ -117,9 +118,10 @@ bool Presence::speakable(world::World& w, vec3 eye, vec3 look, float maxDist, ve
         const Agent& a = *ap;
         if (a.showcase || a.state >= 8) continue;
         if (a.role != Role::SkinStealer && a.role != Role::Faceling && a.role != Role::Wretch) continue;
-        const vec3 h = a.cre.headPos(), dv = h - eye;
-        const float dist = length(dv);
-        if (dist > maxDist || dist < 0.3f || dot(dv / dist, look) < 0.95f) continue;  // ~18 Grad um die Blickrichtung
+        const vec3 h = a.cre.headPos(), dv = h - eye, dc = a.pos + vec3{0, 0, 1.2f} - eye;
+        const float dist = length(dv), dcl = std::max(0.01f, length(dc));
+        // man sieht sie an: Kopf oder Brust hoechstens ~18 Grad neben der Blickrichtung
+        if (dist > maxDist || dist < 0.3f || std::max(dot(dv / dist, look), dot(dc / dcl, look)) < 0.95f) continue;
         if (!clearSight(w, eye, h) && !clearSight(w, eye, a.pos + vec3{0, 0, 1.2f})) continue;
         if (dist < best) {
             best = dist;

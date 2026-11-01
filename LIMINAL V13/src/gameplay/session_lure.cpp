@@ -111,7 +111,8 @@ void GameSession::updateLures(double dt) {
 
 void GameSession::glowLights(std::vector<GlowLight>& out, float radius) const {
     const vec3 eye = body_.eye();
-    if (glowPending_ > 0.0 && body_.holdsItem()) out.push_back({body_.heldPos(), LureSystem::glow(kReleaseT - glowPending_ + 0.08)});
+    // in der Hand: schwaecher (ganz nah an Auge und Arm - sonst ueberstrahlt er alles)
+    if (glowPending_ > 0.0 && body_.holdsItem()) out.push_back({body_.heldPos(), 0.4f * LureSystem::glow(kReleaseT - glowPending_ + 0.08)});
     for (const LureSystem::Lure& l : lures_.lures()) {
         const float g = LureSystem::glow(l.age);
         if (g < 0.01f || length(l.pos - eye) > radius) continue;
