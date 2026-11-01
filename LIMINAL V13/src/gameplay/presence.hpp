@@ -49,9 +49,9 @@ namespace lim::game {
 class Presence {
 public:
     // V11: Clump (Buendel); V13.2: Faceling, Skin-Stealer, Wretch, Death Rat, Fensterwesen (gleiche Reihenfolge wie anim::Entity)
-    // V13.3: Duller, Arms; Growler, Nguithr'xurh (presence_growler.cpp, presence_nguithrxurh.cpp)
-    enum class Role { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Growler, Nguithr };
-    static constexpr int kRoleCount = 15;  // V13.3: Duller, Arms, Growler, Nguithr'xurh
+    // V13.3: Growler, Nguithr'xurh hinter Duller, Arms, Wrangler (presence_growler.cpp, presence_nguithrxurh.cpp)
+    enum class Role { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Wrangler, Growler, Nguithr };
+    static constexpr int kRoleCount = 16;  // V13.3: Duller, Arms, Wrangler (KREATUR_Wrangler.md), Growler, Nguithr'xurh
     static const char* roleName(Role r);
 
     struct Event {
@@ -96,6 +96,12 @@ public:
             Burst,       // Duller: die Wand bricht auf; Arms: die Lueftung oeffnet sich (sehr leise)
             Burn,        // Arms: Licht verbrennt den Arm - heiserer Todesschrei, Zischen
             Retract,     // Duller/Arms: der Arm gleitet zurueck
+            // V13.3: Wrangler
+            Tremor,      // Beben: Rumpeln in der Tiefe, das naeher kommt (strength: Staerke)
+            Breach,      // der Leib bricht durch Boden, Wand oder Decke
+            Slither,     // der Leib gleitet (strength 1: Stoehnen des Maennchens)
+            Sense,       // es hat einen gespuert: Knacken und Einatmen an der Durchbruchstelle - in 1,8 s schnappt es zu (F2)
+            Sink,        // der Leib versinkt, es zieht ab
             // V13.3: Growler, Nguithr'xurh
             Click,       // Growler: Klicks der Echoortung (strength: Groesse 0..1)
             Static,      // Growler: das telepathische Rauschen schadet aus der Naehe (strength: Health-Punkte dieses Takts, 0: nur Verstand)
@@ -180,6 +186,14 @@ public:
     // Gast: Puppen anlegen, nachfuehren (Zeitstempel auf der Uhr dieser Praesenz, netTime) und entfernen
     void netApply(const std::vector<NetState>& in, double stamp);
     double netTime() const { return time_; }
+    // V13.3 Wrangler: Beben am eigenen Spieler (0..1; Kamera, Staub) und der Sog des Leibs (0..1; wohin er den Blick zieht)
+    float quake() const { return quake_; }
+    // V13.3: Klangquellen des naechsten Wranglers (app/wrangler_audio.cpp): Rumpeln und Leib (Ort, Staerke 0..1); false: keiner
+    bool wranglerSound(vec3 ear, vec3& rumbleAt, float& rumble, vec3& bodyAt, float& body) const;
+    float trance(vec3* at = nullptr) const {
+        if (at) *at = tranceAt_;
+        return trance_;
+    }
 
     Presence();
     ~Presence();
@@ -299,6 +313,15 @@ private:
     void regieArms(double dt, const Context& c, std::vector<Event>& out);
     bool spawnArms(const Context& c, std::vector<Event>& out, bool forced);
     void thinkArms(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    // V13.3: Wrangler (presence_wrangler.cpp)
+    void regieWrangler(double dt, const Context& c, std::vector<Event>& out);
+    bool spawnWrangler(const Context& c, std::vector<Event>& out, int mode, vec3* near = nullptr);
+    bool placeBrood(const Context& c);
+    void thinkWrangler(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    void thinkBrood(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    bool wranglerBreak(const Context& c, vec3 q, vec3 toward, vec3& at, vec3& n) const;
+    void wranglerFeel(double dt, const Context& c);
+    bool wranglerActive() const;
     // V13.3: Growler, Nguithr'xurh (eigene Dateien)
     void regieGrowler(double dt, const Context& c, std::vector<Event>& out);
     bool spawnGrowler(const Context& c, std::vector<Event>& out, bool forced);
@@ -336,6 +359,10 @@ private:
     double nextScream_ = 120.0, screamT_ = 0.0, screamTick_ = 0.0;  // V13.2: Schrei-Ereignis der Ratten (Dauer, Flackern)
     vec3 screamPos_;
     int nextGroup_ = 1;
+    double nextWrangler_ = 160.0;  // V13.3: naechster Durchzug eines Wranglers
+    bool broodPlaced_ = false;     // V13.3: Jungtiere der Ebene gesetzt
+    float quake_ = 0.0f, trance_ = 0.0f;
+    vec3 tranceAt_;
     double forcedDist_ = 0.0;
     Hive hive_;
     // V13.3: Growler, Nguithr'xurh - naechster Auftritt, Rauschen beim Spieler, Betaeubung je Spieler

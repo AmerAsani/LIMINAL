@@ -18,6 +18,7 @@ std::unordered_map<std::string, Sound> synthesizeAll(JobSystem& jobs, int rate) 
     addLevelSounds(defs, rate);
     addDullerSounds(defs, rate);  // V13.3
     addArmsSounds(defs, rate);
+    addWranglerSounds(defs, rate);  // V13.3
     addGrowlerSounds(defs, rate);  // V13.3
     addNguithrSounds(defs, rate);
     std::vector<Sound> out(defs.size());

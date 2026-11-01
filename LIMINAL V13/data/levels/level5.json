@@ -16,6 +16,8 @@
   "presence": { "hound": true, "smiler": false, "gestalt": false, "blackout": false,
                "skinstealer": { "mode": "true", "group": [1, 1], "every": 360, "chance": 0.3 },
                "rat": { "group": [2, 4], "every": 160, "chance": 1.0 },
+               // V13.3 (KREATUR_Wrangler.md): die Seite meldet einen einzigen Wrangler im Kesselraum - selten, nur dort, ein Maennchen
+               "wrangler": { "mode": "male", "every": 900, "rooms": ["kesselgang", "kesselraum"] },
                // V13.3: die Seite nennt beide nur - selten: ein ausgewachsener Growler, mittlere Nguithr'xurh
                "growler": { "mode": "adult", "group": [1, 1], "every": 450 },
                "nguithrxurh": { "mode": "medium", "group": [2, 3], "every": 260, "chance": 0.7 } },

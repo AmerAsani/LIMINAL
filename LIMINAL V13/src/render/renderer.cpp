@@ -711,7 +711,7 @@ void Renderer::renderScene(const CameraState& cam, const SceneParams& p, const s
         static const int kCount[4] = {0, 450, 900, 1600};  // V6: Menge je Stufe
         const int count = kCount[particles];
         PassConstants pc{};
-        pc.p0 = {(float)count, 6.5f, 0.10f, 0.0f};
+        pc.p0 = {(float)count, 6.5f, 0.10f * (1.0f + 2.5f * p.dustBoost), p.dustFall};  // V13.3: Beben - Staub rieselt
         pc.p1 = {(float)std::min<u32>(nLights, 24u), 0, 0, 0};
         gpu_.update(passCb_, &pc, sizeof(pc));
         ctx->VSSetConstantBuffers(0, 4, cbs);

@@ -171,6 +171,7 @@ vec3 CreatureAnimator::headPos() const {
         case Entity::Window: return (pose_.j[wn::FIG_NECK] + pose_.j[wn::FIG_TOP]) * 0.5f;
         case Entity::Duller: return headPos_;  // V13.3: Kopf - mit ausgestrecktem Arm die greifende Hand (Schreck)
         case Entity::Arms: return headPos_;    // V13.3: Mitte der Krallen
+        case Entity::Wrangler: return (pose_.j[wg::NECK0 + wg::kNeck] + pose_.j[wg::SNOUT]) * 0.5f;  // V13.3
         case Entity::Growler: return pose_.j[gw::KNOT];  // V13.3: der Knoten auf der Brust
         case Entity::Nguithr: return pose_.j[ng::EYES];
         default: return pose_.j[ns::TOP];
@@ -200,6 +201,7 @@ void CreatureAnimator::update(double dtIn, const Input& in) {
     if (e_ == Entity::Window) turn = 1000.0f;  // haengt fest in der Wand
     if (e_ == Entity::Duller) turn = 7.0f;     // V13.3: ruckartig
     if (e_ == Entity::Arms) turn = 1000.0f;    // V13.3: Richtung des Schachts
+    if (e_ == Entity::Wrangler) turn = 1000.0f;  // V13.3: die Bahn liegt fest
     if (e_ == Entity::Growler) turn = 2.6f;      // V13.3: schwerfaellig
     if (e_ == Entity::Nguithr) turn = 1000.0f;   // V13.3: die Lage kommt aus up/fwd (eigene Feder)
     const float yawBefore = yaw_;
@@ -224,6 +226,7 @@ void CreatureAnimator::update(double dtIn, const Input& in) {
         case Entity::Window: updateWindow(dt, in); break;
         case Entity::Duller: updateDuller(dt, in); break;  // V13.3
         case Entity::Arms: updateArms(dt, in); break;
+        case Entity::Wrangler: updateWrangler(dt, in); break;  // V13.3
         case Entity::Growler: updateGrowler(dt, in); break;  // V13.3
         case Entity::Nguithr: updateNguithr(dt, in); break;
         default: updateNest(dt, in); break;

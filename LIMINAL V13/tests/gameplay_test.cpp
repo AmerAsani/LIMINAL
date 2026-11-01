@@ -2414,13 +2414,39 @@ static void testV13Kin(const std::string& dataDir) {
         std::vector<game::GameEvent> ev;
         step(*s, ev, 0.3);
         auto& P = s->presence();
-        check(spawn(*s, ev, Role::Faceling), "Level 2: Facelings erscheinen (Gruppe)");
-        check(placeNear(*s, Role::Faceling, 2.6), "Level 2: mit Sicht vor einem Faceling");
+        // V13.3: steht der Faceling mit dem Gesicht zur Wand (enger Tunnel), kann niemand vor ihn treten - dann eine andere
+        // Gruppe rufen (sonst haengt die Pruefung vom zufaelligen Ort in der Karte ab)
+        bool appeared = false, placed = false;
+        for (int attempt = 0; attempt < 6 && !placed; ++attempt) {
+            if (attempt > 0) {
+                P.clear();
+                step(*s, ev, 1.0);
+            }
+            if (!spawn(*s, ev, Role::Faceling)) continue;
+            appeared = true;
+            if (!placeNear(*s, Role::Faceling, 2.6)) continue;
+            const vec3 fp = P.posOf(Role::Faceling);
+            const float fy = P.yawOf(Role::Faceling);
+            const float tx = (float)s->player().x - fp.x, ty = (float)s->player().y - fp.y;
+            const float tl = std::hypot(tx, ty);
+            placed = tl > 0.01f && (std::cos(fy) * tx + std::sin(fy) * ty) / tl > 0.6f;
+        }
+        check(appeared, "Level 2: Facelings erscheinen (Gruppe)");
+        check(placed, "Level 2: mit Sicht vor einem Faceling");
         step(*s, ev, 2.0, [&] { aim(*s, P.headOf(Role::Faceling)); return false; });
         check(P.stateOf(Role::Faceling) == 0, "Level 2: ohne Reiz lassen sie einen in Ruhe");
         s->flashlight().on = true;
         int angryAt = -1, frame = 0;
         step(*s, ev, 6.0, [&] {
+            // V13.3: geht er umher und wendet sich ab, tritt der Spieler wieder vor ihn - geprueft wird die Lampe im
+            // Gesicht, nicht ob der Faceling zufaellig stehen bleibt (haengt sonst von der Karte ab)
+            if (frame % 60 == 30) {
+                const vec3 fp = P.posOf(Role::Faceling);
+                const float fy = P.yawOf(Role::Faceling);
+                const float tx = (float)s->player().x - fp.x, ty = (float)s->player().y - fp.y;
+                const float tl = std::hypot(tx, ty);
+                if (tl > 0.01f && (std::cos(fy) * tx + std::sin(fy) * ty) / tl < 0.5f) placeNear(*s, Role::Faceling, 2.6);
+            }
             aim(*s, P.headOf(Role::Faceling));
             if (angryAt < 0 && P.stateOf(Role::Faceling) == 2) angryAt = frame;
             ++frame;
@@ -2886,6 +2912,197 @@ static void testV133DullerArms(const std::string& dataDir) {
     }
 }
 
+// V13.3: Wrangler (KREATUR_Wrangler.md) - Beben als Ankuendigung, Durchzug, wer still ist, ueberlebt; wer laut ist, wird nach
+// einer zweiten Ankuendigung aus dem Gang geschnappt; Weibchen greifen nicht an; der Anblick zieht den Blick an; Jungtiere (Level 1)
+static void testV133Wrangler(const std::string& dataDir) {
+    const game::Content& content = *gContent11;
+    game::PrefabLibrary prefabs;
+    prefabs.loadDirectory(dataDir + "/prefabs");
+    JobSystem jobs(2);
+    using PE = game::Presence::Event;
+    using Role = game::Presence::Role;
+    auto open = [&](const char* level, i64 seed) {
+        auto s = std::make_unique<game::GameSession>(content, prefabs, content.level(level, world::kLayoutV6), seed, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        return s;
+    };
+    // ctl(i): Eingabe im Bild i (laut: hin und her sprinten)
+    auto step = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, double secs, const std::function<bool()>& each = {},
+                    const std::function<game::PlayerControl(int)>& ctl = {}) {
+        for (int i = 0; i < (int)(secs * 60.0); ++i) {
+            if (each && each()) break;
+            s.update(1.0 / 60.0, ctl ? ctl(i) : game::PlayerControl{}, false);
+            ev.insert(ev.end(), s.events().begin(), s.events().end());
+            s.events().clear();
+        }
+    };
+    auto count = [](const std::vector<game::GameEvent>& ev, PE::Type t) {
+        return (int)std::count_if(ev.begin(), ev.end(), [&](const game::GameEvent& e) {
+            return e.type == game::GameEvent::Figure && e.index == (int)t && e.role == (int)Role::Wrangler;
+        });
+    };
+    auto sprint = [](int i) {
+        game::PlayerControl c;
+        c.forward = (i / 70) % 2 ? -1.0f : 1.0f;
+        c.sprint = true;
+        return c;
+    };
+    auto aim = [](game::GameSession& s, vec3 q) {
+        auto& pl = s.player();
+        pl.angle = std::atan2(q.y - pl.y, q.x - pl.x);
+        pl.pitch = std::atan2(q.z - pl.eye(), std::max(0.4, std::hypot(q.x - pl.x, q.y - pl.y)));
+    };
+    auto spawn = [&](game::GameSession& s, std::vector<game::GameEvent>& ev) {
+        s.presence().force(Role::Wrangler);
+        step(s, ev, 3.0, [&] { return s.presence().stateOf(Role::Wrangler) >= 0; });
+        return s.presence().stateOf(Role::Wrangler) == 0;
+    };
+    // --- Level 2, still: es bebt (Kamera, Licht), bricht durch, zieht vorbei und versinkt - kein Angriff ---------------------
+    {
+        auto s = open("level2", 31);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        P.setGrace(3000.0);
+        check(spawn(*s, ev), "Wrangler (Level 2): erscheint und bebt zuerst (Zustand 0)");
+        float qMax = 0.0f;
+        bool breached = false, gone = false;
+        step(*s, ev, 45.0, [&] {
+            qMax = std::max(qMax, P.quake());
+            breached = breached || P.stateOf(Role::Wrangler) == 1;
+            gone = breached && P.stateOf(Role::Wrangler) < 0;
+            return gone;
+        });
+        check(count(ev, PE::Tremor) > 0 && qMax > 0.12f, std::format("Wrangler: Ankuendigung - Rumpeln ({}) und Beben am Spieler ({:.2f})", count(ev, PE::Tremor), qMax));
+        check(count(ev, PE::Flicker) > 0, "Wrangler: beim Beben flackert das Licht");
+        check(breached && count(ev, PE::Breach) > 0, "Wrangler: der Leib bricht durch");
+        check(count(ev, PE::Sink) > 0 && gone, "Wrangler: er versinkt und zieht ab");
+        check(!s->stats().dead && count(ev, PE::Sense) == 0, "Wrangler: wer still steht, ueberlebt (nicht gespuert)");
+    }
+    // --- Level 2, laut: wer beim Beben rennt, den spuert es (zweite Ankuendigung), dann schnappt der Kopf zu (toedlich) ------
+    {
+        auto s = open("level2", 32);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        P.setGrace(3000.0);
+        check(spawn(*s, ev), "Wrangler (laut): erscheint");
+        int senseAt = -1, deadAt = -1, frame = 0;
+        step(*s, ev, 30.0, [&] {
+            if (senseAt < 0 && count(ev, PE::Sense) > 0) senseAt = frame;
+            if (deadAt < 0 && s->stats().dead) deadAt = frame;
+            ++frame;
+            return s->stats().dead;
+        }, sprint);
+        check(senseAt >= 0, "Wrangler: Rennen spuert es (Knacken, Einatmen an der Durchbruchstelle)");
+        check(s->stats().dead && s->killRole() == (int)Role::Wrangler && count(ev, PE::Burst) > 0, "Wrangler: wer laut bleibt, wird aus dem Gang geschnappt");
+        check(senseAt >= 0 && deadAt - senseAt >= 90, std::format("Wrangler: zwischen Ankuendigung und Zugriff mindestens 1,5 s ({:.1f} s)", (deadAt - senseAt) / 60.0));
+    }
+    // --- Level 2: gespuert, dann still - es verliert einen ------------------------------------------------------------
+    {
+        auto s = open("level2", 33);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        P.setGrace(3000.0);
+        check(spawn(*s, ev), "Wrangler (still nach der Warnung): erscheint");
+        step(*s, ev, 20.0, [&] { return count(ev, PE::Sense) > 0; }, sprint);
+        const bool sensed = count(ev, PE::Sense) > 0;
+        step(*s, ev, 8.0, [&] { return s->stats().dead; });
+        check(sensed && !s->stats().dead && count(ev, PE::Calm) > 0, "Wrangler: wer nach der Warnung still steht, den verliert es");
+    }
+    // --- Weibchen: greift nicht an, zieht sich zurueck, wenn man es ansieht ---------------------------------------------
+    {
+        auto s = open("level2", 34);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        P.setGrace(3000.0);
+        check(spawn(*s, ev), "Wrangler (Weibchen): erscheint");
+        P.kinSet(Role::Wrangler, "variant", 1.0);
+        check(P.variantOf(Role::Wrangler) == 1, "Wrangler: Variante Weibchen (Zangen)");
+        bool sank = false;
+        step(*s, ev, 30.0, [&] {
+            if (P.stateOf(Role::Wrangler) == 1) aim(*s, P.posOf(Role::Wrangler) + vec3{0, 0, 1.0f});
+            sank = sank || P.stateOf(Role::Wrangler) == 4;
+            return sank || s->stats().dead;
+        }, sprint);
+        check(!s->stats().dead && count(ev, PE::Sense) == 0, "Wrangler: das Weibchen greift nicht an (auch wer rennt)");
+        check(sank, "Wrangler: bemerkt, zieht sich das Weibchen zurueck");
+    }
+    // --- der Sog: wer den Leib ansieht, dessen Blick wird gezogen und der wird langsamer ---------------------------------
+    {
+        auto s = open("level2", 35);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        P.setGrace(3000.0);
+        check(spawn(*s, ev), "Wrangler (Sog): erscheint");
+        step(*s, ev, 12.0, [&] { return P.stateOf(Role::Wrangler) == 1; });
+        step(*s, ev, 1.5);
+        vec3 at;
+        float tr = 0.0f;
+        step(*s, ev, 5.0, [&] {
+            aim(*s, P.posOf(Role::Wrangler) + vec3{0, 0, 1.0f});
+            tr = std::max(tr, P.trance(&at));
+            return false;
+        });
+        check(tr > 0.3f, std::format("Wrangler: der Anblick bannt ({:.2f})", tr));
+        if (tr > 0.3f) {
+            auto& pl = s->player();
+            const double want = std::atan2(at.y - pl.y, at.x - pl.x);
+            pl.angle = want + 0.35;
+            step(*s, ev, 0.8);
+            const double d1 = std::fabs(std::remainder(pl.angle - want, 6.2831853));
+            check(d1 < 0.33, std::format("Wrangler: der Blick wird zum Leib gezogen ({:.2f} -> {:.2f} rad)", 0.35, d1));
+        }
+    }
+    // --- Level 1: Jungtiere an einer Wand; wer sie anfasst, ruft die Mutter -----------------------------------------------
+    {
+        auto s = open("level1", 36);
+        std::vector<game::GameEvent> ev;
+        auto& P = s->presence();
+        P.setGrace(3000.0);
+        step(*s, ev, 6.0, [&] { return P.variantOf(Role::Wrangler) == 3; });
+        check(P.variantOf(Role::Wrangler) == 3, "Wrangler (Level 1): Jungtiere an einer Wand (einmal je Ebene)");
+        if (P.variantOf(Role::Wrangler) == 3) {
+            const vec3 w = P.posOf(Role::Wrangler);
+            const float yw = P.yawOf(Role::Wrangler);
+            auto& pl = s->player();
+            pl.x = w.x + std::cos(yw) * 0.6, pl.y = w.y + std::sin(yw) * 0.6, pl.z = s->world().tile(ifloor(pl.x), ifloor(pl.y)).floor;
+            pl.vx = pl.vy = 0.0;
+            s->body().reset();
+            s->preload();
+            aim(*s, w);
+            step(*s, ev, 8.0, [&] { return s->stats().dead; });
+            check(count(ev, PE::Squeak) > 0, "Wrangler: die Jungen fiepen (Warnung)");
+            check(count(ev, PE::Sense) > 0, "Wrangler: beruehrt - die Mutter kommt (Ankuendigung)");
+            check(s->stats().dead && s->killRole() == (int)Role::Wrangler, "Wrangler: wer bei den Jungen bleibt, den holt die Mutter");
+        }
+    }
+    // --- Level 5: die Einzelmeldung aus dem Kesselraum - nur dort ---------------------------------------------------------
+    {
+        auto s = open("level5", 37);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        P.setGrace(3000.0);
+        P.force(Role::Wrangler);
+        step(*s, ev, 1.0);
+        check(P.stateOf(Role::Wrangler) < 0, "Wrangler (Level 5): ausserhalb des Kesselraums keiner");
+        auto& pl = s->player();
+        pl.x = 124.5, pl.y = 31.5, pl.z = s->world().tile(124, 31).floor, pl.vx = pl.vy = 0.0;
+        s->body().reset();
+        s->preload();
+        step(*s, ev, 0.5);
+        check(spawn(*s, ev), "Wrangler (Level 5): im Kesselgang zieht einer durch");
+        const vec3 w = P.posOf(Role::Wrangler);
+        const world::Tile& t = s->world().tile(ifloor(w.x), ifloor(w.y));
+        check(t.room && t.room->type && (t.room->type->key == "kesselgang" || t.room->type->key == "kesselraum"), "Wrangler (Level 5): nur im Kesselgang/Kesselraum");
+    }
+}
+
 // V13.3: Growler (Entity 130) und Nguithr'xurh (Entity 16) - KREATUR_Growler.md, KREATUR_Nguithrxurh.md
 static void testV133GrowlerNguithr(const std::string& dataDir) {
     const game::Content& content = *gContent11;
@@ -3162,6 +3379,7 @@ int main(int argc, char** argv) {
     testV12Glb(argv[1]);        // V12: Modelle aus Blender
     testB001Sleeve(argv[1]);    // V13.2: Kapuzenjacke am gebeugten Ellbogen
     testV133DullerArms(argv[1]);  // V13.3: Duller und Arms (Level 1)
+    testV133Wrangler(argv[1]);    // V13.3: Wrangler (Level 1, 2)
     testV133GrowlerNguithr(argv[1]);  // V13.3: Growler, Nguithr'xurh
     std::printf("%s: %d Pruefungen, %d Fehler\n", gFails ? "FEHLGESCHLAGEN" : "OK", gChecks, gFails);
     return gFails ? 1 : 0;

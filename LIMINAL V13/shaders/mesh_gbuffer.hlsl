@@ -397,6 +397,22 @@ GBufferOut PSMain(VSOut i, bool front : SV_IsFrontFace)
         if (ign(i.svpos.xy, gRingParams.z) < thin)
             discard;
     }
+    // V13.3: durchscheinende Haut (Wrangler, world_renderer.hpp kMatMembraneShift): Bits 16-23 = Deckkraft. Gerastert ausduennen;
+    // schraeg gesehen (laengerer Weg durch die Haut) dichter. Das TAA mischt es zu einer milchigen Haut, durch die man das Innere sieht
+    const uint memb = (m.layers >> 16) & 0xFFu;
+    float membWin = 0.0;
+    if (memb != 0u && ((m.layers >> 26) & 1u))
+    {
+        const float facing = abs(dot(N, normalize(gCameraPos.xyz - i.wpos)));
+        // duenne Stellen ("Fenster", ~30 cm, an der Haut haftend): dort sieht man klar hinein
+        const float3 bq = i.bindPos;  // zwei gedrehte Oktaven - keine achsparallelen Kanten
+        const float wn = 0.62 * smokeNoise(float3(bq.x * 0.8 + bq.y * 0.6, bq.y * 0.8 - bq.x * 0.6, bq.z) * 3.3 + 17.0) +
+                         0.38 * smokeNoise(float3(bq.x * 0.6 - bq.z * 0.8, bq.y, bq.z * 0.6 + bq.x * 0.8) * 6.7 + 5.0);
+        membWin = smoothstep(0.52, 0.7, wn);
+        const float op = lerp(1.0, (memb / 255.0) * (1.0 - 0.62 * membWin), smoothstep(0.12, 0.7, facing));
+        if (ign(i.svpos.xy, gRingParams.z) >= op)
+            discard;
+    }
     float3 T = normalize(i.t.xyz - N * dot(i.t.xyz, N));
     float3 B = cross(N, T) * i.t.w;
     uint layer = m.layers & 0xFFu;
@@ -404,6 +420,14 @@ GBufferOut PSMain(VSOut i, bool front : SV_IsFrontFace)
     {
         GBufferOut g = shadeEntity(m, i.bindPos, i.bindN, N, i.uv);
         g.normal.w = gAttached;
+        if (memb != 0u)  // V13.3: durchscheinend - in der Mitte schimmert das dunkle Innere durch, der Rand leuchtet hell
+        {
+            const float facing = abs(dot(N, normalize(gCameraPos.xyz - i.wpos)));
+            const float core = smoothstep(0.3, 0.95, facing) * (1.0 - 0.5 * saturate(i.uv.x));
+            g.albedo.rgb = lerp(g.albedo.rgb, g.albedo.rgb * float3(0.4, 0.27, 0.3), core * (0.5 + 0.3 * membWin));
+            g.misc.r = lerp(g.misc.r, 0.12, membWin * 0.6);  // die duennen Stellen glaenzen nass
+            g.albedo.rgb = lerp(g.albedo.rgb, saturate(g.albedo.rgb * 1.4 + 0.03), (1.0 - smoothstep(0.08, 0.45, facing)) * 0.55);
+        }
         // V13: Haut der Wesen laesst Licht eindringen (in Ritzen weniger)
         if ((m.layers >> 30) & 1u)
             g.misc.a = 1.0 - 0.7 * (1.0 - 0.6 * saturate(i.uv.x));

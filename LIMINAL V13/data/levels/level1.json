@@ -20,6 +20,9 @@
                // es dunkel ist; chance: Anteil, mit dem es ohne Lueftung in der Naehe durch einen Riss in der Decke kommt)
                "duller": { "every": 150 },
                "arms": { "every": 40, "chance": 0.7 },
+               // V13.3 (KREATUR_Wrangler.md): Wrangler ziehen durch Waende, Boden oder Decke (Level 1: bebt es, leise gehen);
+               // chance: Anteil der Weibchen (davon 40 % traechtig); count: einmal je Ebene Jungtiere an einer Wand (selten)
+               "wrangler": { "mode": "mixed", "every": 320, "chance": 0.4, "count": 1 },
                // V13.3 (KREATUR_Growler.md, KREATUR_Nguithrxurh.md): Growler ausgewachsen, einzeln; Nguithr'xurh gross, hungrig
                "growler": { "mode": "adult", "group": [1, 1], "every": 330 },
                "nguithrxurh": { "mode": "large", "group": [3, 4], "every": 170, "chance": 1.0 } },

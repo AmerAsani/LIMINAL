@@ -47,7 +47,7 @@ VSOut VSMain(uint vid : SV_VertexID)
     float3 base = float3(hash01(i * 3u + 1u), hash01(i * 3u + 2u), hash01(i * 3u + 3u)) * E;
     float ph = hash01(i * 7u + 11u) * 6.2831853;
     float3 drift = float3(sin(t * 0.21 + ph), cos(t * 0.17 + ph * 1.3), sin(t * 0.13 + ph * 0.7)) * 0.35;
-    drift.z -= t * 0.012;
+    drift.z -= t * 0.012 + gPass0.w;  // V13.3: Beben (Wrangler) - der Staub faellt
     float3 rel = frac((base + drift - cam) / E) - 0.5;  // -0.5 .. 0.5 um die Kamera
     float3 p = cam + rel * E;
 

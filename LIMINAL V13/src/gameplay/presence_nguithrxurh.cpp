@@ -429,6 +429,7 @@ void Presence::thinkNguithr(Agent& a, double dt, const Context& c, std::vector<E
         case 0:
         case 3: {  // an der Decke
             a.up = {0, 0, -1};
+            if (a.state == 0 && sp.moveP < 1.0f && a.light > 0.5f) sp.moveP = 1.0f, sp.home = a.pos;  // auch mitten im Bauen: im Licht erstarren
             if (sp.moveP < 1.0f) {  // unterwegs (bauen oder huschen)
                 sp.moveP = std::min(1.0f, sp.moveP + (float)dt / sp.moveDur);
                 const vec3 p = sp.from + (sp.to - sp.from) * sp.moveP;
