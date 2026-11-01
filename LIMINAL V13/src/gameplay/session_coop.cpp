@@ -16,7 +16,12 @@ void GameSession::pawnInput(Pawn& p, const PlayerControl& c0, double dt) {
     if (!p.alive) return;
     PlayerControl c = c0;
     p.player.speedMul = p.stats.speedMul() * (p.stats.exhausted ? 0.9 : 1.0);
-    if (!p.stats.canSprint()) c.sprint = false;
+    p.player.speedMul *= presence_.slowFor(p.id, {(float)p.player.x, (float)p.player.y, (float)p.player.z});  // V13.3
+    if (p.id > 0 && p.id < Phenomena::kPlayers) {  // V13.3: Fieber, Ranken, ihre Einladung (session_phenomena.cpp)
+        p.player.speedMul *= phenomena_.speedMul(p.id);
+        if (phenomena_.frozen(p.id)) c.forward = c.side = 0.0f, c.sprint = c.jump = c.jumpHeld = false;
+    }
+    if (!p.stats.canSprint() || presence_.stupor(p.id) > 0.5f) c.sprint = false;
     if (const world::Room* wr = world_->roomAt(p.player.x, p.player.y)) p.player.waterZ = wr->water;
     else p.player.waterZ = -999.0;
     p.player.update(dt, c, tileSrc());
@@ -78,6 +83,7 @@ void GameSession::pawnTick(Pawn& p, double dt) {
 
 bool GameSession::pawnInteract(Pawn& p, u32 hash, std::string& msg, int& note) {
     note = -1;
+    if (p.alive && hash < 4) return pawnSpeak(p, (int)hash);  // V13.3: Ansprechen (Satz 0..3, session_lure.cpp)
     if (!p.alive || !hash) return false;
     ecs::Entity found = ecs::kNull;
     reg_.each<Pickup, Transform>([&](ecs::Entity e, Pickup& pk, Transform&) {
@@ -123,6 +129,15 @@ bool GameSession::pawnUse(Pawn& p, int idx, std::string& msg, std::string& sound
         msg = "Eine Sicherung. Sie gehört in eine Fassung.";
         return false;
     }
+    if (p.inventory.slots[(size_t)idx]->kind == "hatchet") {  // V13.3: das Beil schwingt (wird nicht verbraucht)
+        sound = hatchetSwing(p.player, p.eye(), p.id) == 2 ? "hatchet_hit" : "";
+        return true;
+    }
+    if (p.inventory.slots[(size_t)idx]->kind == "glowstick") {  // V13.3: die Geste lief beim Gast - jetzt der Wurf
+        p.inventory.take(idx);
+        launchGlowstick(p.player, p.eye(), p.id);
+        return true;
+    }
     auto kind = p.inventory.take(idx);
     const ItemDef* d = kind ? content_.item(*kind) : nullptr;
     if (!d) return false;
@@ -133,6 +148,9 @@ bool GameSession::pawnUse(Pawn& p, int idx, std::string& msg, std::string& sound
         return true;
     }
     msg = p.stats.consume(*d);
+    std::vector<Phenomena::Event> pe;  // V13.3: offenes Mandelwasser steckt an, versiegeltes heilt frueh
+    if (p.id > 0 && p.id < Phenomena::kPlayers)
+        if (const std::string extra = phenomena_.drink(p.id, d->key, pe); !extra.empty()) msg += " · " + extra;
     return true;
 }
 
@@ -164,6 +182,7 @@ void GameSession::pawnRespawn(Pawn& p) {
     p.deadT = 0.0;
     p.killRole = -1;
     p.anySeq = false;
+    if (p.id > 0 && p.id < Phenomena::kPlayers) phenomena_.reset(p.id);  // V13.3
     p.body.reset();
     log::info("Koop: {} kommt am Sicherungspunkt {} zurueck", p.name, checkpoint_.empty() ? "-" : checkpoint_);
 }
@@ -191,6 +210,7 @@ void GameSession::respawnCoop() {
     deathCause_.clear();
     killCam_ = false, killT_ = 0.0, killRole_ = -1;
     air_ = 30.0, deepT_ = 0.0, deepStage_ = 0;
+    phenomena_.reset(0);  // V13.3
     events_.push_back({GameEvent::TeleportCut});
 }
 
@@ -242,6 +262,8 @@ void GameSession::throwFrom(const Player& p, vec3 eye, const std::string& kind, 
 // --- Gast ---------------------------------------------------------------------------------------
 void GameSession::netRemoveItem(u32 hash) {
     std::vector<ecs::Entity> gone;
+    bool known = false;  // V13.3: ein abgelegtes Ding oder ein geladener Fund
+    for (const DroppedItem& d : dropped_) known = known || d.netHash == hash;
     reg_.each<Pickup, Transform>([&](ecs::Entity e, Pickup& pk, Transform&) {
         if (pk.worldId.rfind("drop:", 0) == 0) {
             for (const DroppedItem& d : dropped_)
@@ -249,11 +271,20 @@ void GameSession::netRemoveItem(u32 hash) {
         } else if (worldItemHash(pk.worldId) == hash) {
             picked.insert(pk.worldId);
             gone.push_back(e);
+            known = true;
         }
     });
     reg_.each<NoteFind, Transform>([&](ecs::Entity e, NoteFind& nf, Transform&) {
-        if (worldItemHash(nf.id) == hash) picked.insert(nf.id), gone.push_back(e);
+        if (worldItemHash(nf.id) == hash) picked.insert(nf.id), gone.push_back(e), known = true;
     });
+    // V13.3: der Fund liegt hier (noch) nicht geladen (ferner Sektor) - merken, beim Laden nicht erzeugen; sonst stimmte
+    // der geteilte Stand nie wieder (im Langlauf gefunden) und der Gast saehe einen Fund, den es nicht mehr gibt
+    // Doppelt gemeldet (Stand beim Wiederverbinden mit derselben Sitzung) zaehlt nicht doppelt; die Menge ist begrenzt
+    // (Speicher, falls ein Host Unsinn meldet - die Pruefsumme zeigt das dann als Abweichung)
+    if (!known)
+        for (const std::string& id : picked) known = known || worldItemHash(id) == hash;
+    if (!known && netPendingPicked_.size() < kMaxNetPendingPicked) netPendingPicked_.insert(hash);
+    if (known) netPendingPicked_.erase(hash);  // mit Kennung bekannt: nicht zugleich als gemerkte Kennzahl zaehlen
     std::erase_if(dropped_, [&](const DroppedItem& d) { return d.netHash == hash; });
     for (ecs::Entity e : gone) {
         if (target_ == e) target_ = ecs::kNull;
@@ -262,6 +293,14 @@ void GameSession::netRemoveItem(u32 hash) {
 }
 
 void GameSession::netAddDropped(u32 hash, const std::string& kind, vec3 pos) {
+    if (kind == "glowstick_lit") {  // V13.3: geworfener, leuchtender Leuchtstab (session_lure.cpp)
+        netAddLure(pos);
+        return;
+    }
+    if (kind == "painting") {  // V13.3: ein Gemaelde liegt jetzt vor einer anderen Tuer (session_phenomena.cpp)
+        phenomena_.netMove(hash, pos);
+        return;
+    }
     if (!content_.item(kind)) return;
     for (const DroppedItem& d : dropped_)
         if (d.netHash == hash) return;  // schon da (doppelt gemeldet)
@@ -287,7 +326,7 @@ void GameSession::netDie(int role) {
     if (stats_.dead) return;
     stats_.health = 0.0;
     stats_.dead = true;
-    deathCause_ = role >= 0 ? "stalker" : "stats";
+    deathCause_ = role >= 0 ? "stalker" : role == -2 ? "pilz" : role == -3 ? "garten" : "stats";  // V13.3: -2/-3 Erscheinungen
     killRole_ = role;
     if (role >= 0) {
         killCam_ = true, killT_ = 0.0;
@@ -344,8 +383,30 @@ u32 GameSession::sharedHash() const {
     };
     u32 a = 0, b = 0;
     for (const std::string& id : picked) a += mix(worldItemHash(id));
+    for (u32 h : netPendingPicked_) a += mix(h);  // V13.3: aufgenommen, hier noch nicht geladen
     for (const DroppedItem& d : dropped_) b += mix((d.netHash ? d.netHash : worldItemHash(d.id)) ^ 0x9E3779B9u);
-    return mix(a ^ mix(b + 0x632BE5ABu) ^ ((u32)picked.size() << 8) ^ (u32)dropped_.size());
+    return mix(a ^ mix(b + 0x632BE5ABu) ^ ((u32)(picked.size() + netPendingPicked_.size()) << 8) ^ (u32)dropped_.size());
+}
+
+bool GameSession::isPicked(const std::string& id) {
+    if (picked.count(id)) return true;
+    if (netPendingPicked_.empty()) return false;
+    const auto it = netPendingPicked_.find(worldItemHash(id));
+    if (it == netPendingPicked_.end()) return false;
+    netPendingPicked_.erase(it);  // jetzt mit Kennung bekannt
+    picked.insert(id);
+    return true;
+}
+
+void GameSession::netWorldState(std::vector<u32>& pickedOut, std::vector<NetWorldEvent>& dropsOut) const {
+    pickedOut.clear(), dropsOut.clear();
+    for (const std::string& id : picked) pickedOut.push_back(worldItemHash(id));
+    for (const DroppedItem& d : dropped_) {
+        vec3 pos = d.pos;
+        if (reg_.alive(d.entity))
+            if (const Transform* t = const_cast<ecs::Registry&>(reg_).get<Transform>(d.entity)) pos = t->pos;
+        dropsOut.push_back({NetWorldEvent::Dropped, d.netHash ? d.netHash : worldItemHash(d.id), d.kind, pos, 0});
+    }
 }
 
 int GameSession::itemCount() const {

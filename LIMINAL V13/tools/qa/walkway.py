@@ -20,16 +20,44 @@ from game import run  # noqa: E402
 from maplib import NAMES, ROOT, Grid, path  # noqa: E402
 
 
-def plan(g, rooms_min, meters_min, seed):
+def plan(g, rooms_min, meters_min, seed, zone=None):
     rnd = random.Random(seed)
     adj = g.neighbours()
     sx, sy = g.m['start'][0], g.m['start'][1]
+    if zone:  # V13.3: Weg in einer Zone beginnen (Kritikrunden fuer Bereiche abseits des Starts)
+        cand = [r for r in g.rooms if r.get('zone') == zone]
+        x0, y0, x1, y1 = max(cand, key=lambda r: (r['rect'][2] - r['rect'][0]) * (r['rect'][3] - r['rect'][1]))['rect']
+        sx, sy = next((x + 0.5, y + 0.5) for y in range((y0 + y1) // 2, y1) for x in range((x0 + x1) // 2, x1) if g.ok(x + 0.5, y + 0.5))
     cur = int(g.room[int(sy), int(sx)])
     pts = [(sx, sy)]
     seq = [cur]
     visited = {cur}
     length = 0.0
     guard = 0
+    if not adj.get(cur):  # V13.3: Ebene aus einem Raum (Level 903): entlang der langen Seite hin und zurueck
+        r = g.rooms[cur]
+        x0, y0, x1, y1 = r['rect']
+        along_x = (x1 - x0) >= (y1 - y0)
+        lanes = [y0 + (y1 - y0) * f for f in (0.35, 0.65)] if along_x else [x0 + (x1 - x0) * f for f in (0.35, 0.65)]
+        for k, lane in enumerate(lanes):
+            ends = (x0 + 1.5, x1 - 1.5) if k % 2 == 0 else (x1 - 1.5, x0 + 1.5)
+            for e in ends:
+                q = (e, lane) if along_x else (lane, e)
+                if g.ok(*q):
+                    p_ = path(g, pts[-1], q)
+                    if p_:
+                        for qq in p_[1:]:
+                            length += math.hypot(qq[0] - pts[-1][0], qq[1] - pts[-1][1])
+                            pts.append(qq)
+        return pts, seq, length
+    # V13.3: nicht mehr Raeume verlangen, als erreichbar sind (Level 188 hat 6 - sonst bis zur Schutzgrenze im Kreis)
+    reach, todo = {cur}, [cur]
+    while todo:
+        for n_ in adj.get(todo.pop(), ()):
+            if n_ not in reach:
+                reach.add(n_)
+                todo.append(n_)
+    rooms_min = min(rooms_min, len(reach))
     while (len(visited) < rooms_min or length < meters_min) and guard < 400:
         guard += 1
         nb = sorted(adj.get(cur, ()))
@@ -77,6 +105,22 @@ def resample(pts, step):
     return out
 
 
+def view_yaw(g, x, y, yaw, near=6.0):
+    """Blick in Laufrichtung; steht dort eine Wand naeher als `near`, die freieste Richtung bis +-75 Grad
+    (Kritikrunde 1 Level 1: Bilder zeigten in Kurven nur eine Wand)."""
+    if g.ray(x, y, yaw, maxd=near + 1.0) >= near:
+        return yaw
+    best, score = yaw, -1.0
+    for k in range(1, 6):
+        for sgn in (1, -1):
+            a = yaw + sgn * math.radians(15 * k)
+            d = g.ray(x, y, a, maxd=40.0)
+            sc = d - 0.04 * 15 * k
+            if sc > score:
+                best, score = a, sc
+    return best
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('level')
@@ -86,9 +130,10 @@ def main():
     ap.add_argument('--meters', type=float, default=200.0)
     ap.add_argument('--seed', type=int, default=1)
     ap.add_argument('--size', default='1280x720')
+    ap.add_argument('--zone', default=None, help='Weg in dieser Zone beginnen (groesster Raum der Zone)')
     a = ap.parse_args()
     g = Grid(a.level)
-    pts, seq, length = plan(g, a.rooms, a.meters, a.seed)
+    pts, seq, length = plan(g, a.rooms, a.meters, a.seed, a.zone)
     shots = resample(pts, a.step)
     od = os.path.join(ROOT, 'docs', 'screens', a.level, f'wegbilder_{a.round}')
     os.makedirs(os.path.dirname(od), exist_ok=True)  # Einzelbilder bleiben in build/qa/walk (nur Boegen ins Repository)
@@ -99,6 +144,7 @@ def main():
         j = min(i + 1, len(shots) - 1)
         k = max(i - 1, 0)
         yaw = math.atan2(shots[j][1] - shots[k][1], shots[j][0] - shots[k][0]) if j != k else 0.0
+        yaw = view_yaw(g, x, y, yaw)
         lines.append(f'pos {x:.2f} {y:.2f} {yaw:.4f} -0.04')
         lines.append('wait 10')
         lines.append('shot ' + os.path.join(raw, f'{i:03d}.png').replace('\\', '/'))

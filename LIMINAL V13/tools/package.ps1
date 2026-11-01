@@ -44,6 +44,12 @@ Copy-Item (Join-Path $Bin 'LiminalGame.exe') (Join-Path $Out 'LIMINAL.exe')
 foreach ($d in 'data', 'shaders', 'assets') {
     Copy-Item -Recurse (Join-Path $Bin $d) (Join-Path $Out $d)
 }
+# V13.3 Koop (MULTIPLAYER_SETUP.md): Netz-DLL (laedt das Spiel erst beim Hosten/Beitreten), Lobby- und Relay-Server
+# zum Selbstbetreiben, Beispiel fuer koop.json (die Adresse der Lobby traegt der Herausgeber ein)
+foreach ($f in 'liminal_net.dll', 'liminal_lobby.exe') {
+    if (Test-Path (Join-Path $Bin $f)) { Copy-Item (Join-Path $Bin $f) $Out }
+}
+Copy-Item (Join-Path $Root 'tools\lobby\koop.example.json') (Join-Path $Out 'koop.example.json')
 
 # Kurzanleitung fuer Spieler (die ausfuehrliche README bleibt beim Quellcode)
 $readme = @'
@@ -151,12 +157,32 @@ $lic = Join-Path $Out 'licenses'
 New-Item -ItemType Directory -Force $lic | Out-Null
 $tcLicense = Join-Path $Root '.toolchain\llvm-mingw\LICENSE.TXT'
 if (Test-Path $tcLicense) { Copy-Item $tcLicense (Join-Path $lic 'llvm-mingw_LICENSE.txt') }
+# V13.3: Lizenzen der Netzbibliotheken in liminal_net.dll und liminal_lobby.exe (LICENSES.md, Abschnitt 7). libdatachannel
+# und libjuice stehen unter MPL-2.0: ihre Quellen liegen unveraendert im Quellcode des Spiels (third_party).
+$netLic = @{
+    'libdatachannel_LICENSE.txt' = 'third_party\libdatachannel\LICENSE'
+    'libjuice_LICENSE.txt'       = 'third_party\libdatachannel\deps\libjuice\LICENSE'
+    'usrsctp_LICENSE.txt'        = 'third_party\libdatachannel\deps\usrsctp\LICENSE.md'
+    'plog_LICENSE.txt'           = 'third_party\libdatachannel\deps\plog\LICENSE'
+    'mbedtls_LICENSE.txt'        = 'third_party\mbedtls\LICENSE'
+    'nlohmann_json_LICENSE.txt'  = 'third_party\nlohmann_json\LICENSE.MIT'
+}
+foreach ($k in $netLic.Keys) {
+    $src = Join-Path $Root $netLic[$k]
+    if (Test-Path $src) { Copy-Item $src (Join-Path $lic $k) }
+}
 $notice = @'
 LIMINAL V10 wurde mit llvm-mingw (https://github.com/mstorsjo/llvm-mingw) gebaut.
 Statisch eingebunden sind Teile der LLVM-Laufzeit (libc++, libc++abi, libunwind,
 compiler-rt; Apache License 2.0 mit LLVM Exceptions) und der mingw-w64-Laufzeit
 (https://www.mingw-w64.org, ZPL/MIT-artige Lizenzen). Die Lizenztexte stehen in
 llvm-mingw_LICENSE.txt.
+
+Koop (V13.3): liminal_net.dll und liminal_lobby.exe enthalten libdatachannel 0.24.6 und
+libjuice 1.7.4 (Paul-Louis Ageneau, Mozilla Public License 2.0; Quellcode unveraendert unter
+https://github.com/paullouisageneau/libdatachannel und im Quellcode von LIMINAL, third_party),
+usrsctp (BSD-3-Clause), plog (MIT), Mbed TLS 3.6.7 (Apache License 2.0) und nlohmann/json
+3.12.0 (MIT). Die Lizenztexte stehen in den *_LICENSE.txt dieses Ordners.
 '@
 Set-Content -Path (Join-Path $lic 'THIRD_PARTY_NOTICES.txt') -Value $notice -Encoding UTF8
 

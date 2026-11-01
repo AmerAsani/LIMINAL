@@ -33,6 +33,7 @@ class Grid:
         self.door = np.zeros((H, W), bool)
         self.pillar = np.zeros((H, W), bool)
         self.block = np.zeros((H, W), bool)
+        self.tall = np.zeros((H, W), bool)
         self.rooms = self.m['rooms']
         for i, r in enumerate(self.rooms):
             x0, y0, x1, y1 = r['rect']
@@ -50,12 +51,17 @@ class Grid:
                                 self.pillar[ty, tx] = True
             for b in r.get('blocks', []):
                 bx0, by0, bx1, by1, h, hidden = b[:6]
-                if hidden == 1 or h < 0:
+                # V13.3: sichtbare Bloecke ueber Stufenhoehe (Innenwaende, Becken, Sockel) sperren ebenfalls - vorher
+                # liefen Laufweg-Blick und Sichtachsen durch die Innenwaende von Level 1 (Aquila)
+                if hidden == 1 or h < 0 or h >= 1.5:  # niedrigere sichtbare Bloecke sind Podeste (Bahnsteig, Stufen)
                     self.block[by0:by1, bx0:bx1] = True
+                if h >= 1.5:  # Sicht auf Augenhoehe: nur Bloecke ab 1,5 m (Waende, Regale), nicht Kisten, Kanten, Gruben
+                    self.tall[by0:by1, bx0:bx1] = True
         for d in self.m['doors']:
             x0, y0, x1, y1 = d['rect']
             self.door[y0:y1, x0:x1] = True
             self.walk[y0:y1, x0:x1] = True
+        self.see = self.walk & ~self.pillar & ~self.tall
         self.walk &= ~self.pillar & ~self.block
         self.objects = self.m.get('objects', [])
 
@@ -64,12 +70,13 @@ class Grid:
         return 0 <= ix < self.W and 0 <= iy < self.H and self.walk[iy, ix]
 
     def ray(self, x, y, a, maxd=200.0, step=0.25):
-        """Sichtweite (m) von (x, y) in Richtung a ueber begehbare Kacheln."""
+        """Sichtweite (m) auf Augenhoehe von (x, y) in Richtung a: Waende, Stuetzen und Bloecke ab 1,5 m begrenzen."""
         c, s = math.cos(a), math.sin(a)
         d = 0.0
         while d < maxd:
             d += step
-            if not self.ok(x + c * d, y + s * d):
+            ix, iy = int(math.floor(x + c * d)), int(math.floor(y + s * d))
+            if not (0 <= ix < self.W and 0 <= iy < self.H and self.see[iy, ix]):
                 return d - step
         return maxd
 

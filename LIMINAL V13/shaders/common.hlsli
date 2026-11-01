@@ -26,7 +26,7 @@ cbuffer FrameCB : register(b0)
     float4 gTaa;                 // x Verlauf verwerfen (1), y Mischfaktor, z Nachschaerfen, w Zeitschritt (s)
     float4 gDebug;               // x Debug-Ansicht (0 aus), y AO auf Direktlicht, zw frei
     float4 gWave;                // V11: Welle des Stromausfalls: xy Ursprung, z Front (m, < 0 keine); V13: w = 1 Debug-Kamera (kein Ausblenden nah)
-    float4 gExtra;               // V13.3: x Anzahl der Pfuetzen (gPuddles)
+    float4 gExtra;               // V13.3: x Anzahl der Pfuetzen (gPuddles), y Pilz, z Garden, w Bildschirmgesicht
 };
 
 // Konstanten einzelner Nachbearbeitungsschritte

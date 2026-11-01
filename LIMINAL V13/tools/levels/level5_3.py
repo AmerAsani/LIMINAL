@@ -14,6 +14,7 @@ Draufsicht (x nach rechts, y nach unten):
 """
 import math
 import os
+import random
 import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
@@ -191,6 +192,19 @@ def dress_aisles(J, S, old):
             m.obj('ceiling_arms', R.cx, R.cy, R.floor + R.height, 0.0 if along_x else math.pi / 2, tag='deco')
         if rng.random() < 0.12:
             m.obj('books_fallen', R.cx, R.cy, R.floor, rng.random() * 6.28, tag='deco')
+        # V13.3 (Kritikrunde 1): in hellen Gaengen Kandelaber zwischen den Regalen - vorher standen sie nur an den
+        # Kreuzungen und die Regale der Gaenge blieben schwarz (Wiki: nur ein aelterer Gang liegt im Dunkeln)
+        if not old:
+            L_ = R.w if along_x else R.h
+            for k_ in range(3, L_ - 2, 6):
+                side = 1 if (k_ // 6) % 2 else -1
+                if along_x:
+                    cx, cy = R.x0 + k_ + 0.5, R.cy + side * (R.h / 2 - 0.75)
+                else:
+                    cx, cy = R.cx + side * (R.w / 2 - 0.75), R.y0 + k_ + 0.5
+                if not m.blocked(cx, cy):
+                    m.obj('candelabrum', cx, cy, R.floor, rng.random() * 6.28, tag='light')
+                    m.light(r, cx, cy, 0, 0.55, 6.0, z=R.floor + 1.85, panel=False, color=CANDLE)
     for (i, j), r in J.items():
         if r is None:
             continue
@@ -288,5 +302,15 @@ safe_point('alte_gaenge', TJ[(0, 2)], 'Alte Gaenge')
 safe_point('ostfluegel', EJ[(4, 3)], 'Ostfluegel')
 safe_point('westfluegel', vj, 'Vor der Leere', at=(VJ.cx + 0.5, VJ.cy + 0.5))
 safe_point('treppe', ST, 'Treppe', at=(S_.x0 + 1.5, S_.cy))
+
+# V13.3: Varianten der haeufigen Klassen (Blender, name@N.glb) zufaellig gewaehlt; Anordnung unveraendert
+VARIANTS = {'bookcase_aisle': 3, 'bookcase_aisle_b': 3, 'library_wall': 3, 'candelabrum': 2, 'books_fallen': 3,
+            'ceiling_arms': 2, 'painting_renaissance_a': 2, 'painting_renaissance_b': 2}
+vrng = random.Random(53031)
+for o in m.objects:
+    if o['model'] in VARIANTS:
+        v_ = vrng.randrange(VARIANTS[o['model']])
+        if v_:
+            o['variant'] = v_
 
 m.save()
