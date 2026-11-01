@@ -185,7 +185,7 @@ python ../../../tools/check_no_network.py
 | Angriffe auf den Host | Gast mit gültiger Raumnummer, eigener WebRTC-Stack: Nutzdaten vor dem Hallo, Text statt Binär, 3000 Byte → je getrennt; falsche Version → Absage VERSION; kein Hallo → Zeitlimit; Flut nach gültigem Hallo (3000 in 0,2 s) → höchstens Vorrat + Rate angenommen, anhaltende Flut → getrennt; der ehrliche Gast bleibt verbunden | 10/10 |
 | Angriffe auf die Lobby | Unsinn, Binär, 20 KB, 3000-fach geschachtelt, Host-Befehl vom Gast → getrennt; stumm → nach 10 s getrennt; 12 Verbindungen bei Grenze 6 → höchstens 6 offen; 14 Raumnummern geraten → 10× unbekannt, dann gesperrt; danach 3 000 veränderte Nachrichten über 60 Verbindungen gegen eine Lobby ohne Bremse → echter Beitritt geht | 9/9 |
 
-### 7.2 Koop mit Bots (`coop_test`, vollständig): **OK, 201 Prüfungen, 0 Fehler** (714 s)
+### 7.2 Koop mit Bots (`coop_test`, vollständig): **OK, 201 Prüfungen, 0 Fehler** (714 s; Lauf vom 27.10.2026 vor der SCTP-Änderung aus 7.8 – die Abschlussläufe danach: 7.10)
 
 Bots, Momentaufnahmen, Vorhersage und Abgleich wie in 5.2, jetzt über die neuen Wege. „Ping“ ist die von SCTP gemessene Laufzeit, „Verlust“ der Anteil unbeantworteter Pings der letzten 20 s.
 

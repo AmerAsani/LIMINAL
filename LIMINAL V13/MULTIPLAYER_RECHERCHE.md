@@ -140,6 +140,11 @@ Die ausführlichen Prüfungen stehen in `MULTIPLAYER_TESTS.md`, Abschnitt 7.
 
 **Größe:** `liminal_net.dll` 3,4 MB, `liminal_lobby.exe` 3,0 MB (statisch gebunden).
 
+**Was erst im Betrieb auffiel:**
+- Die Vorgaben von libdatachannel für SCTP sind auf Webanwendungen ausgelegt: Wartezeit bis zur Wiederholung bis 10 s, 5 Versuche.
+- Für ein Echtzeitspiel über ein verlustreiches Relay war das zu träge: einmal über 10 s Stillstand im 60-min-Langlauf.
+- LIMINAL setzt über die öffentliche Schnittstelle `rtc::SetSctpSettings` höchstens 2 s und 12 Versuche (E-033, `MULTIPLAYER_TESTS.md`, Abschnitt 7.8).
+
 ## Quellen (abgerufen am 27.10.2026)
 
 1. EvaisaDev, LethalCompanyUnityTemplate – https://github.com/EvaisaDev/LethalCompanyUnityTemplate

@@ -215,5 +215,6 @@ Status: Nicht an die Entwickler gemeldet (dafür wäre ein Konto nötig). Empfeh
 - **Durchsicht:** wieder nur durch mich, entlang dieser Tabelle. Dabei gefunden und behoben:
   - Absagen kamen beim Gast nicht an, weil die Verbindung sofort geschlossen wurde → jetzt 1 s Nachlauf;
   - Regelbrecher belegten 120 s einen Platz;
-  - der Gast sah Wesen-Rollen über 5 nicht in Ereignissen.
+  - der Gast sah Wesen-Rollen über 5 nicht in Ereignissen;
+  - im 60-min-Langlauf über das gestörte Relay stand der Verkehr einmal über 10 s still: SCTP wartete bis zu 10 s auf Wiederholungen, die Stille-Erkennung trennte einen Gast → Wartezeit höchstens 2 s, 12 Versuche (E-033).
   - Eine unabhängige Durchsicht durch Dritte gibt es weiterhin nicht.
