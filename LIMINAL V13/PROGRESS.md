@@ -114,3 +114,27 @@ Agenten: alle ausser „Props Level 1 Blender-Modelle“ (vom Nutzer gestoppt, A
   - Audio `a1a310e23cd626c63`;
   - Ausstattung L2, L3, L0, L5, 5.3+188, 903+37, 36.
 - Offen bleiben die Kritikrunden 1 für Level 5.3, 188, 903, 37 und 36.
+
+### V13.3 Zwischenstand 6 (01.11.2026, Nutzungsgrenze)
+- **Zusammengeführt:**
+  - Wrangler;
+  - Growler und Nguithr'xurh (die Spinne nach meiner Ablehnung neu gebaut, Runden 6–11);
+  - Tests danach: gameplay 525/0, audio 106/0, coop 169/0, net 72/0, worldgen 29658/0.
+- **Kritikrunde 1 für alle zehn Ebenen erledigt:**
+  - 5.3: Gang-Kandelaber;
+  - 188: Treppe im hohen Treppenhaus;
+  - 903 und 37: keine Änderung;
+  - 36: Modelle der Sicherheitskontrolle und Lounge fehlen (Ausstattungs-Agent L36).
+- **Entscheidungen und Werkzeuge:**
+  - E-036: Laufweg bei Ebenen mit wenigen Räumen;
+  - E-037: Zeilenenden;
+  - Faceling-Test L2 robust gemacht.
+- **Angehalten** (Nutzungsgrenze), fortsetzen mit Workflow resumeFromRunId bzw. SendMessage:
+  - Workflow `wf_47b840e5-0cf` (L1-Kette 1: Smiler-Köder/Skin-Stealer-Ansprache, dann Crawler/Garden/Entity 99/Spuren);
+  - Workflow `wf_8f47b53b-d0c` (L1-Kette 2: Ouroboros-Arbeiter Index 16, dann Plague Goblins Index 17);
+  - MP-Agent `aa6ecde9fd4b8ff11` (war im 60-Minuten-Langlauf).
+- **Danach:**
+  - Ausstattungs-Agenten L2 `acc032bb367994ffc`, L3 `a6fe00bab51c07b16`, L0 `a1b72bb19ca0e0be3`, L5 `a0e27f49b0224c52f`, 5.3+188 `aa6c5b5bc78be7eb1`, 903+37 `a3d9507a3a2648424`, 36 `a400115d30c290821`;
+  - Audio `a1a310e23cd626c63`;
+  - Wesen-Wellen L2/L3/L5+ (Deathmoths, Jerry, Cannibal Cuisine, Windows, Photoshop, Swindlebird, Macchina, Death-Rat-Fallen, purpurne Wesen, Red Knight, Samantha, Ants, Woodlins, Watchers, Entity 18, Ambassadors, Entity 39);
+  - Wow-Check der vorhandenen Wesen.
