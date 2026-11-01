@@ -974,7 +974,7 @@ def _partition(prefix, x, s, M, facing):
     _tube(f'{prefix}_buegel', [(xp, s * 0.97, 1.06), (xp, s * 1.2, 1.06), (xp, s * 1.40, 1.10)], 0.014, M['steel'], seg=6)
 
 
-def _grab_rail(prefix, x0, x1, s, M):
+def _grab_rail(prefix, x0, x1, s, M, straps=False):
     y, z, zc = s * 0.93, 1.87, 2.24
     _tube(f'{prefix}_stange', [(x0, y, zc), (x0, y, z + 0.06), (x0 + 0.06, y, z), (x1 - 0.06, y, z), (x1, y, z + 0.06), (x1, y, zc)],
           0.016, M['steel'], seg=7)
@@ -982,6 +982,38 @@ def _grab_rail(prefix, x0, x1, s, M):
     for k in range(1, n):
         x = x0 + (x1 - x0) * k / n
         _cyl(f'{prefix}_halter{k}', (x, y, z), (x, y, zc), 0.011, M['chrome_worn'], seg=6)
+    if straps:  # Halteschlaufen (Riemen und Griffring) an der Stange
+        strap = common.material('halteriemen', (0.12, 0.12, 0.13), look='rubber', rough=0.7, r=1.0)
+        ring = common.material('griffring', (0.78, 0.74, 0.62), look='plastic', rough=0.5, r=0.8)
+        ns = max(2, int((x1 - x0) / 0.6))
+        for k in range(ns):
+            x = x0 + 0.3 + (x1 - x0 - 0.6) * k / max(1, ns - 1)
+            _box(f'{prefix}_riemen{k}', (x - 0.012, y - 0.004, z - 0.10), (x + 0.012, y + 0.004, z - 0.01), strap)
+            pts = [(x + 0.05 * math.sin(TAU * j / 10), y, z - 0.148 + 0.05 * math.cos(TAU * j / 10)) for j in range(11)]
+            _tube(f'{prefix}_ring{k}', pts, 0.008, ring, seg=5, caps=False)
+
+
+def _ads(prefix, x0, x1, s, M, rng):
+    """Werbekarten im Bogen ueber den Fenstern (Wiki: Werbung in mehreren oder unbekannten Sprachen; keine echten Marken):
+    Rahmen, farbiger Grund, erfundene Zeichen, einfache Bildform."""
+    y = s * (_side_y(1.92) - WALL_T - 0.002)
+    U = Vector((s, 0, 0))  # nach rechts fuer den Betrachter im Wagen; Normale zeigt in den Wagen
+    cols = [M['sticker_y'], M['sticker_b'], M['sticker_r'], M['sticker_w']]
+    x = x0 + 0.1
+    k = 0
+    while x + 0.62 < x1:
+        if rng.random() < 0.8:
+            o = Vector((x if s > 0 else x + 0.6, y, 1.865))
+            n = Vector((0, -s, 0))
+            bg = cols[rng.randrange(4)]
+            _decal(f'{prefix}_rahmen{k}', o, U, (0, 0, 1), [(-0.01, -0.01), (0.61, -0.01), (0.61, 0.125), (-0.01, 0.125)], M['inner_grey'])
+            _decal(f'{prefix}_grund{k}', o + n * 0.001, U, (0, 0, 1), [(0, 0), (0.6, 0), (0.6, 0.115), (0, 0.115)], bg)
+            ink = M['sticker_w'] if bg in (M['sticker_b'], M['sticker_r']) else M['ink']
+            _text(f'{prefix}_text{k}', _word(rng, 3, 5), o + n * 0.002 + U * 0.03 + Vector((0, 0, 0.035)), U, (0, 0, 1), 0.05, ink)
+            _decal(f'{prefix}_form{k}', o + n * 0.002, U, (0, 0, 1),
+                   [(0.50 + 0.04 * math.cos(TAU * j / 10), 0.058 + 0.04 * math.sin(TAU * j / 10)) for j in range(10)], cols[rng.randrange(4)])
+        x += 0.65
+        k += 1
 
 
 def _ceiling(M, L):
@@ -1315,7 +1347,8 @@ def _build_car(minus, plus, track, dz, seed):
     for s in (-1, 1):
         for k, (a, b) in enumerate(benches):
             _bench(f'bank{s}_{k}', a, b, s, M, rng)
-            _grab_rail(f'griff{s}_{k}', a + 0.08, b - 0.08, s, M)
+            _grab_rail(f'griff{s}_{k}', a + 0.08, b - 0.08, s, M, straps=(k in (1, 2)))
+            _ads(f'werbung{s}_{k}', a, b, s, M, rng)
             for (x, facing) in ((a, -1), (b, 1)):
                 if abs(abs(x) - L) > 0.2:
                     _partition(f'trenn{s}_{k}_{facing}', x + facing * 0.015, s, M, facing)
