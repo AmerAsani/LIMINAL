@@ -66,6 +66,12 @@ def _frame(g, M, dirt=0.0):
           mats=[F, F, F, F, Fd])
     sweep(g, [(-0.02, 0.026), (-0.02, 0.046), (-0.014, 0.054), (0.014, 0.054), (0.02, 0.046), (0.02, 0.026)],
           [(0.0, -W / 2, 0.32), (0.0, W / 2, 0.32)], (1, 0, 0), F, smooth=50, flip=True, mats=[Fd, F, F, F, F])
+    # Fluegelrahmen je Scheibe mit Glasleiste (ab x = 0,026 wie Pfosten und Kaempfer)
+    sprof = [(-0.032, 0.026), (-0.032, 0.031), (-0.027, 0.039), (-0.012, 0.043), (0.0, 0.04), (0.0, 0.026)]
+    for (ya, yb) in ((-W / 2 + 0.002, -0.02), (0.02, W / 2 - 0.002)):
+        for (za, zb_) in ((-H / 2 + 0.002, 0.3), (0.34, H / 2 - 0.002)):
+            sweep(g, sprof, [(0.0, ya, za), (0.0, yb, za), (0.0, yb, zb_), (0.0, ya, zb_)], (1, 0, 0), F, closed=True, smooth=50, flip=True,
+                  mats=[Fd, F, F, F, F])
     # Fensterbank aus Aluminium mit Tropfnase und Endkappen (Oberseite bei z = -0,97: Fundstuecke liegen hier)
     zb = -H / 2 - 0.07
     bprof = [(0.0, zb + 0.004), (0.12, zb + 0.001), (0.195, zb - 0.002), (0.202, zb - 0.006), (0.205, zb - 0.014), (0.205, zb - 0.04),
@@ -161,10 +167,10 @@ def _glow_room(g, warm=False, strength=0.35):
     g.face([(0.003, -W / 2 - 0.004, -H / 2 - 0.004), (0.003, W / 2 + 0.004, -H / 2 - 0.004), (0.003, W / 2 + 0.004, H / 2 + 0.004),
             (0.003, -W / 2 - 0.004, H / 2 + 0.004)], edge, out=(1, 0, 0))
     # weicher Abfall zur Lampe hin (oben, etwas seitlich): Ringe mit steigender Staerke
-    for k in range(4):
-        f = 1.0 - k * 0.22
-        mk = mat('raumlicht%d' % k + ('_warm' if warm else ''), _mix(c0, (0.2, 0.15, 0.1), 0.38 - 0.1 * k), 'glow', glow=strength * (0.78 + 0.08 * k))
-        pts = [(0.0032 + 0.0003 * k, 0.04 + 0.5 * f * math.cos(a), 0.05 + 0.2 * (1 - f) + 0.8 * f * math.sin(a)) for a in [2 * math.pi * i / 16 for i in range(16)]]
+    for k in range(8):
+        f = 1.0 - k * 0.11
+        mk = mat('raumlicht%d' % k + ('_warm' if warm else ''), _mix(c0, (0.2, 0.15, 0.1), 0.38 - 0.05 * k), 'glow', glow=strength * (0.76 + 0.04 * k))
+        pts = [(0.0031 + 0.00015 * k, 0.04 + 0.5 * f * math.cos(a), 0.05 + 0.2 * (1 - f) + 0.8 * f * math.sin(a)) for a in [2 * math.pi * i / 16 for i in range(16)]]
         g.face(pts, mk, out=(1, 0, 0))
 
 
@@ -472,7 +478,7 @@ def build_birch_circle():
         a, b = P[i], P[(i + 1) % 64]
         for k in range(len(prof) - 1):
             (ra, za), (rb, zb) = prof[k], prof[k + 1]
-            n2 = Vector(((zb - za), 0, -(rb - ra))).normalized()
+            n2 = Vector((-(zb - za), 0, (rb - ra))).normalized()
             nA = Vector((a[0] * n2.x, a[1] * n2.x, n2.z))
             nB = Vector((b[0] * n2.x, b[1] * n2.x, n2.z))
             g.face([(a[0] * ra, a[1] * ra, za), (b[0] * ra, b[1] * ra, za), (b[0] * rb, b[1] * rb, zb), (a[0] * rb, a[1] * rb, zb)],

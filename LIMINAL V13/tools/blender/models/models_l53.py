@@ -1926,7 +1926,7 @@ def _ceiling_arms(variant):
     # Schriftband unter dem Schild
     band = [(-0.26, -0.44), (-0.13, -0.415), (0.0, -0.43), (0.13, -0.415), (0.26, -0.44), (0.24, -0.48), (0.13, -0.455), (0.0, -0.47), (-0.13, -0.455),
             (-0.24, -0.48)]
-    poly(band, mat('band_weiss', (0.84, 0.80, 0.70), 'paint', r=1.0), 6)
+    poly(band, mat('band_pergament', (0.72, 0.64, 0.48), 'paint', r=1.1), 6)
     # Eckrosetten des Stuckfelds, abgeplatzte Farbe, Wasserrand
     for (sx, sy) in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
         old = g.M
