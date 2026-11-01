@@ -257,7 +257,7 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     // Nguithr'xurh - sandfarben behaart (Walzenspinne); Seide grauweiss, faserig, matt; Betaeubungsstoff milchig und nass
     materialData_[FM_ENT_SOLIFUGE] = GpuMaterial{{1.2f, 0.8f, 0.5f}, 0, ent(EL_FUR, ML_FIBER), 1.05f, 0, 0.45f};  // Runde 2/4: zu hell und sauber (Holz)
     materialData_[FM_ENT_SILK] = GpuMaterial{{1.75f, 1.68f, 1.5f}, 0, ent(EL_FUR, ML_FIBER), 1.15f, 0, 0.5f};  // Runde 1: zu weiss, glaenzte wie Glas
-    materialData_[FM_ENT_SEDATIVE] = GpuMaterial{{1.0f, 0.97f, 0.82f}, 0, ent(EL_TOOTH, ML_PORES), 0.12f, 0, 0.05f};
+    materialData_[FM_ENT_SEDATIVE] = GpuMaterial{{0.72f, 0.66f, 0.48f}, 0, ent(EL_TOOTH, ML_PORES), 0.1f, 0, 0.15f};  // Runde 5: Pfuetzen wie helles Papier - dunkler, nass
     writeMaterials(gpu);
     lights_ = gpu.createStructured(sizeof(GpuLight), 2048, true, false);
     puddles_ = gpu.createStructured(sizeof(vec4), kMaxPuddles * 2, true, false);  // V13.3
