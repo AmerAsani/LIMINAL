@@ -570,7 +570,7 @@ def _row(g, BK, rng, y0, y1, zb, fmt, xf_lo, xf_hi, tops_below, dust_mat=None, m
                 xf = xf_row + rng.uniform(-0.002, 0.002)
                 if rng.random() < 0.06:
                     xf += rng.uniform(0.01, 0.03)  # herausgezogen
-                b = _make_book(rng, BK, y, t, h, min(xf, 0.432), col, faded, deco, edge, side)
+                b = _make_book(rng, BK, y, t, h, min(xf, 0.432, xf_hi + 0.012), col, faded, deco, edge, side)
                 items.append(('u', b))
                 last_up = b
                 y += t
@@ -1259,7 +1259,12 @@ def build_chandelier_iron():
     lathe(g, [(0.0, -2.06), (0.012, -2.04), (0.02, -2.0), (0.0, -1.97)], Rd, seg=8)
     for (zr, R, n) in ((-1.85, 1.0, 12), (-1.35, 0.6, 8)):
         P = [(R * math.cos(2 * math.pi * i / 36), R * math.sin(2 * math.pi * i / 36), zr) for i in range(36)]
-        hm = [W if (i // 3 + int(R * 10)) % 5 else Ru for i in range(36)]
+        hm, run_ = [], 0  # Rost in unregelmaessigen Flecken (abgeplatzter Lack), mal kurz, mal laenger
+        for i in range(36):
+            if run_ <= 0 and rng.random() < 0.12:
+                run_ = rng.choice((1, 1, 2, 3))
+            hm.append(Ru if run_ > 0 else (Rd if rng.random() < 0.06 else W))
+            run_ -= 1
         tube(g, P, 0.022, W, sides=6, closed=True, mats=hm)
         for k in range(4):  # S-Arme vom Schaft zum Reifen
             a = k * math.pi / 2 + (0.0 if R > 0.8 else math.pi / 4)
