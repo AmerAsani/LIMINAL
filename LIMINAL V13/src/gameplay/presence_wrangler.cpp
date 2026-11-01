@@ -375,9 +375,18 @@ void Presence::thinkWrangler(Agent& a, double dt, const Context& c, std::vector<
             a.alert = 1.0f, a.shiver = 0.4f, a.growl = 1.0f, a.reach = 1.0f, a.jaw = 1.0f, a.perceive = 0.0f;
             a.strike = (float)std::clamp((a.stateT - 0.18) / 0.3, 0.0, 1.0);
             a.goal = a.knocks ? a.heard + vec3{0, 0, 0.3f} : chest;
+            // bis zum Zuschnappen folgt die Stelle dem, der laut ist (wer rennt, laeuft ihm nicht davon)
+            if (!a.knocks && a.stateT < 0.2 && c.noise >= 0.4) {
+                vec3 at, nn;
+                if (wranglerBreak(c, P, a.pos, at, nn) && length(at - Hp) > 0.6f) {
+                    a.fwd = nrmF(at - a.pos, {1, 0, 0});
+                    a.bait = std::min(1.0f, length(at - a.pos) / kBreakScale);
+                    a.up = nn;
+                }
+            }
             if (a.stateT >= 0.45 && a.stateT - dt < 0.45) {
                 const vec3 nn = nrmF(a.up, {0, 0, 1});
-                const bool reach = length(chest - Hp) < 3.4f && std::fabs((float)c.player->z - (Hp.z - (std::fabs(nn.z) > 0.8f ? 0.0f : 1.0f))) < 1.2f &&
+                const bool reach = length(chest - Hp) < 3.9f && std::fabs((float)c.player->z - (Hp.z - (std::fabs(nn.z) > 0.8f ? 0.0f : 1.0f))) < 1.2f &&
                                    clearSight(*c.world, Hp + nn * 0.4f, chest);
                 if (!a.knocks && reach && c.mode >= 2) {
                     out.push_back({Event::Attack, Role::Wrangler, a.cre.headPos(), 1.0f});
@@ -405,7 +414,8 @@ void Presence::thinkWrangler(Agent& a, double dt, const Context& c, std::vector<
         }
         case 10: {  // toetet: der Kopf vor dem Gesicht
             a.reach = 1.0f, a.strike = 1.0f, a.jaw = 1.0f, a.growl = 1.0f, a.alert = 1.0f;
-            a.goal = eye - vec3{0, 0, 0.35f};
+            // das ganze grinsende Gesicht vor der Kamera: die Schnauze haelt gut einen Meter vor dem Auge
+            a.goal = eye + nrmF(flat(a.cre.headPos() - eye), nrmF(flat(c.view.look), {1, 0, 0})) * 1.05f - vec3{0, 0, 0.12f};  // auf Augenhoehe
             if (a.stateT > 2.6) a.state = 9;
             break;
         }

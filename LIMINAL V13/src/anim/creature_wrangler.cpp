@@ -184,7 +184,7 @@ void CreatureAnimator::updateWrangler(float dt, const Input& in) {
             const float sw = (0.35f + 0.5f * agit) * std::sin(ph), sw2 = (0.4f + 0.6f * agit) * std::sin(ph * 1.3f + 1.1f);
             const vec3 d1 = nrm(-U * 1.0f + n * (0.55f + 0.2f * std::sin(ph * 0.7f)) + side * sw * 0.6f, -U);
             const vec3 m = root + d1 * 0.36f;
-            const vec3 d2 = nrm(d1 + n * (0.3f * sw2) + side * (0.5f * sw2) - U * 0.4f, -U);
+            const vec3 d2 = nrm(d1 + n * (0.55f * sw2) + side * (0.8f * sw2) - U * 0.25f, -U);  // der schwere Kopf pendelt und kruemmt sich
             // Ruhepose (wrangler_brood.py): das Junge liegt von x0 + 0,19 bis x0 + 0,91 m - Knochen 2y traegt die ersten 0,36 m
             J[(size_t)ringA(2 * y)] = root - d1 * 0.19f, J[(size_t)ringA(2 * y) + 1] = m;
             J[(size_t)ringA(2 * y + 1)] = m, J[(size_t)ringA(2 * y + 1) + 1] = m + d2 * 0.36f;
@@ -315,7 +315,7 @@ void CreatureAnimator::updateWrangler(float dt, const Input& in) {
         Hb = Hb + (hl - Hb) * lunge;
         const vec3 off = Hb - Hp;
         const float l = length(off);
-        if (l > 3.3f) Hb = Hp + off * (3.3f / l);
+        if (l > 3.7f) Hb = Hp + off * (3.7f / l);  // der Hals reicht weit (6 x 0,5 m aus der Flaeche)
         dT = nrm(tgt - Hb, dT);
     }
     // Blick: aus der Flaeche heraus, dann zum Ziel; sucht er, pendelt der Kopf

@@ -66,7 +66,7 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 | Crawler (Entity 17) | Ein krankmachender Pilz. | **bewusst weggelassen**: Pilz ohne Gestalt und Verhalten auf der Ebenenseite; als Gefahr nur über Krankheit, die das Spiel nicht kennt |
 | Growler (Entity 130) | Wesen aus Kabeln; ein schwerer Gegenstand auf dem Kopf verwirrt sie. | **fehlt**: Priorität 8 |
 | Nguithr'xurh (Entity 16) | Insektenartig an der Decke, bei kugelförmigen Netzen. | **fehlt**: Priorität 7 |
-| Wrangler (Entity 75) | Riesig, schlangenartig, gräbt sich durch Wände, hypnotisiert; leise gehen, wenn die Wände beben. | **fehlt**: Priorität 10 (Großwesen, braucht zerstörbare Wände) |
+| Wrangler (Entity 75) | Riesig, schlangenartig, gräbt sich durch Wände, hypnotisiert; leise gehen, wenn die Wände beben. | **umgesetzt (V13.3)**: Beben, Durchzug durch Wand, Boden oder Decke, Sog des Anblicks, wer laut ist, wird geschnappt; selten Jungtiere – [KREATUR_Wrangler.md](KREATUR_Wrangler.md) |
 | Staphylococcus liminalis (Entity 19), Plague Goblins (Entity 25) | Krankheitserreger. | **bewusst weggelassen**: keine Gestalt; das Spiel hat kein Krankheitssystem |
 | Narrenfigur im Gemälde (Entity 99) | Ein Bild, das als Ausgang zu Level 389 dient. | **bewusst weggelassen**: Ausgang zu einer Ebene, die das Spiel nicht enthält |
 | Gruppen (M.E.G., B.N.T.G., Ariane Circle u. a.), schattenhafte Arbeiter im Overall | Menschliche Gruppen; Arbeiter aus einem Ouroboros-Sektor. | **bewusst weggelassen**: Menschen, keine Wesen; nur über Notizen angedeutet |
@@ -87,7 +87,7 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 | Nguithr'xurh (Entity 16) | Jagen Insekten und Motten, selten Menschen. | **fehlt**: Priorität 7 |
 | Death Rat (Entity 24) | Fast harmlos, fressen Flüssigkeiten aus Fässern und Essen. | **neu (V13.2), teilweise**: haarlose Ratten (Entity 24), stieben davon, beißen bedrängt (`KREATUR_DeathRat.md`); das Fressen aus Fässern fehlt |
 | Cannibal Cuisine (Entity 36) | Unbewegliche, leuchtende Wesen an Sackgassen; Wegmarken im Stromausfall, nicht gefährlich. | **fehlt**: Priorität 11 |
-| Wrangler (Entity 75) | Graben sich durch den Boden und überfallen aus den Gängen. | **fehlt**: Priorität 10 |
+| Wrangler (Entity 75) | Graben sich durch den Boden und überfallen aus den Gängen. | **umgesetzt (V13.3)**: vor allem Männchen, quer durch die Gänge, Kopf bricht aus Wand oder Boden; keine Jungtiere – [KREATUR_Wrangler.md](KREATUR_Wrangler.md) |
 | Photoshop (Entity 104) | Keine Art; selten, vor allem in PC-Räumen. | **bewusst weggelassen**: Die Seite beschreibt weder Gestalt noch Verhalten auf dieser Ebene. |
 | Growler (Entity 130) | Klein; verschmelzen in engen Gängen, bis sie stecken bleiben. | **fehlt**: Priorität 8 |
 | Swindlebird (Entity 192) | Eine einzelne, unbestätigte Sichtung. | **bewusst weggelassen** (unbestätigt) |
@@ -121,7 +121,7 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 | Skin-Stealer (Entity 10) | Kommt vor, ohne Verhalten. | **neu (V13.2)**: wahre Gestalt (Verhalten nach der Entity-Seite) |
 | Death Rat (Entity 24) | Kommt vor, ohne Verhalten. | **neu (V13.2)**: Ratten mit dem Schrei-Ereignis (Entity 24: Kreischen, das Licht flackert); dass sie männliche Motten fressen, ist nur dieses Ereignis außer Sicht (das Spiel hat nur Weibchen) |
 | Woodlins (Entity 45), Watchers (Entity 38), Ants (Entity 89), Growlers (Entity 130), Nguithr'xurh (Entity 16) | Nur genannt, ohne Verhalten auf der Ebenenseite. | **fehlt**: Priorität 13. Ohne Verhalten auf der Ebene wäre jedes Verhalten erfunden; die Entity-Seiten sind noch nicht ausgewertet. |
-| Wrangler (Entity 75) | Eine einzelne Meldung aus dem Kesselraum. | **bewusst weggelassen** (Einzelmeldung) |
+| Wrangler (Entity 75) | Eine einzelne Meldung aus dem Kesselraum. | **umgesetzt (V13.3)**: selten (~900 s), nur im Kesselgang/Kesselraum – [KREATUR_Wrangler.md](KREATUR_Wrangler.md) |
 | Samantha (Entity 26) | Wandert manchmal durch die Haupthalle; wer sich nähert, soll gutes Fleisch mitbringen. | **fehlt**: Priorität 14. Ein einzelnes, benanntes Wesen mit Handel (Fleisch) – das Spiel hat keinen Tauschhandel. |
 | Entity 18 (Stimme, die in ihr Büro bittet) | Erzählstimme der Seite. | **bewusst weggelassen** (Erzählung) |
 | Unsichtbare Anwesenheit, Flüstern aus den Kesseln, Partygeräusche | Unbestätigt. | **umgesetzt** als Halluzinationen und Klang der Ebene |
@@ -188,7 +188,7 @@ Bewertet nach Zahl der Ebenen, Dichte der Beschreibung auf den Ebenenseiten und 
 | 7 | Nguithr'xurh (Entity 16) | 1, 2, (5) | offen |
 | 8 | Growler (Entity 130) | 1, 2, (5) | offen |
 | 9 | Arms (entite-15-fr) | 1 | **umgesetzt (V13.3)**: [KREATUR_Arms.md](KREATUR_Arms.md) |
-| 10 | Wrangler (Entity 75) | 1, 2 | offen |
+| 10 | Wrangler (Entity 75) | 1, 2, 5 (Kesselraum) | umgesetzt (V13.3) – [KREATUR_Wrangler.md](KREATUR_Wrangler.md) |
 | 11–14 | Cannibal Cuisine, purpurne Wesen, Woodlins/Watchers/Ants, Samantha | je eine | offen |
 
 Ab Rang 6 sind die Wesen in dieser Runde nicht gebaut. Der Grund ist der Aufwand je Wesen: Briefing, Blender-Modell, Rig, Animationen, Verhalten, Klang, Gleichgewicht, mindestens drei Kritikrunden sowie Server-KI und Tests im Mehrspieler. Die Reihenfolge steht hier, damit die nächste Runde dort weitermacht. Der jeweilige Stand ist in `REPORT_V13_2.md` vermerkt.

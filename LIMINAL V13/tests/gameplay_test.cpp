@@ -3055,6 +3055,26 @@ static void testV133Wrangler(const std::string& dataDir) {
             check(s->stats().dead && s->killRole() == (int)Role::Wrangler, "Wrangler: wer bei den Jungen bleibt, den holt die Mutter");
         }
     }
+    // --- Level 5: die Einzelmeldung aus dem Kesselraum - nur dort ---------------------------------------------------------
+    {
+        auto s = open("level5", 37);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        P.setGrace(3000.0);
+        P.force(Role::Wrangler);
+        step(*s, ev, 1.0);
+        check(P.stateOf(Role::Wrangler) < 0, "Wrangler (Level 5): ausserhalb des Kesselraums keiner");
+        auto& pl = s->player();
+        pl.x = 124.5, pl.y = 31.5, pl.z = s->world().tile(124, 31).floor, pl.vx = pl.vy = 0.0;
+        s->body().reset();
+        s->preload();
+        step(*s, ev, 0.5);
+        check(spawn(*s, ev), "Wrangler (Level 5): im Kesselgang zieht einer durch");
+        const vec3 w = P.posOf(Role::Wrangler);
+        const world::Tile& t = s->world().tile(ifloor(w.x), ifloor(w.y));
+        check(t.room && t.room->type && (t.room->type->key == "kesselgang" || t.room->type->key == "kesselraum"), "Wrangler (Level 5): nur im Kesselgang/Kesselraum");
+    }
 }
 
 int main(int argc, char** argv) {
