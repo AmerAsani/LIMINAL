@@ -3580,6 +3580,285 @@ static void testV133Ouroboros(const std::string& dataDir) {
     }
 }
 
+// V13.3: Plague Goblins (KREATUR_PlagueGoblins.md) - Bande mit Portal in Level 1: ausser Sicht, Kasten, Diebstahl von hinten mit
+// Ankuendigung, Abschuetteln, Beil (verscheucht / trifft - die Bande flieht und kommt nicht wieder), Bedraengen eines Geschwaechten
+// mit Ankuendigung und Grenze, Handel, Flucht vor dem Hound, Koop-Zustand
+static void testV133PlagueGoblins(const std::string& dataDir) {
+    std::printf("V13.3: Plague Goblins\n");
+    const game::Content& content = *gContent11;
+    game::PrefabLibrary prefabs;
+    prefabs.loadDirectory(dataDir + "/prefabs");
+    JobSystem jobs(2);
+    using PE = game::Presence::Event;
+    using Role = game::Presence::Role;
+    namespace gb = anim::gb;
+    auto open = [&](const char* level, i64 seed) {
+        auto s = std::make_unique<game::GameSession>(content, prefabs, content.level(level, world::kLayoutV6), seed, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        s->presence().setGrace(3000.0);
+        return s;
+    };
+    auto step = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, double secs, const std::function<bool()>& each = {}) {
+        for (int i = 0; i < (int)(secs * 60.0); ++i) {
+            if (each && each()) break;
+            s.update(1.0 / 60.0, {}, false);
+            ev.insert(ev.end(), s.events().begin(), s.events().end());
+            s.events().clear();
+        }
+    };
+    auto count = [](const std::vector<game::GameEvent>& ev, PE::Type t, float minI = -1.0f) {
+        return (int)std::count_if(ev.begin(), ev.end(), [&](const game::GameEvent& e) {
+            return e.type == game::GameEvent::Figure && e.index == (int)t && e.role == (int)Role::Goblin && e.intensity >= minI;
+        });
+    };
+    auto face = [](game::GameSession& s, vec3 at) {
+        auto& pl = s.player();
+        pl.vx = pl.vy = 0.0;
+        pl.angle = std::atan2(at.y - pl.y, at.x - pl.x);
+        pl.pitch = 0.0;
+        s.body().reset();
+    };
+    auto feetOf = [](game::GameSession& s) { return vec3{(float)s.player().x, (float)s.player().y, (float)s.player().z}; };
+    // eine Bande erzwingen und warten, bis alle aus dem Portal sind
+    auto gang = [&](game::GameSession& s, std::vector<game::GameEvent>& ev) {
+        auto& P = s.presence();
+        step(s, ev, 2.0);
+        P.force(Role::Goblin);
+        step(s, ev, 0.2);
+        bool out = false;
+        step(s, ev, 9.0, [&] {
+            const auto in = P.goblinInfo();
+            out = in.active && std::none_of(in.state.begin(), in.state.end(), [&](int st) { return st == gb::S_INSIDE || st == gb::S_EMERGE; });
+            return out;
+        });
+        return out;
+    };
+
+    // --- Daten: Level 1 kennt sie, Level 2 nicht; das Beil liegt in den Funden von Level 1 -----------------------------
+    {
+        const auto L1 = content.level("level1", world::kLayoutV6), L2 = content.level("level2", world::kLayoutV6);
+        check(L1 && L1->kin[world::KIN_GOBLIN].on && L1->kin[world::KIN_GOBLIN].groupMin >= 9, "Plague Goblins: Level 1 kennt sie (Banden ab 9, die Seite: 9-27)");
+        check(L2 && !L2->kin[world::KIN_GOBLIN].on, "Plague Goblins: Level 2 kennt sie nicht");
+        const game::ItemDef* hd = content.item("hatchet");
+        check(hd && hd->maxStack == 1 && hd->model == "hatchet", "Beil: Gegenstand vorhanden (einzeln, eigenes Modell)");
+        int withHatchet = 0;
+        for (u64 seed = 1; seed <= 16; ++seed) withHatchet += countSupplies("level1", seed).kinds.count("hatchet") ? 1 : 0;
+        check(withHatchet >= 8 && withHatchet <= 16, std::format("Beil: in den Funden von Level 1 ({} von 16 Laeufen)", withHatchet));
+    }
+
+    // --- Auftritt: Portal ausser Sicht, Kasten, Klang vor Sicht ------------------------------------------------------------
+    auto s = open("level1", 31);
+    std::vector<game::GameEvent> ev;
+    auto& P = s->presence();
+    step(*s, ev, 2.0);
+    P.force(Role::Goblin);
+    step(*s, ev, 0.1);
+    auto info = P.goblinInfo();
+    check(info.active && info.bodies >= 9 && info.bodies <= 12, std::format("Plague Goblins: eine Bande erscheint ({} Koerper)", info.bodies));
+    if (!info.active) return;
+    {
+        const vec3 eye = s->body().eye();
+        const vec3 to = info.portal + vec3{0, 0, 0.7f} - eye;
+        const vec3 look = forwardFromAngles((float)s->player().angle, (float)s->player().pitch);
+        const bool inView = dot(normalize(to), look) > 0.3f && game::clearSight(s->world(), eye, info.portal + vec3{0, 0, 0.7f});
+        check(!inView && length(to) > 12.0f, std::format("Plague Goblins: das Portal oeffnet sich ausser Sicht ({:.0f} m)", length(to)));
+        int gate = 0, scouts = 0;
+        for (int v : info.variant) gate += v == 2 ? 1 : 0, scouts += v == 1 ? 1 : 0;
+        check(gate == 1 && scouts == 2, std::format("Plague Goblins: eine Torwaechterin, zwei Spaeher (die Seite: drei Kasten; {} / {})", gate, scouts));
+        check(count(ev, PE::Portal, 0.9f) == 1 && count(ev, PE::Croak) >= 1, "Plague Goblins: Klang vor Sicht (Portal, Kraechzen)");
+    }
+    bool out = false;
+    step(*s, ev, 9.0, [&] {
+        const auto in = P.goblinInfo();
+        out = std::none_of(in.state.begin(), in.state.end(), [&](int st) { return st == gb::S_INSIDE || st == gb::S_EMERGE; });
+        return out;
+    });
+    check(out && P.goblinInfo().portalOpen, "Plague Goblins: alle springen einzeln aus dem offenen Portal");
+    // Koop: der Zustand geht mit Rolle, Kaste und Zustand ueber das Netz
+    {
+        std::vector<game::Presence::NetState> ns;
+        P.netStates(ns, feetOf(*s), 40);
+        int gob = 0, gateN = 0, portalN = 0;
+        for (const auto& n : ns) {
+            if (n.role != (int)Role::Goblin) continue;
+            ++gob;
+            gateN += n.variant == 2 ? 1 : 0;
+            portalN += n.variant == 3 ? 1 : 0;
+        }
+        check(gob == info.bodies + 1 && gateN == 1 && portalN == 1, std::format("Plague Goblins: Netzzustand (Rolle {}, {} Eintraege)", (int)Role::Goblin, gob));
+    }
+
+    // --- Diebstahl: von hinten, angekuendigt; vorn nie -------------------------------------------------------------------
+    s->inventory().add("almond");
+    s->inventory().add("almond");
+    s->inventory().add("battery");
+    s->flashlight().on = true;
+    face(*s, P.goblinInfo().portal);  // man sieht zur Bande
+    P.goblinSet("phase", 2);
+    ev.clear();
+    step(*s, ev, 12.0, [&] {
+        face(*s, P.goblinInfo().portal);
+        return false;
+    });
+    check(count(ev, PE::Steal) == 0, "Plague Goblins: wer zur Bande sieht, wird nicht bestohlen (sie erstarren, wenn man sie ansieht)");
+    // jetzt mit dem Ruecken zur Bande
+    const vec3 away = feetOf(*s) * 2.0f - P.goblinInfo().portal;
+    double t = 0.0, warnT = -1.0, tookT = -1.0;
+    const int almond0 = s->inventory().count("almond") + s->inventory().count("battery");
+    ev.clear();
+    step(*s, ev, 60.0, [&] {
+        face(*s, away);
+        t += 1.0 / 60.0;
+        if (warnT < 0.0 && count(ev, PE::Steal, -1.0f) > 0) warnT = t;
+        if (tookT < 0.0 && count(ev, PE::Steal, 0.9f) > 0) tookT = t;
+        return tookT > 0.0 && t > tookT + 0.5;
+    });
+    const int almond1 = s->inventory().count("almond") + s->inventory().count("battery");
+    check(warnT > 0.0 && tookT > 0.0 && tookT - warnT >= 1.0,
+          std::format("Plague Goblins: von hinten - es zerrt am Rucksack ({:.1f} s), dann ist etwas fort ({:.1f} s)", warnT, tookT));
+    check(almond1 == almond0 - 1, std::format("Plague Goblins: genau ein Stueck gestohlen ({} -> {})", almond0, almond1));
+    check(count(ev, PE::Hit) == 0, "Plague Goblins: der Diebstahl tut nicht weh");
+
+    // --- Beil: ein Schwung ohne Treffer verscheucht; ein Treffer toetet einen, die Bande flieht und kommt nicht wieder ----------
+    {
+        s->inventory().add("hatchet");
+        int slot = -1;
+        for (int i = 0; i < game::Inventory::kHotbar; ++i)
+            if (s->inventory().slots[(size_t)i] && s->inventory().slots[(size_t)i]->kind == "hatchet") slot = i;
+        check(slot >= 0, "Beil: liegt in der Schnellleiste");
+        if (slot >= 0) {
+            s->selectSlot(slot);
+            // einen Goblin 3,5 m vor den Spieler stellen (verscheuchen), dann einen 1,1 m davor (Treffer)
+            const vec3 f = feetOf(*s);
+            const vec3 look = vec3{std::cos((float)s->player().angle), std::sin((float)s->player().angle), 0.0f};
+            info = P.goblinInfo();
+            int far = -1, near = -1;
+            for (int j = 0; j < (int)info.state.size(); ++j)
+                if (info.state[(size_t)j] != gb::S_DEAD && info.state[(size_t)j] != gb::S_RUMMAGE && info.state[(size_t)j] != gb::S_ENTER) {
+                    if (far < 0) far = j;
+                    else if (near < 0) near = j;
+                }
+            if (far >= 0 && near >= 0) {
+                P.placeAgent(Role::Goblin, far + 1, f + look * 3.5f);
+                step(*s, ev, 0.05);
+                ev.clear();
+                s->useSlot(slot);
+                step(*s, ev, 0.2);
+                info = P.goblinInfo();
+                check(info.dead == 0 && info.state[(size_t)far] == gb::S_SCURRY, "Beil: ein Schwung verscheucht, wer davor steht (kein Treffer auf 3,5 m)");
+                check(count(ev, PE::Croak, 0.9f) > 0, "Beil: der Verscheuchte kreischt");
+                check(s->inventory().count("hatchet") == 1, "Beil: wird nicht verbraucht");
+                step(*s, ev, 1.0);
+                P.placeAgent(Role::Goblin, near + 1, f + look * 1.1f);
+                step(*s, ev, 0.05);
+                ev.clear();
+                s->useSlot(slot);
+                step(*s, ev, 0.3);
+                info = P.goblinInfo();
+                check(info.dead == 1 && info.routed && info.phase == 4, std::format("Beil: ein Treffer aus der Naehe toetet einen Goblin, die Bande flieht ({} tot)", info.dead));
+                check(count(ev, PE::Perish) == 1, "Beil: Todesschrei");
+                ev.clear();
+                step(*s, ev, 30.0, [&] { return !P.goblinInfo().active; });
+                check(!P.goblinInfo().active && count(ev, PE::Portal) >= 0, "Plague Goblins: nach dem Treffer zieht die Bande durch das Portal ab");
+                step(*s, ev, 1.0);
+                const auto reg = P.goblinInfo();
+                step(*s, ev, 120.0);
+                check(!P.goblinInfo().active && P.goblinInfo().routed && reg.routed, "Plague Goblins: sie kommen in dieser Ebene nicht wieder (die Seite)");
+            }
+        }
+    }
+
+    // --- Bedraengen: ein Geschwaechter - Masken hoch und Fauchen (Ankuendigung), Bisse, aber nicht bis zum Tod -------------------
+    {
+        auto s2 = open("level1", 7);
+        std::vector<game::GameEvent> e2;
+        const bool ok = gang(*s2, e2);
+        check(ok, "Plague Goblins: Bande (zweiter Lauf) ist da");
+        if (ok) {
+            auto& P2 = s2->presence();
+            s2->stats().health = 38.0;
+            s2->inventory().add("almond");
+            P2.goblinSet("phase", 2);
+            P2.goblinSet("mob", 1);
+            double tt = 0.0, hissT = -1.0, hitT = -1.0, screechT = -1.0;
+            bool masks = false;
+            e2.clear();
+            step(*s2, e2, 16.0, [&] {
+                tt += 1.0 / 60.0;
+                if (hissT < 0.0 && count(e2, PE::Hiss) > 0) hissT = tt;
+                if (screechT < 0.0 && count(e2, PE::Screech) > 0) screechT = tt;
+                if (hitT < 0.0 && count(e2, PE::Hit) > 0) hitT = tt;
+                const auto in = P2.goblinInfo();
+                for (float m : in.mask) masks = masks || m > 0.5f;
+                return false;
+            });
+            check(hissT >= 0.0 && masks, std::format("Plague Goblins: Geschwaechte werden bedraengt - Masken hoch, Fauchen ({:.1f} s)", hissT));
+            check(hitT < 0.0 || (hitT - hissT >= 1.3 && screechT >= 0.0 && screechT <= hitT),
+                  std::format("Plague Goblins: der erste Biss kommt nach der Ankuendigung und einem Kreischen ({:.1f} / {:.1f} s)", hitT - hissT, screechT));
+            check(count(e2, PE::Hit) >= 1, std::format("Plague Goblins: sie beissen zu ({} Bisse)", count(e2, PE::Hit)));
+            check(s2->stats().health > 5.0 && !s2->stats().dead, std::format("Plague Goblins: nicht bis zum Tod (Gesundheit {:.0f})", s2->stats().health));
+            check(P2.goblinInfo().phase == 4 || !P2.goblinInfo().active, "Plague Goblins: danach ziehen sie ab");
+        }
+    }
+
+    // --- Handel: hingelegtes Mandelwasser - sie nehmen es, die Torwaechterin legt ein Geschenk hin --------------------------------
+    {
+        auto s3 = open("level1", 12);
+        std::vector<game::GameEvent> e3;
+        const bool ok = gang(*s3, e3);
+        if (ok) {
+            auto& P3 = s3->presence();
+            // der Spieler geht zur Bande (8 m vor das Portal) und legt Mandelwasser hin
+            const vec3 pt = P3.goblinInfo().portal;
+            vec3 f = feetOf(*s3);
+            const vec3 dir = normalize(vec3{pt.x - f.x, pt.y - f.y, 0.0f});
+            P3.goblinSet("phase", 1);
+            face(*s3, pt);
+            s3->inventory().add("almond");
+            int slot = -1;
+            for (int i = 0; i < game::Inventory::kHotbar; ++i)
+                if (s3->inventory().slots[(size_t)i] && s3->inventory().slots[(size_t)i]->kind == "almond") slot = i;
+            (void)dir;
+            // nahe genug heran: auf dem Wegefeld zur Bande (Teleport an eine freie Kachel 6-8 m vor dem Portal)
+            bool placed = false;
+            for (float r = 6.0f; r <= 9.0f && !placed; r += 0.5f)
+                for (int a = 0; a < 16 && !placed; ++a) {
+                    const vec3 q = pt + vec3{std::cos(a * 0.3927f), std::sin(a * 0.3927f), 0.0f} * r;
+                    const world::Tile* tq = s3->world().tileIfLoaded(ifloor(q.x), ifloor(q.y));
+                    if (!game::figureWalkable(tq, 1.9f) || !game::clearSight(s3->world(), q + vec3{0, 0, 1.0f}, pt + vec3{0, 0, 0.5f})) continue;
+                    auto& pl = s3->player();
+                    pl.x = q.x, pl.y = q.y, pl.z = tq->floor;
+                    placed = true;
+                }
+            face(*s3, pt);
+            step(*s3, e3, 0.3);
+            if (slot >= 0) s3->dropSlot(slot, false);
+            e3.clear();
+            step(*s3, e3, 40.0, [&] { return P3.goblinInfo().gifts > 0; });
+            const auto in = P3.goblinInfo();
+            check(placed && count(e3, PE::Take) >= 1 && in.friendly, std::format("Plague Goblins: hingelegtes Mandelwasser wird genommen - Handel ({})", in.friendly ? "ja" : "nein"));
+            check(in.gifts == 1, "Plague Goblins: die Torwaechterin legt ein Geschenk hin (Batterie)");
+            check(count(e3, PE::Hit) == 0 && count(e3, PE::Steal) == 0, "Plague Goblins: im Handel kein Diebstahl, kein Angriff");
+        } else {
+            check(false, "Plague Goblins: Bande (Handel) ist da");
+        }
+    }
+
+    // --- Hound: Furcht - die Bande flieht ---------------------------------------------------------------------------------
+    {
+        auto s4 = open("level1", 21);
+        std::vector<game::GameEvent> e4;
+        if (gang(*s4, e4)) {
+            auto& P4 = s4->presence();
+            P4.force(Role::Hound, 18.0);
+            step(*s4, e4, 1.0);
+            check(!P4.has(Role::Hound) || P4.goblinInfo().phase == 4 || !P4.goblinInfo().active,
+                  std::format("Plague Goblins: ein Hound in der Naehe - die Bande flieht (Phase {})", P4.goblinInfo().phase));
+        }
+    }
+}
+
 int main(int argc, char** argv) {
     if (argc < 2) {
         std::printf("Aufruf: gameplay_test <data-Ordner>\n");
@@ -3622,6 +3901,7 @@ int main(int argc, char** argv) {
     testV133Wrangler(argv[1]);    // V13.3: Wrangler (Level 1, 2)
     testV133GrowlerNguithr(argv[1]);  // V13.3: Growler, Nguithr'xurh
     testV133Ouroboros(argv[1]);       // V13.3: Ouroboros-Arbeiter
+    testV133PlagueGoblins(argv[1]);   // V13.3: Plague Goblins, Beil
     std::printf("%s: %d Pruefungen, %d Fehler\n", gFails ? "FEHLGESCHLAGEN" : "OK", gChecks, gFails);
     return gFails ? 1 : 0;
 }

@@ -111,10 +111,16 @@ bool goalTo(A& a, world::World& w, vec3 p) {
     a.hasGoal = true;
     return true;
 }
-bool hostile(Presence::Role r) {
+// Wesen, vor denen sie warnen und fliehen (die Seite: sie meiden andere Wesen) - nur die, die umgehen: keine Jungtiere des
+// Wranglers an der Wand, kein Buendel, das verborgen im Schacht haengt
+template <class A>
+bool hostile(const A& x) {
     using R = Presence::Role;
-    return r == R::Hound || r == R::Smiler || r == R::Clump || r == R::SkinStealer || r == R::Wretch || r == R::Duller ||
-           r == R::Wrangler || r == R::Growler;
+    if (x.showcase) return false;
+    const R r = x.role;
+    if (r == R::Wrangler) return x.mode != 3;
+    if (r == R::Clump) return x.hang < 0.5f;
+    return r == R::Hound || r == R::Smiler || r == R::SkinStealer || r == R::Wretch || r == R::Duller || r == R::Growler;
 }
 }  // namespace
 
@@ -436,9 +442,22 @@ void Presence::thinkGoblin(Agent& a, double dt, const Context& c, std::vector<Ev
         const world::Tile* t = c.world->tileIfLoaded(ifloor(p.x), ifloor(p.y));
         return t && t->open() ? t->floor : p.z;
     };
+    // die letzten Schritte direkt zum Punkt (das Wegefeld fuehrt nur bis zur Kachelmitte)
+    auto direct = [&](vec3 to, double speed) {
+        vec3 d = flat(to - a.pos);
+        const float l = length(d);
+        if (l < 0.02f) return false;
+        const float st = (float)std::min((double)l, speed * qdt);
+        const vec3 np = a.pos + d / l * st;
+        if (!figureWalkable(c.world->tileIfLoaded(ifloor(np.x), ifloor(np.y)), 0.7f)) return false;
+        a.pos = {np.x, np.y, floorAt(np)};
+        a.yaw += wrapA(std::atan2(d.y, d.x) - a.yaw) * (float)std::min(1.0, dt * 8.0);
+        return true;
+    };
     // Leuchten der Augen: wirft Licht zurueck (die Seite: grosse, stark spiegelnde Augen, gelber Schimmer im Dunkeln)
     auto glowTo = [&](float t) { a.glow += (t - a.glow) * (float)std::min(1.0, dt * 6.0); };
     if (a.state == S_DEAD) {
+        if (g.hasClaim) g.hasClaim = false, std::erase_if(S.claims, [&](const vec3& p) { return hdist(p, g.claim) < 0.3f; });
         a.shiver = (float)std::max(0.0, 1.0 - a.stateT / 2.4);
         glowTo(0.0f);
         a.growl = 0.0f;
@@ -650,10 +669,16 @@ void Presence::thinkGoblin(Agent& a, double dt, const Context& c, std::vector<Ev
                 }
                 return;
             } else {
-                goalTo(a, *c.world, g.claim);
                 a.crouch = 0.4f;
                 setState(S_WALK);
-                if (!a.hasGoal || !walkTo(a, a.field, 2.4, qdt, c)) g.hasClaim = false;
+                if (hdist(a.pos, g.claim) < 1.4f && direct(g.claim, 1.6)) return;
+                goalTo(a, *c.world, g.claim);
+                if (!a.hasGoal || !walkTo(a, a.field, 2.4, qdt, c)) {
+                    if (!direct(g.claim, 1.6)) {  // kein Weg: freigeben (ein anderer darf es holen)
+                        g.hasClaim = false;
+                        std::erase_if(S.claims, [&](const vec3& p) { return hdist(p, g.claim) < 0.3f; });
+                    }
+                }
                 return;
             }
         }
@@ -734,7 +759,7 @@ void Presence::thinkGoblin(Agent& a, double dt, const Context& c, std::vector<Ev
             // Spaeher warnen vor anderen Wesen (die Seite: sie meiden andere Wesen)
             if (a.variant == 1) {
                 for (const auto& ap : agents_)
-                    if (hostile(ap->role) && !ap->showcase && hdist(ap->pos, feet) < 20.0f && !g.warned) {
+                    if (hostile(*ap) && hdist(ap->pos, feet) < 20.0f && !g.warned) {
                         g.warned = true;
                         out.push_back({Event::Croak, Role::Goblin, head, 1.0f});
                         S.phase = P_LEAVE, S.phaseT = 0.0;
@@ -748,7 +773,11 @@ void Presence::thinkGoblin(Agent& a, double dt, const Context& c, std::vector<Ev
                     setState(S_IDLE);
                     a.crouch = 1.0f, a.perceive = 1.0f, a.alert = 1.0f;
                     if (blade && d < 2.6f) walkTo(a, a.field, 0.0, qdt, c);
-                } else if (d < 1.05f && behind > 1.9f && !c.player->sprinting) {
+                } else if (d < 1.05f && behind > 1.9f && !c.player->sprinting && [&] {
+                               for (const auto& ap : agents_)  // nur einer zugleich am Ruecken
+                                   if (ap.get() != &a && ap->role == Role::Goblin && ap->state == S_RUMMAGE && ap->target == a.target) return false;
+                               return true;
+                           }()) {
                     setState(S_RUMMAGE);
                     g.startYaw = (float)c.player->angle;
                     out.push_back({Event::Steal, Role::Goblin, feet + vec3{0, 0, 1.1f}, 0.0f});
@@ -758,8 +787,11 @@ void Presence::thinkGoblin(Agent& a, double dt, const Context& c, std::vector<Ev
                     a.fly = d > 6.0f ? 1.0f : 0.0f;
                     a.crouch = 0.75f;
                     const vec3 spot = feet - fl * 0.75f;
-                    if (d < 3.0f && goalTo(a, *c.world, spot)) walkTo(a, a.field, 1.6, qdt, c);
-                    else walkTo(a, fld(), d > 6.0f ? 4.5 : 1.4, qdt, c);
+                    if (d < 1.8f && direct(spot, 1.4)) {
+                    } else if (d < 3.0f && goalTo(a, *c.world, spot) && walkTo(a, a.field, 1.6, qdt, c)) {
+                    } else {
+                        walkTo(a, fld(), d > 6.0f ? 4.5 : 1.4, qdt, c);
+                    }
                 }
                 break;
             }
@@ -855,7 +887,7 @@ void Presence::thinkGoblin(Agent& a, double dt, const Context& c, std::vector<Ev
             if (a.variant == 1) {
                 S.warnT -= qdt;
                 for (const auto& ap : agents_)
-                    if (hostile(ap->role) && !ap->showcase && hdist(ap->pos, feet) < 25.0f && S.warnT <= 0.0) {
+                    if (hostile(*ap) && hdist(ap->pos, feet) < 25.0f && S.warnT <= 0.0) {
                         S.warnT = 6.0;
                         out.push_back({Event::Croak, Role::Goblin, head, 1.0f});
                         a.perceive = 1.0f, a.perceiveAt = ap->pos + vec3{0, 0, 0.8f};

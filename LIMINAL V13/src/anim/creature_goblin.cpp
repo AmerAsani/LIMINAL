@@ -280,7 +280,8 @@ void CreatureAnimator::updateGoblin(float dt, const Input& in) {
     sprG(g.light, g.lightV, lightT, 9.0f, dt);
     sprG(g.crouch, g.crouchV, c01(in.crouch + 0.55f * g.light + 0.35f * in.growl + (scout ? 0.15f : 0.0f)), 7.0f, dt);
     sprG(g.alert, g.alertV, c01(std::max(in.alert, in.perceive)), 10.0f, dt);
-    const float maskT = dead ? 0.0f : c01(std::max(in.growl, in.strike > 0.0f ? 1.0f : 0.0f));
+    // die Torwaechterin hebt die Maske nie (der Hut; sie befiehlt, sie beisst nicht)
+    const float maskT = dead || gate ? 0.0f : c01(std::max(in.growl, in.strike > 0.0f ? 1.0f : 0.0f));
     sprG(g.mask, g.maskV, maskT, 7.5f, dt);
     const float chatter = in.talk > 0.01f ? in.talk * (0.5f + 0.5f * std::sin(time_ * 47.0f)) * 0.25f : 0.0f;
     const float hiss = in.growl > 0.3f ? 0.06f * std::sin(time_ * 61.0f) : 0.0f;
