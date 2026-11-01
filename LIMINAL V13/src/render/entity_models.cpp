@@ -1357,7 +1357,8 @@ bool entityFromGlb(Entity e, FigureModel& out, std::string& info, const std::str
         {"ent_pg_tooth", FM_ENT_PG_TOOTH}, {"ent_pg_mouth", FM_ENT_PG_MOUTH}, {"ent_pg_eye", FM_ENT_PG_EYE}, {"ent_pg_mask", FM_ENT_PG_MASK},
         {"ent_pg_leather", FM_ENT_PG_LEATHER}, {"ent_pg_ornate", FM_ENT_PG_ORNATE}, {"ent_pg_glass", FM_ENT_PG_GLASS}, {"ent_pg_brass", FM_ENT_PG_BRASS},
         {"ent_pg_cloak", FM_ENT_PG_CLOAK}, {"ent_pg_cape", FM_ENT_PG_CAPE}, {"ent_pg_hat", FM_ENT_PG_HAT}, {"ent_pg_silver", FM_ENT_PG_SILVER},
-        {"ent_pg_sand", FM_ENT_PG_SAND}, {"ent_pg_void", FM_ENT_PG_VOID}, {"ent_pg_rim", FM_ENT_PG_RIM}, {"ent_pg_loot", FM_ENT_PG_LOOT}};
+        {"ent_pg_sand", FM_ENT_PG_SAND}, {"ent_pg_void", FM_ENT_PG_VOID}, {"ent_pg_rim", FM_ENT_PG_RIM}, {"ent_pg_loot", FM_ENT_PG_LOOT},
+        {"ent_pg_skin", FM_ENT_PG_SKIN}};
     const CreatureSkeleton& sk = entitySkeleton(e);
     FigureModel m;
     std::vector<mat4> frames;

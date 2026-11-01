@@ -87,6 +87,7 @@ struct GBld {
 constexpr float kThigh = 0.082f, kShin = 0.109f, kTarsus = 0.067f, kToe = 0.06f;
 constexpr float kUpper = 0.106f, kFore = 0.090f, kHand = 0.054f;
 constexpr float kSeg[4] = {0.097f, 0.095f, 0.068f, 0.061f};  // Becken-Ruecken, Ruecken-Brust, Brust-Hals, Hals-Kopf
+constexpr float kMaskLift = 3.0f;  // so weit klappt die Maske hoch (rad; Runde 2: bei 2,5 stand sie noch wie ein Horn)
 vec3 strandDir(int k) { return {std::cos(gb::kStrandAng[k]), std::sin(gb::kStrandAng[k]), 0.0f}; }
 vec3 portalCenter() { return {0.0f, 0.0f, 0.05f + gb::kPortalH * 0.5f}; }
 vec3 ringPt(float a, float grow) {  // Punkt auf dem Rand des Portals (lokal: y quer, z hoch)
@@ -140,8 +141,8 @@ CreatureSkeleton gb::makeSkeleton() {
     for (int s = 0; s < 2; ++s) {
         const float sg = s == 0 ? 1.0f : -1.0f;
         k.j(earJ(s, 0), {0.065f, sg * 0.035f, 0.565f});
-        k.j(earJ(s, 1), {0.045f, sg * 0.062f, 0.655f});
-        k.j(earJ(s, 2), {0.03f, sg * 0.078f, 0.745f});
+        k.j(earJ(s, 1), {0.05f, sg * 0.058f, 0.627f});  // Runde 1: lang und duenn las sich wie Fuehler/erhobene Arme
+        k.j(earJ(s, 2), {0.04f, sg * 0.07f, 0.692f});
         k.j(armJ(s, 0), {0.035f, sg * 0.065f, 0.415f});
         k.j(armJ(s, 1), {0.015f, sg * 0.095f, 0.315f});
         k.j(armJ(s, 2), {0.07f, sg * 0.085f, 0.245f});
@@ -159,8 +160,8 @@ CreatureSkeleton gb::makeSkeleton() {
     for (int q = 0; q < kStrands; ++q) {
         const vec3 d = strandDir(q);
         k.j(cloakJ(q, 0), vec3{0.03f, 0, 0.44f} + d * 0.062f);
-        k.j(cloakJ(q, 1), vec3{0.0f, 0, 0.27f} + d * 0.115f);
-        k.j(cloakJ(q, 2), vec3{-0.01f, 0, 0.075f} + d * 0.15f);
+        k.j(cloakJ(q, 1), vec3{0.0f, 0, 0.28f} + d * 0.1f);   // Runde 1: bis zum Boden ein dunkler Kegel - jetzt knielang
+        k.j(cloakJ(q, 2), vec3{-0.01f, 0, 0.14f} + d * 0.122f);
     }
     k.j(CANE_A, {0.13f, -0.105f, 0.0f});
     k.j(CANE_B, {0.10f, -0.095f, 0.36f});
@@ -430,7 +431,8 @@ void CreatureAnimator::updateGoblin(float dt, const Input& in) {
     const float jawA = 0.04f + 0.9f * g.jaw;
     J[JAWT] = J[JAWP] + rotG((hd * 0.12f - hu * 0.035f) * S, hl, jawA);
     J[MASKP] = H(0.03f, 0, 0.05f);
-    J[MASKT] = J[MASKP] + rotG((hd * 0.2f - hu * 0.11f) * S, hl, -1.95f * g.mask);
+    // Runde 1: hochgeklappt ragte der Schnabel wie ein Horn nach oben - jetzt liegt er zurueck ueber dem Schaedel
+    J[MASKT] = J[MASKP] + rotG((hd * 0.2f - hu * 0.11f) * S, hl, -kMaskLift * g.mask);
 
     // --- Ohren --------------------------------------------------------------------------------------------------
     for (int s = 0; s < 2; ++s) {
@@ -443,19 +445,20 @@ void CreatureAnimator::updateGoblin(float dt, const Input& in) {
         g.earKT[s] *= std::exp(-dt * 6.0f);
         sprG(g.earK[s], g.earKV[s], g.earKT[s], 30.0f, dt);
         const vec3 rest{-0.2f, sg * 0.3f, 0.93f}, up{0.08f, sg * 0.22f, 0.97f}, flat{-0.92f, sg * 0.28f, 0.22f};
-        const float fl = c01(std::max(g.mask, std::max(0.75f * q, g.fear)) + (dead ? 1.0f : 0.0f));
+        // Torwaechterin: die Ohren liegen unter dem Hut nach hinten (Runde 1/2: durch die Krempe gesteckt wie erhobene Arme)
+        const float fl = c01(std::max(g.mask, std::max(0.75f * q, g.fear)) + (dead || gate ? 1.0f : 0.0f));
         vec3 dl = mixV(mixV(rest, up, g.alert), flat, fl);
         dl = nrmG(dl, rest);
         vec3 d = nrmG(hd * dl.x + hl * dl.y + hu * dl.z, U);
         d = rotG(d, hl, g.earK[s]);
         const vec3 E0 = H(-0.02f, sg * 0.035f, 0.05f);
-        const vec3 E1 = E0 + d * (0.092f * S);
-        const vec3 tipIdeal = E1 + nrmG(d - hd * 0.18f, d) * (0.092f * S);
+        const vec3 E1 = E0 + d * (0.066f * S);
+        const vec3 tipIdeal = E1 + nrmG(d - hd * 0.18f, d) * (0.066f * S);
         if (!g.earInit) g.earTip[s] = tipIdeal;
         sprGV(g.earTip[s], g.earTipV[s], tipIdeal, 15.0f, dt);
         J[(size_t)earJ(s, 0)] = E0;
         J[(size_t)earJ(s, 1)] = E1;
-        J[(size_t)earJ(s, 2)] = E1 + nrmG(g.earTip[s] - E1, d) * (0.092f * S);
+        J[(size_t)earJ(s, 2)] = E1 + nrmG(g.earTip[s] - E1, d) * (0.066f * S);
     }
     g.earInit = true;
 
@@ -576,8 +579,9 @@ void CreatureAnimator::updateGoblin(float dt, const Input& in) {
         }
         // wuehlen (am Ruecken): beide Krallen graben im Wechsel
         if (cling) T = J[CHEST] + F * (0.15f * S) + U * ((0.03f + 0.045f * std::sin(time_ * 17.0f + (float)s * kPiG)) * S) + L * (sg * 0.04f * S);
-        // drohen: den Umhang aufspannen
-        if (g.flare > 0.01f) T = mixV(T, sh + (L * (sg * 0.2f) + U * 0.05f + F * 0.06f) * S, g.flare);
+        // drohen: die Arme heben den Umhang nach vorn ueber das Opfer (wie ein Greif, der seine Beute abschirmt); Runde 1: seitlich
+        // ausgestreckt sah es aus wie eine Vogelscheuche
+        if (g.flare > 0.01f) T = mixV(T, sh + (L * (sg * 0.13f) + U * 0.1f + F * 0.13f) * S, g.flare);
         // Angriff: Krallen voran
         if (in.strike > 0.25f && !dead) T = mixV(T, sh + nrmG(toT * 0.9f + U * 0.1f, F) * (0.23f * S), smG((in.strike - 0.25f) / 0.15f) * (in.strike < 0.85f ? 1.0f : 0.0f));
         // Licht: der Arm auf der Lichtseite schirmt die Augen ab
@@ -658,8 +662,8 @@ void CreatureAnimator::updateGoblin(float dt, const Input& in) {
             const vec3 dk = strandDir(k);
             const vec3 radial = nrmG(tFwd * dk.x + L * dk.y, F);
             const vec3 anchor = ringC + radial * (0.062f * S);
-            const vec3 midRest = J[PELVIS] + tUp * (0.06f * S) + radial * (0.115f * S);
-            vec3 hemRest = midRest + radial * (0.04f * S) - U * (0.19f * S);
+            const vec3 midRest = J[PELVIS] + tUp * (0.065f * S) + radial * (0.1f * S);
+            vec3 hemRest = midRest + radial * (0.025f * S) - U * (0.14f * S);
             // gespreizt: die vorderen und seitlichen Saeume folgen den Haenden nach aussen
             if (g.flare > 0.01f && (k <= 1 || k >= 4)) {
                 const int s = k <= 1 ? 0 : 1;
@@ -764,7 +768,7 @@ void CreatureAnimator::updateGoblin(float dt, const Input& in) {
     // Kopf, Kiefer und Maske tragen die Neigung mit (autoUps kennt keine Drehung um die Laengsachse)
     pose_.up[B_HEAD] = hu;
     pose_.up[B_JAW] = rotG(hu, hl, jawA);
-    if (!dead || stT <= 0.25f) pose_.up[B_MASK] = rotG(hu, hl, -1.95f * g.mask);
+    if (!dead || stT <= 0.25f) pose_.up[B_MASK] = rotG(hu, hl, -kMaskLift * g.mask);
     g.lastPos = pos_;
     g.init = true;
 }

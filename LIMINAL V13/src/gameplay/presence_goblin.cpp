@@ -516,7 +516,9 @@ void Presence::thinkGoblin(Agent& a, double dt, const Context& c, std::vector<Ev
     const float behind = std::acos(std::clamp(dot(nrmF(flat(a.pos - feet), fl), fl), -1.0f, 1.0f));  // 0 vorn .. pi hinten
     const vec3 pv{(float)c.player->vx, (float)c.player->vy, 0.0f};
     const float rush = dot(pv, nrmF(flat(a.pos - feet), fl));  // wie schnell der Spieler auf ihn zukommt
-    glowTo(0.3f + 0.9f * a.light + (a.state == S_PEEK ? 0.2f : 0.0f));
+    // Runde 2: im Dunkeln ohne Lampe kaum zu sehen - dort schimmern sie (die Seite), im hellen Raum weniger (sonst flach)
+    const world::Tile* ht = c.world->tileIfLoaded(ifloor(a.pos.x), ifloor(a.pos.y));
+    glowTo((darkTile(c, ht, a.pos.x, a.pos.y) ? 0.75f : 0.22f) + 0.8f * a.light + (a.state == S_PEEK ? 0.15f : 0.0f));
     g.coolT -= qdt;
     g.scareT -= qdt;
     g.chatT -= qdt;

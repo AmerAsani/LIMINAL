@@ -66,6 +66,10 @@ def feather_disp(Q):  # Federfell: dachziegelartige Schuppen (Zellen), feine Str
     return -0.0009 * d1 - 0.0005 * edge - 0.0006 * (streak - 0.5) + 0.0004 * sdf.fbm(Q, 40, 2, seed=2503)
 
 
+def skin_disp(Q):  # kahle Haut: tiefe Runzeln, Schorf
+    return -0.0007 * sdf.ridged(Q * np.array([1.0, 0.6, 1.6]), 210, 2, seed=2515) + 0.0003 * sdf.fbm(Q, 500, 2, seed=2516)
+
+
 def scale_disp(Q):  # Schuppen der Laeufe und Finger: kleine Schilde mit tiefen Fugen
     d1, d2 = sdf.worley(Q, 420, seed=2511)
     return -0.0005 * np.exp(-((d2 - d1) / 0.1) ** 2) - 0.00015 * d1 + 0.00012 * sdf.fbm(Q, 900, 1, seed=2512)
@@ -80,7 +84,7 @@ def cloak_disp(Q):  # grobes Tuch: Koeper, Knitter, Flicken-Kanten; der Saum zer
     weave = 0.00035 * np.sin(Q[:, 0] * 900.0 + Q[:, 1] * 900.0) * np.sin(z * 700.0)
     crum = -0.0012 * sdf.ridged(Q * np.array([1.0, 1.0, 0.6]), 30, 2, seed=2531)
     rag = sdf.fbm(Q * np.array([1.0, 1.0, 0.35]), 22, 3, seed=2532)
-    hem = np.clip((0.15 - z) / 0.08, 0.0, 1.0)
+    hem = np.clip((0.215 - z) / 0.07, 0.0, 1.0)
     holes = np.where(rag * hem > 0.22, 0.012 * hem, 0.0)
     return weave + crum + holes
 
@@ -124,7 +128,7 @@ def body(J, bones, caste):
     check(bones)
     J = np.asarray(J, dtype=float)
     rng = np.random.default_rng(2500 + caste)
-    feather, scale, talon, beak, tooth, mouth, eye, pupil, hair = [], [], [], [], [], [], [], [], []
+    feather, scale, talon, beak, tooth, mouth, eye, pupil, hair, skin = [], [], [], [], [], [], [], [], [], []
     groups = []
 
     # Rumpf: Becken, Bauch, Brust mit Kiel (Vogel), Schultern
@@ -147,23 +151,36 @@ def body(J, bones, caste):
     for g in (1.0, -1.0):
         feather.append(A.ell(B_HEAD, (0.108, g * 0.03, 0.502), X, (0.03, 0.022, 0.024), k=0.02))
         feather.append(A.ell(B_HEAD, (0.122, g * 0.029, 0.529), A.unit((1.0, g * 0.35, 0.0)), (0.017, 0.024, 0.022), op='sub', k=0.006))
+    # Runde 2: das Gesicht unter der Maske ist kahl - grau-rosa, runzlige Haut, wo die Maske die Federn abgerieben hat
+    # (Auslegung); schwere obere Lider liegen halb ueber den Augen, die Schnabelwurzel ist wulstig
+    skin += [A.ell(B_HEAD, (0.113, 0, 0.523), X, (0.031, 0.043, 0.039), k=0.0),
+             A.ell(B_HEAD, (0.128, 0, 0.51), X, (0.016, 0.024, 0.02), k=0.012)]  # Schnabelwurzel
+    for g in (1.0, -1.0):
+        ax = A.unit((1.0, g * 0.35, 0.0))
+        ec = np.array([0.117, g * 0.029, 0.528])
+        skin.append(A.ell(B_HEAD, ec + ax * 0.004, ax, (0.017, 0.0235, 0.0215), op='sub', k=0.004))
+        skin.append(A.ell(B_HEAD, ec + ax * 0.007 + Z * 0.013, ax, (0.0105, 0.0235, 0.0085), up=Z, k=0.005))  # oberes Lid
+        skin.append(A.ell(B_HEAD, ec + ax * 0.006 - Z * 0.016, ax, (0.008, 0.019, 0.005), up=Z, k=0.004))     # unteres Lid
     # Augen: riesig (je etwa 4 cm), nach vorn und etwas zur Seite; senkrechte Schlitzpupille (die Katze - Auslegung)
     for g in (1.0, -1.0):
         ax = A.unit((1.0, g * 0.35, 0.0))
         ec = np.array([0.117, g * 0.029, 0.528])
-        eye.append(A.ell(B_HEAD, ec, ax, (0.0145, 0.0215, 0.0195), k=0.0))
-        pupil.append(A.ell(B_HEAD, ec + ax * 0.0128, ax, (0.0022, 0.0026, 0.0145), k=0.0))
-    # Ohren: lang und duenn, flach (Vorderseite gehoehlt), an der Spitze ein Pinsel
+        eye.append(A.ell(B_HEAD, ec, ax, (0.0148, 0.0215, 0.0195), k=0.0))
+        pupil.append(A.ell(B_HEAD, ec + ax * 0.013, ax, (0.0016, 0.0016, 0.0135), k=0.0))
+    # Ohren: wie beim Karakal - breit am Ansatz, spitz zulaufend, ein langer schwarzer Pinsel; innen nackte Haut (Runde 1: lang
+    # und duenn wie Fuehler, unter dem Hut wie erhobene Arme)
     for s, g in ((0, 1.0), (1, -1.0)):
         E = [J[earJ(s, i)] for i in range(3)]
-        feather.append(A.tube(earB(s, 0), E[0], E[1], (0.0125, 0.0045), (0.0105, 0.0035), up=X, k=0.012))
-        feather.append(A.tube(earB(s, 1), E[1], E[2], (0.0105, 0.0035), (0.003, 0.0018), up=X, k=0.004))
-        feather.append(A.ell(earB(s, 0), (E[0] + E[1]) / 2 + X * 0.004, A.unit(E[1] - E[0]), (0.04, 0.006, 0.0016), up=X, op='sub', k=0.003))
+        feather.append(A.tube(earB(s, 0), E[0] - A.unit(E[1] - E[0]) * 0.006, E[1], (0.021, 0.0062), (0.0145, 0.0045), up=X, k=0.014))
+        feather.append(A.tube(earB(s, 1), E[1], E[2], (0.0145, 0.0045), (0.0032, 0.002), up=X, k=0.004))
+        mid = (E[0] + E[1]) / 2
+        feather.append(A.ell(earB(s, 0), mid + X * 0.0045, A.unit(E[1] - E[0]), (0.05, 0.012, 0.0022), up=X, op='sub', k=0.003))
+        skin.append(A.ell(earB(s, 0), mid + X * 0.0015 + A.unit(E[1] - E[0]) * 0.01, A.unit(E[1] - E[0]), (0.045, 0.0105, 0.0016), up=X, k=0.0))
         d = A.unit(E[2] - E[1])
-        for t in range(6):
-            a = (t - 2.5) * 0.28
-            dd = A.unit(d + A.perp(d, Y * g) * math.sin(a) * 0.9 - X * 0.15)
-            hair += A.chain(lambda i: earB(s, 1), [E[2] - d * 0.004, E[2] + dd * 0.018, E[2] + dd * 0.034 + Z * 0.004], [0.0012, 0.0008, 0.0002], k=0.0)
+        for t in range(7):
+            a = (t - 3) * 0.12
+            dd = A.unit(d + A.perp(d, Y * g) * math.sin(a) - X * 0.12)
+            hair += A.chain(lambda i: earB(s, 1), [E[2] - d * 0.006, E[2] + dd * 0.024, E[2] + dd * 0.046 - X * 0.004], [0.0016, 0.001, 0.0002], k=0.0)
     # Schnabel (Kraehe): seitlich zusammengedrueckt, gebogener First, Hakenspitze; der Unterkiefer am eigenen Knochen
     beak += [
         A.tube(B_HEAD, (0.13, 0, 0.51), (0.2, 0, 0.492), (0.017, 0.022), (0.011, 0.014), k=0.0),
@@ -185,7 +202,7 @@ def body(J, bones, caste):
     for s, g in ((0, 1.0), (1, -1.0)):
         P = [J[armJ(s, i)] for i in range(4)]
         feather.append(A.cone(armB(s, 0), P[0], P[1], 0.019, 0.012, k=0.015))
-        scale += [A.cone(armB(s, 1), P[1], P[2], 0.0095, 0.0068, k=0.0),
+        scale += [A.cone(armB(s, 1), P[1], P[2], 0.0112, 0.0078, k=0.0),
                   A.ell(armB(s, 1), P[2], A.unit(P[2] - P[1]), (0.008, 0.0085, 0.0075), k=0.004)]  # Handgelenk
         hd = A.unit(P[3] - P[2])
         side = A.unit(np.cross(Z, hd)) * g
@@ -196,9 +213,9 @@ def body(J, bones, caste):
                 spr = (f - 1) * 0.32
                 d = A.unit(hd + side * math.sin(spr))
                 base = palm + d * 0.01
-                p1 = base + d * 0.022 - Z * 0.004
-                p2 = p1 + A.unit(d - Z * 0.5) * 0.018
-                L = (0.0035, 0.003, 0.0022)
+                p1 = base + d * 0.029 - Z * 0.004
+                p2 = p1 + A.unit(d - Z * 0.5) * 0.023
+                L = (0.0039, 0.0032, 0.0023)
             else:  # Daumen, zur Mitte gedreht
                 d = A.unit(hd * 0.5 - side * 0.8)
                 base = palm - hd * 0.004
@@ -208,9 +225,9 @@ def body(J, bones, caste):
             scale += A.chain(lambda i: armB(s, 2), [base, p1, p2], list(L), k=0.003)
             tip = p2 + A.unit(p2 - p1) * 0.001
             dd = A.unit(p2 - p1)
-            c1 = tip + dd * 0.008 - Z * 0.002
-            c2 = c1 + A.unit(dd * 0.4 - Z) * 0.008
-            talon += A.chain(lambda i: armB(s, 2), [tip, c1, c2], [0.0021, 0.0014, 0.0003], k=0.001)
+            c1 = tip + dd * 0.012 - Z * 0.002
+            c2 = c1 + A.unit(dd * 0.35 - Z) * 0.012
+            talon += A.chain(lambda i: armB(s, 2), [tip, c1, c2], [0.0024, 0.0015, 0.0003], k=0.001)
 
     # Beine: Schenkel befiedert ("Hosen" bis kurz ueber die Ferse), Lauf und Zehen geschuppt; drei Zehen vorn, eine hinten
     for s, g in ((0, 1.0), (1, -1.0)):
@@ -256,6 +273,7 @@ def body(J, bones, caste):
         {'name': 'rachen', 'fm': 'ent_pg_mouth', 'parts': mouth, 'disp': None, 'h': 0.0007, 'cav_scale': 0.002, 'lod_weight': 0.3},
         {'name': 'augen', 'fm': 'ent_pg_eye', 'parts': eye, 'disp': None, 'h': 0.0006, 'cav_scale': 0.002, 'lod_weight': 0.9},
         {'name': 'pupillen', 'fm': 'ent_pg_beak', 'parts': pupil, 'disp': None, 'h': 0.0004, 'cav_scale': 0.001, 'lod_weight': 0.4},
+        {'name': 'haut', 'fm': 'ent_pg_skin', 'parts': skin, 'disp': skin_disp, 'h': 0.0006, 'cav_scale': 0.002, 'lod_weight': 1.0},
     ]
     return groups
 
@@ -271,16 +289,24 @@ def cloak_groups(J, caste, rng):
         Ak, Mk, Hk = J[cloakJ(k, 0)], J[cloakJ(k, 1)], J[cloakJ(k, 2)]
         if caste == 2:
             Hk = Hk + (Hk - Mk) * 0.25 - Z * 0.02
-        parts.append(A.tube(cloakB(k, 0), Ak, Mk, (0.034, 0.0042), (0.064, 0.0042), up=d, k=0.018))
-        parts.append(A.tube(cloakB(k, 1), Mk, Hk, (0.064, 0.0042), (0.088 * long, 0.0048), up=d, k=0.018))
-        # eine Falte in der Mitte jeder Bahn
-        parts.append(A.tube(cloakB(k, 1), Mk + d * 0.004, Hk + d * 0.006, (0.006, 0.006), (0.008, 0.008), up=d, k=0.012))
+        # Runde 2: jede Bahn war ein flaches Brett (Pappe) - jetzt drei schmale, gegeneinander versetzte Streifen je Bahn: runde
+        # Falten, die nach unten tiefer werden
+        tg = np.array([-math.sin(a), math.cos(a), 0.0])
+        for j, (off, dep) in enumerate(((-1.0, 0.005), (0.0, -0.004), (1.0, 0.006))):
+            o0, o1, o2 = tg * (off * 0.021), tg * (off * 0.036), tg * (off * 0.047 * long)
+            r0, r1, r2 = d * (dep * 0.4), d * dep, d * (dep * 1.6)
+            dd = A.unit(d + tg * off * 0.25)
+            parts.append(A.tube(cloakB(k, 0), Ak + o0 + r0, Mk + o1 + r1, (0.014, 0.0042), (0.022, 0.0042), up=dd, k=0.012))
+            parts.append(A.tube(cloakB(k, 1), Mk + o1 + r1, Hk + o2 + r2, (0.022, 0.0042), (0.029 * long, 0.0046), up=dd, k=0.012))
     if caste == 2:  # Schulterkragen (Capelet) und hoher Kragen
         for k in range(KSTRANDS):
             a = STRAND_ANG[k]
             d = np.array([math.cos(a), math.sin(a), 0.0])
             Ak, Mk = J[cloakJ(k, 0)], J[cloakJ(k, 1)]
-            parts.append(A.tube(cloakB(k, 0), Ak + d * 0.008 + Z * 0.004, Ak + (Mk - Ak) * 0.55 + d * 0.022, (0.04, 0.0045), (0.06, 0.0045), up=d, k=0.012))
+            tg = np.array([-math.sin(a), math.cos(a), 0.0])
+            for off in (-0.6, 0.6):
+                parts.append(A.tube(cloakB(k, 0), Ak + d * 0.008 + Z * 0.004 + tg * (off * 0.018), Ak + (Mk - Ak) * 0.55 + d * 0.022 + tg * (off * 0.03),
+                                    (0.022, 0.0045), (0.032, 0.0045), up=d, k=0.01))
         hood.append(sdf.Part('torus', B_CHEST, k=0.006, c=np.array([0.0, 0, 0.475]), R=sdf.frame_from(Z, X), major=0.045, minor=0.008, arc=1.9))
         hood.append(A.ell(B_CHEST, (-0.035, 0, 0.49), A.unit((-0.3, 0, 1.0)), (0.035, 0.05, 0.006), up=-X, k=0.008))
     else:  # zurueckgeschlagene Kapuze auf den Schultern
@@ -299,11 +325,13 @@ def mask_groups(J, caste, rng):
         A.ell(B_MASK, (0.128, 0, 0.515), X, (0.031, 0.052, 0.061), k=0.0),
         A.ell(B_MASK, (0.142, 0, 0.47), X, (0.03, 0.04, 0.03), k=0.02),  # Kinnschale
     ]
-    tip = np.array([0.315, 0, 0.452])
-    bk = [np.array([0.148, 0, 0.507]), np.array([0.235, 0, 0.481]), tip]
-    if caste == 1:  # Spaeher: schlanker, Leder ueber einem Gestell
-        bk[1] = np.array([0.235, 0, 0.484])
-    m += shell + A.chain(lambda i: B_MASK, bk, [0.045, 0.026, 0.0065], k=0.02)
+    # Runde 1: dick und knollig wie eine Karotte - jetzt schlank, hoeher als breit, leicht gebogen (der echte Schnabel und die
+    # Zaehne bleiben ganz darin)
+    tip = np.array([0.33, 0, 0.449])
+    bk = [np.array([0.145, 0, 0.505]), np.array([0.235, 0, 0.477]), tip]
+    m += shell + [A.tube(B_MASK, bk[0], bk[1], (0.03, 0.04), (0.016, 0.026), k=0.02),
+                  A.tube(B_MASK, bk[1], tip, (0.016, 0.026), (0.003, 0.0045), k=0.01),
+                  A.cone(B_MASK, tip, tip + np.array([0.008, 0, -0.008]), 0.0035, 0.0008, k=0.004)]
     m.append(A.ell(B_MASK, (0.113, 0, 0.515), X, (0.036, 0.046, 0.054), op='sub', k=0.004))  # hinten offen (Schale)
     if caste == 0:  # glatt, ohne Merkmale - nur zwei schmale Schlitze, durch die die Augen schimmern
         for g in (1.0, -1.0):
@@ -407,12 +435,17 @@ def portal(J, bones):
     J = np.asarray(J, dtype=float)
     rng = np.random.default_rng(2599)
     c = J[PORT_A]
-    void = [A.ell(B_PORTAL, c, X, (0.03, PORTAL_W * 0.5, PORTAL_H * 0.5), k=0.0)]
+    # Runde 1: ein regelmaessiger Feuerring - jetzt ein Riss: mandelfoermig (oben und unten spitz), Rand unregelmaessig
+    def edge(a):
+        w = PORTAL_W * 0.5 * (1.0 - 0.42 * abs(math.sin(a)) ** 2.2) * (1.0 + 0.06 * math.sin(a * 5.0 + 1.3))
+        return c + np.array([0.0, math.cos(a) * w, math.sin(a) * PORTAL_H * 0.5 * (1.0 + 0.03 * math.sin(a * 7.0))])
+    void = [A.ell(B_PORTAL, c + Z * (PORTAL_H * 0.25 * t), X, (0.022, PORTAL_W * 0.5 * (0.92 - 0.42 * abs(t) ** 1.6), PORTAL_H * 0.3), k=0.06)
+            for t in (-0.6, 0.0, 0.6)]
     rim = []
-    n = 40
-    pts = [c + np.array([0.0, math.cos(2 * math.pi * i / n) * PORTAL_W * 0.5, math.sin(2 * math.pi * i / n) * PORTAL_H * 0.5]) for i in range(n + 1)]
+    n = 44
+    pts = [edge(2 * math.pi * i / n) for i in range(n + 1)]
     for i in range(n):
-        rim.append(A.cone(B_PORTAL, pts[i], pts[i + 1], 0.011 + 0.006 * rng.random(), 0.011 + 0.006 * rng.random(), k=0.008))
+        rim.append(A.cone(B_PORTAL, pts[i], pts[i + 1], 0.005 + 0.009 * rng.random(), 0.005 + 0.009 * rng.random(), k=0.006))
         if i % 2 == 0:  # Splitter, die nach aussen stehen
             o = A.unit(pts[i] - c)
             rim.append(A.cone(B_PORTAL, pts[i], pts[i] + A.unit(o + rng.normal(0, 0.4, 3) * np.array([0.3, 1, 1])) * (0.02 + 0.05 * rng.random()), 0.006, 0.0008, k=0.004))

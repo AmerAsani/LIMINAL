@@ -370,6 +370,11 @@ void App::scriptStep() {
             double val = 0.0;
             if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) < 2 || !session_->presence().ouroSet(key, val))
                 log::warn("Skript: ouro '{}' unbekannt oder keine Baustelle", arg);
+        } else if (cmd == "goblin" && session_) {  // V13.3 (Bilder): goblin <phase|mob|friendly|quick|rout> <wert> - die Bande steuern
+            char key[32] = {};
+            double val = 0.0;
+            if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) < 2 || !session_->presence().goblinSet(key, val))
+                log::warn("Skript: goblin '{}' unbekannt oder keine Bande", arg);
         } else if (cmd == "figclear" && session_) {  // V13 (Tests): Vorfuehrungen entfernen
             session_->presence().clearShowcase();
         } else if (cmd == "presence" && session_) {  // V10: Entity erscheinen lassen: presence <smiler|hound|moth|gestalt|blackout> [abstand]
