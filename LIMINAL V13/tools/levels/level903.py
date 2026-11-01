@@ -104,4 +104,23 @@ m.spawn('note', 104.5, 4.35, PLAT + 0.45, 0.0, tags=['surface', 'seat'])
 m.checkpoint('steig', CX, 11.0, 0.0, 'Mittelsteig am Wagen')
 m.obj('safety_light', CX, 11.0, HALL_H, 0.0, tag='emergency')
 
+# V13.3: Varianten der haeufig gesetzten Klassen (PROPS_Level903.md). Eigener Zufall nach allen Platzierungen - die
+# Anordnung bleibt gleich. Bahnsteigkante: gepflegt/abgetreten/ausgebessert; Roehren: neu/gealtert/eine tot; Gleis und
+# Stationstafeln je zwei Fassungen.
+import random  # noqa: E402
+VARIANTS = {'platform_edge': (0.55, 0.30, 0.15), 'tube_long': (0.72, 0.20, 0.08), 'track_metro': (0.5, 0.5), 'sign_903_wall': (0.5, 0.5),
+            'metro_dormant_a': (0.6, 0.4), 'metro_dormant_b': (0.6, 0.4)}
+vr = random.Random(90313)
+for o in m.objects:
+    w = VARIANTS.get(o['model'])
+    if not w:
+        continue
+    r, v_ = vr.random(), 0
+    while v_ < len(w) - 1 and r >= w[v_]:
+        r -= w[v_]
+        v_ += 1
+    o.pop('variant', None)
+    if v_:
+        o['variant'] = v_
+
 m.save()
