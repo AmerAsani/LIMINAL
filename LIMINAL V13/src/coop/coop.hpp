@@ -1,6 +1,6 @@
-// V13.2 Koop (Beta): Host und Gast ueber dem verschluesselten Transport (MULTIPLAYER_ARCHITEKTUR.md).
+// V13.2/V13.3 Koop: Host und Gast ueber dem verschluesselten Transport (MULTIPLAYER_ARCHITEKTUR.md).
 //
-//   CoopHost   oeffnet den Port, nimmt Gaeste an (Schluessel, Version, Spielstand), wendet ihre Eingaben auf ihre
+//   CoopHost   oeffnet einen Raum (Lobby oder direkt), nimmt Gaeste an (Code, Version, Spielstand), wendet ihre Eingaben auf ihre
 //              Figuren an, prueft jede Absicht an seinem Zustand, sendet Momentaufnahmen (20 je Sekunde),
 //              Ereignisse, Inventare und die Gruppe; entscheidet Ebenenwechsel, Tod und Wiedereinstieg.
 //   CoopClient tritt bei, sagt die eigene Bewegung voraus und korrigiert sie mit dem Stand des Hosts, zeigt
@@ -23,19 +23,17 @@
 
 namespace lim::coop {
 
-// Beitrittsschluessel: 128 zufaellige Bit, angezeigt als 26 Zeichen Base32 in Fuenfergruppen
-struct JoinKey {
-    std::array<u8, 16> b{};
-    std::string text() const;
-    static bool parse(const std::string& s, JoinKey& out);  // Bindestriche, Leerzeichen, Gross/Klein egal
-};
-
 struct PlayerInfo {
     int id = 0;
     std::string name;
     bool alive = true, ready = false, connected = true, self = false;
     int rttMs = 0;
+    int path = 0;     // LnPath: direkt, ueber NAT, ueber Relay (0: unbekannt)
+    int lossPct = 0;  // unbeantwortete Pings der letzten 20 s
 };
+
+// Text zu einem Grund der DLL (LnReason), fuer Meldungen
+const char* reasonText(int reason);
 
 // Marken-Eimer je Nachrichtentyp
 struct Bucket {
@@ -48,9 +46,14 @@ class CoopHost {
 public:
     CoopHost(NetApi api, std::string hostName, u32 buildHash);
     ~CoopHost();
-    bool start(u16 port, int maxPlayers, std::string& error);
+    // Raum oeffnen: ueber die Lobby oder direkt (eingebaute Lobby); der Code kommt kurz danach (code())
+    bool start(const NetSettings& net, int maxPlayers, std::string& error);
     void stop();
-    const JoinKey& key() const { return key_; }
+    std::string code(bool withPin) const;  // Beitrittscode; leer, solange keiner da ist
+    bool direct() const { return !net_.useLobby; }
+    const NetSettings& net() const { return net_; }
+    std::string lobbyStatus() const;       // Zustand der Lobby (leer: alles gut)
+    bool takeFailure(std::string& why);    // Raum liess sich nicht oeffnen (Lobby nicht erreichbar, Zertifikat ...)
     u16 port() const;
     bool running() const { return ctx_ != nullptr; }
 
@@ -110,7 +113,9 @@ private:
     LnContext* ctx_ = nullptr;
     std::string hostName_;
     u32 build_;
-    JoinKey key_;
+    NetSettings net_;
+    std::string code_, codeLong_, failure_;
+    bool lobbyLost_ = false, everRoom_ = false;
     int maxPlayers_ = 4;
     game::GameSession* s_ = nullptr;
     std::string anchor_;
@@ -140,7 +145,8 @@ class CoopClient {
 public:
     CoopClient(NetApi api, u32 buildHash);
     ~CoopClient();
-    bool connect(const std::string& host, u16 port, const JoinKey& key, const std::string& name, std::string& error);
+    // beitreten: ueber die Lobby (Code) oder direkt (Adresse + langer Code)
+    bool connect(const NetSettings& net, const std::string& directAddress, const std::string& code, const std::string& name, std::string& error);
     void stop();
     enum class State { Connecting, Joining, Welcomed, Playing, Closed };
     State state() const { return state_; }
@@ -164,6 +170,8 @@ public:
     game::Pawn* pawnOf(int id);
     void cycleSpectate();
     int rttMs() const;
+    LnStats netStats() const;
+    std::string progress() const { return progress_; }  // Fortschritt beim Beitritt
     struct Counters {
         u64 snapshots = 0, rejected = 0, corrections = 0, snaps = 0, desync = 0, checks = 0, inputsSent = 0;
         double maxError = 0.0, sumError = 0.0;
@@ -183,7 +191,7 @@ private:
     u32 build_;
     std::string name_;
     State state_ = State::Closed;
-    std::string reason_;
+    std::string reason_, progress_;
     net::coop::Welcome welcome_;
     bool welcomeNew_ = false;
     game::GameSession* s_ = nullptr;
@@ -213,6 +221,8 @@ private:
     bool pendingChange_ = false, pendingEscape_ = false;
     std::string pendingLevel_, pendingAnchor_;
     double pendingSupply_ = 1.0;
+    // V13.3: Aufgenommen/Abgelegt, bevor die Sitzung der Ebene steht (Willkommen, Ebenenwechsel) - beim attach nachholen
+    std::vector<net::coop::Event> pendingWorld_;
     double pingT_ = 0.0;
     u32 lastSnapTick_ = 0;
     bool anySnap_ = false;

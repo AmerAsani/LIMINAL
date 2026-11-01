@@ -173,7 +173,7 @@ void GameSession::onChunk(const world::ChunkData& cd, bool loaded) {
     if (loaded) {
         // Items auf den Theken
         for (const world::ItemSpawn* it : cd.items) {
-            if (picked.count(it->id)) continue;
+            if (isPicked(it->id)) continue;
             const ItemDef* def = content_.item(it->kind);
             if (!def) continue;
             // Ausrichtung: Riegel laengs der Theke, leicht verdreht (stabil je Item)
@@ -268,7 +268,7 @@ void GameSession::spawnFinds(const world::ChunkData& cd) {
                 if (s.tx < cd.x0() || s.tx >= cd.x0() + world::CS || s.ty < cd.y0() || s.ty >= cd.y0() + world::CS) continue;
                 ecs::Entity e = ecs::kNull;
                 if (s.kind == FindSpot::Note) {
-                    if (picked.count(s.id)) continue;
+                    if (isPicked(s.id)) continue;
                     // bevorzugt eine Notiz, die noch nicht im Notizbuch steht (V9: Hinweise zuerst)
                     int idx = content_.priorityNote(journal_, world_->level().world());
                     for (u64 k = 0; k < 8 && idx < 0; ++k) {
@@ -281,7 +281,7 @@ void GameSession::spawnFinds(const world::ChunkData& cd) {
                     e = prefabs_.spawn(reg_, "note", s.pos, s.yaw);
                     if (auto* n = reg_.get<NoteFind>(e)) n->index = idx, n->id = s.id;
                 } else if (s.kind == FindSpot::Battery) {
-                    if (picked.count(s.id) || !content_.item("battery")) continue;
+                    if (isPicked(s.id) || !content_.item("battery")) continue;
                     e = prefabs_.spawn(reg_, "item_pickup", s.pos, s.yaw);
                     if (auto* p = reg_.get<Pickup>(e)) p->item = "battery", p->worldId = s.id;
                     if (auto* m = reg_.get<MeshRenderer>(e)) m->model = "battery";
@@ -292,7 +292,7 @@ void GameSession::spawnFinds(const world::ChunkData& cd) {
                     e = prefabs_.spawn(reg_, "fusebox", s.pos + into, s.yaw);
                     if (auto* fb = reg_.get<FuseBox>(e)) {
                         fb->id = s.id, fb->item = s.item;
-                        if (picked.count(s.id)) {
+                        if (isPicked(s.id)) {
                             fb->taken = true;
                             if (auto* m = reg_.get<MeshRenderer>(e)) m->model = "fusebox_empty";
                             reg_.remove<Interactable>(e);
@@ -318,7 +318,7 @@ void GameSession::spawnFinds(const world::ChunkData& cd) {
                 if (e == ecs::kNull) continue;
                 if (auto* fb = reg_.get<FuseBox>(e)) {
                     fb->id = fs.id, fb->item = fs.item;
-                    if (picked.count(fs.id)) {
+                    if (isPicked(fs.id)) {
                         fb->taken = true;
                         if (auto* m = reg_.get<MeshRenderer>(e)) m->model = "fusebox_empty";
                         reg_.remove<Interactable>(e);
@@ -333,7 +333,7 @@ void GameSession::spawnFinds(const world::ChunkData& cd) {
             for (const world::Sector::NoteSpot& ns : sec->notes) {
                 if (ns.x < (float)cd.x0() || ns.x >= (float)(cd.x0() + world::CS) || ns.y < (float)cd.y0() || ns.y >= (float)(cd.y0() + world::CS))
                     continue;
-                if (picked.count(ns.id)) continue;
+                if (isPicked(ns.id)) continue;
                 int idx = -1;
                 if (auto it = mapNotes_.find(ns.id); it != mapNotes_.end()) {
                     idx = it->second;
@@ -763,8 +763,11 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
     }
     // V6: erschoepft etwas langsamer, Sprinten nur mit Ausdauer
     player_.speedMul = stats_.speedMul() * (stats_.exhausted ? 0.9 : 1.0);
+    player_.speedMul *= 1.0 - 0.5 * presence_.trance();  // V13.3: der Anblick des Wranglers laehmt
+    // V13.3: betaeubt (Nguithr'xurh) langsamer und ohne Sprint; durch das Gewirr einer Growler-Leiche waten
+    player_.speedMul *= presence_.slowFor(netSelfId, {(float)player_.x, (float)player_.y, (float)player_.z});
     PlayerControl c = paused ? PlayerControl{} : control;
-    if (!stats_.canSprint()) c.sprint = false;
+    if (!stats_.canSprint() || presence_.stupor(netSelfId) > 0.5f) c.sprint = false;
     if (ride_.active) c.forward = c.side = 0.0f, c.sprint = c.jump = false;  // V8: im Aufzug nur umsehen
     if (stats_.dead) c.forward = c.side = 0.0f, c.sprint = c.jump = c.jumpHeld = false;  // V13.2: tot (Koop: zusehen)
     const double prevX = player_.x, prevY = player_.y;
@@ -773,6 +776,15 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
     else player_.waterZ = -999.0;
     if (!world_->level().flashlight && flash_.on) flash_.on = false;  // V11: Level 6
     player_.update(dt, c, *tiles_);
+    // V13.3: der Leib des Wranglers zieht den Blick an (KREATUR_Wrangler.md) - gegensteuern, wegsehen
+    if (vec3 at; !paused && !stats_.dead && presence_.trance(&at) > 0.02f) {
+        const float tr = presence_.trance();
+        const vec3 d = at - body_.eye();
+        const double k = std::min(1.0, dt * 1.1 * tr * tr);
+        player_.angle += std::remainder(std::atan2(d.y, d.x) - player_.angle, 2.0 * 3.14159265) * k;
+        player_.pitch += (std::atan2(d.z, std::max(0.3f, std::hypot(d.x, d.y))) - player_.pitch) * k * 0.7;
+        if (netRole != NetRole::Guest) stats_.sanity = std::max(0.0, stats_.sanity - dt * 0.45 * tr);
+    }
     if (!paused) updateElevators(dt, prevX, prevY);  // V8
     if (!paused) {
         bool wasExhausted = stats_.exhausted;
@@ -910,6 +922,12 @@ ViewCamera GameSession::camera(bool thirdPerson, double dt) {
     c.fovMul = 1.0f + body_.fovKick();
     if (!thirdPerson) {
         c.pos = body_.eye();
+        if (const float q = presence_.quake(); q > 0.01f) {  // V13.3: das Beben (Wrangler) ruettelt die Kamera
+            const float t = (float)stats_.playTime;
+            c.pos += vec3{std::sin(t * 23.1f), std::sin(t * 19.7f + 1.0f), std::sin(t * 29.3f + 2.0f)} * (0.011f * q);
+            c.roll += std::sin(t * 17.3f) * 0.007f * q;
+            c.pitch += std::sin(t * 21.7f + 0.4f) * 0.005f * q;
+        }
         if (ride_.active && ride_.travel >= 0.0) {  // V8: die Kabine ruckelt beim Anfahren und Halten
             const double t = ride_.travel;
             const double env = std::exp(-t * 2.5) + std::exp(-std::max(0.0, 4.6 - t) * 3.0) * (t > 3.0 ? 1.0 : 0.0) + 0.25;
@@ -1537,6 +1555,7 @@ void GameSession::updatePresence(double dt) {
     // V11: Buendel - Lager aus der Karte (einmal je Ebene), Laerm des Spielers (ENTITY_BEHAVIOR 1)
     c.allowClump = L.allowClump, c.clumpRate = L.clumpRate;
     c.kin = L.kin.data();  // V13.2: neue Wesen der Ebene
+    if (const auto& sl = inventory_.slots[(size_t)inventory_.selected]; sl && sl->kind == "almond") c.almond = true;  // V13.3: Duller
     if (L.allowClump && !lairsRead_ && L.mapped())
         if (const world::Sector* sec = world_->sectorIfReady(player_.x, player_.y)) {
             lairsRead_ = true;
@@ -1573,6 +1592,8 @@ void GameSession::updatePresence(double dt) {
         netCreaturesFresh = false;
     }
     presence_.update(dt, c, presenceEvents_);
+    // V13.3: Growler senden WLAN und laden Geraete auf (die Seite) - nah an einem laedt sich die Lampe (das Rauschen zehrt dafuer)
+    if (presence_.staticLevel() > 0.25f && !stats_.dead) flash_.addCharge(dt * 3.0 * presence_.staticLevel());
     noisePings_.clear();
     if (netRole == NetRole::Guest) {  // Werte rechnet der Host; hier nur Klang und Bild der Puppen
         for (const Presence::Event& e : presenceEvents_) {
@@ -1629,6 +1650,11 @@ void GameSession::updatePresence(double dt) {
                         if (p->stats.health <= 0.0) p->stats.dead = true, p->killRole = (int)e.role;
                         break;
                     case PE::Whisper: p->stats.sanity = std::max(0.0, p->stats.sanity - 0.4 * e.strength); break;
+                    case PE::Static:  // V13.3: das Rauschen eines Growlers aus der Naehe
+                        p->stats.health = std::max(0.0, p->stats.health - (double)e.strength * hitScale_);
+                        p->stats.sanity = std::max(0.0, p->stats.sanity - 0.5);
+                        if (p->stats.health <= 0.0) p->stats.dead = true, p->killRole = (int)e.role;
+                        break;
                     default: break;
                 }
             }
@@ -1642,7 +1668,11 @@ void GameSession::updatePresence(double dt) {
                                  e.type == PE::TakeOff || e.type == PE::Knock || e.type == PE::Drop || e.type == PE::Drag ||
                                  e.type == PE::Flicker || e.type == PE::Breath || e.type == PE::Mimic || e.type == PE::Plead ||
                                  e.type == PE::Gurgle || e.type == PE::Hum || e.type == PE::Squeak || e.type == PE::Scream ||
-                                 e.type == PE::Swing || e.type == PE::Pull || e.type == PE::Whisper;  // V13.2
+                                 e.type == PE::Swing || e.type == PE::Pull || e.type == PE::Whisper ||  // V13.2
+                                 e.type == PE::Scrape || e.type == PE::Bulge || e.type == PE::Burst || e.type == PE::Burn || e.type == PE::Retract ||
+                                 (e.type == PE::Windup && e.role == Presence::Role::Arms) ||  // V13.3
+                                 e.type == PE::Click || e.type == PE::Lurch || e.type == PE::Merge || e.type == PE::Collapse ||
+                                 e.type == PE::Snip || e.type == PE::SacBurst || e.type == PE::Skitter || e.type == PE::Stridulate;  // V13.3
             if (!audible) continue;
             if (e.type == PE::Flicker)
                 if (const world::Tile* t = world_->tileIfLoaded(ifloor(e.pos.x), ifloor(e.pos.y)); t && t->room) haunt_.flicker(t->room);
@@ -1659,7 +1689,11 @@ void GameSession::updatePresence(double dt) {
         if (netRole == NetRole::Host && (e.type == PE::Step || e.type == PE::Growl || e.type == PE::Bark || e.type == PE::TakeOff ||
                                          e.type == PE::Knock || e.type == PE::Drop || e.type == PE::Drag || e.type == PE::Flicker ||
                                          e.type == PE::Mimic || e.type == PE::Plead || e.type == PE::Gurgle || e.type == PE::Hum ||
-                                         e.type == PE::Squeak || e.type == PE::Scream || e.type == PE::Swing || e.type == PE::Pull))
+                                         e.type == PE::Squeak || e.type == PE::Scream || e.type == PE::Swing || e.type == PE::Pull ||
+                                         e.type == PE::Scrape || e.type == PE::Bulge || e.type == PE::Burst || e.type == PE::Burn ||
+                                         e.type == PE::Retract || (e.type == PE::Windup && e.role == Presence::Role::Arms) ||  // V13.3
+                                         e.type == PE::Click || e.type == PE::Lurch || e.type == PE::Merge || e.type == PE::Collapse ||  // V13.3
+                                         e.type == PE::Snip || e.type == PE::SacBurst || e.type == PE::Skitter || e.type == PE::Stridulate))
             netFigureOut.push_back(e);  // auch die Gaeste hoeren es
         GameEvent ev;
         ev.type = GameEvent::Figure;
@@ -1720,6 +1754,15 @@ void GameSession::updatePresence(double dt) {
                 }
                 break;
             case PE::Whisper: stats_.sanity = std::max(0.0, stats_.sanity - 0.4 * e.strength); break;  // V13.2: es zehrt
+            case PE::Static:  // V13.3: das Rauschen eines Growlers aus der Naehe - zehrt am Verstand, grosse schaden dem Kopf
+                stats_.health = std::max(0.0, stats_.health - (double)e.strength * hitScale_);
+                stats_.sanity = std::max(0.0, stats_.sanity - 0.5);
+                if (stats_.health <= 0.0) {
+                    stats_.dead = true;
+                    deathCause_ = "stalker";
+                    killRole_ = (int)e.role;
+                }
+                break;
             case PE::Scream:  // V13.2: Ratten - das Licht im Raum flackert (weiter ueber Flicker)
                 if (const world::Tile* t = world_->tileIfLoaded(ifloor(e.pos.x), ifloor(e.pos.y)); t && t->room) haunt_.flicker(t->room);
                 break;

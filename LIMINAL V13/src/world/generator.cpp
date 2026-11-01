@@ -1111,10 +1111,23 @@ std::unique_ptr<Sector> Generator::mapSector(i64 sx, i64 sy) const {
     }
     sec->buildIndex();
     // V11: Wasseroberflaechen (je Raum mit Wasser eine Flaeche auf dem Spiegel, von beiden Seiten sichtbar)
+    // V13.3: klares Wasser - die Flaeche traegt Muster und Textur des Bodens darunter, getoent mit der Wasserfarbe
+    // (shaders/gbuffer.hlsli: Wellen, Brechung, Spiegelung); so sieht man durch flaches Wasser die Fliesen
+    auto clearWater = [&](const MapRoom& mr) {
+        Sector::Prop& p = sec->props.back();
+        const Room* r = sec->roomAt((mr.x0 + mr.x1) / 2, (mr.y0 + mr.y1) / 2);
+        if (!r || p.mats.empty() || !p.model || p.model->parts.empty()) return;
+        const Material& fm = bank_[r->fmat];
+        const props::MatDesc& d = p.model->parts[0].mat;
+        p.mats[0] = bank_.get({d.r, d.g, d.b}, fm.plane, WallPattern::Plain, false, {}, 0.72, Surface::PropWater,
+                              {fm.layer[0], 255, 255});
+    };
     for (const MapRoom& mr : M.rooms)
-        if (mr.water > -900.0)
+        if (mr.water > -900.0) {
             addProp(*sec, props::model("water_surface", mr.waterLook), (float)(mr.x0 + mr.x1) * 0.5f, (float)(mr.y0 + mr.y1) * 0.5f, (float)mr.water, 0.0f,
                     (float)(mr.x1 - mr.x0), (float)(mr.y1 - mr.y0), 1.0f);
+            clearWater(mr);
+        }
     // V12: auch in den Durchgaengen zwischen gefluteten Raeumen (sonst bleibt in jeder Oeffnung ein trockener Streifen)
     for (const MapDoor& md : M.doors) {
         const MapRoom& ra = M.rooms[(size_t)md.a];
@@ -1123,6 +1136,7 @@ std::unique_ptr<Sector> Generator::mapSector(i64 sx, i64 sy) const {
         const MapRoom& hi = ra.floor >= rb.floor ? ra : rb;
         addProp(*sec, props::model("water_surface", hi.waterLook), (float)(md.x0 + md.x1) * 0.5f, (float)(md.y0 + md.y1) * 0.5f,
                 (float)std::max(ra.water, rb.water), 0.0f, (float)(md.x1 - md.x0), (float)(md.y1 - md.y0), 1.0f);
+        clearWater(hi);
     }
     // Ausstattung: feste Objekte der Karte
     for (const MapObject& o : M.objects) {

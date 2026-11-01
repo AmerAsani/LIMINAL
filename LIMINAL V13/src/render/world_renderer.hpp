@@ -16,7 +16,7 @@ struct ExtraLight;  // V7, renderer.hpp
 
 // Die ersten GPU-Materialien sind fest vergeben (Items, Requisiten);
 // Weltmaterialien folgen dahinter.
-constexpr u32 kFixedMaterials = 80;  // V9: 16 -> 32 (Sicherungen ...), V10: 64 (Figuren), V13.2: 80 (neue Wesen)
+constexpr u32 kFixedMaterials = 160;  // V9: 16 -> 32 (Sicherungen ...), V10: 64 (Figuren), V13.2: 80, V13.3: 160 (weitere Wesen)
 enum FixedMaterial : u32 {
     FM_ITEM_ENERGY = 0, FM_ITEM_ALMOND = 1, FM_BODY = 2, FM_BODY_FACE = 3,
     FM_VEND_BODY = 4, FM_VEND_GLOW = 5, FM_VEND_GLASS = 6,  // V6: Automat
@@ -48,6 +48,16 @@ enum FixedMaterial : u32 {
     FM_ENT_UMBRA,                      // V13.2: Fensterwesen - schwarz und matt, aber fest (ohne den Rauchrand der Gestalt)
     // V13.2: Facelings sind verschieden (Haar, Haut, Kleidung) - weitere Stoffe, dunklere Haut, graues Haar
     FM_ENT_CLOTH_C, FM_ENT_CLOTH_D, FM_ENT_HUMANSKIN_B, FM_ENT_HAIR_GREY,
+    FM_ENT_DULLERSKIN, FM_ENT_ROTSKIN, FM_ENT_SMOKE, FM_ENT_CONCRETE,  // V13.3: Duller (dunkelgrau, trocken), Arms (verwesend), Rauch, Bruchbeton
+    // V13.3: Wrangler - durchscheinende Haut (Maennchen grau, Weibchen blass rosa), raue Kopfhaut, Darm, Faserstraenge, Knochen,
+    // Schleim, Samen, Staub, Risse, Zangen, Schutt
+    FM_ENT_WR_MEMBRANE, FM_ENT_WR_MEMBRANE_F, FM_ENT_WR_HIDE, FM_ENT_WR_GUT, FM_ENT_WR_PITH, FM_ENT_WR_BONE, FM_ENT_WR_SLIME,
+    FM_ENT_WR_SEED, FM_ENT_WR_DUST, FM_ENT_WR_CRACK, FM_ENT_WR_PINCER, FM_ENT_WR_DEBRIS,
+    // V13.3: Growler - Pfeifenreiniger in vier Farben (a, b leuchten bei den Jungen), blanker Draht; Nguithr'xurh - behaarter
+    // Koerper, Seide, Betaeubungsstoff
+    FM_ENT_PIPE_A, FM_ENT_PIPE_B, FM_ENT_PIPE_C, FM_ENT_PIPE_D, FM_ENT_WIRE, FM_ENT_SOLIFUGE, FM_ENT_SILK, FM_ENT_SEDATIVE,
+    FM_ENT_SOLIFUGE_DARK, FM_ENT_SOLIFUGE_HAIR, FM_ENT_SOLIFUGE_JOINT,  // V13.3: Nguithr'xurh Runde 6 - dunkle Scheren und Krallen,
+    FM_ENT_SOLIFUGE_HEAD,                                               // blasse Haare, dunklere Gelenke, roetlicher Vorderkoerper
     FM_FIG_END,
 };
 static_assert(FM_FIG_END <= kFixedMaterials);
@@ -67,6 +77,9 @@ constexpr u32 kMatFlagSmoke = 1u << 29;
 constexpr u32 kMatFlagSkin = 1u << 30;
 // V13: Umriss (Gestalt) - mit kMatFlagSmoke: Rand, Saum und Fasern ausduennen, den Koerper aber dicht lassen
 constexpr u32 kMatFlagSilhouette = 1u << 31;
+// V13.3: durchscheinende Haut (Wrangler) - nur bei Wesen (kMatFlagEntity): Bits 16-23 = Deckkraft (1..255, 0 = deckend). Der
+// Mesh-Shader duennt gerastert aus (schraeg gesehen dichter), das TAA mischt es zu einer milchigen Haut
+constexpr u32 kMatMembraneShift = 16;
 
 struct LightStats {
     u32 total = 0, visible = 0;
@@ -95,6 +108,10 @@ public:
     u32 drawChunks(Gpu& gpu, const Frustum& frustum, vec3 camPos);
     // V11: Ausstattung der Chunks (Shader und Ziele sind gesetzt); liefert Dreiecke
     u64 drawProps(Gpu& gpu, const Frustum& frustum, vec3 camPos, float maxDist);
+    // V13.3: die naechsten Pfuetzen (hoechstens kMaxPuddles) hochladen; liefert die Anzahl
+    static constexpr u32 kMaxPuddles = 32;
+    u32 updatePuddles(Gpu& gpu, vec3 camPos, float maxDist);
+    ID3D11ShaderResourceView* puddleSrv() const { return puddles_.srv.get(); }
 
     ID3D11ShaderResourceView* materialSrv() const { return materials_.srv.get(); }
     ID3D11ShaderResourceView* lightSrv() const { return lights_.srv.get(); }
@@ -114,6 +131,7 @@ private:
         u32 propIndexCount = 0;
         Aabb propBounds;
         std::vector<world::ChunkLight> lights;
+        std::vector<world::PuddleDecal> puddles;  // V13.3
     };
     void writeMaterials(Gpu& gpu);
     // Ring-Bereich auf "unbekannt" (massiv, dunkel) setzen; Rechteck in Ringkoordinaten
@@ -127,6 +145,7 @@ private:
     size_t syncedWorldMaterials_ = 0;
     Buffer materials_;
     Buffer lights_;
+    Buffer puddles_;  // V13.3: je Pfuetze 2 x float4
     std::vector<GpuLight> lightData_;
     Texture height_, ambient_;
     int ringSize_ = 256;

@@ -268,6 +268,9 @@ public:
     std::function<void(int kind, u32 arg)> netAction;      // Absichten an den Host (statt sie hier auszufuehren)
     void netRemoveItem(u32 hash);
     void netAddDropped(u32 hash, const std::string& kind, vec3 pos);
+    // V13.3 Koop (Host): der geteilte Stand fuer einen (wieder) beitretenden Gast: aufgenommene Kennzahlen und
+    // abgelegte Dinge (Kennzahl, Art, Ort) - er bekommt sie als Ereignisse Picked/Dropped nach dem Willkommen
+    void netWorldState(std::vector<u32>& pickedOut, std::vector<NetWorldEvent>& dropsOut) const;
     void netPowerCut(vec3 pos, float seconds);
     void netFlicker(vec3 pos);
     std::vector<Presence::NetState> netCreatures;          // letzte Momentaufnahme der Wesen
@@ -383,6 +386,9 @@ private:
     float tpPivotZ_ = 0.0f;
     bool tpInit_ = false;
     std::vector<DroppedItem> dropped_;
+    // V13.3 Koop (Gast): beim Host aufgenommen, hier aber (noch) nicht geladen - beim Laden nicht erzeugen
+    std::unordered_set<u32> netPendingPicked_;
+    bool isPicked(const std::string& id);  // aufgenommen (auch: als Kennzahl vom Host gemeldet)
     long long nextDrop_ = 1;
     // V7
     Flashlight flash_;
@@ -437,6 +443,7 @@ private:
     bool slamPending_ = false;
     void updateHaunt(double dt);
     static constexpr size_t kMaxDropped = 400;
+    static constexpr size_t kMaxNetPendingPicked = 16384;  // V13.3 Koop (Gast): gemeldete, hier nicht geladene Funde
     // V9
     // V10
     Presence presence_;

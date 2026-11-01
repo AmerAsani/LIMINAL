@@ -81,6 +81,13 @@ struct PropMesh {
     Aabb bounds;
 };
 
+// V13.3: Pfuetze als Abziehbild des Bodens (shaders/gbuffer.hlsli, applyPuddles) statt eines flachen Netzes: weicher,
+// unregelmaessiger Rand, nasser Hof, spiegelnde Wasserflaeche, Ringe von Tropfen
+struct PuddleDecal {
+    float x = 0, y = 0, z = 0, radius = 1;
+    float stretch = 1, angle = 0, seed = 0, wet = 1.5f;  // Streckung quer, Drehung, Zufall 0..1, Hof (Vielfaches des Rands)
+};
+
 // Lichtquelle fuer den Renderer.
 struct ChunkLight {
     enum Kind : u8 { Ceiling, Wall, Machine, Glow };  // V11: Glow strahlt nach oben, kein Stromkreis
@@ -109,6 +116,7 @@ struct ChunkData {
     std::vector<const ItemSpawn*> items;
     ChunkMesh mesh;
     PropMesh props;  // V11: Ausstattung
+    std::vector<PuddleDecal> puddles;  // V13.3
     // haelt die Sektoren am Leben, auf die Kacheln verweisen
     std::vector<std::shared_ptr<Sector>> sectors;
 

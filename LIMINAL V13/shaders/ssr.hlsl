@@ -12,7 +12,85 @@ Texture2D<float4> gNormalBuf : register(t2);
 Texture2D<float4> gMiscBuf : register(t3);
 Texture2D<float4> gAlbedoBuf : register(t4);
 RWTexture2D<float4> gOut : register(u0);
+SamplerState gLinearWrap : register(s1);
 SamplerState gLinearClamp : register(s2);
+// V13.3: fuer die Ersatzspiegelung der Decke
+Texture2D<float2> gHeightRing : register(t5);    // Ring: (Boden, Decke) je Kachel, massiv = Boden > 1000
+Texture2D<float4> gAmbientRing : register(t6);   // Ring: Umgebungslicht je Kachelecke
+struct GpuLightR
+{
+    float4 posRange, colorRadius, dirSpill, viewPosFlags, areaU, areaV;
+};
+StructuredBuffer<GpuLightR> gLightsR : register(t7);
+
+// V13.3: Verlaesst der gespiegelte Strahl das Bild (bei Pfuetzen und glatten Boeden fast immer: die Decke ist nicht im
+// Bild), spiegelt sich die Decke des Raums: der Strahl trifft die Deckenebene (Hoehenring), dort Umgebungslicht und die
+// Leuchtflaechen der naechsten Deckenleuchten. ok = false, wenn keine Decke darueber liegt.
+float3 ceilingMirror(float3 Pw, float3 Rw, out bool ok)
+{
+    ok = false;
+    if (Rw.z < 0.04)
+        return 0.0;
+    const int mask = (int)gRingParams.x - 1;
+    const float2 fc = gHeightRing.Load(int3((int2)floor(Pw.xy) & mask, 0));
+    if (fc.x > 1000.0 || fc.y <= Pw.z + 0.3)
+        return 0.0;
+    const float t = (fc.y - Pw.z) / Rw.z;
+    if (t > 45.0)
+        return 0.0;
+    const float3 Q = Pw + Rw * t;
+    const float2 fq = gHeightRing.Load(int3((int2)floor(Q.xy) & mask, 0));
+    if (fq.x > 1000.0)
+    {
+        // Strahl trifft eine Wand/Stuetze vor der Decke: deren Flaeche im Umgebungslicht (keine schwarzen Flecken)
+        ok = true;
+        return gAmbientRing.SampleLevel(gLinearWrap, (Pw.xy + 0.5) * gRingParams.y, 0).rgb * gFogParams.z * 1.3;
+    }
+    float3 col = gAmbientRing.SampleLevel(gLinearWrap, (Q.xy + 0.5) * gRingParams.y, 0).rgb * gFogParams.z * 1.5;
+    const uint n = min((uint)gLightParams.x, 64u);
+    for (uint i = 0; i < n; ++i)
+    {
+        const GpuLightR L = gLightsR[i];
+        if ((asuint(L.viewPosFlags.w) & 2u) != 0u || L.dirSpill.z > -0.5)
+            continue;  // keine Spots (Taschenlampe), nur nach unten strahlende Leuchten
+        const float3 d = Q - L.posRange.xyz;
+        if (abs(d.z) > 0.9)
+            continue;
+        float3 U = L.areaU.xyz, V = L.areaV.xyz;
+        float lu = length(U), lv = length(V);
+        if (lu < 0.02 || lv < 0.02)
+        {
+            lu = lv = 0.09;
+            U = float3(lu, 0.0, 0.0);
+            V = float3(0.0, lv, 0.0);
+        }
+        const float su = abs(dot(d, U)) / (lu * lu), sv = abs(dot(d, V)) / (lv * lv);
+        const float inside = (1.0 - smoothstep(0.8, 1.08, su)) * (1.0 - smoothstep(0.8, 1.08, sv));
+        col += L.colorRadius.rgb * inside * (0.55 / max(lu * lv * 4.0, 0.05));
+    }
+    ok = true;
+    return col * saturate(1.3 - t / 35.0);
+}
+
+float3 mirrorFallback(int2 p, float2 uv, float depth, float rough, float4 misc, out bool ok)
+{
+    ok = false;
+    const float3 nW = normalize(gNormalBuf[p].xyz * 2.0 - 1.0);
+    if (nW.z < 0.8 || rough > 0.3)
+        return 0.0;
+    const float3 Pw = worldFromDepth(uv, depth, gInvViewProj);
+    const float3 Vw = normalize(gCameraPos.xyz - Pw);
+    const float3 Rw = reflect(-Vw, nW);
+    const float3 c = ceilingMirror(Pw + nW * 0.02, Rw, ok);
+    if (!ok)
+        return 0.0;
+    const float3 albedo = gAlbedoBuf[p].rgb;
+    const float3 f0 = lerp(0.04, albedo, misc.g);
+    const float VoN = saturate(dot(Vw, nW));
+    const float3 F = f0 + (1.0 - f0) * pow(1.0 - VoN, 5.0);
+    const float smooth = saturate(1.0 - rough / 0.3);
+    return c * F * smooth * smooth * gAlbedoBuf[p].a;
+}
 
 float3 viewFromDepth(float2 uv, float depth)
 {
@@ -59,7 +137,9 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     float3 R = reflect(-V, H);
     if (R.z <= 0.02 || dot(R, N) <= 0.0)
     {
-        gOut[p] = base;
+        bool ok;
+        const float3 fb = mirrorFallback(p, uv, depth, rough, misc, ok);  // V13.3
+        gOut[p] = float4(base.rgb + (ok ? fb : 0.0), 1.0);
         return;
     }
 
@@ -110,7 +190,9 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     }
     if (hitUv.x < 0.0)
     {
-        gOut[p] = base;
+        bool ok;
+        const float3 fb = mirrorFallback(p, uv, depth, rough, misc, ok);  // V13.3
+        gOut[p] = float4(base.rgb + (ok ? fb : 0.0), 1.0);
         return;
     }
     float3 refl = gLit.SampleLevel(gLinearClamp, hitUv, 0).rgb;

@@ -16,7 +16,8 @@ void GameSession::pawnInput(Pawn& p, const PlayerControl& c0, double dt) {
     if (!p.alive) return;
     PlayerControl c = c0;
     p.player.speedMul = p.stats.speedMul() * (p.stats.exhausted ? 0.9 : 1.0);
-    if (!p.stats.canSprint()) c.sprint = false;
+    p.player.speedMul *= presence_.slowFor(p.id, {(float)p.player.x, (float)p.player.y, (float)p.player.z});  // V13.3
+    if (!p.stats.canSprint() || presence_.stupor(p.id) > 0.5f) c.sprint = false;
     if (const world::Room* wr = world_->roomAt(p.player.x, p.player.y)) p.player.waterZ = wr->water;
     else p.player.waterZ = -999.0;
     p.player.update(dt, c, tileSrc());
@@ -242,6 +243,8 @@ void GameSession::throwFrom(const Player& p, vec3 eye, const std::string& kind, 
 // --- Gast ---------------------------------------------------------------------------------------
 void GameSession::netRemoveItem(u32 hash) {
     std::vector<ecs::Entity> gone;
+    bool known = false;  // V13.3: ein abgelegtes Ding oder ein geladener Fund
+    for (const DroppedItem& d : dropped_) known = known || d.netHash == hash;
     reg_.each<Pickup, Transform>([&](ecs::Entity e, Pickup& pk, Transform&) {
         if (pk.worldId.rfind("drop:", 0) == 0) {
             for (const DroppedItem& d : dropped_)
@@ -249,11 +252,19 @@ void GameSession::netRemoveItem(u32 hash) {
         } else if (worldItemHash(pk.worldId) == hash) {
             picked.insert(pk.worldId);
             gone.push_back(e);
+            known = true;
         }
     });
     reg_.each<NoteFind, Transform>([&](ecs::Entity e, NoteFind& nf, Transform&) {
-        if (worldItemHash(nf.id) == hash) picked.insert(nf.id), gone.push_back(e);
+        if (worldItemHash(nf.id) == hash) picked.insert(nf.id), gone.push_back(e), known = true;
     });
+    // V13.3: der Fund liegt hier (noch) nicht geladen (ferner Sektor) - merken, beim Laden nicht erzeugen; sonst stimmte
+    // der geteilte Stand nie wieder (im Langlauf gefunden) und der Gast saehe einen Fund, den es nicht mehr gibt
+    // Doppelt gemeldet (Stand beim Wiederverbinden mit derselben Sitzung) zaehlt nicht doppelt; die Menge ist begrenzt
+    // (Speicher, falls ein Host Unsinn meldet - die Pruefsumme zeigt das dann als Abweichung)
+    if (!known)
+        for (const std::string& id : picked) known = known || worldItemHash(id) == hash;
+    if (!known && netPendingPicked_.size() < kMaxNetPendingPicked) netPendingPicked_.insert(hash);
     std::erase_if(dropped_, [&](const DroppedItem& d) { return d.netHash == hash; });
     for (ecs::Entity e : gone) {
         if (target_ == e) target_ = ecs::kNull;
@@ -344,8 +355,30 @@ u32 GameSession::sharedHash() const {
     };
     u32 a = 0, b = 0;
     for (const std::string& id : picked) a += mix(worldItemHash(id));
+    for (u32 h : netPendingPicked_) a += mix(h);  // V13.3: aufgenommen, hier noch nicht geladen
     for (const DroppedItem& d : dropped_) b += mix((d.netHash ? d.netHash : worldItemHash(d.id)) ^ 0x9E3779B9u);
-    return mix(a ^ mix(b + 0x632BE5ABu) ^ ((u32)picked.size() << 8) ^ (u32)dropped_.size());
+    return mix(a ^ mix(b + 0x632BE5ABu) ^ ((u32)(picked.size() + netPendingPicked_.size()) << 8) ^ (u32)dropped_.size());
+}
+
+bool GameSession::isPicked(const std::string& id) {
+    if (picked.count(id)) return true;
+    if (netPendingPicked_.empty()) return false;
+    const auto it = netPendingPicked_.find(worldItemHash(id));
+    if (it == netPendingPicked_.end()) return false;
+    netPendingPicked_.erase(it);  // jetzt mit Kennung bekannt
+    picked.insert(id);
+    return true;
+}
+
+void GameSession::netWorldState(std::vector<u32>& pickedOut, std::vector<NetWorldEvent>& dropsOut) const {
+    pickedOut.clear(), dropsOut.clear();
+    for (const std::string& id : picked) pickedOut.push_back(worldItemHash(id));
+    for (const DroppedItem& d : dropped_) {
+        vec3 pos = d.pos;
+        if (reg_.alive(d.entity))
+            if (const Transform* t = const_cast<ecs::Registry&>(reg_).get<Transform>(d.entity)) pos = t->pos;
+        dropsOut.push_back({NetWorldEvent::Dropped, d.netHash ? d.netHash : worldItemHash(d.id), d.kind, pos, 0});
+    }
 }
 
 int GameSession::itemCount() const {
