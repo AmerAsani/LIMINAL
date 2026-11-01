@@ -12,6 +12,7 @@ Draufsicht (x nach rechts, y nach unten):
 """
 import math
 import os
+import random
 import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
@@ -409,6 +410,21 @@ for r in (main, south, east_s):  # selten ein Hound (Wiki: andere Wesen eher sel
             and all(math.hypot(x - c['pos'][0], y - c['pos'][1]) >= 16 for c in m.checkpoints)):
         m.spawn('entity', x, y, 0.0, role='hound', tags=['hotel'])
 
-
+# V13.3: Varianten der haeufig gesetzten Klassen (PROPS_Level5.md). Eigener Zufall nach allen Platzierungen - die
+# Anordnung bleibt gleich. Tueren: 6 Bauarten x 4 Varianten mit je eigener Nummer (24 Nummern ohne Muster, Wiki).
+# Beistelltische: mit Lampe 1 oder 3, ohne Lampe 0 oder 2 (die Lichter der Zimmer haengen an den Lampen).
+VARIANTS = {'hotel_door_a': 4, 'hotel_door_b': 4, 'hotel_door_c': 4, 'hotel_door_d': 4, 'hotel_door_e': 4, 'hotel_door_f': 4,
+            'candle_sconce': 3, 'painting_portrait': 3, 'chandelier_grand': 2, 'sofa': 2, 'armchair': 2, 'wardrobe': 2, 'bookcase': 4}
+vr = random.Random(1505)
+for o in m.objects:
+    if o['model'] in VARIANTS:
+        v_ = vr.randrange(VARIANTS[o['model']])
+    elif o['model'] == 'side_table':
+        v_ = vr.choice((1, 3) if o.get('variant', 0) == 1 else (0, 2))
+    else:
+        continue
+    o.pop('variant', None)
+    if v_:
+        o['variant'] = v_
 
 m.save()
