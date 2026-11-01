@@ -539,5 +539,13 @@ for k, r in enumerate(lit_cells[::max(1, len(lit_cells) // 6)][:6]):
 safe_point('vorraum3', vor3, 'Vor der Tür nach Level 3')
 safe_point('buero', [o for o in offices if far(o)][0], 'Büro im Bürogang')
 
+# V13.3 (Nachforderung Wiki: Maschinen verschiedener Bauarten aus frueheren Epochen, nicht aufeinander abgestimmt):
+# Bauart je Objekt zufaellig; erst nach allen Platzierungen gezogen, damit die Anordnung der Ebene gleich bleibt
+VARIANTS = {'mach_cabinet': 3, 'junction_box': 4, 'mach_pump': 2, 'mach_tank': 2, 'pipe_riser': 2}
+for o in m.objects:
+    if o['model'] in VARIANTS:
+        v_ = rng.randrange(VARIANTS[o['model']])
+        if v_:
+            o['variant'] = v_
 m.save()
 print('Knicke mit Schraege:', chamfers)
