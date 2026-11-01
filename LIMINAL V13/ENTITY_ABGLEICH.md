@@ -69,7 +69,8 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 | Wrangler (Entity 75) | Riesig, schlangenartig, gräbt sich durch Wände, hypnotisiert; leise gehen, wenn die Wände beben. | **umgesetzt (V13.3)**: Beben, Durchzug durch Wand, Boden oder Decke, Sog des Anblicks, wer laut ist, wird geschnappt; selten Jungtiere – [KREATUR_Wrangler.md](KREATUR_Wrangler.md) |
 | Staphylococcus liminalis (Entity 19), Plague Goblins (Entity 25) | Krankheitserreger. | **bewusst weggelassen**: keine Gestalt; das Spiel hat kein Krankheitssystem |
 | Narrenfigur im Gemälde (Entity 99) | Ein Bild, das als Ausgang zu Level 389 dient. | **bewusst weggelassen**: Ausgang zu einer Ebene, die das Spiel nicht enthält |
-| Gruppen (M.E.G., B.N.T.G., Ariane Circle u. a.), schattenhafte Arbeiter im Overall | Menschliche Gruppen; Arbeiter aus einem Ouroboros-Sektor. | **bewusst weggelassen**: Menschen, keine Wesen; nur über Notizen angedeutet |
+| Gruppen (M.E.G., B.N.T.G., Ariane Circle u. a.) | Menschliche Gruppen. | **bewusst weggelassen**: Menschen, keine Wesen; nur über Notizen angedeutet |
+| Schattenhafte Arbeiter im Overall (Sektor Ouroboros; backrooms-remodeling-co) | Reparieren seit Jahrzehnten ohne Fortschritt, beachten Lebende nicht, verletzen mit ihren Maschinen; meiden. | **umgesetzt (V13.3)**: Baustelle nur im Sektor Ouroboros – eine Mauer, gebaut und wieder eingerissen, ein Gerüst, das umkippt; sie sehen nie zum Spieler und schieben ihn beiseite; Gefahr nur durch Maschinen im Absperrband, jede angekündigt – [KREATUR_OuroborosArbeiter.md](KREATUR_OuroborosArbeiter.md) |
 
 ### Level 2 – „Pipe Dreams“
 
