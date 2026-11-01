@@ -105,6 +105,11 @@ Fandom-Seiten wurden für V12 **nicht** verwendet (Auftrag: nur Wikidot).
   - Die Zimmernummern, das Beverly-Schild, die Inschrift der Bibliothek und alle Schilder und Tafeln in Level 36 wurden daraus als **Geometrie** erzeugt.
   - Die Schriftdatei selbst wird nicht mitgeliefert. Die OFL erlaubt die Einbettung in erzeugte Werke.
   - Der Lizenztext der OFL soll im Paket liegen; das ist noch offen (Abschnitt 8).
+- **DejaVu Sans Mono** (Bitstream-Vera-Lizenz mit den DejaVu-Änderungen, frei; https://dejavu-fonts.github.io/):
+  - Liegt den Blender-Datendateien bei (`datafiles/fonts/DejaVuSansMono.woff2`).
+  - V13.3: Ziffern in Level 5 (Zimmernummern der Hoteltüren, Typenschild des Kessels, Wagennummer „903“) als
+    **Geometrie** – Inter füllte beim Umwandeln das Loch der „4“ (überlappende Konturen der variablen Schrift).
+  - Die Schriftdatei selbst wird nicht mitgeliefert; die Lizenz erlaubt eingebettete und abgeleitete Nutzung.
 - **Oberfläche:** Segoe UI und Consolas werden zur Laufzeit aus den installierten Windows-Schriften gerastert und nicht mitgeliefert (wie in V11).
 
 ## 5. Klänge

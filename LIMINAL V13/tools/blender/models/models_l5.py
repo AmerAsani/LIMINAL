@@ -68,12 +68,23 @@ def _text(name, body, size, mat, at, depth=0.002, res=None):
 def _text_clean(name, body, size, mat, at, depth=0.0012, res=3):
     """Wie _text, danach doppelte Punkte verschmolzen und entartete Dreiecke aufgeloest (die alten Plaketten
     hatten entartete Dreiecke)."""
-    ob = _text(name, body, size, mat, at, depth=depth, res=res)
+    global FONT
+    keep = FONT
+    if any(ch.isdigit() for ch in body):
+        # Inter (variable) hat bei Ziffern ueberlappende Konturen (die 4 fuellte ihr Loch) - Ziffern mit DejaVu Sans
+        # Mono aus den Blender-Datendateien (Bitstream-Vera-/DejaVu-Lizenz, LICENSES.md)
+        try:
+            FONT = bpy.data.fonts.load(os.path.join(os.path.dirname(bpy.app.binary_path), '4.5', 'datafiles', 'fonts',
+                                                    'DejaVuSansMono.woff2'), check_existing=True)
+        except Exception:  # noqa: BLE001
+            FONT = bpy.data.fonts.get('Bfont Regular') or bpy.data.fonts.load('<builtin>')
+    try:
+        ob = _text(name, body, size, mat, at, depth=depth, res=res)
+    finally:
+        FONT = keep
     bm = bmesh.new()
     bm.from_mesh(ob.data)
-    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-5)
-    bmesh.ops.dissolve_degenerate(bm, dist=1e-5, edges=bm.edges)
-    bmesh.ops.triangulate(bm, faces=bm.faces)
+    bmesh.ops.triangulate(bm, faces=bm.faces)  # (Verschmelzen fuellte das Loch der 4 - nur Nullflaechen loeschen)
     bad = [f for f in bm.faces if f.calc_area() < 1e-10]
     if bad:
         bmesh.ops.delete(bm, geom=bad, context='FACES')
@@ -547,10 +558,10 @@ def _tuft_disp(pts, links, depth=0.040, sig=0.022, crease=0.014, cw=0.007, puff=
 def _m():
     return {
         # Nussbaum, schellackpoliert (seidenmatt); dunkle Beize in Kehlen; abgegriffene Kanten heller
-        'walnut': common.material('nussbaum', (0.22, 0.12, 0.065), look='wood', rough=0.45, r=0.6),
-        'walnut_d': common.material('nussbaum_dunkel', (0.13, 0.07, 0.038), look='wood', rough=0.5, r=0.7),
-        'walnut_l': common.material('nussbaum_hell', (0.28, 0.16, 0.085), look='wood', rough=0.45, r=0.55),
-        'veneer': common.material('wurzelfurnier', (0.30, 0.15, 0.07), look='wood', rough=0.35, r=0.5),
+        'walnut': common.material('nussbaum', (0.46, 0.30, 0.20), look='wood', tex=WOOD, rough=0.45, r=0.6),
+        'walnut_d': common.material('nussbaum_dunkel', (0.28, 0.18, 0.12), look='wood', tex=WOOD, rough=0.5, r=0.7),
+        'walnut_l': common.material('nussbaum_hell', (0.56, 0.38, 0.25), look='wood', tex=WOOD, rough=0.45, r=0.55),
+        'veneer': common.material('wurzelfurnier', (0.62, 0.40, 0.25), look='wood', tex=WOOD, rough=0.35, r=0.5),
         'ebony': common.material('ebenholz', (0.07, 0.05, 0.04), look='wood', rough=0.4, r=0.6),
         # Messing: poliert, angelaufen (in Vertiefungen), abgegriffen (hell, glatt)
         'brass': common.material('messing', (0.80, 0.62, 0.32), look='metal', rough=0.35, metal=1.0, r=0.55, m=0.95),
@@ -572,11 +583,15 @@ def _m():
         'rust': common.material('rost', (0.45, 0.27, 0.15), look='metal', tex='metal_rusty_iron', rough=0.9, metal=0.3, r=1.4, m=0.15),
         'rust_l': common.material('rost_hell', (0.58, 0.36, 0.18), look='concrete', rough=1.0, r=1.5, m=0.0),
         'soot': common.material('russ', (0.03, 0.028, 0.026), look='concrete', rough=1.0, r=1.5, m=0.0),
-        'soot_l': common.material('russ_hauch', (0.10, 0.09, 0.08), look='concrete', rough=1.0, r=1.5, m=0.0),
+        'soot_l': common.material('russ_hauch', (0.40, 0.29, 0.23), look='concrete', rough=1.0, r=1.5, m=0.0),
+        'soot_m': common.material('russ_mittel', (0.22, 0.17, 0.14), look='concrete', rough=1.0, r=1.5, m=0.0),
         'grease': common.material('fett', (0.05, 0.045, 0.035), look='paint', rough=0.2, r=0.35, m=0.1),
         'brick': common.material('ziegel', (0.80, 0.55, 0.45), look='concrete', tex='bricks_brown_old', rough=0.9, r=1.3),
         'red': common.material('rot', (0.46, 0.08, 0.07), look='fabric', rough=0.8, r=1.2),
     }
+
+
+WOOD = 'wood_walnut_floor'  # Fotostruktur (Runde r3): die prozedurale Maserung wirkte gezeichnet, mit Aesten
 
 
 VELVET = {0: (0.42, 0.07, 0.08), 1: (0.60, 0.46, 0.18)}
@@ -1010,7 +1025,7 @@ def build_metro_car_end():
     L, W, H = 6.0, 2.6, 2.7
     Bm = {'body': bmesh.new(), 'stripe': bmesh.new(), 'inner': bmesh.new(), 'floor': bmesh.new(), 'seat': bmesh.new(), 'rubber': bmesh.new(),
           'light': bmesh.new(), 'glass': bmesh.new(), 'steel': bmesh.new(), 'ad0': bmesh.new(), 'ad1': bmesh.new(), 'ad2': bmesh.new()}
-    mats = {'body': body, 'stripe': stripe, 'inner': inner, 'floor': floor_m, 'seat': seat, 'rubber': rubber, 'light': light, 'glass': M['glass'],
+    mats = {'body': body, 'stripe': stripe, 'inner': inner, 'floor': floor_m, 'seat': seat, 'rubber': rubber, 'light': light, 'glass': common.material('fensterlicht', (0.80, 0.78, 0.68), look='glow', glow=0.15),
             'steel': M['silver'], 'ad0': ad[0], 'ad1': ad[1], 'ad2': ad[2]}
     zf, ze = 0.08, 2.32
     g_box(Bm['body'], (-L / 2, 0.0, 0.0), (L / 2, W, zf), ch=0.01)
@@ -1160,9 +1175,9 @@ def _wardrobe(v):
     (blinde Stellen am Rand)."""
     M = _m()
     tone = 0.78 if v == 1 else 1.0
-    wood = common.material(f'schrank{v}', tuple(c * tone for c in (0.22, 0.12, 0.065)), look='wood', rough=0.45, r=0.6)
-    wood_d = common.material(f'schrank_dunkel{v}', tuple(c * tone for c in (0.13, 0.07, 0.038)), look='wood', rough=0.5, r=0.7)
-    wood_l = common.material(f'schrank_hell{v}', tuple(min(1.0, c * tone * 1.15) for c in (0.26, 0.15, 0.08)), look='wood', rough=0.4, r=0.55)
+    wood = common.material(f'schrank{v}', tuple(c * tone for c in (0.46, 0.30, 0.20)), look='wood', tex=WOOD, rough=0.45, r=0.6)
+    wood_d = common.material(f'schrank_dunkel{v}', tuple(c * tone for c in (0.28, 0.18, 0.12)), look='wood', tex=WOOD, rough=0.5, r=0.7)
+    wood_l = common.material(f'schrank_hell{v}', tuple(min(1.0, c * tone * 1.15) for c in (0.52, 0.35, 0.23)), look='wood', tex=WOOD, rough=0.4, r=0.55)
     X0, X1, HY = -0.30, 0.30, 0.55
     bm = bmesh.new()
     g_box(bm, (X0, -HY, 0.078), (X1, HY, 1.92), ch=0.003)                  # Korpus
@@ -1598,7 +1613,7 @@ def _flat_patch(bm, c, nrm, r, seed, n=9, lift=0.0006, stretch=(1.0, 1.0)):
     ring = []
     for k in range(n):
         a = TAU * k / n
-        rr = r * rng.uniform(0.6, 1.25)
+        rr = r * rng.uniform(0.82, 1.12)
         ring.append(bm.verts.new(c + u * math.cos(a) * rr * stretch[0] + v * math.sin(a) * rr * stretch[1]))
     for k in range(n):
         f = bm.faces.new((vc, ring[k], ring[(k + 1) % n]))
@@ -1952,7 +1967,7 @@ def build_furnace():
     der Tuer und auf der Platte, Ascheberg mit Kohlestuecken, angelehnte Kohlenschaufel."""
     M = _m()
     MM = _mats_machine()
-    B = _B(['brick', 'iron', 'steel', 'rust', 'soot', 'soot_l', 'glow', 'black', 'ash', 'coal', 'walnut_d', 'grease'])
+    B = _B(['brick', 'iron', 'steel', 'rust', 'soot', 'soot_l', 'soot_m', 'glow', 'black', 'ash', 'coal', 'walnut_d', 'grease'])
     D, HW, Hh = 1.6, 1.0, 2.2
     g_box(B['brick'], (0.0, -HW, 0.0), (D, HW, Hh), ch=0.012)
     g_box(B['iron'], (-0.02, -HW - 0.03, Hh), (D + 0.03, HW + 0.03, Hh + 0.08), ch=0.008)
@@ -1991,10 +2006,12 @@ def build_furnace():
     g_box(B['glow'], (D + 0.05, -0.30, 0.12), (D + 0.0505, 0.30, 0.135))
     g_box(B['iron'], (D - 0.01, -0.55, 1.22), (D + 0.03, 0.55, 1.30), ch=0.004)   # Sturzeisen
     # Russ ueber der Tuer, auf der Platte
-    for k in range(10):  # Russfahne ueber der Tuer: innen dunkel, aussen ein Hauch
-        _flat_patch(B['soot_l'], (D + 0.013, rng_u(800 + k, -0.45, 0.45), 1.32 + 0.09 * k), (1, 0, 0), 0.13 + 0.012 * k, 810 + k)
+    for k in range(9):  # Russfahne ueber der Tuer: drei Toene, aussen ein Hauch, innen dunkel
+        _flat_patch(B['soot_l'], (D + 0.012, rng_u(800 + k, -0.4, 0.4), 1.34 + 0.09 * k), (1, 0, 0), 0.16 + 0.01 * k, 810 + k, n=14)
     for k in range(6):
-        _flat_patch(B['soot'], (D + 0.0135, rng_u(850 + k, -0.25, 0.25), 1.31 + 0.06 * k), (1, 0, 0), 0.05 + 0.01 * k, 860 + k)
+        _flat_patch(B['soot_m'], (D + 0.0128, rng_u(850 + k, -0.3, 0.3), 1.33 + 0.07 * k), (1, 0, 0), 0.09 + 0.008 * k, 860 + k, n=12)
+    for k in range(4):
+        _flat_patch(B['soot'], (D + 0.0136, rng_u(870 + k, -0.2, 0.2), 1.32 + 0.04 * k), (1, 0, 0), 0.045, 880 + k, n=10)
     for k in range(5):
         _flat_patch(B['soot_l'], (rng_u(820 + k, 0.3, 1.4), rng_u(830 + k, -0.8, 0.8), Hh + 0.081), (0, 0, 1), 0.15, 840 + k)
     # Rauchrohr: drei genietete Schuesse mit Flanschen, Drosselklappe, Deckenkragen
@@ -2270,39 +2287,21 @@ def _side_table(v):
     M = _m()
     B = _B(['walnut', 'walnut_d', 'brass', 'brass_d', 'ivory'])
     H = 0.66
-    if v in (0, 1):
-        g_lathe(B['walnut'], [(0.0, H - 0.028), (0.29, H - 0.028), (0.30, H - 0.02), (0.30, H - 0.008), (0.292, H), (0.0, H)], seg=32)
-        g_lathe(B['walnut_d'], [(0.0, H - 0.075), (0.24, H - 0.075), (0.24, H - 0.028), (0.0, H - 0.028)], seg=24)
-        col = [(0.0, 0.11), (0.05, 0.11), (0.05, 0.13), (0.035, 0.15), (0.045, 0.2), (0.05, 0.26), (0.04, 0.34), (0.026, 0.42), (0.024, 0.5),
-               (0.032, 0.53), (0.026, 0.56), (0.036, H - 0.075), (0.0, H - 0.075)]
-        g_lathe(B['walnut_d'], col, seg=14)
-        for k in range(3):
-            a = TAU * k / 3
-            dr = Vector((math.cos(a), math.sin(a), 0.0))
-            p = _bez(dr * 0.03 + Vector((0, 0, 0.16)), dr * 0.12 + Vector((0, 0, 0.15)), dr * 0.2 + Vector((0, 0, 0.06)), dr * 0.25 + Vector((0, 0, 0.018)), 8)
-            g_tube(B['walnut_d'], p, 0.02, seg=8, scales=[1.3, 1.2, 1.1, 1.0, 0.9, 0.8, 0.75, 0.72, 0.7])
-            g_lathe(B['brass_d'], [(0.0, 0.0), (0.016, 0.0), (0.016, 0.02), (0.0, 0.022)], seg=10, M=T(*(dr * 0.255)))
-    else:
-        g_box(B['walnut'], (-0.27, -0.27, H - 0.024), (0.27, 0.27, H), ch=0.005)
-        g_sweep(B['walnut_d'], [(-0.01, -0.024), (0.006, -0.024), (0.009, -0.018), (0.009, -0.008), (0.004, 0.0), (-0.01, 0.0)],
-                [(-0.27, -0.27, H), (0.27, -0.27, H), (0.27, 0.27, H), (-0.27, 0.27, H)], closed=True, up=(0, 0, 1))
-        for k in range(4):
-            Rk = R(k * math.pi / 2, 'Z')
-            g_box(B['walnut_d'], (0.22, -0.20, H - 0.10), (0.24, 0.20, H - 0.024), M=Rk)
-            c = Rk @ Vector((0.215, 0.215, 0.0))
-            g_prism(B['walnut_d'], [(-0.02, -0.02), (0.02, -0.02), (0.02, 0.02), (-0.02, 0.02)], 0.03, H - 0.024, M=T(c.x, c.y, 0))
-            g_lathe(B['walnut_d'], [(0.0, 0.0), (0.016, 0.0), (0.022, 0.012), (0.02, 0.03), (0.0, 0.03)], seg=10, M=T(c.x, c.y, 0))
-        g_box(B['walnut'], (-0.22, -0.22, 0.16), (0.22, 0.22, 0.178), ch=0.003)
-        g_box(B['walnut'], (0.238, -0.15, H - 0.092), (0.246, 0.15, H - 0.032), ch=0.002)   # Schublade
-        g_mold_rect(B['walnut_d'], 0.246, -0.14, H - 0.085, 0.14, H - 0.039, [(-0.002, 0.0), (0.0, 0.0015), (0.002, 0.0)])
-        g_lathe(B['brass'], [(0.0, 0.0), (0.008, 0.0), (0.006, 0.006), (0.009, 0.012), (0.0, 0.015)], seg=10,
-                M=T(0.246, 0.0, H - 0.062) @ R(math.pi / 2, 'Y'))
-        g_quad(B['brass_d'], (0.2462, -0.012, H - 0.082), (0.2462, 0.012, H - 0.082), (0.2462, 0.012, H - 0.042), (0.2462, -0.012, H - 0.042))
-    if v == 1:  # Tischlampe: Messingfuss, Saeule, Faltenschirm (leuchtet)
-        x0 = -0.11
-        g_lathe(B['brass'], [(0.0, H), (0.075, H), (0.078, H + 0.008), (0.06, H + 0.02), (0.03, H + 0.03), (0.014, H + 0.05), (0.012, H + 0.30),
-                             (0.018, H + 0.31), (0.014, H + 0.33), (0.0, H + 0.33)], seg=18, M=T(x0, 0, 0))
-        _shade(x0, 0.0, H + 0.26, 0.16, 0.09, 0.2, 28, 'schirm_falten')
+    g_box(B['walnut'], (-0.27, -0.27, H - 0.024), (0.27, 0.27, H), ch=0.005)
+    g_sweep(B['walnut_d'], [(-0.01, -0.024), (0.006, -0.024), (0.009, -0.018), (0.009, -0.008), (0.004, 0.0), (-0.01, 0.0)],
+            [(-0.27, -0.27, H), (0.27, -0.27, H), (0.27, 0.27, H), (-0.27, 0.27, H)], closed=True, up=(0, 0, 1))
+    for k in range(4):
+        Rk = R(k * math.pi / 2, 'Z')
+        g_box(B['walnut_d'], (0.22, -0.20, H - 0.10), (0.24, 0.20, H - 0.024), M=Rk)
+        c = Rk @ Vector((0.215, 0.215, 0.0))
+        g_prism(B['walnut_d'], [(-0.02, -0.02), (0.02, -0.02), (0.02, 0.02), (-0.02, 0.02)], 0.03, H - 0.024, M=T(c.x, c.y, 0))
+        g_lathe(B['walnut_d'], [(0.0, 0.0), (0.016, 0.0), (0.022, 0.012), (0.02, 0.03), (0.0, 0.03)], seg=10, M=T(c.x, c.y, 0))
+    g_box(B['walnut'], (-0.22, -0.22, 0.16), (0.22, 0.22, 0.178), ch=0.003)
+    g_box(B['walnut'], (0.238, -0.15, H - 0.092), (0.246, 0.15, H - 0.032), ch=0.002)   # Schublade
+    g_mold_rect(B['walnut_d'], 0.246, -0.14, H - 0.085, 0.14, H - 0.039, [(-0.002, 0.0), (0.0, 0.0015), (0.002, 0.0)])
+    g_lathe(B['brass'], [(0.0, 0.0), (0.008, 0.0), (0.006, 0.006), (0.009, 0.012), (0.0, 0.015)], seg=10,
+            M=T(0.246, 0.0, H - 0.062) @ R(math.pi / 2, 'Y'))
+    g_quad(B['brass_d'], (0.2462, -0.012, H - 0.082), (0.2462, 0.012, H - 0.082), (0.2462, 0.012, H - 0.042), (0.2462, -0.012, H - 0.042))
     if v == 3:  # Leuchter mit Seidenschirm
         x0 = -0.12
         g_lathe(B['brass'], [(0.0, H), (0.06, H), (0.064, H + 0.012), (0.04, H + 0.02), (0.02, H + 0.05), (0.03, H + 0.08), (0.016, H + 0.1),
@@ -2519,7 +2518,7 @@ def _hotel_door(style, v):
     M = _m()
     number = DOOR_NUMBERS[style][v]
     W, H, XL = 0.92, 2.12, 0.040
-    wood = M['walnut'] if style not in ('b', 'e') else common.material('mahagoni', (0.22, 0.08, 0.045), look='wood', rough=0.45, r=0.6)
+    wood = M['walnut'] if style not in ('b', 'e') else common.material('mahagoni', (0.52, 0.25, 0.17), look='wood', tex=WOOD, rough=0.45, r=0.6)
     # Bekleidung (U-Pfad gegen den Uhrzeigersinn von +x) und Sockelkloetze
     bm = bmesh.new()
     g_sweep(bm, CASING, [(0.0, W / 2 + 0.006, 0.20), (0.0, W / 2 + 0.006, H + 0.006), (0.0, -W / 2 - 0.006, H + 0.006),
@@ -2542,7 +2541,7 @@ def _hotel_door(style, v):
     bp, bmo = bmesh.new(), bmesh.new()
     for (y0, z0, y1, z1) in DOOR_PANELS[style]:
         _raised_panel(bp, bmo, XL, y0, z0, y1, z1, bevel=0.035 if (y1 - y0) > 0.4 else 0.03)
-    _obj('fuellungen', bp, M['walnut_l'] if wood is M['walnut'] else common.material('mahagoni_hell', (0.28, 0.11, 0.06), look='wood', rough=0.4, r=0.55), smooth=25)
+    _obj('fuellungen', bp, M['walnut_l'] if wood is M['walnut'] else common.material('mahagoni_hell', (0.62, 0.32, 0.22), look='wood', tex=WOOD, rough=0.4, r=0.55), smooth=25)
     _obj('kehlleisten', bmo, M['walnut_d'], smooth=45)
     # Beschlaege: Langschild, Druecker, Schluesselloch (Schlossseite -y), Baender (+y)
     yk = -W / 2 + 0.065
@@ -2571,25 +2570,26 @@ def _hotel_door(style, v):
     bm = bmesh.new()
     ring = [bm.verts.new((XL + 0.0004, yk + math.cos(TAU * i / 14) * 0.055, 1.0 + math.sin(TAU * i / 14) * 0.2)) for i in range(14)]
     bm.faces.new(ring)
-    _obj('abrieb', bm, common.material('holz_abgegriffen', (0.245, 0.135, 0.072), look='wood', rough=0.35, r=0.45), smooth=None)
+    _obj('abrieb', bm, common.material('holz_abgegriffen', (0.52, 0.35, 0.24), look='wood', tex=WOOD, rough=0.35, r=0.45), smooth=None)
     # Nummernschild: Form je Bauart (oval / Rechteck mit Fase / Schild mit Spitzen)
     zc = 1.66
+    XP = XL + 0.0115  # vor der Fuellung (Plateau XL + 0,010)
     nd = len(str(number))
     hw = 0.034 + 0.018 * nd
     bm = bmesh.new()
     if style in ('a', 'd'):
         g_lathe(bm, [(0.0, 0.0), (0.050, 0.0), (0.052, 0.002), (0.049, 0.005), (0.0, 0.0055)], seg=28,
-                M=T(XL + 0.001, 0, zc) @ R(math.pi / 2, 'Y') @ S(1.0, hw / 0.05, 1.0))
+                M=T(XP, 0, zc) @ R(math.pi / 2, 'Y') @ S(1.0, hw / 0.05, 1.0))
     elif style in ('b', 'e'):
-        g_plate(bm, _rrect(0.0, zc, hw, 0.050, 0.008, 2), XL + 0.001, XL + 0.005)
+        g_plate(bm, _rrect(0.0, zc, hw, 0.050, 0.008, 2), XP, XP + 0.004)
     else:
         outline = [(-hw, zc - 0.04), (hw, zc - 0.04), (hw + 0.018, zc), (hw, zc + 0.04), (-hw, zc + 0.04), (-hw - 0.018, zc)]
-        g_plate(bm, outline, XL + 0.001, XL + 0.005)
+        g_plate(bm, outline, XP, XP + 0.004)
     for s in (-1, 1):  # zwei Schraeubchen
         g_lathe(bm, [(0.0, 0.0), (0.0035, 0.0), (0.0032, 0.0012), (0.002, 0.0018), (0.0, 0.002)], seg=8,
-                M=T(XL + 0.0055, s * (hw - 0.008 + (0.012 if style in ('c', 'f') else 0.0)), zc) @ R(math.pi / 2, 'Y'))
+                M=T(XP + 0.0045, s * (hw - 0.008 + (0.012 if style in ('c', 'f') else 0.0)), zc) @ R(math.pi / 2, 'Y'))
     _obj('nummernschild', bm, M['brass'], smooth=40, recalc=True)
-    _text_clean('nummer', str(number), 0.058, M['black'], Vector((XL + (0.0065 if style in ('a', 'd') else 0.005), 0.0, zc - 0.002)), depth=0.0008, res=3)
+    _text_clean('nummer', str(number), 0.058, M['black'], Vector((XP + (0.0055 if style in ('a', 'd') else 0.004), 0.0, zc - 0.002)), depth=0.0008, res=6)
     if v == 2:  # Haengeschild am Druecker
         card = common.material('karte', (0.86, 0.82, 0.70), look='paint', rough=0.8, r=1.2)
         red = common.material('karte_rot', (0.50, 0.08, 0.06), look='paint', rough=0.7, r=1.0)
@@ -2741,10 +2741,10 @@ def _portrait(v):
         _poly(dark, [a, b, ib, ia], 0)
     halo_c = [(0.22, 0.16, 0.10), (0.24, 0.20, 0.14), (0.16, 0.14, 0.11)][v]
     g0 = grounds[v]
-    for k in range(4):  # weicher Schein hinter dem Kopf (vier Stufen statt zwei harter Ringe)
-        t = (k + 1) / 4
-        col = tuple(g0[i] + (halo_c[i] * 1.15 - g0[i]) * t for i in range(3))
-        _poly(mat(f'schein{k}', col), _oval(0.0, 0.10 + 0.02 * t, 0.30 - 0.15 * t, 0.36 - 0.17 * t, n=32), 1 + k * 0.25)
+    for k in range(6):  # weicher Schein hinter dem Kopf (sechs flache Stufen)
+        t = (k + 1) / 6
+        col = tuple(g0[i] + (halo_c[i] * 0.85 - g0[i]) * t for i in range(3))
+        _poly(mat(f'schein{k}', col), _oval(0.0, 0.10 + 0.02 * t, 0.30 - 0.15 * t, 0.36 - 0.17 * t, n=32), 1 + k * 0.15)
     skin = (0.62, 0.46, 0.34) if v != 2 else (0.58, 0.44, 0.36)
     shade = tuple(c * 0.72 for c in skin)
     if v == 1:  # Dame: dunkles Kleid mit V-Ausschnitt, Perlenkette, Bubikopf
