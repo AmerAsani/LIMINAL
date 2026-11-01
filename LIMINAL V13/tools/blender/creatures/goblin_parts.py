@@ -153,8 +153,9 @@ def body(J, bones, caste):
         feather.append(A.ell(B_HEAD, (0.122, g * 0.029, 0.529), A.unit((1.0, g * 0.35, 0.0)), (0.017, 0.024, 0.022), op='sub', k=0.006))
     # Runde 2: das Gesicht unter der Maske ist kahl - grau-rosa, runzlige Haut, wo die Maske die Federn abgerieben hat
     # (Auslegung); schwere obere Lider liegen halb ueber den Augen, die Schnabelwurzel ist wulstig
-    skin += [A.ell(B_HEAD, (0.113, 0, 0.523), X, (0.031, 0.043, 0.039), k=0.0),
-             A.ell(B_HEAD, (0.128, 0, 0.51), X, (0.016, 0.024, 0.02), k=0.012)]  # Schnabelwurzel
+    skin += [A.ell(B_HEAD, (0.115, 0, 0.522), X, (0.033, 0.046, 0.042), k=0.0),
+             A.ell(B_HEAD, (0.128, 0, 0.51), X, (0.016, 0.024, 0.02), k=0.012),   # Schnabelwurzel
+             A.ell(B_HEAD, (0.1, 0, 0.483), X, (0.032, 0.03, 0.02), k=0.012)]    # Kehle (Runde 4: kahle Stelle groesser)
     for g in (1.0, -1.0):
         ax = A.unit((1.0, g * 0.35, 0.0))
         ec = np.array([0.117, g * 0.029, 0.528])
@@ -193,10 +194,12 @@ def body(J, bones, caste):
               A.ell(B_HEAD, (0.17, 0, 0.491), A.unit((1.0, 0, -0.3)), (0.045, 0.0095, 0.0035), k=0.0)]       # Gaumen
     # Saegezaehne: oben neun, unten acht je Seite - klein, dreieckig, dicht (die Seite: "razor-sharp serrated teeth")
     for g in (1.0, -1.0):
-        up_pts = [A.lerp(np.array([0.142, g * 0.0115, 0.493]), np.array([0.238, g * 0.0028, 0.466]), t) for t in np.linspace(0, 1, 9)]
-        tooth += A.teeth_row(B_HEAD, up_pts, 0.0085, 0.0021, [A.unit((-0.25, -g * 0.15, -1.0))] * 9, rng, jitter=0.3)
-        lo_pts = [A.lerp(np.array([0.13, g * 0.0105, 0.493]), np.array([0.226, g * 0.0026, 0.461]), t) for t in np.linspace(0, 1, 8)]
-        tooth += A.teeth_row(B_JAW, lo_pts, 0.0075, 0.0019, [A.unit((0.2, -g * 0.12, 1.0))] * 8, rng, jitter=0.3)
+        # Runde 4: aus 2-3 m nicht zu sehen - groesser, und sie stehen schraeg nach aussen ueber den Schnabelrand (Saege wie beim
+        # Gaensesaeger, auch bei geschlossenem Schnabel sichtbar)
+        up_pts = [A.lerp(np.array([0.142, g * 0.0135, 0.494]), np.array([0.238, g * 0.0034, 0.466]), t) for t in np.linspace(0, 1, 9)]
+        tooth += A.teeth_row(B_HEAD, up_pts, 0.0125, 0.0029, [A.unit((-0.2, g * 0.55, -1.0))] * 9, rng, jitter=0.3)
+        lo_pts = [A.lerp(np.array([0.13, g * 0.0125, 0.494]), np.array([0.226, g * 0.003, 0.461]), t) for t in np.linspace(0, 1, 8)]
+        tooth += A.teeth_row(B_JAW, lo_pts, 0.011, 0.0026, [A.unit((0.15, g * 0.5, 1.0))] * 8, rng, jitter=0.3)
 
     # Arme: Oberarm befiedert, Unterarm und Hand geschuppt; drei lange Finger und ein Daumen mit gebogenen Krallen
     for s, g in ((0, 1.0), (1, -1.0)):

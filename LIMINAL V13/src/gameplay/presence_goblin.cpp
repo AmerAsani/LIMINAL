@@ -307,6 +307,14 @@ bool Presence::goblinSet(const std::string& key, double v) {
 
 // --- Verhalten ----------------------------------------------------------------------------------------------------------
 void Presence::thinkGoblin(Agent& a, double dt, const Context& c, std::vector<Event>& out) {
+    // nach jedem Denken: Zustand, Groesse und Leuchten an die Animation (Runde 3: fehlte beim Host - das Portal blieb unsichtbar,
+    // die Augen dunkel)
+    struct Prep {
+        Presence* p;
+        Agent& a;
+        const Context& c;
+        ~Prep() { p->prepGoblin(a, c); }
+    } prep{this, a, c};
     Swindle& S = swindleOf(goblinCtl_);
     GobAg& g = gag(a);
     a.stateT += dt;
@@ -518,7 +526,9 @@ void Presence::thinkGoblin(Agent& a, double dt, const Context& c, std::vector<Ev
     const float rush = dot(pv, nrmF(flat(a.pos - feet), fl));  // wie schnell der Spieler auf ihn zukommt
     // Runde 2: im Dunkeln ohne Lampe kaum zu sehen - dort schimmern sie (die Seite), im hellen Raum weniger (sonst flach)
     const world::Tile* ht = c.world->tileIfLoaded(ifloor(a.pos.x), ifloor(a.pos.y));
-    glowTo((darkTile(c, ht, a.pos.x, a.pos.y) ? 0.75f : 0.22f) + 0.8f * a.light + (a.state == S_PEEK ? 0.15f : 0.0f));
+    // Runde 4: aus der Naehe im Lampenlicht wie Kuerbislaternen - der Schimmer wirkt auf Abstand, dicht davor bleibt er schwach
+    const float nearDim = std::clamp((d - 1.0f) / 3.0f, 0.25f, 1.0f);
+    glowTo((darkTile(c, ht, a.pos.x, a.pos.y) ? 0.75f : 0.22f) * (0.5f + 0.5f * nearDim) + 0.8f * a.light * nearDim + (a.state == S_PEEK ? 0.15f : 0.0f));
     g.coolT -= qdt;
     g.scareT -= qdt;
     g.chatT -= qdt;
@@ -734,7 +744,7 @@ void Presence::thinkGoblin(Agent& a, double dt, const Context& c, std::vector<Ev
                     goalTo(a, *c.world, S.portal + vec3{std::cos(ang), std::sin(ang), 0.0f} * r);
                 }
                 const double ph = std::fmod(a.age + g.delay * 3.0, 6.0);
-                if (ph < 1.6) a.reach = 1.0f, a.crouch = 0.5f;  // pickt am Boden
+                if (ph < 1.6) a.reach = 1.0f, a.crouch = 0.5f, a.fly = 0.65f;  // pickt am Boden, auf allen vieren (Runde 3: alle standen wie Figuren)
                 if (ph > 4.0) a.perceive = 1.0f, a.perceiveAt = a.pos + dirYaw(a.yaw + (float)std::sin(a.age) * 1.4f) * 3.0f + vec3{0, 0, 0.4f};
             }
             if (a.variant == 2) a.perceive = 1.0f, a.alert = 0.5f;
