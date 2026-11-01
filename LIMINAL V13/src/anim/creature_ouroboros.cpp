@@ -652,7 +652,7 @@ void CreatureAnimator::updateOuroboros(float dt, const Input& in) {
     for (int w = 0; w < kWisps; ++w) {
         const float fw = (float)w;
         const float len = (0.15f + 0.04f * std::sin(time_ * 0.9f + fw * 1.7f)) * (1.0f + 1.2f * g.light + 3.0f * g.dis);
-        const float amp = 0.05f * (1.0f + 1.6f * g.light + 1.5f * g.dis);
+        const float amp = 0.08f * (1.0f + 1.6f * g.light + 1.5f * g.dis);  // Runde 5: steife Fahnen lasen sich als Hoerner
         const float sp = 1.0f + 1.4f * g.light;
         const vec3 trail = -vel_ * 0.07f;
         vec3 p = wbase[w];
@@ -660,7 +660,7 @@ void CreatureAnimator::updateOuroboros(float dt, const Input& in) {
         for (int i = 1; i < 3; ++i) {
             const float fi = (float)i;
             const vec3 drift = (F * std::sin(time_ * 1.3f * sp + fw * 2.1f + fi) + L * std::sin(time_ * 1.1f * sp + fw * 1.3f + fi * 1.9f)) * amp * fi;
-            p = p + U * (len * 0.5f) + drift * 0.5f + trail * (0.5f * fi);
+            p = p + U * (len * 0.5f) - TF * (len * 0.22f * fi) + drift * 0.5f + trail * (0.5f * fi);  // kraeuselt nach hinten weg
             J[(size_t)wispJ(w, i)] = p;
         }
     }
@@ -698,17 +698,22 @@ void CreatureAnimator::updateOuroboros(float dt, const Input& in) {
     // Rauchfaeden: nur im Lampenlicht (Lichtreaktion) und beim Vergehen
     for (int w = 0; w < kWisps; ++w)
         for (int i = 0; i < 2; ++i) pose_.s[(size_t)wispB(w, i)] = g.light > 0.03f ? std::max(0.001f, 0.35f + 0.75f * g.light) : 0.001f;
-    // --- vergehen: von den Gliedern her in Rauch; der Rauch selbst waechst noch einmal ---------------------------
+    // --- vergehen: der Schatten sinkt in den Boden, der Rauch steigt an der Stelle auf (Erscheinen umgekehrt) ----------
+    // Runde 6: Glied fuer Glied geschrumpft zerfiel er in schwebende Bloecke (Kopf, Schulterstange, Rumpf) - wie eine kaputte Puppe
     if (g.dis > 0.001f) {
-        auto fade = [&](int b, float delay) { pose_.s[(size_t)b] = std::max(0.001f, 1.0f - smO((g.dis - delay) / 0.45f)); };
-        for (int s = 0; s < 2; ++s) {
-            for (int i = 0; i < 4; ++i) fade(armB(s, i), 0.25f - 0.06f * (float)i);
-            for (int i = 0; i < 3; ++i) fade(legB(s, i), 0.35f);
-        }
-        fade(B_HEAD, 0.4f), fade(B_NECK, 0.45f), fade(B_CHEST, 0.5f), fade(B_BELLY, 0.52f), fade(B_PELVIS, 0.55f);
+        // nur verkleinern: verborgene Werkzeuge bleiben verborgen (vorher tauchten beim Vergehen alle sechs auf)
+        auto fade = [&](int b, float delay) { pose_.s[(size_t)b] = std::min(pose_.s[(size_t)b], std::max(0.001f, 1.0f - smO((g.dis - delay) / 0.45f))); };
+        const float sink = 2.3f * smO((g.dis - 0.12f) / 0.8f);
+        for (int j = ROOT + 1; j < TOOL0; ++j) J[(size_t)j] = J[(size_t)j] - U * sink;
+        for (int w = 0; w < kWisps; ++w)  // die Fahnen bleiben ueber dem Boden: sie steigen aus der Stelle auf
+            for (int i = 0; i < 3; ++i) {
+                vec3& p = J[(size_t)wispJ(w, i)];
+                p = p - U * sink * 0.85f;
+                p.z = std::max(p.z, pos_.z + 0.05f + 0.32f * (float)i * (0.5f + g.dis));
+            }
         for (int t = 0; t < kTools; ++t) fade(B_TOOL0 + t, 0.1f);
         for (int w = 0; w < kWisps; ++w)
-            for (int i = 0; i < 2; ++i) pose_.s[(size_t)wispB(w, i)] = std::max(0.001f, (1.0f + 1.5f * smO(g.dis * 2.0f)) * (1.0f - smO((g.dis - 0.75f) / 0.25f)));
+            for (int i = 0; i < 2; ++i) pose_.s[(size_t)wispB(w, i)] = std::max(0.001f, (1.0f + 2.6f * smO(g.dis * 2.0f)) * (1.0f - smO((g.dis - 0.8f) / 0.2f)));
     }
     headPos_ = (J[HEAD] + J[HEADTOP]) * 0.5f;
     headDir_ = Mb * (Rh * Fx);

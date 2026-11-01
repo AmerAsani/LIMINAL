@@ -145,8 +145,8 @@ def worker(J, bones, heavy=False):
         A.ell(B_HEAD, hc + nf * 0.02 * hs - ax * 0.15, ax, (0.03, 0.022, 0.02), up=nf, k=0.03),            # ... zieht einen Faden
         A.ell(B_HEAD, hc + nf * 0.1 * hs + ax * 0.015, nf, (0.03, 0.058, 0.075), up=ax, op='sub', k=0.03),  # Gesicht hohl
     ]
-    for g, r, dz in ((1.0, 0.021, 0.022), (-1.0, 0.0165, 0.012)):
-        ec = hc + nf * 0.066 * hs + ax * dz + Y * (g * 0.03)
+    for g, r, dz in ((1.0, 0.027, 0.022), (-1.0, 0.0215, 0.01)):  # Runde 3: grosse, runde Augen (Remodeling Co)
+        ec = hc + nf * 0.066 * hs + ax * dz + Y * (g * 0.034)
         void.append(A.ell(B_HEAD, ec + nf * 0.01, nf, (0.016, r + 0.007, r + 0.008), up=ax, op='sub', k=0.008))  # Mulde
         eye.append(A.ell(B_HEAD, ec - nf * 0.004, nf, (0.003, r, r * 1.08), up=ax, k=0.0))
     # Barett mit Abzeichen (Remodeling Co: Kupfer = unterster Rang), schlaff zur Seite
@@ -159,7 +159,7 @@ def worker(J, bones, heavy=False):
     copper.append(A.ell(B_HEAD, bt - ax * 0.02 + nf * 0.078 * hs + Y * 0.025, nf, (0.004, 0.012, 0.014), up=ax, k=0.0))
 
     # Arme: Oberarm, Unterarm 1, Unterarm 2 (das zweite Gelenk), lange Hand mit vier Fingern (gekruemmt) und Daumen
-    ra = (0.043, 0.035, 0.03, 0.022) if not heavy else (0.068, 0.062, 0.055, 0.04)
+    ra = (0.041, 0.031, 0.025, 0.018) if not heavy else (0.068, 0.062, 0.055, 0.04)  # Runde 3: Unterarme duenner (ausgezehrt)
     for s, g in ((0, 1.0), (1, -1.0)):
         P = [J[armJ(s, i)] for i in range(5)]
         void += [
@@ -168,7 +168,7 @@ def worker(J, bones, heavy=False):
             A.cone(armB(s, 2), P[2], P[3], ra[2] * 1.0, ra[3], k=0.006),
             # das zweite Gelenk: eine Falte quer ueber den Unterarm und ein Hoecker, wo er falsch herum knickt
             A.ell(armB(s, 2), P[2] + X * (ra[2] * 0.85), A.unit(np.cross(P[3] - P[1], Y)), (0.004, ra[2] * 1.2, 0.006), up=X, op='sub', k=0.004),
-            A.ell(armB(s, 2), P[2] - X * (ra[2] * 0.55), P[3] - P[1], (0.016, ra[2] * 0.75, ra[2] * 0.6), k=0.012),
+            A.ell(armB(s, 2), P[2] - X * (ra[2] * 0.7), P[3] - P[1], (0.024, ra[2] * 0.95, ra[2] * 0.8), k=0.012),  # Runde 3: deutlicher
         ]
         # Hand: Handflaeche zum Koerper (Normale -g*y), Finger von der Wurzel bis ueber die Spitze hinaus
         hd = A.unit(P[4] - P[3])
@@ -263,9 +263,10 @@ def worker(J, bones, heavy=False):
             ph = rng.uniform(0, 6.28)
             for i in range(8):
                 t = i / 7
-                pts.append(p[0] + (p[2] - p[0]) * t * (0.75 + 0.25 * th / 2) + side * (0.03 * math.sin(t * 6.0 + ph) + (th - 1) * 0.015 * t)
+                pts.append(p[0] + (p[2] - p[0]) * t * (0.75 + 0.25 * th / 2) + side * (0.03 * math.sin(t * 6.0 + ph) + (th - 1) * 0.04 * t)
                            + X * (0.02 * math.cos(t * 4.0 + ph)))
-            rr = [0.0065 * (1.0 - 0.7 * i / 7) for i in range(8)]
+            # Runde 4: 6,5 mm duenne Faeden lasen sich als Draehte - eine dicke Fahne (2,6 cm) und zwei Schleier (1,1 cm)
+            rr = [(0.026 if th == 1 else 0.011) * (1.0 - 0.6 * i / 7) for i in range(8)]
             wisps += A.chain(lambda i, w=w: wispB(w, 0 if i < 4 else 1), pts, rr, k=0.004)
     groups += [
         {'name': 'schatten', 'fm': 'ent_ob_void', 'parts': void, 'disp': void_disp, 'h': 0.0032, 'cav_scale': 0.01, 'lod_weight': 1.4},

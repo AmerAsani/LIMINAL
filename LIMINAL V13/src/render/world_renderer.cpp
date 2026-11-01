@@ -291,7 +291,7 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     // Gehaeuse des Presslufthammers: dunkler, abgegriffener Guss mit Resten von Lack (Runde 1: gelb mit Rippen las sich als Maiskolben)
     materialData_[FM_ENT_OB_PAINT] = GpuMaterial{{0.15f, 0.14f, 0.12f}, 0, ent(EL_TOOTH, ML_CRAZE), 0.8f, 0.55f, 0.55f};
     materialData_[FM_ENT_OB_WOOD] = GpuMaterial{{0.50f, 0.38f, 0.25f}, 0, ent(EL_HORN, ML_FIBER), 1.25f, 0, 0.5f};
-    materialData_[FM_ENT_OB_BRICK] = GpuMaterial{{0.74f, 0.31f, 0.17f}, 0, ent(EL_HORN, ML_PORES), 1.9f, 0, 0.3f};  // Hochlochziegel (Runde 3: grau wie Kissen)
+    materialData_[FM_ENT_OB_BRICK] = GpuMaterial{{0.74f, 0.31f, 0.17f}, 0, ent(EL_TOOTH, ML_PORES), 1.9f, 0, 0.3f};  // Hochlochziegel (Runde 3/5: Horn-Ebene wie Lederkissen)
     materialData_[FM_ENT_OB_TAPE_R] = GpuMaterial{{0.60f, 0.07f, 0.05f}, 0, ent(EL_TOOTH, ML_PORES), 0.6f, 0, 0.35f};
     materialData_[FM_ENT_OB_TAPE_W] = GpuMaterial{{0.82f, 0.81f, 0.77f}, 0, ent(EL_TOOTH, ML_PORES), 0.6f, 0, 0.35f};
     materialData_[FM_ENT_OB_SPARK] = GpuMaterial{{1.0f, 0.74f, 0.38f}, 6.0f, ent(EL_TOOTH, ML_PORES), 0.5f, 0, 0.0f};
