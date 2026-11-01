@@ -12,6 +12,7 @@ Draufsicht (x nach rechts, y nach unten):
 """
 import math
 import os
+import random
 import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
@@ -220,4 +221,20 @@ safe_point('gepaeck', BC, 'Gepaeckausgabe', 30.0, 66.5)
 safe_point('checkin', CI, 'Check-in', 70.0, 66.5)
 safe_point('rundgang', RT, 'Rundgang', 100.5, 13.5)
 safe_point('gates', G, 'Gates C', GR.cx, 64.5)
+
+# V13.3 (PROPS_Level36.md): Varianten der haeufigen Klassen. Eigener Zufall nach allen Platzierungen - die Anordnung
+# bleibt gleich. Durchleuchtungsband: Variante nach der Lage seines Kollisionsblocks (Mitte auf halber oder ganzer
+# Kachel), damit das Modell den Block genau deckt.
+VARIANTS = {'checkin_counter': 3, 'seats_row': 3, 'luggage_pile': 3, 'lounge_chair': 2}
+vr = random.Random(3636)
+for o in m.objects:
+    if o['model'] in VARIANTS:
+        v_ = vr.randrange(VARIANTS[o['model']])
+    elif o['model'] == 'xray_scanner':
+        v_ = 1 if abs(o['pos'][1] - round(o['pos'][1])) < 0.01 else 0
+    else:
+        continue
+    o.pop('variant', None)
+    if v_:
+        o['variant'] = v_
 m.save()
