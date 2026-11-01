@@ -1335,7 +1335,7 @@ def build_junction_box():
 def build_mach_cabinet():
     """Schaltschrank 1000 x 500 x 2000 auf 100-mm-Sockel: zwei Tueren mit Schwenkhebelgriff, Sichtfenster mit
     Reiheneinbaugeraeten dahinter, Bedienfeld (Messinstrumente, Meldeleuchten, Wahlschalter, Not-Aus), Filterluefter,
-    Typenschild, Warnzeichen, Kranoesen, Kabelrohre zur Decke; Rost am Sockel und an den Tuerunterkanten, Russfahne
+    Typenschild, Warnzeichen, Kranoesen, Kabel ueber das Dach in die Wand; Rost am Sockel und an den Tuerunterkanten, Russfahne
     ueber dem Luefter, Abplatzer und Griffspuren, Delle."""
     rng = random.Random(41)
     C = M_common()
@@ -1399,11 +1399,11 @@ def build_mach_cabinet():
     nx = lambda m: Vector((1, 0, 0))  # noqa: E731
     Sf = lambda u, v: (Vector((xf + 0.0009, u, v)), Vector((1, 0, 0)))  # noqa: E731
     G.add(mat('russ', (0.06, 0.055, 0.05), 'paint', r=1.4), orient(streak_uv(Sf, -0.25, 0.51, 0.16, 0.30, rng, 7, down=1.0, taper=0.9), nx))
-    G.add(C['zinc'], box((0.08, 0.17, H1 + 0.018), (0.26, 0.40, H1 + 0.024), bev=0.002))  # Kabelrohre zur Decke
-    for (x, y, r) in ((0.15, 0.30, 0.04), (0.3, -0.25, 0.025), (0.2, 0.22, 0.016)):
-        G.add(C['zinc'], cyl(r * 1.3, 0.03, 12), along((x, y, H1 + 0.018), (x, y, H1 + 0.048)))
-        G.add(C['zinc'], cyl(r, 2.6 - H1 - 0.04, 14, cap=False), along((x, y, H1 + 0.04), (x, y, 2.6)))
-        G.add(C['zinc'], cyl(r * 1.15, 0.035, 14), along((x, y, 2.38), (x, y, 2.415)))
+    G.add(C['zinc'], box((0.10, 0.10, H1 + 0.018), (0.30, 0.40, H1 + 0.023)))  # Kabelverschraubungen, Kabel liegen auf dem Dach in die Wand
+    G.add(C['zinc'], box((0.12, 0.10, H1 + 0.023), (0.14, 0.40, H1 + 0.045)))
+    for k, y in enumerate((0.16, 0.25, 0.34)):
+        G.add(C['black'], nut_shape(0.014, 0.012), along((0.12, y, H1 + 0.033), (1.12, y, H1 + 0.033)))
+        G.add(C['black'], cyl(0.008, 0.12, 6), along((0.12, y, H1 + 0.033), (0.0, y, H1 + 0.033)))
     for (y0, y1) in doors:  # Rost an den Tuerunterkanten, Laeufer
         G.add(C['rust'], orient(strip_uv(Sf, y0 + 0.004, y1 - 0.004, H0 + 0.007, 0.035, rng, 14, 0.8), nx))
         for _ in range(2):
@@ -1416,7 +1416,7 @@ def build_mach_cabinet():
             z = 1.70 + k * 0.035
             G.add(C['hole'], box((0.12, sy * W - (0.0009 if sy > 0 else -0.0009) * 0 + (0.0 if sy > 0 else -0.001), z), (0.38, sy * W + (0.001 if sy > 0 else 0.0), z + 0.012)))
             G.add(paint, box((0.12, sy * W - 0.002 if sy < 0 else sy * W, z + 0.012), (0.38, sy * W + 0.002 if sy > 0 else sy * W, z + 0.016)))
-        G.add(mat('rostfahne_hell', (0.34, 0.27, 0.20), 'paint', r=1.3), orient(streak_uv(Ss, 0.25, 1.69, 0.12, rng.uniform(0.4, 0.9), rng, 7, taper=0.5),
+        G.add(mat('rostfahne_hell', (0.33, 0.31, 0.27), 'paint', r=1.3), orient(streak_uv(Ss, 0.25, 1.69, 0.09, rng.uniform(0.3, 0.6), rng, 7, taper=0.5),
                                                                                   lambda m, s=sy: Vector((0, s, 0))))
     chips_on_plane(G, C['steel_dark'], (xf + 0.0009, 0.0, 1.1), (0, 1, 0), (0, 0, 1), 0.98, 1.95, rng, 10, 0.003, 0.010)
     G.add(C['oil'], blob((D + 0.02, -0.1, H0 + 0.0005), (1, 0, 0), (0, 1, 0), 0.05, 0.07, rng, 12, 2, 0.4, off=0.0006))
@@ -1596,21 +1596,25 @@ def ubolt(G, matl, c, axis, r, arm_dir, leg=None):
 
 
 def build_pipe_riser():
-    """Steigleitungen Boden-Decke an der Wand: DN100 (lackiert, Kennringe Wasser) mit Flanschverbindung,
-    Absperrschieber mit Ventilrad zum Raum, Rostuebergaengen an Flanschen und am Boden; DN50 gedaemmt (Alu-Mantel mit
-    Ueberlappungen, Spannbaendern, Endkappen; aufgerissene Stelle mit Mineralwolle und abstehendem Blech); zwei
-    Wandkonsolen (C-Schiene, Ausleger, Rundstahlbuegel), Manschetten an Boden und Decke."""
+    """Steigleitungen an der Wand, aus dem Boden kommend und oben mit Bogen in die Wand (unter den Rohrbuendeln, die
+    die Karte oft darueber setzt): DN100 (lackiert, Kennringe Wasser) mit Flanschverbindung, Absperrschieber mit
+    Ventilrad zum Raum, Rostuebergaengen; DN50 gedaemmt (Alu-Mantel mit Ueberlappungen, Spannbaendern, Endkappen;
+    aufgerissene Stelle mit Mineralwolle und dunkler Kante); zwei Wandkonsolen (C-Schiene, Ausleger, Rundstahlbuegel),
+    Bodenmanschetten und Wandrosetten."""
     rng = random.Random(51)
     C = M_common()
     G = Geo()
     paintA = mat('steig_lack', (0.30, 0.38, 0.34), 'paint', tex='painted_metal_grey', r=1.15)
     Fm = {'fl': paintA, 'bolt': C['steel_dark']}
     xA, yA, rp, rf = 0.13, -0.14, 0.057, 0.11
-    PA = Pipe((xA, yA, 0.0), (xA, yA, 2.6), rp)
+    zt = 1.95  # Beginn des Bogens
+    PA = Pipe((xA, yA, 0.0), (xA, yA, zt), rp)
     vz = 1.15
     Lb2 = max(0.16, rp * 3.0) / 2
-    for z0, z1 in ((0.0, 0.4485), (0.4515, vz - Lb2 - 0.002), (vz + Lb2 + 0.002, 2.6)):
+    for z0, z1 in ((0.0, 0.4485), (0.4515, vz - Lb2 - 0.002), (vz + Lb2 + 0.002, zt)):
         G.add(paintA, cyl(rp, z1 - z0, 12, cap=False), along((xA, yA, z0), (xA, yA, z1)))
+    G.add(paintA, torus(0.08, rp, 6, 12, 0.0, math.pi / 2), Matrix.Translation((xA - 0.08, yA, zt)) @ Matrix.Rotation(math.pi / 2, 4, 'X'))
+    G.add(paintA, cyl(rp, xA - 0.08, 12, cap=False), along((xA - 0.08, yA, zt + 0.08), (0.0, yA, zt + 0.08)))
     flange_pair(G, Fm, PA, 0.45, rp, rf, 0.02, 4, C)
     Vm = {'body': mat('guss_schieber', (0.20, 0.22, 0.22), 'paint', r=1.3), 'fl': paintA, 'bolt': C['steel_dark']}
     gate_valve(G, Vm, C, PA, vz, rng, R_wheel=0.095, stem_dir=(1, 0, 0), yoke=0.025, spokes=4, own_flanges=False)
@@ -1624,40 +1628,43 @@ def build_pipe_riser():
                                                 rng, 6, down=-1.0), PA.nrm))
     # DN50 gedaemmt
     xB, yB, rB, rc = 0.095, 0.10, 0.030, 0.062
-    PB = Pipe((xB, yB, 0.0), (xB, yB, 2.6), rB)
+    PB = Pipe((xB, yB, 0.0), (xB, yB, 2.0), rB)
     G.add(C['steel_dark'], cyl(rB, 0.37, 8, cap=False), along((xB, yB, 0.0), (xB, yB, 0.37)))
-    G.add(C['steel_dark'], cyl(rB, 0.21, 8, cap=False), along((xB, yB, 2.39), (xB, yB, 2.6)))
+    G.add(C['steel_dark'], cyl(rB, 1.94 - 1.86, 8, cap=False), along((xB, yB, 1.86), (xB, yB, 1.94)))
+    G.add(C['steel_dark'], torus(0.05, rB, 5, 8, 0.0, math.pi / 2), Matrix.Translation((xB - 0.05, yB, 1.94)) @ Matrix.Rotation(math.pi / 2, 4, 'X'))
+    G.add(C['steel_dark'], cyl(rB, xB - 0.05, 8, cap=False), along((xB - 0.05, yB, 1.99), (0.0, yB, 1.99)))
     rust_ring(G, C, PB, 0.0, rng, 0.12, 1, heavy=True)
     clad = mat('alu_mantel', (0.50, 0.51, 0.50), 'metal', r=1.2, m=0.55)
     wool = mat('mineralwolle', (0.50, 0.44, 0.30), 'fabric', r=1.5)
     Mb = lambda z0, z1: along((xB, yB, z0), (xB, yB, z1))  # noqa: E731
     G.add(clad, lathe([(rB + 0.0015, 0.0), (rc, 0.035)], 10), Mb(0.36, 1.0))
-    G.add(clad, lathe([(rc, -0.035), (rB + 0.0015, 0.0)], 10), Mb(2.4, 3.0))
-    for z0, z1 in ((0.395, 1.40), (1.38, 1.52), (1.80, 2.365)):
+    G.add(clad, lathe([(rc, -0.035), (rB + 0.0015, 0.0)], 10), Mb(1.88, 3.0))
+    for z0, z1 in ((0.395, 1.20), (1.18, 1.845)):
         G.add(clad, cyl(rc, z1 - z0, 10, cap=False), Mb(z0, z1))
         G.add(clad, cyl(rc + 0.0012, 0.03, 10, cap=False), Mb(z1 - 0.03, z1))
-    G.add(clad, lathe([(rc, 0.0), (rc, 0.28)], 8, a0=math.radians(100), a1=math.radians(260)), Mb(1.52, 1.80))
-    vs, fs = lathe([(0.050, 0.0), (0.058, 0.035), (0.056, 0.07), (0.059, 0.105), (0.055, 0.14), (0.060, 0.175), (0.056, 0.21), (0.058, 0.245), (0.050, 0.28)], 7,
-                   a0=math.radians(-100), a1=math.radians(100))
-    vs = [v + Vector((v.x, v.y, 0)).normalized() * 0.008 * nz(v, 70.0) for v in vs]
-    G.add(wool, (vs, fs), Mb(1.52, 1.80))
-    for zz in (1.52, 1.80):  # dunkle, ausgefranste Mantelkante an der Rissstelle
-        G.add(C['grime'], lathe([(rc + 0.0008, -0.012), (rc + 0.0008, 0.012)], 8, a0=math.radians(-100), a1=math.radians(100)), Mb(zz, zz + 1))
-    G.add(clad, lathe([(rc + 0.002, 0.0), (rc + 0.002, 0.10)], 4, a0=math.radians(-60), a1=math.radians(-20)), Mb(1.80, 2.0) @ Matrix.Rotation(-0.35, 4, 'Y'))
-    for z in (0.75, 2.05):
+    # Rissstelle im Mantel: unregelmaessiges Loch (dunkler Rand) mit Mineralwolle, abstehender Blechlappen
+    Pc = Pipe((xB, yB, 0.0), (xB, yB, 2.0), rc)
+    u0, v0 = math.pi / 2 + 0.35, 1.44
+    G.add(C['grime'], orient(blob_uv(Pc.S(0.0012), u0, v0, 0.62, 0.085, rng, 14, 2, 0.55), Pc.nrm))
+    G.add(wool, orient(blob_uv(Pc.S(0.0022), u0, v0, 0.50, 0.068, rng, 14, 3, 0.55), Pc.nrm))
+    G.add(clad, lathe([(rc + 0.002, 0.0), (rc + 0.002, 0.08)], 3, a0=u0 - 0.2, a1=u0 + 0.25), Mb(v0 + 0.06, v0 + 1) @ Matrix.Rotation(-0.30, 4, 'Y'))
+    for z in (0.75, 1.70):
         G.add(C['steel'], cyl(rc + 0.0022, 0.016, 10, cap=False), Mb(z, z + 0.016))
     # Wandkonsolen
-    for z in (0.80, 1.95):
+    for z in (0.80, 1.78):
         G.add(C['zinc'], strut_h(-0.27, 0.19, z - 0.0205))
         for y in (-0.24, 0.16):
             bolt(G, C['steel'], (0.021, y, z), (1, 0, 0), 0.007, washer=False)
         for (x, y, r) in ((xA, yA, rp), (xB, yB, rc)):
             G.add(C['zinc'], box((0.021, y - 0.0205, z - 0.0205), (x - r - 0.004, y + 0.0205, z + 0.0205)))
             ubolt(G, C['zinc'], (x, y, z), (0, 0, 1), r, (-1, 0, 0), leg=x - 0.03)
-    for (x, y, r) in ((xA, yA, rp), (xB, yB, rB)):  # Manschetten
+    for (x, y, r) in ((xA, yA, rp), (xB, yB, rB)):  # Bodenmanschetten
         G.add(C['zinc'], lathe([(r + 0.002, 0.0), (r + 0.03, 0.0), (r + 0.028, 0.006), (r + 0.002, 0.012)], 10),
               Matrix.Translation((x, y, 0.0)))
-        G.add(C['zinc'], lathe([(r + 0.002, -0.012), (r + 0.028, -0.006), (r + 0.03, 0.0), (r + 0.002, 0.0)], 10), Matrix.Translation((x, y, 2.6)))
+    for (y, z, r) in ((yA, 2.03, rp), (yB, 1.99, rB)):  # Wandrosetten am Eintritt
+        G.add(C['zinc'], lathe([(r + 0.002, 0.0), (r + 0.03, 0.0), (r + 0.028, 0.006), (r + 0.002, 0.012)], 10), along((0.0, y, z), (1.0, y, z)))
+        G.add(C['rust_stain'], orient(streak_uv(lambda u, v: (Vector((0.0015, u, v)), Vector((1, 0, 0))), y, z - r - 0.02, 0.05, rng.uniform(0.2, 0.5), rng, 6),
+                                      lambda m: Vector((1, 0, 0))))
     G.add(C['grime'], blob((xA + 0.08, yA, 0.0005), (1, 0, 0), (0, 1, 0), 0.10, 0.08, rng, 12, 2, 0.5, off=0.0))
     G.build('steigleitung', angle=40.0)
 
@@ -1666,9 +1673,9 @@ def build_pipe_riser():
 # Rohrbuendel (5-m-Module, Ende an Ende): gemeinsame Hauptleitungen mit halben Flanschverbindungen an den Modulgrenzen
 # ---------------------------------------------------------------------------------------------------------------------
 TRUNK = [  # (x, z, r_rohr, r_flansch, Schrauben, Lack)
-    (0.150, 2.28, 0.0699, 0.125, 6, 'grau'),
-    (0.105, 2.02, 0.0445, 0.100, 4, 'rot'),
-    (0.085, 1.86, 0.0302, 0.0825, 4, 'gelb'),
+    (0.150, 2.43, 0.0699, 0.125, 6, 'grau'),
+    (0.105, 2.265, 0.0445, 0.100, 4, 'rot'),
+    (0.085, 2.17, 0.0302, 0.0825, 4, 'gelb'),
 ]
 
 
@@ -1702,18 +1709,18 @@ def _bundle_trunk(G, C, PM, rng, skip=()):
         rust_ring(G, C, P, 0.056, rng, 0.05, 1)
         rust_ring(G, C, P, 4.944, rng, 0.05, -1)
         pipe_spots(G, C, P, rng, 2 + k)
-    for j, (x, z) in enumerate(((0.016, 1.74), (0.040, 1.73))):  # Kabel in Durchhaengen
+    for j, (x, z) in enumerate(((0.016, 2.345), (0.040, 2.335))):  # Kabel in Durchhaengen
         rk = 0.0085 if j == 0 else 0.0065
         for s in range(4):
             y0, y1 = -2.5 + s * 1.25, -2.5 + (s + 1) * 1.25
-            sag = 0.018 + 0.006 * ((s + j) % 2)
+            sag = 0.010 + 0.004 * ((s + j) % 2)
             pts = [Vector((x, y0 + (y1 - y0) * t / 4, z - sag * math.sin(math.pi * t / 4))) for t in range(5)]
             G.add(C['black'], tube(pts, rk, 5, caps=False))
         for y in (-1.25, 0.0, 1.25):
             G.add(C['zinc'], _saddle_h(x, z, rk), Matrix.Translation((0, y, 0)))
     for y in (-1.25, 1.25):  # Konsolen
-        G.add(C['zinc'], strut_v(1.66, 2.42), Matrix.Translation((0.0, y, 0.0)))
-        for z in (1.70, 2.38):
+        G.add(C['zinc'], strut_v(2.10, 2.57), Matrix.Translation((0.0, y, 0.0)))
+        for z in (2.13, 2.54):
             bolt(G, C['steel'], (0.021, y, z), (1, 0, 0), 0.007)
         for (x, z, r, rf, nb, pm) in TRUNK:
             zt = z - r - 0.002
@@ -1731,8 +1738,8 @@ def _drip_wall(y, z0, rng):
 def build_pipe_bundle_a():
     """Rohrbuendel A (5 m, Wand bei x = 0): Hauptleitungen DN125 grau, DN80 rot, DN50 gelb mit halben Flanschverbindungen
     an den Modulenden (geschlossene Dichtflaechen), Konsolen alle 2,5 m, Kabel in Schellen; dazu Absperrschieber mit
-    Ventilrad in der roten, Kompensator mit Zugankern und Manometer in der grauen Leitung, tiefe Gussleitung DN100 mit
-    Muffen auf Bodenstuetzen; Rostuebergaenge, Laeufer."""
+    Ventilrad in der roten, Kompensator mit Zugankern und Manometer in der grauen Leitung; Rostuebergaenge, Laeufer.
+    Alle Leitungen liegen ueber 2,13 m: die Karte setzt Schaltschraenke und Steigleitungen unter die Buendel."""
     rng = random.Random(61)
     C = M_common()
     PM = _bundle_mats()
@@ -1765,22 +1772,6 @@ def build_pipe_bundle_a():
     Vm = {'body': mat('guss_schieber', (0.20, 0.22, 0.22), 'paint', r=1.3), 'fl': PM['rot'], 'bolt': C['steel_dark']}
     gate_valve(G, Vm, C, Pipe((P2.a.x, yv - 1, P2.a.z), (P2.a.x, yv + 1, P2.a.z), P2.r), 1.0, rng, R_wheel=0.075, stem_dir=(1, 0, 0), yoke=0.02, rf=0.1,
                own_flanges=False)
-    P4 = Pipe((0.13, -2.5, 0.35), (0.13, 2.5, 0.35), 0.057)  # tiefe Gussleitung mit Muffen
-    G.add(PM['guss'], cyl(P4.r, 5.0, 12, cap=False), P4.M)
-    Fm4 = {'fl': PM['guss'], 'bolt': C['steel_dark']}
-    end_flange(G, Fm4, P4, True, P4.r, 0.1, 0.02, 4, heads=True)
-    end_flange(G, Fm4, P4, False, P4.r, 0.1, 0.02, 4, heads=False)
-    for y in (-1.5, 1.0):
-        G.add(PM['guss'], lathe([(P4.r, -0.01), (P4.r + 0.014, 0.0), (P4.r + 0.016, 0.012), (P4.r + 0.016, 0.085), (P4.r + 0.012, 0.095), (P4.r, 0.098)], 12),
-              along((0.13, y, 0.35), (0.13, y + 1, 0.35)))
-        rust_ring(G, C, P4, y + 2.5 + 0.1, rng, 0.05, 1, heavy=True)
-    for y in (-2.0, -0.25, 1.75):  # Bodenstuetzen: Fussplatte, Stiel, Sattel, Buegel
-        G.add(C['steel_dark'], box((0.06, y - 0.06, 0.0), (0.20, y + 0.06, 0.008)))
-        G.add(C['steel_dark'], box((0.115, y - 0.015, 0.008), (0.145, y + 0.015, 0.35 - P4.r - 0.006)))
-        G.add(C['steel_dark'], box((0.07, y - 0.02, 0.35 - P4.r - 0.012), (0.19, y + 0.02, 0.35 - P4.r - 0.002)))
-        ubolt(G, C['zinc'], (0.13, y, 0.35), (0, 1, 0), P4.r, (0, 0, -1), leg=P4.r + 0.02)
-        G.add(C['rust_stain'], blob((0.13, y, 0.0006), (1, 0, 0), (0, 1, 0), 0.09, 0.07, rng, 12, 2, 0.5, off=0.0))
-    pipe_spots(G, C, P4, rng, 3, smax=0.05)
     G.build('rohrbuendel_a', angle=40.0)
 
 
@@ -1805,24 +1796,17 @@ def build_pipe_bundle_b():
     y = -2.31
     while y < 2.31 - 1e-6:
         y1 = min(y + 1.0, 2.31)
-        if y < tear[0] < y1:
-            Gc.add(clad, cyl(rc, tear[0] - y, 16, cap=False), My(y, tear[0]))
-            Gc.add(clad, lathe([(rc, 0.0), (rc, tear[1] - tear[0])], 12, a0=math.radians(250), a1=math.radians(510)), My(tear[0], tear[1]))
-            vs, fs = lathe([(rc - 0.012, 0.0), (rc - 0.004, 0.05), (rc - 0.008, 0.10), (rc - 0.002, 0.15), (rc - 0.007, 0.2), (rc - 0.003, 0.25), (rc - 0.012, 0.30)], 10,
-                           a0=math.radians(150), a1=math.radians(250))
-            vs = [v + Vector((v.x, v.y, 0)).normalized() * 0.008 * nz(v, 45.0) for v in vs]
-            G.add(wool, (vs, fs), My(tear[0], tear[1]))
-            Gc.add(clad, cyl(rc, y1 - tear[1], 16, cap=False), My(tear[1], y1))
-            Gc.add(clad, lathe([(rc + 0.002, 0.0), (rc + 0.002, 0.16)], 4, a0=math.radians(250), a1=math.radians(285)),
-                   My(tear[0] + 0.05, tear[0] + 1) @ Matrix.Rotation(0.25, 4, 'X'))
-        else:
-            Gc.add(clad, cyl(rc, y1 - y, 16, cap=False), My(y, y1))
+        Gc.add(clad, cyl(rc, y1 - y, 16, cap=False), My(y, y1))
         if y1 < 2.31 - 1e-6:
             Gc.add(clad, cyl(rc + 0.0013, 0.035, 16, cap=False), My(y1 - 0.035, y1))
         y = y1
     for yb in (-1.8, -0.8, 0.2, 1.4):
         Gc.add(C['steel'], cyl(rc + 0.0025, 0.018, 16, cap=False), My(yb, yb + 0.018))
     Pc = Pipe((x, -2.31, z), (x, 2.31, z), rc)
+    ut, vt = math.pi * 1.15, 0.5 * (tear[0] + tear[1]) + 2.31  # Riss vorn unten: Loch mit Wolle, Blechlappen
+    Gc.add(C['grime'], orient(blob_uv(Pc.S(0.0014), ut, vt, 0.75, 0.20, rng, 16, 2, 0.55), Pc.nrm))
+    Gc.add(wool, orient(blob_uv(Pc.S(0.0026), ut, vt, 0.60, 0.16, rng, 16, 3, 0.55), Pc.nrm))
+    Gc.add(clad, lathe([(rc + 0.002, 0.0), (rc + 0.002, 0.14)], 4, a0=ut + 0.2, a1=ut + 0.55), My(tear[1] - 0.02, tear[1] + 1) @ Matrix.Rotation(0.25, 4, 'X'))
     for _ in range(6):
         Gc.add(C['grime'], orient(blob_uv(Pc.S(0.0032), rng.uniform(-2.4, 0.6), rng.uniform(0.2, 4.4), rng.uniform(0.15, 0.35), rng.uniform(0.08, 0.3), rng, 10, 2, 0.5), Pc.nrm))
     for _ in range(4):
