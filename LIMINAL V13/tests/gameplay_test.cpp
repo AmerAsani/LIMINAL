@@ -1724,13 +1724,15 @@ static Mount mountOf(const std::string& m) {
                                   "metro_car_903", "metro_car_37", "track_metro", "platform_edge", "stairs_barricaded",  // V12 Level 903
                                   "carousel_36", "luggage_pile", "checkin_counter", "bta_booth", "travelator", "travelator_stopped", "seats_row", "gate_counter", "camp_c32"};  // V12 Level 36
     // V13.3: Level-1-Sektoren, Rohrverlauf, Level-2-Werkstatt, Level-36-Bereiche
-    static const char* wall2[] = {"formwork", "ivy_wall", "neon_tube", "neon_sign", "panel_vermilion", "pipe_wall"};
+    static const char* wall2[] = {"formwork", "ivy_wall", "neon_tube", "neon_sign", "panel_vermilion", "pipe_wall",
+                                  "fungus_wall", "claw_marks"};  // V13.3 L1-Erscheinungen
     static const char* ceil2[] = {"vines_ceiling", "cable_hang", "arcade_gothic"};
     static const char* floor2[] = {"scaffold", "wall_unfinished", "cement_bags", "rebar_bundle", "work_light", "cement_mixer", "wheelbarrow",
                                    "sawhorse", "site_barrier", "tarp_pile", "moss_patch", "fern_cluster", "roots_floor", "shrub_concrete",
                                    "sapling", "overgrown_crate", "cabinet_vermilion", "table_vermilion", "bench_vermilion", "screen_vermilion",
                                    "macchina_parts", "macchina_tools", "xray_scanner", "security_gate", "tray_stack", "lounge_chair",
-                                   "lounge_table"};
+                                   "lounge_table",
+                                   "fungus_floor", "fungus_camp", "goo_trail", "plant_wanderer"};  // V13.3 L1-Erscheinungen
     for (const char* w : wall2)
         if (m == w) return Mount::Wall;
     for (const char* c : ceil2)
@@ -3429,6 +3431,254 @@ static void testV133LureTalk(const std::string& dataDir) {
     }
 }
 
+// --- V13.3: Erscheinungen ohne Figur in Level 1 - Crawler-Pilz, Garden, Gemaelde der Spielleiterin, Tuerspuren ----------
+// (gameplay/phenomena.hpp; KREATUR_Crawler.md, KREATUR_GameMaster.md, KREATUR_L1_Erscheinungen.md)
+static void testV133Phenomena(const std::string& dataDir) {
+    std::printf("V13.3: Erscheinungen in Level 1 (Pilz, Garden, Gemaelde, Tuerspuren)\n");
+    const game::Content& content = *gContent11;
+    game::PrefabLibrary prefabs;
+    prefabs.loadDirectory(dataDir + "/prefabs");
+    JobSystem jobs(2);
+    auto open = [&](const char* level, i64 seed) {
+        auto s = std::make_unique<game::GameSession>(content, prefabs, content.level(level, world::kLayoutV6), seed, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        return s;
+    };
+    auto step = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, double secs, const std::function<bool()>& each = {}) {
+        for (int i = 0; i < (int)(secs * 60.0); ++i) {
+            if (each && each()) break;
+            s.update(1.0 / 60.0, game::PlayerControl{}, false);
+            ev.insert(ev.end(), s.events().begin(), s.events().end());
+            s.events().clear();
+        }
+    };
+    auto put = [](game::GameSession& s, double x, double y) {
+        auto& pl = s.player();
+        pl.x = x, pl.y = y, pl.z = s.world().tile(ifloor(x), ifloor(y)).floor, pl.vx = pl.vy = 0.0;
+        s.body().reset();
+        s.preload();
+    };
+    auto sounds = [](const std::vector<game::GameEvent>& ev, const char* name) {
+        return (int)std::count_if(ev.begin(), ev.end(), [&](const game::GameEvent& e) { return e.type == game::GameEvent::SoundAt && e.sound == name; });
+    };
+    auto toast = [](const std::vector<game::GameEvent>& ev, const char* part) {
+        return std::any_of(ev.begin(), ev.end(), [&](const game::GameEvent& e) {
+            return (e.type == game::GameEvent::Toast || e.type == game::GameEvent::Consume) && e.text.find(part) != std::string::npos;
+        });
+    };
+    auto slotOf = [](game::GameSession& s, const char* kind) {
+        for (int i = 0; i < game::Inventory::kSize; ++i)
+            if (s.inventory().slots[(size_t)i] && s.inventory().slots[(size_t)i]->kind == kind) return i;
+        return -1;
+    };
+
+    // --- Karte: Orte aus den Spawnpunkten "trace"; Level 0 kennt keine Erscheinungen --------------------------------------
+    {
+        auto s0 = open("level0", 3);
+        check(!s0->phenomena().any(), "Erscheinungen: Level 0 hat keine");
+    }
+    auto s = open("level1", 3);
+    game::Phenomena& P = s->phenomena();
+    std::printf("  Pilz %zu, Flaschen %zu, Lager %zu, Gemaeldeplaetze %zu, Gemaelde %zu, Hinauswurf %zu, Tueren %zu\n", P.fungusZones().size(),
+                P.bottleSpots().size(), P.noteSpots().size(), P.paintingSpots().size(), P.paintings().size(), P.expelSpots().size(),
+                P.clawDoors().size());
+    const int jesters = (int)std::count_if(P.paintings().begin(), P.paintings().end(), [](const auto& p) { return p.jester; });
+    check(P.any() && P.config().fungus && P.config().garden && P.config().paintings && P.config().claws, "Erscheinungen: Level 1 hat alle vier");
+    check(P.fungusZones().size() >= 4 && P.bottleSpots().size() >= 2 && P.noteSpots().size() >= 1, "Pilz: befallene Stellen, offene Flaschen, ein Lager");
+    check(P.paintingSpots().size() >= 8 && P.paintings().size() == 4 && jesters == 1, "Gemaelde: vier vor den Hallentueren, eines davon die Spielleiterin");
+    check(P.expelSpots().size() >= 6 && P.clawDoors().size() == 1, "Hinauswurf-Orte und eine Zimmertuer mit Spuren");
+    bool onFloor = true;
+    for (const auto& sp : P.paintingSpots()) {
+        const world::Tile& t = s->world().tile(ifloor(sp.pos.x), ifloor(sp.pos.y));
+        onFloor = onFloor && t.open() && t.room && std::fabs(t.floor - sp.pos.z) < 0.05f;
+    }
+    check(onFloor, "Gemaelde: jeder Platz auf freiem Boden");
+
+    // --- Ansteckung durch Kontakt: in der befallenen Pfuetze stehen -----------------------------------------------------------
+    {
+        std::vector<game::GameEvent> ev;
+        const auto& z = P.fungusZones()[0];
+        put(*s, z.pos.x, z.pos.y);
+        step(*s, ev, 2.0);
+        check(P.ailment(0).infectT < 0.0 && toast(ev, "Weißer Flaum"), "Ansteckung: erst ein Hinweis, noch gesund (2 s im Befall)");
+        step(*s, ev, 7.0);
+        check(P.ailment(0).infectT >= 0.0 && P.ailment(0).stage == 1, "Ansteckung: wer im Befall stehen bleibt, steckt sich an (Stadium 1)");
+        // weg vom Befall: das Stadium bleibt, der Pilz waechst weiter
+        const auto& e = P.expelSpots()[0];
+        put(*s, e.pos.x, e.pos.y);
+        P.ailment(0).infectT = 178.0;
+        step(*s, ev, 3.0);
+        check(P.ailment(0).stage == 2 && P.skinFx(0).x > 0.2f && P.fungusFx(0) > 0.1f, "Stadium 2 nach 3 min: Flecken auf der Haut (Viewmodel), Bild");
+        // Mandelwasser heilt die fruehen Stadien (Interpretation)
+        s->inventory().add("almond");
+        s->useSlot(slotOf(*s, "almond"));
+        step(*s, ev, 0.2);
+        check(P.ailment(0).infectT < 0.0 && P.skinFx(0).x == 0.0f, "Mandelwasser: heilt Stadium 2");
+        // im Fieber (Stadium 3) haelt es nur auf
+        P.infect(0);
+        P.ailment(0).infectT = 245.0;
+        step(*s, ev, 0.5);
+        s->inventory().add("almond");
+        s->useSlot(slotOf(*s, "almond"));
+        const double t0 = P.ailment(0).infectT;
+        step(*s, ev, 5.0);
+        check(P.ailment(0).stage == 3 && P.ailment(0).hold > 0.0 && std::fabs(P.ailment(0).infectT - t0) < 0.01,
+              "Mandelwasser: im Fieber haelt es den Pilz nur an (Stadium 3 bleibt)");
+        const double v0 = s->player().speedMul;
+        check(v0 < 0.97 && P.sanityDrain(0) > 0.0, "Stadium 3: langsamer, der Verstand schwindet");
+        // Stadium 5: der Pilz hat den Koerper - eigener Todesgrund
+        P.ailment(0).hold = 0.0;
+        P.ailment(0).infectT = 719.0;
+        step(*s, ev, 2.0);
+        check(s->stats().dead && s->deathCause() == "pilz" && s->killRole() == -2, "Pilz: nach 12 Minuten stirbt man (Ursache pilz)");
+        s->respawnAtCheckpoint();
+        check(!s->stats().dead && P.ailment(0).infectT < 0.0, "Wiedereinstieg: ohne Pilz");
+        // offenes Mandelwasser steckt sofort an
+        s->inventory().add("almond_open");
+        const double san = s->stats().sanity;
+        s->useSlot(slotOf(*s, "almond_open"));
+        step(*s, ev, 0.2);
+        check(P.ailment(0).infectT >= 0.0 && s->stats().sanity > san, "Offenes Mandelwasser: gibt Verstand, steckt aber an");
+        s->respawnAtCheckpoint();
+    }
+
+    // --- Garden-Uhr: Zeichen, Ranken, Verwandlung, Tod; draussen geht sie zurueck ---------------------------------------------
+    {
+        std::vector<game::GameEvent> ev;
+        double gx = -1, gy = -1;
+        for (const auto& r : s->world().level().map->rooms) {
+            if (r.type != "garden") continue;
+            for (i64 y = r.y0 + 3; y < r.y1 - 3 && gx < 0; ++y)
+                for (i64 x = r.x0 + 3; x < r.x1 - 3 && gx < 0; ++x) {
+                    const world::Tile& t = s->world().tile(x, y);
+                    const world::Tile& t2 = s->world().tile(x + 1, y);
+                    if (t.open() && t2.open() && t.room && t.room->type && t.room->type->key == "garden") gx = x + 0.5, gy = y + 0.5;
+                }
+            break;
+        }
+        check(gx > 0, "Garden: ein freier Platz im Sektor");
+        put(*s, gx, gy);
+        step(*s, ev, 1.0);
+        check(P.ailment(0).inGarden && P.ailment(0).garden > 0.9, "Garden-Uhr: zaehlt die Zeit im Sektor");
+        P.ailment(0).garden = 179.5;
+        step(*s, ev, 1.0);
+        check(P.ailment(0).gstage == 1 && toast(ev, "Erde unter den Fingernägeln"), "Garden: erste Zeichen nach 3 min");
+        P.ailment(0).garden = 359.5;
+        step(*s, ev, 1.0);
+        check(P.ailment(0).gstage == 2 && P.skinFx(0).y > 0.2f && s->player().speedMul < 0.95, "Garden: Ranken am Arm, langsamer");
+        P.ailment(0).garden = 750.0;
+        step(*s, ev, 1.0);
+        check(P.ailment(0).gstage == 3 && P.gardenFx(0) > 0.6f && s->player().speedMul < 0.75, "Garden: die Verwandlung beginnt (Rinde, gruener Rand)");
+        // wer geht, erholt sich langsam
+        const auto& e = P.expelSpots()[1];
+        put(*s, e.pos.x, e.pos.y);
+        const double g0 = P.ailment(0).garden;
+        step(*s, ev, 10.0);
+        check(!P.ailment(0).inGarden && P.ailment(0).garden < g0 - 2.5 && P.ailment(0).garden > g0 - 4.5, "Garden: draussen geht die Uhr langsam zurueck");
+        put(*s, gx, gy);
+        P.ailment(0).garden = 899.0;
+        step(*s, ev, 2.0);
+        check(s->stats().dead && s->deathCause() == "garten" && s->killRole() == -3, "Garden: nach 15 min stirbt man durch die Verwandlung (Ursache garten)");
+        s->respawnAtCheckpoint();
+    }
+
+    // --- Gemaelde: bleibt, solange es jemand sieht; verschwindet ungesehen und liegt vor einer anderen Tuer ------------------
+    {
+        size_t k = 0;
+        while (k < P.paintings().size() && P.paintings()[k].jester) ++k;
+        game::Phenomena::Painting& p = P.paintings()[k];
+        put(*s, p.pos.x, p.pos.y);
+        // ein Betrachter 4 m davor, Blick darauf (freie Sicht suchen)
+        game::Viewer v;
+        bool found = false;
+        for (int a = 0; a < 16 && !found; ++a) {
+            const float ang = (float)a * 0.3927f;
+            v.eye = p.pos + vec3{std::cos(ang) * 3.0f, std::sin(ang) * 3.0f, 1.6f};
+            const world::Tile& t = s->world().tile(ifloor(v.eye.x), ifloor(v.eye.y));
+            found = t.open() && game::clearSight(s->world(), v.eye, p.pos + vec3{0, 0, 0.05f});
+        }
+        v.look = normalize(p.pos - v.eye);
+        check(found, "Gemaelde: ein Platz mit freier Sicht darauf");
+        const int spot0 = p.spot;
+        std::vector<game::Phenomena::Event> pe;
+        game::Phenomena::PlayerIn self;
+        self.feet = v.eye - vec3{0, 0, 1.6f};
+        for (int i = 0; i < 600; ++i) P.updateWorld(0.1, {v}, self, true, s->world(), pe);
+        check(p.spot == spot0 && p.unseen == 0.0, "Gemaelde: angesehen verschwindet es nicht (60 s)");
+        // wegsehen (und weggehen): es verschwindet und liegt an einer anderen Tuer, die keiner sieht
+        game::Viewer away = v;
+        away.look = -v.look;
+        away.eye = v.eye - v.look * 9.0f;
+        P.takeMoves();
+        double t = 0.0;
+        while (p.spot == spot0 && t < 180.0) P.updateWorld(0.1, {away}, self, true, s->world(), pe), t += 0.1;
+        const std::vector<int> moved = P.takeMoves();
+        check(p.spot != spot0 && length(p.pos - away.eye) > 8.0f && t > 7.0, std::format("Gemaelde: ungesehen verschwindet es nach {:.0f} s und liegt woanders", t));
+        check(std::find(moved.begin(), moved.end(), (int)k) != moved.end(), "Gemaelde: der Weg geht an die Gaeste (Koop)");
+        // Koop: der Gast setzt aus dem Weltereignis dieselbe Tuer, dasselbe Bild und denselben Winkel
+        game::Phenomena G;
+        G.setup(s->world().level(), (u64)3);
+        const float yawOff = std::remainder(p.yaw - P.paintingSpots()[(size_t)p.spot].yaw, 6.2831853f);
+        const vec3 pos = p.pos + vec3{0, 0, (float)p.variant * 10.0f + std::clamp(yawOff + 0.5f, 0.0f, 1.0f)};
+        check(G.netMove(game::Phenomena::paintingHash((int)k), pos) && G.paintings()[k].spot == p.spot && G.paintings()[k].variant == p.variant &&
+                  std::fabs(G.paintings()[k].yaw - p.yaw) < 0.01f && G.paintings()[k].model == p.model,
+              "Gemaelde (Koop): der Gast legt es an dieselbe Tuer");
+    }
+
+    // --- Narren-Gemaelde: wer hindurchgeht, wird eingeladen und hinausgeworfen ----------------------------------------------
+    {
+        std::vector<game::GameEvent> ev;
+        const auto it = std::find_if(P.paintings().begin(), P.paintings().end(), [](const auto& p) { return p.jester; });
+        const vec3 jp = it->pos;
+        P.ailment(0).jesterCool = 0.0;
+        put(*s, jp.x, jp.y);
+        step(*s, ev, 0.6);
+        check(P.frozen(0) && P.jesterFx(0) > 0.5f, "Spielleiterin: auf dem Bild - ihr Gesicht fuellt die Sicht, man steht still");
+        step(*s, ev, 7.0);
+        const vec3 now{(float)s->player().x, (float)s->player().y, (float)s->player().z};
+        const bool cut = std::any_of(ev.begin(), ev.end(), [](const game::GameEvent& e) { return e.type == game::GameEvent::TeleportCut; });
+        check(!P.frozen(0) && length(now - jp) > 20.0f && cut && toast(ev, "Geschummelt"), "Spielleiterin: \"geschummelt\" - hinausgeworfen, woanders in Level 1");
+        const world::Tile& t = s->world().tile(ifloor(now.x), ifloor(now.y));
+        check(t.open() && t.room && !(t.room->type && t.room->type->key == "garden"), "Hinauswurf: auf freiem Boden, nicht im Garden");
+        check(sounds(ev, "jester_giggle") >= 1 && sounds(ev, "jester_squeak") >= 1, "Spielleiterin: Kichern und Quietschen");
+        // gleich wieder hinauf: sie laedt so bald nicht noch einmal ein
+        const auto it2 = std::find_if(P.paintings().begin(), P.paintings().end(), [](const auto& p) { return p.jester; });
+        check(length(it2->pos - jp) > 0.5f, "Spielleiterin: danach liegt ihr Bild an einer anderen Tuer");
+        put(*s, it2->pos.x, it2->pos.y);
+        step(*s, ev, 0.5);
+        check(!P.frozen(0), "Spielleiterin: nach dem Hinauswurf eine Weile keine Einladung");
+    }
+
+    // --- Spuren an der Zimmertuer: klatschende Schritte, Krallen, Atem - nur von draussen -----------------------------------
+    {
+        std::vector<game::GameEvent> ev;
+        auto& cd = P.clawDoors()[0];
+        const vec3 out = cd.spot.pos - vec3{std::cos(cd.spot.yaw), std::sin(cd.spot.yaw), 0.0f} * 2.2f;
+        put(*s, out.x, out.y);
+        cd.cool = 0.05;
+        step(*s, ev, 6.0);
+        check(sounds(ev, "slap_step") == 5 && sounds(ev, "claw_scrape") == 2 && sounds(ev, "wet_breath") == 1,
+              "Tuerspuren: fuenf klatschende Schritte, Krallen am Blech, Atem");
+        ev.clear();
+        const vec3 in = cd.spot.pos + vec3{std::cos(cd.spot.yaw), std::sin(cd.spot.yaw), 0.0f} * 1.6f;
+        put(*s, in.x, in.y);
+        cd.cool = 0.05;
+        step(*s, ev, 6.0);
+        check(sounds(ev, "slap_step") == 0, "Tuerspuren: im Zimmer selbst ist es still");
+    }
+
+    // --- Lager eines Infizierten: der Zettel warnt (einmal) -----------------------------------------------------------------
+    {
+        std::vector<game::GameEvent> ev;
+        const auto& n = P.noteSpots()[0];
+        const vec3 q = n.pos + vec3{std::cos(n.yaw), std::sin(n.yaw), 0.0f} * 0.8f;
+        put(*s, q.x, q.y);
+        step(*s, ev, 0.5);
+        check(toast(ev, "offenen Flasche"), "Lager: der Zettel des Infizierten warnt vor offenen Flaschen");
+    }
+}
+
 int main(int argc, char** argv) {
     if (argc < 2) {
         std::printf("Aufruf: gameplay_test <data-Ordner>\n");
@@ -3470,6 +3720,7 @@ int main(int argc, char** argv) {
     testV133DullerArms(argv[1]);  // V13.3: Duller und Arms (Level 1)
     testV133Wrangler(argv[1]);    // V13.3: Wrangler (Level 1, 2)
     testV133LureTalk(argv[1]);    // V13.3: Leuchtstab (Smiler), Ansprechen (Skin-Stealer)
+    testV133Phenomena(argv[1]);   // V13.3: Erscheinungen in Level 1 (Pilz, Garden, Gemaelde, Tuerspuren)
     std::printf("%s: %d Pruefungen, %d Fehler\n", gFails ? "FEHLGESCHLAGEN" : "OK", gChecks, gFails);
     return gFails ? 1 : 0;
 }

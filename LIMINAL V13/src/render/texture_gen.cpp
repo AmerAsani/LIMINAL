@@ -1049,6 +1049,25 @@ std::vector<u8> generateItemIcon(const std::string& kind, int size) {
                 float hl = std::exp(-std::pow((u - 0.43f) * 22.0f, 2.0f)) * 0.3f;
                 r += hl, g += hl, b += hl;
             }
+        } else if (kind == "almond_open") {
+            // V13.3: offenes Mandelwasser - Flasche ohne Deckel, trueb, weisser Flaum am Hals (KREATUR_Crawler.md)
+            float x = std::fabs(u - 0.5f);
+            bool neck = v >= 0.2f && v < 0.3f && x < 0.08f + (v - 0.2f) * 1.2f;
+            bool body = v >= 0.3f && v < 0.92f && x < 0.2f;
+            bool fluff = v > 0.13f && v < 0.24f && x < 0.11f &&
+                         std::sin(u * 91.0f) * std::sin(v * 77.0f) + 0.35f > (v - 0.13f) * 6.0f;
+            if (fluff) a = 1, r = 0.93f, g = 0.92f, b = 0.86f;
+            else if (neck || body) {
+                a = 1;
+                r = 0.74f, g = 0.76f, b = 0.66f;  // trueb, gelblich
+                if (body && v > 0.48f && v < 0.76f) {
+                    r = 0.70f, g = 0.60f, b = 0.44f;
+                    if (v > 0.57f && v < 0.63f && x < 0.12f) r = 0.32f, g = 0.22f, b = 0.12f;
+                }
+                if (body && v > 0.78f && std::sin(u * 60.0f + v * 40.0f) > 0.6f) r = 0.9f, g = 0.9f, b = 0.84f;  // Flocken
+                float hl = std::exp(-std::pow((u - 0.42f) * 22.0f, 2.0f)) * 0.22f;
+                r += hl, g += hl, b += hl;
+            }
         } else {
             // Flasche
             float x = std::fabs(u - 0.5f);

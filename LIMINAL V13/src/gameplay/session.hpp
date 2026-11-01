@@ -26,6 +26,7 @@
 #include "gameplay/inventory.hpp"
 #include "gameplay/lure.hpp"
 #include "gameplay/pawn.hpp"
+#include "gameplay/phenomena.hpp"
 #include "gameplay/player.hpp"
 #include "gameplay/prefabs.hpp"
 #include "gameplay/stats.hpp"
@@ -213,6 +214,12 @@ public:
     bool glowThrowPending() const { return glowPending_ > 0.0; }
     bool speakTarget(vec3* head = nullptr) const;
     void speak();
+    // V13.3 (session_phenomena.cpp): Erscheinungen von Level 1 ohne Figur - Crawler-Pilz, Garden, Gemaelde der
+    // Spielleiterin, Spuren an einer Tuer (KREATUR_Crawler.md, KREATUR_GameMaster.md, KREATUR_L1_Erscheinungen.md).
+    // Der eigene Spieler hat immer die Nummer 0 (Gast: Bild und Klang aus eigener Rechnung)
+    const Phenomena& phenomena() const { return phenomena_; }
+    Phenomena& phenomena() { return phenomena_; }
+    bool inGarden(double x, double y) const;
 
     // Darstellung
     const world::Room* currentRoom() const { return room_; }
@@ -471,6 +478,12 @@ private:
     void launchGlowstick(const Player& p, vec3 eye, int by);
     void updateLures(double dt);
     void netAddLure(vec3 pos);
+    // V13.3 (session_phenomena.cpp): Erscheinungen ohne Figur
+    Phenomena phenomena_;
+    std::vector<Phenomena::Event> phenEvents_;
+    void updatePhenomena(double dt);
+    void applyPhenomena(std::vector<Phenomena::Event>& evs);
+    void spawnTraces(const world::ChunkData& cd);
     std::vector<mat4> palette_;
     FigureRig playerRig_;
     int bodyStyle_ = -1;  // angewendete Koerperart (0 Strichmaennchen, 1 realistisch)

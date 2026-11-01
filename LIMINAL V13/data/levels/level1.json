@@ -183,6 +183,10 @@
     "fusebox": { "count": [0, 0] }
   },
 
+  // V13.3: Erscheinungen ohne Figur (gameplay/phenomena.hpp; Orte: Spawnpunkte "trace" der Karte) - Crawler-Pilz,
+  // Garden-Verwandlung, Gemaelde vor den Hallentueren mit der Spielleiterin (Entity 99), Spuren an einer Zimmertuer
+  "phenomena": { "fungus": true, "garden": true, "paintings": true, "jester": true, "claws": true, "painting_count": 4 },
+
   // Klang (Wiki: still und hallend, Scheppern und Grollen durch die Rohre unter der Decke; Tropfen in Pfuetzen)
   "audio": {
     "beds": [

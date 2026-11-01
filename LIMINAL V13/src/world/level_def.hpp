@@ -257,6 +257,7 @@ struct LevelDef {
     bool mapped() const { return map != nullptr; }
     // V11: Daten fuer Klang, Ausstattung und Spawnregeln der Ebene (roh, werden von den Systemen gelesen)
     Json audio, dressing, spawnRules;
+    Json phenomena;  // V13.3: Erscheinungen ohne Figur (gameplay/phenomena.hpp: Pilz, Garden, Gemaelde, Tuerspuren)
     std::string displayTitle;  // eigener Titel im Spiel (Weg B, LICENSE_REVIEW.md)
     // V8: zusammenhaengende Welt (leer = ein einzelnes Level wie bisher)
     std::vector<RegionDef> regions;

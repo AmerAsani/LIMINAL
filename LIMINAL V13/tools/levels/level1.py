@@ -668,4 +668,157 @@ def _before_door(o):
 
 
 m.objects = [o for o in m.objects if not (o['model'] in ('gauge', 'junction_box', 'pipe_drop') and _before_door(o))]
+# --- V13.3: Erscheinungen ohne Figur (gameplay/phenomena.hpp; KREATUR_Crawler.md, KREATUR_GameMaster.md,
+# KREATUR_L1_Erscheinungen.md) - nur Platzierungen, eigener Zufall (die Karte davor bleibt unveraendert).
+# Spawnpunkte kind 'trace': fungus (befallene Stelle, Halbmesser als Tag r<m>), bottle (offenes Mandelwasser), note
+# (Lager eines Infizierten), painting (Platz vor einer Hallentuer), expel (wohin die Spielleiterin hinauswirft),
+# claws (Zimmertuer mit Krallenspuren: Schwelle, Blick in das Zimmer)
+import random as _random
+prng = _random.Random(1733)
+
+
+def _free(px, py, rad=0.6):
+    return all(not m.blocked(px + dx, py + dy) and m.at(px + dx, py + dy) >= 0 for dx in (-rad, 0, rad) for dy in (-rad, 0, rad))
+
+
+def _face_spot(r, inward):
+    faces = [f for f in m.wall_faces(r, margin=1) if _free(f[0] + math.cos(f[2]) * inward, f[1] + math.sin(f[2]) * inward, 0.7)]
+    return prng.choice(faces) if faces else None
+
+
+def _hall(ri):
+    return 'hall' in m.R(ri).kw.get('tags', [])
+
+
+def _door_into(d, ri):
+    """Mitte der Tuer und Richtung in den Raum ri."""
+    x0, y0, x1, y1 = d['rect']
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    R = m.R(ri)
+    if x1 - x0 > y1 - y0:  # Tuer in einer waagrechten Wand
+        return cx, cy, (math.pi / 2 if R.cy > cy else -math.pi / 2)
+    return cx, cy, (0.0 if R.cx > cx else math.pi)
+
+
+# Crawler-Pilz an feuchten Stellen der Aquila-Hallen (Rohre tropfen, Pfuetzen): Myzel an der Wand, Matte am Boden
+fungus_hall = []
+for r in prng.sample(aquila, 3):
+    f = _face_spot(r, 0.7)
+    if not f:
+        continue
+    fx, fy, fyaw = f
+    R = m.R(r)
+    m.obj('fungus_wall', fx, fy, R.floor, fyaw, variant=prng.randrange(3), tag='fungus')
+    gx, gy = fx + math.cos(fyaw) * 0.75, fy + math.sin(fyaw) * 0.75
+    m.obj('fungus_floor', gx, gy, R.floor, fyaw + prng.uniform(-0.4, 0.4), variant=prng.randrange(2), tag='fungus')
+    m.spawn('trace', gx, gy, R.floor, fyaw, tags=['r1.7'], set='fungus')
+    fungus_hall.append((r, gx, gy, fyaw))
+# offene Flasche neben einer befallenen Stelle in der Halle
+if fungus_hall:
+    r, gx, gy, fyaw = fungus_hall[0]
+    side = fyaw + math.pi / 2
+    bx, by = gx + math.cos(side) * 1.9, gy + math.sin(side) * 1.9
+    if _free(bx, by, 0.3):
+        m.spawn('trace', bx, by, m.R(r).floor, prng.random() * 6.28, set='bottle')
+# Lager eines Infizierten in einem Zimmer der Gaenge: verpilzter Schlafsack, Myzel an der Wand, Zettel, offene Flasche
+camp_rooms = [c for c in cells if m.R(c).type in ('zimmer', 'buero') and min(m.R(c).w, m.R(c).h) >= 4]
+camp_room = None
+for r in prng.sample(camp_rooms, len(camp_rooms)):
+    f = _face_spot(r, 1.0)
+    if not f:
+        continue
+    fx, fy, fyaw = f
+    R = m.R(r)
+    cx, cy = fx + math.cos(fyaw) * 0.95, fy + math.sin(fyaw) * 0.95
+    m.obj('fungus_wall', fx, fy, R.floor, fyaw, variant=2, tag='fungus')
+    m.obj('fungus_camp', cx, cy, R.floor, fyaw, tag='fungus')
+    m.spawn('trace', cx, cy, R.floor, fyaw, tags=['r1.6'], set='fungus')
+    m.spawn('trace', cx, cy, R.floor, fyaw, tags=['r2.2'], set='note')
+    side = fyaw - math.pi / 2
+    bx, by = cx + math.cos(side) * 1.25 + math.cos(fyaw) * 0.5, cy + math.sin(side) * 1.25 + math.sin(fyaw) * 0.5
+    if _free(bx, by, 0.25):
+        m.spawn('trace', bx, by, R.floor, prng.random() * 6.28, set='bottle')
+    camp_room = r
+    break
+# verpilzter Kadaver in einem Krankenzimmer am Hallenrand (dunkel, feucht unter dem Bett)
+for r in [b_ for b_ in band if m.R(b_).type == 'krankenzimmer'][1:2]:
+    R = m.R(r)
+    for _try in range(20):
+        px, py = R.x0 + 1.5 + prng.random() * (R.w - 3), R.y0 + 1.5 + prng.random() * (R.h - 3)
+        if _free(px, py, 0.7):
+            m.obj('fungus_floor', px, py, R.floor, prng.random() * 6.28, variant=2, tag='fungus')
+            m.spawn('trace', px, py, R.floor, 0.0, tags=['r1.2'], set='fungus')
+            break
+# eine weitere offene Flasche in einem Zimmer der Gaenge (verlockend, an der Wand)
+for r in prng.sample([c for c in cells if c != camp_room], 6):
+    p = _face_spot(r, 0.45)
+    if p:
+        R = m.R(r)
+        m.spawn('trace', p[0] + math.cos(p[2]) * 0.45, p[1] + math.sin(p[2]) * 0.45, R.floor, prng.random() * 6.28, set='bottle')
+        break
+
+# Gemaelde der Spielleiterin (Entity 99): Plaetze am Boden kurz vor den Tueren zu den Hallen (Seite ausserhalb der Halle)
+paint_spots = 0
+for d in m.doors:
+    if d['kind'] not in ('door', 'wide'):
+        continue
+    a_, b_ = d['a'], d['b']
+    if _hall(a_) == _hall(b_):
+        continue
+    other = b_ if _hall(a_) else a_
+    cx, cy, into = _door_into(d, other)
+    px, py = cx + math.cos(into) * 1.45, cy + math.sin(into) * 1.45
+    if m.at(px, py) != other or not _free(px, py, 0.55):
+        continue
+    m.spawn('trace', px, py, m.R(other).floor, into, set='painting')
+    paint_spots += 1
+# Hinauswurf: freie Stellen in Hallen und Gaengen (nicht im Garden)
+expel = 0
+for r in prng.sample(aquila + gothic + gd, 6) + prng.sample(cells, 4):
+    R = m.R(r)
+    for _try in range(15):
+        px, py = R.x0 + 1.5 + prng.random() * (R.w - 3), R.y0 + 1.5 + prng.random() * (R.h - 3)
+        if _free(px, py, 0.8):
+            m.spawn('trace', px, py, R.floor, prng.random() * 6.28 - math.pi, set='expel')
+            expel += 1
+            break
+# Spuren an einer Zimmertuer in den Gaengen: Krallen an der Wand neben der Tuer (Gangseite), zaehe Fluessigkeit davor
+claw_room = None
+zimmer = [c for c in cells if m.R(c).type == 'zimmer' and c != camp_room]
+for r in prng.sample(zimmer, len(zimmer)):
+    R = m.R(r)
+    doors = [d for d in m.doors if r in (d['a'], d['b'])]
+    if len(doors) != 1:
+        continue
+    d = doors[0]
+    corr = d['b'] if d['a'] == r else d['a']
+    cx, cy, into = _door_into(d, r)
+    if abs(math.sin(into)) > 0.5:
+        depth = R.y1 - cy if math.sin(into) > 0 else cy - R.y0
+    else:
+        depth = R.x1 - cx if math.cos(into) > 0 else cx - R.x0
+    if depth < 4.5:
+        continue
+    faces = [f for f in m.wall_faces(corr, margin=0)
+             if 0.9 <= math.hypot(f[0] - cx, f[1] - cy) <= 1.6 and abs(math.remainder(f[2] - (into + math.pi), 2 * math.pi)) < 0.1]
+    if not faces:
+        continue
+    fx, fy, fyaw = min(faces, key=lambda f: math.hypot(f[0] - cx, f[1] - cy))
+    Rc = m.R(corr)
+    m.obj('claw_marks', fx, fy, Rc.floor, fyaw, tag='claws')
+    ox, oy = cx - math.cos(into) * 0.75, cy - math.sin(into) * 0.75
+    m.obj('goo_trail', ox, oy, Rc.floor, into + math.pi / 2 + prng.uniform(-0.3, 0.3), tag='claws')
+    m.spawn('trace', cx + math.cos(into) * 0.6, cy + math.sin(into) * 0.6, R.floor, into, tags=['r9'], set='claws')
+    claw_room = r
+    break
+# Garden: wer zu lange blieb - eine Gestalt aus Rinde und Ranken zwischen den Farnen
+for r in garden:
+    R = m.R(r)
+    for _try in range(30):
+        px, py = R.x0 + 6 + prng.random() * (R.w - 12), R.y0 + 5 + prng.random() * (R.h - 10)
+        if _free(px, py, 1.0):
+            m.obj('plant_wanderer', px, py, R.floor, prng.random() * 6.28, variant=garden.index(r), tag='garden')
+            break
+print(f'V13.3 Erscheinungen: Pilz {len(fungus_hall)} Hallenstellen, Lager {camp_room is not None}, Gemaeldeplaetze {paint_spots}, '
+      f'Hinauswurf {expel}, Tuerspuren {claw_room is not None}')
 m.save()

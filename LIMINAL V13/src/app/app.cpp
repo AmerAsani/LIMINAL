@@ -1594,7 +1594,7 @@ void App::updateAudio(double dt) {
         const bool uw = s.underwater() && !st.dead;
         if (uw && uwId < 0) uwId = audio_->startLoop("underwater", 0.5f, audio::Bus::Effects);
         if (!uw && uwId >= 0) audio_->stopLoop(uwId), uwId = -1;
-        if (!st.dead) audio_->setMuffle(uw ? 0.8f : 0.0f);
+        if (!st.dead) audio_->setMuffle(std::max(uw ? 0.8f : 0.0f, s.phenomena().muffle(0)));  // V13.3: Fieber, Rinde in den Ohren
     }
     // V9/V10: jagt eine Entity, liegt ein tiefes Brummen an ihrer Stelle; Herzschlag, wenn sie nah ist;
     // der Schwarm flattert; draussen: Wind
@@ -1796,6 +1796,11 @@ void App::renderWorld(double dt, bool clean) {
         dim += ((menu ? 1.0f : 0.0f) - dim) * (float)std::min(1.0, dt * 8.0);
         sp.menuDim = state_ == State::Title ? 0.7f : dim * 0.85f;
         sp.desaturate = (float)std::clamp((25.0 - st.sanity) / 25.0, 0.0, 1.0) * 0.45f;
+        if (state_ == State::Playing) {  // V13.3: Pilz, Garden, Einladung der Spielleiterin (session_phenomena.cpp)
+            sp.fungus = s.phenomena().fungusFx(0);
+            sp.garden = s.phenomena().gardenFx(0);
+            sp.jester = s.phenomena().jesterFx(0);
+        }
         // V9/V10: eine nahe, jagende Entity entzieht dem Bild die Farbe; ein Angriff faerbt den Rand rot
         if (playing) {
             sp.desaturate = std::min(0.85f, sp.desaturate + s.presence().threatProximity() * 0.4f);
@@ -2002,7 +2007,7 @@ void App::renderWorld(double dt, bool clean) {
             L.shadows = false;
             sp.extraLights.push_back(L);
         }
-        if (clean) sp.menuDim = sp.redEdge = sp.desaturate = 0.0f;
+        if (clean) sp.menuDim = sp.redEdge = sp.desaturate = sp.fungus = sp.garden = sp.jester = 0.0f;
         renderer_->renderScene(cam, sp, draws_);
     }
 }

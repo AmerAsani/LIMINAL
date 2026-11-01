@@ -41,6 +41,7 @@ GameSession::GameSession(const Content& content, const PrefabLibrary& prefabs,
     tiles_ = std::make_unique<TileAdapter>(*world_);
     world_->onChunkLoaded = [this](const world::ChunkData& cd) { onChunk(cd, true); };
     world_->onChunkUnloaded = [this](const world::ChunkData& cd) { onChunk(cd, false); };
+    phenomena_.setup(world_->level(), (u64)seed);  // V13.3: Erscheinungen ohne Figur (session_phenomena.cpp)
     // V7: Laufbuch (V8: in der Welt beginnt jeder Lauf in der ersten Ebene)
     runLog_.levels.push_back(world_->level().world() ? world_->level().regions.front().id : levelId);
 }
@@ -109,6 +110,7 @@ void GameSession::respawnAtCheckpoint() {
     deathCause_.clear();
     killCam_ = false, killT_ = 0.0, killRole_ = -1;
     air_ = 30.0, deepT_ = 0.0, deepStage_ = 0;  // V11
+    phenomena_.reset(0);  // V13.3: neuer Anfang ohne Pilz und Ranken
     presence_.clear();
     presence_.setGrace(90.0);  // Schonzeit: kein Stromausfall, keine Entity gleich wieder
     haunt_.reset();
@@ -206,6 +208,7 @@ void GameSession::onChunk(const world::ChunkData& cd, bool loaded) {
             }
         spawnLevelEntities(cd);
         spawnFinds(cd);  // V7: Notizen, Batterien, Notausgaenge
+        spawnTraces(cd);  // V13.3: offenes Mandelwasser (session_phenomena.cpp)
         // V6: abgelegte Items dieses Chunks wieder hinlegen
         for (auto& d : dropped_)
             if (!reg_.alive(d.entity) && world::chunkOf(ifloor(d.pos.x), ifloor(d.pos.y)) == cd.key) spawnDropped(d, {}, true);
@@ -600,6 +603,7 @@ void GameSession::carryOver(const GameSession& from) {
     levelMemory = from.levelMemory;
     levelMemory[from.levelId] = {from.picked, from.mapNotes_};
     if (auto it = levelMemory.find(levelId); it != levelMemory.end()) picked = it->second.picked, mapNotes_ = it->second.notes;
+    phenomena_.ailment(0) = from.phenomena_.ailment(0);  // V13.3: der Pilz reist mit (die Garden-Uhr geht draussen zurueck)
 }
 
 // Wanderer: gehen zu zufaelligen Zielen in der Naehe, bleiben auf begehbaren Kacheln
@@ -769,10 +773,12 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
     // V6: erschoepft etwas langsamer, Sprinten nur mit Ausdauer
     player_.speedMul = stats_.speedMul() * (stats_.exhausted ? 0.9 : 1.0);
     player_.speedMul *= 1.0 - 0.5 * presence_.trance();  // V13.3: der Anblick des Wranglers laehmt
+    player_.speedMul *= phenomena_.speedMul(0);            // V13.3: Fieber, Ranken (session_phenomena.cpp)
     PlayerControl c = paused ? PlayerControl{} : control;
     if (!stats_.canSprint()) c.sprint = false;
     if (ride_.active) c.forward = c.side = 0.0f, c.sprint = c.jump = false;  // V8: im Aufzug nur umsehen
     if (stats_.dead) c.forward = c.side = 0.0f, c.sprint = c.jump = c.jumpHeld = false;  // V13.2: tot (Koop: zusehen)
+    if (phenomena_.frozen(0)) c.forward = c.side = 0.0f, c.sprint = c.jump = c.jumpHeld = false;  // V13.3: ihre Einladung
     const double prevX = player_.x, prevY = player_.y;
     // V11: Wasserspiegel am Ort (Raum unter dem Spieler)
     if (const world::Room* wr = world_->roomAt(player_.x, player_.y)) player_.waterZ = wr->water;
@@ -881,6 +887,7 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
             for (Pawn* p : pawns)
                 if (p) pawnTick(*p, dt);
         updatePresence(dt);  // V10
+        updatePhenomena(dt);  // V13.3: Pilz, Garden, Gemaelde, Tuerspuren (nach den Wesen: others_ ist gefuellt)
     }
     if (killCam_ && !paused) killT_ += dt;  // V11
     target_ = ecs::kNull;
@@ -1192,7 +1199,12 @@ void GameSession::interact() {
 void GameSession::useSlot(int idx) {
     if (startGlowThrow(idx)) return;  // V13.3: Leuchtstab knicken und werfen (session_lure.cpp; Gast: Eingabe beim Loslassen)
     if (netAction) {  // V13.2 Koop (Gast)
-        if (idx >= 0 && idx < Inventory::kSize && inventory_.slots[(size_t)idx]) netAction(2, (u32)idx);
+        if (idx >= 0 && idx < Inventory::kSize && inventory_.slots[(size_t)idx]) {
+            std::vector<Phenomena::Event> pe;  // V13.3: eigenes Bild und Klang (die Werte rechnet der Host)
+            const std::string extra = phenomena_.drink(0, inventory_.slots[(size_t)idx]->kind, pe);
+            if (!extra.empty()) events_.push_back({GameEvent::Toast, extra, 3.0f});
+            netAction(2, (u32)idx);
+        }
         return;
     }
     if (idx >= 0 && idx < Inventory::kSize && inventory_.slots[(size_t)idx] && isFuse(inventory_.slots[(size_t)idx]->kind)) {
@@ -1215,6 +1227,8 @@ void GameSession::useSlot(int idx) {
         return;
     }
     GameEvent ev{GameEvent::Consume, stats_.consume(*d), 3.0f};
+    std::vector<Phenomena::Event> pe;  // V13.3: offenes Mandelwasser steckt an, versiegeltes heilt frueh (KREATUR_Crawler.md)
+    if (const std::string extra = phenomena_.drink(0, d->key, pe); !extra.empty()) ev.text += " · " + extra, ev.duration = 4.0f;
     ev.sound = d->useSound;
     events_.push_back(ev);
     // die Hand fuehrt das Item zum Mund
@@ -1325,6 +1339,7 @@ void GameSession::collectMeshes(std::vector<VisibleMesh>& out) {
         out.push_back(v);
     });
     lures_.collect(out, eye);  // V13.3: Leuchtstaebe
+    phenomena_.collect(out, eye);  // V13.3: Gemaelde am Boden (KREATUR_GameMaster.md)
     haunt_.collect(out);  // V7: "Der Andere"
     presence_.collect(out, palette_, eye, figureDetail);  // V10: die Figuren
     for (Pawn* p : pawns)  // V13.2 Koop: die Mitspieler (Spielermodell, Lampe von aussen)
@@ -1367,6 +1382,7 @@ Json GameSession::toJson() const {
     p.set("distance", player_.distance);
     j.set("player", std::move(p));
     j.set("stats", stats_.toJson());
+    j.set("phenomena", phenomena_.toJson(0));  // V13.3
     j.set("inventory", inventory_.toJson());
     j.set("selected", inventory_.selected);
     std::vector<std::string> ids(picked.begin(), picked.end());
@@ -1467,6 +1483,7 @@ void GameSession::fromJson(const Json& j) {
     player_.pitch = std::clamp(p["pitch"].asNumber(0.0), -Player::kPitchMax, Player::kPitchMax);
     player_.distance = p["distance"].asNumber(0.0);
     stats_.fromJson(j["stats"]);
+    phenomena_.fromJson(0, j["phenomena"]);  // V13.3
     inventory_.fromJson(j["inventory"]);
     inventory_.selected = (int)(j["selected"].asInt(0) % Inventory::kHotbar);
     picked.clear();
@@ -1843,6 +1860,8 @@ void GameSession::collectBody(std::vector<VisibleMesh>& out, bool firstPerson) {
         for (size_t i = figFirst; i < out.size(); ++i) out[i].clip = vec4(wr + hd * 0.02f, 0.025f);
     }
     if (!(debugDraw & 4)) body_.collectProps(out);
+    const vec4 skin = phenomena_.skinFx(0);  // V13.3: Pilz und Ranken auf der eigenen Haut (nur Hautmaterialien)
+    for (size_t i = figFirst; i < out.size(); ++i) out[i].fx = skin;
     if (sk && body_.viewmodelHand() && body_.lampVisible() && !(debugDraw & 1)) {
         static const int grip = sk->pose("grip"), press = sk->pose("press");
         std::vector<float> w(sk->poses.size(), 0.0f);
@@ -1866,6 +1885,7 @@ void GameSession::collectBody(std::vector<VisibleMesh>& out, bool firstPerson) {
         v.attached = true;
         v.cullCenter = o;
         v.cullRadius = 0.0f;
+        v.fx = skin;
         out.push_back(v);
     }
 }

@@ -16,6 +16,10 @@ void GameSession::pawnInput(Pawn& p, const PlayerControl& c0, double dt) {
     if (!p.alive) return;
     PlayerControl c = c0;
     p.player.speedMul = p.stats.speedMul() * (p.stats.exhausted ? 0.9 : 1.0);
+    if (p.id > 0 && p.id < Phenomena::kPlayers) {  // V13.3: Fieber, Ranken, ihre Einladung (session_phenomena.cpp)
+        p.player.speedMul *= phenomena_.speedMul(p.id);
+        if (phenomena_.frozen(p.id)) c.forward = c.side = 0.0f, c.sprint = c.jump = c.jumpHeld = false;
+    }
     if (!p.stats.canSprint()) c.sprint = false;
     if (const world::Room* wr = world_->roomAt(p.player.x, p.player.y)) p.player.waterZ = wr->water;
     else p.player.waterZ = -999.0;
@@ -139,6 +143,9 @@ bool GameSession::pawnUse(Pawn& p, int idx, std::string& msg, std::string& sound
         return true;
     }
     msg = p.stats.consume(*d);
+    std::vector<Phenomena::Event> pe;  // V13.3: offenes Mandelwasser steckt an, versiegeltes heilt frueh
+    if (p.id > 0 && p.id < Phenomena::kPlayers)
+        if (const std::string extra = phenomena_.drink(p.id, d->key, pe); !extra.empty()) msg += " · " + extra;
     return true;
 }
 
@@ -170,6 +177,7 @@ void GameSession::pawnRespawn(Pawn& p) {
     p.deadT = 0.0;
     p.killRole = -1;
     p.anySeq = false;
+    if (p.id > 0 && p.id < Phenomena::kPlayers) phenomena_.reset(p.id);  // V13.3
     p.body.reset();
     log::info("Koop: {} kommt am Sicherungspunkt {} zurueck", p.name, checkpoint_.empty() ? "-" : checkpoint_);
 }
@@ -197,6 +205,7 @@ void GameSession::respawnCoop() {
     deathCause_.clear();
     killCam_ = false, killT_ = 0.0, killRole_ = -1;
     air_ = 30.0, deepT_ = 0.0, deepStage_ = 0;
+    phenomena_.reset(0);  // V13.3
     events_.push_back({GameEvent::TeleportCut});
 }
 
@@ -272,6 +281,10 @@ void GameSession::netAddDropped(u32 hash, const std::string& kind, vec3 pos) {
         netAddLure(pos);
         return;
     }
+    if (kind == "painting") {  // V13.3: ein Gemaelde liegt jetzt vor einer anderen Tuer (session_phenomena.cpp)
+        phenomena_.netMove(hash, pos);
+        return;
+    }
     if (!content_.item(kind)) return;
     for (const DroppedItem& d : dropped_)
         if (d.netHash == hash) return;  // schon da (doppelt gemeldet)
@@ -297,7 +310,7 @@ void GameSession::netDie(int role) {
     if (stats_.dead) return;
     stats_.health = 0.0;
     stats_.dead = true;
-    deathCause_ = role >= 0 ? "stalker" : "stats";
+    deathCause_ = role >= 0 ? "stalker" : role == -2 ? "pilz" : role == -3 ? "garten" : "stats";  // V13.3: -2/-3 Erscheinungen
     killRole_ = role;
     if (role >= 0) {
         killCam_ = true, killT_ = 0.0;
