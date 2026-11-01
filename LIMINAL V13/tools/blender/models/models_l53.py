@@ -1013,6 +1013,20 @@ def build_bookcase_end():
         g.face([(0.0, W * s, 0.0), (0.03, W * s, 0.0), (0.03, W * s, 3.0), (0.0, W * s, 3.0)], M['walnut_d'], out=(0, s, 0))
     _raised_panel(g, M, -0.4, 0.4, 0.42, 1.48)
     _raised_panel(g, M, -0.4, 0.4, 1.66, 2.86)
+    # Kantenleisten mit Fuge (wie die Pilaster der Regale) und Kartusche mit Messingrosette auf dem Fries
+    for s in (-1, 1):
+        prof = [(0.03, s * 0.52), (0.042, s * 0.52), (0.048, s * 0.514), (0.048, s * 0.47), (0.042, s * 0.462), (0.03, s * 0.462)]
+        for k in range(len(prof) - 1):
+            (xa, ya), (xb, yb) = prof[k], prof[k + 1]
+            n = Vector((yb - ya, -(xb - xa), 0.0)).normalized() * (1 if s > 0 else -1)
+            if n.x < -0.01 or (abs(n.x) < 0.01 and n.y * s < 0):
+                n = -n
+            g.face([(xa, ya, 0.36), (xb, yb, 0.36), (xb, yb, 2.98), (xa, ya, 2.98)], M['walnut'] if k != 2 else M['walnut_w'], out=n, nrm=[n] * 4)
+        g.face([(0.0484, s * 0.493, 0.36), (0.0484, s * 0.489, 0.36), (0.0484, s * 0.489, 2.98), (0.0484, s * 0.493, 2.98)], M['groove'], out=(1, 0, 0))
+    old = g.M
+    g.M = Matrix.Translation((0.05, 0.0, 3.06)) @ Matrix.Rotation(math.pi / 2, 4, 'Y')
+    lathe(g, [(0.0, 0.0), (0.035, 0.0), (0.03, 0.006), (0.018, 0.01), (0.012, 0.007), (0.0, 0.012)], M['brass_d'], seg=10)
+    g.M = old
     # Sockel und Kranz (Profile wie beim Regal, auf 0,07 m Tiefe)
     prof = [(0.03, 0.36), (0.045, 0.36), (0.05, 0.35), (0.05, 0.05), (0.058, 0.04), (0.064, 0.028), (0.064, 0.0), (0.0, 0.0)]
     sweep(g, prof, [(0, -W, 0), (0, W, 0)], (0, 0, 1), M['walnut_d'], smooth=50, flip=True)
@@ -1931,7 +1945,7 @@ def _ceiling_arms(variant):
     # Schriftband unter dem Schild
     band = [(-0.26, -0.44), (-0.13, -0.415), (0.0, -0.43), (0.13, -0.415), (0.26, -0.44), (0.24, -0.48), (0.13, -0.455), (0.0, -0.47), (-0.13, -0.455),
             (-0.24, -0.48)]
-    poly(band, mat('band_pergament', (0.72, 0.64, 0.48), 'paint', r=1.1), 6)
+    poly(band, mat('band_pergament', (0.60, 0.53, 0.40), 'paint', r=1.1), 6)
     # Eckrosetten des Stuckfelds, abgeplatzte Farbe, Wasserrand
     for (sx, sy) in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
         old = g.M

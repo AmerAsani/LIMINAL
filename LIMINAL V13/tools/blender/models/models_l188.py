@@ -392,6 +392,21 @@ def _paving(seed, across=3, along=2):
             y0, y1 = (0.704, 0.8) if s > 0 else (-0.8, -0.704)
             _slab(g, (x0, y0, 0.0), (x1, y1, z + 0.006), kerb, rng, c=0.01)
     # Fugen: Erde und Moos
+    # Flecken und ein Haarriss auf einzelnen Platten
+    stain = mat('platte_fleck', (0.52, 0.50, 0.46), 'concrete', 'concrete_cast', r=1.4)
+    crack = mat('platte_riss', (0.18, 0.17, 0.15), 'paint', r=1.4)
+    for k in range(rng.randint(1, 3)):
+        cx, cy = rng.uniform(-0.4, 0.4), rng.uniform(-0.6, 0.6)
+        r0 = rng.uniform(0.04, 0.1)
+        g.face([(cx + r0 * rng.uniform(0.6, 1.1) * math.cos(a), cy + r0 * rng.uniform(0.6, 1.1) * math.sin(a), z + 0.0012) for a in
+                [2 * math.pi * i / 9 for i in range(9)]], stain, out=(0, 0, 1))
+    if rng.random() < 0.6:
+        cx, cy = rng.uniform(-0.35, 0.2), rng.uniform(-0.5, 0.4)
+        P = [(cx + 0.06 * i, cy + 0.025 * math.sin(i * 1.7) + 0.01 * i) for i in range(5)]
+        for i in range(4):
+            (xa, ya), (xb, yb) = P[i], P[i + 1]
+            g.face([(xa, ya - 0.0012, z + 0.0014), (xb, yb - 0.0012, z + 0.0014), (xb, yb + 0.0012, z + 0.0014), (xa, ya + 0.0012, z + 0.0014)], crack,
+                   out=(0, 0, 1))
     for j in range(1, across):
         y = -0.7 + j * wy
         g.face([(-0.5, y - gap / 2, 0.026), (0.5, y - gap / 2, 0.026), (0.5, y + gap / 2, 0.026), (-0.5, y + gap / 2, 0.026)], dirt, out=(0, 0, 1))
@@ -655,7 +670,7 @@ def build_pillar_188():
     rng = random.Random(1880)
     g = Geo()
     c1 = mat('beton_brett_a', (0.93, 0.93, 0.92), 'concrete', 'concrete_white', r=1.2)
-    c2 = mat('beton_brett_b', (0.86, 0.86, 0.85), 'concrete', 'concrete_white', r=1.25)
+    c2 = mat('beton_brett_b', (0.83, 0.83, 0.82), 'concrete', 'concrete_white', r=1.3)
     cj = mat('beton_fuge', (0.55, 0.55, 0.54), 'concrete', 'concrete_white', r=1.4)
     dirty = mat('beton_fuss', (0.52, 0.54, 0.46), 'concrete', 'concrete_white', r=1.4)
     seg = 24
