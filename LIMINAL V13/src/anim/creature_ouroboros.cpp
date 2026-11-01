@@ -560,7 +560,7 @@ void CreatureAnimator::updateOuroboros(float dt, const Input& in) {
                 const float sg = s == 0 ? 1.0f : -1.0f;
                 hand[s] = top + TL * (sg * 0.2f) + vib * 1.5f;
                 hdir[s] = nrmO(F * 0.5f - U * 0.6f + TL * sg * 0.2f, -U);
-                bend2[s] = 0.9f;
+                bend2[s] = 1.45f;  // der Zickzack nimmt die Laenge auf (Runde 2)
             }
             tool = T_JACK, toolA = tip, toolB = top, toolUp = F;
             break;
@@ -603,7 +603,12 @@ void CreatureAnimator::updateOuroboros(float dt, const Input& in) {
         // zweite Gelenk gegen den Ellbogen (Zickzack)
         const float b2 = std::clamp(bend2[s], 0.15f, 1.6f);
         const float l2 = std::sqrt(lF1 * lF1 + lF2 * lF2 + 2.0f * lF1 * lF2 * std::cos(b2));
-        const vec3 pole = nrmO(-TF * 0.6f + TL * (sg * 0.9f) - U * 0.2f, TL * sg);
+        // Ellbogen nach aussen, hinten und unten - in Koerperachsen (F, U), nicht im Brustkorb: beim tiefen Buecken zeigte -TF
+        // nach oben, die Ellbogen standen dann ueber dem Kopf (Kritikrunde 1)
+        // Presslufthammer: die Haende dicht vor der Brust - die Ellbogen nach hinten unten an die Seiten (Runde 2: seitlich
+        // abgespreizt stand ueber dem Schweren ein schwarzer Hut)
+        const bool tight = task == K_JACK;
+        const vec3 pole = nrmO(-F * (tight ? 0.65f : 0.5f) + TL * (sg * (tight ? 0.22f : 0.85f)) - U * (tight ? 0.75f : 0.55f), TL * sg);
         vec3 e1, wr;
         ik2(S[s], W2, lUp, l2, pole, e1, wr);
         vec3 e2, wr2;

@@ -382,8 +382,8 @@ bool Presence::spawnOuroboros(const Context& c, std::vector<Event>& out, bool fo
     for (int j = 0; j < n; ++j) s.worker[(size_t)j] = make(j == J_BREAKER ? 1 : 0, start[j], yaws[j], j).netId;
     ouroPlaced_ = true;
     out.push_back({Event::Appear, Role::Ouroboros, wallC});
-    log::info("Praesenz: Ouroboros-Baustelle - Mauer bei ({:.1f}, {:.1f}), Geruest bei ({:.1f}, {:.1f}), Lager ({:.1f}, {:.1f}), {} Arbeiter, {:.0f} m",
-              wallC.x, wallC.y, towerC.x, towerC.y, heap.x, heap.y, n, hdist(wallC, eye));
+    log::info("Praesenz: Ouroboros-Baustelle - Mauer bei ({:.1f}, {:.1f}) Richtung {:.2f}, Geruest bei ({:.1f}, {:.1f}) Richtung {:.2f}, Lager ({:.1f}, {:.1f}), {} Arbeiter, {:.0f} m",
+              wallC.x, wallC.y, wallYaw, towerC.x, towerC.y, towerYaw, heap.x, heap.y, n, hdist(wallC, eye));
     return true;
 }
 
