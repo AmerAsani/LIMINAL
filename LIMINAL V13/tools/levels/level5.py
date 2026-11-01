@@ -223,6 +223,8 @@ for cor in corridors + [to53, fen]:
             if m.blocked(px, py):
                 continue
             md = rng.choice(['sofa', 'armchair', 'bookcase', 'side_table', 'side_table'])
+            if md == 'bookcase':  # V13.3: Ursprung des Regals liegt hinten - an die Wand, nicht 0,55 m davor (PROPS_Level5.md)
+                px, py = fx + math.cos(fyaw) * 0.03, fy + math.sin(fyaw) * 0.03
             m.obj(md, px, py, 0.0, fyaw)
             if md == 'side_table':
                 surfaces.append((px, py, 0.66, cor))
