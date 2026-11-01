@@ -1411,7 +1411,12 @@ def build_mach_cabinet():
     for sy in (-1, 1):
         Ss = (lambda s: (lambda u, v: (Vector((u, s * (W + 0.0009), v)), Vector((0, s, 0)))))(sy)
         G.add(C['rust'], orient(strip_uv(Ss, 0.02, D - 0.02, H0 + 0.001, 0.05, rng, 10, 0.8), lambda m, s=sy: Vector((0, s, 0))))
-        chips_on_plane(G, C['steel_dark'], (D / 2, sy * (W + 0.0009), 1.1), (-sy, 0, 0), (0, 0, 1), D, 1.9, rng, 8, 0.004, 0.012)
+        chips_on_plane(G, C['steel_dark'], (D / 2, sy * (W + 0.0009), 1.1), (-sy, 0, 0), (0, 0, 1), D, 1.9, rng, 5, 0.004, 0.012)
+        for k in range(5):  # Lueftungskiemen in der Seitenwand oben
+            z = 1.70 + k * 0.035
+            G.add(C['hole'], box((0.12, sy * W - (0.0009 if sy > 0 else -0.0009) * 0 + (0.0 if sy > 0 else -0.001), z), (0.38, sy * W + (0.001 if sy > 0 else 0.0), z + 0.012)))
+            G.add(paint, box((0.12, sy * W - 0.002 if sy < 0 else sy * W, z + 0.012), (0.38, sy * W + 0.002 if sy > 0 else sy * W, z + 0.016)))
+        G.add(C['rust_stain'], orient(streak_uv(Ss, 0.25, 1.69, 0.05, rng.uniform(0.4, 0.9), rng, 7, taper=0.6), lambda m, s=sy: Vector((0, s, 0))))
     chips_on_plane(G, C['steel_dark'], (xf + 0.0009, 0.0, 1.1), (0, 1, 0), (0, 0, 1), 0.98, 1.95, rng, 10, 0.003, 0.010)
     G.add(C['oil'], blob((D + 0.02, -0.1, H0 + 0.0005), (1, 0, 0), (0, 1, 0), 0.05, 0.07, rng, 12, 2, 0.4, off=0.0006))
     G.deform(dent_fn((xf, -0.32, 0.75), (-1, 0, 0), 0.07, 0.008))
@@ -1819,6 +1824,8 @@ def build_pipe_bundle_b():
         Gc.add(C['grime'], orient(blob_uv(Pc.S(0.0032), rng.uniform(-2.4, 0.6), rng.uniform(0.2, 4.4), rng.uniform(0.15, 0.35), rng.uniform(0.08, 0.3), rng, 10, 2, 0.5), Pc.nrm))
     for _ in range(4):
         Gc.add(C['dust'], orient(blob_uv(Pc.S(0.0036), rng.uniform(1.2, 1.9), rng.uniform(0.2, 4.4), 0.3, rng.uniform(0.2, 0.5), rng, 10, 2, 0.4), Pc.nrm))
+    for k in range(3):
+        Gc.add(C['dust'], orient(blob_uv(Pc.S(0.0040), math.pi / 2 + rng.uniform(-0.15, 0.15), 0.4 + k * 1.6, 0.35, 0.75, rng, 12, 2, 0.3), Pc.nrm))
     Gc.deform(dent_fn((x + rc * 0.7, -1.2, z - rc * 0.7), (-1, 0, 1), 0.07, 0.012))
     G.merge(Gc)
     yr = -0.7  # rote Leitung: Reparaturschelle, Rostfahne
@@ -2312,7 +2319,7 @@ def build_door_plywood():
     rng = random.Random(5)
     C = M_common()
     G = Geo()
-    ply = mat('sperrholz', (0.66, 0.55, 0.40), 'concrete', r=1.3)
+    ply = mat('sperrholz', (0.55, 0.47, 0.36), 'concrete', r=1.35)
     plyw = mat('sperrholz_nass', (0.42, 0.34, 0.24), 'concrete', r=1.2)
     edge_l = mat('sperrholz_lage_hell', (0.72, 0.62, 0.46), 'concrete', r=1.3)
     edge_d = mat('sperrholz_lage_dunkel', (0.36, 0.28, 0.19), 'concrete', r=1.3)
@@ -2367,11 +2374,12 @@ def build_door_plywood():
     sp = mat('spruehfarbe_weiss', (0.80, 0.80, 0.76), 'paint', r=1.2)
     for i in range(3):
         G.add(sp, box((xf + 0.0006, -0.18 + i * 0.07, 1.62), (xf + 0.0012, -0.15 + i * 0.07, 1.80)), Matrix.Rotation(rng.uniform(-0.04, 0.04), 4, 'X'))
-    gw = mat('holz_schmutz', (0.36, 0.31, 0.25), 'concrete', r=1.4)
-    for _ in range(4):
-        G.add(gw, blob((xf + 0.0009, rng.uniform(-0.3, 0.3), rng.uniform(0.3, 1.2)), (0, 1, 0), (0, 0, 1), rng.uniform(0.04, 0.09), rng.uniform(0.03, 0.07), rng,
-                       12, 2, 0.5, off=0.0))
-    G.add(gw, blob((xf + 0.0009, y1 - 0.12, 1.03), (0, 1, 0), (0, 0, 1), 0.05, 0.12, rng, 12, 2, 0.4, off=0.0))
+    gw = mat('holz_wasser', (0.47, 0.40, 0.31), 'concrete', r=1.35)
+    Sx = lambda u, v: (Vector((xf + 0.0009, u, v)), Vector((1, 0, 0)))  # noqa: E731
+    for _ in range(5):  # Wasserlaeufer von oben (Tropfwasser), weich und breit
+        G.add(gw, orient(streak_uv(Sx, rng.uniform(-0.38, 0.38), DH - 0.01, rng.uniform(0.05, 0.12), rng.uniform(0.4, 1.3), rng, 8, taper=0.5), lambda m: Vector((1, 0, 0))))
+    G.add(mat('griffspur_holz', (0.42, 0.36, 0.28), 'concrete', r=1.2), blob((xf + 0.0011, y1 - 0.12, 1.03), (0, 1, 0), (0, 0, 1), 0.035, 0.10, rng, 12, 2, 0.4,
+                                                                            off=0.0))
     G.build('tuer_sperrholz', angle=40.0)
 
 
