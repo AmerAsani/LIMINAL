@@ -2414,13 +2414,39 @@ static void testV13Kin(const std::string& dataDir) {
         std::vector<game::GameEvent> ev;
         step(*s, ev, 0.3);
         auto& P = s->presence();
-        check(spawn(*s, ev, Role::Faceling), "Level 2: Facelings erscheinen (Gruppe)");
-        check(placeNear(*s, Role::Faceling, 2.6), "Level 2: mit Sicht vor einem Faceling");
+        // V13.3: steht der Faceling mit dem Gesicht zur Wand (enger Tunnel), kann niemand vor ihn treten - dann eine andere
+        // Gruppe rufen (sonst haengt die Pruefung vom zufaelligen Ort in der Karte ab)
+        bool appeared = false, placed = false;
+        for (int attempt = 0; attempt < 6 && !placed; ++attempt) {
+            if (attempt > 0) {
+                P.clear();
+                step(*s, ev, 1.0);
+            }
+            if (!spawn(*s, ev, Role::Faceling)) continue;
+            appeared = true;
+            if (!placeNear(*s, Role::Faceling, 2.6)) continue;
+            const vec3 fp = P.posOf(Role::Faceling);
+            const float fy = P.yawOf(Role::Faceling);
+            const float tx = (float)s->player().x - fp.x, ty = (float)s->player().y - fp.y;
+            const float tl = std::hypot(tx, ty);
+            placed = tl > 0.01f && (std::cos(fy) * tx + std::sin(fy) * ty) / tl > 0.6f;
+        }
+        check(appeared, "Level 2: Facelings erscheinen (Gruppe)");
+        check(placed, "Level 2: mit Sicht vor einem Faceling");
         step(*s, ev, 2.0, [&] { aim(*s, P.headOf(Role::Faceling)); return false; });
         check(P.stateOf(Role::Faceling) == 0, "Level 2: ohne Reiz lassen sie einen in Ruhe");
         s->flashlight().on = true;
         int angryAt = -1, frame = 0;
         step(*s, ev, 6.0, [&] {
+            // V13.3: geht er umher und wendet sich ab, tritt der Spieler wieder vor ihn - geprueft wird die Lampe im
+            // Gesicht, nicht ob der Faceling zufaellig stehen bleibt (haengt sonst von der Karte ab)
+            if (frame % 60 == 30) {
+                const vec3 fp = P.posOf(Role::Faceling);
+                const float fy = P.yawOf(Role::Faceling);
+                const float tx = (float)s->player().x - fp.x, ty = (float)s->player().y - fp.y;
+                const float tl = std::hypot(tx, ty);
+                if (tl > 0.01f && (std::cos(fy) * tx + std::sin(fy) * ty) / tl < 0.5f) placeNear(*s, Role::Faceling, 2.6);
+            }
             aim(*s, P.headOf(Role::Faceling));
             if (angryAt < 0 && P.stateOf(Role::Faceling) == 2) angryAt = frame;
             ++frame;

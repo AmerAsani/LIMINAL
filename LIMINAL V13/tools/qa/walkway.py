@@ -50,6 +50,14 @@ def plan(g, rooms_min, meters_min, seed, zone=None):
                             length += math.hypot(qq[0] - pts[-1][0], qq[1] - pts[-1][1])
                             pts.append(qq)
         return pts, seq, length
+    # V13.3: nicht mehr Raeume verlangen, als erreichbar sind (Level 188 hat 6 - sonst bis zur Schutzgrenze im Kreis)
+    reach, todo = {cur}, [cur]
+    while todo:
+        for n_ in adj.get(todo.pop(), ()):
+            if n_ not in reach:
+                reach.add(n_)
+                todo.append(n_)
+    rooms_min = min(rooms_min, len(reach))
     while (len(visited) < rooms_min or length < meters_min) and guard < 400:
         guard += 1
         nb = sorted(adj.get(cur, ()))
