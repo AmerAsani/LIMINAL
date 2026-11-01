@@ -28,7 +28,7 @@ struct FrameConstants {
     vec4 taa;          // Verlauf verwerfen, Mischfaktor, Schaerfen, Zeitschritt
     vec4 debug;        // Debug-Ansicht, AO auf Direktlicht
     vec4 wave;         // V11: Welle des Stromausfalls: xy Ursprung, z Front (m, < 0 keine), w frei
-    vec4 extra;        // V13.3: x Anzahl der Pfuetzen (gPuddles), yzw frei
+    vec4 extra;        // V13.3: x Anzahl der Pfuetzen (gPuddles), y Pilz, z Garden, w Gesicht der Spielleiterin
 };
 static_assert(sizeof(FrameConstants) == 7 * 64 + 15 * 16);
 
@@ -63,8 +63,9 @@ struct ObjectConstants {
     float attached;  // V6: 1 = bewegt sich mit dem Spieler (Markierung im G-Buffer fuer TAA), V10: 1/3 = bewegte Figur
     u32 boneOffset;  // V10: erste Zeile der Knochenmatrizen (Skinning)
     vec4 clip;       // V13: Schnittkugel (xyz Mitte, w Radius; 0 = keine) - Pixel darin werden verworfen
+    vec4 fx;         // V13.3: Zeichen auf der Haut (x Pilz, y Ranken; nur Hautmaterialien der Figuren)
 };
-static_assert(sizeof(ObjectConstants) == 96);
+static_assert(sizeof(ObjectConstants) == 112);
 
 // Vertex fuer frei platzierte Objekte (Items, Requisiten)
 struct MeshVertex {

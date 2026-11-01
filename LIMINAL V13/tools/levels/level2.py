@@ -34,6 +34,8 @@ CELL_TYPES = ['kammer', 'kammer', 'maschinenraum', 'lagerraum']
 
 
 def zone_at(x, y):
+    if x >= 64 and y >= 64:
+        return 'brownout'  # V13.3 (Wikidot Level 2): Bereiche im dauerhaften Brownout
     if x >= 64:
         return 'ziegel'
     if y >= 92 and x < 56:
@@ -41,8 +43,8 @@ def zone_at(x, y):
     return 'beton'
 
 
-J, S, C = corridor_maze(m, 2, 7, 122, 127, 10, 2, 'tunnel', 'beton', CELL_TYPES, lambda t: 'kammer', height=TUN_H,
-                        density=0.62, room_chance=0.32, circuit=C_TUN, light_every=99)
+J, S, C = corridor_maze(m, 2, 7, 122, 127, 15, 2, 'tunnel', 'beton', CELL_TYPES, lambda t: 'kammer', height=TUN_H,
+                        density=0.88, room_chance=0.32, circuit=C_TUN, light_every=99)
 for d in (J, S):
     for k, r in d.items():
         if r is None:
@@ -64,21 +66,21 @@ for r in top[::3]:
     m.door(gleis, r, 'opening', 2)
 
 # --- Anlage, Packlager, Buerogang -------------------------------------------------------------------------------------
-anlage = m.room(124, 2, 188, 50, 'anlage', 'anlage', 0.0, ANL_H, circuit=C_HALLE, label='Anlage', tags=['hall'])
+anlage = m.room(124, 2, 164, 30, 'anlage', 'anlage', 0.0, ANL_H, circuit=C_HALLE, label='Anlage', tags=['hall'])  # V13.3: 40 x 28 statt 64 x 48
 m.opening(gleis, anlage, width=3, at=3.5)
-lager = m.room(124, 52, 188, 100, 'packlager', 'lager', 0.0, LAGER_H, circuit=C_HALLE, label='Packlager', tags=['hall'])
+lager = m.room(124, 32, 164, 58, 'packlager', 'lager', 0.0, LAGER_H, circuit=C_HALLE, label='Packlager', tags=['hall'])
 m.door(anlage, lager, 'wide', 4, at=150, top=3.2)
 # Bueroring: vier Gaenge um einen Block mit Bueros (fuehrt im Kreis zur Tuer zurueck)
-ring_n = m.room(126, 104, 186, 106, 'bueroflur', 'buero_flur', 0.0, BUERO_H, circuit=C_BUERO, label='Bürogang')
-ring_s = m.room(126, 154, 186, 156, 'bueroflur', 'buero_flur', 0.0, BUERO_H, circuit=C_BUERO)
-ring_w = m.room(126, 107, 128, 153, 'bueroflur', 'buero_flur', 0.0, BUERO_H, circuit=C_BUERO)
-ring_e = m.room(184, 107, 186, 153, 'bueroflur', 'buero_flur', 0.0, BUERO_H, circuit=C_BUERO)
+ring_n = m.room(126, 61, 164, 63, 'bueroflur', 'buero_flur', 0.0, BUERO_H, circuit=C_BUERO, label='Bürogang')
+ring_s = m.room(126, 92, 164, 94, 'bueroflur', 'buero_flur', 0.0, BUERO_H, circuit=C_BUERO)
+ring_w = m.room(126, 64, 128, 91, 'bueroflur', 'buero_flur', 0.0, BUERO_H, circuit=C_BUERO)
+ring_e = m.room(162, 64, 164, 91, 'bueroflur', 'buero_flur', 0.0, BUERO_H, circuit=C_BUERO)
 for a, b in ((ring_n, ring_w), (ring_n, ring_e), (ring_s, ring_w), (ring_s, ring_e)):
     m.opening(a, b, width=2)
 offices = []
-for k, y in enumerate(range(108, 149, 6)):
+for k, y in enumerate(range(65, 87, 6)):
     row = []
-    for x0, x1 in ((129, 137), (138, 146), (147, 155), (157, 165), (166, 174), (175, 183)):
+    for x0, x1 in ((129, 136), (137, 144), (145, 152), (153, 161)):
         row.append(m.room(x0, y, x1, y + 5, 'buero', 'buero', 0.0, BUERO_H, circuit=C_ROOMS))
     offices += row
     m.door(row[0], ring_w, 'door', 1)
@@ -90,21 +92,82 @@ m.door(lager, ring_n, 'door', 2, at=140)
 east = [r for r in junctions.values() if m.R(r).x1 >= 120]
 for r in sorted(east, key=lambda r: m.R(r).cy)[::4]:
     R = m.R(r)
-    tgt = anlage if R.cy < 50 else (lager if R.cy < 100 else ring_w)
+    tgt = anlage if R.cy < 30 else (lager if R.cy < 58 else (ring_w if R.cy < 92 else None))
+    if tgt is None:
+        continue
     try:
         m.door(r, tgt, 'door', 1)
     except ValueError:
         pass
 # Tuer nach Level 3: in der Ostwand der Anlage, dahinter ein kurzer Vorraum mit dem Uebergang
+# V13.3: Tunnelnetz Ost (neben den Hallen) und Sued (unter dem Buerogang) - das Labyrinth ist die Grundstruktur
+JE, SE, CE = corridor_maze(m, 166, 2, 188, 98, 10, 2, 'tunnel', 'ziegel', CELL_TYPES, lambda t: 'kammer', height=TUN_H,
+                           density=0.8, room_chance=0.3, circuit=C_TUN, light_every=99)
+JS, SS, CS = corridor_maze(m, 124, 98, 196, 158, 15, 2, 'tunnel', 'beton', CELL_TYPES, lambda t: 'kammer', height=TUN_H,
+                           density=0.8, room_chance=0.32, circuit=C_TUN, light_every=99)
+for dd in (JE, SE, JS, SS):
+    for k, r in dd.items():
+        if r is not None:
+            m.R(r).lights = []
+for cd in (CE, CS):
+    for r in cd.values():
+        R = m.R(r)
+        R.kw['circuit'] = C_ROOMS
+        R.zone = {'maschinenraum': 'maschine', 'lagerraum': 'kammer', 'kammer': 'kammer'}[R.type]
+junctions.update({('e',) + k: v for k, v in JE.items() if v is not None})
+junctions.update({('s',) + k: v for k, v in JS.items() if v is not None})
+segments += [v for v in SE.values() if v is not None] + [v for v in SS.values() if v is not None]
+C.update({('e',) + k: v for k, v in CE.items()})
+C.update({('s',) + k: v for k, v in CS.items()})
+
+
+def link(cands, target, step=3):
+    for r in cands[::step]:
+        try:
+            m.door(r, target, 'door', 1)
+        except ValueError:
+            pass
+
+
+east_w = sorted([v for v in JE.values() if v is not None and m.R(v).x0 == 166], key=lambda r: m.R(r).cy)
+link([r for r in east_w if m.R(r).cy < 30], anlage, 2)
+link([r for r in east_w if 32 <= m.R(r).cy < 58], lager, 2)
+link([r for r in east_w if 64 <= m.R(r).cy < 91], ring_e, 2)
+south_n = sorted([v for v in JS.values() if v is not None and m.R(v).y0 == 98], key=lambda r: m.R(r).cx)
+link([r for r in south_n if 126 <= m.R(r).cx < 164], ring_s, 2)
+e_bottom = [v for v in JE.values() if v is not None]
+ymax = max(m.R(v).y1 for v in e_bottom)
+for r in [r for r in south_n if m.R(r).cx >= 166]:
+    for v in e_bottom:
+        if m.R(v).y1 == ymax and m.R(v).x0 == m.R(r).x0:
+            m.door(v, r, 'door', 1)
+south_w = sorted([v for v in JS.values() if v is not None and m.R(v).x0 == 124], key=lambda r: m.R(r).cy)
+west_net = {m.R(v).cy: v for v in junctions.values() if isinstance(v, int) and m.R(v).x1 == 122}
+for r in south_w[::2]:
+    best = min(west_net, key=lambda cy: abs(cy - m.R(r).cy)) if west_net else None
+    if best is not None and abs(best - m.R(r).cy) < 1.5:
+        try:
+            m.door(west_net[best], r, 'door', 1)
+        except ValueError:
+            pass
 vor3 = m.room(189, 22, 196, 25, 'vorraum', 'vorraum3', 0.0, TUN_H, circuit=C_ROOMS)
-d3 = m.doors[m.door(anlage, vor3, 'door', 1, top=2.1)]
+j3 = [v for v in JE.values() if v is not None and m.R(v).x1 == 188 and m.R(v).y0 <= 23 < m.R(v).y1][0]
+d3 = m.doors[m.door(j3, vor3, 'door', 1, top=2.1)]
 x0, y0, x1, y1 = d3['rect']
 m.obj('door_level3', (x0 + x1) / 2, (y0 + y1) / 2, 0.0, 0.0)
 m.transition('l2_l3', 'door', 'level3', 194.5, 23.5, 0.0, rect=[193, 22, 196, 25])
 
+# --- V13.3: Macchina-Werkstatt (Wikidot Level 2: verlassene Bereiche der Macchina mit Werkzeug und Teilen) -------------
+mac_cells = sorted([v for v in CS.values()], key=lambda r: -m.R(r).w * m.R(r).h)[:2]
+for r in mac_cells:
+    R = m.R(r)
+    R.type, R.zone = 'macchina_werkstatt', 'macchina'
+    R.kw['label'] = 'Macchina-Werkstatt'
+
 # --- Leerraum: hinter einer Tuer mit Fenster nur Schwarz ---------------------------------------------------------
-south = [r for r in junctions.values() if m.R(r).y1 == 119 and 30 <= m.R(r).cx <= 60]
-leer = m.room(28, 121, 66, 150, 'leerraum', 'leere', 0.0, 4.0, circuit=C_ROOMS, label='Leerraum')
+ya = max(m.R(v).y1 for v in J.values() if v is not None)  # V13.3: unterste Kreuzungsreihe (Raster 15 m)
+south = [r for r in junctions.values() if isinstance(r, int) and m.R(r).y1 == ya and 30 <= m.R(r).cx <= 60]
+leer = m.room(28, ya + 2, 66, ya + 31, 'leerraum', 'leere', 0.0, 4.0, circuit=C_ROOMS, label='Leerraum')
 dl = m.doors[m.door(south[0], leer, 'door', 1)]
 x0, y0, x1, y1 = dl['rect']
 m.obj('swing_door1', (x0 + x1) / 2, (y0 + y1) / 2, 0.0, math.pi / 2)
@@ -173,6 +236,12 @@ def tube_run(r, color, step=3, dead_group=0.2, odd_color=0.06, lit_near=None):
 for r in segments:
     R = m.R(r)
     if max(R.w, R.h) >= 4:
+        if R.zone == 'brownout':  # V13.3: Dauer-Brownout - wenige, schwache, flackernde Roehren
+            R.kw['flicker'] = 1
+            tube_run(r, ORANGE, step=4, dead_group=0.45)  # V13.3 Kritikrunde 1: war schwarz (0,55 tot, 0,35)
+            for l_ in R.lights:
+                l_[3] = 0.45
+            continue
         tube_run(r, ORANGE if R.zone == 'heiss' else (WHITE if R.zone == 'beton' or rng.random() < 0.6 else ORANGE))
 tube_run(gleis, WHITE, step=4, dead_group=0.35, lit_near=(m.start[0], m.start[1]))
 for r in C.values():
@@ -202,7 +271,7 @@ m.obj('tube_white', vr.cx, vr.cy, vr.floor + vr.height, 0.0, tag='light')
 m.light(vor3, vr.cx, vr.cy, 0, 0.7, 4.0, z=vr.floor + vr.height - 0.12, panel=False, color=WHITE)
 # violette Notlichter (seit dem Ausfall, vereinzelt; eigene Batterie)
 for r in list(junctions.values()) + [gleis]:
-    if rng.random() < (0.12 if r != gleis else 1.0):
+    if rng.random() < (1.0 if r == gleis else 0.5 if m.R(r).zone == 'brownout' else 0.12):  # V13.3: im Brownout oefter
         faces = m.wall_faces(r, margin=0)
         for (fx, fy, fyaw) in (rng.sample(faces, min(len(faces), 6 if r == gleis else 1)) if faces else []):
             m.obj('violet_lamp', fx, fy, m.R(r).floor + 2.1, fyaw, tag='emergency')
@@ -241,15 +310,21 @@ def furnish_tunnel(r):
     if not sides:
         return
     mach_side = rng.choice(sides)  # Maschinen nur an einer Seite je Abschnitt (der Tunnel bleibt begehbar)
-    for yaw, rl in runs.items():
+    # V13.3: lichte Breite >= 1,0 m - Tiefe der Maschinen + Rohrbuendel (0,37 m) + Gegenseite (Schrank 0,6 m nur ab 3 m)
+    width = min(R.w, R.h)
+    other_ok = width >= 3
+    max_depth = width - 1.0 - 0.37 - (0.6 if other_ok else 0.0)
+    # V13.3: Maschinenseite zuerst, damit Tueren gegenueber ihren Platz pruefen koennen
+    for yaw, rl in sorted(runs.items(), key=lambda kv: kv[0] != mach_side):
         c, s = math.cos(yaw), math.sin(yaw)
         for run in rl:
             k = 0
             while k < len(run):
                 fx, fy = run[k]
                 u = rng.random()
-                if yaw == mach_side and u < 0.62 and k + 1 < len(run):
-                    md, w, depth = rng.choice(MACH)
+                fits = [x for x in MACH if x[2] <= max_depth]
+                if yaw == mach_side and u < 0.62 and k + 1 < len(run) and fits:
+                    md, w, depth = rng.choice(fits)
                     n = 2 if w > 1.1 else 1
                     px = (fx + run[min(k + n - 1, len(run) - 1)][0]) / 2
                     py = (fy + run[min(k + n - 1, len(run) - 1)][1]) / 2
@@ -261,10 +336,15 @@ def furnish_tunnel(r):
                     k += n + 1
                     continue
                 if u < 0.22 and yaw != mach_side:
+                    # V13.3 (Kritikrunde 1): keine Tuer gegenueber einer Maschine in engen Tunneln (Weg < 0,9 m)
+                    if width < 3 and any(m.blocked(fx + c * (width - 0.5) - s * d, fy + s * (width - 0.5) + c * d)
+                                         for d in (-0.7, 0.0, 0.7)):
+                        k += 1
+                        continue
                     m.obj(rng.choice(DOORS), fx, fy, R.floor, yaw, tag='deco')
                     k += 3
                     continue
-                if u < 0.32 and yaw != mach_side:
+                if u < 0.32 and yaw != mach_side and other_ok:
                     md, w, depth = ('mach_cabinet', 1.0, 0.6) if rng.random() < 0.5 else ('pipe_riser', 0.6, 0.4)
                     m.obj(md, fx, fy, R.floor, yaw, tag='machine')
                     bx, by = math.floor(fx + c * 0.5), math.floor(fy + s * 0.5)
@@ -292,8 +372,14 @@ G = m.R(gleis)
 for x in range(G.x0 + 3, G.x1 - 3, 5):
     if rng.random() < 0.88:
         m.obj('rail_track', x + 2.5, G.y0 + 1.5, 0.0, 0.0, tag='deco')
-m.obj('hopper_wagon', 61.5, G.y0 + 1.6, 0.0, 0.0)
-m.block(gleis, 60, G.y0 + 1, 63, G.y0 + 3, 1.0, hidden=True)
+m.obj('hopper_wagon', 61.5, G.y0 + 2.32, 0.0, 0.03)  # V13.3: entgleist zur Suedwand hin - noerdlich bleibt der Gang frei
+# V13.3: neben dem Wagen bleibt die Nordwand frei (Maschinen dort entfernen, Durchgang >= 1 m)
+m.objects = [o for o in m.objects if not (o['model'].startswith(('mach_', 'pipe_riser', 'pipe_bundle')) and 57.5 <= o['pos'][0] <= 66.5
+                                          and G.y0 <= o['pos'][1] < G.y0 + 1.2)]
+for b_ in list(G.blocks):
+    if 57 <= b_[0] <= 65 and b_[1] == G.y0 and b_[3] == G.y0 + 1:
+        G.blocks.remove(b_)
+m.block(gleis, 60, G.y0 + 2, 63, G.y0 + 3, 1.0, hidden=True)
 
 # --- Anlage: grosse Maschinen in Reihen, Kisten, Wagen; Packlager fast leer -----------------------------------------------
 A = m.R(anlage)
@@ -309,9 +395,14 @@ for _ in range(14):
     if not any(m.blocked(x + dx, y + dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1)):
         m.obj(rng.choice(['crate_c', 'crate_b']), x, y, 0.0, rng.random() * 6.28)
         m.block(anlage, math.floor(x - 0.5), math.floor(y - 0.5), math.floor(x - 0.5) + 1, math.floor(y - 0.5) + 1, 0.7, hidden=True)
-for y in range(A.y0 + 4, A.y1 - 2, 7):
-    m.obj('pipe_run', A.cx, y + 0.5, A.floor + A.height - 0.5, 0.0, scale=[A.w - 1, 1, 1], variant=1, tag='pipes')
-    m.obj('pipe_run', A.cx, y + 0.85, A.floor + A.height - 0.62, 0.0, scale=[A.w - 1, 1, 1], variant=0, tag='pipes')
+for y in range(A.y0 + 4, A.y1 - 2, 7):  # V13.3: 1-m-Stuecke mit Wanddurchfuehrung (wie Level 1)
+    for (yy, zz, v_) in ((y + 0.5, A.floor + A.height - 0.5, 1), (y + 0.85, A.floor + A.height - 0.62, 0)):
+        for x_ in range(A.x0, A.x1):
+            m.obj('pipe_run', x_ + 0.5, yy, zz, 0.0, variant=v_, tag='pipes')
+        if m.wall_ok(A.x0 + 0.05, yy, 0.0, zz):
+            m.obj('pipe_wall', A.x0 + 0.004, yy, zz, 0.0, variant=v_, tag='pipes')
+        if m.wall_ok(A.x1 - 0.05, yy, math.pi, zz):
+            m.obj('pipe_wall', A.x1 - 0.004, yy, zz, math.pi, variant=v_, tag='pipes')
 L_ = m.R(lager)
 for _ in range(6):
     x, y = L_.x0 + 4 + rng.random() * (L_.w - 8), L_.y0 + 4 + rng.random() * (L_.h - 8)
@@ -342,18 +433,41 @@ for r in C.values():
             m.obj('crate_c', x, y, R.floor, rng.random() * 6.28)
             m.block(r, math.floor(x - 0.5), math.floor(y - 0.5), math.floor(x - 0.5) + 1, math.floor(y - 0.5) + 1, 0.7, hidden=True)
 
+def wall_spot_early(r, inward=0.35):
+    faces = [f for f in m.wall_faces(r, margin=1) if not m.blocked(f[0] + math.cos(f[2]) * inward, f[1] + math.sin(f[2]) * inward)]
+    if not faces:
+        return None
+    fx, fy, fyaw = rng.choice(faces)
+    return fx + math.cos(fyaw) * inward, fy + math.sin(fyaw) * inward, fyaw
+
+
 # --- Gegenstaende am Boden: Faesser, Wagen, Werkzeug, Leitern, Kabeltrommeln, Klappstuehle --------------------------------
 LOOSE = ['barrel', 'barrel', 'trolley_flatbed', 'toolbox', 'stepladder', 'cable_reel', 'folding_chair']
 for r in segments + list(C.values()):
     R = m.R(r)
     if rng.random() > 0.35:
         continue
-    for _try in range(6):
-        x, y = R.x0 + 0.5 + rng.random() * (R.w - 1), R.y0 + 0.5 + rng.random() * (R.h - 1)
-        if not m.blocked(x, y) and m.in_door(math.floor(x), math.floor(y)) is None:
+    # V13.3: an eine Wand gestellt, nur wo dahinter (quer zum Gang) frei bleibt - lichte Breite >= 1 m
+    faces = m.wall_faces(r, margin=1)
+    rng.shuffle(faces)
+    for (fx, fy, fyaw) in faces[:8]:
+        c_, s_ = math.cos(fyaw), math.sin(fyaw)
+        x, y = fx + c_ * 0.4, fy + s_ * 0.4
+        clear = all(not m.blocked(fx + c_ * d_, fy + s_ * d_) for d_ in (0.5, 1.5)) and min(R.w, R.h) >= 3  # 2-m-Tunnel bleiben frei
+        if clear and m.in_door(math.floor(x), math.floor(y)) is None:
             md = rng.choice(LOOSE)
             m.obj(md, x, y, R.floor, rng.random() * 6.28)
             break
+
+# --- V13.3: Macchina-Werkstatt: Werkbank, Teile, Werkzeug; blaues Pulsieren in den Rohren ------------------------------------
+for r in mac_cells:
+    R = m.R(r)
+    m.light(r, R.cx, R.cy, 0, 0.5, 4.5, z=R.floor + R.height - 0.1, panel=False, color=(0.45, 0.6, 1.0))
+    R.kw['flicker'] = 1
+    for name in ('macchina_parts', 'macchina_tools', 'macchina_parts'):
+        p_ = wall_spot_early(r, 0.6)
+        if p_ and not m.blocked(p_[0], p_[1]):
+            m.obj(name, p_[0], p_[1], R.floor, p_[2] + math.pi)
 
 # --- Funde, Notizen, Wesen, Sicherungspunkte ------------------------------------------------------------------------------
 def wall_spot(r, inward=0.35):
@@ -390,7 +504,7 @@ for r in (anlage, lager):
         if not m.blocked(x, y):
             m.spawn('entity', x, y, R.floor, role='hound', tags=['hall'])
 # Clumps auch an den Einmuendungen des Netzes in den Gleistunnel (Kreuzungen)
-for r in top[::3][1:]:
+for r in top[::2][1:]:  # V13.3: Raster 15 m - Lager wie bisher etwa 28 m vom Start
     x = m.R(r).cx
     m.spawn('entity', x, G.cy, G.floor, role='clump', tags=['junction', 'gleis'])
 # ueber jedem Lager eines Clumps ein Deckenschacht (er lauert darin und laesst sich fallen)
@@ -425,5 +539,13 @@ for k, r in enumerate(lit_cells[::max(1, len(lit_cells) // 6)][:6]):
 safe_point('vorraum3', vor3, 'Vor der Tür nach Level 3')
 safe_point('buero', [o for o in offices if far(o)][0], 'Büro im Bürogang')
 
+# V13.3 (Nachforderung Wiki: Maschinen verschiedener Bauarten aus frueheren Epochen, nicht aufeinander abgestimmt):
+# Bauart je Objekt zufaellig; erst nach allen Platzierungen gezogen, damit die Anordnung der Ebene gleich bleibt
+VARIANTS = {'mach_cabinet': 3, 'junction_box': 4, 'mach_pump': 2, 'mach_tank': 2, 'pipe_riser': 2}
+for o in m.objects:
+    if o['model'] in VARIANTS:
+        v_ = rng.randrange(VARIANTS[o['model']])
+        if v_:
+            o['variant'] = v_
 m.save()
 print('Knicke mit Schraege:', chamfers)

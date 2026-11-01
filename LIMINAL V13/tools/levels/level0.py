@@ -54,7 +54,7 @@ def segmented(x0, y0, x1, y1, zone='vorzimmer', floor=0.0, extra=0.55):
     bis zur Decke (die Rasterdecke laeuft durch), oft zwei je Wand - Raeume fliessen ineinander, statt als
     geschlossene Zimmer mit einer Tuer aneinanderzuhaengen."""
     rooms = partition_rooms(m, x0, y0, x1, y1, zone, yellow_type, min_leaf=4, max_leaf=14, height=(2.7, 3.1),
-                            stop_chance=0.25, loop_chance=0.9, width=(2, 4), floor=floor)
+                            stop_chance=0.25, loop_chance=0.9, width=(3, 5), floor=floor)  # V13.3: breitere Durchbrueche, tiefere Blicke
     have = {(d['a'], d['b']) for d in m.doors} | {(d['b'], d['a']) for d in m.doors}
     for a in rooms:
         for b in rooms:
@@ -86,7 +86,7 @@ while fy < 124:
     fw = rng.choice((2, 3))
     fx = lanes[lane]
     seg = m.room(fx, fy, fx + fw, fy1, 'flur', 'vorzimmer', 0.0, rng.choice((2.7, 2.8, 2.9)),
-                 label='Der lange Flur' if not flur_segs else '')
+                 label='')  # V13.3: keine Benennung (Labyrinth ohne Wahrzeichen)
     if flur_segs:
         m.opening(flur_segs[-1], seg, width=2)
     flur_segs.append(seg)
@@ -108,7 +108,7 @@ link_regions(m, westB, flur_segs, 6, width=(2, 2))
 manila = min((r for r in westB if 12 <= m.R(r).w * m.R(r).h <= 40), key=lambda r: abs(m.R(r).cy - 40))
 M_ = m.R(manila)
 M_.type, M_.zone = 'manila', 'manila'
-M_.kw['label'] = 'Vergilbtes Zimmer'  # im Spiel ohne den Wiki-Namen (Weg B)
+M_.kw['label'] = ''  # V13.3: Manila-Raum (Wiki) ohne hervorgehobenen Namen
 
 # --- Nord: das Lochfeld (Gruben im Raster, kein Boden), ringsum Labyrinth ---------------------------------
 loch = m.room(66, 10, 95, 32, 'lochfeld', 'loecher', 0.0, 3.0, label='Lochfeld')
@@ -166,7 +166,7 @@ sued = segmented(59, 91, 104, 132, floor=0.85)
 # V12 (Wikidot Rev. 50): Boeden dort teils abgesenkt und oft knoecheltief mit Fluessigkeit gefuellt - 25 cm tiefer,
 # Wasser 12 cm hoch (Stufen an den Durchbruechen setzt die Engine)
 dunkel = partition_rooms(m, 105, 2, 142, 44, 'dunkel', lambda w, h, r: 'dunkelraum', min_leaf=4, max_leaf=12,
-                         height=(2.6, 2.9), loop_chance=0.4, floor=-0.25, water=-0.13)
+                         height=(2.7, 3.0), loop_chance=0.4, floor=-0.25, water=-0.13)  # V13.3: Decke >= 2,7 m
 
 # --- Ost --------------------------------------------------------------------------------------------------
 ost = segmented(105, 45, 142, 110)

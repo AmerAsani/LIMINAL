@@ -20,7 +20,7 @@ class Room;
 namespace lim::game {
 
 struct FindSpot {
-    enum Kind { Note, Battery, Exit, FuseBox };  // V9: Sicherungskasten
+    enum Kind { Note, Battery, Exit, FuseBox, Glowstick };  // V9: Sicherungskasten; V13.3: Leuchtstab
     Kind kind = Note;
     std::string id;      // stabil: "note:sx,sy,raum" usw. (Spielstand: aufgenommen/gelesen)
     vec3 pos;            // Boden (Notiz, Batterie) bzw. Wandebene (Notausgang)

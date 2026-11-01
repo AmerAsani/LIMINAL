@@ -30,7 +30,8 @@ constexpr int kLevelMax = 24;       // Kennung einer Ebene oder eines Uebergangs
 constexpr int kTextMax = 96;        // Meldungen (UTF-8, darstellbar)
 constexpr int kNameMax = 16;
 constexpr int kAnimN = 18;          // Eingaben der Animation eines Wesens (V13.2: + wave talk plea strike)
-constexpr int kRoles = 40;          // Presence::Role (V13.3: Platz fuer weitere Wesen ohne Protokollaenderung)
+constexpr int kRoles = 40;          // V13.3: Obergrenze fuer Presence::Role (heute 11). Rollen sind Zahlen (1 Byte); neue Wesen
+                                    // brauchen bis 40 keine Protokollaenderung. Unbekannte Rollen zeigt der Gast nicht an.
 constexpr i32 kCoordMax = 100'000'000;  // mm (100 km)
 constexpr u8 kButtonMask = 0x0F;        // Rennen, Springen, Sprung gehalten, Schleichen
 
@@ -115,7 +116,7 @@ struct SelfNet {
 };
 struct CreatureNet {
     u16 netId = 0;
-    u8 role = 0;              // Presence::Role 0..10
+    u8 role = 0;              // Presence::Role 0..kRoles-1
     u8 variant = 0;           // Modellvariante 0..3
     i32 x = 0, y = 0, z = 0;
     i16 yaw = 0;

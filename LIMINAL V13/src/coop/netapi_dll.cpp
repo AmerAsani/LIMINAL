@@ -25,11 +25,12 @@ bool loadNetLibrary(NetApi& api, std::string& error) {
     }
     auto get = [&](const char* name) { return (void*)GetProcAddress(mod, name); };
     api.host = (decltype(api.host))get("ln_host");
-    api.connect = (decltype(api.connect))get("ln_connect");
+    api.join = (decltype(api.join))get("ln_join");
     api.poll = (decltype(api.poll))get("ln_poll");
     api.send = (decltype(api.send))get("ln_send");
     api.drop = (decltype(api.drop))get("ln_drop");
     api.stats = (decltype(api.stats))get("ln_stats");
+    api.code = (decltype(api.code))get("ln_code");
     api.port = (decltype(api.port))get("ln_port");
     api.close = (decltype(api.close))get("ln_close");
     api.random = (decltype(api.random))get("ln_random");

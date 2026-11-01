@@ -137,13 +137,13 @@ private:
     void titleMain(Host& h, float x, float y, float w);
     void titleNew(Host& h, float x, float y, float w);
     void titleLoad(Host& h, float x, float y, float w);
-    // V13.2 Koop (Beta)
+    // V13.2/V13.3 Koop
     void titleCoop(Host& h, float x, float y, float w);
     void coopPlayersPage(Host& h, float x, float y, float w);
     void drawCoopHud(Host& h);
     int coopSel_ = 0;
-    bool coopJoin_ = true, coopResume_ = false;
-    std::string coopName_, coopAddr_, coopPort_ = "27500", coopKey_, coopMsg_;
+    bool coopJoin_ = true, coopResume_ = false, coopLobby_ = true, coopRelay_ = false;  // V13.3: ueber die Lobby / nur Relay
+    std::string coopName_, coopAddr_, coopCode_, coopMsg_;
     std::vector<NameTag> nameTags_;
     void drawPause(Host& h);
     void pauseMain(Host& h);  // V12: Seitenleiste

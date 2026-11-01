@@ -80,8 +80,10 @@ Türen kleiner und seltener; **ergänzen:** Brownout-Bereich und ein Macchina-Be
 Ausreißer 36 % → Ziel S ≥ 0,85, Ausreißer ≤ 20 %. Schilder: **0** Exit-Schilder (nur Warnschilder an Türen).
 
 **Maße:** Tunnel 2,0–3,0 m breit (Wiki: eng; Spielbarkeit mit Rohren an der Wand: mindestens 2,0 m), Decke ≥ 2,6 m,
-Flurlängen in 5-m-Schritten, Sichtachsen Median ≥ 18 m (lange Tunnelabschnitte zwischen den Knicken). In 68 von 220 Räumen
-verstellt heute Ausstattung den Weg auf unter 0,9 m → 0.
+Flurlängen in 5-m-Schritten (Netz im 15-m-Raster). Sichtachsen: Median ≥ 15 m, 90-%-Wert ≥ 38 m – das Wiki beschreibt die
+Tunnel als eng und verwinkelt mit 45-Grad-Knicken, lange Fluchten gibt es nur entlang gerader Abschnitte; vorher kamen die
+langen Blicke aus den übergroßen Hallen (16,8 m), nachher aus den Tunneln (16,0 m). Ähnlichkeit: S ≥ 0,80, Ausreißer ≤ 20 %
+(die Räume hinter Türen sind Wiki-Raumtypen). Verstellte Räume (< 0,9 m frei): vorher 68 von 220, nachher 0 von 181.
 
 ## Level 3 – „Electrical Station“ (Mischform)
 
@@ -97,7 +99,12 @@ Gittern als Grundstruktur (≥ 50 % der begehbaren Fläche), Sonderräume kleine
 Wiki-Grundlage außer Menschen-Basen). Schilder: **0** Exit-Schilder; Warnschilder an dunklen Engstellen erlaubt.
 
 **Maße:** enge Gänge 1,5 m (Wiki: bis 14 Zoll – im Spiel nicht begehbar, daher 1,5 m als enge Stelle), Gänge sonst 2–3 m,
-Decke ≥ 2,6 m (heute 2,3 m im Paranoia-Gang), große Hallen (Fertigung) ≥ 5, Sichtachsen Median ≥ 28 m.
+Decke ≥ 2,6 m (Paranoia-Gang vorher 1 m breit und 2,3 m hoch, nachher 2 m und 2,6 m), große Hallen ≥ 5.
+**Umgesetzt (V13.3):** drei weitere Ziegel-Gangnetze (Ost, unter dem Sanktuarium, Süd) mit kleinen Kammern; Fertigungsstraße
+60 × 32 m (vorher 60 × 40), Sanktuarium 28 × 40 m (vorher 32 × 52), Büro → leere Ziegelkammer. Gang- und Kammerräume 60 von 71 → 191 von 207
+Räumen; nach Fläche bleiben die Hallen groß (Wiki: so groß wie ein Food-Court), Ziegelzonen 25 % → 40 %. Dadurch sinken die
+Kennwerte, die vorher von den Hallen kamen: Sichtachsen Median 32,5 → 23,5 m (Grenze 22 m, Gänge mit Knicken und Gittern),
+Median der Raumfläche 82 → 25 m² (Grenze 20 m², Kammern im Labyrinth).
 
 ## Level 5 – „Terror Hotel“ (Eigener Ort)
 
@@ -109,8 +116,9 @@ nach Level 4, Aufzug nach Level 3.
 **Im Spiel:** flur, zimmer, ballsaal (Beverly Room), kesselraum/kesselgang, aufzugshalle, metro (Übergang zur Metro, Level 903),
 flur_alt (Zugang zu Level 5.3). Alles belegt. Schilder: Zimmerschilder und das Silberschild; **0** Exit-Schilder.
 
-**Maße:** Hotelflure der 1930er 2,4–3,0 m breit (heute min 2,0 m), Decken ≥ 3,0 m (heute 2,8 m in Zimmern; Grand Hotel
-3,2–3,6 m), Ballsaal 7 m hoch, Sichtachsen Median ≥ 20 m (lange Hauptflure).
+**Maße:** Hotelflure der 1930er 2,4–3,0 m breit, Decken ≥ 3,0 m (Grand Hotel 3,2–3,6 m), Ballsaal 7 m hoch, Sichtachsen
+Median ≥ 20 m (lange Hauptflure). Gemessen: alle Flure ≥ 3 m, Zimmer ≥ 3,0 m. **Ausnahmen** (`exempt_types`): Kesselgänge
+(2 m – Wiki: der Boiler Room ist beengend und vollgestellt) und Aufzugskabinen (2,8 m – übliche Kabinenhöhe).
 
 ## Level 5.3 – „Promethei Bibliotheca“ (Eigener Ort)
 
@@ -126,8 +134,8 @@ mit abgeblätterter Tapete.
 **Wiki:** Atrium ca. 45 m Durchmesser, 30 m hoch, weiße Betonwände mit 100–200 Fenstern, Mittelpfad (Fünfeck, vier Zuwege)
 zum Birkenkreis, Moos; Gänge am Rand über mehrere Etagen, weiß, grell; leere weiße Räume. Keine Schilder.
 
-**Im Spiel:** Hof 46 × 46 m, 30 m hoch; weißer Gang, Treppenhaus, Zellen. Belegt. **Entfernen:** das eine Exit-Schild (Wiki
-nennt keine Schilder) → Grenze 0.
+**Im Spiel:** Hof 46 × 46 m, 30 m hoch; weißer Gang, Treppenhaus, Zellen. Belegt. **Entfernt (V13.3):** das Exit-Schild über
+dem Eingangsfenster (Wiki nennt keine Schilder) → Grenze 0, Prüfung grün.
 
 ## Level 903 – „The Metro“ (Labyrinth, linear)
 
@@ -156,4 +164,6 @@ Duty-free-Läden, Laufbänder, Lounges, der „Meeting Place“, Gates mit Count
 **Im Spiel:** gepaeck, checkin, gang (Rundgang), laeden, gatehalle, gate C30–C34, sackgasse. **Ergänzen (Wiki belegt, fehlt):**
 Sicherheitskontrolle (außer Betrieb), Lost-and-Found-Büro, eine Lounge, der Meeting Place. Schilder: Wegweiser überall;
 Exit-Schilder höchstens 2 (Wiki: ihnen nicht trauen).
-**Maße:** Hallen 4,5–8 m hoch, Gänge ≥ 4 m breit (Flughafen-Concourse 6–12 m), Sichtachsen Median ≥ 45 m.
+**Maße:** Hallen 4,5–8 m hoch, Gänge ≥ 4 m breit (Flughafen-Concourse 6–12 m). **Umgesetzt (V13.3):** Sicherheitskontrolle
+(drei Spuren, außer Betrieb), Fundbüro an der Gepäckausgabe, Lounge, Meeting Place (Sitzreihen, rote Damasttapete). Die neuen,
+kleineren Räume senken die Sichtachsen: Median 49,9 → 43,2 m, 90-%-Wert 95,2 → 84,7 m (Grenzen 42 / 84 m).

@@ -48,6 +48,31 @@ enum FixedMaterial : u32 {
     FM_ENT_UMBRA,                      // V13.2: Fensterwesen - schwarz und matt, aber fest (ohne den Rauchrand der Gestalt)
     // V13.2: Facelings sind verschieden (Haar, Haut, Kleidung) - weitere Stoffe, dunklere Haut, graues Haar
     FM_ENT_CLOTH_C, FM_ENT_CLOTH_D, FM_ENT_HUMANSKIN_B, FM_ENT_HAIR_GREY,
+    FM_ENT_DULLERSKIN, FM_ENT_ROTSKIN, FM_ENT_SMOKE, FM_ENT_CONCRETE,  // V13.3: Duller (dunkelgrau, trocken), Arms (verwesend), Rauch, Bruchbeton
+    // V13.3: Wrangler - durchscheinende Haut (Maennchen grau, Weibchen blass rosa), raue Kopfhaut, Darm, Faserstraenge, Knochen,
+    // Schleim, Samen, Staub, Risse, Zangen, Schutt
+    FM_ENT_WR_MEMBRANE, FM_ENT_WR_MEMBRANE_F, FM_ENT_WR_HIDE, FM_ENT_WR_GUT, FM_ENT_WR_PITH, FM_ENT_WR_BONE, FM_ENT_WR_SLIME,
+    FM_ENT_WR_SEED, FM_ENT_WR_DUST, FM_ENT_WR_CRACK, FM_ENT_WR_PINCER, FM_ENT_WR_DEBRIS,
+    // V13.3: Growler - Pfeifenreiniger in vier Farben (a, b leuchten bei den Jungen), blanker Draht; Nguithr'xurh - behaarter
+    // Koerper, Seide, Betaeubungsstoff
+    FM_ENT_PIPE_A, FM_ENT_PIPE_B, FM_ENT_PIPE_C, FM_ENT_PIPE_D, FM_ENT_WIRE, FM_ENT_SOLIFUGE, FM_ENT_SILK, FM_ENT_SEDATIVE,
+    FM_ENT_SOLIFUGE_DARK, FM_ENT_SOLIFUGE_HAIR, FM_ENT_SOLIFUGE_JOINT,  // V13.3: Nguithr'xurh Runde 6 - dunkle Scheren und Krallen,
+    FM_ENT_SOLIFUGE_HEAD,                                               // blasse Haare, dunklere Gelenke, roetlicher Vorderkoerper
+    // V13.3: Ouroboros-Arbeiter - Overall (dunkel, staubig, Rauchrand), Leere (Gesicht, Haende), blasse Augenscheiben, Gummi
+    // (Stiefel, Schlaeuche), Werkzeugstahl, rostiger Stahl, Maschinenlack, Holz, Ziegel, Absperrband rot/weiss, Funken,
+    // Warnleuchte, Anhaenger am Guertel, Zementstaub
+    FM_ENT_OB_OVERALL, FM_ENT_OB_VOID, FM_ENT_OB_EYE, FM_ENT_OB_RUBBER, FM_ENT_OB_STEEL, FM_ENT_OB_RUST, FM_ENT_OB_PAINT,
+    FM_ENT_OB_WOOD, FM_ENT_OB_BRICK, FM_ENT_OB_TAPE_R, FM_ENT_OB_TAPE_W, FM_ENT_OB_SPARK, FM_ENT_OB_BEACON, FM_ENT_OB_CARD,
+    FM_ENT_OB_DUST,
+    // V13.3: Plague Goblins - Federfell, Schuppenbeine, Krallen, Schnabel, Saegezaehne, Rachen, spiegelnde gelbe Augen; Masken
+    // (glatt hell, dunkles Leder, Lack der Torwaechterin), Glaslinsen, Messing, Umhang, Cape, Hut, Silberstock, Sand der Sanduhr;
+    // das Portal (Leere, Rand), Beute (Flasche); das Beil (Stiel, Kopf)
+    FM_ENT_PG_FEATHER, FM_ENT_PG_SCALE, FM_ENT_PG_TALON, FM_ENT_PG_BEAK, FM_ENT_PG_TOOTH, FM_ENT_PG_MOUTH, FM_ENT_PG_EYE,
+    FM_ENT_PG_MASK, FM_ENT_PG_LEATHER, FM_ENT_PG_ORNATE, FM_ENT_PG_GLASS, FM_ENT_PG_BRASS, FM_ENT_PG_CLOAK, FM_ENT_PG_CAPE,
+    FM_ENT_PG_HAT, FM_ENT_PG_SILVER, FM_ENT_PG_SAND, FM_ENT_PG_VOID, FM_ENT_PG_RIM, FM_ENT_PG_LOOT,
+    FM_ENT_PG_SKIN,  // Runde 2: das kahle Gesicht unter der Maske (die Maske hat die Federn abgerieben - Auslegung)
+    FM_ITEM_HATCHET_WOOD, FM_ITEM_HATCHET_HEAD,
+    FM_ITEM_GLOWSTICK, FM_ITEM_GLOWSTICK_LIT, FM_ITEM_GLOWSTICK_DIM, FM_ITEM_GLOWSTICK_CAP,  // V13.3: Leuchtstab (Koeder)
     FM_FIG_END,
 };
 static_assert(FM_FIG_END <= kFixedMaterials);
@@ -65,8 +90,14 @@ constexpr u32 kMatFlagSmoke = 1u << 29;
 // V13: Haut - Licht dringt ein (lighting.hlsl: gewickeltes, roetliches Streulicht, Durchleuchten duenner Stellen).
 // Der Mesh-Shader schreibt 1 - Anteil in den Glanzkanal (misc.a); 1 = kein Durchscheinen
 constexpr u32 kMatFlagSkin = 1u << 30;
+// V13.3: Rauchrand der Ouroboros-Arbeiter (nur mit kMatFlagSmoke | kMatFlagSilhouette an triplanaren Figurenmaterialien, Bits
+// 16-23): Rand und Glieder zerfasern, waagrechte Baender flackern kurz aus - ohne Saum, Scheitel und Ausduennen nach aussen
+constexpr u32 kMatOuroSmoke = 0x0Bu << 16;
 // V13: Umriss (Gestalt) - mit kMatFlagSmoke: Rand, Saum und Fasern ausduennen, den Koerper aber dicht lassen
 constexpr u32 kMatFlagSilhouette = 1u << 31;
+// V13.3: durchscheinende Haut (Wrangler) - nur bei Wesen (kMatFlagEntity): Bits 16-23 = Deckkraft (1..255, 0 = deckend). Der
+// Mesh-Shader duennt gerastert aus (schraeg gesehen dichter), das TAA mischt es zu einer milchigen Haut
+constexpr u32 kMatMembraneShift = 16;
 
 struct LightStats {
     u32 total = 0, visible = 0;

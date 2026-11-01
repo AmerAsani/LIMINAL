@@ -82,4 +82,8 @@ private:
     std::vector<WallPattern> zoneWall_;
 };
 
+// V13.3: Material der Bank fuer ein Teil eines Ausstattungsmodells (wie addProp) - fuer Modelle, die sich bewegen oder
+// verschwinden (render: Netze "prop:<name>[@variante]", KREATUR_GameMaster.md)
+u16 propMaterial(MaterialBank& bank, const props::MatDesc& d);
+
 }  // namespace lim::world

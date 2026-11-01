@@ -1,6 +1,9 @@
-// V13.2: Pruefungen des Koop-Modus mit echten Spielsitzungen ohne Fenster (MULTIPLAYER_TESTS.md).
-//   Bots       Host und 1..3 Gaeste in einem Prozess, verbunden ueber echtes UDP (127.0.0.1) - wahlweise ueber einen
-//              Netzstoerer (UDP-Proxy: Laufzeit, Schwankung, Verlust, Doppelte, Umordnung, Bandbreite)
+// V13.2/V13.3: Pruefungen des Koop-Modus mit echten Spielsitzungen ohne Fenster (MULTIPLAYER_TESTS.md).
+//   Bots       Host und 1..3 Gaeste in einem Prozess, verbunden ueber die neue Verbindungsschicht (Lobby im Test,
+//              WebRTC/DTLS, getrennte Loopback-Adressen: Host 127.0.0.3, Gaeste 127.0.0.2, Lobby/TURN 127.0.0.1)
+//   Wege       direkt; direkt ueber den Netzstoerer (UDP-Proxy: Laufzeit, Schwankung, Verlust, Doppelte, Umordnung,
+//              Bandbreite); "NAT": die Lobby verwirft alle direkten Kandidaten, nur das TURN-Relay bleibt (der Verkehr zum
+//              Relay laeuft durch den Netzstoerer); direkt ohne Lobby (eingebaute Lobby des Hosts, langer Code)
 //   Angriffe   ein boeswilliger Gast mit richtigem Schluessel: Muell, falsche Rolle und falscher Zustand, Uebergroesse,
 //              zu schnelle Uhr (Speedhack), erfundene und ferne Gegenstaende, Fluten
 //   Fuzzing    Zufalls- und veraenderte Nachrichten durch decode (beide Rollen), Hin- und Rueckweg gueltiger
@@ -25,11 +28,13 @@
 #include <mutex>
 #include <random>
 #include <set>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <vector>
 
 #include "coop/coop.hpp"
+#include "netdll/lobby_server.hpp"
 #include "core/jobs.hpp"
 #include "core/log.hpp"
 #include "core/rng.hpp"
@@ -57,6 +62,11 @@ static void check(bool ok, const std::string& what) {
     }
 }
 static void note(const std::string& s) { std::printf("  %s\n", s.c_str()); }
+// pruefen und das Ergebnis mit Messwert ausgeben (fuer MULTIPLAYER_TESTS.md)
+static void checkN(bool ok, const std::string& what) {
+    check(ok, what);
+    if (ok) note(what);
+}
 static constexpr u32 kBuild = 0x13020001u;
 static constexpr double kDt = 1.0 / 60.0;
 
@@ -70,7 +80,9 @@ struct Netem {
 
 class UdpProxy {
 public:
-    explicit UdpProxy(u16 hostPort) : hostPort_(hostPort) {
+    // lauscht auf 127.0.0.1 und leitet je Absender ueber einen eigenen Socket an target:targetPort weiter
+    explicit UdpProxy(u16 hostPort, const char* target = "127.0.0.1") : hostPort_(hostPort) {
+        inet_pton(AF_INET, target, &target_);
         listen_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
         sockaddr_in a{};
         a.sin_family = AF_INET;
@@ -164,7 +176,7 @@ private:
                     bind(u.sock, (sockaddr*)&a, sizeof(a));
                     sockaddr_in h{};
                     h.sin_family = AF_INET;
-                    h.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+                    h.sin_addr = target_;
                     h.sin_port = htons(hostPort_);
                     connect(u.sock, (sockaddr*)&h, sizeof(h));
                     u_long nb = 1;
@@ -198,6 +210,7 @@ private:
         }
     }
     u16 hostPort_, port_ = 0;
+    in_addr target_{};
     SOCKET listen_;
     std::map<u64, Up> up_;
     std::deque<Pkt> q_;
@@ -247,11 +260,52 @@ struct Bot {
     explicit Bot(std::string n, u32 seed) : name(std::move(n)), rng(seed) {}
 };
 
+// Wege der Tests (MULTIPLAYER_TESTS.md, Abschnitt 7)
+enum class Way {
+    Lobby,        // ueber die Lobby, direkter Weg (Host-Kandidaten)
+    LobbyNetem,   // ueber die Lobby, direkter Weg durch den Netzstoerer (Host-Kandidaten auf Proxys umgeschrieben)
+    Relay,        // "NAT auf beiden Seiten": nur Relay-Kandidaten; der Verkehr zum TURN-Server durch den Netzstoerer
+    Direct,       // ohne Lobby: eingebaute Lobby des Hosts, langer Code, Adresse
+};
+static const char* wayName(Way w) { return w == Way::Lobby ? "Lobby, direkt" : w == Way::LobbyNetem ? "Lobby, Netzstoerer" : w == Way::Relay ? "nur Relay" : "direkt ohne Lobby"; }
+
+static u16 freeUdpPort(u16 from) {
+    for (u16 p = from; p < from + 400; ++p) {
+        SOCKET u = socket(AF_INET, SOCK_DGRAM, 0), t = socket(AF_INET, SOCK_STREAM, 0);
+        sockaddr_in a{};
+        a.sin_family = AF_INET;
+        inet_pton(AF_INET, "127.0.0.3", &a.sin_addr);
+        a.sin_port = htons(p);
+        const bool ok = bind(u, (sockaddr*)&a, sizeof(a)) == 0 && bind(t, (sockaddr*)&a, sizeof(a)) == 0;
+        closesocket(u), closesocket(t);
+        if (ok) return p;
+    }
+    return 0;
+}
+
+// "candidate:1 1 UDP prio ip port typ host ..." zerlegen und Adresse ersetzen
+static std::vector<std::string> candTokens(const std::string& c) {
+    std::istringstream is(c);
+    std::vector<std::string> t;
+    std::string x;
+    while (is >> x) t.push_back(x);
+    return t;
+}
+
 struct Game {
     std::unique_ptr<coop::CoopHost> host;
     std::unique_ptr<GameSession> hs;
     std::vector<std::unique_ptr<Bot>> bots;
-    std::unique_ptr<UdpProxy> proxy;
+    std::unique_ptr<lim::netc::LobbyServer> lobby;
+    std::mutex pm;                                       // Proxys (der Haken der Lobby legt sie an)
+    std::map<u16, std::unique_ptr<UdpProxy>> hostProxies;  // Host-Port -> Proxy
+    std::unique_ptr<UdpProxy> turnProxy;
+    Netem em;
+    bool useEm = false;
+    Way way = Way::Lobby;
+    coop::NetSettings hostNet, botNet;
+    std::string directAddr;
+    std::atomic<int> dropped{0};
     game::PlayerControl hostCtl;
     std::mt19937 rng{7};
     double hostTurnT = 0;
@@ -259,24 +313,118 @@ struct Game {
     bool hostWalks = true;
     std::string level;
 
-    bool start(const std::string& lvl, long long seed) {
+    UdpProxy* proxyFor(u16 hostPort) {
+        std::lock_guard<std::mutex> l(pm);
+        auto& p = hostProxies[hostPort];
+        if (!p) {
+            p = std::make_unique<UdpProxy>(hostPort, "127.0.0.3");
+            if (useEm) p->set(em);
+        }
+        return p.get();
+    }
+    void setNetem(const Netem& n) {
+        std::lock_guard<std::mutex> l(pm);
+        em = n, useEm = true;
+        for (auto& [k, p] : hostProxies) p->set(n);
+        if (turnProxy) turnProxy->set(n);
+    }
+    u64 bytesDown() {
+        std::lock_guard<std::mutex> l(pm);
+        u64 b = turnProxy ? turnProxy->bytesDown() : 0;
+        for (auto& [k, p] : hostProxies) b += p->bytesDown();
+        return b;
+    }
+    u64 bytesUp() {
+        std::lock_guard<std::mutex> l(pm);
+        u64 b = turnProxy ? turnProxy->bytesUp() : 0;
+        for (auto& [k, p] : hostProxies) b += p->bytesUp();
+        return b;
+    }
+    u64 droppedPackets() {
+        std::lock_guard<std::mutex> l(pm);
+        u64 b = turnProxy ? turnProxy->dropped() : 0;
+        for (auto& [k, p] : hostProxies) b += p->dropped();
+        return b;
+    }
+    bool hasProxy() {
+        std::lock_guard<std::mutex> l(pm);
+        return turnProxy || !hostProxies.empty() || way == Way::LobbyNetem;
+    }
+
+    bool start(const std::string& lvl, long long seed, Way w = Way::Lobby, const Netem* n = nullptr) {
         level = lvl;
+        way = w;
+        if (n) em = *n, useEm = true;
         hs = gEnv->make(lvl, seed, "medium", "Host");
         hs->runSeed = seed;
         hs->placeAtSpawn();
         hs->preload();
-        host = std::make_unique<coop::CoopHost>(gEnv->api, "Host", kBuild);
         std::string err;
-        if (!host->start(0, 4, err)) {
+        hostNet = {}, botNet = {};
+        hostNet.bind = "127.0.0.3", botNet.bind = "127.0.0.2";
+        if (w != Way::Direct) {
+            lim::netc::LobbyConfig lc;
+            lc.bind = "127.0.0.1";
+            lc.port = 0;
+            lc.turn = true;
+            lc.publicHost = "127.0.0.1";
+            lc.joinsPerMinute = 1000, lc.failsPerTenMinutes = 1000;  // Tests verbinden oft hintereinander
+            if (w == Way::Relay) {  // TURN hinter dem Netzstoerer: die Lobby nennt den Port des Proxys
+                lc.turnPort = freeUdpPort(41000);
+                turnProxy = std::make_unique<UdpProxy>(lc.turnPort, "127.0.0.1");
+                if (useEm) turnProxy->set(em);
+                lc.publicTurnPort = turnProxy->port();
+            } else {
+                lc.turnPort = 0;
+            }
+            if (w == Way::LobbyNetem)
+                lc.candidateHook = [this](std::string& c, bool fromHost) {
+                    auto t = candTokens(c);
+                    if (t.size() < 8 || t[7] != "host" || !fromHost) return ++dropped, false;  // nur der Host, nur direkt
+                    UdpProxy* p = proxyFor((u16)std::atoi(t[5].c_str()));
+                    t[4] = "127.0.0.1", t[5] = std::to_string(p->port());
+                    c.clear();
+                    for (size_t i = 0; i < t.size(); ++i) c += (i ? " " : "") + t[i];
+                    return true;
+                };
+            if (w == Way::Relay)
+                lc.candidateHook = [this](std::string& c, bool) {
+                    auto t = candTokens(c);
+                    if (t.size() >= 8 && t[7] == "relay") return true;
+                    ++dropped;
+                    return false;
+                };
+            lobby = std::make_unique<lim::netc::LobbyServer>();
+            if (!lobby->start(lc, err)) {
+                std::printf("  Lobby startet nicht: %s\n", err.c_str());
+                return false;
+            }
+            hostNet.lobby = botNet.lobby = "ws://127.0.0.1:" + std::to_string(lobby->port());
+        } else {
+            hostNet.useLobby = botNet.useLobby = false;
+            hostNet.directPort = freeUdpPort(38211);
+            directAddr = "127.0.0.3:" + std::to_string(hostNet.directPort);
+        }
+        host = std::make_unique<coop::CoopHost>(gEnv->api, "Host", kBuild);
+        if (!host->start(hostNet, 4, err)) {
             std::printf("  Host startet nicht: %s\n", err.c_str());
             return false;
         }
         host->attach(*hs, "", gEnv->diffIndex("medium"));
+        const auto t0 = std::chrono::steady_clock::now();
+        while (host->code(true).empty() && std::chrono::steady_clock::now() - t0 < std::chrono::seconds(10)) {
+            host->beforeUpdate(kDt);
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+        if (host->code(true).empty()) {
+            std::printf("  kein Beitrittscode: %s\n", host->lobbyStatus().c_str());
+            return false;
+        }
         return true;
     }
-    u16 joinPort() const { return proxy ? proxy->port() : host->port(); }
+    std::string joinCode() const { return way == Way::Direct ? host->code(true) : host->code(false); }
 
-    // ein Bild fuer alle (Echtzeit: ENet misst echte Zeit)
+    // ein Bild fuer alle (Echtzeit: das Netz misst echte Zeit)
     void frame(double dt) {
         host->beforeUpdate(dt);
         if (hostWalks) botControl(hostCtl, hostTurnT, hostTurn, rng, dt, *hs, nullptr);
@@ -347,12 +495,22 @@ struct Game {
         auto b = std::make_unique<Bot>(name, (u32)(bots.size() * 7919 + 13));
         b->c = std::make_unique<coop::CoopClient>(gEnv->api, kBuild);
         std::string err;
-        coop::JoinKey k = host->key();
-        if (!b->c->connect("127.0.0.1", joinPort(), k, name, err)) std::printf("  verbinden: %s\n", err.c_str());
+        if (!b->c->connect(botNet, directAddr, joinCode(), name, err)) std::printf("  verbinden: %s\n", err.c_str());
         bots.push_back(std::move(b));
         return *bots.back();
     }
     // laufen lassen (Echtzeit); cond: frueher fertig
+    // so viele Bilder (Spielzeit), unabhaengig davon, wie schnell der Rechner sie schafft
+    void runFrames(int frames, const std::function<bool()>& cond = nullptr) {
+        auto next = std::chrono::steady_clock::now();
+        for (int i = 0; i < frames; ++i) {
+            frame(kDt);
+            if (cond && cond()) break;
+            next += std::chrono::microseconds(16667);
+            std::this_thread::sleep_until(next);
+            if (std::chrono::steady_clock::now() > next + std::chrono::milliseconds(200)) next = std::chrono::steady_clock::now();
+        }
+    }
     void run(double seconds, const std::function<bool()>& cond = nullptr) {
         const auto t0 = std::chrono::steady_clock::now();
         auto next = t0;
@@ -386,6 +544,13 @@ struct Game {
         for (auto& b : bots)
             if (b->c) b->c->stop();
         if (host) host->stop();
+        if (lobby) lobby->stop();
+    }
+    // Weg des ersten Gasts (LnPath) und Ping
+    int botPath() {
+        for (auto& b : bots)
+            if (b->c) return b->c->netStats().path;
+        return 0;
     }
 };
 
@@ -398,23 +563,6 @@ static size_t memMB() {
 // =============================================================================================
 // Pruefungen
 // =============================================================================================
-static void testJoinKey() {
-    std::printf("Beitrittsschluessel\n");
-    coop::JoinKey k;
-    for (int i = 0; i < 16; ++i) k.b[(size_t)i] = (u8)(i * 37 + 5);
-    const std::string t = k.text();
-    coop::JoinKey back;
-    check(t.size() == 31 && coop::JoinKey::parse(t, back) && back.b == k.b, "Base32 hin und zurueck (" + t + ")");
-    std::string lower = t;
-    for (char& c : lower) c = (char)std::tolower((unsigned char)c);
-    check(coop::JoinKey::parse(lower, back) && back.b == k.b, "Kleinbuchstaben angenommen");
-    check(!coop::JoinKey::parse(t.substr(0, 30), back), "zu kurz abgelehnt");
-    check(!coop::JoinKey::parse(t + "A", back), "zu lang abgelehnt");
-    std::string bad = t;
-    bad[0] = '1';
-    check(!coop::JoinKey::parse(bad, back), "fremdes Zeichen abgelehnt");
-}
-
 static void testFuzz() {
     std::printf("Fuzzing des Spielprotokolls\n");
     std::mt19937 rng(99);
@@ -563,20 +711,20 @@ static void testFuzz() {
     note(std::format("{} Zufallsfaelle, {} angenommen (alle kanonisch)", total, accepted));
 }
 
-static void testBots(int nBots, double seconds, const Netem* em, const std::string& label) {
+static void testBots(int nBots, double seconds, Way way, const Netem* em, const std::string& label) {
     std::printf("Bots: Host + %d %s\n", nBots, label.c_str());
     Game g;
-    if (!g.start("level1", 4242)) {
+    if (!g.start("level1", 4242, way, em)) {
         check(false, "Host startet");
         return;
     }
-    if (em) {
-        g.proxy = std::make_unique<UdpProxy>(g.host->port());
-        g.proxy->set(*em);
-    }
+    const auto tj = std::chrono::steady_clock::now();
     for (int i = 0; i < nBots; ++i) g.addBot(std::format("Bot{}", i + 1));
-    g.run(20.0, [&] { return g.allPlaying(); });
-    check(g.allPlaying(), std::format("{}: alle beigetreten", label));
+    g.run(30.0, [&] { return g.allPlaying(); });
+    check(g.allPlaying(), std::format("{}: alle beigetreten ({:.1f} s)", label, std::chrono::duration<double>(std::chrono::steady_clock::now() - tj).count()));
+    for (auto& b : g.bots)
+        if (b->c->state() != coop::CoopClient::State::Playing) note(std::format("{}: {} - {}", label, b->name, b->c->closeReason()));
+    if (way == Way::Relay || way == Way::LobbyNetem) note(std::format("{}: {} Kandidaten von der Lobby verworfen", label, g.dropped.load()));
     for (auto& b : g.bots) check(b->c->selfId() >= 1 && b->c->selfId() <= 3, std::format("{}: {} hat Spielernummer {}", label, b->name, b->c->selfId()));
     // Wesen beim Host erzwingen, die Gaeste sehen ihre Puppen
     g.hs->presence().force(game::Presence::Role::Hound, 10.0);
@@ -617,6 +765,15 @@ static void testBots(int nBots, double seconds, const Netem* em, const std::stri
     check(desync == 0, std::format("{}: geteilter Zustand gleich (Abweichungen {})", label, desync));
     check(rejected == 0, std::format("{}: keine ungueltige Nachricht vom Host ({})", label, rejected));
     check(posErr < (em ? 0.35 : 0.15), std::format("{}: Ort beim Host und beim Gast nach dem Anhalten {:.3f} m auseinander", label, posErr));
+    {
+        // gewaehlter Weg (nach dem Spielen: ICE kann anfangs ueber einen vorlaeufigen Kandidaten laufen)
+        const int wantPath = way == Way::Relay ? LN_PATH_RELAY : way == Way::LobbyNetem ? LN_PATH_NAT : LN_PATH_DIRECT;
+        bool allPath = true;
+        for (auto& b : g.bots) allPath = allPath && b->c->netStats().path == wantPath;
+        const LnStats st = g.bots.front()->c->netStats();
+        check(allPath, std::format("{}: Weg aller Gaeste {} (1 direkt, 2 ueber NAT/Proxy, 3 Relay; erster: {})", label, wantPath, st.path));
+        note(std::format("{}: Ping {} ms (+-{}), Verlust {:.0f} %, Weg {}", label, st.rttMs, st.rttVarMs, st.loss * 100.0f, st.path));
+    }
     check(snaps > (u64)(seconds * 10 * nBots * (em && em->loss > 0.05 ? 0.5 : 0.8)), std::format("{}: Momentaufnahmen angekommen ({})", label, snaps));
     note(std::format("{}: Abweichung der Vorhersage im Mittel {:.3f} m, ueber 10 cm in {} von {} Momentaufnahmen", label,
                      errN ? sumErr / (double)errN : 0.0, over10, errN));
@@ -624,9 +781,10 @@ static void testBots(int nBots, double seconds, const Netem* em, const std::stri
                      "Eingaben verworfen {}, Speicher {} -> {} MB",
                      label, corr, jumps, maxErr, puppets, picks, g.host->counters.actionsRefused, g.host->counters.actions, g.host->counters.inputsRefused,
                      mem0, memMB()));
-    if (g.proxy)
-        note(std::format("{}: Netz {:.1f} kB/s zum Gast, {:.1f} kB/s zum Host je Gast, verworfen {}", label, g.proxy->bytesDown() / 1024.0 / secs / nBots,
-                         g.proxy->bytesUp() / 1024.0 / secs / nBots, g.proxy->dropped()));
+    if (g.hasProxy())
+        note(std::format("{}: Netz am Stoerer {:.1f} kB/s abwaerts, {:.1f} kB/s aufwaerts je Gast (mit DTLS/SCTP{}), verworfen {}", label,
+                         g.bytesDown() / 1024.0 / secs / nBots, g.bytesUp() / 1024.0 / secs / nBots, way == Way::Relay ? ", TURN, beide Strecken" : "",
+                         g.droppedPackets()));
     g.stopAll();
 }
 
@@ -666,25 +824,32 @@ static void testPickupAndPuppets() {
         std::this_thread::sleep_for(std::chrono::milliseconds(8));
     }
     check(h != 0, "Gast hat die Flasche im Blick");
+    game::Pawn* pb = g.host->pawnOf(b.c->selfId());
+    // V13.3: beide stehen in Reichweite (der zweite etwa 1,6 m daneben) - wer zuerst ankommt, haengt vom Netz ab. Geprueft
+    // wird, dass genau einer die Flasche bekommt und Host und Gaeste sich einig sind (ferne Griffe: Teil "attacks")
+    if (pb) note(std::format("Abstand der beiden Figuren beim Host {:.2f} m", std::hypot(pb->player.x - pa->player.x, pb->player.y - pa->player.y)));
     if (h) {
         a.s->interact();
-        b.s->netAction(1, h);  // Wettlauf: der zweite (weit weg) will dieselbe
+        b.s->netAction(1, h);  // Wettlauf: der zweite will im selben Bild dieselbe
     }
     g.run(2.0);
-    check(pa->inventory.count("almond") == 1 && a.s->inventory().count("almond") == 1, "Gast hat die Flasche (Host und Gast)");
-    game::Pawn* pb = g.host->pawnOf(b.c->selfId());
-    check(pb && pb->inventory.count("almond") == 0 && b.s->inventory().count("almond") == 0, "der zweite bekommt sie nicht");
+    const int hostA = pa->inventory.count("almond"), hostB = pb ? pb->inventory.count("almond") : -1;
+    const int gastA = a.s->inventory().count("almond"), gastB = b.s->inventory().count("almond");
+    check(pb && hostA + hostB == 1 && gastA == hostA && gastB == hostB,
+          std::format("Wettlauf: genau einer hat die Flasche, Host und Gast einig (Sammler {}/{}, Zweiter {}/{})", hostA, gastA, hostB, gastB));
     check(g.hs->itemCount() == hostItems0 && a.s->itemCount() == gastItems0, "aus der Welt verschwunden (Host und Gast)");
     check(a.s->sharedHash() == g.hs->sharedHash() && b.s->sharedHash() == g.hs->sharedHash(), "geteilter Zustand nach dem Aufnehmen gleich");
     // benutzen: der Host wendet es an (Verstand steigt)
-    pa->stats.sanity = 40.0;
+    Bot& w = hostB == 1 ? b : a;
+    game::Pawn* pw = hostB == 1 ? pb : pa;
+    pw->stats.sanity = 40.0;
     int aslot = -1;
     for (int i = 0; i < game::Inventory::kSize; ++i)
-        if (a.s->inventory().slots[(size_t)i] && a.s->inventory().slots[(size_t)i]->kind == "almond") aslot = i;
-    if (aslot >= 0) a.s->useSlot(aslot);
+        if (w.s->inventory().slots[(size_t)i] && w.s->inventory().slots[(size_t)i]->kind == "almond") aslot = i;
+    if (aslot >= 0) w.s->useSlot(aslot);
     g.run(1.5);
-    check(pa->stats.sanity > 60.0 && a.s->stats().sanity > 60.0 && a.s->inventory().count("almond") == 0,
-          std::format("benutzt: Verstand beim Host {:.0f}, beim Gast {:.0f}", pa->stats.sanity, a.s->stats().sanity));
+    check(pw->stats.sanity > 60.0 && w.s->stats().sanity > 60.0 && w.s->inventory().count("almond") == 0,
+          std::format("benutzt ({}): Verstand beim Host {:.0f}, beim Gast {:.0f}", hostB == 1 ? "Zweiter" : "Sammler", pw->stats.sanity, w.s->stats().sanity));
     // ein Hound beim Gast: die Puppe folgt dem Original (100 ms zurueck)
     g.hs->presence().force(game::Presence::Role::Hound, 9.0);
     g.run(3.0, [&] { return a.s->presence().has(game::Presence::Role::Hound); });
@@ -754,18 +919,31 @@ static void testNetFuzz(double seconds) {
         const size_t n = nc::encode(m, buf, sizeof(buf));
         return std::vector<u8>(buf, buf + n);
     };
-    u64 sent = 0, sessions = 0;
+    u64 sent = 0, sessions = 0, failedJoins = 0;
     const auto t0 = std::chrono::steady_clock::now();
     while (std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count() < seconds) {
         // je Durchgang eine neue Verbindung (nach Trennung durch ungueltige Nachrichten)
-        LnContext* e = A.connect("127.0.0.1", g.host->port(), g.host->key().b.data(), "Fuzzer");
+        const LnConfig cfg = g.botNet.config();
+        LnContext* e = A.join(&cfg, nullptr, g.joinCode().c_str(), "Fuzzer");
         ++sessions;
         bool up = false, closed = false;
-        for (int i = 0; i < 300 && !up; ++i) {
+        int why = -1;
+        const u64 sent0 = sent;
+        for (int i = 0; i < 600 && !up && why < 0; ++i) {
             g.frame(kDt);
             LnEvent ev;
-            while (A.poll(e, &ev)) up = up || ev.type == LN_EV_CONNECTED;
+            while (A.poll(e, &ev)) {
+                up = up || ev.type == LN_EV_CONNECTED;
+                if (ev.type == LN_EV_DISCONNECTED) why = ev.reason;
+            }
             std::this_thread::sleep_for(std::chrono::milliseconds(4));
+        }
+        if (!up) {
+            ++failedJoins;
+            if (failedJoins <= 3) note(std::format("Fuzzer-Verbindung {} nicht offen (Grund {})", sessions, why));
+            A.close(e);
+            g.run(1.0);
+            continue;
         }
         nc::Msg j;
         j.type = nc::Type::Join;
@@ -806,9 +984,11 @@ static void testNetFuzz(double seconds) {
             }
             g.frame(kDt);
             LnEvent ev;
-            while (A.poll(e, &ev)) closed = closed || ev.type == LN_EV_DISCONNECTED;
+            while (A.poll(e, &ev))
+                if (ev.type == LN_EV_DISCONNECTED) closed = true, why = ev.reason;
             std::this_thread::sleep_for(std::chrono::milliseconds(12));
         }
+        if (sessions <= 3) note(std::format("Fuzzer-Verbindung {}: {} Nachrichten, Ende {}", sessions, sent - sent0, closed ? coop::reasonText(why) : "Zeit"));
         A.close(e);
         g.run(0.3);
     }
@@ -819,7 +999,7 @@ static void testNetFuzz(double seconds) {
                      "{} Absichten, davon {} abgelehnt, {} Trennungen",
                      sent, sessions, g.host->counters.rejected, g.host->counters.dropped, g.host->counters.inputs, g.host->counters.inputsRefused,
                      g.host->counters.actions, g.host->counters.actionsRefused, g.host->counters.kicked));
-    check(sent > 1000, "genug Nachrichten gesendet");
+    check(sent > (u64)(seconds * 30), std::format("genug Nachrichten gesendet ({}; {} Verbindungen nicht offen)", sent, failedJoins));
     g.stopAll();
 }
 
@@ -846,10 +1026,11 @@ static void testAttacks() {
     if (!g.start("level1", 4242)) return;
     Bot& honest = g.addBot("Ehrlich");
     g.run(15.0, [&] { return g.allPlaying(); });
-    check(g.allPlaying(), "ehrlicher Gast spielt");
+    checkN(g.allPlaying(), "ehrlicher Gast spielt");
     coop::NetApi& A = gEnv->api;
     auto openEvil = [&](const char* name) {
-        LnContext* e = A.connect("127.0.0.1", g.host->port(), g.host->key().b.data(), name);
+        const LnConfig cfg = g.botNet.config();
+        LnContext* e = A.join(&cfg, nullptr, g.joinCode().c_str(), name);
         bool up = false;
         int why = -1;
         for (int i = 0; i < 300 && !up; ++i) {
@@ -862,8 +1043,6 @@ static void testAttacks() {
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
         }
         if (!up) note(std::format("{}: Transport nicht verbunden (Grund {})", name, why));
-        // Verbindung gilt erst mit der ersten Nachricht des Hosts als offen: Ping als Beitritt-Ersatz geht nicht -
-        // deshalb gleich eine Nachricht senden; der Host antwortet erst nach dem Beitritt
         return e;
     };
     auto sendRaw = [&](LnContext* e, const std::vector<u8>& d, int ch = LN_RELIABLE) { A.send(e, 0, ch, d.data(), (int)d.size()); };
@@ -885,8 +1064,7 @@ static void testAttacks() {
     // 1) Muell und falsche Rollen: nach 8 ungueltigen getrennt
     {
         LnContext* e = openEvil("Muell");
-        // Der Transport meldet CONNECTED erst mit einer Nachricht des Hosts; der Host sendet erst nach Join.
-        // Darum: erst Join (gueltig), dann Unfug
+        // erst Join (gueltig), dann Unfug
         nc::Msg j;
         j.type = nc::Type::Join;
         j.join.build = kBuild;
@@ -903,8 +1081,8 @@ static void testAttacks() {
         for (int i = 0; i < 6; ++i) sendRaw(e, std::vector<u8>{17});
         bool closed = false;
         pumpEvil(e, 2.0, &closed);
-        check(g.host->counters.rejected >= rej0 + 8, std::format("Host verwirft ungueltige Nachrichten ({})", g.host->counters.rejected - rej0));
-        check(closed, "nach mehr als 8 ungueltigen Nachrichten getrennt");
+        checkN(g.host->counters.rejected >= rej0 + 8, std::format("Host verwirft ungueltige Nachrichten ({})", g.host->counters.rejected - rej0));
+        checkN(closed, "nach mehr als 8 ungueltigen Nachrichten getrennt");
         A.close(e);
     }
     // 2) Speedhack: Eingaben mit 100 ms je Paket, 60 Pakete je Sekunde (6-fache Zeit)
@@ -924,10 +1102,11 @@ static void testAttacks() {
                 if (game::Pawn* q = g.host->pawnOf(id)) ids += std::format("{}={} ", id, q->name);
             note("Figuren beim Host: " + ids);
         }
-        check(p != nullptr, "Speedhack-Gast hat eine Figur");
+        checkN(p != nullptr, "Speedhack-Gast hat eine Figur");
         if (p) {
             const double x0 = p->player.x, y0 = p->player.y;
-            const u64 ref0 = g.host->counters.inputsRefused;
+            const u64 ref0 = g.host->counters.inputsRefused, acc0 = g.host->counters.inputs;
+            u64 sentIn = 0;
             u32 seq = 1;
             const auto t0 = std::chrono::steady_clock::now();
             while (std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count() < 3.0) {
@@ -935,15 +1114,16 @@ static void testAttacks() {
                 in.type = nc::Type::Input;
                 in.input.count = 1;
                 in.input.f[0] = {seq++, 100, 127, 0, nc::toMrad(p->player.angle), 0, 1};
-                sendRaw(e, enc(in), LN_UNRELIABLE);
+                sendRaw(e, enc(in), LN_UNRELIABLE), ++sentIn;
                 g.frame(kDt);
                 LnEvent ev;
                 while (A.poll(e, &ev)) {}
                 std::this_thread::sleep_for(std::chrono::milliseconds(16));
             }
             const double moved = std::hypot(p->player.x - x0, p->player.y - y0);
-            check(g.host->counters.inputsRefused > ref0 + 50, std::format("zu schnelle Uhr: {} Eingaben verworfen", g.host->counters.inputsRefused - ref0));
-            check(moved < 3.0 * 6.5, std::format("in 3 s hoechstens rennend weit ({:.1f} m)", moved));
+            note(std::format("Speedhack: {} gesendet, {} angenommen, {} verworfen (Zeitbudget), Host gedrosselt gesamt {}", sentIn, g.host->counters.inputs - acc0, g.host->counters.inputsRefused - ref0, g.host->counters.dropped));
+            checkN((g.host->counters.inputsRefused - ref0) * 2 > sentIn, std::format("zu schnelle Uhr (6-fache Zeit): {} von {} Eingaben verworfen", g.host->counters.inputsRefused - ref0, sentIn));
+            checkN(moved < 3.0 * 6.5, std::format("in 3 s hoechstens rennend weit ({:.1f} m)", moved));
         }
         // 3) erfundene und ferne Gegenstaende, Flut von Absichten
         const u64 refA = g.host->counters.actionsRefused, dropA = g.host->counters.dropped;
@@ -959,9 +1139,9 @@ static void testAttacks() {
             sendRaw(e, enc(a));
         }
         pumpEvil(e, 2.0, nullptr);
-        check(g.host->counters.actionsRefused > refA, std::format("erfundene/ferne Gegenstaende abgelehnt ({})", g.host->counters.actionsRefused - refA));
-        check(g.host->counters.dropped > dropA, std::format("Flut von Absichten gedrosselt ({} verworfen)", g.host->counters.dropped - dropA));
-        check(g.hs->itemCount() == itemsBefore, "kein Gegenstand verschwunden");
+        checkN(g.host->counters.actionsRefused > refA, std::format("erfundene/ferne Gegenstaende abgelehnt ({})", g.host->counters.actionsRefused - refA));
+        checkN(g.host->counters.dropped > dropA, std::format("Flut von Absichten gedrosselt ({} verworfen)", g.host->counters.dropped - dropA));
+        checkN(g.hs->itemCount() == itemsBefore, "kein Gegenstand verschwunden");
         A.close(e);
     }
     // 4) falscher Spielstand (andere Daten): abgewiesen
@@ -973,11 +1153,11 @@ static void testAttacks() {
         sendRaw(e, enc(j));
         bool closed = false;
         pumpEvil(e, 2.0, &closed);
-        check(closed, "andere Spieldaten: abgewiesen");
+        checkN(closed, "andere Spieldaten: abgewiesen");
         A.close(e);
     }
     g.run(1.0);
-    check(honest.c->state() == coop::CoopClient::State::Playing && honest.c->counters.desync == 0, "der ehrliche Gast spielt ungestoert weiter");
+    checkN(honest.c->state() == coop::CoopClient::State::Playing && honest.c->counters.desync == 0, "der ehrliche Gast spielt ungestoert weiter");
     g.stopAll();
 }
 
@@ -987,36 +1167,36 @@ static void testReconnectKick() {
     if (!g.start("level0", 99)) return;
     Bot& b = g.addBot("Zurueck");
     g.run(15.0, [&] { return g.allPlaying(); });
-    check(g.allPlaying(), "beigetreten");
+    checkN(g.allPlaying(), "beigetreten");
     const int id = b.c->selfId();
     game::Pawn* p = g.host->pawnOf(id);
     if (p) p->inventory.add("battery");
     g.run(1.0);
-    check(b.s && b.s->inventory().count("battery") == 1, "Inventar vom Host beim Gast");
+    checkN(b.s && b.s->inventory().count("battery") == 1, "Inventar vom Host beim Gast");
     // Verbindung verlieren (ohne Abschied), wiederkommen
     coop::CoopClient* c = b.c.get();
     c->stop();
     g.run(1.0);
     b.s.reset();
     std::string err;
-    check(c->connect("127.0.0.1", g.host->port(), g.host->key(), "Zurueck", err), "erneut verbinden");
+    checkN(c->connect(g.botNet, g.directAddr, g.joinCode(), "Zurueck", err), "erneut verbinden (gleicher Code)");
     g.run(10.0, [&] { return g.allPlaying(); });
-    check(g.allPlaying() && c->selfId() == id, std::format("gleiche Spielernummer nach dem Wiederverbinden ({} / {})", c->selfId(), id));
+    checkN(g.allPlaying() && c->selfId() == id, std::format("gleiche Spielernummer nach dem Wiederverbinden ({} / {})", c->selfId(), id));
     g.run(1.0);
-    check(b.s && b.s->inventory().count("battery") == 1, "Inventar nach dem Wiederverbinden zurueck");
+    checkN(b.s && b.s->inventory().count("battery") == 1, "Inventar nach dem Wiederverbinden zurueck");
     // entfernen
-    check(g.host->kick(id, false), "Host entfernt den Gast");
+    checkN(g.host->kick(id, false), "Host entfernt den Gast");
     g.run(2.0, [&] { return c->state() == coop::CoopClient::State::Closed; });
-    check(c->state() == coop::CoopClient::State::Closed, "Gast getrennt: " + c->closeReason());
+    checkN(c->state() == coop::CoopClient::State::Closed, "Gast getrennt: " + c->closeReason());
     // sperren: zweiter Gast, gesperrt, versucht es erneut
     Bot& b2 = g.addBot("Gesperrt");
     g.run(10.0, [&] { return b2.c->state() == coop::CoopClient::State::Playing; });
-    check(g.host->kick(b2.c->selfId(), true), "Host sperrt den Gast");
+    checkN(g.host->kick(b2.c->selfId(), true), "Host sperrt den Gast");
     g.run(2.0);
     b2.s.reset();
-    check(b2.c->connect("127.0.0.1", g.host->port(), g.host->key(), "Gesperrt", err), "gesperrter Gast versucht es erneut");
-    g.run(4.0, [&] { return b2.c->state() == coop::CoopClient::State::Closed; });
-    check(b2.c->state() != coop::CoopClient::State::Playing, "gesperrt: kein Beitritt (" + b2.c->closeReason() + ")");
+    checkN(b2.c->connect(g.botNet, g.directAddr, g.joinCode(), "Gesperrt", err), "gesperrter Gast versucht es erneut");
+    g.run(8.0, [&] { return b2.c->state() == coop::CoopClient::State::Closed; });
+    checkN(b2.c->state() != coop::CoopClient::State::Playing, "gesperrt: kein Beitritt (" + b2.c->closeReason() + ")");
     g.stopAll();
 }
 
@@ -1168,20 +1348,215 @@ static void testDeath() {
     g.run(2.0);
     check(!p->alive && b.c->dead() && b.s->stats().dead, "Gast ist tot (Host und Gast)");
     check(b.c->spectate() == 0, "der Tote sieht dem Host zu");
-    g.run(21.0, [&] { return p->alive && !b.c->dead(); });
+    g.runFrames(60 * 23, [&] { return p->alive && !b.c->dead(); });  // 20 s Spielzeit bis zum Wiedereinstieg
     check(p->alive && !b.c->dead() && !b.s->stats().dead, "nach 20 s am Sicherungspunkt zurueck");
     // alle tot: die Gruppe beginnt neu
     p->stats.health = 0.0;
     g.hs->stats().health = 0.0;
     g.hs->stats().dead = true;
-    g.run(9.0, [&] { return p->alive && !g.hs->stats().dead; });
+    g.runFrames(60 * 10, [&] { return p->alive && !g.hs->stats().dead; });
     check(p->alive && !g.hs->stats().dead, "alle tot: Neubeginn am Sicherungspunkt");
+    g.stopAll();
+}
+
+// Abbruch des Netzes: der Netzstoerer verwirft 13 s lang alles -> beide Seiten trennen nach dem Zeitlimit (10 s); der
+// Gast kommt mit demselben Code zurueck und bekommt seinen Platz und sein Inventar
+static void testOutage() {
+    std::printf("Netzausfall, Zeitlimit, Wiederverbinden\n");
+    Game g;
+    Netem ok{20, 5, 0.0, 0.0, 0.0, 0};
+    if (!g.start("level0", 99, Way::LobbyNetem, &ok)) return;
+    Bot& b = g.addBot("Funkloch");
+    g.run(20.0, [&] { return g.allPlaying(); });
+    checkN(g.allPlaying(), "beigetreten (ueber den Netzstoerer)");
+    const int id = b.c->selfId();
+    if (game::Pawn* p = g.host->pawnOf(id)) p->inventory.add("battery");
+    g.run(1.0);
+    Netem dead = ok;
+    dead.loss = 1.0;
+    g.setNetem(dead);
+    const auto t0 = std::chrono::steady_clock::now();
+    g.run(16.0, [&] { return b.c->state() == coop::CoopClient::State::Closed; });
+    const double secs = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+    checkN(b.c->state() == coop::CoopClient::State::Closed, std::format("Gast merkt den Ausfall nach {:.1f} s: {}", secs, b.c->closeReason()));
+    g.run(2.0);
+    bool hostKnows = false;
+    for (const auto& pi : g.host->players())
+        if (pi.id == id) hostKnows = !pi.connected;
+    checkN(hostKnows, "Host fuehrt den Gast als getrennt (Platz bleibt 120 s)");
+    g.setNetem(ok);
+    b.s.reset();
+    std::string err;
+    checkN(b.c->connect(g.botNet, g.directAddr, g.joinCode(), "Funkloch", err), "neu verbinden");
+    g.run(20.0, [&] { return g.allPlaying(); });
+    checkN(g.allPlaying() && b.c->selfId() == id, std::format("zurueck mit derselben Spielernummer ({} / {})", b.c->selfId(), id));
+    g.run(1.0);
+    checkN(b.s && b.s->inventory().count("battery") == 1, "Inventar nach dem Ausfall zurueck");
+    g.stopAll();
+}
+
+// Host geht: (a) sauber beendet -> die Gaeste erfahren es sofort; (b) Host-Prozess "stirbt" (alles verworfen) -> Zeitlimit
+static void testHostAbort() {
+    std::printf("Host beendet, Host faellt aus\n");
+    {
+        Game g;
+        if (!g.start("level0", 7)) return;
+        Bot& b = g.addBot("Bleibt");
+        g.run(15.0, [&] { return g.allPlaying(); });
+        checkN(g.allPlaying(), "beigetreten");
+        g.host->stop();
+        const auto t0 = std::chrono::steady_clock::now();
+        for (int i = 0; i < 300 && b.c->state() != coop::CoopClient::State::Closed; ++i) {
+            b.c->beforeUpdate(kDt);
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+        const double secs = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+        checkN(b.c->state() == coop::CoopClient::State::Closed, std::format("Host beendet: Gast getrennt nach {:.2f} s ({})", secs, b.c->closeReason()));
+        g.host.reset();
+        g.stopAll();
+    }
+    {
+        Game g;
+        Netem ok{20, 5, 0.0, 0.0, 0.0, 0};
+        if (!g.start("level0", 7, Way::LobbyNetem, &ok)) return;
+        Bot& b = g.addBot("Wartet");
+        g.run(20.0, [&] { return g.allPlaying(); });
+        checkN(g.allPlaying(), "beigetreten (Netzstoerer)");
+        Netem dead = ok;
+        dead.loss = 1.0;
+        g.setNetem(dead);  // der Host antwortet nicht mehr (wie ein abgestuerzter Prozess)
+        const auto t0 = std::chrono::steady_clock::now();
+        for (int i = 0; i < 1600 && b.c->state() != coop::CoopClient::State::Closed; ++i) {
+            b.c->beforeUpdate(kDt);
+            if (b.s) b.c->afterUpdate(kDt, {});
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+        const double secs = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+        checkN(b.c->state() == coop::CoopClient::State::Closed && secs < 15.0,
+              std::format("Host faellt aus: Gast getrennt nach {:.1f} s ({})", secs, b.c->closeReason()));
+        g.stopAll();
+    }
+}
+
+// kein Weg: die Lobby verwirft alle Kandidaten und es gibt kein Relay -> klare Meldung statt Haengen
+static void testNoPath() {
+    std::printf("Kein Verbindungsweg (UDP gesperrt)\n");
+    Game g;
+    if (!g.start("level0", 5)) return;
+    // Lobby neu: ohne TURN, alle Kandidaten verworfen
+    g.host->stop();
+    g.lobby->stop();
+    lim::netc::LobbyConfig lc;
+    lc.bind = "127.0.0.1", lc.port = 0, lc.turn = false;
+    lc.candidateHook = [](std::string&, bool) { return false; };
+    g.lobby = std::make_unique<lim::netc::LobbyServer>();
+    std::string err;
+    g.lobby->start(lc, err);
+    g.hostNet.lobby = g.botNet.lobby = "ws://127.0.0.1:" + std::to_string(g.lobby->port());
+    g.host = std::make_unique<coop::CoopHost>(gEnv->api, "Host", kBuild);
+    g.host->start(g.hostNet, 4, err);
+    g.host->attach(*g.hs, "", gEnv->diffIndex("medium"));
+    for (int i = 0; i < 600 && g.host->code(false).empty(); ++i) g.frame(kDt), std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    Bot& b = g.addBot("Abgeschnitten");
+    const auto t0 = std::chrono::steady_clock::now();
+    g.run(40.0, [&] { return b.c->state() == coop::CoopClient::State::Closed; });
+    const double secs = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+    checkN(b.c->state() == coop::CoopClient::State::Closed && b.c->closeReason().find("Verbindungsweg") != std::string::npos,
+          std::format("klare Meldung nach {:.0f} s: {}", secs, b.c->closeReason()));
+    g.stopAll();
+}
+
+// V13.3: geteilter Stand bei fernen Funden und spaetem Beitritt. Im Langlauf gefunden: ein Gast verpasste einen Fund,
+// den der Host in einem beim Gast nicht geladenen Sektor aufnahm - danach stimmte die Pruefsumme nie wieder. Ein spaeter
+// Gast sah zudem Funde, die beim Host schon fort waren.
+static void testLateJoin() {
+    std::printf("Ferne Funde, spaeter Beitritt\n");
+    // a) Pruefschicht: ein Gast bekommt "aufgenommen" fuer einen Fund, den er (noch) nicht geladen hat. Der Fund darf
+    //    beim Laden nicht erscheinen, und die Pruefsumme muss der des Hosts gleichen.
+    {
+        auto host = gEnv->make("level1", 4242, "medium", "Host");
+        host->runSeed = 4242;
+        host->placeAtSpawn();
+        host->preload();
+        u32 hash = 0;
+        vec3 at{};
+        double best = 1e9;
+        const game::Player& hp = host->player();
+        host->registry().each<game::Pickup, game::Transform>([&](ecs::Entity, game::Pickup& pk, game::Transform& tr) {
+            const double d = std::hypot(tr.pos.x - hp.x, tr.pos.y - hp.y);
+            if (d < best && pk.worldId.rfind("drop:", 0) != 0) best = d, hash = game::worldItemHash(pk.worldId), at = tr.pos;
+        });
+        game::Pawn probe(3, "Pruefer", gEnv->content.difficulty(host->difficulty), &gEnv->content);
+        probe.player = game::Player(at.x + 0.4, at.y, at.z, 3.14159);
+        probe.player.pitch = -0.6;
+        std::string msg;
+        int note = -1;
+        const bool took = hash && host->pawnInteract(probe, hash, msg, note);
+        checkN(took, std::format("Host: Pruef-Figur nimmt einen Fund auf ({:.1f} m vom Start)", best));
+        auto guest = gEnv->make("level1", 4242, "medium", "Gast");
+        guest->netRole = GameSession::NetRole::Guest;
+        int before = 0;
+        guest->registry().each<game::Pickup>([&](ecs::Entity, game::Pickup& pk) { before += game::worldItemHash(pk.worldId) == hash ? 1 : 0; });
+        guest->netRemoveItem(hash);  // kommt vor dem Laden an
+        guest->runSeed = 4242;
+        guest->placeAtSpawn();
+        guest->preload();
+        int after = 0;
+        guest->registry().each<game::Pickup>([&](ecs::Entity, game::Pickup& pk) { after += game::worldItemHash(pk.worldId) == hash ? 1 : 0; });
+        checkN(before == 0 && after == 0, std::format("Gast: Fund vor dem Laden gemeldet, danach nicht erzeugt (vorher {}, nachher {})", before, after));
+        checkN(guest->sharedHash() == host->sharedHash(), "Gast: Pruefsumme gleich der des Hosts");
+        guest->netRemoveItem(hash);  // doppelt gemeldet (Stand nach dem Wiederverbinden mit derselben Sitzung)
+        checkN(guest->sharedHash() == host->sharedHash(), "Gast: doppelte Meldung zaehlt nicht doppelt");
+    }
+    // b) ueber das Netz: der Host hat schon etwas aufgenommen und abgelegt, dann tritt ein zweiter Gast bei; er bekommt den
+    //    Stand mit dem Willkommen (Ereignisse werden gehalten, bis seine Sitzung steht)
+    Game g;
+    if (!g.start("level1", 4242)) return;
+    Bot& a = g.addBot("Frueh");
+    g.run(20.0, [&] { return g.allPlaying(); });
+    checkN(g.allPlaying(), "erster Gast spielt");
+    a.idle = true;
+    g.hostWalks = false;
+    g.run(1.0);
+    u32 hash = 0;
+    vec3 at{};
+    double best = 1e9;
+    const game::Player& hp = g.hs->player();
+    g.hs->registry().each<game::Pickup, game::Transform>([&](ecs::Entity, game::Pickup& pk, game::Transform& tr) {
+        const double d = std::hypot(tr.pos.x - hp.x, tr.pos.y - hp.y);
+        if (d < best && pk.worldId.rfind("drop:", 0) != 0) best = d, hash = game::worldItemHash(pk.worldId), at = tr.pos;
+    });
+    game::Pawn probe(3, "Pruefer", gEnv->content.difficulty(g.hs->difficulty), &gEnv->content);
+    probe.player = game::Player(at.x + 0.4, at.y, at.z, 3.14159);
+    probe.player.pitch = -0.6;
+    std::string msg;
+    int note = -1;
+    checkN(hash && g.hs->pawnInteract(probe, hash, msg, note), "Host nimmt einen Fund auf");
+    g.hs->inventory().add("almond");
+    for (int i = 0; i < game::Inventory::kSize; ++i)
+        if (const auto& sl = g.hs->inventory().slots[(size_t)i]; sl && sl->kind == "almond") {
+            g.hs->dropSlot(i, false);
+            break;
+        }
+    g.run(2.0);
+    checkN(a.s->sharedHash() == g.hs->sharedHash(), "erster Gast: Stand gleich (aufgenommen und abgelegt)");
+    Bot& b = g.addBot("Spaet");
+    g.run(20.0, [&] { return g.allPlaying(); });
+    g.run(2.0);
+    int ghost = 0;
+    if (b.s)
+        b.s->registry().each<game::Pickup>([&](ecs::Entity, game::Pickup& pk) { ghost += game::worldItemHash(pk.worldId) == hash ? 1 : 0; });
+    checkN(b.s && b.s->sharedHash() == g.hs->sharedHash() && ghost == 0,
+           std::format("spaeter Gast: Stand gleich, der aufgenommene Fund fehlt auch bei ihm ({} sichtbar)", ghost));
+    g.run(3.0);
+    checkN(a.c->counters.desync == 0 && b.c->counters.desync == 0, "keine Abweichung bei den Pruefsummen des Hosts");
     g.stopAll();
 }
 
 int main(int argc, char** argv) {
     if (argc < 2) {
-        std::printf("Aufruf: coop_test <data-Ordner> [--long Sekunden] [--quick]\n");
+        std::printf("Aufruf: coop_test <data-Ordner> [--long Sekunden] [--quick] [--only teil,teil]\n"
+                    "  Teile: fuzz bots netem relay direct pickup save full attacks death journey outage hostabort nopath late reconnect netfuzz\n");
         return 2;
     }
     WSADATA wsa;
@@ -1204,38 +1579,40 @@ int main(int argc, char** argv) {
         if (std::string(argv[i]) == "--quick") quick = true;
         if (std::string(argv[i]) == "--only" && i + 1 < argc) only = argv[++i];
     }
-    if (!only.empty()) {
-        if (only == "attacks") testAttacks();
-        else if (only == "death") testDeath();
-        else if (only == "journey") testJourney();
-        else if (only == "reconnect") testReconnectKick();
-        else if (only == "full") testFull();
-        else if (only == "pickup") testPickupAndPuppets();
-        else if (only == "save") testCoopSave();
-        else if (only == "netfuzz") testNetFuzz(quick ? 30.0 : 300.0);
-        else if (only == "fuzz") testFuzz();
-        else if (only == "bots") testBots(3, quick ? 10 : 30, nullptr, "(direkt, vier Spieler)");
-    } else if (longRun > 0) {
-        Netem em{60, 20, 0.02, 0.005, 0.01, 512};
-        testBots(3, longRun, &em, std::format("Langlauf {:.0f} s ueber den Netzstoerer", longRun));
+    Netem lan{20, 5, 0.01, 0.0, 0.0, 0};
+    Netem wan{80, 30, 0.03, 0.01, 0.02, 256};
+    Netem bad{250, 80, 0.10, 0.02, 0.05, 128};
+    Netem relayWan{80, 30, 0.03, 0.01, 0.02, 1024};  // Relay: beide Strecken zum TURN-Server laufen durch den Stoerer
+    const double T = quick ? 10.0 : 30.0;
+    auto want = [&](const char* n) { return only.empty() || ("," + only + ",").find(std::string(",") + n + ",") != std::string::npos; };
+    if (longRun > 0) {
+        Netem em{60, 20, 0.02, 0.005, 0.01, 1024};
+        testBots(3, longRun, Way::Relay, &em, std::format("Langlauf {:.0f} s ueber das Relay und den Netzstoerer", longRun));
     } else {
-        testJoinKey();
-        testFuzz();
-        testBots(1, quick ? 10 : 25, nullptr, "(direkt)");
-        testBots(3, quick ? 10 : 30, nullptr, "(direkt, vier Spieler)");
-        Netem lan{20, 5, 0.01, 0.0, 0.0, 0};
-        Netem wan{80, 30, 0.03, 0.01, 0.02, 256};
-        Netem bad{250, 80, 0.10, 0.02, 0.05, 128};
-        testBots(3, quick ? 10 : 30, &lan, "(LAN: 20 ms, 1 % Verlust)");
-        testBots(3, quick ? 10 : 30, &wan, "(Internet: 80 ms +-30, 3 % Verlust, 1 % doppelt, 2 % umgeordnet, 256 kbit/s)");
-        testBots(2, quick ? 10 : 30, &bad, "(schlecht: 250 ms +-80, 10 % Verlust, 5 % umgeordnet, 128 kbit/s)");
-        testPickupAndPuppets();
-        testCoopSave();
-        testFull();
-        testAttacks();
-        testDeath();
-        testJourney();
-        testReconnectKick();  // zuletzt: sperrt 127.0.0.1
+        if (want("fuzz")) testFuzz();
+        if (want("bots")) {
+            testBots(1, quick ? 10 : 25, Way::Lobby, nullptr, "(Lobby, direkt)");
+            testBots(3, T, Way::Lobby, nullptr, "(Lobby, direkt, vier Spieler)");
+        }
+        if (want("netem")) {
+            testBots(3, T, Way::LobbyNetem, &lan, "(LAN: 20 ms, 1 % Verlust)");
+            testBots(3, T, Way::LobbyNetem, &wan, "(Internet: 80 ms +-30, 3 % Verlust, 1 % doppelt, 2 % umgeordnet, 256 kbit/s)");
+            testBots(2, T, Way::LobbyNetem, &bad, "(schlecht: 250 ms +-80, 10 % Verlust, 5 % umgeordnet, 128 kbit/s)");
+        }
+        if (want("relay")) testBots(3, T, Way::Relay, &relayWan, "(NAT beidseitig, nur Relay: je Strecke 80 ms +-30, 3 % Verlust, 1 % doppelt, 2 % umgeordnet)");
+        if (want("direct")) testBots(2, quick ? 10 : 20, Way::Direct, nullptr, "(direkt ohne Lobby, langer Code)");
+        if (want("pickup")) testPickupAndPuppets();
+        if (want("save")) testCoopSave();
+        if (want("full")) testFull();
+        if (want("attacks")) testAttacks();
+        if (want("death")) testDeath();
+        if (want("journey")) testJourney();
+        if (want("outage")) testOutage();
+        if (want("hostabort")) testHostAbort();
+        if (want("nopath")) testNoPath();
+        if (want("late")) testLateJoin();
+        if (want("reconnect")) testReconnectKick();
+        if (want("netfuzz")) testNetFuzz(quick ? 30.0 : 300.0);
     }
     std::printf("%s: %d Pruefungen, %d Fehler\n", gFails ? "FEHLGESCHLAGEN" : "OK", gChecks, gFails);
     WSACleanup();
