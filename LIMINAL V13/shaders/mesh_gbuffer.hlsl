@@ -393,7 +393,19 @@ GBufferOut PSMain(VSOut i, bool front : SV_IsFrontFace)
         const float crown = smoothstep(1.98, 2.22, bp.z);
         const float stray = smoothstep(0.3, 0.55, length(bp.xy));
         const float body = silhouette ? 0.0 : 0.42 * smoothstep(0.28, 0.75, length((bp - float3(0.12, 0.0, 1.83)) * float3(1.0, 0.75, 1.0)));
-        const float thin = saturate(max(max(rim * 0.95, body), max(max(hem, crown), stray)) * (0.55 + 0.9 * n) - 0.06);
+        float thin = saturate(max(max(rim * 0.95, body), max(max(hem, crown), stray)) * (0.55 + 0.9 * n) - 0.06);
+        // V13.3: Ouroboros-Arbeiter (world_renderer.hpp kMatOuroSmoke): nur der Rand zerfasert (kein Saum, Scheitel, Ausduennen
+        // nach aussen - es sind ganze Gestalten); dazu flackert die Gestalt: in kurzen Stoessen fallen waagrechte Baender aus,
+        // je Figur zu eigener Zeit (Versatz aus der ersten Knochenzeile dieses Bildes)
+        if (silhouette && ((m.layers >> 16) & 0xFFu) == 0x0Bu && ((m.layers >> 26) & 1u) == 0u)
+        {
+            const float seed = frac((float)(gBoneOffset & 0x7FFFFFFFu) * 0.6180339);
+            const float slot = floor(gCameraPos.w * 7.0 + seed * 13.0);
+            const float burst = step(0.87, frac(sin(slot * 91.7 + seed * 37.0) * 43758.5453));
+            const float band = step(0.45, frac(sin(floor(bp.z * 10.0 + slot * 3.0) * 17.13 + seed) * 43758.5453));
+            const float rimO = 1.0 - smoothstep(0.05, 0.55, facing);
+            thin = saturate(max(rimO * (0.6 + 0.85 * n) - 0.05, burst * band * 0.8));
+        }
         if (ign(i.svpos.xy, gRingParams.z) < thin)
             discard;
     }

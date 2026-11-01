@@ -1011,6 +1011,27 @@ std::vector<u8> generateItemIcon(const std::string& kind, int size) {
                 float hl = std::exp(-std::pow((y + 0.06f) * 20.0f, 2.0f)) * 0.3f;
                 r += hl, g += hl, b += hl;
             }
+        } else if (kind == "hatchet") {
+            // V13.3: Beil schraeg - Eschenstiel von links unten, dunkler Kopf oben rechts, blanke Schneide
+            const float c = 0.7071f, s = 0.7071f;
+            const float x = (u - 0.5f) * c - (v - 0.5f) * s, y = (u - 0.5f) * s + (v - 0.5f) * c;  // x laengs des Stiels
+            const bool stiel = x > -0.44f && x < 0.26f && std::fabs(y) < 0.045f + 0.012f * std::exp(-std::pow((x + 0.42f) * 30.0f, 2.0f));
+            const float hy = y + 0.02f;  // Kopf quer zum Stiel, Schneide zur Seite y < 0
+            const float bart = 0.075f + 0.055f * std::clamp((-hy - 0.02f) / 0.2f, 0.0f, 1.0f);
+            const bool kopf = x > 0.2f - bart * 0.4f && x < 0.2f + bart && hy > -0.3f && hy < 0.09f;
+            if (kopf) {
+                a = 1;
+                r = 0.28f, g = 0.29f, b = 0.31f;
+                if (hy < -0.25f) r = 0.82f, g = 0.84f, b = 0.86f;  // geschliffene Schneide
+                const float hl = std::exp(-std::pow((x - 0.23f) * 16.0f, 2.0f)) * 0.18f;
+                r += hl, g += hl, b += hl;
+            } else if (stiel) {
+                a = 1;
+                r = 0.62f, g = 0.44f, b = 0.25f;
+                if (std::fmod((x + 1.0f) * 37.0f + y * 9.0f, 1.0f) < 0.25f) r *= 0.82f, g *= 0.8f, b *= 0.78f;  // Maserung
+                const float hl = std::exp(-std::pow((y + 0.018f) * 40.0f, 2.0f)) * 0.22f;
+                r += hl, g += hl, b += hl;
+            }
         } else if (kind == "battery") {
             // V7: stehende Monozelle, Kupferband oben, Pluspol
             float x = std::fabs(u - 0.5f);

@@ -71,6 +71,13 @@
       "description": "Aus einem Sicherungskasten des Hotels. Eine von dreien.",
       "model": "fuse", "icon": "fuse", "scale": 1.0, "max_stack": 1, "rare": true, "hold_offset": 0.03
     },
+    // V13.3: Beil (KREATUR_PlagueGoblins.md; Level 1 der Seite: Plague Goblins lassen sich mit Messer oder Axt verscheuchen).
+    // Wird nicht verbraucht: "benutzen" schwingt es (verscheucht, wer davor steht; trifft bis 1,8 m)
+    {
+      "key": "hatchet", "name": "Beil",
+      "description": "Altes Beil mit Eschenstiel. Benutzen: schwingen – verscheucht kleine Diebe, trifft aus der Nähe.",
+      "model": "hatchet", "icon": "hatchet", "scale": 1.0, "max_stack": 1, "hold_offset": 0.0
+    },
     // V11: Level 3 - der Aufzug nach oben braucht Strom
     {
       "key": "fuse_station", "name": "Sicherung (Umspannwerk)",

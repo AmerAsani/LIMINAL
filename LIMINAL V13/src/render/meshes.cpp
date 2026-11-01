@@ -47,6 +47,8 @@ void MeshLibrary::init(Gpu& gpu) {
     addGroup(gpu, "fusebox", {{fb.body, FM_FUSEBOX}, {fb.fuse, FM_ITEM_FUSE}, {fb.lamp, FM_FUSE_GLOW}});
     addGroup(gpu, "fusebox_empty", {{fe.body, FM_FUSEBOX}, {fe.lamp, FM_FUSEBOX}});
     add(gpu, "fuse", makeFuseItem(), FM_ITEM_FUSE);
+    HatchetParts hx = makeHatchet();  // V13.3: Beil
+    addGroup(gpu, "hatchet", {{hx.handle, FM_ITEM_HATCHET_WOOD}, {hx.head, FM_ITEM_HATCHET_HEAD}});
     addViewmodel(gpu);
 }
 
@@ -716,6 +718,103 @@ MeshData makeFuseItem() {
     fuseCartridge(d);
     place(d, 0, {1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {-0.085f, 0.0f, 0.0185f});
     return d;
+}
+
+// --- V13.3: Beil (Plague Goblins: "mit Messer oder Axt zu verscheuchen", Level 1) ------------------------------------
+// Ringe gleicher Punktzahl zu einer geschlossenen Roehre (Normalen aus den Flaechen, UV in Metern: u laengs, v quer)
+static void hatchetLoft(MeshData& d, const std::vector<std::vector<vec3>>& rings, bool capA, bool capB) {
+    const u16 base = (u16)d.vertices.size();
+    const int n = (int)rings[0].size(), m = (int)rings.size();
+    for (int r = 0; r < m; ++r) {
+        float v = 0.0f;
+        for (int k = 0; k < n; ++k) {
+            const vec3 p = rings[(size_t)r][(size_t)k];
+            if (k > 0) v += length(p - rings[(size_t)r][(size_t)(k - 1)]);
+            d.vertices.push_back({p, {0, 0, 0}, {1, 0, 0, 1}, {p.x * 2.0f + p.y, v * 2.0f}});
+        }
+    }
+    for (int r = 0; r + 1 < m; ++r)
+        for (int k = 0; k < n; ++k) {
+            const u16 a = (u16)(base + r * n + k), b2 = (u16)(base + r * n + (k + 1) % n);
+            const u16 c = (u16)(a + n), e = (u16)(b2 + n);
+            d.indices.insert(d.indices.end(), {a, c, b2, b2, c, e});
+        }
+    auto cap = [&](int r, bool flip) {
+        vec3 ctr{};
+        for (const vec3& p : rings[(size_t)r]) ctr = ctr + p;
+        ctr = ctr / (float)n;
+        const u16 ci = (u16)d.vertices.size();
+        d.vertices.push_back({ctr, {0, 0, 0}, {1, 0, 0, 1}, {ctr.x * 2.0f, ctr.y * 2.0f}});
+        for (int k = 0; k < n; ++k) {
+            const u16 a = (u16)(base + r * n + k), b2 = (u16)(base + r * n + (k + 1) % n);
+            if (flip) d.indices.insert(d.indices.end(), {ci, a, b2});
+            else d.indices.insert(d.indices.end(), {ci, b2, a});
+        }
+    };
+    if (capA) cap(0, true);
+    if (capB) cap(m - 1, false);
+}
+static void hatchetNormals(MeshData& d) {
+    for (auto& v : d.vertices) v.normal = {0, 0, 0};
+    for (size_t i = 0; i + 2 < d.indices.size(); i += 3) {
+        MeshVertex &a = d.vertices[d.indices[i]], &b = d.vertices[d.indices[i + 1]], &c = d.vertices[d.indices[i + 2]];
+        const vec3 n = cross(b.pos - a.pos, c.pos - a.pos);
+        a.normal = a.normal + n, b.normal = b.normal + n, c.normal = c.normal + n;
+    }
+    for (auto& v : d.vertices) {
+        const float l = length(v.normal);
+        v.normal = l > 1e-9f ? v.normal / l : vec3{0, 0, 1};
+        vec3 t = vec3{1, 0, 0} - v.normal * v.normal.x;
+        const float tl = length(t);
+        t = tl > 1e-6f ? t / tl : vec3{0, 1, 0};
+        v.tangent = {t.x, t.y, t.z, 1.0f};
+    }
+}
+HatchetParts makeHatchet() {
+    HatchetParts h;
+    // Stiel: 42 cm Esche, ovaler Querschnitt, leicht geschwungen, am Ende ein Knauf; Griff im Ursprung
+    {
+        std::vector<std::vector<vec3>> rings;
+        const int seg = 14, n = 16;
+        for (int i = 0; i <= seg; ++i) {
+            const float u = (float)i / (float)seg, x = -0.075f + u * 0.41f;
+            const float knob = std::exp(-std::pow((x + 0.07f) / 0.018f, 2.0f)) * 0.006f;
+            const float wy = 0.0135f + 0.002f * std::sin(u * 3.14159f) + knob, wz = 0.0105f + knob * 0.8f;
+            const float bend = 0.008f * std::sin(u * 3.14159f * 1.2f);  // Schwung in Richtung der Schneide
+            std::vector<vec3> ring;
+            for (int k = 0; k < n; ++k) {
+                const float a = (float)k / (float)n * 6.2831853f;
+                ring.push_back({x, bend + std::cos(a) * wy, std::sin(a) * wz});
+            }
+            rings.push_back(ring);
+        }
+        hatchetLoft(h.handle, rings, true, true);
+        hatchetNormals(h.handle);
+    }
+    // Kopf: Querschnitte entlang y vom Nacken (y = -0,036) zur Schneide (y = 0,105) - die Wange wird nach vorn breiter (Bart),
+    // die Dicke nimmt zur Schneide hin ab; Mitte bei x = 0,31 (das Auge sitzt auf dem Stielende)
+    {
+        std::vector<std::vector<vec3>> rings;
+        const int seg = 16;
+        for (int i = 0; i <= seg; ++i) {
+            const float u = (float)i / (float)seg, y = -0.036f + u * 0.141f;
+            const float edge = std::clamp((y - 0.02f) / 0.085f, 0.0f, 1.0f);
+            const float hx0 = 0.026f + 0.006f * std::clamp(-y / 0.036f, 0.0f, 1.0f);  // Nacken etwas breiter
+            const float hx = hx0 + 0.026f * edge * edge;                                 // Bart
+            const float tz = 0.0145f * (1.0f - 0.92f * std::pow(edge, 0.8f)) + 0.0008f;  // Keil
+            const float xc = 0.31f + 0.012f * edge * edge;                               // Schneide leicht nach vorn gezogen
+            const float bow = 0.006f * edge;                                             // gewoelbte Schneide
+            std::vector<vec3> ring = {{xc - hx, y - bow * 0.5f, -tz}, {xc, y + bow, -tz}, {xc + hx, y - bow * 0.5f, -tz},
+                                      {xc + hx + 0.001f, y, 0.0f}, {xc + hx, y - bow * 0.5f, tz}, {xc, y + bow, tz},
+                                      {xc - hx, y - bow * 0.5f, tz}, {xc - hx - 0.001f, y, 0.0f}};
+            rings.push_back(ring);
+        }
+        hatchetLoft(h.head, rings, true, true);
+        hatchetNormals(h.head);
+    }
+    for (MeshData* md : {&h.handle, &h.head})  // liegt auf der Flaeche (Unterseite bei z = 0)
+        for (auto& v : md->vertices) v.pos.z += 0.0146f;
+    return h;
 }
 
 }  // namespace lim::gfx

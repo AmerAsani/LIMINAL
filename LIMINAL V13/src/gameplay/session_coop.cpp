@@ -124,6 +124,10 @@ bool GameSession::pawnUse(Pawn& p, int idx, std::string& msg, std::string& sound
         msg = "Eine Sicherung. Sie gehört in eine Fassung.";
         return false;
     }
+    if (p.inventory.slots[(size_t)idx]->kind == "hatchet") {  // V13.3: das Beil schwingt (wird nicht verbraucht)
+        sound = hatchetSwing(p.player, p.eye(), p.id) == 2 ? "hatchet_hit" : "";
+        return true;
+    }
     auto kind = p.inventory.take(idx);
     const ItemDef* d = kind ? content_.item(*kind) : nullptr;
     if (!d) return false;

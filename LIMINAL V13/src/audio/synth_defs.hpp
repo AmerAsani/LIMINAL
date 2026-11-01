@@ -24,5 +24,7 @@ void addArmsSounds(std::vector<SoundDef>& d, int rate);      // V13.3 synth_arms
 void addWranglerSounds(std::vector<SoundDef>& d, int rate);  // V13.3 synth_wrangler.cpp: Wrangler (Beben, Leib, Kopf, Jungtiere)
 void addGrowlerSounds(std::vector<SoundDef>& d, int rate);   // V13.3: synth_growler.cpp
 void addNguithrSounds(std::vector<SoundDef>& d, int rate);   // V13.3: synth_nguithrxurh.cpp
+void addOuroborosSounds(std::vector<SoundDef>& d, int rate); // V13.3: synth_ouroboros.cpp (Ouroboros-Arbeiter)
+void addGoblinSounds(std::vector<SoundDef>& d, int rate);    // V13.3: synth_goblin.cpp (Plague Goblins, Beil)
 
 }  // namespace lim::audio

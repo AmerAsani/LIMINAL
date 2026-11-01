@@ -353,6 +353,15 @@ private:
     void throwFrom(const Player& p, vec3 eye, const std::string& kind, int count, int by);
     void updatePawnsPresence(Presence::Context& c);
     std::vector<Presence::Other> others_;
+    // V13.3: Plague Goblins (session_goblin.cpp) - was sie stehlen koennen, Liegendes in der Naehe, ihre Wirkung auf die Welt
+    // (Diebstahl, Aufheben, Verlorenes, Geschenk), das Beil (who: 0 dieser Rechner, sonst Gast; Rueckgabe wie goblinSwing)
+    void goblinContext(Presence::Context& c);
+    void goblinWorld(const Presence::Event& e);
+    int hatchetSwing(const Player& p, vec3 eye, int who);
+    void spawnLooseAt(const std::string& kind, vec3 pos);
+    std::vector<std::string> goblinLoot_;
+    std::array<std::vector<std::string>, 4> pawnLoot_;
+    std::vector<Presence::Loose> loose_;
     // V11: Laerm an anderen Orten in diesem Bild (Aufprall geworfener Dinge) und Lager des Buendels
     std::vector<std::pair<vec3, float>> noisePings_;
     std::vector<vec3> clumpLairs_;

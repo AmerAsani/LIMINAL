@@ -776,6 +776,11 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
     else player_.waterZ = -999.0;
     if (!world_->level().flashlight && flash_.on) flash_.on = false;  // V11: Level 6
     player_.update(dt, c, *tiles_);
+    // V13.3: Ouroboros-Arbeiter weichen nicht aus - wer im Weg steht, wird beiseitegeschoben (Wand bleibt Wand)
+    if (!paused && !stats_.dead && !ride_.active) {
+        const vec3 sh = presence_.shoveFor(netSelfId, {(float)player_.x, (float)player_.y, (float)player_.z});
+        if (sh.x != 0.0f || sh.y != 0.0f) phys::moveAndSlide(*tiles_, player_.x, player_.y, player_.z, sh.x * dt, sh.y * dt, player_.shape);
+    }
     // V13.3: der Leib des Wranglers zieht den Blick an (KREATUR_Wrangler.md) - gegensteuern, wegsehen
     if (vec3 at; !paused && !stats_.dead && presence_.trance(&at) > 0.02f) {
         const float tr = presence_.trance();
@@ -1183,6 +1188,23 @@ void GameSession::interact() {
 }
 
 void GameSession::useSlot(int idx) {
+    // V13.3: das Beil wird nicht verbraucht - es schwingt (Plague Goblins: verscheuchen, ein Treffer toetet)
+    const bool hatchet = idx >= 0 && idx < Inventory::kSize && inventory_.slots[(size_t)idx] && inventory_.slots[(size_t)idx]->kind == "hatchet";
+    if (hatchet && !body_.gestureActive()) {
+        const ItemDef* hd = content_.item("hatchet");
+        body_.gesture(Body::Gesture::Swing, {}, hd ? hd->model : "hatchet", hd ? (float)hd->holdOffset : 0.0f, hd ? (float)hd->scale : 1.0f);
+        GameEvent ev{GameEvent::Consume, "", 0.0f};
+        ev.sound = "hatchet_swing";
+        events_.push_back(ev);
+        if (netAction) netAction(2, (u32)idx);  // Koop (Gast): der Host rechnet den Schwung
+        else if (hatchetSwing(player_, body_.eye(), netSelfId) == 2) {
+            GameEvent hit{GameEvent::Consume, "", 0.0f};
+            hit.sound = "hatchet_hit";
+            events_.push_back(hit);
+        }
+        return;
+    }
+    if (hatchet) return;
     if (netAction) {  // V13.2 Koop (Gast)
         if (idx >= 0 && idx < Inventory::kSize && inventory_.slots[(size_t)idx]) netAction(2, (u32)idx);
         return;
@@ -1587,6 +1609,7 @@ void GameSession::updatePresence(double dt) {
     // V7: die Gestalt im (halluzinierten) Stromausfall zeigt jetzt das Praesenzsystem
     if (haunt_.takeGhostRequest() && hallucinations) presence_.force(Presence::Role::Gestalt);
     if (netRole != NetRole::Solo) updatePawnsPresence(c);  // V13.2 Koop
+    goblinContext(c);                                      // V13.3: Plague Goblins (Vorraete, Beil, Liegendes, Gesundheit)
     if (netRole == NetRole::Guest && netCreaturesFresh) {
         presence_.netApply(netCreatures, presence_.netTime());
         netCreaturesFresh = false;
@@ -1626,6 +1649,7 @@ void GameSession::updatePresence(double dt) {
     stats_.sanity = std::max(0.0, stats_.sanity);
     using PE = Presence::Event;
     for (const PE& e : presenceEvents_) {
+        goblinWorld(e);  // V13.3: Plague Goblins - Diebstahl, Aufheben, Verlorenes, Geschenk
         if (netRole == NetRole::Host && e.target != netSelfId) {  // V13.2 Koop: betrifft einen Gast
             netFigureOut.push_back(e);
             Pawn* p = nullptr;
@@ -1672,7 +1696,9 @@ void GameSession::updatePresence(double dt) {
                                  e.type == PE::Scrape || e.type == PE::Bulge || e.type == PE::Burst || e.type == PE::Burn || e.type == PE::Retract ||
                                  (e.type == PE::Windup && e.role == Presence::Role::Arms) ||  // V13.3
                                  e.type == PE::Click || e.type == PE::Lurch || e.type == PE::Merge || e.type == PE::Collapse ||
-                                 e.type == PE::Snip || e.type == PE::SacBurst || e.type == PE::Skitter || e.type == PE::Stridulate;  // V13.3
+                                 e.type == PE::Snip || e.type == PE::SacBurst || e.type == PE::Skitter || e.type == PE::Stridulate ||  // V13.3
+                                 e.type == PE::Croak || e.type == PE::Steal || e.type == PE::Take || e.type == PE::Hiss ||
+                                 e.type == PE::Screech || e.type == PE::Portal || e.type == PE::Perish || e.type == PE::Mimic;  // V13.3 Plague Goblins
             if (!audible) continue;
             if (e.type == PE::Flicker)
                 if (const world::Tile* t = world_->tileIfLoaded(ifloor(e.pos.x), ifloor(e.pos.y)); t && t->room) haunt_.flicker(t->room);
@@ -1693,7 +1719,9 @@ void GameSession::updatePresence(double dt) {
                                          e.type == PE::Scrape || e.type == PE::Bulge || e.type == PE::Burst || e.type == PE::Burn ||
                                          e.type == PE::Retract || (e.type == PE::Windup && e.role == Presence::Role::Arms) ||  // V13.3
                                          e.type == PE::Click || e.type == PE::Lurch || e.type == PE::Merge || e.type == PE::Collapse ||  // V13.3
-                                         e.type == PE::Snip || e.type == PE::SacBurst || e.type == PE::Skitter || e.type == PE::Stridulate))
+                                         e.type == PE::Snip || e.type == PE::SacBurst || e.type == PE::Skitter || e.type == PE::Stridulate ||
+                                         e.type == PE::Croak || e.type == PE::Take || e.type == PE::Hiss || e.type == PE::Screech ||
+                                         e.type == PE::Portal || e.type == PE::Perish))  // V13.3 Plague Goblins
             netFigureOut.push_back(e);  // auch die Gaeste hoeren es
         GameEvent ev;
         ev.type = GameEvent::Figure;
