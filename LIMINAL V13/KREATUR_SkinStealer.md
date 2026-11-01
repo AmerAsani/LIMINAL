@@ -68,3 +68,49 @@ Bilder: `docs/screens/skinstealer/`.
 ## Tests (`gameplay_test`)
 
 Level 5: wahre Gestalt; satt harmlos (ruhig dabeistehen); gereizt durch die Lampe tödlich. Level 3: getarnt; hungrig folgt er, spricht nach, hält inne, tötet; wer im Innehalten ruhig zurückweicht, den lässt er ziehen.
+
+## V13.3: Ansprechen (Level 1)
+
+**Quellen** (Wikidot, CC BY-SA 3.0, eigene Worte, keine Bilder): [level-1](https://backrooms-wiki.wikidot.com/level-1) Rev. 83 (07.10.2026, Praetor3005 und DivineAtlas), Wesenliste und Erzählabschnitt; [entity-10](https://backrooms-wiki.wikidot.com/entity-10) Rev. 61 (09.03.2025).
+
+**Was die Seiten sagen:** Weiße Humanoide in der Haut ihrer Opfer; sie greifen meist erst nach einer ausreichend langen Interaktion an. Rat (Level 1): mit ihnen reden – sie sind wenig intelligent; ist klar, dass es kein Mensch ist, ruhig zurückweichen. Entity 10: sie sprechen nach, was sie gehört haben, verstehen aber nichts; wortkarge oder wirr redende „Menschen“ sind verdächtig. In der Erzählung von Level 1 antwortet die Gestalt knapp und mit einer sinnlos passenden Antwort, grüßt – und greift an.
+
+**Umsetzung** (`gameplay/presence_lure.cpp`, `talkSkinStealer`; `gameplay/session_lure.cpp`)
+- **Ansprechen:** die Interaktionstaste (**E**, in den Einstellungen belegbar), wenn kein Gegenstand im Blick ist und man eine menschenähnliche Gestalt (Skin-Stealer, Faceling, Wretch) in höchstens 6 m ansieht (Kopf oder Brust höchstens etwa 18° neben der Blickmitte, freie Sicht). Das HUD zeigt dann „E Ansprechen“ – für alle drei, damit der Hinweis nichts verrät. Der Spieler ruft einen von vier kurzen Sätzen („Hallo?“, „Ist da wer?“, „Hey … hallo?“, „Wer bist du?“; Untertitel), frühestens alle 2,4 s. Facelings und Wretches antworten nicht.
+- **Die Antwort:** Er hält inne, sieht her und legt den Kopf schief (lauscht). Nach 1,1–2,1 s – zu spät – kommt der Satz zurück, auf eine von drei Arten: **falsch betont** (erste Silbe laut und hoch, die letzte fällt flach ab statt zu steigen, die erste zu lang, die letzte gekappt; zu glatt, ohne Atem; eine zweite, tiefere Stimme schwingt 30 ms später mit; dann die letzte Silbe noch einmal, zu hoch), **abgehackt** (Silben hart gekappt, die erste gestottert, Pausen am falschen Ort, flacher Ton mit einem Sprung nach oben) oder **verzögert** (gedehnt, die Stimme sinkt wie ein langsamer werdendes Band, leicht rau; danach ein feuchtes Schnalzen und Einatmen durch die Zähne). Synthetisch aus Lauten (Quelle-Filter-Stimme, Formanten je Vokal), keine Aufnahmen: `talk_call_0..3`, `skin_reply_0..11` (Satz × Art), `skin_shriek` in `audio/synth_lure.cpp`. Beim ersten Mal ein Hinweis: „Das ist kein Mensch. Ruhig zurückweichen – nicht rennen, nicht noch einmal ansprechen.“
+- **Entlarvt** (Zustand 6): Er steht, sieht her, der Kopf kippt weit zur Seite (Kanal `tilt`), der Mund arbeitet nach (`talk`), er wird unruhiger (`alert`).
+  - **Ruhig zurückweichen** (gehen oder schleichen) um 3,5 m über den Abstand bei der Antwort (oder auf über 11 m): er lässt ziehen – satt wandert er weiter, hungrig zieht er ab; 60 s Ruhe.
+  - **Angriff** (mit Schrei, `skin_shriek` – die Tarnung fällt): Rennen in 14 m, näher als 1,6 m, länger als 9 s stehen bleiben (zu lange Interaktion), erneutes Ansprechen.
+  - Rennen schon während der Pause vor der Antwort (in 12 m) löst den Angriff ebenso aus.
+- **Lange Interaktion ohne Ansprechen:** Steht man insgesamt 26 s nah (unter 5 m, mit Sicht) bei einem satten Skin-Stealer, spricht er von selbst (nachgeahmte Silben) und steht danach wie entlarvt da – Zurückweichen hilft, Stehenbleiben nicht.
+- **Bestehendes bleibt:** wahre Gestalt und Tarnung, Satt/Hungrig, Reizung durch die Lampe, Innehalten als Ankündigung, Zurückweichen im Innehalten.
+- **Mehrspieler:** Der Gast spielt Ruf und Untertitel selbst und schickt nur die Eingabe „Interact“ mit der Nummer des Satzes (0–3 statt einer Kennzahl); der Host prüft, wen die Figur des Gasts ansieht, rechnet Antwort und Folgen. Antwort und Schrei hören alle in der Nähe (Ereignisse `Reply`, `Shriek`), den Ruf eines Spielers hören die anderen über das vorhandene Klang-Ereignis. Protokoll unverändert.
+
+**Interpretation:** die drei Arten der verräterischen Antwort, die Zeiten und Abstände (Antwortpause, 3,5 m Zurückweichen, 9 s, 1,6 m, 26 s); dass auch Facelings und Wretches den Hinweis zeigen (fair: der Hinweis verrät nichts).
+
+**Zahlen**
+
+| Wert | Zahl |
+|---|---|
+| Ansprechen | bis 6 m (Hinweis), Blick ±18°, alle 2,4 s |
+| Antwort | nach 1,1–2,1 s, 1–2,5 s lang |
+| Ausweg | ruhig 3,5 m weiter zurück als bei der Antwort oder über 11 m |
+| Angriff | Rennen < 14 m, Abstand < 1,6 m, > 9 s stehen, erneutes Ansprechen; ohne Ansprechen nach 26 s Nähe erst die Selbstentlarvung |
+
+**Wow-Check:** Man ruft „Hallo?“ in den dunklen Gang, und nach einer Pause, die eine Spur zu lang ist, kommt dasselbe Wort zurück – zu glatt, falsch betont, aus zwei Kehlen –, während der Kopf zur Seite kippt, bis der Hals gebrochen aussieht. Ehrlich: Wow für Ton und Kopf; unter hartem Licht wirkt die Tarnhaut (Modell aus V13.2) wie eine Schaufensterpuppe.
+
+### Kritikrunden (Ansprechen)
+
+Bilder: `docs/screens/creatures/skinstealer_ansprechen/` (je Runde vorher, Ruf, Antwort, entlarvt nah/mittel; Spektrogramm der Stimmen).
+
+| Runde | Befund | Änderung |
+|---|---|---|
+| 1 (`r1_antwort.jpg`) | Im dunklen Gang nicht zu beurteilen: Kopf und Mund verschwinden im Schwarz. Hinweis „E Ansprechen“ und Untertitel „Hallo?“ lesbar. | Fülllicht für die Bilder (`testlight eye`, zählt nicht als Lampe – sonst reizt sie ihn). |
+| 2–3 (`r3_antwort.jpg`) | Kein Licht: erst hinter dem Kopf (dessen Schatten), dann gesetzt, bevor der Körper nach dem Versetzen nachgezogen war. In voller Größe sieht man die Kopfneigung schon im Dunkeln. | Licht vor den Kopf, nach `near` warten; Hinweis nach der ersten Antwort ergänzt. |
+| 4 (`r4_entlarvt_nah.jpg`) | Entlarvt kippt der Kopf so weit, dass der Hals gebrochen wirkt – das trägt. Vorher und Ruf noch dunkel. | – (Kopfneigung bleibt). |
+| 5 (`r5_vorher.jpg` … `r5_entlarvt_mittel.jpg`) | Ganze Folge lesbar: aufrecht – lauscht (Kopf beginnt zu kippen) – antwortet – steht schief da. Unter hartem Licht wirkt die Tarnhaut wie eine Puppe (Modell V13.2, nicht Teil dieser Aufgabe). | – |
+| 6 (`r6_stimmen_spektrogramm.jpg`) | Ton: erste Fassung – Atemrauschen deckte die Stimme zu (Grundton nicht messbar), Zischlaute 4–5 dB lauter als die Vokale, Schwerpunkt bis 7,5 kHz. | Atem 0,16 → 0,035, Reibe- und Verschlusslaute auf Sprachniveau. Jetzt: Ruf steigt 120 → 175 Hz (Frage), Antwort 0 fällt 205 → 100 Hz und wiederholt die Silbe zu hoch, Antwort 1 zerhackt mit Tonsprung; Schwerpunkt 1,6–4,2 kHz. |
+| 9 (`r9_entlarvt_nah.jpg`) | Endstand wie Runde 5. Ein Bild vom Angriff nach dem Rennen gelang im Skript nicht (Halten der Tasten bewegte den Spieler nicht) – das Verhalten belegt der Test. | – |
+
+### Tests (`gameplay_test`, „V13.3: Leuchtstab und Ansprechen“)
+Level 1: Hinweis im HUD beim Ansehen, getarnt; E ruft (ein Satz), er antwortet verräterisch und ist entlarvt (Zustand 6), die Antwort allein ist kein Angriff; wer rückwärts gehend zurückweicht, den lässt er ziehen (kein Schrei, kein Tod, auch 6 s danach); hungrig und entlarvt: wer umdreht und rennt, löst Schrei und Angriff aus und stirbt; erneutes Ansprechen nach der Entlarvung löst den Angriff aus.

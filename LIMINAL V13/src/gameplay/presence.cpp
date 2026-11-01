@@ -27,6 +27,13 @@ const char* Presence::roleName(Role r) {
         case Role::Wretch: return "Wretch";
         case Role::Rat: return "Death Rat";
         case Role::Window: return "Fensterwesen";
+        case Role::Duller: return "Duller";  // V13.3
+        case Role::Arms: return "Arms";
+        case Role::Wrangler: return "Wrangler";  // V13.3
+        case Role::Growler: return "Growler";  // V13.3
+        case Role::Nguithr: return "Nguithr'xurh";
+        case Role::Ouroboros: return "Ouroboros-Arbeiter";  // V13.3
+        case Role::Goblin: return "Plague Goblin";  // V13.3
     }
     return "?";
 }
@@ -40,6 +47,9 @@ void Presence::clear() {
     pendingSmiler_ = -1.0;
     windowsPlaced_ = false;  // V13.2: neue Ebene, neue Fenster
     screamT_ = 0.0;
+    broodPlaced_ = false, quake_ = trance_ = 0.0f;  // V13.3: Wrangler
+    ouroPlaced_ = false, ouroSite_.reset();         // V13.3: Ouroboros-Baustelle der neuen Ebene
+    goblinCtl_.reset(), nextGoblin_ = 50.0;          // V13.3: Plague Goblins - neue Ebene, neue Bande (auch nach einer Flucht)
 }
 
 void Presence::setGrace(double s) {
@@ -48,6 +58,9 @@ void Presence::setGrace(double s) {
     nextHive_ = std::max(nextHive_, s * 0.4);
     nextGestalt_ = std::max(nextGestalt_, s * 0.6);
     for (double& k : nextKin_) k = std::max(k, s * 0.5);  // V13.2
+    nextDuller_ = std::max(nextDuller_, s * 0.6), nextArms_ = std::max(nextArms_, s * 0.3);  // V13.3
+    nextWrangler_ = std::max(nextWrangler_, s * 0.8);     // V13.3
+    nextGrowler_ = std::max(nextGrowler_, s * 0.5), nextNguithr_ = std::max(nextNguithr_, s * 0.3), corpseT_ = std::max(corpseT_, s * 0.5);  // V13.3
 }
 
 void Presence::remove(size_t i) { agents_.erase(agents_.begin() + (std::ptrdiff_t)i); }
@@ -105,13 +118,16 @@ bool Presence::killerHead(vec3& out) const {
         }
     return false;
 }
-bool Presence::threatActive() const { return has(Role::Smiler) || has(Role::Hound); }
+bool Presence::threatActive() const { return has(Role::Smiler) || has(Role::Hound) || wranglerActive(); }  // V13.3: Wrangler
 bool Presence::hunting() const {
     for (const auto& a : agents_) {
         if (a->showcase) continue;
         if (a->role == Role::Clump && a->state >= 2 && a->state <= 4) return true;  // V11
         if (a->role == Role::Hound && (a->state == 2 || a->state == 3)) return true;
         if (a->role == Role::Smiler && a->state == 1 && a->sight.dist < 14.0f) return true;
+        if ((a->role == Role::Duller && a->state >= 2 && a->state <= 4) || (a->role == Role::Arms && a->state >= 1 && a->state <= 4)) return true;  // V13.3
+        if (a->role == Role::Wrangler && (a->state == 2 || a->state == 3)) return true;  // V13.3: es hat einen gespuert
+        if (a->role == Role::Growler && a->state >= 2 && a->state <= 4) return true;  // V13.3: jagt, holt aus, greift an
     }
     return false;
 }
@@ -124,8 +140,11 @@ float Presence::threatProximity() const {
         if (a->role == Role::Hound) p = std::max(p, std::clamp(1.0f - (d - 1.0f) / 22.0f, 0.0f, 1.0f) * (a->state >= 2 ? 1.0f : 0.35f));
         if (a->role == Role::Moth && a->state >= 2) p = std::max(p, std::clamp(1.0f - d / 10.0f, 0.0f, 1.0f) * 0.45f);
         if (a->role == Role::Clump) p = std::max(p, std::clamp(1.0f - (d - 1.0f) / 14.0f, 0.0f, 1.0f) * (a->state >= 2 ? 1.0f : 0.3f));
+        if ((a->role == Role::Duller && a->state >= 2 && a->state <= 4) || (a->role == Role::Arms && a->state >= 1 && a->state <= 4))  // V13.3
+            p = std::max(p, a->role == Role::Duller ? 0.85f : 0.75f);
+        if (a->role == Role::Wrangler && a->mode != 3) p = std::max(p, std::clamp(1.0f - (d - 3.0f) / 26.0f, 0.0f, 1.0f) * std::min(1.0f, a->growl * 1.1f));  // V13.3
     }
-    return p;
+    return std::max(p, static_ * 0.8f);  // V13.3: das Rauschen eines Growlers
 }
 int Presence::swarm(vec3& center) const {
     int n = 0;
@@ -434,6 +453,12 @@ void Presence::showcase(int kind, vec3 pos, float yaw, float walkSpeed) {
     a->look = kind == 0;
     if (a->ent == Entity::Moth) pos.z += 1.3f;
     if (a->ent == Entity::Window) pos.z += 1.9f;  // V13.2: Mitte des Fensters (Level 188: 1,9 m ueber dem Boden)
+    if (a->ent == Entity::Arms) pos.z += 2.8f, a->up = {0, 0, -1};  // V13.3: Oeffnung in der Decke (Gang in Level 1: 2,8 m)
+    if (a->ent == Entity::Wrangler) {  // V13.3: quer vor dem Betrachter, ein Bogen aus dem Boden; der Kopf bricht 2,5 m zum Betrachter hin heraus
+        a->fwd = {std::cos(yaw), std::sin(yaw), 0.0f}, a->bait = 2.5f / 32.0f, a->up = {0, 0, 1};
+        yaw += 1.5708f;
+        a->lean = 6.8f / 16.0f, a->crouch = 0.14f, a->tilt = 1.45f / 4.0f, a->hang = 1.0f, a->fly = 0.35f;
+    }
     a->initBody(pos, yaw, (unsigned)rng_.randint(1, 1 << 30));
     a->rig.setGlow(1.0f);
     if (a->ent == Entity::Moth && a->walkShow) a->fly = 1.0f;
@@ -475,6 +500,7 @@ bool Presence::showcaseSet(const std::string& key, float v) {
     else if (key == "plea") a->plea = v;
     else if (key == "strike") a->strike = v, a->strikeLoop = v >= 1.0f;
     else if (key == "variant") a->variant = (int)v, a->initBody(a->pos, a->yaw, 7);
+    else if (key == "task") a->state = (int)v, a->stateT = 0.0;  // V13.3 (Ouroboros-Arbeiter: Aufgabe)
     else return false;
     return true;
 }
@@ -486,6 +512,8 @@ bool Presence::kinSet(Role r, const std::string& key, double v) {
             else if (key == "pleads") a->pleads = v > 0.5;
             else if (key == "mode") a->mode = (int)v;
             else if (key == "provoke") a->provoke = v;
+            else if (key == "state") a->state = (int)v, a->stateT = 0.0;  // V13.3 (Tests, Bilder)
+            else if (key == "variant") a->variant = a->mode = (int)v, a->initBody(a->pos, a->yaw, 7), a->rig.setGlow(1.0f);  // V13.3 (Wrangler)
             else return false;
             return true;
         }
@@ -605,6 +633,8 @@ void Presence::thinkSmiler(Agent& a, double dt, const Context& c, std::vector<Ev
         a.glow = std::min(1.0f, a.glow + (float)dt * 0.55f);
         if (a.glow >= 1.0f) a.state = 1, a.stateT = 0.0;
     }
+    // V13.3: ein staerkeres Licht (geworfener Leuchtstab) zieht ihn vom Spieler fort (presence_lure.cpp)
+    if (baitSmiler(a, dt, c, out, d, dark)) return;
     const world::Tile* pt = c.world->tileIfLoaded(ifloor(c.player->x), ifloor(c.player->y));
     const bool playerInLight = pt && !darkTile(c, pt, (float)c.player->x, (float)c.player->y);
     // Interesse: zieht das Licht der Lampe ihn an, bleibt er; wer im Licht steht oder die Lampe aus hat
@@ -1061,6 +1091,9 @@ void Presence::updateHive(double dt, const Context& c, std::vector<Event>& out) 
 void Presence::think(Agent& a, double dt, const Context& c, std::vector<Event>& out) {
     if (a.showcase) {  // Vorfuehrung: das Gesicht sieht zur Kamera
         if (a.look) a.lookAt = c.view.eye;
+        if (a.role == Role::Growler || a.role == Role::Nguithr) prepGN(a, c);  // V13.3
+        if (a.role == Role::Ouroboros) prepOuroboros(a, c);                 // V13.3
+        if (a.role == Role::Goblin) prepGoblin(a, c);                       // V13.3
         return;
     }
     switch (a.role) {
@@ -1074,6 +1107,13 @@ void Presence::think(Agent& a, double dt, const Context& c, std::vector<Event>& 
         case Role::Wretch: thinkWretch(a, dt, c, out); break;
         case Role::Rat: thinkRat(a, dt, c, out); break;
         case Role::Window: thinkWindow(a, dt, c, out); break;
+        case Role::Duller: thinkDuller(a, dt, c, out); break;  // V13.3
+        case Role::Arms: thinkArms(a, dt, c, out); break;
+        case Role::Wrangler: thinkWrangler(a, dt, c, out); break;  // V13.3
+        case Role::Growler: thinkGrowler(a, dt, c, out); break;  // V13.3
+        case Role::Nguithr: thinkNguithr(a, dt, c, out); break;
+        case Role::Ouroboros: thinkOuroboros(a, dt, c, out); break;  // V13.3
+        case Role::Goblin: thinkGoblin(a, dt, c, out); break;  // V13.3
         default: break;
     }
 }
@@ -1306,6 +1346,19 @@ void Presence::regie(double dt, const Context& c, std::vector<Event>& out) {
                 if (!spawnClump(c, out, true)) log::info("Praesenz: erzwungenes Buendel nicht moeglich (kein Lager)");
             } else if (r == Role::Window) {  // V13.2: Fenster der Ebene (neu verteilt)
                 windowsPlaced_ = false;
+            } else if (r == Role::Duller) {  // V13.3: gleich an eine Wand neben dem Spieler (Skripte, Tests)
+                if (!spawnDuller(c, out, true)) log::info("Praesenz: erzwungener Duller nicht moeglich (keine Wand mit Gang dahinter)");
+            } else if (r == Role::Arms) {
+                if (!spawnArms(c, out, true)) log::info("Praesenz: erzwungene Arms nicht moeglich (keine Decke in Reichweite)");
+            } else if (r == Role::Wrangler) {  // V13.3: Maennchen (ausser die Ebene kennt nur Weibchen)
+                const bool fem = c.kin && c.kin[world::KIN_WRANGLER].on && c.kin[world::KIN_WRANGLER].mode == "female";
+                if (!spawnWrangler(c, out, fem ? 1 : 0)) log::info("Praesenz: erzwungener Wrangler nicht moeglich");
+            } else if (r == Role::Growler || r == Role::Nguithr) {  // V13.3: eigene Auftritte (presence_growler/_nguithrxurh.cpp)
+                if (!(r == Role::Growler ? spawnGrowler(c, out, true) : spawnNguithr(c, out, true))) log::info("Praesenz: erzwungenes {} nicht moeglich", roleName(r));
+            } else if (r == Role::Ouroboros) {  // V13.3: die Baustelle im Sektor Ouroboros (gleich, ohne Sichtpruefung)
+                if (!spawnOuroboros(c, out, true)) log::info("Praesenz: erzwungene Ouroboros-Baustelle nicht moeglich (kein Sektor Ouroboros geladen)");
+            } else if (r == Role::Goblin) {  // V13.3: eine Bande Plague Goblins (Portal ausser Sicht)
+                if (!spawnGoblin(c, out, true)) log::info("Praesenz: erzwungene Plague Goblins nicht moeglich (kein Platz fuer das Portal)");
             } else if (r >= Role::Faceling) {  // V13.2: wie die Ebene sie kennt; kennt sie es nicht, die Grundart
                 static std::array<world::KinDef, world::KIN_COUNT> base;
                 Context x = c;
@@ -1397,6 +1450,7 @@ void Presence::regie(double dt, const Context& c, std::vector<Event>& out) {
     // je Ebene in dunklen Fenstern; die Ratten fallen ab und zu irgendwo ueber ein anderes Wesen her (Schrei-Ereignis)
     if (c.mode > 0 && !c.suspended && c.kin) {
         if (!windowsPlaced_) placeWindows(c);
+        regieWrangler(dt, c, out);  // V13.3
         for (int k = 0; k < world::KIN_WINDOW; ++k) {
             const world::KinDef& K = c.kin[k];
             if (!K.on) continue;
@@ -1424,6 +1478,13 @@ void Presence::regie(double dt, const Context& c, std::vector<Event>& out) {
             }
         }
     }
+    if (c.mode > 0 && !c.suspended && c.kin) {  // V13.3: Duller (Wandhinterhalt), Arms (Lueftungen im Dunkeln)
+        regieDuller(dt, c, out);
+        regieArms(dt, c, out);
+    }
+    if (c.mode > 0 && !c.suspended) regieGrowler(dt, c, out), regieNguithr(dt, c, out);  // V13.3
+    if (c.mode > 0 && !c.suspended) regieOuroboros(dt, c, out);  // V13.3: Ouroboros-Baustelle
+    if (c.mode > 0 && !c.suspended) regieGoblin(dt, c, out);     // V13.3: Plague Goblins
     if (screamT_ > 0.0) {  // das Licht flackert, bis es vorbei ist
         screamT_ -= dt;
         screamTick_ -= dt;
@@ -1462,7 +1523,8 @@ void Presence::animate(Agent& a, double dt, const Context& c, std::vector<Event>
     // Motten am Ruheplatz und weit weg: Pose bleibt (sie sitzen still)
     if (a.role == Role::Moth && a.state == 0 && a.stateT > 2.0 && !a.showcase) return;
     const bool audible = a.role == Role::Hound || a.role == Role::Smiler || a.role == Role::Clump || a.role == Role::Faceling ||
-                         a.role == Role::SkinStealer || a.role == Role::Wretch || a.role == Role::Rat;  // V13.2
+                         a.role == Role::SkinStealer || a.role == Role::Wretch || a.role == Role::Rat || a.role == Role::Growler ||
+                         a.role == Role::Goblin;  // V13.2, V13.3
     if (a.human) {
         anim::Animator::Input in;
         in.pos = a.pos;
@@ -1482,6 +1544,8 @@ void Presence::animate(Agent& a, double dt, const Context& c, std::vector<Event>
     in.lean = a.lean;
     in.reach = a.reach;
     in.reachAt = (a.puppet ? a.lookAt : c.view.eye) - vec3{0, 0, a.role == Role::Window ? 0.75f : 0.35f};  // V13.2: Fenster greift nach der Brust
+    if (a.role == Role::Wrangler && !a.puppet && !a.showcase) in.reachAt = a.goal;  // V13.3: schnappt nach dem Spieler oder dem Geraeusch
+    if (a.role == Role::Goblin) in.reachAt = a.heard;  // V13.3: Plague Goblins - Ware, Boden, Sprungziel (presence_goblin.cpp)
     in.jaw = a.jaw;
     in.alert = a.alert;
     in.crouch = a.crouch;
@@ -1504,6 +1568,7 @@ void Presence::animate(Agent& a, double dt, const Context& c, std::vector<Event>
 void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
     time_ += dt;
     if (!c.world || !c.player) return;
+    preGN(dt, c);  // V13.3
     const Player& p = *c.player;
     if (c.puppet) {  // V13.2 Koop (Gast): nur nachfuehren und bewegen
         for (auto& ap : agents_) {
@@ -1511,6 +1576,9 @@ void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
             a.age += dt;
             a.stateT += dt;
             if (a.puppet) puppetStep(a, c);
+            if (a.role == Role::Growler || a.role == Role::Nguithr) prepGN(a, c);  // V13.3: Groesse, Netzkugeln
+            if (a.role == Role::Ouroboros) prepOuroboros(a, c);                 // V13.3: Aufgabe, Mauer, Geruest
+            if (a.role == Role::Goblin) prepGoblin(a, c);                       // V13.3: Zustand, Groesse, Portal
             a.sight = perceive(c.view, *c.world, a.feet(), a.height());
             if (a.role == Role::Smiler) {
                 const double ph = time_ * 1.35 + 0.4 * std::sin(time_ * 0.31);
@@ -1518,6 +1586,7 @@ void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
             }
             animate(a, dt, c, out);
         }
+        wranglerFeel(dt, c);  // V13.3
         return;
     }
     if (c.mode <= 0 || c.suspended) {
@@ -1565,14 +1634,18 @@ void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
         const NavField* f;
         const world::Room* room;
         bool canBlackout;
+        const std::vector<std::string>* loot;  // V13.3 Plague Goblins
+        bool hatchet;
+        double health;
     };
     std::vector<Tgt> tgts;
-    if (c.selfAlive) tgts.push_back({c.selfId, c.player, &c.view, c.noise, &playerField_, c.room, c.canBlackout});
+    if (c.selfAlive) tgts.push_back({c.selfId, c.player, &c.view, c.noise, &playerField_, c.room, c.canBlackout, c.loot, c.hatchet, c.health});
     if (c.others)
-        for (const Other& o : *c.others) tgts.push_back({o.id, o.player, &o.view, o.noise, &fieldOf(o.id), o.room, o.canBlackout});
+        for (const Other& o : *c.others) tgts.push_back({o.id, o.player, &o.view, o.noise, &fieldOf(o.id), o.room, o.canBlackout, o.loot, o.hatchet, o.health});
     auto ctxFor = [&](const Tgt& t) {
         Context x = c;
         x.player = t.p, x.view = *t.v, x.noise = t.noise, x.room = t.room, x.canBlackout = t.canBlackout;
+        x.loot = t.loot, x.hatchet = t.hatchet, x.health = t.health;  // V13.3
         x.others = nullptr;
         return x;
     };
@@ -1590,7 +1663,7 @@ void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
         for (size_t i = before; i < agents_.size();) {
             Agent& a = *agents_[i];
             bool visible = false;
-            if (multi && a.role != Role::Nest && a.role != Role::Moth)
+            if (multi && a.role != Role::Nest && a.role != Role::Moth && a.role != Role::Arms)  // V13.3: Arms im Schacht
                 for (const Tgt& t : tgts) visible = visible || perceive(*t.v, *c.world, a.feet(), a.height()).level > 0.2f;
             if (visible) {
                 log::info("Praesenz: {} verworfen - ein Mitspieler saehe es erscheinen", roleName(a.role));
@@ -1653,7 +1726,8 @@ void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
         if (seen) {
             a.seenT += dt;
             a.unseenT = 0.0;
-            const bool kinThreat = (a.role == Role::Faceling && a.mode >= 2) || a.role == Role::SkinStealer || (a.role == Role::Wretch && !a.pleads);
+            const bool kinThreat = (a.role == Role::Faceling && a.mode >= 2) || a.role == Role::SkinStealer || (a.role == Role::Wretch && !a.pleads) ||
+                                   a.role == Role::Duller || (a.role == Role::Wrangler && a.mode != 3);  // V13.3
             if (!a.sighted && !a.showcase && (a.role == Role::Smiler || a.role == Role::Hound || (a.role == Role::Clump && a.state >= 2) || kinThreat) &&
                 (a.role == Role::Smiler || a.sight.level > 0.35f)) {
                 a.sighted = true;
@@ -1697,6 +1771,7 @@ void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
             ++i;
         }
     }
+    wranglerFeel(dt, c);  // V13.3: Beben und Sog am eigenen Spieler
 }
 
 // --- V13.2: neue Wesen (ENTITY_ABGLEICH.md; Verhalten je Wesen: KREATUR_<Name>.md) -----------------------------------
@@ -1748,7 +1823,8 @@ void Presence::netApply(const std::vector<NetState>& in, double stamp) {
         Agent* a = nullptr;
         for (auto& q : agents_)
             if (q->puppet && q->netId == n.netId) a = q.get();
-        const Role role = (Role)std::clamp(n.role, 0, kRoleCount - 1);
+        if (n.role < 0 || n.role >= kRoleCount) continue;  // V13.3: Rolle unbekannt (Protokoll traegt bis kRoles): nicht zeigen
+        const Role role = (Role)n.role;
         if (a && (a->role != role || a->variant != n.variant)) {  // Kennung neu vergeben: neu anlegen
             std::erase_if(agents_, [&](const auto& q) { return q.get() == a; });
             a = nullptr;
@@ -1760,7 +1836,7 @@ void Presence::netApply(const std::vector<NetState>& in, double stamp) {
             na->puppet = true;
             na->netId = n.netId;
             na->variant = n.variant;
-            na->noShadow = role == Role::Nest || role == Role::Moth || role == Role::Gestalt || role == Role::Clump || role == Role::Window;
+            na->noShadow = role == Role::Nest || role == Role::Moth || role == Role::Gestalt || role == Role::Clump || role == Role::Window || role == Role::Arms;
             na->up = n.up, na->fwd = n.fwd;
             na->initBody(n.pos, n.yaw, 0x9E37u + n.netId);
             if (role == Role::Moth) {  // gleich fertig an Wand oder Decke (wie beim Host)
@@ -1789,7 +1865,7 @@ void Presence::netApply(const std::vector<NetState>& in, double stamp) {
         a->tilt = n.tilt, a->lean = n.lean;
         a->wave = n.wave, a->talk = n.talk, a->plea = n.plea, a->strike = n.strike;
         a->up = n.up, a->fwd = n.fwd;
-        if (a->role == Role::Hound) a->rig.setGlow(1.0f);
+        if (a->role == Role::Hound || a->role == Role::Wrangler) a->rig.setGlow(1.0f);  // V13.3: Augen des Wranglers
     }
 }
 
@@ -1820,6 +1896,12 @@ void Presence::puppetStep(Agent& a, const Context& c) {
     a.lookAt = eye;
     a.perceiveAt = eye;
     a.lightFrom = flash;
+    // V13.3: ein Smiler am Leuchtkoeder (Kanal bait) sieht zum naechsten Stab (KREATUR_Smiler.md)
+    if (a.role == Role::Smiler && a.bait > 0.5f && c.lures) {
+        float bd = 5.0f;
+        for (const Lure& L : *c.lures)
+            if (hdist(L.pos, a.pos) < bd) bd = hdist(L.pos, a.pos), a.lookAt = a.perceiveAt = L.pos;
+    }
 }
 
 void Presence::collect(std::vector<VisibleMesh>& out, std::vector<mat4>& palette, vec3 eye, int detail) {

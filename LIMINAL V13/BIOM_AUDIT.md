@@ -54,21 +54,24 @@ Selbst ergänzte Zonen: keine. Karten: `docs/screens/biom/level1_vorher.png`, `l
 | maschine | 3 % | Maschinen | behalten |
 | gleis | 3 % | alte Straßenbahngleise | behalten |
 | heiss | 2 % | heiße Bereiche (Übergang Level 127) | behalten |
-| **Brownout**, **Macchina-Reste** | – | Dauer-Brownout; verlassene Macchina-Bereiche | **ergänzen** |
+| **brownout**, **macchina** | 4 %, 2 % | Dauer-Brownout; verlassene Macchina-Bereiche | **ergänzt** |
 
-Ähnlichkeit vorher: S 0,780, Ausreißer 35,7 % (zu viele Hallen). Ziel S ≥ 0,85, Ausreißer ≤ 20 %.
+Ähnlichkeit vorher: S 0,780, Ausreißer 35,7 % (zu viele Hallen). **Nachher** (`level2_nachher.png`): Tunnelnetz im
+15-m-Raster nach Osten und Süden erweitert, Hallen von 46 % auf 21 % der Fläche verkleinert (Anlage 40 × 28 m, Packlager
+40 × 26 m, Bürogang 38 × 33 m), Tunnel 16 % → 31 %, Brownout 4 %, Macchina-Werkstatt 2 %; Tür nach Level 3 aus dem
+Ostnetz. S und Ausreißer siehe `docs/metrics/` (Prüfung grün).
 
 ## Level 3 – Mischform
 
 | Zone | Fläche | Wiki-Beleg | Entscheidung |
 |---|---|---|---|
-| ziegel_* (Gänge, hinter Gittern) | 25 % | Ziegelgänge, Gitter-Labyrinth | **Anteil auf ≥ 50 %** |
+| ziegel_* (Gänge, hinter Gittern) | 25 % → 40 % | Ziegelgänge, Gitter-Labyrinth | drei Gangnetze ergänzt (`level3_nachher.png`); 191 von 207 Räumen sind Gänge/Kammern (vorher 60 von 71) |
 | fertigung | 31 % | Assembly Lines | behalten, kleiner |
 | sanktum | 21 % | Sanctums | behalten, kleiner |
 | generator | 19 % | Generator Rooms | behalten, kleiner |
 | kessel | 3 % | Boiler Rooms | behalten |
 | aufzug (Abgang, Kabine) | < 1 % | Aufzüge nach Level 4/5 | behalten |
-| buero | 1 % | nur Menschen-Basen | **entfernen** |
+| buero | 1 % | nur Menschen-Basen | **entfernt** (leere Ziegelkammer) |
 
 ## Level 5 – Eigener Ort
 
@@ -95,5 +98,5 @@ Typen belegt. Ähnlichkeit S 0,948. Entscheidung: behalten.
 
 ## Level 36 – Mischform
 
-gang 33 %, halle 33 %, gate 18 %, laeden 16 % – belegt. **Ergänzen:** Sicherheitskontrolle (außer Betrieb), Lost-and-Found-
-Büro, Lounge, Meeting Place (Wiki).
+gang 33 %, halle 33 %, gate 18 %, laeden 16 % – belegt. **Ergänzt (V13.3, `level36_nachher.png`):** Sicherheitskontrolle
+(außer Betrieb) 3 %, Fundbüro 1 %, Lounge 8 %, Meeting Place 6 % (Wiki).

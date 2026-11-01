@@ -87,5 +87,15 @@ struct FuseBoxParts {
 };
 FuseBoxParts makeFuseBox(bool withFuse);
 MeshData makeFuseItem();
+// V13.3: Beil (Plague Goblins) - liegend: Stiel entlang +x (Griff im Ursprung, Kopf bei x = 0,31), Schneide nach +y, flach in z
+struct HatchetParts {
+    MeshData handle, head;
+};
+HatchetParts makeHatchet();
+// V13.3: Leuchtstab (render/mesh_glowstick.cpp) - Huelle (leuchtet) und Kappe mit Oese; liegend entlang +x
+struct GlowstickParts {
+    MeshData tube, cap;
+};
+GlowstickParts makeGlowstick();
 
 }  // namespace lim::gfx

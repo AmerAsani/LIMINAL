@@ -164,8 +164,17 @@ void FigureRig::collect(std::vector<VisibleMesh>& out, std::vector<mat4>& palett
     int lod = d < near0[std::clamp(detail, 0, 3)] * sz ? 0 : (d < near1[std::clamp(detail, 0, 3)] * sz ? 1 : 2);
     if (attached) lod = detail >= 1 ? 0 : 1;
     const size_t off = palette.size();
+    float sMax = 1.0f;  // V13.3
     for (size_t b = 0; b < frames_.size() && b < bindInv_.size(); ++b) {
         mat4 m = frames_[b] * bindInv_[b];
+        // V13.3: Massstab je Knochen um sein Startgelenk (Dual Quaternions mischen gleichmaessige Skalierung getrennt)
+        if (creature_ && b < cpose_.s.size() && cpose_.s[b] != 1.0f) {
+            const float s = std::max(cpose_.s[b], 0.001f);
+            const vec3 tF = frames_[b].c[3].xyz();
+            for (int c = 0; c < 3; ++c) m.c[c] = m.c[c] * s;
+            m.c[3] = vec4(tF * (1.0f - s) + m.c[3].xyz() * s, 1.0f);
+            sMax = std::max(sMax, s);
+        }
         m.c[3] = vec4(m.c[3].xyz() - origin_, 1.0f);
         palette.push_back(m);
     }
@@ -200,7 +209,7 @@ void FigureRig::collect(std::vector<VisibleMesh>& out, std::vector<mat4>& palett
     v.attached = attached;
     v.dualQuat = true;  // V13.2 (B-001): Dual Quaternions - die Rahmen sind starr (Menschen und Wesen), Gelenke klappen nicht ein
     v.cullCenter = c;
-    v.cullRadius = attached ? 0.0f : reach_;
+    v.cullRadius = attached ? 0.0f : reach_ * sMax;
     v.material = material;
     v.highlight = glow_;
     out.push_back(v);
@@ -217,8 +226,11 @@ void FigureRig::shadow(ShadowCaster& s) const {
     if (creature_) {
         // je Knochen eine Kapsel (duenne Finger und Zehen nicht)
         const CreatureSkeleton& sk = entitySkeleton(ent_);
-        for (const CBone& b : sk.bones)
-            if (b.shadow && b.a != b.b && b.radius >= 0.015f) cap(cpose_.j[b.a], cpose_.j[b.b], std::min(b.radius, 0.45f));
+        for (size_t i = 0; i < sk.bones.size(); ++i) {
+            const CBone& b = sk.bones[i];
+            const float s = i < cpose_.s.size() ? cpose_.s[i] : 1.0f;  // V13.3: Massstab je Knochen
+            if (b.shadow && b.a != b.b && b.radius * s >= 0.015f) cap(cpose_.j[b.a], cpose_.j[b.b], std::min(b.radius * s, 0.45f));
+        }
         return;
     }
     const auto& j = pose_.j;

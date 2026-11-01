@@ -566,7 +566,9 @@ const Build& bipedBuild(Entity e) {
 const CreatureSkeleton& entitySkeleton(Entity e) {
     static const std::array<CreatureSkeleton, kEntityCount> all = {makeSmiler(), makeHound(), makeMoth(), makeGestalt(), makeNest(),
                                                                    makeClump(), makeBiped(Entity::Faceling), makeBiped(Entity::SkinStealer),
-                                                                   makeBiped(Entity::Wretch), makeRat(), makeWindow()};
+                                                                   makeBiped(Entity::Wretch), makeRat(), makeWindow(), du::skeleton(),
+                                                                   ar::skeleton(), wg::makeWrangler(), makeGrowlerSkeleton(), makeNguithrSkeleton(),
+                                                                   ob::makeSkeleton(), gb::makeSkeleton()};  // V13.3
     return all[(size_t)std::min((int)e, kEntityCount - 1)];
 }
 
@@ -583,6 +585,13 @@ const char* entityModel(Entity e) {
         case Entity::Wretch: return "ent_wretch";
         case Entity::Rat: return "ent_rat";
         case Entity::Window: return "ent_window";
+        case Entity::Duller: return "ent_duller";  // V13.3
+        case Entity::Arms: return "ent_arms";
+        case Entity::Wrangler: return "ent_wrangler";  // V13.3
+        case Entity::Growler: return "ent_growler";        // V13.3
+        case Entity::Nguithr: return "ent_nguithrxurh";
+        case Entity::Ouroboros: return "ent_ouroboros";  // V13.3
+        case Entity::Goblin: return "ent_goblin";        // V13.3
         default: return "ent_smiler";
     }
 }
@@ -591,6 +600,18 @@ const std::vector<const char*>& entityVariants(Entity e) {
     // Faceling: entwickelt (Level 3), rosa Kleid (Level 188); Death Rat: haarlos (Level 2, Hitze); Skin-Stealer: getarnt (in Menschenhaut)
     static const std::vector<const char*> none, fc{"ent_faceling", "ent_faceling_evo", "ent_faceling_dress", "ent_faceling_b", "ent_faceling_c"}, rat{"ent_rat", "ent_rat_bald"},
         ss{"ent_skinstealer", "ent_skinstealer_skin"};
+    // V13.3 Wrangler: Maennchen (Laecheln), Weibchen (Zangen), traechtiges Weibchen (Samen am Leib), Jungtiere am Ast
+    static const std::vector<const char*> wr{"ent_wrangler", "ent_wrangler_f", "ent_wrangler_fs", "ent_wrangler_brood"};
+    if (e == Entity::Wrangler) return wr;
+    // V13.3: Nguithr'xurh - 1 Netzkugeln der Kolonie, 2 dasselbe mit eingesponnenen Deathmoths (Level 2)
+    static const std::vector<const char*> ng{"ent_nguithrxurh", "ent_nguithrxurh_web", "ent_nguithrxurh_web_moth"};
+    if (e == Entity::Nguithr) return ng;
+    // V13.3: Ouroboros-Arbeiter - 1 Brecher (schwer), 2 die Mauer, 3 das Fahrgeruest
+    static const std::vector<const char*> ob{"ent_ouroboros", "ent_ouroboros_heavy", "ent_ouroboros_wall", "ent_ouroboros_scaffold"};
+    if (e == Entity::Ouroboros) return ob;
+    // V13.3: Plague Goblins - 1 Spaeher, 2 Torwaechterin, 3 das Portal der Bande
+    static const std::vector<const char*> gbv{"ent_goblin", "ent_goblin_scout", "ent_goblin_gate", "ent_goblin_portal"};
+    if (e == Entity::Goblin) return gbv;
     return e == Entity::Faceling ? fc : (e == Entity::Rat ? rat : (e == Entity::SkinStealer ? ss : none));
 }
 
@@ -607,6 +628,13 @@ const char* entityName(Entity e) {
         case Entity::Wretch: return "Wretch";
         case Entity::Rat: return "Death Rat";
         case Entity::Window: return "Fensterwesen";
+        case Entity::Duller: return "Duller";  // V13.3
+        case Entity::Arms: return "Arms";
+        case Entity::Wrangler: return "Wrangler";  // V13.3
+        case Entity::Growler: return "Growler";  // V13.3
+        case Entity::Nguithr: return "Nguithr'xurh";
+        case Entity::Ouroboros: return "Ouroboros-Arbeiter";  // V13.3
+        case Entity::Goblin: return "Plague Goblin";  // V13.3
         default: return "?";
     }
 }
