@@ -274,6 +274,24 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     materialData_[FM_ENT_SOLIFUGE] = GpuMaterial{{1.2f, 0.8f, 0.5f}, 0, ent(EL_FUR, ML_FIBER), 1.05f, 0, 0.45f};  // Runde 2/4: zu hell und sauber (Holz)
     materialData_[FM_ENT_SILK] = GpuMaterial{{1.75f, 1.68f, 1.5f}, 0, ent(EL_FUR, ML_FIBER), 1.15f, 0, 0.5f};  // Runde 1: zu weiss, glaenzte wie Glas
     materialData_[FM_ENT_SEDATIVE] = GpuMaterial{{0.72f, 0.66f, 0.48f}, 0, ent(EL_TOOTH, ML_PORES), 0.1f, 0, 0.15f};  // Runde 5: Pfuetzen wie helles Papier - dunkler, nass
+    // V13.3: Ouroboros-Arbeiter - der Koerper ist ein Schatten mit Rauchrand (kMatOuroSmoke); der Overall faengt etwas Licht
+    // (verwaschenes, staubiges Segeltuch), Gesicht und Haende schlucken es. Die Werkzeuge sind echt und fest - die Gefahr
+    const u32 obSmoke = kMatFlagSmoke | kMatFlagSilhouette | kMatOuroSmoke;
+    materialData_[FM_ENT_OB_OVERALL] = GpuMaterial{{0.060f, 0.057f, 0.052f}, 0, tri(L_DENIM) | obSmoke, 1.3f, 0, 0.6f};
+    materialData_[FM_ENT_OB_VOID] = GpuMaterial{{0.0025f, 0.0025f, 0.003f}, 0, tri(L_SKIN) | obSmoke, 1.4f, 1.0f, 0.0f};
+    materialData_[FM_ENT_OB_DUST] = GpuMaterial{{0.26f, 0.25f, 0.235f}, 0, tri(L_DENIM) | obSmoke, 1.8f, 0, 0.6f};  // Zementstaub, Knie
+    materialData_[FM_ENT_OB_EYE] = GpuMaterial{{0.58f, 0.58f, 0.54f}, 0, ent(EL_TOOTH, ML_PORES), 0.9f, 0, 0.1f};  // matt, nur im Licht
+    materialData_[FM_ENT_OB_RUBBER] = GpuMaterial{{0.034f, 0.034f, 0.035f}, 0, tri(L_LEATHER), 0.55f, 0, 0.45f};   // Gummistiefel, Schlauch
+    materialData_[FM_ENT_OB_STEEL] = GpuMaterial{{0.60f, 0.60f, 0.58f}, 0, ent(EL_TOOTH, ML_CRAZE), 0.55f, 1.0f, 0.35f};  // verzinkt, Werkzeug
+    materialData_[FM_ENT_OB_RUST] = GpuMaterial{{0.30f, 0.21f, 0.15f}, 0, ent(EL_HORN, ML_CRAZE), 1.35f, 0.3f, 0.5f};
+    materialData_[FM_ENT_OB_PAINT] = GpuMaterial{{0.60f, 0.43f, 0.07f}, 0, ent(EL_TOOTH, ML_CRAZE), 0.85f, 0, 0.55f};  // Maschinenlack, abgestossen
+    materialData_[FM_ENT_OB_WOOD] = GpuMaterial{{0.50f, 0.38f, 0.25f}, 0, ent(EL_HORN, ML_FIBER), 1.25f, 0, 0.5f};
+    materialData_[FM_ENT_OB_BRICK] = GpuMaterial{{0.64f, 0.34f, 0.21f}, 0, ent(EL_HORN, ML_PORES), 1.9f, 0, 0.45f};  // Hochlochziegel
+    materialData_[FM_ENT_OB_TAPE_R] = GpuMaterial{{0.60f, 0.07f, 0.05f}, 0, ent(EL_TOOTH, ML_PORES), 0.6f, 0, 0.35f};
+    materialData_[FM_ENT_OB_TAPE_W] = GpuMaterial{{0.82f, 0.81f, 0.77f}, 0, ent(EL_TOOTH, ML_PORES), 0.6f, 0, 0.35f};
+    materialData_[FM_ENT_OB_SPARK] = GpuMaterial{{1.0f, 0.74f, 0.38f}, 6.0f, ent(EL_TOOTH, ML_PORES), 0.5f, 0, 0.0f};
+    materialData_[FM_ENT_OB_BEACON] = GpuMaterial{{1.0f, 0.56f, 0.10f}, 4.0f, ent(EL_TOOTH, ML_PORES), 0.3f, 0, 0.0f};
+    materialData_[FM_ENT_OB_CARD] = GpuMaterial{{0.40f, 0.44f, 0.33f}, 0, ent(EL_TOOTH, ML_FIBER), 1.7f, 0, 0.5f};  // Anhaenger am Guertel
     writeMaterials(gpu);
     lights_ = gpu.createStructured(sizeof(GpuLight), 2048, true, false);
     puddles_ = gpu.createStructured(sizeof(vec4), kMaxPuddles * 2, true, false);  // V13.3

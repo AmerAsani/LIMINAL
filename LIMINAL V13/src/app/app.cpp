@@ -242,7 +242,7 @@ void App::scriptStep() {
             const R r = n == "faceling" ? R::Faceling : n == "skinstealer" ? R::SkinStealer : n == "wretch" ? R::Wretch : n == "rat" ? R::Rat
                         : n == "window" ? R::Window : n == "hound" ? R::Hound : n == "smiler" ? R::Smiler : n == "clump" ? R::Clump
                         : n == "duller" ? R::Duller : n == "arms" ? R::Arms : n == "wrangler" ? R::Wrangler
-                        : n == "growler" ? R::Growler : n == "nguithrxurh" ? R::Nguithr : R::Gestalt;  // V13.3
+                        : n == "growler" ? R::Growler : n == "nguithrxurh" ? R::Nguithr : n == "ouroboros" ? R::Ouroboros : R::Gestalt;  // V13.3
             auto& pr = session_->presence();
             if (!pr.has(r)) {
                 log::warn("Skript: near - kein {}", game::Presence::roleName(r));
@@ -351,7 +351,7 @@ void App::scriptStep() {
             const int kind = n == "hound" ? 1 : n == "moth" ? 2 : n == "gestalt" ? 3 : n == "nest" ? 4 : n == "clump" ? 5 : n == "faceling" ? 6
                              : n == "skinstealer" ? 7 : n == "wretch" ? 8 : n == "rat" ? 9 : n == "window" ? 10 : n == "player" ? 99
                              : n == "duller" ? 11 : n == "arms" ? 12 : n == "wrangler" ? 13
-                             : n == "growler" ? 14 : n == "nguithrxurh" ? 15 : 0;  // V13.3
+                             : n == "growler" ? 14 : n == "nguithrxurh" ? 15 : n == "ouroboros" ? 16 : 0;  // V13.3
             auto& pl = session_->player();
             vec3 at{(float)(pl.x + std::cos(pl.angle) * dist), (float)(pl.y + std::sin(pl.angle) * dist), 0.0f};
             at.z = session_->world().tile(ifloor(at.x), ifloor(at.y)).floor;
@@ -364,6 +364,11 @@ void App::scriptStep() {
             float val = 0.0f;
             if (std::sscanf(arg.c_str(), "%31s %f", key, &val) < 2 || !session_->presence().showcaseSet(key, val))
                 log::warn("Skript: figstate '{}' unbekannt oder keine Vorfuehrung", arg);
+        } else if (cmd == "ouro" && session_) {  // V13.3 (Bilder): ouro <wall|tower|fill|quick|weld|kill> <wert> - Ouroboros-Baustelle steuern
+            char key[32] = {};
+            double val = 0.0;
+            if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) < 2 || !session_->presence().ouroSet(key, val))
+                log::warn("Skript: ouro '{}' unbekannt oder keine Baustelle", arg);
         } else if (cmd == "figclear" && session_) {  // V13 (Tests): Vorfuehrungen entfernen
             session_->presence().clearShowcase();
         } else if (cmd == "presence" && session_) {  // V10: Entity erscheinen lassen: presence <smiler|hound|moth|gestalt|blackout> [abstand]
@@ -389,6 +394,7 @@ void App::scriptStep() {
                 if (n == "wrangler") r = R::Wrangler;  // V13.3
                 if (n == "growler") r = R::Growler;  // V13.3
                 if (n == "nguithrxurh") r = R::Nguithr;
+                if (n == "ouroboros") r = R::Ouroboros;  // V13.3: die Baustelle im Sektor Ouroboros
                 session_->presence().force(r, dist);
             }
         } else if (cmd == "audioinfo") {  // V11 (Tests): Zustand der Klanglandschaft ins Protokoll
@@ -1387,6 +1393,8 @@ void App::handleEvents() {
                         if (role == Role::Duller) at("duller_step", e.pos, 0.3f + 0.3f * e.intensity, 14.0f, 0.95f + 0.1f * var);  // V13.3
                         // V13.3: Growler - dumpfer, weicher Aufschlag, Draht kratzt, das Gewirr raschelt nach
                         if (role == Role::Growler) at(std::format("growler_drag_{}", n % 3), e.pos, 0.35f + 0.5f * e.intensity, 22.0f, 0.88f + 0.16f * var);
+                        // V13.3: Ouroboros-Arbeiter - schwere Gummistiefel
+                        if (role == Role::Ouroboros) at(std::format("ouro_step_{}", n % 3), e.pos, 0.3f + 0.35f * e.intensity, 18.0f, 0.92f + 0.12f * var);
                         break;
                     // V11 Buendel: Klopfen im Schacht, Herabfallen, Schleifen, Ausholen
                     case PE::Knock: at(std::format("clump_knock_{}", n % 3), e.pos, 0.9f, 30.0f); break;
@@ -1492,6 +1500,28 @@ void App::handleEvents() {
                         if (e.intensity > 0.6f) at("ngui_chitter_1", e.pos, 0.85f, 14.0f, 0.95f + 0.1f * var);
                         else at("ngui_chitter_0", e.pos, 0.35f + 0.4f * e.intensity, 11.0f, 0.9f + 0.2f * var);
                         break;
+                    // V13.3: Ouroboros-Arbeiter - Werkzeug, Maschinen, Warnklang, Geruest, Stimmen, Schub, Vergehen
+                    case PE::Work:
+                        if (e.intensity < 0.12f) at(std::format("ouro_tap_{}", n % 3), e.pos, 0.7f, 28.0f, 0.95f + 0.1f * var);
+                        else if (e.intensity < 0.37f) at(std::format("ouro_trowel_{}", n % 2), e.pos, 0.5f, 14.0f, 0.95f + 0.1f * var);
+                        else if (e.intensity < 0.62f) at(std::format("ouro_set_{}", n % 2), e.pos, 0.6f, 18.0f, 0.95f + 0.1f * var);
+                        else if (e.intensity < 0.87f) at("ouro_pry", e.pos, 0.8f, 26.0f);
+                        else at(std::format("ouro_break_{}", n % 2), e.pos, 0.9f, 34.0f);
+                        break;
+                    case PE::Weld:
+                        if (e.intensity < 0.5f) at("ouro_ignite", e.pos, 0.7f, 20.0f);
+                        else at(std::format("ouro_weld_{}", n % 2), e.pos, 0.55f, 20.0f, 0.97f + 0.06f * var);
+                        break;
+                    case PE::Jackhammer: at(std::format("ouro_jack_{}", n % 2), e.pos, 1.0f, 46.0f, 0.98f + 0.04f * var); break;
+                    case PE::Warn: at(std::format("ouro_warn_{}", e.intensity < 0.25f ? 0 : (e.intensity < 0.75f ? 1 : 2)), e.pos, 0.9f, 40.0f); break;
+                    case PE::Creak: at(std::format("ouro_creak_{}", n % 2), e.pos, 1.0f, 36.0f); break;
+                    case PE::Crash: at(e.intensity > 0.75f ? "ouro_crash_0" : "ouro_crash_1", e.pos, 1.0f, e.intensity > 0.75f ? 55.0f : 40.0f); break;
+                    case PE::Murmur:
+                        if (e.intensity > 0.75f) at(std::format("ouro_murmur_{}", n % 6), e.pos, 0.85f, 7.0f, 0.95f + 0.1f * var);
+                        else at(std::format("ouro_murmur_{}", n % 6), e.pos, 0.5f, 18.0f, 0.92f + 0.16f * var);
+                        break;
+                    case PE::Shove: at("ouro_shove", e.pos, 0.9f, 6.0f); break;
+                    case PE::Dissolve: at("ouro_dissolve", e.pos, 0.8f, 26.0f); break;
                     default: break;
                 }
                 break;
@@ -1966,6 +1996,22 @@ void App::renderWorld(double dt, bool clean) {
             L.spill = 0.6f;
             L.size = 0.12f;
             L.soft = 0.5f;
+            L.shadows = false;
+            sp.extraLights.push_back(L);
+        }
+        // V13.3: Ouroboros-Baustelle - Lichtbogen beim Schweissen (kalt, flackernd), Warnleuchten (bernstein, blinkend)
+        ouroLights_.clear();
+        if (playing) s.presence().ouroLights(ouroLights_, cam.pos);
+        for (const auto& [lp, col] : ouroLights_) {
+            if (sp.extraLights.size() >= 10) break;
+            gfx::ExtraLight L;
+            L.pos = lp;
+            L.dir = {0.0f, 0.0f, -1.0f};
+            L.color = col;
+            L.range = 7.0f;
+            L.spill = 1.0f;
+            L.size = 0.05f;
+            L.soft = 0.3f;
             L.shadows = false;
             sp.extraLights.push_back(L);
         }

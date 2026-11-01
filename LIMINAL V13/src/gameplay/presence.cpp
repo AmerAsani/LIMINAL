@@ -32,6 +32,7 @@ const char* Presence::roleName(Role r) {
         case Role::Wrangler: return "Wrangler";  // V13.3
         case Role::Growler: return "Growler";  // V13.3
         case Role::Nguithr: return "Nguithr'xurh";
+        case Role::Ouroboros: return "Ouroboros-Arbeiter";  // V13.3
     }
     return "?";
 }
@@ -46,6 +47,7 @@ void Presence::clear() {
     windowsPlaced_ = false;  // V13.2: neue Ebene, neue Fenster
     screamT_ = 0.0;
     broodPlaced_ = false, quake_ = trance_ = 0.0f;  // V13.3: Wrangler
+    ouroPlaced_ = false, ouroSite_.reset();         // V13.3: Ouroboros-Baustelle der neuen Ebene
 }
 
 void Presence::setGrace(double s) {
@@ -496,6 +498,7 @@ bool Presence::showcaseSet(const std::string& key, float v) {
     else if (key == "plea") a->plea = v;
     else if (key == "strike") a->strike = v, a->strikeLoop = v >= 1.0f;
     else if (key == "variant") a->variant = (int)v, a->initBody(a->pos, a->yaw, 7);
+    else if (key == "task") a->state = (int)v, a->stateT = 0.0;  // V13.3 (Ouroboros-Arbeiter: Aufgabe)
     else return false;
     return true;
 }
@@ -1085,6 +1088,7 @@ void Presence::think(Agent& a, double dt, const Context& c, std::vector<Event>& 
     if (a.showcase) {  // Vorfuehrung: das Gesicht sieht zur Kamera
         if (a.look) a.lookAt = c.view.eye;
         if (a.role == Role::Growler || a.role == Role::Nguithr) prepGN(a, c);  // V13.3
+        if (a.role == Role::Ouroboros) prepOuroboros(a, c);                 // V13.3
         return;
     }
     switch (a.role) {
@@ -1103,6 +1107,7 @@ void Presence::think(Agent& a, double dt, const Context& c, std::vector<Event>& 
         case Role::Wrangler: thinkWrangler(a, dt, c, out); break;  // V13.3
         case Role::Growler: thinkGrowler(a, dt, c, out); break;  // V13.3
         case Role::Nguithr: thinkNguithr(a, dt, c, out); break;
+        case Role::Ouroboros: thinkOuroboros(a, dt, c, out); break;  // V13.3
         default: break;
     }
 }
@@ -1344,6 +1349,8 @@ void Presence::regie(double dt, const Context& c, std::vector<Event>& out) {
                 if (!spawnWrangler(c, out, fem ? 1 : 0)) log::info("Praesenz: erzwungener Wrangler nicht moeglich");
             } else if (r == Role::Growler || r == Role::Nguithr) {  // V13.3: eigene Auftritte (presence_growler/_nguithrxurh.cpp)
                 if (!(r == Role::Growler ? spawnGrowler(c, out, true) : spawnNguithr(c, out, true))) log::info("Praesenz: erzwungenes {} nicht moeglich", roleName(r));
+            } else if (r == Role::Ouroboros) {  // V13.3: die Baustelle im Sektor Ouroboros (gleich, ohne Sichtpruefung)
+                if (!spawnOuroboros(c, out, true)) log::info("Praesenz: erzwungene Ouroboros-Baustelle nicht moeglich (kein Sektor Ouroboros geladen)");
             } else if (r >= Role::Faceling) {  // V13.2: wie die Ebene sie kennt; kennt sie es nicht, die Grundart
                 static std::array<world::KinDef, world::KIN_COUNT> base;
                 Context x = c;
@@ -1468,6 +1475,7 @@ void Presence::regie(double dt, const Context& c, std::vector<Event>& out) {
         regieArms(dt, c, out);
     }
     if (c.mode > 0 && !c.suspended) regieGrowler(dt, c, out), regieNguithr(dt, c, out);  // V13.3
+    if (c.mode > 0 && !c.suspended) regieOuroboros(dt, c, out);  // V13.3: Ouroboros-Baustelle
     if (screamT_ > 0.0) {  // das Licht flackert, bis es vorbei ist
         screamT_ -= dt;
         screamTick_ -= dt;
@@ -1558,6 +1566,7 @@ void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
             a.stateT += dt;
             if (a.puppet) puppetStep(a, c);
             if (a.role == Role::Growler || a.role == Role::Nguithr) prepGN(a, c);  // V13.3: Groesse, Netzkugeln
+            if (a.role == Role::Ouroboros) prepOuroboros(a, c);                 // V13.3: Aufgabe, Mauer, Geruest
             a.sight = perceive(c.view, *c.world, a.feet(), a.height());
             if (a.role == Role::Smiler) {
                 const double ph = time_ * 1.35 + 0.4 * std::sin(time_ * 0.31);

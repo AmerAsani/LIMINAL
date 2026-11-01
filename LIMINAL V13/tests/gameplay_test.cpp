@@ -3340,6 +3340,213 @@ static void testV133GrowlerNguithr(const std::string& dataDir) {
     }
 }
 
+// V13.3: Ouroboros-Arbeiter (KREATUR_OuroborosArbeiter.md) - nur im Sektor Ouroboros (Level 1); sie beachten den Spieler nicht
+// (Blick bei der Arbeit, kein Ausweichen - Schub); Gefahr nur durch ihre Maschinen, jede angekuendigt; kein Schaden ausserhalb
+// der abgesperrten Flaechen
+static void testV133Ouroboros(const std::string& dataDir) {
+    const game::Content& content = *gContent11;
+    game::PrefabLibrary prefabs;
+    prefabs.loadDirectory(dataDir + "/prefabs");
+    JobSystem jobs(2);
+    using PE = game::Presence::Event;
+    using Role = game::Presence::Role;
+    auto open = [&](const char* level, i64 seed) {
+        auto s = std::make_unique<game::GameSession>(content, prefabs, content.level(level, world::kLayoutV6), seed, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        s->presence().setGrace(3000.0);
+        return s;
+    };
+    auto step = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, double secs, const std::function<bool()>& each = {}) {
+        for (int i = 0; i < (int)(secs * 60.0); ++i) {
+            if (each && each()) break;
+            s.update(1.0 / 60.0, {}, false);
+            ev.insert(ev.end(), s.events().begin(), s.events().end());
+            s.events().clear();
+        }
+    };
+    auto count = [](const std::vector<game::GameEvent>& ev, PE::Type t, float minI = -1.0f) {
+        return (int)std::count_if(ev.begin(), ev.end(), [&](const game::GameEvent& e) {
+            return e.type == game::GameEvent::Figure && e.index == (int)t && e.role == (int)Role::Ouroboros && e.intensity >= minI;
+        });
+    };
+    auto put = [](game::GameSession& s, vec3 p, vec3 look) {
+        auto& pl = s.player();
+        pl.x = p.x, pl.y = p.y, pl.z = p.z, pl.vx = pl.vy = 0.0;
+        pl.angle = std::atan2(look.y - p.y, look.x - p.x);
+        pl.pitch = std::atan2(look.z - pl.eye(), std::max(0.4, (double)std::hypot(look.x - p.x, look.y - p.y)));
+        s.body().reset();
+    };
+    auto loc = [](vec3 c, float yaw, float x, float y) {
+        const vec3 F{std::cos(yaw), std::sin(yaw), 0.0f}, L{-F.y, F.x, 0.0f};
+        return c + F * x + L * y;
+    };
+    // --- Level 1: die Baustelle entsteht nur im Sektor Ouroboros, ausser Sicht ------------------------------------------
+    auto s = open("level1", 31);
+    std::vector<game::GameEvent> ev;
+    auto& P = s->presence();
+    // im Garden neben dem Sektor, Blick vom Sektor weg (Osten)
+    put(*s, {200.5f, 112.5f, 0.0f}, {230.0f, 112.5f, 1.6f});
+    step(*s, ev, 8.0, [&] { return P.ouroInfo().placed; });
+    auto info = P.ouroInfo();
+    check(info.placed, "Ouroboros: die Baustelle entsteht, wenn der Sektor geladen ist (ausser Sicht)");
+    if (!info.placed) return;
+    const world::Tile* wt = s->world().tileIfLoaded(ifloor(info.wall.x), ifloor(info.wall.y));
+    const world::Tile* tt = s->world().tileIfLoaded(ifloor(info.tower.x), ifloor(info.tower.y));
+    check(wt && wt->room && wt->room->type && wt->room->type->key == "ouroboros" && tt && tt->room && tt->room->type && tt->room->type->key == "ouroboros",
+          "Ouroboros: Mauer und Geruest stehen im Sektor Ouroboros");
+    int inRoom = 0, workers = 0;
+    for (int j = 0; j < 5; ++j) {
+        if (!info.has[(size_t)j]) continue;
+        ++workers;
+        const world::Tile* t = s->world().tileIfLoaded(ifloor(info.pos[(size_t)j].x), ifloor(info.pos[(size_t)j].y));
+        inRoom += t && t->room && t->room->type && t->room->type->key == "ouroboros" ? 1 : 0;
+    }
+    check(workers == 5 && inRoom == 5, std::format("Ouroboros: fuenf Arbeiter, alle im Sektor ({} von {})", inRoom, workers));
+    check(P.count(Role::Ouroboros) == 7, std::format("Ouroboros: Arbeiter, Mauer und Geruest ({} Wesen)", P.count(Role::Ouroboros)));
+    // --- sie arbeiten weiter, wenn man daneben steht und sie anleuchtet; der Blick bleibt bei der Arbeit -------------------
+    step(*s, ev, 12.0);  // an die Arbeit
+    info = P.ouroInfo();
+    const int laid0 = info.laid;
+    const vec3 hammerer = info.pos[1];
+    const vec3 F1{std::cos(info.wallYaw), std::sin(info.wallYaw), 0.0f}, L1{-F1.y, F1.x, 0.0f};
+    put(*s, hammerer + F1 * 0.4f + L1 * 1.3f, info.head[1]);  // seitlich neben dem Klopfer, sieht ihn an
+    s->flashlight().on = true;
+    ev.clear();
+    int looked = 0, atWork = 0, samples = 0;
+    const float hp0 = (float)s->stats().health;
+    step(*s, ev, 10.0, [&] {
+        const auto in = P.ouroInfo();
+        if (in.has[1] && in.task[1] == anim::ob::K_HAMMER) {
+            const vec3 eye{(float)s->player().x, (float)s->player().y, (float)s->player().eye()};
+            const vec3 toEye = normalize(eye - in.head[1]);
+            const vec3 work = in.wall + vec3{0, 0, 0.9f};
+            ++samples;
+            looked += dot(in.face[1], toEye) > 0.8f ? 1 : 0;
+            atWork += dot(normalize(vec3{in.face[1].x, in.face[1].y, 0.0f}), normalize(vec3{work.x - in.head[1].x, work.y - in.head[1].y, 0.0f})) > 0.5f ? 1 : 0;
+        }
+        return false;
+    });
+    info = P.ouroInfo();
+    check(samples > 60 && looked == 0, std::format("Ouroboros: der Klopfer sieht nie zum Spieler (Lampe an, 1,3 m daneben; {} von {} Bildern)", looked, samples));
+    check(samples > 60 && atWork > samples * 9 / 10, std::format("Ouroboros: sein Blick bleibt bei der Mauer ({} von {})", atWork, samples));
+    check(count(ev, PE::Work, 0.0f) > 3, "Ouroboros: er haemmert weiter (Werkzeuggeraeusche)");
+    check(info.laid > laid0 || info.wallPhase != 0, std::format("Ouroboros: die Mauer waechst weiter ({} -> {} Steine)", laid0, info.laid));
+    check(count(ev, PE::Hit) == 0 && std::fabs(s->stats().health - hp0) < 0.01, "Ouroboros: kein Schaden durch die Arbeiter selbst");
+    // --- sie weichen nicht aus: der Traeger geht durch den Spieler hindurch und schiebt ihn beiseite --------------------------
+    s->flashlight().on = false;
+    bool shoved = false;
+    double moved = 0.0;
+    for (int tries = 0; tries < 30 && !shoved; ++tries) {
+        step(*s, ev, 0.5);
+        info = P.ouroInfo();
+        if (!info.has[4] || info.speed[4] < 0.4f) continue;
+        // genau vor ihn auf seinen Weg (0,5 m)
+        std::vector<game::GameEvent> e2;
+        const vec3 a0 = info.pos[4];
+        step(*s, e2, 0.1);
+        const vec3 a1 = P.ouroInfo().pos[4];
+        const vec3 dir = length(a1 - a0) > 1e-3f ? normalize(vec3{a1.x - a0.x, a1.y - a0.y, 0.0f}) : vec3{1, 0, 0};
+        const vec3 at = a1 + dir * 0.45f;
+        const world::Tile* t = s->world().tileIfLoaded(ifloor(at.x), ifloor(at.y));
+        if (!t || !t->open()) continue;
+        put(*s, {at.x, at.y, t->floor}, at + dir * 3.0f + vec3{0, 0, 1.6f});
+        const double x0 = s->player().x, y0 = s->player().y;
+        e2.clear();
+        step(*s, e2, 1.5);
+        moved = std::hypot(s->player().x - x0, s->player().y - y0);
+        shoved = count(e2, PE::Shove) > 0;
+        ev.insert(ev.end(), e2.begin(), e2.end());
+    }
+    check(shoved && moved > 0.15, std::format("Ouroboros: der Traeger weicht nicht aus - er schiebt den Spieler beiseite ({:.2f} m)", moved));
+    check(count(ev, PE::Hit) == 0, "Ouroboros: der Schub tut nicht weh");
+    // --- Geruest: knirscht 2,8 s, dann kippt es; Schaden nur im abgesperrten Streifen ---------------------------------------
+    {
+        info = P.ouroInfo();
+        const vec3 inStrip = loc(info.tower, info.towerYaw, 2.2f, 0.0f), outside = loc(info.tower, info.towerYaw, 2.2f, 1.75f);
+        P.ouroSet("tower", 0);
+        step(*s, ev, 0.2);
+        // erst daneben (ausserhalb des Absperrbands): kein Schaden
+        put(*s, outside, info.tower + vec3{0, 0, 1.5f});
+        ev.clear();
+        const float h0 = (float)s->stats().health;
+        P.ouroSet("tower", 1);
+        double creakT = -1.0, crashT = -1.0, t = 0.0;
+        step(*s, ev, 8.0, [&] {
+            t += 1.0 / 60.0;
+            if (creakT < 0.0 && count(ev, PE::Creak) > 0) creakT = t;
+            if (crashT < 0.0 && count(ev, PE::Crash, 0.75f) > 0) crashT = t;
+            return crashT > 0.0 && t > crashT + 0.3;
+        });
+        check(creakT >= 0.0 && crashT > 0.0 && crashT - creakT >= 2.5,
+              std::format("Ouroboros: das Geruest kuendigt sich an - es knirscht {:.1f} s, bevor es aufschlaegt", crashT - creakT));
+        check(count(ev, PE::Warn, 0.75f) > 0, "Ouroboros: die Warnleuchte des Geruests piept");
+        check(count(ev, PE::Hit) == 0 && std::fabs(s->stats().health - h0) < 0.01, "Ouroboros: neben dem Absperrband trifft es nicht");
+        // jetzt im Streifen, in den es faellt
+        P.ouroSet("tower", 0);
+        step(*s, ev, 0.3);
+        put(*s, inStrip, info.tower + vec3{0, 0, 1.5f});
+        ev.clear();
+        const float h1 = (float)s->stats().health;
+        P.ouroSet("tower", 1);
+        t = 0.0, crashT = -1.0;
+        double hitT = -1.0;
+        step(*s, ev, 8.0, [&] {
+            t += 1.0 / 60.0;
+            if (crashT < 0.0 && count(ev, PE::Crash, 0.75f) > 0) crashT = t;
+            if (hitT < 0.0 && count(ev, PE::Hit) > 0) hitT = t;
+            return crashT > 0.0 && t > crashT + 0.3;
+        });
+        check(hitT > 0.0 && std::fabs(hitT - crashT) < 0.05 && s->stats().health < h1 - 5.0,
+              std::format("Ouroboros: wer im Fallstreifen steht, wird beim Aufschlag getroffen ({:.0f} -> {:.0f})", h1, s->stats().health));
+        check(hitT > 2.5, std::format("Ouroboros: der Treffer kommt erst nach der Ankuendigung ({:.1f} s)", hitT));
+    }
+    // --- Mauer: Warnklang, einreissen, Presslufthammer - Schaden nur innerhalb des Absperrbands, erst wenn er laeuft -----------
+    {
+        s->stats().health = 100.0;
+        info = P.ouroInfo();
+        const vec3 outside = loc(info.wall, info.wallYaw, 2.2f, 0.0f), inside = loc(info.wall, info.wallYaw, 1.25f, 1.9f);
+        put(*s, outside, info.wall + vec3{0, 0, 1.0f});
+        ev.clear();
+        P.ouroSet("wall", 2);
+        double warnT = -1.0, compT = -1.0, jackT = -1.0, t = 0.0;
+        step(*s, ev, 40.0, [&] {
+            t += 1.0 / 60.0;
+            if (warnT < 0.0 && count(ev, PE::Warn) > 0) warnT = t;
+            if (compT < 0.0 && count(ev, PE::Warn, 0.4f) - count(ev, PE::Warn, 0.75f) > 0) compT = t;
+            if (jackT < 0.0 && count(ev, PE::Jackhammer) > 0) jackT = t;
+            return P.ouroInfo().wallPhase == 5;
+        });
+        check(count(ev, PE::Crash) > 0 && count(ev, PE::Work, 0.7f) > 0, "Ouroboros: die oberen Lagen werden eingerissen (Brechstange, Aufschlag)");
+        check(compT >= 0.0 && jackT > 0.0 && jackT - compT >= 1.5, std::format("Ouroboros: der Kompressor laeuft {:.1f} s an, bevor der Presslufthammer schlaegt", jackT - compT));
+        check(count(ev, PE::Hit) == 0 && s->stats().health > 99.9, "Ouroboros: ausserhalb des Absperrbands kein Schaden (Einreissen, Presslufthammer)");
+        // innen: erst wenn der Hammer laeuft
+        P.ouroSet("wall", 4);
+        put(*s, inside, info.wall + vec3{0, 0, 1.0f});
+        ev.clear();
+        t = 0.0, jackT = -1.0;
+        double hitT = -1.0;
+        step(*s, ev, 6.0, [&] {
+            t += 1.0 / 60.0;
+            if (jackT < 0.0 && count(ev, PE::Jackhammer) > 0) jackT = t;
+            if (hitT < 0.0 && count(ev, PE::Hit) > 0) hitT = t;
+            return false;
+        });
+        check(hitT > 0.0 && jackT > 0.0 && hitT >= jackT - 0.02 && hitT > 1.5,
+              std::format("Ouroboros: im abgesperrten Feld trifft der Presslufthammer - erst nach dem Anlaufen ({:.1f} s)", hitT));
+        check(s->stats().health < 99.0, std::format("Ouroboros: Splitter verletzen ({:.0f})", s->stats().health));
+    }
+    // --- Level 2 kennt keine Ouroboros-Arbeiter; auch erzwungen nicht (kein Sektor) --------------------------------------------
+    {
+        auto s2 = open("level2", 5);
+        std::vector<game::GameEvent> e2;
+        step(*s2, e2, 3.0);
+        s2->presence().force(Role::Ouroboros);
+        step(*s2, e2, 1.0);
+        check(!s2->presence().has(Role::Ouroboros) && !s2->presence().ouroInfo().placed, "Ouroboros: in Level 2 keine Arbeiter (nur Sektor Ouroboros)");
+    }
+}
+
 int main(int argc, char** argv) {
     if (argc < 2) {
         std::printf("Aufruf: gameplay_test <data-Ordner>\n");
@@ -3381,6 +3588,7 @@ int main(int argc, char** argv) {
     testV133DullerArms(argv[1]);  // V13.3: Duller und Arms (Level 1)
     testV133Wrangler(argv[1]);    // V13.3: Wrangler (Level 1, 2)
     testV133GrowlerNguithr(argv[1]);  // V13.3: Growler, Nguithr'xurh
+    testV133Ouroboros(argv[1]);       // V13.3: Ouroboros-Arbeiter
     std::printf("%s: %d Pruefungen, %d Fehler\n", gFails ? "FEHLGESCHLAGEN" : "OK", gChecks, gFails);
     return gFails ? 1 : 0;
 }

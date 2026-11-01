@@ -34,6 +34,8 @@
 //                       Hals und Kopf (Laecheln oder Zangen), Kraenze an den Durchbruchstellen (wg).
 //   Growler (E. 130)    gebeugte Masse aus bunten Pfeifenreinigern, Glieder enden in schleifendem Gewirr (gw).
 //   Nguithr'xurh (E. 16) Walzenspinne mit 16 Gliedmassen; im selben Skelett die Netzkugeln der Kolonie (ng).
+//   Ouroboros-Arbeiter  schattenhafte Gestalten im Overall (Level 1, Sektor Ouroboros); im selben Skelett ihre Werkzeuge,
+//                       die Mauer, die sie bauen und einreissen, und ein Fahrgeruest, das umkippt (ob).
 //
 // Wie beim Menschen (anim/skeleton) werden Gelenkpositionen animiert; jeder Knochen ist ein starrer
 // Rahmen vom Start- zum Endgelenk, gedreht nach einem Hinweisvektor ("oben"). Skinning-Matrix =
@@ -48,7 +50,7 @@
 
 namespace lim::anim {
 
-enum class Entity : std::uint8_t { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Wrangler, Growler, Nguithr, Count };
+enum class Entity : std::uint8_t { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Wrangler, Growler, Nguithr, Ouroboros, Count };
 constexpr int kEntityCount = (int)Entity::Count;
 
 struct CBone {
@@ -477,5 +479,61 @@ constexpr Sac kSac[kSacs] = {{0.05f, 0.02f, 0.62f, 0.13f}, {0.42f, 0.18f, 0.44f,
 }  // namespace ng
 CreatureSkeleton makeGrowlerSkeleton();  // creature_growler.cpp
 CreatureSkeleton makeNguithrSkeleton();  // creature_nguithrxurh.cpp
+
+// V13.3: Ouroboros-Arbeiter (Wikidot level-1 Sektor Ouroboros, backrooms-remodeling-co; KREATUR_OuroborosArbeiter.md) -
+// schattenhafte Arbeiter im Overall, 2,05 m, ueberlange Arme mit einem zweiten Ellbogen, der Kopf haengt vor der Brust.
+// Varianten im selben Skelett: 0 Geselle (schmal), 1 Brecher (schwer, geht auf den Knoecheln), 2 die Mauer (sieben Lagen,
+// sechs lose Steine der Lage im Bau, vier Brocken; Absperrband am Boden), 3 das Fahrgeruest (kippt um die Kante bei +x).
+// Werkzeuge (Hammer, Kelle, Stein, Brenner, Presslufthammer, Brechstange) sind Knochen, die in der Hand liegen oder auf
+// Massstab 0 verschwinden; Rauchfahnen und Funken ebenso. Wurzel: Arbeiter am Boden zwischen den Fuessen; Mauer: Mitte der
+// Mauer am Boden (sie laeuft entlang y); Geruest: Mitte der Standflaeche.
+namespace ob {
+constexpr int kTools = 6, kWisps = 4, kSparks = 6, kCourses = 7, kLay = 6, kDebris = 4;
+constexpr float kBlockL = 0.375f, kCourseH = 0.25f, kWallT = 0.24f, kWallL = kBlockL * kLay;  // Mauer: 2,25 x 1,75 m
+constexpr float kTowerH = 3.4f, kTowerD = 0.9f, kTowerW = 1.6f;                               // Geruest
+enum Tool : std::uint8_t { T_HAMMER, T_TROWEL, T_BRICK, T_TORCH, T_JACK, T_BAR };
+enum J : std::uint8_t {
+    ROOT, PELVIS, BELLY, CHEST, NECK, HEAD, HEADTOP,
+    ARM0,                          // + Seite * 5 + i: Schulter, Ellbogen 1, Ellbogen 2, Handgelenk, Fingerspitzen
+    LEG0 = ARM0 + 10,              // + Seite * 4 + i: Huefte, Knie, Knoechel, Zehen
+    TOOL0 = LEG0 + 8,              // + t * 2 + (0 Griff/Spitze, 1 Ende)
+    WISP0 = TOOL0 + kTools * 2,    // + k * 3 + i
+    SPARK0 = WISP0 + kWisps * 3,   // + k * 2 + i
+    COURSE0 = SPARK0 + kSparks * 2,  // + c * 2 + i: Lage c (linkes, rechtes Ende unten, Mitte der Mauerdicke)
+    LAY0 = COURSE0 + kCourses * 2,   // + k * 2 + i: loser Stein (Mitte unten, Mitte oben)
+    DEB0 = LAY0 + kLay * 2,          // + k * 2 + i: Brocken
+    TOWER_A = DEB0 + kDebris * 2, TOWER_B,  // Geruest: Kippkante (Mitte), oben
+    JCOUNT
+};
+enum B : std::uint8_t {
+    B_ROOT, B_PELVIS, B_BELLY, B_CHEST, B_NECK, B_HEAD,
+    B_ARM0,                        // + Seite * 4 + i: Oberarm, Unterarm 1, Unterarm 2, Hand
+    B_LEG0 = B_ARM0 + 8,           // + Seite * 3 + i: Oberschenkel, Unterschenkel, Fuss
+    B_TOOL0 = B_LEG0 + 6,          // + t
+    B_WISP0 = B_TOOL0 + kTools,    // + k * 2 + i
+    B_SPARK0 = B_WISP0 + kWisps * 2,
+    B_COURSE0 = B_SPARK0 + kSparks,
+    B_LAY0 = B_COURSE0 + kCourses,
+    B_DEB0 = B_LAY0 + kLay,
+    B_TOWER = B_DEB0 + kDebris,
+    BCOUNT
+};
+static_assert(BCOUNT <= 64, "Gewichtsmasken fassen 64 Knochen");
+inline int armJ(int s, int i) { return ARM0 + s * 5 + i; }
+inline int armB(int s, int i) { return B_ARM0 + s * 4 + i; }
+inline int legJ(int s, int i) { return LEG0 + s * 4 + i; }
+inline int legB(int s, int i) { return B_LEG0 + s * 3 + i; }
+inline int toolJ(int t, int i) { return TOOL0 + t * 2 + i; }
+inline int wispJ(int k, int i) { return WISP0 + k * 3 + i; }
+inline int wispB(int k, int i) { return B_WISP0 + k * 2 + i; }
+inline int sparkJ(int k, int i) { return SPARK0 + k * 2 + i; }
+inline int courseJ(int c, int i) { return COURSE0 + c * 2 + i; }
+inline int layJ(int k, int i) { return LAY0 + k * 2 + i; }
+inline int debJ(int k, int i) { return DEB0 + k * 2 + i; }
+// Aufgaben der Arbeiter (Zustand; 9 und 10 vergibt die Praesenz anders: Abgang, toedlicher Zugriff)
+enum Task : int { K_IDLE = 0, K_WALK = 1, K_CARRY = 2, K_LAY = 3, K_HAMMER = 4, K_WELD = 5, K_JACK = 6, K_PRY = 7, K_INSPECT = 8,
+                  K_LIFT = 11, K_DISSOLVE = 12, K_EMERGE = 13 };
+CreatureSkeleton makeSkeleton();  // creature_ouroboros.cpp
+}  // namespace ob
 
 }  // namespace lim::anim

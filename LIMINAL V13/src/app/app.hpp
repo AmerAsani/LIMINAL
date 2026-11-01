@@ -156,6 +156,7 @@ private:
     std::vector<vec3> elevLights_;                  // V8: Kabinenlichter
     // V9: Sicherungskaesten (oranges Flackern), Abspann nach der letzten Fahrt, Zugriff des Anderen
     std::vector<game::GameSession::FuseLight> fuseLights_;
+    std::vector<std::pair<vec3, vec3>> ouroLights_;  // V13.3: Lichtbogen und Warnleuchten der Ouroboros-Baustelle
     double endingTimer_ = 0.0;
     float hitFlash_ = 0.0f;
     // V11: Schreck beim toedlichen Zugriff, danach der Todesschirm

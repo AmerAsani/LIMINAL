@@ -50,8 +50,9 @@ class Presence {
 public:
     // V11: Clump (Buendel); V13.2: Faceling, Skin-Stealer, Wretch, Death Rat, Fensterwesen (gleiche Reihenfolge wie anim::Entity)
     // V13.3: Growler, Nguithr'xurh hinter Duller, Arms, Wrangler (presence_growler.cpp, presence_nguithrxurh.cpp)
-    enum class Role { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Wrangler, Growler, Nguithr };
-    static constexpr int kRoleCount = 16;  // V13.3: Duller, Arms, Wrangler (KREATUR_Wrangler.md), Growler, Nguithr'xurh
+    // V13.3: Ouroboros-Arbeiter hinter Nguithr'xurh (presence_ouroboros.cpp)
+    enum class Role { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Wrangler, Growler, Nguithr, Ouroboros };
+    static constexpr int kRoleCount = 17;  // V13.3: Duller, Arms, Wrangler (KREATUR_Wrangler.md), Growler, Nguithr'xurh, Ouroboros-Arbeiter
     static const char* roleName(Role r);
 
     struct Event {
@@ -112,6 +113,16 @@ public:
             SacBurst,    // eine Netzkugel zerplatzt am Boden (strength: Betaeubung fuer das Ziel, 0: daneben)
             Skitter,     // Nguithr'xurh huscht
             Stridulate,  // Nguithr'xurh zirpt (Cheliceren reiben - im Licht, gestoert)
+            // V13.3: Ouroboros-Arbeiter (KREATUR_OuroborosArbeiter.md) - Werkzeug, Maschinen, Stimmen
+            Work,        // Werkzeug (strength: 0 Hammer, 0,25 Kelle, 0,5 Stein gesetzt, 0,75 Brechstange, 1 Stein bricht)
+            Weld,        // Schweissen (strength 0: Zuenden - Ankuendigung, 1: Lichtbogen knistert)
+            Jackhammer,  // Presslufthammer (ein Stoss von 0,6 s)
+            Warn,        // Warnklang (strength 0: Kompressor laeuft an und piept - Presslufthammer, 1: Warnleuchte des Geruests)
+            Creak,       // das Geruest knirscht und wankt (in 2,8 s kippt es)
+            Crash,       // Aufschlag (strength 1: das Geruest, 0,5: eine Lage der Mauer)
+            Murmur,      // dumpfe Stimme ohne Worte (strength 1: dicht am Spieler)
+            Shove,       // ein Arbeiter geht durch den Spieler hindurch / schiebt ihn
+            Dissolve,    // ein Arbeiter vergeht (vom eigenen Geruest getroffen); die anderen bemerken es nicht
         } type;
         Role role = Role::Smiler;
         vec3 pos;
@@ -255,6 +266,28 @@ public:
     vec3 spiderOf(int i, int* state = nullptr) const;
     bool placeAgent(Role r, int i, vec3 p);
     bool gnSet(Role r, const std::string& key, double v);
+    // V13.3: Ouroboros-Arbeiter (presence_ouroboros.cpp). Baustelle: Mauer und Geruest mit Gefahrenzone (Absperrband);
+    // ouroSet (Tests, Skripte): wall <phase>, tower <phase>, fill <0..1>, quick <Faktor>, kill <Arbeiter>; ouroInfo: Lage
+    // und Zonen (Tests); shoveFor: Schub (m/s) eines Arbeiters, der durch den Spieler geht; ouroLights: Lichtbogen und
+    // Warnleuchten (Ort, Farbe x Staerke)
+    struct OuroInfo {
+        bool placed = false;
+        vec3 wall, tower;            // Mitte der Mauer / der Standflaeche am Boden
+        float wallYaw = 0.0f, towerYaw = 0.0f;
+        vec3 wallZone[2], towerZone[2];  // Ecken (Welt, achsparallel) der abgesperrten Flaechen
+        int wallPhase = 0, towerPhase = 0, workers = 0;
+        vec3 sparkAt;                // wo die Funken auftreffen (0: nicht geschweisst)
+        int laid = 0, broken = 0;    // gesetzte Steine, abgetragene Lagen
+        // je Aufgabe (0 Maurer, 1 Klopfer, 2 Brecher, 3 Schweisser, 4 Traeger): vorhanden, Ort, Kopf, Blickrichtung, Aufgabe, Tempo
+        std::array<bool, 5> has{};
+        std::array<vec3, 5> pos{}, head{}, face{};
+        std::array<int, 5> task{};
+        std::array<float, 5> speed{};
+    };
+    OuroInfo ouroInfo() const;
+    bool ouroSet(const std::string& key, double v);
+    vec3 shoveFor(int target, vec3 feet) const;
+    void ouroLights(std::vector<std::pair<vec3, vec3>>& out, vec3 near) const;
 
 private:
     struct Agent;
@@ -332,6 +365,11 @@ private:
     void prepGN(Agent& a, const Context& c);  // Massstab, Leuchten, Netzkugeln an die Animation (auch Puppen und Vorfuehrungen)
     void preGN(double dt, const Context& c);  // je Bild vor allem anderen: Rauschen neu sammeln, Betaeubung klingt ab
     void prepNguithr(Agent& a, const Context& c);  // Spinne (Groesse, Lage, Augenschein) und Netzkugeln an die Animation
+    // V13.3: Ouroboros-Arbeiter (presence_ouroboros.cpp)
+    void regieOuroboros(double dt, const Context& c, std::vector<Event>& out);
+    bool spawnOuroboros(const Context& c, std::vector<Event>& out, bool forced);
+    void thinkOuroboros(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    void prepOuroboros(Agent& a, const Context& c);  // Kanaele -> Animation (auch Puppen und Vorfuehrungen)
     bool roomAllowed(const Context& c, vec3 p, int kin) const;
     bool wander(Agent& a, double dt, const Context& c, double speed, int kin);
     void updateHive(double dt, const Context& c, std::vector<Event>& out);
@@ -371,6 +409,10 @@ private:
     vec3 selfEye_;
     std::array<float, 4> stupor_{};
     std::array<double, 4> stuporHold_{};  // so lange klingt die Betaeubung noch nicht ab (s)
+    // V13.3: Ouroboros-Arbeiter - Baustelle gesetzt, Zeitraffer (Tests, Bilder), Stimmen, Ersatz fuer vergangene Arbeiter
+    bool ouroPlaced_ = false;
+    double ouroQuick_ = 1.0, ouroMurmurT_ = 6.0, ouroTry_ = 0.0;
+    std::shared_ptr<void> ouroSite_;
 };
 
 }  // namespace lim::game

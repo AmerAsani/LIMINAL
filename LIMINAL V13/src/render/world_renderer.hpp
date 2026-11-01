@@ -56,6 +56,12 @@ enum FixedMaterial : u32 {
     // V13.3: Growler - Pfeifenreiniger in vier Farben (a, b leuchten bei den Jungen), blanker Draht; Nguithr'xurh - behaarter
     // Koerper, Seide, Betaeubungsstoff
     FM_ENT_PIPE_A, FM_ENT_PIPE_B, FM_ENT_PIPE_C, FM_ENT_PIPE_D, FM_ENT_WIRE, FM_ENT_SOLIFUGE, FM_ENT_SILK, FM_ENT_SEDATIVE,
+    // V13.3: Ouroboros-Arbeiter - Overall (dunkel, staubig, Rauchrand), Leere (Gesicht, Haende), blasse Augenscheiben, Gummi
+    // (Stiefel, Schlaeuche), Werkzeugstahl, rostiger Stahl, Maschinenlack, Holz, Ziegel, Absperrband rot/weiss, Funken,
+    // Warnleuchte, Anhaenger am Guertel, Zementstaub
+    FM_ENT_OB_OVERALL, FM_ENT_OB_VOID, FM_ENT_OB_EYE, FM_ENT_OB_RUBBER, FM_ENT_OB_STEEL, FM_ENT_OB_RUST, FM_ENT_OB_PAINT,
+    FM_ENT_OB_WOOD, FM_ENT_OB_BRICK, FM_ENT_OB_TAPE_R, FM_ENT_OB_TAPE_W, FM_ENT_OB_SPARK, FM_ENT_OB_BEACON, FM_ENT_OB_CARD,
+    FM_ENT_OB_DUST,
     FM_FIG_END,
 };
 static_assert(FM_FIG_END <= kFixedMaterials);
@@ -73,6 +79,9 @@ constexpr u32 kMatFlagSmoke = 1u << 29;
 // V13: Haut - Licht dringt ein (lighting.hlsl: gewickeltes, roetliches Streulicht, Durchleuchten duenner Stellen).
 // Der Mesh-Shader schreibt 1 - Anteil in den Glanzkanal (misc.a); 1 = kein Durchscheinen
 constexpr u32 kMatFlagSkin = 1u << 30;
+// V13.3: Rauchrand der Ouroboros-Arbeiter (nur mit kMatFlagSmoke | kMatFlagSilhouette an triplanaren Figurenmaterialien, Bits
+// 16-23): Rand und Glieder zerfasern, waagrechte Baender flackern kurz aus - ohne Saum, Scheitel und Ausduennen nach aussen
+constexpr u32 kMatOuroSmoke = 0x0Bu << 16;
 // V13: Umriss (Gestalt) - mit kMatFlagSmoke: Rand, Saum und Fasern ausduennen, den Koerper aber dicht lassen
 constexpr u32 kMatFlagSilhouette = 1u << 31;
 // V13.3: durchscheinende Haut (Wrangler) - nur bei Wesen (kMatFlagEntity): Bits 16-23 = Deckkraft (1..255, 0 = deckend). Der

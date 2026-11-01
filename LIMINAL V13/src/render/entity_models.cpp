@@ -1346,7 +1346,12 @@ bool entityFromGlb(Entity e, FigureModel& out, std::string& info, const std::str
         {"ent_wr_pincer", FM_ENT_WR_PINCER}, {"ent_wr_debris", FM_ENT_WR_DEBRIS},
         // V13.3: Growler, Nguithr'xurh
         {"ent_pipe_a", FM_ENT_PIPE_A}, {"ent_pipe_b", FM_ENT_PIPE_B}, {"ent_pipe_c", FM_ENT_PIPE_C}, {"ent_pipe_d", FM_ENT_PIPE_D},
-        {"ent_wire", FM_ENT_WIRE}, {"ent_solifuge", FM_ENT_SOLIFUGE}, {"ent_silk", FM_ENT_SILK}, {"ent_sedative", FM_ENT_SEDATIVE}};
+        {"ent_wire", FM_ENT_WIRE}, {"ent_solifuge", FM_ENT_SOLIFUGE}, {"ent_silk", FM_ENT_SILK}, {"ent_sedative", FM_ENT_SEDATIVE},
+        // V13.3: Ouroboros-Arbeiter
+        {"ent_ob_overall", FM_ENT_OB_OVERALL}, {"ent_ob_void", FM_ENT_OB_VOID}, {"ent_ob_dust", FM_ENT_OB_DUST}, {"ent_ob_eye", FM_ENT_OB_EYE},
+        {"ent_ob_rubber", FM_ENT_OB_RUBBER}, {"ent_ob_steel", FM_ENT_OB_STEEL}, {"ent_ob_rust", FM_ENT_OB_RUST}, {"ent_ob_paint", FM_ENT_OB_PAINT},
+        {"ent_ob_wood", FM_ENT_OB_WOOD}, {"ent_ob_brick", FM_ENT_OB_BRICK}, {"ent_ob_tape_r", FM_ENT_OB_TAPE_R}, {"ent_ob_tape_w", FM_ENT_OB_TAPE_W},
+        {"ent_ob_spark", FM_ENT_OB_SPARK}, {"ent_ob_beacon", FM_ENT_OB_BEACON}, {"ent_ob_card", FM_ENT_OB_CARD}};
     const CreatureSkeleton& sk = entitySkeleton(e);
     FigureModel m;
     std::vector<mat4> frames;

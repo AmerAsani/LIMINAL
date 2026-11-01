@@ -110,6 +110,9 @@ private:
     void updateWrangler(float dt, const Input& in);  // V13.3: Wrangler (creature_wrangler.cpp)
     void updateGrowler(float dt, const Input& in);  // V13.3: creature_growler.cpp
     void updateNguithr(float dt, const Input& in);  // V13.3: creature_nguithrxurh.cpp
+    void updateOuroboros(float dt, const Input& in);  // V13.3: creature_ouroboros.cpp (Arbeiter, Mauer, Geruest)
+    float ouroHeight() const;
+    vec3 ouroHead() const;
     // Gangzyklus fuer n Beine; rest: Ruhepunkte (Welt) dieses Bildes
     void stepLegs(float dt, int n, const float* offs, float duty, float S, const vec3* rest, float standDur, const float* weight);
     vec3 footPos(int i, const float* lift) const;

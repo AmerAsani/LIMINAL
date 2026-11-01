@@ -776,6 +776,11 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
     else player_.waterZ = -999.0;
     if (!world_->level().flashlight && flash_.on) flash_.on = false;  // V11: Level 6
     player_.update(dt, c, *tiles_);
+    // V13.3: Ouroboros-Arbeiter weichen nicht aus - wer im Weg steht, wird beiseitegeschoben (Wand bleibt Wand)
+    if (!paused && !stats_.dead && !ride_.active) {
+        const vec3 sh = presence_.shoveFor(netSelfId, {(float)player_.x, (float)player_.y, (float)player_.z});
+        if (sh.x != 0.0f || sh.y != 0.0f) phys::moveAndSlide(*tiles_, player_.x, player_.y, player_.z, sh.x * dt, sh.y * dt, player_.shape);
+    }
     // V13.3: der Leib des Wranglers zieht den Blick an (KREATUR_Wrangler.md) - gegensteuern, wegsehen
     if (vec3 at; !paused && !stats_.dead && presence_.trance(&at) > 0.02f) {
         const float tr = presence_.trance();
