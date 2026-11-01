@@ -45,7 +45,7 @@ Fandom-Seiten wurden für V12 **nicht** verwendet (Auftrag: nur Wikidot).
 
 | Name im Spiel | Quelle | Lizenz | Herkunft | geplant für Level |
 |---|---|---|---|---|
-| `wallpaper_threshold` | [Wallpaper001A](https://ambientcg.com/view?id=Wallpaper001A) „Wallpaper 001 A“ | CC0-1.0 | ambientCG, abgerufen 2026-10-25, SHA-256 23d7add92ef4… | 0 |
+| `wallpaper_threshold` | [Wallpaper001A](https://ambientcg.com/view?id=Wallpaper001A) „Wallpaper 001 A“ | CC0-1.0 | ambientCG, abgerufen 2026-10-25, SHA-256 23d7add92ef4…; V13.3 zu Bahnen von 53 cm mit Stoßfugen verarbeitet (`tools/textures/wallpaper_l0.py`, Kachel 2,12 m) | 0 |
 | `wallpaper_threshold_mold` | [Wallpaper002C](https://ambientcg.com/view?id=Wallpaper002C) „Wallpaper 002 C“ | CC0-1.0 | ambientCG, abgerufen 2026-10-25, SHA-256 767a4cc16bef… | 0 |
 | `carpet_threshold` | [Fabric028](https://ambientcg.com/view?id=Fabric028) „Fabric 028“ | CC0-1.0 | ambientCG, abgerufen 2026-10-25, SHA-256 be3c5a8a3431… | 0 |
 | `ceiling_office` | [OfficeCeiling001](https://ambientcg.com/view?id=OfficeCeiling001) „Office Ceiling 001“ | CC0-1.0 | ambientCG, abgerufen 2026-10-25, SHA-256 c28085beb797… | 0 |
@@ -105,6 +105,11 @@ Fandom-Seiten wurden für V12 **nicht** verwendet (Auftrag: nur Wikidot).
   - Die Zimmernummern, das Beverly-Schild, die Inschrift der Bibliothek und alle Schilder und Tafeln in Level 36 wurden daraus als **Geometrie** erzeugt.
   - Die Schriftdatei selbst wird nicht mitgeliefert. Die OFL erlaubt die Einbettung in erzeugte Werke.
   - Der Lizenztext der OFL soll im Paket liegen; das ist noch offen (Abschnitt 8).
+- **DejaVu Sans Mono** (Bitstream-Vera-Lizenz mit den DejaVu-Änderungen, frei; https://dejavu-fonts.github.io/):
+  - Liegt den Blender-Datendateien bei (`datafiles/fonts/DejaVuSansMono.woff2`).
+  - V13.3: Ziffern in Level 5 (Zimmernummern der Hoteltüren, Typenschild des Kessels, Wagennummer „903“) als
+    **Geometrie** – Inter füllte beim Umwandeln das Loch der „4“ (überlappende Konturen der variablen Schrift).
+  - Die Schriftdatei selbst wird nicht mitgeliefert; die Lizenz erlaubt eingebettete und abgeleitete Nutzung.
 - **Oberfläche:** Segoe UI und Consolas werden zur Laufzeit aus den installierten Windows-Schriften gerastert und nicht mitgeliefert (wie in V11).
 
 ## 5. Klänge

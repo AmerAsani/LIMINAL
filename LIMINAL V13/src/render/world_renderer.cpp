@@ -8,6 +8,7 @@
 
 #include "core/log.hpp"
 #include "render/flicker.hpp"
+#include "render/item_models.hpp"
 #include "render/renderer.hpp"
 #include "render/texture_entity.hpp"
 #include "render/texture_gen.hpp"
@@ -130,6 +131,7 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
 
     // Feste Materialien: Items (Farbe steckt vollstaendig in der Textur)
     materialData_.assign(kFixedMaterials, GpuMaterial{{1, 1, 1}, 0, 0, 1, 0, 0});
+    itemModelMaterials(materialData_);  // V13.3: freie Plaetze ab FM_FIG_END fuer die Fundstuecke aus Blender
     materialData_[FM_ITEM_ENERGY].layers = L_ITEM_ENERGY | (L_ITEM_ENERGY << 8) | (L_ITEM_ENERGY << 16);
     materialData_[FM_ITEM_ALMOND].layers = L_ITEM_ALMOND | (L_ITEM_ALMOND << 8) | (L_ITEM_ALMOND << 16);
     // V6: Strichmaennchen - schwarz und matt wie mit dem Filzstift gezogen (nur ein Hauch Glanz,

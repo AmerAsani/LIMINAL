@@ -39,7 +39,7 @@
     { "key": "brownout", "fixture": "tube", "name": "Brownout",
       "wall": [0.62, 0.57, 0.50], "floor": [0.36, 0.34, 0.31], "ceil": [0.44, 0.42, 0.39],
       "trim": [0.24, 0.22, 0.20], "lamp": [1.00, 0.72, 0.42], "fog": [0.016, 0.013, 0.010],
-      "fog_density": 0.06, "ambient": 0.02, "light_style": "authored",
+      "fog_density": 0.035, "ambient": 0.045, "light_style": "authored",
       "wall_pattern": "concrete", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.1,
       "wall_tex": "concrete_chalky", "floor_tex": "concrete_floor", "ceil_tex": "concrete_cast", "damp_band": [0.0, 1.0, 0.66] },
     { "key": "macchina", "fixture": "tube", "name": "Macchina-Werkstatt",
