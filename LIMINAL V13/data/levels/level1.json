@@ -24,7 +24,8 @@
                // chance: Anteil der Weibchen (davon 40 % traechtig); count: einmal je Ebene Jungtiere an einer Wand (selten)
                "wrangler": { "mode": "mixed", "every": 320, "chance": 0.4, "count": 1 } },
   "next_level": "level2",
-  "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0 },
+  // V13.3 (KREATUR_Smiler.md): Leuchtstaebe liegen herum, eher in dunklen Raeumen - Koeder fuer Smiler
+  "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0, "glowstick": 0.015, "glowstick_dark": 0.08 },
 
   "zones": [
     { "key": "aquila", "name": "Aquila",

@@ -87,5 +87,10 @@ struct FuseBoxParts {
 };
 FuseBoxParts makeFuseBox(bool withFuse);
 MeshData makeFuseItem();
+// V13.3: Leuchtstab (render/mesh_glowstick.cpp) - Huelle (leuchtet) und Kappe mit Oese; liegend entlang +x
+struct GlowstickParts {
+    MeshData tube, cap;
+};
+GlowstickParts makeGlowstick();
 
 }  // namespace lim::gfx

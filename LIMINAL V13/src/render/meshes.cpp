@@ -47,6 +47,11 @@ void MeshLibrary::init(Gpu& gpu) {
     addGroup(gpu, "fusebox", {{fb.body, FM_FUSEBOX}, {fb.fuse, FM_ITEM_FUSE}, {fb.lamp, FM_FUSE_GLOW}});
     addGroup(gpu, "fusebox_empty", {{fe.body, FM_FUSEBOX}, {fe.lamp, FM_FUSEBOX}});
     add(gpu, "fuse", makeFuseItem(), FM_ITEM_FUSE);
+    // V13.3: Leuchtstab - ungeknickt (Fund, erloschene Huelle), geknickt hell und matt (Koeder, KREATUR_Smiler.md)
+    GlowstickParts gs = makeGlowstick();
+    addGroup(gpu, "glowstick", {{gs.tube, FM_ITEM_GLOWSTICK}, {gs.cap, FM_ITEM_GLOWSTICK_CAP}});
+    addGroup(gpu, "glowstick_lit", {{gs.tube, FM_ITEM_GLOWSTICK_LIT}, {gs.cap, FM_ITEM_GLOWSTICK_CAP}});
+    addGroup(gpu, "glowstick_dim", {{gs.tube, FM_ITEM_GLOWSTICK_DIM}, {gs.cap, FM_ITEM_GLOWSTICK_CAP}});
     addViewmodel(gpu);
 }
 

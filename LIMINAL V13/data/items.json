@@ -55,6 +55,18 @@
       "max_stack": 8,
       "hold_offset": 0.03
     },
+    // V13.3: Leuchtstab (KREATUR_Smiler.md) - mit F knicken und werfen: leuchtet eine Minute gruen. Smiler gehen zum
+    // staerkeren Licht (Wiki, Level 1: Licht als Koeder wegwerfen). Fundstueck auf den Ebenen mit Smilern (spawn_rules)
+    {
+      "key": "glowstick",
+      "name": "Leuchtstab",
+      "description": "F: knicken und werfen – leuchtet eine Minute grün. Smiler gehen zum stärkeren Licht.",
+      "model": "glowstick",
+      "icon": "glowstick",
+      "scale": 1.0,
+      "max_stack": 6,
+      "hold_offset": 0.0
+    },
     // V9: Sicherungen - eine aus jeder Ebene. Mit allen dreien faehrt ein Aufzug weiter als je zuvor.
     {
       "key": "fuse_office", "name": "Sicherung (Büros)",

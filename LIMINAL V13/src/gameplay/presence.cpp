@@ -624,6 +624,8 @@ void Presence::thinkSmiler(Agent& a, double dt, const Context& c, std::vector<Ev
         a.glow = std::min(1.0f, a.glow + (float)dt * 0.55f);
         if (a.glow >= 1.0f) a.state = 1, a.stateT = 0.0;
     }
+    // V13.3: ein staerkeres Licht (geworfener Leuchtstab) zieht ihn vom Spieler fort (presence_lure.cpp)
+    if (baitSmiler(a, dt, c, out, d, dark)) return;
     const world::Tile* pt = c.world->tileIfLoaded(ifloor(c.player->x), ifloor(c.player->y));
     const bool playerInLight = pt && !darkTile(c, pt, (float)c.player->x, (float)c.player->y);
     // Interesse: zieht das Licht der Lampe ihn an, bleibt er; wer im Licht steht oder die Lampe aus hat
@@ -1858,6 +1860,12 @@ void Presence::puppetStep(Agent& a, const Context& c) {
     a.lookAt = eye;
     a.perceiveAt = eye;
     a.lightFrom = flash;
+    // V13.3: ein Smiler am Leuchtkoeder (Kanal bait) sieht zum naechsten Stab (KREATUR_Smiler.md)
+    if (a.role == Role::Smiler && a.bait > 0.5f && c.lures) {
+        float bd = 5.0f;
+        for (const Lure& L : *c.lures)
+            if (hdist(L.pos, a.pos) < bd) bd = hdist(L.pos, a.pos), a.lookAt = a.perceiveAt = L.pos;
+    }
 }
 
 void Presence::collect(std::vector<VisibleMesh>& out, std::vector<mat4>& palette, vec3 eye, int detail) {

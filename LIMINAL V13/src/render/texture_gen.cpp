@@ -1011,6 +1011,30 @@ std::vector<u8> generateItemIcon(const std::string& kind, int size) {
                 float hl = std::exp(-std::pow((y + 0.06f) * 20.0f, 2.0f)) * 0.3f;
                 r += hl, g += hl, b += hl;
             }
+        } else if (kind == "glowstick") {
+            // V13.3: Leuchtstab schraeg - gruen schimmernde Huelle mit hellem Kern, dunkle Kappe mit Oese oben rechts
+            float c = 0.7071f, s = 0.7071f;
+            float x = (u - 0.5f) * c - (v - 0.5f) * s, y = (u - 0.5f) * s + (v - 0.5f) * c;
+            const float ay = std::fabs(y);
+            if (x > -0.36f && x < 0.22f && ay < 0.075f) {
+                a = 1;
+                r = 0.30f, g = 0.85f, b = 0.25f;
+                const float core = std::exp(-std::pow(y * 26.0f, 2.0f));
+                r += core * 0.45f, g += core * 0.15f, b += core * 0.35f;
+                if (x < -0.31f) {  // gerundetes Ende
+                    const float k = (x + 0.31f) / 0.05f;
+                    if (k * k + (y / 0.075f) * (y / 0.075f) > 1.0f) a = 0;
+                }
+            } else if (x >= 0.22f && x < 0.33f && ay < 0.088f) {
+                a = 1;
+                r = 0.20f, g = 0.30f, b = 0.17f;
+                if (x > 0.255f && x < 0.27f) r *= 0.7f, g *= 0.7f, b *= 0.7f;
+                float hl = std::exp(-std::pow((y + 0.04f) * 24.0f, 2.0f)) * 0.18f;
+                r += hl, g += hl, b += hl;
+            } else {
+                const float dx = x - 0.385f, rr = std::sqrt(dx * dx + y * y);
+                if (std::fabs(rr - 0.045f) < 0.014f) a = 1, r = 0.22f, g = 0.32f, b = 0.18f;
+            }
         } else if (kind == "battery") {
             // V7: stehende Monozelle, Kupferband oben, Pluspol
             float x = std::fabs(u - 0.5f);

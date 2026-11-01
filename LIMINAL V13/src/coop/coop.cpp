@@ -544,13 +544,22 @@ void CoopHost::flushWorld() {
         else if (nc::kindOk(w.itemKind)) eventAll(nc::EventKind::Dropped, (i32)w.hash, 1, w.pos, w.itemKind);
     }
     s_->netWorldOut.clear();
+    // V13.3: Klaenge fuer die Gaeste (Ansprechen, Knicken des Leuchtstabs) - ausser fuer den, der sie selbst schon hoert
+    for (const auto& ns : s_->netSoundOut) {
+        if (!nc::kindOk(ns.sound)) continue;
+        for (auto& g : guests_)
+            if (g->connected() && g->st == net::ConnState::Connected && g->id != ns.except)
+                sendEvent(*g, nc::EventKind::Sound, 0, (i32)std::lround(std::clamp(ns.volume, 0.0f, 1.0f) * 100.0f), ns.pos, ns.sound);
+    }
+    s_->netSoundOut.clear();
     for (const auto& [pos, dur] : s_->netBlackoutOut) eventAll(nc::EventKind::Blackout, 0, (i32)std::lround(dur * 10.0f), pos, "");
     s_->netBlackoutOut.clear();
     using PE = Presence::Event;
     for (const PE& e : s_->netFigureOut) {
         if (e.type == PE::Step) continue;  // Schritte erzeugen die Puppen beim Gast selbst
         const bool world = e.type == PE::Growl || e.type == PE::Bark || e.type == PE::Whine || e.type == PE::TakeOff || e.type == PE::Knock ||
-                           e.type == PE::Drop || e.type == PE::Drag || e.type == PE::Breath || e.type == PE::Rustle;
+                           e.type == PE::Drop || e.type == PE::Drag || e.type == PE::Breath || e.type == PE::Rustle ||
+                           e.type == PE::Reply || e.type == PE::Shriek;  // V13.3: Skin-Stealer antwortet / stuermt los
         if (e.type == PE::Flicker) {
             eventAll(nc::EventKind::Flicker, 0, 0, e.pos, "");
             continue;

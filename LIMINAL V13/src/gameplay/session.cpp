@@ -285,6 +285,11 @@ void GameSession::spawnFinds(const world::ChunkData& cd) {
                     e = prefabs_.spawn(reg_, "item_pickup", s.pos, s.yaw);
                     if (auto* p = reg_.get<Pickup>(e)) p->item = "battery", p->worldId = s.id;
                     if (auto* m = reg_.get<MeshRenderer>(e)) m->model = "battery";
+                } else if (s.kind == FindSpot::Glowstick) {  // V13.3
+                    if (picked.count(s.id) || !content_.item("glowstick")) continue;
+                    e = prefabs_.spawn(reg_, "item_pickup", s.pos, s.yaw);
+                    if (auto* p = reg_.get<Pickup>(e)) p->item = "glowstick", p->worldId = s.id;
+                    if (auto* m = reg_.get<MeshRenderer>(e)) m->model = "glowstick";
                 } else if (s.kind == FindSpot::FuseBox) {
                     // V9: Sicherungskasten - knapp vor der Wand; schon geleert: offen und still
                     if (!content_.item(s.item)) continue;
@@ -790,6 +795,7 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
         if (player_.jumped) stats_.spendStamina(4.0);
         if (stats_.exhausted && !wasExhausted) events_.push_back({GameEvent::Exhausted, "Außer Atem – kurz verschnaufen …", 2.5f});
         updateDropped(dt);
+        updateLures(dt);  // V13.3: Leuchtstaebe (session_lure.cpp)
         updateWater(dt);  // V11
         // V7: Taschenlampe verbraucht Batterie
         if (flash_.update(dt)) events_.push_back({GameEvent::FlashEmpty, "Die Batterie der Taschenlampe ist leer.", 3.0f});
@@ -1056,7 +1062,7 @@ void GameSession::findTarget() {
 }
 
 std::string GameSession::targetPrompt() const {
-    if (target_ == ecs::kNull) return "";
+    if (target_ == ecs::kNull) return speakTarget() ? "Ansprechen" : "";  // V13.3 (KREATUR_SkinStealer.md)
     auto& reg = const_cast<ecs::Registry&>(reg_);
     auto* pk = reg.get<Pickup>(target_);
     auto* in = reg.get<Interactable>(target_);
@@ -1078,7 +1084,10 @@ std::string GameSession::targetPrompt() const {
 }
 
 void GameSession::interact() {
-    if (target_ == ecs::kNull) return;
+    if (target_ == ecs::kNull) {
+        if (speakTarget()) speak();  // V13.3: niemand zum Aufnehmen im Blick, aber eine Gestalt - ansprechen
+        return;
+    }
     if (netAction) {  // V13.2 Koop (Gast): Aufnehmen und Lesen entscheidet der Host
         if (const u32 h = targetHash()) {
             netAction(1, h);
@@ -1181,6 +1190,7 @@ void GameSession::interact() {
 }
 
 void GameSession::useSlot(int idx) {
+    if (startGlowThrow(idx)) return;  // V13.3: Leuchtstab knicken und werfen (session_lure.cpp; Gast: Eingabe beim Loslassen)
     if (netAction) {  // V13.2 Koop (Gast)
         if (idx >= 0 && idx < Inventory::kSize && inventory_.slots[(size_t)idx]) netAction(2, (u32)idx);
         return;
@@ -1314,6 +1324,7 @@ void GameSession::collectMeshes(std::vector<VisibleMesh>& out) {
         v.highlight = m.highlight;
         out.push_back(v);
     });
+    lures_.collect(out, eye);  // V13.3: Leuchtstaebe
     haunt_.collect(out);  // V7: "Der Andere"
     presence_.collect(out, palette_, eye, figureDetail);  // V10: die Figuren
     for (Pawn* p : pawns)  // V13.2 Koop: die Mitspieler (Spielermodell, Lampe von aussen)
@@ -1570,6 +1581,7 @@ void GameSession::updatePresence(double dt) {
     landNoise_ = std::max(0.0, landNoise_ - dt * 2.5);
     c.noise = std::max(noise, landNoise_);
     c.pings = &noisePings_;
+    c.lures = &presenceLures_, c.smilerBait = L.smilerBait;  // V13.3: Leuchtkoeder (KREATUR_Smiler.md)
     if (const Json& bo = L.audio["blackout"]; bo.isObject()) {
         c.blackoutEvery0 = bo["every"][0].asNumber(200.0), c.blackoutEvery1 = bo["every"][1].asNumber(340.0);
         c.blackoutLen0 = bo["duration"][0].asNumber(20.0), c.blackoutLen1 = bo["duration"][1].asNumber(32.0);
@@ -1661,7 +1673,8 @@ void GameSession::updatePresence(double dt) {
                                  e.type == PE::Gurgle || e.type == PE::Hum || e.type == PE::Squeak || e.type == PE::Scream ||
                                  e.type == PE::Swing || e.type == PE::Pull || e.type == PE::Whisper ||  // V13.2
                                  e.type == PE::Scrape || e.type == PE::Bulge || e.type == PE::Burst || e.type == PE::Burn || e.type == PE::Retract ||
-                                 (e.type == PE::Windup && e.role == Presence::Role::Arms);  // V13.3
+                                 (e.type == PE::Windup && e.role == Presence::Role::Arms) ||  // V13.3
+                                 e.type == PE::Reply || e.type == PE::Shriek;                 // V13.3: Skin-Stealer (Ansprechen)
             if (!audible) continue;
             if (e.type == PE::Flicker)
                 if (const world::Tile* t = world_->tileIfLoaded(ifloor(e.pos.x), ifloor(e.pos.y)); t && t->room) haunt_.flicker(t->room);
@@ -1680,7 +1693,8 @@ void GameSession::updatePresence(double dt) {
                                          e.type == PE::Mimic || e.type == PE::Plead || e.type == PE::Gurgle || e.type == PE::Hum ||
                                          e.type == PE::Squeak || e.type == PE::Scream || e.type == PE::Swing || e.type == PE::Pull ||
                                          e.type == PE::Scrape || e.type == PE::Bulge || e.type == PE::Burst || e.type == PE::Burn ||
-                                         e.type == PE::Retract || (e.type == PE::Windup && e.role == Presence::Role::Arms)))  // V13.3
+                                         e.type == PE::Retract || (e.type == PE::Windup && e.role == Presence::Role::Arms) ||  // V13.3
+                                         e.type == PE::Reply || e.type == PE::Shriek))
             netFigureOut.push_back(e);  // auch die Gaeste hoeren es
         GameEvent ev;
         ev.type = GameEvent::Figure;

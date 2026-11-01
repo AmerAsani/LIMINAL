@@ -163,6 +163,12 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     materialData_[FM_FUSEBOX] = GpuMaterial{{1, 1, 1}, 0, all(L_FUSE), 1.0f, 0, 0.0f};
     materialData_[FM_FUSE_GLOW] = GpuMaterial{{1.0f, 0.4f, 0.07f}, 3.5f, all(L_FUSE), 1.0f, 0, 0.0f};
     materialData_[FM_ITEM_FUSE] = GpuMaterial{{1, 1, 1}, 0, all(L_FUSE), 1.0f, 0, 0.0f};
+    // V13.3: Leuchtstab - Huelle aus mattem, durchscheinendem Kunststoff (ungeknickt blass gelbgruen, glaenzend); geknickt
+    // leuchtet die Fluessigkeit gruen (hell, gegen Ende matt); Kappe aus festem, dunklerem Kunststoff
+    materialData_[FM_ITEM_GLOWSTICK] = GpuMaterial{{0.58f, 0.72f, 0.42f}, 0, all(L_DIFFUSER), 0.3f, 0, 0.05f};
+    materialData_[FM_ITEM_GLOWSTICK_LIT] = GpuMaterial{{0.42f, 1.0f, 0.30f}, 4.2f, all(L_DIFFUSER), 0.3f, 0, 0.0f};
+    materialData_[FM_ITEM_GLOWSTICK_DIM] = GpuMaterial{{0.40f, 0.92f, 0.30f}, 1.1f, all(L_DIFFUSER), 0.3f, 0, 0.0f};
+    materialData_[FM_ITEM_GLOWSTICK_CAP] = GpuMaterial{{0.30f, 0.42f, 0.24f}, 0, all(L_PLASTER), 0.55f, 0, 0.1f};
     // V10: Figuren - Haut, Stoff und Haar triplanar (Toenung x helle Textur), Augen und Ausweis mit UV
     auto tri = [&](u32 l) { return all(l) | kMatFlagTriplanar; };
     materialData_[FM_SKIN_PLAYER] = GpuMaterial{{0.95f, 0.86f, 0.8f}, 0, tri(L_SKIN), 1.0f, 0, 0.3f};

@@ -19,6 +19,7 @@ std::unordered_map<std::string, Sound> synthesizeAll(JobSystem& jobs, int rate) 
     addDullerSounds(defs, rate);  // V13.3
     addArmsSounds(defs, rate);
     addWranglerSounds(defs, rate);  // V13.3
+    addLureSounds(defs, rate);      // V13.3: Leuchtstab, Ansprechen
     std::vector<Sound> out(defs.size());
     jobs.parallelFor((int)defs.size(), [&](int i) { out[(size_t)i] = defs[(size_t)i].make(); });
     std::unordered_map<std::string, Sound> map;

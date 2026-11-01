@@ -1458,6 +1458,19 @@ void App::handleEvents() {
                         if (e.intensity < 0.75f) at(std::format("wrangler_clack_{}", n % 3), e.pos, 0.8f, 20.0f);
                         break;
                     case PE::Sink: at(std::format("wrangler_sink_{}", n % 2), e.pos, 0.9f, 50.0f); break;
+                    // V13.3: Smiler am Leuchtkoeder, Skin-Stealer antwortet / stuermt los (KREATUR_Smiler.md, KREATUR_SkinStealer.md)
+                    case PE::Lured:
+                        at("smiler_lured", e.pos, 0.75f, 24.0f);
+                        ui_.toast(session_->world().level().smilerBait == 1 ? "Der Smiler stutzt nur – hier lässt er sich kaum ablenken."
+                                                                             : "Der Smiler wendet sich dem Licht zu – jetzt ruhig weg.",
+                                  3.2f);
+                        break;
+                    case PE::Reply: {  // Gast: ohne Angabe (intensity 1) - irgendeine der Antworten
+                        const int k = e.intensity < 0.99f ? (int)(e.intensity * 16.0f) : (int)(n % 12);
+                        at(std::format("skin_reply_{}", std::clamp(k, 0, 11)), e.pos, 0.85f, 24.0f);
+                        break;
+                    }
+                    case PE::Shriek: at("skin_shriek", e.pos, 1.0f, 34.0f); break;
                     default: break;
                 }
                 break;
@@ -1851,6 +1864,21 @@ void App::renderWorld(double dt, bool clean) {
                 L.soft = 0.3f;
                 L.size = 0.012f;
                 L.shadows = ++others <= 2;
+                sp.extraLights.push_back(L);
+            }
+            // V13.3: Leuchtstaebe (geworfen, in der Hand) - gruenes Licht nach allen Seiten, die zwei naechsten mit Schatten
+            std::vector<game::GameSession::GlowLight> glows;
+            s.glowLights(glows, 30.0f);
+            for (size_t gi = 0; gi < glows.size() && gi < 4 && sp.extraLights.size() < 9; ++gi) {
+                gfx::ExtraLight L;
+                L.pos = glows[gi].pos;
+                L.dir = {0.0f, 0.0f, 1.0f};
+                L.color = vec3{0.30f, 1.0f, 0.20f} * (1.3f * glows[gi].power);
+                L.range = 3.0f + 5.5f * glows[gi].power;
+                L.spill = 1.0f;
+                L.size = 0.06f;
+                L.soft = 0.12f;
+                L.shadows = gi < 2;
                 sp.extraLights.push_back(L);
             }
         }

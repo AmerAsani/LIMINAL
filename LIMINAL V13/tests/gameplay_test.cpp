@@ -3103,6 +3103,265 @@ static void testV133Wrangler(const std::string& dataDir) {
     }
 }
 
+// --- V13.3: Leuchtstab (Smiler-Koeder) und Ansprechen (Skin-Stealer) - KREATUR_Smiler.md, KREATUR_SkinStealer.md --------
+static void testV133LureTalk(const std::string& dataDir) {
+    std::printf("V13.3: Leuchtstab und Ansprechen (Level 1)\n");
+    const game::Content& content = *gContent11;
+    game::PrefabLibrary prefabs;
+    prefabs.loadDirectory(dataDir + "/prefabs");
+    JobSystem jobs(2);
+    using PE = game::Presence::Event;
+    using Role = game::Presence::Role;
+    auto open = [&](const char* level, i64 seed) {
+        auto s = std::make_unique<game::GameSession>(content, prefabs, content.level(level, world::kLayoutV6), seed, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        return s;
+    };
+    auto step = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, double secs, const std::function<bool()>& each = {},
+                    const std::function<game::PlayerControl(int)>& ctl = {}) {
+        for (int i = 0; i < (int)(secs * 60.0); ++i) {
+            if (each && each()) break;
+            s.update(1.0 / 60.0, ctl ? ctl(i) : game::PlayerControl{}, false);
+            ev.insert(ev.end(), s.events().begin(), s.events().end());
+            s.events().clear();
+        }
+    };
+    auto count = [](const std::vector<game::GameEvent>& ev, PE::Type t, Role r) {
+        return (int)std::count_if(ev.begin(), ev.end(), [&](const game::GameEvent& e) {
+            return e.type == game::GameEvent::Figure && e.index == (int)t && e.role == (int)r;
+        });
+    };
+    auto aim = [](game::GameSession& s, vec3 q) {
+        auto& pl = s.player();
+        pl.angle = std::atan2(q.y - pl.y, q.x - pl.x);
+        pl.pitch = std::atan2(q.z - pl.eye(), std::max(0.4, std::hypot(q.x - pl.x, q.y - pl.y)));
+    };
+    auto has = [](const std::vector<game::GameEvent>& ev, game::GameEvent::Type t) {
+        return std::any_of(ev.begin(), ev.end(), [&](const game::GameEvent& e) { return e.type == t; });
+    };
+    auto slotOf = [](game::GameSession& s, const char* kind) {
+        for (int i = 0; i < game::Inventory::kSize; ++i)
+            if (s.inventory().slots[(size_t)i] && s.inventory().slots[(size_t)i]->kind == kind) return i;
+        return -1;
+    };
+
+    // --- Fundstueck: Leuchtstaebe liegen auf den Ebenen mit Smilern, eher in dunklen Raeumen; Level 0 keine --------------
+    for (const char* id : {"level1", "level2", "level3", "level0"}) {
+        auto lvl = content.level(id, world::kLayoutV6);
+        if (!lvl || !lvl->map) continue;
+        world::World w(lvl, 4242, 0.28, 0.80, jobs, 3);
+        int n = 0, bad = 0;
+        const int S = std::max(1, lvl->sectorSize);
+        for (int sy = 0; sy * S < (int)lvl->map->h; ++sy)
+            for (int sx = 0; sx * S < (int)lvl->map->w; ++sx) {
+                w.tile(sx * S + S / 2, sy * S + S / 2);
+                std::vector<game::FindSpot> all;
+                for (const auto& r : w.sector(sx, sy).rooms)
+                    if (r->prepared()) game::roomFinds(*r, *lvl, all);
+                for (const auto& f : all) {
+                    if (f.kind != game::FindSpot::Glowstick) continue;
+                    ++n;
+                    const world::Tile& t = w.tile(f.tx, f.ty);
+                    if (!t.open() || std::fabs(t.floor - f.pos.z) > 0.01f) ++bad;
+                }
+            }
+        std::printf("  %s: %d Leuchtstaebe (Fundstuecke)\n", id, n);
+        if (std::string(id) == "level0") check(n == 0, "Level 0: keine Leuchtstaebe (dort gibt es keine Smiler)");
+        else check(n >= 2 && n <= 9 && bad == 0, std::format("{}: zwei bis neun Leuchtstaebe auf freiem Boden ({}, {} falsch)", id, n, bad));
+    }
+
+    // --- Smiler: ein geworfener Leuchtstab zieht ihn ab (Level 1, Halle Aquila, im Stromausfall) ----------------------------
+    {
+        auto s = open("level1", 4242);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.2);
+        auto& P = s->presence();
+        world::World& ww = s->world();
+        {
+            auto& pl = s->player();
+            const auto [hx, hy] = hallSpot(ww);
+            pl.x = hx + 0.5, pl.y = hy + 0.5, pl.z = ww.tile(hx, hy).floor;
+            s->body().reset();
+        }
+        s->preload();
+        step(*s, ev, 0.5);
+        P.force(Role::Smiler);
+        step(*s, ev, 16.0, [&] { return P.has(Role::Smiler); });
+        check(P.has(Role::Smiler), "Leuchtstab: der Smiler erscheint im Dunkeln");
+        step(*s, ev, 4.0, [&] { return !P.has(Role::Smiler) || P.stateOf(Role::Smiler) >= 1; }, {});
+        // die Lampe ist an (er folgt ihrem Licht) - dann den Stab quer wegwerfen, in den freien Teil der Halle
+        s->flashlight().on = true;
+        s->inventory().add("glowstick");
+        const int slot = slotOf(*s, "glowstick");
+        const vec3 sp = P.posOf(Role::Smiler);
+        auto& pl = s->player();
+        const double toS = std::atan2(sp.y - pl.y, sp.x - pl.x);
+        double best = toS + 1.2, bestFree = 0.0;
+        for (double off : {1.2, -1.2, 0.8, -0.8, 1.6, -1.6}) {  // die Richtung mit dem meisten freien Boden
+            double free = 0.0;
+            for (double r = 1.0; r < 10.0; r += 0.5) {
+                const world::Tile* t = ww.tileIfLoaded(ifloor(pl.x + std::cos(toS + off) * r), ifloor(pl.y + std::sin(toS + off) * r));
+                if (!t || !t->open() || std::fabs(t->floor - pl.z) > 0.1) break;
+                free = r;
+            }
+            if (free > bestFree) bestFree = free, best = toS + off;
+        }
+        pl.angle = best, pl.pitch = 0.12;
+        const size_t lures0 = s->lures().lures().size();
+        s->useSlot(slot);
+        check(slotOf(*s, "glowstick") < 0 && s->glowThrowPending(), "Leuchtstab: F knickt ihn (aus dem Inventar, Wurfgeste)");
+        step(*s, ev, 0.7);
+        check(s->lures().lures().size() == lures0 + 1, "Leuchtstab: beim Loslassen fliegt er");
+        const vec3 start = s->lures().lures().empty() ? vec3{} : s->lures().lures().back().pos;
+        bool airborne = false;
+        step(*s, ev, 3.0, [&] {
+            const auto& L = s->lures().lures().back();
+            airborne = airborne || L.pos.z > start.z + 0.05f;
+            return L.resting;
+        });
+        const auto& L = s->lures().lures().back();
+        const world::Tile& lt = ww.tile(ifloor(L.pos.x), ifloor(L.pos.y));
+        const float flew = std::hypot(L.pos.x - start.x, L.pos.y - start.y);
+        std::printf("  Leuchtstab: %.1f m weit, liegt %.3f m ueber dem Boden, Leuchtkraft %.2f\n", flew, L.pos.z - lt.floor, s->lures().glowOf(L));
+        check(airborne && L.resting && flew > 2.5f && flew < 16.0f, std::format("Leuchtstab: Wurfbogen, liegt nach {:.1f} m still", flew));
+        check(std::fabs(L.pos.z - lt.floor - game::LureSystem::kRadius) < 0.01f && std::fabs(std::remainder(L.pitch, 3.14159265f)) < 0.02f,
+              "Leuchtstab: liegt flach auf dem Boden");
+        check(s->lures().glowOf(L) > 0.8f, "Leuchtstab: leuchtet hell");
+        std::vector<game::GameSession::GlowLight> gl;
+        s->glowLights(gl, 40.0f);
+        check(!gl.empty(), "Leuchtstab: eigenes Licht");
+        // wegsehen (sonst wuerde er ohne Koeder kommen und zugreifen) - er geht zum Licht, nicht zum Spieler
+        float dLure0 = 1e9f, dLure = 1e9f, dPlayerMin = 1e9f;
+        bool luredSeen = false;
+        if (P.has(Role::Smiler)) dLure0 = std::hypot(P.posOf(Role::Smiler).x - L.pos.x, P.posOf(Role::Smiler).y - L.pos.y);
+        step(*s, ev, 9.0, [&] {
+            if (!P.has(Role::Smiler)) return true;
+            luredSeen = luredSeen || P.luredOf(Role::Smiler);
+            const vec3 q = P.posOf(Role::Smiler);
+            pl.angle = std::atan2(q.y - pl.y, q.x - pl.x) + 3.14159;  // abgewandt
+            pl.pitch = 0.0;
+            dLure = std::hypot(q.x - L.pos.x, q.y - L.pos.y);
+            dPlayerMin = std::min(dPlayerMin, (float)std::hypot(q.x - pl.x, q.y - pl.y));
+            return s->stats().dead;
+        });
+        std::printf("  Smiler: zum Stab %.1f -> %.1f m, dem Spieler hoechstens %.1f m nah\n", dLure0, dLure, dPlayerMin);
+        check(count(ev, PE::Lured, Role::Smiler) >= 1 && luredSeen, "Leuchtstab: der Smiler wendet sich dem staerkeren Licht zu");
+        check(dLure < 1.6f || dLure < dLure0 - 3.0f, std::format("Leuchtstab: er geht zum Licht ({:.1f} -> {:.1f} m)", dLure0, dLure));
+        check(!s->stats().dead && !has(ev, game::GameEvent::StalkerHit), "Leuchtstab: solange er leuchtet, laesst er vom Spieler ab");
+    }
+
+    // --- Skin-Stealer: Ansprechen entlarvt, ruhiges Zurueckweichen ueberlebt, Rennen loest den Angriff aus ----------------
+    auto placeNear = [&](game::GameSession& s, double dist, double back) {
+        auto& P = s.presence();
+        if (!P.has(Role::SkinStealer)) return false;
+        const vec3 at = P.posOf(Role::SkinStealer), head = P.headOf(Role::SkinStealer);
+        world::World& w = s.world();
+        for (int k = 0; k < 36; ++k) {
+            const float yaw0 = P.yawOf(Role::SkinStealer) + (float)((k + 1) / 2) * 0.27f * (k % 2 ? 1.0f : -1.0f);
+            const double x = at.x + std::cos(yaw0) * dist, y = at.y + std::sin(yaw0) * dist;
+            const world::Tile* t = w.tileIfLoaded(ifloor(x), ifloor(y));
+            if (!t || !t->open() || t->clearance() < 2.0f || std::fabs(t->floor - at.z) > 0.3f) continue;
+            if (!game::clearSight(w, vec3{(float)x, (float)y, t->floor + (float)game::Player::kEye}, head)) continue;
+            bool room = true;
+            for (double bb = 0.5; bb <= back && room; bb += 0.5) {
+                const world::Tile* tb = w.tileIfLoaded(ifloor(x + std::cos(yaw0) * bb), ifloor(y + std::sin(yaw0) * bb));
+                room = tb && tb->open() && std::fabs(tb->floor - t->floor) < 0.3f && tb->clearance() > 2.0f;
+            }
+            if (!room) continue;
+            auto& pl = s.player();
+            pl.x = x, pl.y = y, pl.z = t->floor, pl.vx = pl.vy = 0.0;
+            s.body().reset();
+            aim(s, head);
+            return true;
+        }
+        return false;
+    };
+    // erscheinen, satt (wandert, harmlos), der Spieler 3,5 m vor ihm mit Platz dahinter; dann ansprechen
+    auto meet = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, bool hungry) {
+        auto& P = s.presence();
+        P.setGrace(3000.0);
+        P.force(Role::SkinStealer);
+        step(s, ev, 3.0, [&] { return P.has(Role::SkinStealer); });
+        if (!P.has(Role::SkinStealer)) return false;
+        P.kinSet(Role::SkinStealer, "hungry", hungry ? 1.0 : 0.0);
+        bool placed = false;
+        for (int tries = 0; tries < 8 && !placed; ++tries) {
+            placed = placeNear(s, 3.5, 9.0);
+            if (!placed) step(s, ev, 2.0);
+        }
+        return placed;
+    };
+    for (int variant = 0; variant < 3; ++variant) {  // 0 ruhig zurueck, 1 rennen, 2 erneut ansprechen
+        auto s = open("level1", 21 + variant);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        if (!meet(*s, ev, variant == 1)) {
+            check(false, "Ansprechen: ein Skin-Stealer erscheint, der Spieler steht vor ihm");
+            continue;
+        }
+        step(*s, ev, 0.2, [&] { aim(*s, P.headOf(Role::SkinStealer)); return false; });
+        if (variant == 0) {
+            check(s->speakTarget() && s->targetPrompt() == "Ansprechen", "Ansprechen: Hinweis im HUD, wenn man ihn ansieht");
+            check(P.variantOf(Role::SkinStealer) == 1, "Ansprechen: Level 1 - getarnt in Menschenhaut");
+        }
+        aim(*s, P.headOf(Role::SkinStealer));
+        s->update(1.0 / 60.0, {}, false);  // Ziel unter dem Fadenkreuz bestimmen
+        s->events().clear();
+        s->interact();
+        int calls = 0;
+        for (const auto& e : s->events()) calls += e.type == game::GameEvent::SoundAt && e.sound.rfind("talk_call_", 0) == 0;
+        step(*s, ev, 3.0, [&] {
+            if (P.has(Role::SkinStealer)) aim(*s, P.headOf(Role::SkinStealer));
+            return P.exposedOf(Role::SkinStealer) && count(ev, PE::Reply, Role::SkinStealer) > 0;
+        });
+        if (variant == 0) {
+            check(calls == 1, "Ansprechen: der Spieler ruft (synthetischer Satz)");
+            check(count(ev, PE::Reply, Role::SkinStealer) == 1 && P.exposedOf(Role::SkinStealer) && P.stateOf(Role::SkinStealer) == 6,
+                  "Ansprechen: er antwortet verraeterisch - entlarvt");
+            check(!s->stats().dead, "Ansprechen: die Antwort allein ist kein Angriff");
+            // ruhig zurueckweichen: rueckwaerts gehen, den Blick auf ihm
+            step(*s, ev, 14.0, [&] {
+                if (!P.has(Role::SkinStealer)) return true;
+                aim(*s, P.headOf(Role::SkinStealer));
+                return s->stats().dead || P.stateOf(Role::SkinStealer) != 6;
+            }, [](int) {
+                game::PlayerControl c;
+                c.forward = -1.0f;
+                return c;
+            });
+            const int st = P.has(Role::SkinStealer) ? P.stateOf(Role::SkinStealer) : 9;
+            step(*s, ev, 6.0, [&] { return s->stats().dead; });  // und noch eine Weile stehen bleiben (mit Abstand)
+            check(!s->stats().dead && count(ev, PE::Shriek, Role::SkinStealer) == 0 && (st == 0 || st == 4 || st == 9),
+                  std::format("Ansprechen: wer danach ruhig zurueckweicht, den laesst er ziehen (Zustand {})", st));
+        } else if (variant == 1) {
+            check(P.exposedOf(Role::SkinStealer), "Rennen: entlarvt (hungrig)");
+            // umdrehen und rennen
+            step(*s, ev, 8.0, [&] {
+                if (!P.has(Role::SkinStealer)) return true;
+                const vec3 q = P.posOf(Role::SkinStealer);
+                auto& pl = s->player();
+                pl.angle = std::atan2(pl.y - q.y, pl.x - q.x), pl.pitch = 0.0;
+                return s->stats().dead;
+            }, [](int) {
+                game::PlayerControl c;
+                c.forward = 1.0f;
+                c.sprint = true;
+                return c;
+            });
+            check(count(ev, PE::Shriek, Role::SkinStealer) >= 1, "Rennen: nach der Entlarvung loest Rennen den Angriff aus (Schrei)");
+            check(s->stats().dead && s->killRole() == (int)Role::SkinStealer, "Rennen: er holt ihn ein und toetet");
+        } else {
+            step(*s, ev, 2.5, [&] { aim(*s, P.headOf(Role::SkinStealer)); return false; });  // (Pause zwischen zwei Saetzen)
+            s->interact();  // noch einmal ansprechen, obwohl klar ist, dass er kein Mensch ist
+            step(*s, ev, 0.3);
+            check(count(ev, PE::Shriek, Role::SkinStealer) >= 1 && P.stateOf(Role::SkinStealer) == 2,
+                  "Ansprechen: erneutes Ansprechen nach der Entlarvung loest den Angriff aus");
+        }
+    }
+}
+
 int main(int argc, char** argv) {
     if (argc < 2) {
         std::printf("Aufruf: gameplay_test <data-Ordner>\n");
@@ -3143,6 +3402,7 @@ int main(int argc, char** argv) {
     testB001Sleeve(argv[1]);    // V13.2: Kapuzenjacke am gebeugten Ellbogen
     testV133DullerArms(argv[1]);  // V13.3: Duller und Arms (Level 1)
     testV133Wrangler(argv[1]);    // V13.3: Wrangler (Level 1, 2)
+    testV133LureTalk(argv[1]);    // V13.3: Leuchtstab (Smiler), Ansprechen (Skin-Stealer)
     std::printf("%s: %d Pruefungen, %d Fehler\n", gFails ? "FEHLGESCHLAGEN" : "OK", gChecks, gFails);
     return gFails ? 1 : 0;
 }

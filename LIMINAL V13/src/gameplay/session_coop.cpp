@@ -78,6 +78,7 @@ void GameSession::pawnTick(Pawn& p, double dt) {
 
 bool GameSession::pawnInteract(Pawn& p, u32 hash, std::string& msg, int& note) {
     note = -1;
+    if (p.alive && hash < 4) return pawnSpeak(p, (int)hash);  // V13.3: Ansprechen (Satz 0..3, session_lure.cpp)
     if (!p.alive || !hash) return false;
     ecs::Entity found = ecs::kNull;
     reg_.each<Pickup, Transform>([&](ecs::Entity e, Pickup& pk, Transform&) {
@@ -122,6 +123,11 @@ bool GameSession::pawnUse(Pawn& p, int idx, std::string& msg, std::string& sound
     if (isFuse(p.inventory.slots[(size_t)idx]->kind)) {
         msg = "Eine Sicherung. Sie gehört in eine Fassung.";
         return false;
+    }
+    if (p.inventory.slots[(size_t)idx]->kind == "glowstick") {  // V13.3: die Geste lief beim Gast - jetzt der Wurf
+        p.inventory.take(idx);
+        launchGlowstick(p.player, p.eye(), p.id);
+        return true;
     }
     auto kind = p.inventory.take(idx);
     const ItemDef* d = kind ? content_.item(*kind) : nullptr;
@@ -262,6 +268,10 @@ void GameSession::netRemoveItem(u32 hash) {
 }
 
 void GameSession::netAddDropped(u32 hash, const std::string& kind, vec3 pos) {
+    if (kind == "glowstick_lit") {  // V13.3: geworfener, leuchtender Leuchtstab (session_lure.cpp)
+        netAddLure(pos);
+        return;
+    }
     if (!content_.item(kind)) return;
     for (const DroppedItem& d : dropped_)
         if (d.netHash == hash) return;  // schon da (doppelt gemeldet)
