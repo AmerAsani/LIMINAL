@@ -238,9 +238,9 @@ for r in segments:
     if max(R.w, R.h) >= 4:
         if R.zone == 'brownout':  # V13.3: Dauer-Brownout - wenige, schwache, flackernde Roehren
             R.kw['flicker'] = 1
-            tube_run(r, ORANGE, step=4, dead_group=0.45)  # V13.3 Kritikrunde 1: war schwarz (0,55 tot, 0,35)
+            tube_run(r, ORANGE, step=4, dead_group=0.35)  # V13.3 Kritikrunden 1/2: war schwarz (0,55 tot, 0,35)
             for l_ in R.lights:
-                l_[3] = 0.45
+                l_[3] = 0.55
             continue
         tube_run(r, ORANGE if R.zone == 'heiss' else (WHITE if R.zone == 'beton' or rng.random() < 0.6 else ORANGE))
 tube_run(gleis, WHITE, step=4, dead_group=0.35, lit_near=(m.start[0], m.start[1]))

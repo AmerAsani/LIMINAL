@@ -23,3 +23,16 @@ Nachtrag Runde 1 (Prüfung):
 - Nach der Änderung meldete die Raummetrik 3 und dann 58 verstellte Tunnel. Ursache war ein veralteter Ausstattungs-Abzug (`build/qa/props_level2.json` von 16:22, die Karte von 17:45).
 - `room_metrics.py` erzeugt den Abzug jetzt selbst neu, wenn die Karte neuer ist. Mit frischem Abzug: 0 von 181 verstellt.
 - Zusätzlich setzt `furnish_tunnel` in Tunneln unter 3 m keine Tür mehr gegenüber einer Maschine.
+
+## Runde 2 (mit der neuen Ausstattung: 30 Klassen, Varianten der Maschinen)
+
+Laufweg 208 m durch 28 Räume, 52 Bilder (`wegbilder_r2_*`). Befunde:
+1. **Maschinen verschiedener Epochen gemischt**, wie im Wiki: genietete Schalttafel, beiges Steuerpult, grauer Schrank, Verteiler aus Gusseisen, Bakelit und Kunststoff; Rohrbündel über 2,13 m (001–015, 029–035).
+2. **Dunkle Strecken** (018–027): ausgefallene Leuchtengruppen und ein Leerraum, wie im Wiki (Reihenschaltung, lichtlose Leerräume).
+3. **Brownout:** Noch zu dunkel geplant; die Zone selbst liegt nicht auf diesem Weg.
+
+Änderung: Brownout-Grundlicht 0,02 → 0,045, Nebel 0,06 → 0,035, Röhren 0,45 → 0,55, tote Gruppen 45 % → 35 %.
+
+## Runde 3 (gleicher Weg, `wegbilder_r3_*`)
+
+Nachweis: Die dunklen Strecken liegen in den Räumen 10, 129, 53, 139 und 105 (Beton-Tunnel ohne Leuchten, tote Gruppen) und im Leerraum. Die Zonenprüfung zeigt: kein Brownout-Raum auf dem Weg. Keine weitere Änderung an der Struktur. Die Runden 4 und 5 folgen mit den Level-2-Wesen.
