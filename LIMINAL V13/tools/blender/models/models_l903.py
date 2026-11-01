@@ -348,7 +348,7 @@ def _M():
         'alu': mt('wagen_alu', (0.74, 0.76, 0.78), look='metal', tex='metal_aluminum', rough=0.35, metal=0.9, r=0.75, m=0.75),
         'alu_dull': mt('wagen_alu_matt', (0.55, 0.57, 0.58), look='metal', tex='metal_aluminum', rough=0.55, metal=0.8, r=1.2, m=0.55),
         'alu_old': mt('wagen_alt', (0.50, 0.53, 0.55), look='metal', tex='painted_metal_grey', rough=0.6, metal=0.3, r=1.0, m=0.25),
-        'paint_old': mt('wagen_alt_lack', (0.40, 0.43, 0.45), look='paint', rough=0.6, r=0.95),
+        'paint_old': mt('wagen_alt_lack', (0.34, 0.355, 0.365), look='paint', rough=0.6, r=1.0),
         'red': mt('wagen_rot', (0.62, 0.08, 0.06), look='carpaint', rough=0.45, r=0.8),
         'blue': mt('streifen_blau', (0.10, 0.22, 0.52), look='paint', tex='painted_metal_grey', rough=0.55, r=1.0),
         'blue_faded': mt('streifen_blau_blass', (0.16, 0.27, 0.50), look='paint', rough=0.7, r=1.1),
@@ -359,12 +359,12 @@ def _M():
         'inner_grey': mt('innen_grau', (0.50, 0.51, 0.51), look='plastic', rough=0.5, r=0.9),
         'floor': mt('wagenboden', (0.16, 0.16, 0.165), look='rubber', rough=0.8, r=1.1),
         'floor_worn': mt('wagenboden_abgelaufen', (0.24, 0.235, 0.23), look='rubber', rough=0.7, r=0.9),
-        'seat': mt('sitz_blau', (0.20, 0.30, 0.60), look='fabric', rough=0.95, r=1.1),
-        'seat_worn': mt('sitz_blau_glatt', (0.24, 0.31, 0.50), look='fabric', rough=0.8, r=0.85),
+        'seat': mt('sitz_blau', (0.17, 0.24, 0.46), look='fabric', rough=0.95, r=1.15),
+        'seat_worn': mt('sitz_blau_glatt', (0.21, 0.26, 0.40), look='fabric', rough=0.8, r=0.85),
         'shell': mt('sitzschale', (0.30, 0.32, 0.35), look='plastic', rough=0.6, r=0.9),
         'steel': mt('edelstahl', (0.80, 0.80, 0.80), look='metal', rough=0.25, metal=1.0, r=0.5, m=0.9),
         'chrome_worn': mt('edelstahl_matt', (0.62, 0.62, 0.62), look='metal', rough=0.45, metal=1.0, r=0.9, m=0.8),
-        'light': mt('lichtband', (1.0, 0.97, 0.90), look='glow', glow=0.8),
+        'light': mt('lichtband', (1.0, 0.97, 0.90), look='glow', glow=0.55),
         'disp_bg': mt('anzeige_schwarz', (0.018, 0.018, 0.02), look='plastic', rough=0.3, r=0.4),
         'disp': mt('anzeige_weiss', (0.95, 0.98, 1.0), look='glow', glow=1.6),
         'disp_amber': mt('anzeige_bernstein', (1.0, 0.62, 0.18), look='glow', glow=1.2),
@@ -428,7 +428,7 @@ def _M():
         'wood_a': mt('brett_hell', (0.56, 0.50, 0.42), look='wood', tex='wood_birch', rough=0.8, r=1.2),
         'wood_b': mt('brett_alt', (0.42, 0.38, 0.33), look='wood', tex='wood_birch', rough=0.85, r=1.3),
         'wood_c': mt('brett_dunkel', (0.34, 0.28, 0.22), look='wood', tex='wood_walnut_floor', rough=0.85, r=1.3),
-        'brake_dust': mt('bremsstaub', (0.24, 0.215, 0.19), look='paint', rough=0.9, r=1.35),
+        'brake_dust': mt('bremsstaub', (0.19, 0.18, 0.17), look='paint', rough=0.9, r=1.35),
         'wood_end': mt('hirnholz', (0.55, 0.42, 0.28), look='wood', rough=0.9, r=1.3),
         'nail': mt('nagel', (0.30, 0.29, 0.28), look='metal', rough=0.5, metal=0.8, r=0.9, m=0.6),
         'paper': mt('papier', (0.86, 0.84, 0.76), look='paint', rough=0.9, r=1.3),
@@ -1046,7 +1046,7 @@ def _car_end(prefix, sgn, M, rng, kind, front):
                M['glass'])
         path = _rrect(y0, y1, 1.0, 1.84, 0.05, n=2)
         _tube(f'{prefix}_dichtung{y0}', [(xo + sgn * 0.002, y, z) for (y, z) in path + [path[0]]], 0.01, M['rubber'], seg=5, caps=False)
-    _box(f'{prefix}_wischer', (xo + sgn * 0.004 - 0.004, 0.70, 1.05), (xo + sgn * 0.012 + 0.004, 0.72, 1.55), M['ink'])
+    _box(f'{prefix}_wischer', (xo + sgn * 0.004, 0.70, 1.05), (xo + sgn * 0.012, 0.72, 1.55), M['ink'])
     ob = _box(f'{prefix}_wischblatt', (-0.006, -0.006, -0.22), (0.006, 0.006, 0.22), M['rubber'])
     ob.matrix_world = Matrix.Translation((xo + sgn * 0.012, 0.86, 1.30)) @ Matrix.Rotation(math.radians(28), 4, 'X')
     # Stirntuer (geschlossen) mit Fenster, Griff innen und aussen
@@ -1058,7 +1058,9 @@ def _car_end(prefix, sgn, M, rng, kind, front):
     for side in (-1, 1):
         xg = (dx1 + 0.03) if side * sgn > 0 else (dx0 - 0.03)
         xg0 = dx1 if side * sgn > 0 else dx0
-        _tube(f'{prefix}_tuergriff{side}', [(xg0, 0.26, 0.98), (xg, 0.26, 0.98), (xg, 0.12, 0.98), (xg0, 0.12, 0.98)], 0.011, M['steel'], seg=6)
+        for yy in (0.26, 0.12):
+            _cyl(f'{prefix}_tuergriff{side}_{yy}', (xg0, yy, 0.98), (xg, yy, 0.98), 0.009, M['steel'], seg=6)
+        _cyl(f'{prefix}_tuergriff{side}', (xg, 0.27, 0.98), (xg, 0.11, 0.98), 0.012, M['steel'], seg=8)
     _box(f'{prefix}_tuerblech', (min(dx0, dx1) - 0.002, -0.33, 0.03), (max(dx0, dx1) + 0.002, 0.33, 0.25), M['chrome_worn'])
     # Eckpfosten (gefast) entlang des Profils
     for s in (-1, 1):
@@ -1106,7 +1108,7 @@ def _car_end(prefix, sgn, M, rng, kind, front):
     _decal(f'{prefix}_anzeige_aussen_front', (xo + sgn * 0.031, 0, 0), (0, sgn, 0), (0, 0, 1), [(-0.39, 1.95), (0.39, 1.95), (0.39, 2.15), (-0.39, 2.15)],
            M['disp_bg'])
     if kind:
-        _pictogram(f'{prefix}_anzeige_aussen_zeichen', kind, (xo + sgn * 0.032, 0.0, 2.05), (0, sgn, 0), (0, 0, 1), 0.36 * PICTO_SIZE[kind],
+        _pictogram(f'{prefix}_anzeige_aussen_zeichen', kind, (xo + sgn * 0.032, 0.0, 2.05), (0, sgn, 0), (0, 0, 1), 0.45 * PICTO_SIZE[kind],
                    M['disp'], M['disp_bg'])
     # Notbremsgriff und Feuerloescher innen
     _box(f'{prefix}_notbremse', (min(xi, xi - sgn * 0.05), 0.48, 1.45), (max(xi, xi - sgn * 0.05), 0.60, 1.62), M['red_handle'], bevel=0.008)
@@ -1278,7 +1280,7 @@ def _build_car(minus, plus, track, dz, seed):
             _door(f'tuer{s}_{d:.0f}', d, s, M, rng, open_=(s < 0))
         # Schmutzrand unten (Bremsstaub), an den Tueren unter der Schwelle
         def ztop(x, s=s):
-            v = -0.07 + 0.025 * math.sin(x * 1.37 + s) + 0.02 * math.sin(x * 3.91 + 2 * s) + 0.015 * math.sin(x * 8.3) + \
+            v = -0.10 + 0.025 * math.sin(x * 1.37 + s) + 0.02 * math.sin(x * 3.91 + 2 * s) + 0.015 * math.sin(x * 8.3) + \
                 rng.uniform(-0.02, 0.02)
             for d in DOORS:
                 if abs(x - d) < DOOR_HW + 0.05:
@@ -1619,7 +1621,7 @@ def build_stairs_barricaded():
     wall = [(0.10, 0.0), (6.10, 0.0), (6.10, 4.20), (5.15, 4.20), (X0, 1.03), (0.10, 1.03)]
     for s in (-1, 1):
         _prism(f'wand{s}', wall, s * yw, s * 1.30, [M['tile_w']], axis='y')
-        cap = [(0.07, 1.03), (X0, 1.03), (5.15, 4.20), (5.25, 4.20), (X0 + 0.02, 1.075), (0.07, 1.075)]
+        cap = [(0.07, 1.03), (X0, 1.03), (5.15, 4.20), (5.08, 4.20), (X0 - 0.01, 1.075), (0.07, 1.075)]
         _prism(f'abdeckung{s}', cap, s * (yw - 0.02), s * 1.32, [M['coping']], axis='y')
         _decal(f'sockel{s}', (0.0, s * (yw - 0.0015), 0.0), (1, 0, 0), (0, 0, 1),
                [(0.10, 0.0), (6.1, 0.0), (6.1, 0.12), (0.10, 0.12)], M['grime'])
@@ -1675,9 +1677,9 @@ def build_stairs_barricaded():
         row += 1
     # Barrikade am Fuss: Pfosten, Bretter, Naegel
     for s in (-1, 1):
-        _box(f'pfosten{s}', (0.13, s * (yw - 0.10), 0.0), (0.23, s * (yw - 0.002), 1.95), M['wood_c'])
+        _box(f'pfosten{s}', (-0.12, s * (yw - 0.10), 0.0), (-0.02, s * (yw - 0.002), 1.95), M['wood_c'])
         for z in (0.3, 1.5):
-            _box(f'winkel{s}{z}', (0.13, s * (yw - 0.10), z), (0.135, s * (yw - 0.002), z + 0.06), M['nail'])
+            _box(f'winkel{s}{z}', (-0.06, s * (yw - 0.004), z), (0.10, s * (yw + 0.002), z + 0.06), M['nail'])
     boards = []
     z = 0.18
     while z < 1.85:
@@ -1691,28 +1693,28 @@ def build_stairs_barricaded():
         ob = _box(f'brett{i}', (-0.012, -yw - ext + rng.uniform(0, 0.05), -h / 2), (0.012, yw + 0.04 - rng.uniform(0, 0.06), h / 2),
                   woods[i % 3])
         _jitter(ob, 0.004, i * 31)
-        ob.matrix_world = Matrix.Translation((0.248, 0, zc)) @ Matrix.Rotation(tilt, 4, 'X')
+        ob.matrix_world = Matrix.Translation((-0.132, 0, zc)) @ Matrix.Rotation(tilt, 4, 'X')
         for s in (-1, 1):  # zwei Naegel je Pfosten
             for dz in (-h * 0.25, h * 0.25):
                 yy = s * (yw - 0.05)
                 zz = zc + dz + yy * math.tan(tilt) * 0.0
                 zz = zc + dz + yy * tilt
-                _cyl(f'nagel{i}{s}{dz:.2f}', (0.258, yy, zz), (0.263, yy, zz), 0.0065, M['nail'], seg=6)
+                _cyl(f'nagel{i}{s}{dz:.2f}', (-0.149, yy, zz), (-0.144, yy, zz), 0.0065, M['nail'], seg=6)
     # zwei Diagonalbretter (X), ein krummer Nagel
     for i, sgn in enumerate((1, -1)):
         ang = math.atan2(1.4, 2.2) * sgn
         ob = _box(f'diagonal{i}', (-0.012, -1.30, -0.085), (0.012, 1.30, 0.085), woods[(i + 1) % 3])
         _jitter(ob, 0.004, 77 + i)
-        ob.matrix_world = Matrix.Translation((0.275 + i * 0.026, 0, 0.98)) @ Matrix.Rotation(ang, 4, 'X')
-    _tube('krummer_nagel', [(0.30, 0.42, 1.12), (0.34, 0.42, 1.12), (0.355, 0.43, 1.10), (0.357, 0.45, 1.08)], 0.0025, M['nail'], seg=4)
+        ob.matrix_world = Matrix.Translation((-0.157 - i * 0.026, 0, 0.98)) @ Matrix.Rotation(ang, 4, 'X')
+    _tube('krummer_nagel', [(-0.144, 0.42, 1.12), (-0.184, 0.42, 1.12), (-0.199, 0.43, 1.10), (-0.201, 0.45, 1.08)], 0.0025, M['nail'], seg=4)
     # Zettel mit erfundenen Zeichen, Absperrband
-    _decal('zettel', (0.262, -0.15, 1.18), (0, 1, 0), (0, 0, 1), [(0, 0), (0.21, 0.01), (0.215, 0.30), (0.0, 0.29)], M['paper'])
-    _text('zettel_text', _word(rng, 3, 4), (0.2625, -0.13, 1.38), (0, 1, 0), (0, 0, 1), 0.045, M['ink'])
-    _text('zettel_text2', _word(rng, 4, 5), (0.2625, -0.13, 1.30), (0, 1, 0), (0, 0, 1), 0.03, M['ink'])
+    _decal('zettel', (-0.1446, 0.10, 1.18), (0, -1, 0), (0, 0, 1), [(0, 0), (0.21, 0.01), (0.215, 0.30), (0.0, 0.29)], M['paper'])
+    _text('zettel_text', _word(rng, 3, 4), (-0.1449, 0.08, 1.38), (0, -1, 0), (0, 0, 1), 0.045, M['ink'])
+    _text('zettel_text2', _word(rng, 4, 5), (-0.1449, 0.08, 1.30), (0, -1, 0), (0, 0, 1), 0.03, M['ink'])
     tape = []
     for k in range(9):
         t = k / 8
-        tape.append((0.33, -1.10 + 2.2 * t, 1.62 - 0.16 * math.sin(math.pi * t)))
+        tape.append((-0.20, -1.10 + 2.2 * t, 1.62 - 0.16 * math.sin(math.pi * t)))
     _tube('band', tape, 0.008, M['tape'], seg=4)
     # Schutt hinter den Brettern
     for k in range(9):
@@ -1896,7 +1898,7 @@ def _dormant(kind, seed, worn=False):
     cols = []
     for i in range(nx + 1):
         y = -3.0 + 6.0 * i / nx
-        zt = 0.0 + 0.03 * math.sin(y * 1.3 + seed) + 0.025 * math.sin(y * 3.7 + 2 * seed) + rng.uniform(-0.025, 0.025)
+        zt = max(-0.02, 0.01 + 0.03 * math.sin(y * 1.3 + seed) + 0.025 * math.sin(y * 3.7 + 2 * seed) + rng.uniform(-0.025, 0.025))
         cols.append([bm.verts.new((_dx(z) + 0.004, y, z)) for z in (-0.50, -0.44, -0.25, -0.05, zt)])
     for i in range(nx):
         for k in range(4):
@@ -1905,6 +1907,20 @@ def _dormant(kind, seed, worn=False):
             if f.normal.x < 0:
                 f.normal_flip()
     _link('bremsstaub', bm, [M['brake_dust']])
+    # Ablaufschmutz unter der Regenrinne (unregelmaessige Unterkante, Laeufer)
+    bm = bmesh.new()
+    cols = []
+    for i in range(nx + 1):
+        y = -3.0 + 6.0 * i / nx
+        zb = 2.05 - abs(math.sin(y * 2.7 + seed)) * 0.08 - (0.12 if rng.random() < 0.18 else 0.0)
+        cols.append([bm.verts.new((_dx(z) + 0.0045, y, z)) for z in (zb, 2.15, 2.21)])
+    for i in range(nx):
+        for k in range(2):
+            f = bm.faces.new((cols[i][k], cols[i + 1][k], cols[i + 1][k + 1], cols[i][k + 1]))
+            f.normal_update()
+            if f.normal.x < 0:
+                f.normal_flip()
+    _link('ablaufschmutz', bm, [common.material('ablaufschmutz', (0.17, 0.165, 0.16), look='paint', rough=0.9, r=1.3)])
     # Rostinseln (wenige, an Kanten und Stoessen)
     for k in range(3 + (3 if worn else 0)):
         y, z = rng.uniform(-2.9, 2.9), rng.choice((rng.uniform(-0.4, 0.0), rng.uniform(1.95, 2.15)))
