@@ -566,8 +566,8 @@ const Build& bipedBuild(Entity e) {
 const CreatureSkeleton& entitySkeleton(Entity e) {
     static const std::array<CreatureSkeleton, kEntityCount> all = {makeSmiler(), makeHound(), makeMoth(), makeGestalt(), makeNest(),
                                                                    makeClump(), makeBiped(Entity::Faceling), makeBiped(Entity::SkinStealer),
-                                                                   makeBiped(Entity::Wretch), makeRat(), makeWindow(),
-                                                                   makeGrowlerSkeleton(), makeNguithrSkeleton()};  // V13.3
+                                                                   makeBiped(Entity::Wretch), makeRat(), makeWindow(), du::skeleton(),
+                                                                   ar::skeleton(), makeGrowlerSkeleton(), makeNguithrSkeleton()};  // V13.3
     return all[(size_t)std::min((int)e, kEntityCount - 1)];
 }
 
@@ -584,6 +584,8 @@ const char* entityModel(Entity e) {
         case Entity::Wretch: return "ent_wretch";
         case Entity::Rat: return "ent_rat";
         case Entity::Window: return "ent_window";
+        case Entity::Duller: return "ent_duller";  // V13.3
+        case Entity::Arms: return "ent_arms";
         case Entity::Growler: return "ent_growler";        // V13.3
         case Entity::Nguithr: return "ent_nguithrxurh";
         default: return "ent_smiler";
@@ -613,6 +615,8 @@ const char* entityName(Entity e) {
         case Entity::Wretch: return "Wretch";
         case Entity::Rat: return "Death Rat";
         case Entity::Window: return "Fensterwesen";
+        case Entity::Duller: return "Duller";  // V13.3
+        case Entity::Arms: return "Arms";
         case Entity::Growler: return "Growler";  // V13.3
         case Entity::Nguithr: return "Nguithr'xurh";
         default: return "?";

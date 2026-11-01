@@ -19,6 +19,8 @@ void addPlayerSounds(std::vector<SoundDef>& d, int rate);    // synth_player.cpp
 void addWorldSounds(std::vector<SoundDef>& d, int rate);     // synth_world.cpp: Leuchten, Elektrik, Wasser, Rohre, Tueren
 void addCreatureSounds(std::vector<SoundDef>& d, int rate);  // synth_creatures.cpp: Kreaturen, Halluzinationen
 void addLevelSounds(std::vector<SoundDef>& d, int rate);     // synth_levels.cpp: Klangbetten, ferne Ereignisse, Musik
+void addDullerSounds(std::vector<SoundDef>& d, int rate);    // V13.3 synth_duller.cpp: Duller (Wand, Gelenke)
+void addArmsSounds(std::vector<SoundDef>& d, int rate);      // V13.3 synth_arms.cpp: Arms (Schacht, Schrei im Licht)
 void addGrowlerSounds(std::vector<SoundDef>& d, int rate);   // V13.3: synth_growler.cpp
 void addNguithrSounds(std::vector<SoundDef>& d, int rate);   // V13.3: synth_nguithrxurh.cpp
 

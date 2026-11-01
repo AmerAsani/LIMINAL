@@ -67,7 +67,7 @@ WALL_MOUNT = {'outlet', 'vent_grille', 'painting', 'power_box', 'wall_sconce', '
 DOOR_MODELS = {'steel_door', 'hotel_door', 'damaged_door'}
 CEILING_MOUNT = {'batten', 'highbay', 'chandelier', 'safety_light', 'ceiling_vent',
                  'troffer', 'troffer_off', 'troffer_red', 'ceiling_diffuser', 'hanging_bulb',  # V12: Blender-Modelle
-                 'vines_ceiling', 'cable_hang',  # V13.3 L1-Sektoren
+                 'vines_ceiling', 'cable_hang', 'arcade_gothic',  # V13.3 L1-Sektoren, Gothic-Arkaden
                  'tube_white', 'tube_orange', 'tube_dead', 'chandelier_grand', 'lantern_green', 'chandelier_iron', 'ceiling_arms', 'skylight_188', 'tube_long', 'sign_903_a', 'sign_903_b', 'sign_36_a', 'sign_36_b', 'sign_36_empty'}
 # V12: Modelle, die in einem Durchbruch stehen (Bogen mit Laibung): Mitte muss in einer Tuer/Oeffnung liegen
 IN_OPENING = {'arch2', 'arch3', 'arch4', 'arch_tall3', 'arch_tall4', 'swing_door1', 'swing_door2', 'door_level3', 'elevator_door', 'elevator_cage', 'door_old_open', 'door_mahogany_open'}

@@ -49,9 +49,9 @@ namespace lim::game {
 class Presence {
 public:
     // V11: Clump (Buendel); V13.2: Faceling, Skin-Stealer, Wretch, Death Rat, Fensterwesen (gleiche Reihenfolge wie anim::Entity)
-    // V13.3: Growler, Nguithr'xurh (presence_growler.cpp, presence_nguithrxurh.cpp)
-    enum class Role { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Growler, Nguithr };
-    static constexpr int kRoleCount = 13;
+    // V13.3: Duller, Arms; Growler, Nguithr'xurh (presence_growler.cpp, presence_nguithrxurh.cpp)
+    enum class Role { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Growler, Nguithr };
+    static constexpr int kRoleCount = 15;  // V13.3: Duller, Arms, Growler, Nguithr'xurh
     static const char* roleName(Role r);
 
     struct Event {
@@ -90,6 +90,12 @@ public:
             Scream,      // Death Rats fallen ueber ein anderes Wesen her ("Screaming Event"): Kreischen, Flackern
             Swing,       // Schlag mit dem Steinwerkzeug (Ausholen)
             Pull,        // Fensterwesen: der Arm faehrt aus dem Fenster
+            // V13.3: Duller, Arms
+            Scrape,      // Schaben: der Duller in der Wand, die Arms im Schacht (strength: Lautstaerke)
+            Bulge,       // Duller: der Putz woelbt sich, knackt
+            Burst,       // Duller: die Wand bricht auf; Arms: die Lueftung oeffnet sich (sehr leise)
+            Burn,        // Arms: Licht verbrennt den Arm - heiserer Todesschrei, Zischen
+            Retract,     // Duller/Arms: der Arm gleitet zurueck
             // V13.3: Growler, Nguithr'xurh
             Click,       // Growler: Klicks der Echoortung (strength: Groesse 0..1)
             Static,      // Growler: das telepathische Rauschen schadet aus der Naehe (strength: Health-Punkte dieses Takts, 0: nur Verstand)
@@ -97,7 +103,7 @@ public:
             Merge,       // zwei Growler verschmelzen
             Collapse,    // Growler bricht zusammen (verhungert, verwirrt, Schock)
             Snip,        // Nguithr'xurh schneidet eine Netzkugel ab
-            Burst,       // eine Netzkugel zerplatzt am Boden (strength: Betaeubung fuer das Ziel, 0: daneben)
+            SacBurst,    // eine Netzkugel zerplatzt am Boden (strength: Betaeubung fuer das Ziel, 0: daneben)
             Skitter,     // Nguithr'xurh huscht
             Stridulate,  // Nguithr'xurh zirpt (Cheliceren reiben - im Licht, gestoert)
         } type;
@@ -151,6 +157,7 @@ public:
         bool puppet = false;
         // V13.2: neue Wesen der Ebene (world::KinDef[KIN_COUNT]: Faceling, Skin-Stealer, Wretch, Ratte, Fenster) oder nullptr
         const world::KinDef* kin = nullptr;
+        bool almond = false;  // V13.3: der Spieler haelt Mandelwasser in der Hand (der Duller meidet es)
     };
 
     // V13.2 Koop: Zustand eines Wesens fuer die Momentaufnahme (Host) und die Puppe beim Gast
@@ -285,6 +292,13 @@ private:
     void thinkWretch(Agent& a, double dt, const Context& c, std::vector<Event>& out);
     void thinkRat(Agent& a, double dt, const Context& c, std::vector<Event>& out);
     void thinkWindow(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    // V13.3: Duller (presence_duller.cpp), Arms (presence_arms.cpp)
+    void regieDuller(double dt, const Context& c, std::vector<Event>& out);
+    bool spawnDuller(const Context& c, std::vector<Event>& out, bool forced);
+    void thinkDuller(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    void regieArms(double dt, const Context& c, std::vector<Event>& out);
+    bool spawnArms(const Context& c, std::vector<Event>& out, bool forced);
+    void thinkArms(Agent& a, double dt, const Context& c, std::vector<Event>& out);
     // V13.3: Growler, Nguithr'xurh (eigene Dateien)
     void regieGrowler(double dt, const Context& c, std::vector<Event>& out);
     bool spawnGrowler(const Context& c, std::vector<Event>& out, bool forced);
@@ -318,6 +332,7 @@ private:
     int hiveDoorX_ = -1, hiveDoorY_ = -1;  // V13.2
     double nextKin_[5] = {30.0, 150.0, 90.0, 25.0, 0.0};  // V13.2: naechster Auftritt je neuem Wesen
     bool windowsPlaced_ = false;                            // V13.2: Fensterwesen der Ebene gesetzt
+    double nextDuller_ = 70.0, nextArms_ = 15.0;            // V13.3: naechster Auftritt
     double nextScream_ = 120.0, screamT_ = 0.0, screamTick_ = 0.0;  // V13.2: Schrei-Ereignis der Ratten (Dauer, Flackern)
     vec3 screamPos_;
     int nextGroup_ = 1;

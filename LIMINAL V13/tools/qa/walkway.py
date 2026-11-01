@@ -20,10 +20,14 @@ from game import run  # noqa: E402
 from maplib import NAMES, ROOT, Grid, path  # noqa: E402
 
 
-def plan(g, rooms_min, meters_min, seed):
+def plan(g, rooms_min, meters_min, seed, zone=None):
     rnd = random.Random(seed)
     adj = g.neighbours()
     sx, sy = g.m['start'][0], g.m['start'][1]
+    if zone:  # V13.3: Weg in einer Zone beginnen (Kritikrunden fuer Bereiche abseits des Starts)
+        cand = [r for r in g.rooms if r.get('zone') == zone]
+        x0, y0, x1, y1 = max(cand, key=lambda r: (r['rect'][2] - r['rect'][0]) * (r['rect'][3] - r['rect'][1]))['rect']
+        sx, sy = next((x + 0.5, y + 0.5) for y in range((y0 + y1) // 2, y1) for x in range((x0 + x1) // 2, x1) if g.ok(x + 0.5, y + 0.5))
     cur = int(g.room[int(sy), int(sx)])
     pts = [(sx, sy)]
     seq = [cur]
@@ -93,6 +97,22 @@ def resample(pts, step):
     return out
 
 
+def view_yaw(g, x, y, yaw, near=6.0):
+    """Blick in Laufrichtung; steht dort eine Wand naeher als `near`, die freieste Richtung bis +-75 Grad
+    (Kritikrunde 1 Level 1: Bilder zeigten in Kurven nur eine Wand)."""
+    if g.ray(x, y, yaw, maxd=near + 1.0) >= near:
+        return yaw
+    best, score = yaw, -1.0
+    for k in range(1, 6):
+        for sgn in (1, -1):
+            a = yaw + sgn * math.radians(15 * k)
+            d = g.ray(x, y, a, maxd=40.0)
+            sc = d - 0.04 * 15 * k
+            if sc > score:
+                best, score = a, sc
+    return best
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('level')
@@ -102,9 +122,10 @@ def main():
     ap.add_argument('--meters', type=float, default=200.0)
     ap.add_argument('--seed', type=int, default=1)
     ap.add_argument('--size', default='1280x720')
+    ap.add_argument('--zone', default=None, help='Weg in dieser Zone beginnen (groesster Raum der Zone)')
     a = ap.parse_args()
     g = Grid(a.level)
-    pts, seq, length = plan(g, a.rooms, a.meters, a.seed)
+    pts, seq, length = plan(g, a.rooms, a.meters, a.seed, a.zone)
     shots = resample(pts, a.step)
     od = os.path.join(ROOT, 'docs', 'screens', a.level, f'wegbilder_{a.round}')
     os.makedirs(os.path.dirname(od), exist_ok=True)  # Einzelbilder bleiben in build/qa/walk (nur Boegen ins Repository)
@@ -115,6 +136,7 @@ def main():
         j = min(i + 1, len(shots) - 1)
         k = max(i - 1, 0)
         yaw = math.atan2(shots[j][1] - shots[k][1], shots[j][0] - shots[k][0]) if j != k else 0.0
+        yaw = view_yaw(g, x, y, yaw)
         lines.append(f'pos {x:.2f} {y:.2f} {yaw:.4f} -0.04')
         lines.append('wait 10')
         lines.append('shot ' + os.path.join(raw, f'{i:03d}.png').replace('\\', '/'))

@@ -238,6 +238,13 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     materialData_[FM_ENT_VIEW] = GpuMaterial{{1.0f, 1.0f, 1.0f}, 1.4f, ent(EL_VIEW, ML_PORES), 0.3f, 0, 0.0f};
     // Ausfluss (Wretch: rotbrauner Saft aus den Pusteln, brauner Schlamm aus dem Mund)
     materialData_[FM_ENT_OOZE] = GpuMaterial{{0.42f, 0.20f, 0.11f}, 0, ent(EL_HORN, ML_PORES), 0.22f, 0, 0.05f};
+    // V13.3: Duller - dunkelgrau, trocken und matt, Haarrisse; an Knochenkanten etwas Glanz (Textur); kein roetliches Durchscheinen
+    materialData_[FM_ENT_DULLERSKIN] = GpuMaterial{{0.34f, 0.34f, 0.36f}, 0, ent(EL_SKIN, ML_CRAZE), 1.5f, 0, 0.25f};
+    // V13.3: Arms - verwesende, graue Haut mit gruenlichem Stich, speckig-feucht (wenig Rauheit)
+    materialData_[FM_ENT_ROTSKIN] = GpuMaterial{{0.44f, 0.47f, 0.40f}, 0, ent(EL_SKIN, ML_CRAZE), 0.8f, 0, 0.5f};
+    // V13.3: frisch gebrochener Beton und Putz (Bruchstelle des Dullers, Riss der Arms): hell, stumpf, fleckig, Haarrisse
+    materialData_[FM_ENT_CONCRETE] = GpuMaterial{{0.56f, 0.56f, 0.54f}, 0, ent(EL_TOOTH, ML_CRAZE), 1.9f, 0, 0.45f};
+    materialData_[FM_ENT_SMOKE] = GpuMaterial{{0.32f, 0.31f, 0.30f}, 0, tri(L_SKIN) | kMatFlagSmoke, 1.0f, 0, 0.0f};  // Rauch verbrannter Haut
     // V13.3: Growler - Chenille der Pfeifenreiniger (feines Haar, Fasern), bunt getoent, matt; a und b leuchten, wenn das Wesen
     // leuchtet (Junge in Level 2: im Dunkeln zu sehen). Draht: blank, metallisch
     // Runde 3: auf der hellen Zahn-Ebene statt Pelz - der Shader blendet Leuchten bei dunklen Texturen aus (Junge leuchteten nicht);

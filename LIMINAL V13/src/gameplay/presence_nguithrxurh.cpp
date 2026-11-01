@@ -321,7 +321,7 @@ void Presence::thinkNguithr(Agent& a, double dt, const Context& c, std::vector<E
                 const bool on = hdist(feet, at) < 1.25f && std::fabs(feet.z - g.floorZ[k]) < 0.6f && c.mode >= 2;
                 const float dose = on ? (g.phase <= 1 ? 0.33f : 0.24f) : 0.0f;
                 if (dose > 0.0f) addDose(a.target, dose);
-                out.push_back({Event::Burst, Role::Nguithr, at, dose});
+                out.push_back({Event::SacBurst, Role::Nguithr, at, dose});
             }
         }
         auto cut = [&](int k) {

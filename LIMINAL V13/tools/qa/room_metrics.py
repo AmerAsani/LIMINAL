@@ -14,6 +14,7 @@ Gemessen aus der festen Karte (data/maps) und der Ausstattung im Spiel (build/qa
     python tools/qa/room_metrics.py --check [level ...]   zusaetzlich gegen tools/qa/metric_limits.json (Exitcode 1)
 """
 import json
+import subprocess
 import math
 import os
 import sys
@@ -135,6 +136,10 @@ def measure(level, exempt=()):
     sl = sight_lines(g, rng)
     props = []
     pp = os.path.join(ROOT, 'build', 'qa', f'props_{level}.json')
+    mp = os.path.join(ROOT, 'data', 'maps', f'{level}.json')
+    if not os.path.exists(pp) or os.path.getmtime(pp) < os.path.getmtime(mp):
+        # V13.3: Abzug aelter als die Karte - neu erzeugen (sonst prueft die Moebelregel alte Positionen)
+        subprocess.run([sys.executable, os.path.join(ROOT, 'tools', 'qa', 'propdump.py'), level], check=False)
     if os.path.exists(pp):
         with open(pp, encoding='utf-8') as fh:
             props = json.load(fh)['props']
