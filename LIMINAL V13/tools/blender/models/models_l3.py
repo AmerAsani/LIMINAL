@@ -701,7 +701,7 @@ def _bars(width, seed):
             pts = pts[:4] + ins + pts[4:]
         K.tube(P['bar'], pts, 0.015, 8)
         # Rost am Fuss: Manschette mit zackigem Rand
-        hgt = rng.uniform(0.06, 0.32)
+        hgt = rng.uniform(0.10, 0.48)
         b = bmesh.new()
         lo_r = [b.verts.new((y0 * 0 + 0.0159 * math.cos(TAU * i / 8), y0 + dy + 0.0159 * math.sin(TAU * i / 8), -0.05)) for i in range(8)]
         hi_r = [b.verts.new((0.0159 * math.cos(TAU * i / 8), y0 + dy + 0.0159 * math.sin(TAU * i / 8), hgt * rng.uniform(0.55, 1.0)))
@@ -712,7 +712,7 @@ def _bars(width, seed):
         K.add(P['rust'], b)
         # Schweissraupen oben und unten an jedem Riegel, oft rostig
         for s in straps:
-            for zz in (s + 0.012, s):
+            for zz in ((s + 0.012,) if s < 0.5 else ((s,) if s > 2.5 else (s + 0.012, s))):  # sichtbare Seiten
                 mm = P['rust'] if rng.random() < 0.35 else P['bar_dirty']
                 ring = arc_pts((0, y0 + dy, zz), 0.0185, 0, TAU, 6)[:-1]
                 K.tube(mm, ring, 0.004, 3, caps=False, path_closed=True)
@@ -721,7 +721,7 @@ def _bars(width, seed):
                 side = rng.choice((0.0, math.pi))
                 ln = rng.uniform(0.05, 0.3)
                 cdecal(K, P['rust'], (0, y0 + dy, 0), (0, 0, 1), (1, 0, 0), 0.015, side + rng.uniform(-0.4, 0.4),
-                       s - ln * 0.5, 0.45, ln * 0.5, seed * 1000 + k * 7 + int(s * 10), n=8, lift=0.0007)
+                       s - ln * 0.5, 0.65, ln * 0.5, seed * 1000 + k * 7 + int(s * 10), n=8, lift=0.0007)
         # Rostflecken und Abplatzer am Stab
         for j in range(rng.randrange(2, 5)):
             cdecal(K, P['rust'] if j % 2 else P['rust_dark'], (0, y0 + dy, 0), (0, 0, 1), (1, 0, 0), 0.015, rng.uniform(0, TAU),
@@ -1906,20 +1906,20 @@ def _window_brick(v):
     for j in range(16):
         side = rng.randrange(4)
         if side == 0:
-            p, u, v = (fd + 0.0005, rng.uniform(-W / 2, W / 2), -H / 2 - rng.uniform(0.0, fw)), (0, 1, 0), (0, 0, 1)
+            p, uu, vv = (fd + 0.0005, rng.uniform(-W / 2, W / 2), -H / 2 - rng.uniform(0.0, fw)), (0, 1, 0), (0, 0, 1)
         elif side == 1:
-            p, u, v = (fd + 0.0005, rng.uniform(-W / 2, W / 2), H / 2 + rng.uniform(0.0, fw)), (0, 1, 0), (0, 0, 1)
+            p, uu, vv = (fd + 0.0005, rng.uniform(-W / 2, W / 2), H / 2 + rng.uniform(0.0, fw)), (0, 1, 0), (0, 0, 1)
         elif side == 2:
-            p, u, v = (fd + 0.0005, -W / 2 - rng.uniform(0, fw), rng.uniform(-H / 2, H / 2)), (0, 1, 0), (0, 0, 1)
+            p, uu, vv = (fd + 0.0005, -W / 2 - rng.uniform(0, fw), rng.uniform(-H / 2, H / 2)), (0, 1, 0), (0, 0, 1)
         else:
-            p, u, v = (fd + 0.0005, W / 2 + rng.uniform(0, fw), rng.uniform(-H / 2, H / 2)), (0, 1, 0), (0, 0, 1)
-        decal(K, P['rust'] if j % 3 else P['steel_dark'], p, u, v, rng.uniform(0.01, 0.04), rng.uniform(0.008, 0.02), 5300 + j, n=8, lift=0.0)
+            p, uu, vv = (fd + 0.0005, W / 2 + rng.uniform(0, fw), rng.uniform(-H / 2, H / 2)), (0, 1, 0), (0, 0, 1)
+        decal(K, P['rust'] if j % 3 else P['steel_dark'], p, uu, vv, rng.uniform(0.01, 0.04), rng.uniform(0.008, 0.02), 5300 + j, n=8, lift=0.0)
     # Sims (Beton, leicht geneigt), Rostlaeufer darunter
     sb = bm_prism([(0.0, 0.0), (0.14, -0.015), (0.14, -0.045), (0.0, -0.05)], -W / 2 - 0.1, W / 2 + 0.1)
-    for v in sb.verts:
-        v.co.x, v.co.y, v.co.z = v.co.x, v.co.z, v.co.y
-    for v in sb.verts:
-        v.co.z += -H / 2 - fw
+    for vv in sb.verts:
+        vv.co.x, vv.co.y, vv.co.z = vv.co.x, vv.co.z, vv.co.y
+    for vv in sb.verts:
+        vv.co.z += -H / 2 - fw
     bmesh.ops.recalc_face_normals(sb, faces=sb.faces)
     K.add(sill, sb)
     decal(K, P['dust'], (0.07, 0.0, -H / 2 - fw - 0.0075), (1, 0, -0.107), (0, 1, 0), 0.05, 0.6, 5400, n=12, lift=0.0008)
@@ -2595,6 +2595,16 @@ def build_train_bogie():
                 (0.28, 0.40), (-0.28, 0.40), (-0.32, 0.60), (-0.65, 0.60), (-0.68, 0.50), (-1.02, 0.50), (-1.05, 0.60)]
         b = bm_prism(poly, min(y0, y1), max(y0, y1))
         K.add(black, b, Matrix(((1, 0, 0, 0), (0, 0, 1, 0), (0, 1, 0, 0), (0, 0, 0, 1))))
+        # Gurtplatten (oben und an den Unterkanten) mit Nietreihen: der Rahmen ist ein genieteter Blechtraeger
+        yo0, yo1 = (max(y0, y1), max(y0, y1) + 0.035) if s > 0 else (min(y0, y1) - 0.035, min(y0, y1))
+        K.box(black, (-1.30, yo0, 0.755), (1.30, yo1, 0.78), bev=0.003)
+        for (xa, xb) in ((-1.02, -0.68), (0.68, 1.02), (-0.28, 0.28)):
+            zb_ = 0.50 if abs(xa) > 0.5 else 0.40
+            K.box(black, (xa, yo0, zb_), (xb, yo1, zb_ + 0.02), bev=0.003)
+        for k in range(22):
+            x = -1.26 + k * 0.12
+            rivet(K, black, (x, yo0 + 0.017 if s > 0 else yo1 - 0.017, 0.78), (0, 0, 1), d=0.016)
+            rivet(K, black, (x, s * 0.7105, 0.735), (0, s, 0), d=0.016)
         for xw in (-0.85, 0.85):  # Achshalter (Fuehrungen)
             for dx in (-0.15, 0.15):
                 K.box(rustd, (xw + dx - 0.025, min(y0, y1) - 0.01, zc - 0.12), (xw + dx + 0.025, max(y0, y1) + 0.01, 0.62), bev=0.005)
@@ -2610,8 +2620,8 @@ def build_train_bogie():
         K.box(rustd, (-0.22, s * 0.555 - 0.09, 0.40), (0.22, s * 0.555 + 0.09, 0.42))
         # Rost- und Lackreste
         for j in range(8):
-            decal(K, rust if j % 2 else rustd, (rng.uniform(-1.2, 1.2), s * 0.7105 if s > 0 else s * 0.7105, rng.uniform(0.62, 0.76)),
-                  (0, 0, 1) if s > 0 else (0, 0, -1), (1, 0, 0), rng.uniform(0.03, 0.08), rng.uniform(0.05, 0.25), 9100 + j + 20 * s, n=10, lift=0.0)
+            decal(K, rust if j % 2 else rustd, (rng.uniform(-1.2, 1.2), s * 0.7105, rng.uniform(0.62, 0.74)),
+                  (0, 0, 1) if s > 0 else (0, 0, -1), (1, 0, 0), rng.uniform(0.012, 0.035), rng.uniform(0.03, 0.12), 9100 + j + 20 * s, n=10, lift=0.0)
     # Wiege mit Drehpfanne und Gleitstuecken
     K.box(black, (-0.18, -0.66, 0.61), (0.18, 0.66, 0.76), bev=0.015, seg=2)
     K.add(rust, bm_lathe([(0.0, 0.0), (0.17, 0.0), (0.17, 0.04), (0.15, 0.045), (0.15, 0.015), (0.0, 0.012)], 24, cap0=False), T(0, 0, 0.76))
@@ -2818,7 +2828,7 @@ def _angel_painting(scribble, v=0):
     gilt = mat('blattgold', (0.70, 0.53, 0.25), 'metal', r=0.85, m=0.7) if v == 0 else mat('rahmen_nuss', (0.26, 0.16, 0.09), 'concrete', r=1.1)
     gilt_d = mat('blattgold_dunkel', (0.36, 0.27, 0.13), 'metal', r=1.2, m=0.5) if v == 0 else mat('rahmen_nuss_dunkel', (0.13, 0.08, 0.05), 'concrete', r=1.3)
     bole = mat('poliment_rot', (0.40, 0.14, 0.08), 'paint', r=1.2)
-    canvas = mat('leinwand_grund', (0.11, 0.08, 0.055), 'fabric', r=1.1) if v == 0 else mat('leinwand_nacht', (0.045, 0.055, 0.09), 'fabric', r=1.1)
+    canvas = mat('leinwand_grund', (0.11, 0.08, 0.055), 'fabric', r=1.1) if v == 0 else mat('leinwand_nacht', (0.06, 0.075, 0.12), 'fabric', r=1.1)
     W, H, fw = 1.0, 1.3, 0.06
     # Rahmen: Profil (Abstand vom Lichtmass nach aussen, Tiefe x), Gehrung durch Rechteck-Schleifen
     prof = [(0.0, 0.010), (0.0, 0.016), (0.004, 0.019), (0.008, 0.020), (0.010, 0.026), (0.016, 0.023), (0.022, 0.024), (0.028, 0.031),
@@ -2869,7 +2879,7 @@ def _angel_painting(scribble, v=0):
         _paint_layer(K, m, pts, x0 + 0.00025 * k, cuts)
     # Lichtschein hinter der Figur (drei Stufen)
     glow = [((0.30, 0.22, 0.12), 0.44, 0.56), ((0.45, 0.34, 0.17), 0.33, 0.44), ((0.62, 0.50, 0.28), 0.20, 0.27)] if v == 0 else [
-        ((0.08, 0.11, 0.18), 0.46, 0.60), ((0.13, 0.17, 0.26), 0.34, 0.46), ((0.30, 0.32, 0.36), 0.17, 0.22)]
+        ((0.12, 0.16, 0.26), 0.46, 0.60), ((0.20, 0.25, 0.36), 0.34, 0.46), ((0.42, 0.44, 0.48), 0.17, 0.22)]
     for k, (c, ry, rz) in enumerate(glow):
         L(mat(f'schein{k}_{v}', c, 'paint', r=0.9), _blob_pts(0.0, 0.18 + 0.04 * v, ry, rz, 24, 4400 + k + 10 * v, 0.12), k + 1)
     if v == 1:  # Sterne
@@ -3009,7 +3019,7 @@ def build_painting_angel_scribbled__v1():
 # =====================================================================================================================
 def _cloth_mats():
     return [mat('leinen', (0.86, 0.84, 0.78), 'fabric', r=1.3),
-            mat('leinen_staub', (0.64, 0.62, 0.57), 'fabric', r=1.5),
+            mat('leinen_staub', (0.76, 0.74, 0.69), 'fabric', r=1.5),
             mat('leinen_fleck', (0.74, 0.68, 0.54), 'fabric', r=1.4),
             mat('leinen_feucht', (0.42, 0.40, 0.36), 'fabric', r=1.2)]
 
@@ -3062,11 +3072,7 @@ def _cloth_finish(ob, target, seed, wet_z=None, thick=0.003):
         n1 = noise.noise(Vector((c.x * 2.5, c.y * 2.5, c.z * 2.5 + seed)))
         n2 = noise.noise(Vector((c.x * 7 + 11, c.y * 7, c.z * 7 + seed)))
         idx = 0
-        if nz > 0.75 and n1 > -0.35:
-            idx = 1
-        elif n2 > 0.45:
-            idx = 2
-        if wet_z is not None and c.z < wet_z + 0.04 * n1:
+        if wet_z is not None and c.z < wet_z:
             idx = 3
         p.material_index = idx
         p.use_smooth = True
@@ -3244,18 +3250,18 @@ def weather(amp=0.0012, freq=22.0, pit=0.0016, pitf=60.0, seed=3):
 
 def stone_mats(prefix, tint, tex='travertine'):
     return [mat(f'{prefix}', tint, 'concrete', tex=tex, r=1.0),
-            mat(f'{prefix}_schmutz', tuple(c * 0.62 for c in tint), 'concrete', tex=tex, r=1.25),
-            mat(f'{prefix}_staub', tuple(min(1.0, c * 1.08) for c in tint), 'concrete', tex=tex, r=1.4),
-            mat(f'{prefix}_fleck', tuple(c * 0.80 for c in tint), 'concrete', tex=tex, r=1.15)]
+            mat(f'{prefix}_schmutz', tuple(c * 0.74 for c in tint), 'concrete', tex=tex, r=1.25),
+            mat(f'{prefix}_staub', tuple(min(1.0, c * 1.05) for c in tint), 'concrete', tex=tex, r=1.4),
+            mat(f'{prefix}_fleck', tuple(c * 0.88 for c in tint), 'concrete', tex=tex, r=1.15)]
 
 
-def stone_pick(seed):
+def stone_pick(seed, cavt=0.42, fleck=True):
     def pick(c, n, cav, edge):
-        if cav > 0.42:
+        if cav > cavt:
             return 1
         if n.z > 0.72 and cav < 0.25:
             return 2
-        if abs(n.z) < 0.5 and noise.noise(Vector((c.x * 9 + seed, c.y * 9, c.z * 1.4))) > 0.6:
+        if fleck and abs(n.z) < 0.5 and noise.noise(Vector((c.x * 9 + seed, c.y * 9, c.z * 1.4))) > 0.6:
             return 3
         return 0
     return pick
@@ -3377,12 +3383,12 @@ def build_greek_torso():
     parts = [X.box((0.0, 0.0, 0.06), (0.26, 0.29, 0.06), rnd=0.012)]
     parts.append(X.ell((0.02, 0.0, base - 0.01), (0.25, 0.28, 0.05), k=0.03))
     # Himation (Unterkoerper): Falten, die vom Knie zur Huefte ziehen
-    prof = [(base - 0.02, 0.21, 0.27, 0.04), (base + 0.05, 0.19, 0.25, 0.04), (0.45, 0.15, 0.21, 0.03), (0.70, 0.14, 0.20, 0.02),
+    prof = [(base - 0.02, 0.19, 0.24, 0.04), (base + 0.05, 0.17, 0.22, 0.04), (0.45, 0.145, 0.195, 0.03), (0.70, 0.14, 0.20, 0.02),
             (0.90, 0.14, 0.215, 0.0), (1.00, 0.135, 0.20, -0.005)]
     folds = [(lambda z: 0.11 * np.clip((1.0 - z) / 0.8, 0.15, 1.0), 9, lambda z: 0.6 + 1.4 * z),
              (lambda z: 0.05 * np.clip((1.0 - z) / 0.8, 0.2, 1.0), 15, lambda z: 1.3 - 0.9 * z),
              (lambda z: 0.02, 23, 0.7)]
-    fn, lo, hi = _loft_field(prof, folds, base - 0.02, 1.0, 1, bumps=[((0.16, 0.08, 0.60), (0.08, 0.08, 0.11), 0.30)])
+    fn, lo, hi = _loft_field(prof, folds, base - 0.02, 1.0, 1, bumps=[((0.16, 0.08, 0.60), (0.08, 0.08, 0.11), 0.38)])
     parts.append(FieldPart(fn, lo, hi, k=0.04))
     # Gerollter Mantelsaum um die Huefte (schraeg)
     for k in range(10):
@@ -3396,13 +3402,13 @@ def build_greek_torso():
         X.ell((-0.01, 0, 0.98), (0.13, 0.18, 0.12), k=0.06),
         X.ell((0.03, 0, 1.13), (0.11, 0.135, 0.12), k=0.06),
         X.ell((0.0, 0, 1.30), (0.11, 0.15, 0.17), k=0.06),
-        X.ell((0.090, 0.074, 1.345), (0.052, 0.058, 0.050), k=0.06),
-        X.ell((0.090, -0.074, 1.345), (0.052, 0.058, 0.050), k=0.06),
-        X.ell((-0.01, 0.150, 1.46), (0.065, 0.07, 0.055), k=0.05),
-        X.ell((-0.01, -0.150, 1.46), (0.065, 0.07, 0.055), k=0.05),
+        X.ell((0.085, 0.072, 1.335), (0.050, 0.056, 0.046), k=0.08),
+        X.ell((0.085, -0.072, 1.335), (0.050, 0.056, 0.046), k=0.08),
+        X.ell((-0.01, 0.140, 1.455), (0.060, 0.055, 0.050), k=0.06),
+        X.ell((-0.01, -0.140, 1.455), (0.060, 0.055, 0.050), k=0.06),
         X.cone((0.0, 0, 1.46), (0.012, 0, 1.62), 0.058, 0.05, k=0.04),
-        X.cone((-0.01, 0.185, 1.45), (0.0, 0.212, 1.20), 0.052, 0.045, k=0.03),
-        X.cone((-0.01, -0.185, 1.45), (0.0, -0.212, 1.20), 0.052, 0.045, k=0.03),
+        X.cone((-0.01, 0.170, 1.44), (0.0, 0.192, 1.12), 0.046, 0.040, k=0.035),
+        X.cone((-0.01, -0.170, 1.44), (0.0, -0.192, 1.12), 0.046, 0.040, k=0.035),
         X.ell((0.135, 0.0, 1.12), (0.012, 0.008, 0.009), k=0.004, op='sub'),
         X.tube((-0.105, 0, 1.42), (-0.10, 0, 1.08), (0.008, 0.008), (0.006, 0.006), k=0.02, op='sub'),
         # Zehen des linken Fusses
@@ -3416,8 +3422,8 @@ def build_greek_torso():
         parts.append(X.tube((0.13, y, 1.28), (0.12, y * 1.3, 1.05), (0.004, 0.004), (0.004, 0.004), k=0.006, op='sub'))
     # Bruchflaechen: Hals, Arme, ein Ausbruch im Gewand unten
     parts.append(cutter((0.012, 0, 1.585), (0.15, 0.1, 1.0), (0.012, 0, 1.6), 0.09, amp=0.008, seed=4))
-    parts.append(cutter((0.0, 0.203, 1.33), (0.25, 0.35, -0.90), (0.0, 0.205, 1.25), 0.12, amp=0.009, seed=5))
-    parts.append(cutter((0.0, -0.203, 1.36), (0.15, -0.30, -0.94), (0.0, -0.205, 1.27), 0.12, amp=0.009, seed=6))
+    parts.append(cutter((0.0, 0.185, 1.24), (0.25, 0.35, -0.90), (0.0, 0.19, 1.16), 0.10, amp=0.008, seed=5))
+    parts.append(cutter((0.0, -0.185, 1.29), (0.15, -0.30, -0.94), (0.0, -0.19, 1.20), 0.10, amp=0.008, seed=6))
     parts.append(cutter((0.14, -0.20, 0.40), (0.7, -0.7, 0.1), (0.14, -0.20, 0.40), 0.11, amp=0.01, seed=7))
     disp = weather(0.0018, 14.0, 0.0022, 45.0, 9)
     ob = sculpt('torso', parts, 0.004, disp, target=13000)
@@ -3457,7 +3463,7 @@ def _angel_head_parts():
         a(Xh.tube((0.087, s * 0.030, 0.028), (0.074, s * 0.050, 0.020), (0.007, 0.007), (0.005, 0.005), k=0.03))
     for s in (-1, 1):
         a(Xh.ell((0.097, s * 0.030, 0.006), (0.020, 0.019, 0.0135), k=0.012, op='sub'))  # Augenhoehle
-        a(Xh.ell((0.071, s * 0.030, 0.004), (0.016, 0.0155, 0.0125), k=0.004))           # Lid geschlossen
+        a(Xh.ell((0.073, s * 0.030, 0.004), (0.016, 0.0155, 0.0125), k=0.005))           # Lid geschlossen
         a(Xh.tube((0.0866, s * 0.019, 0.0002), (0.0856, s * 0.041, 0.0028), (0.0010, 0.0010), (0.0010, 0.0010), k=0.0008, op='sub'))
     a(Xh.tube((0.095, 0, 0.018), (0.112, 0, -0.034), (0.008, 0.007), (0.011, 0.010), up=(1, 0, 0), k=0.006))  # Nase
     for s in (-1, 1):
@@ -3466,19 +3472,19 @@ def _angel_head_parts():
     a(Xh.ell((0.083, 0, -0.064), (0.018, 0.030, 0.020), k=0.015))                      # Mundpartie
     a(Xh.tube((0.0975, -0.019, -0.062), (0.0975, 0.019, -0.062), (0.0045, 0.0045), (0.0045, 0.0045), k=0.004))  # Oberlippe
     a(Xh.ell((0.1005, 0, -0.0605), (0.0035, 0.006, 0.0035), k=0.003))
-    a(Xh.tube((0.0945, -0.015, -0.072), (0.0945, 0.015, -0.072), (0.0055, 0.0055), (0.0055, 0.0055), k=0.004))  # Unterlippe
+    a(Xh.tube((0.0940, -0.014, -0.072), (0.0940, 0.014, -0.072), (0.0048, 0.0048), (0.0048, 0.0048), k=0.004))  # Unterlippe
     a(Xh.tube((0.1003, -0.018, -0.0668), (0.1003, 0.018, -0.0668), (0.0009, 0.0009), (0.0009, 0.0009), k=0.0008, op='sub'))
     for s in (-1, 1):
         a(Xh.ell((0.0965, s * 0.0195, -0.0665), (0.0016, 0.0016, 0.0016), k=0.002, op='sub'))
     a(Xh.tube((0.1035, 0, -0.049), (0.1015, 0, -0.057), (0.0015, 0.0015), (0.0015, 0.0015), k=0.0015, op='sub'))  # Philtrum
     a(Xh.tube((0.0905, -0.010, -0.083), (0.0905, 0.010, -0.083), (0.0025, 0.0025), (0.0025, 0.0025), k=0.007, op='sub'))
     a(Xh.cone((-0.010, 0, -0.060), (-0.030, 0, -0.20), 0.050, 0.056, k=0.02))          # Hals
-    hair = [Xh.ell((-0.032, 0, 0.034), (0.104, 0.083, 0.097), k=0.025)]
+    hair = [Xh.ell((-0.026, 0, 0.040), (0.104, 0.083, 0.097), k=0.025)]
     for s in (-1, 1):
-        hair.append(Xh.ell((-0.004, s * 0.064, -0.008), (0.050, 0.024, 0.060), k=0.02))
+        hair.append(Xh.ell((0.010, s * 0.066, -0.010), (0.050, 0.022, 0.066), k=0.02))
     hair.append(Xh.tube((-0.070, 0, -0.020), (-0.098, 0, -0.170), (0.072, 0.042), (0.062, 0.024), up=(1, 0, 0), k=0.03))
     P += hair
-    P.append(Xh.tube((0.062, 0, 0.095), (-0.050, 0, 0.128), (0.0022, 0.0022), (0.0022, 0.0022), k=0.002, op='sub'))  # Scheitel
+    P.append(Xh.tube((0.040, 0, 0.118), (-0.050, 0, 0.132), (0.0020, 0.0020), (0.0020, 0.0020), k=0.002, op='sub'))  # Scheitel
     return P, hair, Xh
 
 
@@ -3508,7 +3514,7 @@ def _angel_body_parts():
             (fz + 1.68, 0.075, 0.13, -0.01)]
     folds = [(lambda z: 0.075 * np.clip((fz + 1.30 - z) / 1.1, 0.12, 1.0) + 0.012 * (z > fz + 1.36), 11, lambda z: 0.4 + 0.8 * (z - fz)),
              (lambda z: 0.035 * np.clip((fz + 1.30 - z) / 1.0, 0.1, 1.0), 17, lambda z: 1.1 - 0.6 * (z - fz)),
-             (lambda z: 0.014 * (z > fz + 1.36), 23, 0.3)]
+             (lambda z: 0.022 * (z > fz + 1.36), 17, lambda z: 0.3 + 2.0 * (z - fz - 1.36))]
     fn, lo, hi = _loft_field(prof, folds, fz - 0.06, fz + 1.70, 1, bumps=[((0.17, 0.09, fz + 0.55), (0.08, 0.08, 0.10), 0.20),
                                                                           ((0.125, 0.065, fz + 1.47), (0.06, 0.06, 0.055), 0.10),
                                                                           ((0.125, -0.065, fz + 1.47), (0.06, 0.06, 0.055), 0.10)])
@@ -3786,22 +3792,22 @@ def _angel_sculpt(part, target=None):
         P, hair, Xh = _angel_head_parts()
         disp = _angel_head_disp(hair, Xh)
         ob = sculpt('engel_kopf', P, 0.0016, disp, target=target or 7000)
-        paint_by(ob, P, disp, S, stone_pick(7), cav_scale=0.008)
+        paint_by(ob, P, disp, S, stone_pick(7, 0.66, False), cav_scale=0.008)
     elif part == 'haende':
         P = _angel_hand_parts()
         disp = weather(0.0004, 40.0, 0.0006, 120.0, 43)
         ob = sculpt('engel_haende', P, 0.0016, disp, target=target or 2600)
-        paint_by(ob, P, disp, S, stone_pick(6), cav_scale=0.006)
+        paint_by(ob, P, disp, S, stone_pick(6, 0.6, False), cav_scale=0.006)
     elif part == 'gewand':
         P = _angel_body_parts()
         disp = weather(0.0010, 18.0, 0.0014, 55.0, 41)
         ob = sculpt('engel_gewand', P, 0.0055, disp, target=target or 12500)
-        paint_by(ob, P, disp, S, stone_pick(5), cav_scale=0.02)
+        paint_by(ob, P, disp, S, stone_pick(5, 0.55, False), cav_scale=0.02)
     else:
         s = 1 if part == 'fluegel1' else -1
         P, disp = _angel_wing(s)
         ob = sculpt(f'engel_fluegel{s}', P, 0.0035, disp, target=target or 6000)
-        paint_by(ob, P, disp, S, stone_pick(8 + s), cav_scale=0.015)
+        paint_by(ob, P, disp, S, stone_pick(8 + s, 0.5, False), cav_scale=0.015)
     ob.data.set_sharp_from_angle(angle=math.radians(55))
     return ob
 
@@ -4020,9 +4026,10 @@ def build_conveyor__v1():
     for (sx, sy, rot) in ((0.3, -0.02, 0.2), (0.85, 0.05, -0.15)):
         b = bm_sphere(1.0, 14, 9)
         for v in b.verts:
-            v.co.x *= 0.30
-            v.co.y *= 0.20
-            v.co.z = (v.co.z * 0.5 + 0.5) * 0.13 * (1.0 - 0.3 * v.co.x ** 2) - 0.0
+            zz = v.co.z * 0.5 + 0.5
+            v.co.x *= 0.30 * (1.0 + 0.15 * zz)
+            v.co.y *= 0.19 * (1.0 - 0.25 * zz * zz)
+            v.co.z = zz * 0.24 * (1.0 - 0.5 * min(1.0, (abs(v.co.x) / 0.3) ** 3))
             v.co += Vector(noise.noise_vector(v.co * 18 + Vector((sx, sy, 0)))) * 0.008
         b.normal_update()
         K.add(jute, b, T(sx, sy, Zt + 0.002) @ R(rot, 'Z'))
