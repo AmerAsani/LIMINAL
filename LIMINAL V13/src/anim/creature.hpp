@@ -438,25 +438,27 @@ inline int tendJ(int k, int i) { return TEND0 + k * kTendJ + i; }
 inline int tendB(int k, int i) { return B_TEND0 + k * 4 + i; }
 }  // namespace gw
 
-// V13.3: Nguithr'xurh (Entity 16, KREATUR_Nguithrxurh.md) - Walzenspinne mit 16 Gliedmassen (12 Laufbeine, 2 Pedipalpen,
-// 2 Cheliceren), im Mittel 18 cm lang (Massstab je Ebene). Dazu im selben Skelett die Netzkugeln einer Kolonie (Variante
-// "web"): je Kugel ein Knochen vom Anker an der Decke bis zur Mitte (Faden und Kugel starr) und eine Pfuetze am Boden
-// (zerplatzt). Wurzel: Spinne - unter dem Koerper auf der Flaeche; Netz - Mitte der Kolonie an der Decke (z nach unten
-// haengen die Kugeln, die Pfuetzen liegen in der Ruhepose kHang tiefer).
+// V13.3: Nguithr'xurh (Entity 16, KREATUR_Nguithrxurh.md) - Walzenspinne (Solifugae): 8 Laufbeine (das vordere Paar tastet),
+// 2 lange, beinartige Pedipalpen mit Haftenden, 2 maechtige Cheliceren (fester oberer, beweglicher unterer Finger), im
+// Mittel 18 cm lang (Massstab je Ebene). Dazu im selben Skelett die Netzkugeln einer Kolonie (Variante "web"): je Kugel
+// ein Knochen vom Anker an der Decke bis zur Mitte (Faden und Kugel starr) und eine Pfuetze am Boden (zerplatzt).
+// Wurzel: Spinne - unter dem Koerper auf der Flaeche; Netz - Mitte der Kolonie an der Decke (z nach unten haengen die
+// Kugeln, die Pfuetzen liegen in der Ruhepose kHang tiefer).
 namespace ng {
-constexpr int kLegs = 12, kSacs = 6;
+constexpr int kLegs = 8, kSacs = 6;
 constexpr float kHang = 2.6f;  // Deckenhoehe der Ruhepose (Pfuetzen)
 enum J : std::uint8_t {
     ROOT, PRO, EYES, OPI0, OPI1, OPI2,
-    CHB_L, CHT_L, CHB_R, CHT_R,                // Cheliceren
-    PPB_L, PPK_L, PPT_L, PPB_R, PPK_R, PPT_R,  // Pedipalpen
-    LEG0,                                      // + Bein * 4 + i: Huefte, Knie, Ferse, Klaue (Bein = Paar * 2 + Seite)
-    DRAG_A = LEG0 + kLegs * 4, DRAG_B,         // Faden aus den Spinnwarzen
-    SAC0,                                      // + k * 4 + i: Anker, Kugelmitte, Pfuetze a, Pfuetze b
+    CHB_L, CHH_L, CHT_L, CHM_L, CHB_R, CHH_R, CHT_R, CHM_R,  // Cheliceren: Ansatz, Gelenk des unteren Fingers, Spitzen
+    PPB_L, PPK_L, PPW_L, PPT_L, PPB_R, PPK_R, PPW_R, PPT_R,  // Pedipalpen: Ansatz, Knie, Handgelenk, Haftende
+    LEG0,                                                    // + Bein * 4 + i: Huefte, Knie, Ferse, Spitze (Bein = Paar * 2 + Seite)
+    DRAG_A = LEG0 + kLegs * 4, DRAG_B,                       // Faden aus den Spinnwarzen
+    SAC0,                                                    // + k * 4 + i: Anker, Kugelmitte, Pfuetze a, Pfuetze b
     JCOUNT = SAC0 + kSacs * 4
 };
 enum B : std::uint8_t {
-    B_ROOT, B_PRO, B_OPI0, B_OPI1, B_CH_L, B_CH_R, B_PP0_L, B_PP1_L, B_PP0_R, B_PP1_R,
+    B_ROOT, B_PRO, B_OPI0, B_OPI1, B_CH_L, B_CH_R, B_CHM_L, B_CHM_R,
+    B_PP0_L, B_PP1_L, B_PP2_L, B_PP0_R, B_PP1_R, B_PP2_R,
     B_LEG0,                     // + Bein * 3 + i
     B_DRAG = B_LEG0 + kLegs * 3,
     B_SAC0,                     // + k * 2: Kugel (mit Faden), Pfuetze

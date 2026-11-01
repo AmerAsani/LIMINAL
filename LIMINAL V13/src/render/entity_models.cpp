@@ -1346,7 +1346,9 @@ bool entityFromGlb(Entity e, FigureModel& out, std::string& info, const std::str
         {"ent_wr_pincer", FM_ENT_WR_PINCER}, {"ent_wr_debris", FM_ENT_WR_DEBRIS},
         // V13.3: Growler, Nguithr'xurh
         {"ent_pipe_a", FM_ENT_PIPE_A}, {"ent_pipe_b", FM_ENT_PIPE_B}, {"ent_pipe_c", FM_ENT_PIPE_C}, {"ent_pipe_d", FM_ENT_PIPE_D},
-        {"ent_wire", FM_ENT_WIRE}, {"ent_solifuge", FM_ENT_SOLIFUGE}, {"ent_silk", FM_ENT_SILK}, {"ent_sedative", FM_ENT_SEDATIVE}};
+        {"ent_wire", FM_ENT_WIRE}, {"ent_solifuge", FM_ENT_SOLIFUGE}, {"ent_silk", FM_ENT_SILK}, {"ent_sedative", FM_ENT_SEDATIVE},
+        {"ent_solifuge_dark", FM_ENT_SOLIFUGE_DARK}, {"ent_solifuge_hair", FM_ENT_SOLIFUGE_HAIR},
+        {"ent_solifuge_joint", FM_ENT_SOLIFUGE_JOINT}, {"ent_solifuge_head", FM_ENT_SOLIFUGE_HEAD}};
     const CreatureSkeleton& sk = entitySkeleton(e);
     FigureModel m;
     std::vector<mat4> frames;

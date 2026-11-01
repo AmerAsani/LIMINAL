@@ -231,6 +231,10 @@ def main():
     # auf die Spielgroesse gebracht
     S = float(getattr(mod, 'SCALE', 1.0))
     groups = mod.build(np.asarray(J, dtype=float) / S if S != 1.0 else J, bones)
+    # V13.3: fertige Netze je Stufe ('lod_mesh': je Stufe (V, T, W oder None[, Hoehlung, Kante])) werden nicht ausgeduennt -
+    # duenne Glieder und Haare zerfallen beim Kantenkollaps zu flachen Dreiecken (Nguithr'xurh: Beine, Taster, Haare)
+    fixed = [g for g in groups if 'lod_mesh' in g]
+    groups = [g for g in groups if 'lod_mesh' not in g]
     if coarse:
         for g in groups:
             g['h'] *= 2.0
@@ -274,9 +278,31 @@ def main():
         m = o.modifiers.new('skelett', 'ARMATURE')
         m.object = arm
     log(f'{model}: Form fertig in {time.time() - t0:.1f} s')
+
+    def fixed_objs(lod):  # V13.3
+        out = []
+        for g in fixed:
+            m = g['lod_mesh'][min(lod, len(g['lod_mesh']) - 1)]
+            V, T = np.asarray(m[0], dtype=float), np.asarray(m[1], dtype=np.int64)
+            if len(T) == 0:
+                continue
+            W = m[2] if len(m) > 2 and m[2] is not None else sdf.weights(g['parts'], V, nb, s=g.get('wsoft', 0.004))
+            if len(m) > 4:
+                cav, edge = np.asarray(m[3], dtype=float), np.asarray(m[4], dtype=float)
+            else:
+                cav, edge = sdf.cavity_edge(g['parts'], V, sdf.vertex_normals(V, T), None, g.get('cav_scale', 0.003))
+            o = to_object(f'{g["name"]}_l{lod}', V * S, T, W, cav, edge, make_material(g['fm'], PREVIEW_RGB.get(g['fm'], (0.5, 0.5, 0.5))), nb)
+            o.parent = arm
+            o.modifiers.new('skelett', 'ARMATURE').object = arm
+            out.append(o)
+        return out
     if prev:
         os.makedirs(prev, exist_ok=True)
-        preview(objs, arm, prev, model)
+        fx = fixed_objs(0)
+        hide = getattr(mod, 'PREVIEW_HIDE', ())  # V13.3: z. B. der 3 m lange Faden - sonst ist das Wesen im Bild winzig
+        preview([o for o in objs + fx if not any(o.name.startswith(h) for h in hide)], arm, prev, model)
+        for o in fx:
+            bpy.data.objects.remove(o, do_unlink=True)
     # Stufen: Anteil der Dreiecke je Gruppe nach ihrem Anteil am Ganzen, gewichtet mit 'lod_weight' (flache Teile wie
     # Fluegel brauchen wenig, feine wie Augen, Haar und Beine mehr)
     lw = {}
@@ -299,9 +325,13 @@ def main():
             tri += decimate(c, max(64, int(budget * share)))
             c.name = f'{o.name}_l{lod}'
             copies.append(c)
+        fx = fixed_objs(lod)  # V13.3
+        tri += sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in fx)
         path = os.path.join(OUT, f'{model}_l{lod}.glb')
-        export(path, copies + [arm])
+        export(path, copies + fx + [arm])
         log(f'{model}_l{lod}: {tri} Dreiecke -> {path}')
+        for o in fx:
+            bpy.data.objects.remove(o, do_unlink=True)
         if prev_copies:
             for c in prev_copies:
                 bpy.data.objects.remove(c, do_unlink=True)

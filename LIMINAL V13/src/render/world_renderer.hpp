@@ -56,6 +56,8 @@ enum FixedMaterial : u32 {
     // V13.3: Growler - Pfeifenreiniger in vier Farben (a, b leuchten bei den Jungen), blanker Draht; Nguithr'xurh - behaarter
     // Koerper, Seide, Betaeubungsstoff
     FM_ENT_PIPE_A, FM_ENT_PIPE_B, FM_ENT_PIPE_C, FM_ENT_PIPE_D, FM_ENT_WIRE, FM_ENT_SOLIFUGE, FM_ENT_SILK, FM_ENT_SEDATIVE,
+    FM_ENT_SOLIFUGE_DARK, FM_ENT_SOLIFUGE_HAIR, FM_ENT_SOLIFUGE_JOINT,  // V13.3: Nguithr'xurh Runde 6 - dunkle Scheren und Krallen,
+    FM_ENT_SOLIFUGE_HEAD,                                               // blasse Haare, dunklere Gelenke, roetlicher Vorderkoerper
     FM_FIG_END,
 };
 static_assert(FM_FIG_END <= kFixedMaterials);

@@ -1,17 +1,19 @@
 // V13.3: Nguithr'xurh (Entity 16, Wikidot entity-16; KREATUR_Nguithrxurh.md) - Skelett und Bewegung.
 //
-// Eine Walzenspinne (Solifugae) mit 16 Gliedmassen: zwoelf Laufbeine, zwei Pedipalpen (tastend vorgestreckt), zwei
-// riesige Cheliceren (Scheren, die abwechselnd arbeiten). Im Mittel 18 cm lang (die Seite), je Ebene groesser/kleiner.
+// Eine Walzenspinne (Solifugae): acht Laufbeine (das vordere Paar ist duenn und tastet wie Fuehler), zwei lange,
+// beinartige Pedipalpen mit Haftenden (tastend vorgestreckt), zwei maechtige Cheliceren (oben ein fester, unten ein
+// beweglicher Finger mit Zaehnen). Im Mittel 18 cm lang (die Seite), je Ebene groesser/kleiner.
 // Im selben Skelett: die Netzkugeln einer Kolonie (Variante "web") - sie haengen an Faeden von der Decke, gefuellt mit
 // einem Betaeubungsstoff; abgeschnitten fallen sie, zerplatzen am Boden und hinterlassen eine milchige Pfuetze.
 //
 // Spinne (extra_[0] == 0): sitzt an Decke oder Wand (in.up = Normale der Flaeche, in.fwd = vorn), die Beine greifen;
-//   Ruhe       reglos, nur der Hinterleib pumpt, ab und zu tippt ein Pedipalpus, eine Chelicere putzt
-//   Wahrnehmen Pedipalpen und vordere Beine heben sich (Drohhaltung der Walzenspinnen)
+//   Ruhe       tief am Boden, der Hinterleib pumpt, die Pedipalpen tasten und tippen, die Tastbeine zittern
+//   Wahrnehmen Pedipalpen und Tastbeine heben sich, der Vorderkoerper richtet sich auf (Drohhaltung)
 //   Licht      erstarrt, drueckt sich flach an die Flaeche
-//   Huschen    sehr schneller Wechselgang (zwei Gruppen zu sechs Beinen)
+//   Huschen    sehr schneller Wechselgang auf drei Beinpaaren (zwei Dreiergruppen), Taster und Tastbeine voraus
 //   Abseilen   (hang) haengt am Faden aus den Spinnwarzen, die Beine angezogen, dreht sich langsam
-//   Fressen    (jaw) die Cheliceren saegen abwechselnd vor und zurueck; Biss (reach): Stoss nach vorn, Scheren weit auf
+//   Fressen    (jaw) die Cheliceren saegen abwechselnd vor und zurueck und kauen; Biss (reach): Stoss nach vorn, die
+//              unteren Finger klappen weit auf
 // Netz (extra_[0] == 1): extra_ = {1, Anzahl, je Kugel: Anker x y z, Haengelaenge, Boden z, Fallzeit (s, < 0 haengt)}
 #include <algorithm>
 #include <cmath>
@@ -68,13 +70,13 @@ struct NB {
 };
 vec3 upN(vec3 d) { return std::fabs(d.z) > 0.8f ? vec3{1, 0, 0} : vec3{0, 0, 1}; }
 
-// Beine: Paar p (0 vorn .. 5 hinten), Winkel zur Vorderrichtung und Laenge (m, Mittelgroesse)
-constexpr float kLegAng[6] = {0.66f, 1.05f, 1.43f, 1.83f, 2.22f, 2.6f};
-constexpr float kLegLen[6] = {0.10f, 0.115f, 0.13f, 0.14f, 0.15f, 0.165f};
+// Beine: Paar p (0 vorn: Tastbeine .. 3 hinten), Winkel zur Vorderrichtung und Laenge (m, Mittelgroesse)
+constexpr float kLegAng[4] = {0.62f, 1.2f, 1.8f, 2.4f};
+constexpr float kLegLen[4] = {0.105f, 0.10f, 0.118f, 0.15f};
 vec3 coxa(int l) {
     const int p = l / 2;
     const float sg = (l % 2) == 0 ? 1.0f : -1.0f;
-    return {0.035f - 0.011f * (float)p, sg * 0.018f, 0.026f};
+    return {0.036f - 0.0095f * (float)p, sg * 0.0125f, 0.024f};
 }
 vec3 legDir(int l) {
     const int p = l / 2;
@@ -101,26 +103,36 @@ CreatureSkeleton makeNguithrSkeleton() {
     NB k(Entity::Nguithr, JCOUNT, BCOUNT);
     k.j(ROOT, {0, 0, 0});
     k.j(PRO, {0.015f, 0, 0.032f});
-    k.j(EYES, {0.05f, 0, 0.040f});
-    k.j(OPI0, {-0.02f, 0, 0.032f});
-    k.j(OPI1, {-0.065f, 0, 0.036f});
-    k.j(OPI2, {-0.105f, 0, 0.030f});
+    k.j(EYES, {0.05f, 0, 0.045f});
+    k.j(OPI0, {-0.004f, 0, 0.030f});
+    k.j(OPI1, {-0.042f, 0, 0.031f});
+    k.j(OPI2, {-0.084f, 0, 0.026f});
     for (int s = 0; s < 2; ++s) {
         const float sg = s == 0 ? 1.0f : -1.0f;
-        k.j(s == 0 ? CHB_L : CHB_R, {0.055f, sg * 0.011f, 0.036f});
-        k.j(s == 0 ? CHT_L : CHT_R, {0.105f, sg * 0.013f, 0.026f});
-        k.j(s == 0 ? PPB_L : PPB_R, {0.045f, sg * 0.02f, 0.026f});
-        k.j(s == 0 ? PPK_L : PPK_R, {0.085f, sg * 0.055f, 0.055f});
-        k.j(s == 0 ? PPT_L : PPT_R, {0.135f, sg * 0.07f, 0.012f});
+        const int c = s == 0 ? CHB_L : CHB_R, pp = s == 0 ? PPB_L : PPB_R;
+        k.j(c, {0.047f, sg * 0.0085f, 0.034f});       // Ansatz am Kopfschild
+        k.j(c + 1, {0.079f, sg * 0.0085f, 0.025f});   // Gelenk des unteren (beweglichen) Fingers
+        k.j(c + 2, {0.111f, sg * 0.0068f, 0.0225f});  // Spitze des oberen Fingers
+        k.j(c + 3, {0.108f, sg * 0.0068f, 0.0235f});  // Spitze des unteren Fingers
+        k.j(pp, {0.046f, sg * 0.0105f, 0.022f});
+        k.j(pp + 1, {0.078f, sg * 0.032f, 0.042f});
+        k.j(pp + 2, {0.118f, sg * 0.042f, 0.036f});
+        k.j(pp + 3, {0.150f, sg * 0.046f, 0.014f});
     }
     for (int l = 0; l < kLegs; ++l) {
         const int p = l / 2;
         const vec3 C = coxa(l), d = legDir(l);
         const float Lp = kLegLen[p];
         k.j(legJ(l, 0), C);
-        k.j(legJ(l, 1), C + d * (0.32f * Lp) + vec3{0, 0, 0.055f + 0.005f * (float)p});
-        k.j(legJ(l, 2), C + d * (0.78f * Lp) + vec3{0, 0, 0.025f});
-        k.j(legJ(l, 3), vec3{C.x + d.x * Lp, C.y + d.y * Lp, 0.0f});
+        if (p == 0) {  // Tastbeine: vorgestreckt, die Spitze ueber dem Boden
+            k.j(legJ(l, 1), C + d * (0.34f * Lp) + vec3{0, 0, 0.026f});
+            k.j(legJ(l, 2), C + d * (0.72f * Lp) + vec3{0, 0, 0.016f});
+            k.j(legJ(l, 3), C + d * Lp + vec3{0, 0, -0.008f});
+        } else {  // tief: die Knie nur wenig ueber dem Koerper
+            k.j(legJ(l, 1), C + d * (0.33f * Lp) + vec3{0, 0, 0.034f});  // Runde 6d: gebeugt (vorher steife Stecken)
+            k.j(legJ(l, 2), C + d * (0.70f * Lp) + vec3{0, 0, 0.014f});
+            k.j(legJ(l, 3), vec3{C.x + d.x * 0.92f * Lp, C.y + d.y * 0.92f * Lp, 0.0f});
+        }
     }
     k.j(DRAG_A, k.s.bind[OPI2]);
     k.j(DRAG_B, k.s.bind[OPI2] + vec3{0, 0, 0.25f});
@@ -136,12 +148,13 @@ CreatureSkeleton makeNguithrSkeleton() {
     k.b(B_PRO, PRO, EYES, B_ROOT, 0.03f, Z);
     k.b(B_OPI0, OPI0, OPI1, B_PRO, 0.035f, Z);
     k.b(B_OPI1, OPI1, OPI2, B_OPI0, 0.03f, Z);
-    k.b(B_CH_L, CHB_L, CHT_L, B_PRO, 0.012f, Z, false);
-    k.b(B_CH_R, CHB_R, CHT_R, B_PRO, 0.012f, Z, false);
     for (int s = 0; s < 2; ++s) {
-        const int pb = s == 0 ? PPB_L : PPB_R, b0 = s == 0 ? B_PP0_L : B_PP0_R;
-        k.b(b0, pb, pb + 1, B_PRO, 0.006f, upN(k.dir(pb, pb + 1)), false);
-        k.b(b0 + 1, pb + 1, pb + 2, b0, 0.005f, upN(k.dir(pb + 1, pb + 2)), false);
+        const int c = s == 0 ? CHB_L : CHB_R, pb = s == 0 ? PPB_L : PPB_R;
+        const int bc = s == 0 ? B_CH_L : B_CH_R, bm = s == 0 ? B_CHM_L : B_CHM_R, b0 = s == 0 ? B_PP0_L : B_PP0_R;
+        k.b(bc, c, c + 2, B_PRO, 0.012f, Z, false);
+        k.b(bm, c + 1, c + 3, bc, 0.005f, Z, false);
+        for (int i = 0; i < 3; ++i)
+            k.b(b0 + i, pb + i, pb + i + 1, i == 0 ? B_PRO : b0 + i - 1, 0.006f - 0.0007f * (float)i, upN(k.dir(pb + i, pb + i + 1)), false);
     }
     for (int l = 0; l < kLegs; ++l)
         for (int i = 0; i < 3; ++i)
@@ -249,7 +262,7 @@ void CreatureAnimator::updateNguithr(float dt, const Input& in) {
     // Koerper: Hinterleib pumpt (Atem), Wippen im Lauf, flach an die Flaeche gedrueckt im Licht, aufgerichtet beim Drohen
     const float breath = 0.0025f * std::sin(time_ * 3.3f) * live;
     const float bob = spd > 0.05f ? 0.004f * std::sin(g.ph * kTauN * 2.0f) : 0.0f;
-    const float lift = (bob - 0.012f * g.flat + 0.008f * g.rise) * 1.0f;
+    const float lift = bob - 0.008f * g.flat + 0.008f * g.rise;
     const float pitchUp = 0.45f * g.rise - 0.15f * g.bite;  // vorn hoch
     auto body = [&](vec3 l) {  // Rumpfpunkt: um das Prosoma geneigt
         const vec3 c = B[PRO];
@@ -263,16 +276,24 @@ void CreatureAnimator::updateNguithr(float dt, const Input& in) {
     J[OPI0] = body(B[OPI0]);
     J[OPI1] = body(B[OPI1] + vec3{0, 0, breath});
     J[OPI2] = body(B[OPI2] + vec3{-breath * 0.5f, 0, breath * 1.6f});
-    // Cheliceren: abwechselnd vor und zurueck (fressen), weit auf beim Biss, putzen ab und zu
+    auto Rl = [&](vec3 m) { return F * m.x + L * m.y + U * m.z; };  // Richtung (Koerper -> Welt)
+    // Cheliceren: saegen abwechselnd vor und zurueck (fressen), die unteren Finger kauen; im Biss heben sich die
+    // Scheren und die unteren Finger klappen weit auf; in Ruhe zucken sie ab und zu
     for (int sd = 0; sd < 2; ++sd) {
-        const int b0 = sd == 0 ? CHB_L : CHB_R;
-        const float saw = g.chew * 0.012f * std::sin(time_ * 11.0f + (float)sd * kPiN) + 0.002f * std::sin(time_ * 1.7f + (float)sd) * live;
-        const float sg = sd == 0 ? 1.0f : -1.0f;
-        const vec3 open{0.0f, sg * 0.012f * g.bite, 0.01f * g.bite};
-        J[(size_t)b0] = body(B[(size_t)b0] + vec3{saw, 0, 0});
-        J[(size_t)b0 + 1] = body(B[(size_t)b0 + 1] + vec3{saw, 0, 0} + open);
+        const int c = sd == 0 ? CHB_L : CHB_R;
+        const float ph = time_ * 11.0f + (float)sd * kPiN;
+        const float saw = g.chew * 0.010f * std::sin(ph) + 0.0015f * std::sin(time_ * 1.7f + (float)sd) * live;
+        const float lift = 0.006f * g.bite;
+        const float open = 0.24f + 0.75f * g.bite + g.chew * (0.22f + 0.22f * std::sin(ph + 1.2f)) +
+                           0.05f * std::max(0.0f, std::sin(time_ * 0.9f + (float)sd * 2.0f)) * live;
+        J[(size_t)c] = body(B[(size_t)c] + vec3{saw, 0, 0});
+        const vec3 hinge = B[(size_t)c + 1] + vec3{saw, 0, lift * 0.5f};
+        J[(size_t)c + 1] = body(hinge);
+        J[(size_t)c + 2] = body(B[(size_t)c + 2] + vec3{saw, 0, lift});
+        J[(size_t)c + 3] = body(hinge + rotV(B[(size_t)c + 3] - B[(size_t)c + 1], {0, 1, 0}, open));
     }
-    // Pedipalpen: tasten vorn, tippen ab und zu auf die Flaeche; drohend hoch gehalten
+    // Pedipalpen: lang vorgestreckt, tasten (leichtes Wiegen) und tippen ab und zu mit dem Haftende auf die Flaeche;
+    // drohend hoch gehalten; im Biss greifen sie nach vorn innen; am Faden angezogen
     g.tapT -= dt * live;
     if (g.tapT <= 0.0f && g.tapPh < 0.0f) g.tapPh = 0.0f, g.tapSide = rnd() < 0.5f ? 0.0f : 1.0f, g.tapT = 0.8f + 2.5f * rnd();
     float tap = 0.0f;
@@ -285,15 +306,26 @@ void CreatureAnimator::updateNguithr(float dt, const Input& in) {
         const int pb = sd == 0 ? PPB_L : PPB_R;
         const float sg = sd == 0 ? 1.0f : -1.0f;
         const float t = ((int)g.tapSide == sd ? tap : 0.0f) * live;
-        const vec3 knee = B[(size_t)pb + 1] + vec3{0.01f * g.rise, sg * 0.01f * g.rise, 0.05f * g.rise + 0.012f * t};
-        vec3 tip = B[(size_t)pb + 2] + vec3{0.01f * t, 0.0f, 0.09f * g.rise + 0.02f * t - 0.012f * t * t};
-        if (g.bite > 0.05f) tip = tip + vec3{0.03f * g.bite, -sg * 0.03f * g.bite, 0.02f * g.bite};  // greifen
-        if (free) tip = B[(size_t)pb + 1] + vec3{0.03f, sg * 0.01f, -0.03f};
-        J[(size_t)pb] = body(B[(size_t)pb]);
-        J[(size_t)pb + 1] = body(knee);
-        J[(size_t)pb + 2] = body(tip);
+        vec3 tipL = B[(size_t)pb + 3] + vec3{0.004f * std::sin(time_ * 0.9f + (float)sd * 1.9f), sg * 0.003f * std::sin(time_ * 0.6f + (float)sd),
+                                             0.004f + 0.003f * std::sin(time_ * 1.3f + (float)sd)} * live;
+        tipL = tipL + vec3{0.012f * t, 0.0f, 0.022f * t - 0.004f * t * t};
+        tipL = tipL + vec3{0.018f * g.rise, sg * 0.014f * g.rise, 0.055f * g.rise};
+        if (g.bite > 0.05f) tipL = tipL + vec3{0.03f * g.bite, -sg * 0.03f * g.bite, 0.014f * g.bite};
+        if (free) tipL = B[(size_t)pb + 1] + vec3{0.032f, sg * 0.012f, -0.028f};
+        const vec3 base = body(B[(size_t)pb]), tipW = body(tipL);
+        const float l1 = length(B[(size_t)pb + 1] - B[(size_t)pb]) * s, l2 = length(B[(size_t)pb + 2] - B[(size_t)pb + 1]) * s;
+        const float l3 = length(B[(size_t)pb + 3] - B[(size_t)pb + 2]) * s;
+        // das Endglied zeigt schraeg nach unten vorn, drohend nach vorn oben
+        const vec3 td = nrmN(Rl(B[(size_t)pb + 3] - B[(size_t)pb + 2]) + F * (0.9f * g.rise) + U * (0.45f * g.rise), F);
+        vec3 K, Wr;
+        ik2(base, tipW - td * l3, l1, l2, nrmN(U + L * (0.45f * sg), U), K, Wr);
+        J[(size_t)pb] = base;
+        J[(size_t)pb + 1] = K;
+        J[(size_t)pb + 2] = Wr;
+        J[(size_t)pb + 3] = Wr + nrmN(tipW - Wr, td) * l3;
     }
-    // --- Beine: Wechselgang zweier Gruppen; frei haengend angezogen -------------------------------------------
+    // --- Beine: das vordere Paar tastet (vorgestreckt, zitternd, tippt), die drei hinteren laufen im Wechsel zweier
+    // Dreiergruppen; frei haengend angezogen ---------------------------------------------------------------------
     const float S = 0.06f * s + 0.02f * spd;
     const bool walking = spd > 0.03f;
     if (walking) g.ph += spd / std::max(0.02f, S) * dt;
@@ -301,54 +333,60 @@ void CreatureAnimator::updateNguithr(float dt, const Input& in) {
     const float duty = 0.55f;
     for (int l = 0; l < kLegs; ++l) {
         const int p = l / 2, sd = l % 2;
+        const float sg = sd == 0 ? 1.0f : -1.0f;
         const vec3 C = body(coxa(l));
         const float Lp = kLegLen[p] * s;
-        const vec3 restL = coxa(l) + legDir(l) * kLegLen[p];
-        vec3 rest = Wl(vec3{restL.x, restL.y, 0.0f});
-        // vordere Beine heben sich beim Drohen
-        const bool raise = p == 0 && g.rise > 0.05f;
-        const int grp = (p + sd) % 2;
+        const vec3 tipB = B[(size_t)legJ(l, 3)];
         vec3 footW;
         if (free) {  // am Faden: angezogen, die Spitzen zucken
             const vec3 d = legDir(l);
-            footW = Wl(coxa(l) + d * (kLegLen[p] * 0.55f) + vec3{0, 0, 0.05f + 0.01f * std::sin(time_ * 6.0f + (float)l)});
-            g.plant[l] = g.from[l] = g.to[l] = rest, g.swing[l] = false;
+            footW = Wl(coxa(l) + d * (kLegLen[p] * 0.55f) + vec3{0, 0, 0.04f + 0.01f * std::sin(time_ * 6.0f + (float)l)});
+            g.plant[l] = g.from[l] = g.to[l] = Wl(vec3{tipB.x, tipB.y, 0.0f}), g.swing[l] = false;
+        } else if (p == 0) {  // Tastbeine: wie Fuehler vorgestreckt, zittern, tippen ab und zu auf
+            const float tp = std::max(0.0f, std::sin(time_ * 0.8f + (float)sd * 2.3f));
+            vec3 fl = tipB + vec3{0.006f * std::sin(time_ * 1.1f + (float)sd * 2.0f), sg * 0.004f * std::sin(time_ * 0.7f + (float)sd),
+                                  0.012f * tp * tp - 0.006f} * live;
+            fl = fl + vec3{0.006f * std::sin(time_ * 31.0f + (float)l), 0.0f, 0.004f * std::sin(time_ * 27.0f + (float)l)} * (0.15f * live);
+            fl = fl + vec3{0.01f * g.rise, sg * 0.01f * g.rise, 0.05f * g.rise};
+            if (walking) fl = fl + vec3{0.012f, 0.0f, 0.01f + 0.006f * std::sin(g.ph * kTauN * 2.0f + (float)sd)};
+            footW = body(fl);
+            g.plant[l] = footW, g.swing[l] = false;
         } else {
+            const vec3 rest = Wl(vec3{tipB.x, tipB.y, 0.0f});
             if (!g.init || length(g.plant[l]) < 1e-6f || length(g.plant[l] - rest) > 3.0f * Lp) g.plant[l] = g.from[l] = g.to[l] = rest, g.swing[l] = false;
+            const int grp = (p + sd) % 2;
             float phl = g.ph + (grp ? 0.5f : 0.0f) + 0.04f * (float)p;
             phl -= std::floor(phl);
             const bool want = walking && phl > duty;
-            if (want && !g.swing[l]) {
-                g.swing[l] = true, g.from[l] = g.plant[l], g.swingT[l] = 0.0f;
-                g.to[l] = rest + (g.vel - U * dot(g.vel, U)) * ((1.0f - duty) * S / std::max(spd, 0.05f) * 1.1f);
-            }
+            const vec3 lead = (g.vel - U * dot(g.vel, U)) * ((1.0f - duty) * S / std::max(spd, 0.05f) * 1.1f);
+            if (want && !g.swing[l]) g.swing[l] = true, g.from[l] = g.plant[l], g.swingT[l] = 0.0f, g.to[l] = rest + lead;
             if (!walking && !g.swing[l] && length(g.plant[l] - rest) > 0.35f * Lp && rnd() < dt * 8.0f * live) {  // nachsetzen
                 g.swing[l] = true, g.from[l] = g.plant[l], g.to[l] = rest, g.swingT[l] = 0.0f;
             }
             if (g.swing[l]) {
                 const float durS = walking ? (1.0f - duty) * S / std::max(spd, 0.05f) : 0.09f;
                 g.swingT[l] += dt / std::max(0.03f, durS);
-                if (walking) g.to[l] = rest + (g.vel - U * dot(g.vel, U)) * ((1.0f - duty) * S / std::max(spd, 0.05f) * 1.1f);
+                if (walking) g.to[l] = rest + lead;
                 if (g.swingT[l] >= 1.0f || (walking && !want)) {
                     g.swing[l] = false, g.plant[l] = g.to[l];
                     if (p == 3) stepped_ = true, stepPos_ = g.plant[l], stepWeight_ = 0.04f;
                 }
             }
             const float t = g.swing[l] ? smN(g.swingT[l]) : 0.0f;
-            footW = g.swing[l] ? g.from[l] + (g.to[l] - g.from[l]) * t + U * (0.025f * s * std::sin(kPiN * t)) : g.plant[l];
-            if (raise) footW = footW + (C + (F * 0.07f + U * (0.09f * g.rise)) * s - footW) * g.rise;
+            footW = g.swing[l] ? g.from[l] + (g.to[l] - g.from[l]) * t + U * (0.02f * s * std::sin(kPiN * t)) : g.plant[l];
         }
-        // Ferse ueber der Klaue, Knie hoch ueber dem Koerper (ik2 von der Huefte zur Ferse)
+        // Ferse wenig ueber der Spitze, Knie flach ueber dem Koerper (ik2 von der Huefte zur Ferse)
         const vec3 toFoot = footW - C;
         const vec3 hz = nrmN(toFoot - U * dot(toFoot, U), F);
-        const vec3 A = footW + U * (0.025f * s) - hz * (0.22f * Lp);
         const float l1 = length(B[(size_t)legJ(l, 1)] - B[(size_t)legJ(l, 0)]) * s, l2 = length(B[(size_t)legJ(l, 2)] - B[(size_t)legJ(l, 1)]) * s;
+        const float l3 = length(B[(size_t)legJ(l, 3)] - B[(size_t)legJ(l, 2)]) * s;
+        const vec3 A = footW + U * (0.009f * s) - hz * (0.9f * l3);
         vec3 K, Ae;
         ik2(C, A, l1, l2, nrmN(U + hz * 0.15f, U), K, Ae);
         J[(size_t)legJ(l, 0)] = C;
         J[(size_t)legJ(l, 1)] = K;
         J[(size_t)legJ(l, 2)] = Ae;
-        J[(size_t)legJ(l, 3)] = Ae + nrmN(footW - Ae, -U) * (length(B[(size_t)legJ(l, 3)] - B[(size_t)legJ(l, 2)]) * s);
+        J[(size_t)legJ(l, 3)] = Ae + nrmN(footW - Ae, -U) * l3;
     }
     // Faden: haengt sie, geht er senkrecht hinauf (das Netz ist lang genug, um durch die Decke zu reichen)
     J[(size_t)DRAG_A] = J[OPI2];

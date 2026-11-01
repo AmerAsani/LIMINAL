@@ -7,7 +7,7 @@ Laenge passt sich im Spiel der Decke an). An der Decke: ein Geflecht aus Faeden 
 lose haengende Faeden. Am Boden je Kugel eine Pfuetze mit Seidenfetzen (verborgen, bis die Kugel zerplatzt).
 Variante web_moth (Level 2: sie fressen Insekten und Deathmoths): zwei eingesponnene Motten im Geflecht.
 
-Knochen: 0 Wurzel (Mitte an der Decke: Geflecht), 47 + 2k Kugel k (mit Faden), 48 + 2k Pfuetze k.
+Knochen: 0 Wurzel (Mitte an der Decke: Geflecht), 39 + 2k Kugel k (mit Faden), 40 + 2k Pfuetze k.
 """
 import math
 
@@ -25,8 +25,8 @@ try:
 except Exception:
     pass
 
-SAC0 = 66
-B_SAC0 = 47
+SAC0 = 56  # Runde 6: Spinne mit 8 + 2 Gliedmassen (Skelett ng)
+B_SAC0 = 39
 NS = 6
 Z = np.array([0.0, 0.0, 1.0])
 

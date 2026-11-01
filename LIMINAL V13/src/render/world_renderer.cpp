@@ -271,8 +271,13 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     materialData_[FM_ENT_PIPE_D] = GpuMaterial{{0.19f, 0.66f, 0.07f}, 0, ent(EL_TOOTH, ML_FIBER), 2.6f, 0, 0.45f};     // Gruen
     materialData_[FM_ENT_WIRE] = GpuMaterial{{0.78f, 0.77f, 0.74f}, 0, ent(EL_TOOTH, ML_CRAZE), 0.32f, 1.0f, 0.1f};
     // Nguithr'xurh - sandfarben behaart (Walzenspinne); Seide grauweiss, faserig, matt; Betaeubungsstoff milchig und nass
-    materialData_[FM_ENT_SOLIFUGE] = GpuMaterial{{1.2f, 0.8f, 0.5f}, 0, ent(EL_FUR, ML_FIBER), 1.05f, 0, 0.45f};  // Runde 2/4: zu hell und sauber (Holz)
+    // Runde 6: matt, sandig-staubig, hellbraun bis ocker (vorher glaenzend wie Kunststoff)
+    materialData_[FM_ENT_SOLIFUGE] = GpuMaterial{{1.25f, 0.82f, 0.45f}, 0, ent(EL_FUR, ML_FIBER), 1.7f, 0, 0.15f};  // Runde 6g: weniger grauer Staub
+    materialData_[FM_ENT_SOLIFUGE_HEAD] = GpuMaterial{{1.05f, 0.55f, 0.28f}, 0, ent(EL_FUR, ML_FIBER), 1.6f, 0, 0.15f};  // Runde 6f: zweifarbig
     materialData_[FM_ENT_SILK] = GpuMaterial{{1.75f, 1.68f, 1.5f}, 0, ent(EL_FUR, ML_FIBER), 1.15f, 0, 0.5f};  // Runde 1: zu weiss, glaenzte wie Glas
+    materialData_[FM_ENT_SOLIFUGE_DARK] = GpuMaterial{{0.42f, 0.23f, 0.14f}, 0, ent(EL_FUR, ML_PORES), 1.3f, 0, 0.1f};  // Runde 6h: Finger dunkler
+    materialData_[FM_ENT_SOLIFUGE_HAIR] = GpuMaterial{{1.9f, 1.55f, 1.1f}, 0, ent(EL_FUR, ML_FIBER), 1.5f, 0, 0.3f};
+    materialData_[FM_ENT_SOLIFUGE_JOINT] = GpuMaterial{{0.85f, 0.5f, 0.28f}, 0, ent(EL_FUR, ML_FIBER), 1.6f, 0, 0.15f};
     materialData_[FM_ENT_SEDATIVE] = GpuMaterial{{0.72f, 0.66f, 0.48f}, 0, ent(EL_TOOTH, ML_PORES), 0.1f, 0, 0.15f};  // Runde 5: Pfuetzen wie helles Papier - dunkler, nass
     writeMaterials(gpu);
     lights_ = gpu.createStructured(sizeof(GpuLight), 2048, true, false);
