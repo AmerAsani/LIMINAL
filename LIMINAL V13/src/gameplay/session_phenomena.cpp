@@ -30,7 +30,7 @@ void GameSession::spawnTraces(const world::ChunkData& cd) {
         const i64 tx = ifloor(s.pos.x), ty = ifloor(s.pos.y);
         if (tx < cd.x0() || tx >= cd.x0() + world::CS || ty < cd.y0() || ty >= cd.y0() + world::CS) continue;
         const std::string id = "trace:" + s.id;
-        if (picked.count(id)) continue;
+        if (isPicked(id)) continue;  // auch vom Host gemeldet, bevor der Chunk hier geladen war (Koop)
         ecs::Entity e = prefabs_.spawn(reg_, "item_pickup", s.pos, s.yaw);
         if (e == ecs::kNull) continue;
         if (auto* p = reg_.get<Pickup>(e)) p->item = "almond_open", p->worldId = id;

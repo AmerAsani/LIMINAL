@@ -71,6 +71,11 @@ struct WAg {
     vec3 prev;
     int lastEv = -1;
     int idx = 0;  // Maurer: der Stein, den er gerade setzt
+    // Traeger: Wegstueck des Schritts legStep (0 Wegefeld, 1 geradeaus zum Zwischenziel, 2 geradeaus zum Platz), kleinste
+    // Wegkosten bisher, Zeit ohne Fortschritt, Feld schon neu gebaut
+    int legStep = -1, leg = 0, bestCost = 0;
+    double stallT = 0.0;
+    bool replanned = false;
 };
 template <class A>
 WAg& wag(A& a) {
@@ -890,7 +895,7 @@ void Presence::thinkOuroboros(Agent& a, double dtIn, const Context& c, std::vect
                     faceTo(s.towerYaw + kPiF, 8.0);
                     setTarget(T);
                 }
-                g.step = 0;
+                g.step = 0, g.legStep = -1;  // danach ein frisches Wegstueck (nicht geradeaus vom Geruest zum Lager)
                 break;
             }
             if (g.job == J_WELDER) {
@@ -918,12 +923,35 @@ void Presence::thinkOuroboros(Agent& a, double dtIn, const Context& c, std::vect
             // Traeger: vom Lager zur Palette und zurueck (Wege um Stuetzen und Mauerreste)
             const vec3 palStand = wl(s, kPalX + 0.55f, kPalY);
             const vec3 corner = wl(s, kWallX1 + 0.6f, kWallY + 0.6f);
+            // Ein Wegstueck: dem Wegefeld f nach bis in die Naehe des Zwischenziels (via, Radius viaR), dann geradeaus zum Platz.
+            // Der Wechsel gilt fuer den Rest des Schritts: vorher wurde je Bild neu entschieden, und weil der Platz an der Palette
+            // ausserhalb des Eckradius liegt (1,30 m), zogen Feld und Platz an der Kreisgrenze in entgegengesetzte Richtungen - der
+            // Traeger pendelte dort auf der Stelle. Reicht das Feld nicht bis zu ihm, wird es einmal neu gebaut (inzwischen geladene
+            // Kacheln); ohne Weg, am Feldende vor dem Ziel oder festgefahren (die Wegkosten sinken 3 s lang nicht) geht er geradeaus
+            // zum Zwischenziel und von dort zum Platz.
+            auto leg = [&](NavField& f, vec3 via, float viaR, vec3 stand) {  // true: am Platz
+                if (g.legStep != g.step) g.legStep = g.step, g.leg = 0, g.bestCost = 1 << 30, g.stallT = 0.0, g.replanned = false;
+                if (g.leg < 2 && hdist(a.pos, via) <= viaR) g.leg = 2;
+                if (g.leg == 0) {
+                    const i64 tx = ifloor(a.pos.x), ty = ifloor(a.pos.y);
+                    int cost = f.valid() ? f.at(tx, ty) : -1;
+                    if (cost < 0 && !g.replanned) {
+                        g.replanned = true;
+                        f.build(*c.world, f.cx(), f.cy(), 1.9f);
+                        cost = f.valid() ? f.at(tx, ty) : -1;
+                    }
+                    if (cost >= 0 && cost < g.bestCost) g.bestCost = cost, g.stallT = 0.0;
+                    else g.stallT += dt;
+                    if (cost < 0 || g.stallT > 3.0 || !walkTo(a, f, speed, dt, c)) g.leg = 1;
+                }
+                if (g.leg == 1) moveTo(via, speed);
+                return g.leg == 2 && moveTo(stand, speed);
+            };
             switch (g.step) {
                 case 0: {  // zum Lager
                     setTask(ob::K_WALK);
                     const vec3 at = s.heap - flat(nrmF(s.heap - s.wallC, {1, 0, 0})) * 0.75f;
-                    if (hdist(a.pos, at) > 1.6f && s.toHeap.valid() && s.toHeap.at(ifloor(a.pos.x), ifloor(a.pos.y)) >= 0) walkTo(a, s.toHeap, speed, dt, c);
-                    else if (moveTo(at, speed)) g.step = 1, g.t = 0.0, g.lastEv = -1;
+                    if (leg(s.toHeap, at, 1.6f, at)) g.step = 1, g.t = 0.0, g.lastEv = -1;
                     break;
                 }
                 case 1: {  // aufnehmen
@@ -937,14 +965,10 @@ void Presence::thinkOuroboros(Agent& a, double dtIn, const Context& c, std::vect
                     if (a.strike >= 1.0f) g.step = 2;
                     break;
                 }
-                case 2:  // tragen bis zur Ecke, dann zur Palette
+                case 2:  // tragen bis zur Ecke (Wegefeld), dann geradeaus zur Palette
                     setTask(ob::K_CARRY);
                     a.alert = 1.0f;
-                    if (hdist(a.pos, corner) > 1.0f && s.toPallet.valid() && s.toPallet.at(ifloor(a.pos.x), ifloor(a.pos.y)) >= 0) {
-                        if (!walkTo(a, s.toPallet, speed, dt, c)) moveTo(corner, speed);
-                    } else if (moveTo(palStand, speed)) {
-                        g.step = 3, g.t = 0.0, g.lastEv = -1;
-                    }
+                    if (leg(s.toPallet, corner, 1.0f, palStand)) g.step = 3, g.t = 0.0, g.lastEv = -1;
                     break;
                 case 3: {  // absetzen
                     setTask(ob::K_LAY);
