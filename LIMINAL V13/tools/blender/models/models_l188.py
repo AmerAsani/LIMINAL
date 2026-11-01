@@ -393,7 +393,7 @@ def _paving(seed, across=3, along=2):
             _slab(g, (x0, y0, 0.0), (x1, y1, z + 0.006), kerb, rng, c=0.01)
     # Fugen: Erde und Moos
     # Flecken und ein Haarriss auf einzelnen Platten
-    stain = mat('platte_fleck', (0.52, 0.50, 0.46), 'concrete', 'concrete_cast', r=1.4)
+    stain = mat('platte_fleck', (0.61, 0.59, 0.55), 'concrete', 'concrete_cast', r=1.4)
     crack = mat('platte_riss', (0.18, 0.17, 0.15), 'paint', r=1.4)
     for k in range(rng.randint(1, 3)):
         cx, cy = rng.uniform(-0.4, 0.4), rng.uniform(-0.6, 0.6)
