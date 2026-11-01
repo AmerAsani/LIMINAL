@@ -41,6 +41,11 @@ m = Map('level0', 176, 134, seed=1001)
 rng = m.rng
 
 
+def var_at(x, y, n):
+    """V13.3: Modellvariante aus der Lage (PROPS_Level0.md) - nicht aus rng, damit die Karte sonst gleich bleibt."""
+    return int(abs(math.sin(x * 12.9898 + y * 78.233)) * 43758.5453) % n
+
+
 def yellow_type(w, h, r):
     if min(w, h) <= 3 and max(w, h) >= 8:
         return 'flur'
@@ -216,11 +221,11 @@ for r in yellow:
     if not faces or rng.random() > 0.5:
         continue
     fx, fy, fyaw = rng.choice(faces)
-    m.obj('outlet', fx, fy, R.floor + 0.32, fyaw, tag='deco')
+    m.obj('outlet', fx, fy, R.floor + 0.32, fyaw, tag='deco', variant=var_at(fx, fy, 3))
     if R.height >= 2.85 and rng.random() < 0.35:
         vx, vy, vyaw = rng.choice(faces)
         if math.hypot(vx - fx, vy - fy) > 2.0:
-            m.obj('vent_grille', vx, vy, R.floor + R.height - 0.45, vyaw, tag='deco')
+            m.obj('vent_grille', vx, vy, R.floor + R.height - 0.45, vyaw, tag='deco', variant=var_at(vx, vy, 2))
 for r in dunkel:
     R = m.R(r)
     for k in range(1 + int(R.w * R.h / 40)):
@@ -284,6 +289,9 @@ G = 0.6
 FLUO = (1.0, 0.99, 0.90)
 
 
+VARIANTS = {'troffer': 3, 'troffer_off': 2, 'troffer_red': 2}
+
+
 def troffers(r, along=None, step_a=(4, 6), step_c=(4, 5), inten=0.62, radius=4.2, model='troffer', color=FLUO,
              dead=0.11):
     R = m.R(r)
@@ -311,9 +319,9 @@ def troffers(r, along=None, step_a=(4, 6), step_c=(4, 5), inten=0.62, radius=4.2
             if m.blocked(x, y) or m.blocked(x - 0.6, y) or m.blocked(x + 0.6, y):
                 continue
             if rng.random() < dead:
-                m.obj('troffer_off', x, y, top, yaw, tag='deco')
+                m.obj('troffer_off', x, y, top, yaw, tag='deco', variant=var_at(x, y, VARIANTS['troffer_off']))
                 continue
-            m.obj(model, x, y, top, yaw, tag='light')
+            m.obj(model, x, y, top, yaw, tag='light', variant=var_at(x, y, VARIANTS.get(model, 1)))
             m.light(r, x, y, 0, inten, radius, z=top - 0.03, panel=False, color=color)
             n += 1
     return n
@@ -330,7 +338,7 @@ def diffusers(r, count):
                 continue
             if any(o['model'].startswith('troffer') and math.hypot(o['pos'][0] - x, o['pos'][1] - y) < 1.0 for o in m.objects[-40:]):
                 continue
-            m.obj('ceiling_diffuser', x, y, top, 0.0, tag='deco')
+            m.obj('ceiling_diffuser', x, y, top, 0.0, tag='deco', variant=var_at(x, y, 3))
             break
 
 

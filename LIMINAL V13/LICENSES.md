@@ -45,7 +45,7 @@ Fandom-Seiten wurden für V12 **nicht** verwendet (Auftrag: nur Wikidot).
 
 | Name im Spiel | Quelle | Lizenz | Herkunft | geplant für Level |
 |---|---|---|---|---|
-| `wallpaper_threshold` | [Wallpaper001A](https://ambientcg.com/view?id=Wallpaper001A) „Wallpaper 001 A“ | CC0-1.0 | ambientCG, abgerufen 2026-10-25, SHA-256 23d7add92ef4… | 0 |
+| `wallpaper_threshold` | [Wallpaper001A](https://ambientcg.com/view?id=Wallpaper001A) „Wallpaper 001 A“ | CC0-1.0 | ambientCG, abgerufen 2026-10-25, SHA-256 23d7add92ef4…; V13.3 zu Bahnen von 53 cm mit Stoßfugen verarbeitet (`tools/textures/wallpaper_l0.py`, Kachel 2,12 m) | 0 |
 | `wallpaper_threshold_mold` | [Wallpaper002C](https://ambientcg.com/view?id=Wallpaper002C) „Wallpaper 002 C“ | CC0-1.0 | ambientCG, abgerufen 2026-10-25, SHA-256 767a4cc16bef… | 0 |
 | `carpet_threshold` | [Fabric028](https://ambientcg.com/view?id=Fabric028) „Fabric 028“ | CC0-1.0 | ambientCG, abgerufen 2026-10-25, SHA-256 be3c5a8a3431… | 0 |
 | `ceiling_office` | [OfficeCeiling001](https://ambientcg.com/view?id=OfficeCeiling001) „Office Ceiling 001“ | CC0-1.0 | ambientCG, abgerufen 2026-10-25, SHA-256 c28085beb797… | 0 |

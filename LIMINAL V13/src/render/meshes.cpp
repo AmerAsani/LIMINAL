@@ -1,6 +1,7 @@
 #include "render/meshes.hpp"
 
 #include "render/figure_models.hpp"
+#include "render/item_models.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -54,6 +55,7 @@ void MeshLibrary::init(Gpu& gpu) {
     addGroup(gpu, "glowstick", {{gs.tube, FM_ITEM_GLOWSTICK}, {gs.cap, FM_ITEM_GLOWSTICK_CAP}});
     addGroup(gpu, "glowstick_lit", {{gs.tube, FM_ITEM_GLOWSTICK_LIT}, {gs.cap, FM_ITEM_GLOWSTICK_CAP}});
     addGroup(gpu, "glowstick_dim", {{gs.tube, FM_ITEM_GLOWSTICK_DIM}, {gs.cap, FM_ITEM_GLOWSTICK_CAP}});
+    addItemModels(*this, gpu);  // V13.3: Fundstuecke aus Blender ersetzen die Netze oben (render/item_models.cpp)
     addViewmodel(gpu);
 }
 
