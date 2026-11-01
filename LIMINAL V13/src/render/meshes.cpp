@@ -1,6 +1,7 @@
 #include "render/meshes.hpp"
 
 #include "render/figure_models.hpp"
+#include "render/item_models.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -47,6 +48,7 @@ void MeshLibrary::init(Gpu& gpu) {
     addGroup(gpu, "fusebox", {{fb.body, FM_FUSEBOX}, {fb.fuse, FM_ITEM_FUSE}, {fb.lamp, FM_FUSE_GLOW}});
     addGroup(gpu, "fusebox_empty", {{fe.body, FM_FUSEBOX}, {fe.lamp, FM_FUSEBOX}});
     add(gpu, "fuse", makeFuseItem(), FM_ITEM_FUSE);
+    addItemModels(*this, gpu);  // V13.3: Fundstuecke aus Blender ersetzen die Netze oben (render/item_models.cpp)
     addViewmodel(gpu);
 }
 

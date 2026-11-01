@@ -28,13 +28,19 @@ class Part:
         self.mats = []
         self.atlas = set()   # Materialindizes mit eigenen (Atlas-)UV
         self.fixed = set()   # Flaechen mit vorgegebener Richtung (nicht neu ausrichten)
+        self.uvmaps = {}     # Materialindex -> uvmap(co, normal)
+        self.uvface = {}     # einzelne Flaechen -> uvmap (Vorrang vor uvmaps)
 
-    def mat(self, m, atlas=False):
+    def mat(self, m, atlas=False, uvmap=None):
+        """Material anmelden. atlas: UV werden beim Bauen gesetzt; uvmap(co, normal) -> (u, v): UV werden beim
+        Abschluss aus Lage und Flaechennormale berechnet (Atlas der Fundstuecke)."""
         if m not in self.mats:
             self.mats.append(m)
         i = self.mats.index(m)
-        if atlas:
+        if atlas or uvmap is not None:
             self.atlas.add(i)
+        if uvmap is not None:
+            self.uvmaps[i] = uvmap
         return i
 
     def v(self, co):
@@ -73,6 +79,14 @@ class Part:
             free = [f for f in bm.faces if f not in self.fixed]
             if free:
                 bmesh.ops.recalc_face_normals(bm, faces=free)
+        # Atlas aus Lage und Normale (vor remove_doubles: die Flaechenzuordnung in uvface bleibt gueltig)
+        for f in bm.faces:
+            fn = self.uvface.get(f) or self.uvmaps.get(f.material_index)
+            if fn is None:
+                continue
+            f.normal_update()
+            for loop in f.loops:
+                setuv(loop, self.uv, *fn(loop.vert.co, f.normal))
         bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-7)
         # Kastenprojektion fuer alle Flaechen ohne Atlas
         for f in bm.faces:
