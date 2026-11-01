@@ -242,9 +242,9 @@ void skinMarks(inout GBufferOut g, float3 bp)
         const float spot = smoothstep(th, th + 0.045, n);
         const float rim = smoothstep(th - 0.1, th, n) * (1.0 - spot);
         const float fz = vnoise3(bp * 900.0), fz2 = vnoise3(bp * 2300.0 + 7.0);
-        alb = lerp(alb, alb * float3(1.18, 0.70, 0.68), rim * 0.85);  // entzuendeter Hof
+        alb = lerp(alb, alb * float3(1.08, 0.80, 0.80), rim * 0.6);  // entzuendeter Hof
         alb = lerp(alb, alb * float3(1.12, 0.76, 0.76), smoothstep(0.55, 1.0, c) * 0.4 * vnoise3(bp * 22.0 + 3.0));  // Fieber
-        const float3 white = float3(0.88, 0.86, 0.80) * (0.78 + 0.22 * fz) * (0.9 + 0.1 * fz2);
+        const float3 white = float3(0.88, 0.86, 0.80) * (0.62 + 0.38 * fz) * (0.85 + 0.15 * fz2);
         alb = lerp(alb, white, spot);
         rough = lerp(rough, 1.0, spot);
         ao *= 1.0 - 0.3 * rim;
@@ -258,18 +258,19 @@ void skinMarks(inout GBufferOut g, float3 bp)
         const float w = vnoise3(bp * 16.0) * 2.2;
         const float d1 = abs(frac(bp.x * 31.0 + bp.y * 8.0 + bp.z * 19.0 + w) - 0.5);
         const float d2 = abs(frac(-bp.x * 11.0 + bp.y * 29.0 + bp.z * 15.0 + w * 1.3 + 0.37) - 0.5);
-        const float width = 0.035 + 0.075 * c;
+        const float width = 0.05 + 0.08 * c;
         const float reach = smoothstep(1.02 - c * 1.05, 1.1 - c * 1.05, vnoise3(bp * 6.5 + 11.0));
         const float vine = max(1.0 - smoothstep(width * 0.6, width, d1),
                                (1.0 - smoothstep(width * 0.5, width * 0.85, d2)) * smoothstep(0.35, 0.5, c)) * reach;
         const float leaf = smoothstep(0.80, 0.86, vnoise3(bp * 58.0 + 2.0)) * reach * smoothstep(0.2, 0.35, c);
         const float bark = smoothstep(1.0, 0.92, 1.0 - saturate((c - 0.5) * 2.4) * vnoise3(bp * 8.0 + 5.0) * 1.6);
-        const float groove = smoothstep(0.42, 0.5, abs(frac(bp.z * 95.0 + bp.x * 14.0 + vnoise3(bp * 30.0) * 2.5) - 0.5));
-        const float3 vg = float3(0.15, 0.29, 0.09) * (0.8 + 0.4 * (1.0 - d1 / max(width, 1e-3)));
+        const float groove = smoothstep(0.3, 0.5, abs(frac(bp.z * 38.0 + bp.x * 9.0 + vnoise3(bp * 22.0) * 3.5) - 0.5)) *
+                             (0.6 + 0.4 * vnoise3(bp * 90.0));
+        const float3 vg = float3(0.075, 0.13, 0.045) * (0.7 + 0.5 * (1.0 - d1 / max(width, 1e-3)));  // Trieb: dunkel, matt
         alb = lerp(alb, alb * float3(0.86, 0.95, 0.8), smoothstep(0.3, 0.8, c) * 0.4);  // bleich, gruenstichig
-        alb = lerp(alb, lerp(float3(0.31, 0.26, 0.2), float3(0.11, 0.09, 0.07), groove), bark);
+        alb = lerp(alb, lerp(float3(0.27, 0.22, 0.17), float3(0.15, 0.12, 0.09), groove), bark);
         alb = lerp(alb, vg, vine);
-        alb = lerp(alb, float3(0.2, 0.4, 0.13), leaf);
+        alb = lerp(alb, float3(0.12, 0.22, 0.07), leaf);
         rough = lerp(rough, 0.95, max(bark, vine * 0.6));
         ao *= 1.0 - 0.35 * bark * groove;
         sss = lerp(sss, 0.0, max(bark, vine));

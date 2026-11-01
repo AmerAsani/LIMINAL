@@ -23,5 +23,6 @@ void addDullerSounds(std::vector<SoundDef>& d, int rate);    // V13.3 synth_dull
 void addArmsSounds(std::vector<SoundDef>& d, int rate);      // V13.3 synth_arms.cpp: Arms (Schacht, Schrei im Licht)
 void addWranglerSounds(std::vector<SoundDef>& d, int rate);  // V13.3 synth_wrangler.cpp: Wrangler (Beben, Leib, Kopf, Jungtiere)
 void addLureSounds(std::vector<SoundDef>& d, int rate);      // V13.3 synth_lure.cpp: Leuchtstab, Ansprechen (Spieler, Skin-Stealer)
+void addPhenomenaSounds(std::vector<SoundDef>& d, int rate);  // V13.3 synth_phenomena.cpp: Pilz, Garden, Spielleiterin, Tuerspuren
 
 }  // namespace lim::audio

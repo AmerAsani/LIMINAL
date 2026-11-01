@@ -231,28 +231,62 @@ float4 PSMain(PSIn i) : SV_Target
         col = lerp(col, b * 0.32, gPost.z);
     }
 
-    // V13.3: Pilz - weisser Flaum waechst vom Rand ein (Faeden), Fieber toent warm
+    // V13.3: Pilz - wattiger, weisser Belag waechst vom Rand ein, davor feine Faeden, die zur Mitte kriechen; Fieber
+    // toent warm. Polarkoordinaten: Faeden laufen radial (Rauschen laengs des Winkels gestaucht)
     if (fung > 0.001)
     {
-        float r = length(cv) * 1.414;
-        float n = fbm2(uv * float2(gPost3.y / max(gPost3.z, 1.0), 1.0) * 9.0 + tNow * 0.01);
-        float th = vn2(uv * 140.0) * vn2(uv * float2(20.0, 260.0)) * 0.5;
-        float edge = saturate((r + n * 0.35 + th * 0.25 - (1.18 - fung * 0.52)) / 0.12);
+        const float aspect = gPost3.y / max(gPost3.z, 1.0);
+        const float2 p = (uv - 0.5) * float2(aspect, 1.0);
+        const float r = length(p) / (0.5 * length(float2(aspect, 1.0)));
+        const float ang = atan2(p.y, p.x);
+        const float cotton = fbm2(p * 7.0 + 3.7) * 0.65 + fbm2(p * 19.0 + 11.0) * 0.35;
+        const float fiber = fbm2(float2(ang * 21.0, r * 2.2 - tNow * 0.004));
+        const float front = 1.12 - fung * 0.5;
+        const float mass = smoothstep(front - 0.05, front + 0.07, r + (cotton - 0.5) * 0.32);
+        const float threads = smoothstep(0.62, 0.8, fiber) * smoothstep(front - 0.26, front, r) * (1.0 - mass);
         float3 d = toDisplay(col);
         d = lerp(d, d * float3(1.06, 0.95, 0.86), smoothstep(0.5, 1.0, fung) * 0.5);
-        d = lerp(d, float3(0.80, 0.79, 0.73) * (0.75 + 0.25 * n), edge * (0.55 + 0.4 * fung));
+        const float3 white = float3(0.84, 0.83, 0.77) * (0.62 + 0.45 * cotton);
+        d = lerp(d, white, mass * (0.6 + 0.38 * fung));
+        d = lerp(d, float3(0.88, 0.87, 0.82), threads * 0.55 * fung);
         col = toLinear(d);
     }
-    // V13.3: Garden - gruener Rand aus Blattwerk, unten am dichtesten
+    // V13.3: Garden - Blaetter wachsen vom Rand herein (zwei Lagen spitzer Blaetter mit Mittelrippe, dahinter dichtes
+    // Laub), unten am dichtesten
     if (gard > 0.001)
     {
-        float2 a = uv * float2(gPost3.y / max(gPost3.z, 1.0), 1.0);
-        float leaf = vn2(a * 14.0) * 0.6 + vn2(a * 37.0 + 3.1) * 0.4;
-        float r = max(length(cv) * 1.3, uv.y * 0.95);
-        float edge = saturate((r + leaf * 0.4 - (1.2 - gard * 0.55)) / 0.1);
+        const float aspect = gPost3.y / max(gPost3.z, 1.0);
+        const float2 p = (uv - 0.5) * float2(aspect, 1.0);
+        const float r = length(p) / (0.5 * length(float2(aspect, 1.0))) * (1.0 + 0.18 * saturate(uv.y - 0.5) * 2.0);
+        const float ang = atan2(p.y, p.x);
         float3 d = toDisplay(col);
         d = lerp(d, d * float3(0.9, 1.04, 0.86), gard * 0.35);
-        d = lerp(d, float3(0.06, 0.16, 0.05) * (0.6 + 0.8 * leaf), edge * (0.6 + 0.35 * gard));
+        float cover = 0.0, tone = 0.0;
+        [unroll] for (int L = 0; L < 3; ++L)
+        {
+            const float N = 44.0 + 17.0 * L;
+            const float a = ang / 6.2831853 * N + 0.37 * L;
+            const float ci = floor(a);
+            const float fa = frac(a) - 0.5;
+            const float h = hash01((uint)(ci + 4096.0) * 747796405u + (uint)L * 2891336453u);
+            const float h2 = hash01((uint)(ci + 9000.0) * 2246822519u + (uint)L * 3266489917u);
+            const float wob = (fbm2(float2(ang * 1.7 + L * 5.0, 2.0)) - 0.5) * 0.22;
+            const float base = 1.08 - gard * (0.4 + 0.07 * L) + (h - 0.5) * 0.09 + wob;
+            const float len = 0.06 + 0.08 * h2;
+            const float ly = (base - r) / len;                         // 0 Blattgrund, 1 Spitze (zur Mitte)
+            const float lx = (fa + (h - 0.5) * 0.7 * ly * ly) / (0.34 + 0.16 * h2);  // gebogen
+            const float half = 0.5 * pow(sin(saturate(ly) * 3.14159), 0.8) * (1.0 - 0.3 * ly);
+            const float leaf = (1.0 - smoothstep(half - 0.06, half + 0.015, abs(lx))) * step(0.0, ly) * step(ly, 1.0);
+            const float rib = (1.0 - smoothstep(0.012, 0.04, abs(lx))) * leaf;
+            const float behind = smoothstep(base - 0.02, base + 0.04, r);
+            const float tex = fbm2(p * (23.0 + 9.0 * L) + L * 7.1);
+            const float t = leaf > behind ? (0.35 + 0.55 * h) * (1.0 - 0.4 * rib) * (0.75 + 0.25 * ly) : 0.15 + 0.35 * tex;
+            const float c = max(leaf, behind);
+            tone = lerp(tone, t * (0.7 + 0.15 * L), c);
+            cover = max(cover, c);
+        }
+        const float3 leafCol = lerp(float3(0.012, 0.03, 0.01), float3(0.085, 0.18, 0.055), tone);
+        d = lerp(d, leafCol, cover * (0.75 + 0.25 * gard));
         col = toLinear(d);
     }
     // V13.3: das Gesicht der Spielleiterin fuellt den Bildschirm

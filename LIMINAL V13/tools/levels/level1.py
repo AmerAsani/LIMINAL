@@ -711,15 +711,17 @@ for r in prng.sample(aquila, 3):
     m.obj('fungus_wall', fx, fy, R.floor, fyaw, variant=prng.randrange(3), tag='fungus')
     gx, gy = fx + math.cos(fyaw) * 0.75, fy + math.sin(fyaw) * 0.75
     m.obj('fungus_floor', gx, gy, R.floor, fyaw + prng.uniform(-0.4, 0.4), variant=prng.randrange(2), tag='fungus')
+    m.obj('puddle', gx, gy, R.floor, fyaw, scale=(0.45, 0.45, 1.0), variant=prng.randrange(6))  # das Wasser: Pfuetze der Karte (Spiegelung)
     m.spawn('trace', gx, gy, R.floor, fyaw, tags=['r1.7'], set='fungus')
     fungus_hall.append((r, gx, gy, fyaw))
 # offene Flasche neben einer befallenen Stelle in der Halle
 if fungus_hall:
     r, gx, gy, fyaw = fungus_hall[0]
-    side = fyaw + math.pi / 2
-    bx, by = gx + math.cos(side) * 1.9, gy + math.sin(side) * 1.9
-    if _free(bx, by, 0.3):
-        m.spawn('trace', bx, by, m.R(r).floor, prng.random() * 6.28, set='bottle')
+    for off in (1.9, -1.9, 2.5, -2.5, 1.4, -1.4):
+        bx, by = gx + math.cos(fyaw + math.pi / 2) * off + math.cos(fyaw) * 0.3, gy + math.sin(fyaw + math.pi / 2) * off + math.sin(fyaw) * 0.3
+        if _free(bx, by, 0.3):
+            m.spawn('trace', bx, by, m.R(r).floor, prng.random() * 6.28, set='bottle')
+            break
 # Lager eines Infizierten in einem Zimmer der Gaenge: verpilzter Schlafsack, Myzel an der Wand, Zettel, offene Flasche
 camp_rooms = [c for c in cells if m.R(c).type in ('zimmer', 'buero') and min(m.R(c).w, m.R(c).h) >= 4]
 camp_room = None
@@ -734,10 +736,11 @@ for r in prng.sample(camp_rooms, len(camp_rooms)):
     m.obj('fungus_camp', cx, cy, R.floor, fyaw, tag='fungus')
     m.spawn('trace', cx, cy, R.floor, fyaw, tags=['r1.6'], set='fungus')
     m.spawn('trace', cx, cy, R.floor, fyaw, tags=['r2.2'], set='note')
-    side = fyaw - math.pi / 2
-    bx, by = cx + math.cos(side) * 1.25 + math.cos(fyaw) * 0.5, cy + math.sin(side) * 1.25 + math.sin(fyaw) * 0.5
-    if _free(bx, by, 0.25):
-        m.spawn('trace', bx, by, R.floor, prng.random() * 6.28, set='bottle')
+    for off in (-1.25, 1.25, -0.9, 0.9):
+        bx, by = cx + math.cos(fyaw + math.pi / 2) * off + math.cos(fyaw) * 0.5, cy + math.sin(fyaw + math.pi / 2) * off + math.sin(fyaw) * 0.5
+        if _free(bx, by, 0.25):
+            m.spawn('trace', bx, by, R.floor, prng.random() * 6.28, set='bottle')
+            break
     camp_room = r
     break
 # verpilzter Kadaver in einem Krankenzimmer am Hallenrand (dunkel, feucht unter dem Bett)

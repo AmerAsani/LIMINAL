@@ -402,6 +402,51 @@ void App::scriptStep() {
                       (u64)pmc.PeakWorkingSetSize >> 20, renderer_->gpuTimer().summary());
         } else if (cmd == "give" && session_) {  // V9: Item ins Inventar (Tests)
             session_->inventory().add(arg);
+        } else if (cmd == "phen" && session_) {  // V13.3 (Tests, Bilder): Erscheinungen - phen infect <s> | garden <s> | claws |
+            // look <set> <i> <abstand> [winkel grad] [hoehe]: vor eine Stelle stellen und hinsehen (set: paint, jester, fungus,
+            // note, claws, bottle, expel); jester: auf das Bild der Spielleiterin treten (session_phenomena.cpp)
+            game::Phenomena& P = session_->phenomena();
+            char what[32] = {}, set[32] = {};
+            double a = 0, d = 2.5, ang = 0, eh = 1.6;
+            int i = 0;
+            std::sscanf(arg.c_str(), "%31s", what);
+            const std::string w = what;
+            if (w == "infect" && std::sscanf(arg.c_str(), "%*s %lf", &a) == 1) P.infect(0), P.ailment(0).infectT = a;
+            else if (w == "garden" && std::sscanf(arg.c_str(), "%*s %lf", &a) == 1) P.ailment(0).garden = a;
+            else if (w == "claws") for (auto& cd : P.clawDoors()) cd.cool = 0.01;
+            else if (w == "jester" || (w == "look" && std::sscanf(arg.c_str(), "%*s %31s %d %lf %lf %lf", set, &i, &d, &ang, &eh) >= 2)) {
+                const std::string s = w == "jester" ? "jester" : set;
+                vec3 at;
+                float yaw = 0.0f;
+                bool ok = true;
+                if (s == "paint" && i < (int)P.paintings().size()) at = P.paintings()[(size_t)i].pos, yaw = P.paintings()[(size_t)i].yaw;
+                else if (s == "jester") {
+                    ok = false;
+                    for (const auto& pt : P.paintings())
+                        if (pt.jester) at = pt.pos, yaw = pt.yaw, ok = true;
+                } else if (s == "fungus" && i < (int)P.fungusZones().size()) at = P.fungusZones()[(size_t)i].pos, yaw = P.fungusZones()[(size_t)i].yaw;
+                else if (s == "note" && i < (int)P.noteSpots().size()) at = P.noteSpots()[(size_t)i].pos, yaw = P.noteSpots()[(size_t)i].yaw;
+                else if (s == "bottle" && i < (int)P.bottleSpots().size()) at = P.bottleSpots()[(size_t)i].pos, yaw = P.bottleSpots()[(size_t)i].yaw;
+                else if (s == "expel" && i < (int)P.expelSpots().size()) at = P.expelSpots()[(size_t)i].pos, yaw = P.expelSpots()[(size_t)i].yaw;
+                else if (s == "claws" && i < (int)P.clawDoors().size()) at = P.clawDoors()[(size_t)i].spot.pos, yaw = P.clawDoors()[(size_t)i].spot.yaw;
+                else ok = false;
+                if (!ok) {
+                    log::error("Skript: phen {} - keine solche Stelle", arg);
+                    scriptFailed_ = true;
+                } else {
+                    auto& pl = session_->player();
+                    const double t = yaw + ang * 0.0174533;
+                    const double px = w == "jester" ? at.x : at.x + std::cos(t) * d, py = w == "jester" ? at.y : at.y + std::sin(t) * d;
+                    pl.x = px, pl.y = py, pl.z = session_->world().tile(ifloor(px), ifloor(py)).floor;
+                    if (w != "jester") {
+                        pl.angle = std::atan2(at.y - py, at.x - px);
+                        pl.pitch = -std::atan2(eh - 0.3, std::max(0.3, d));
+                    }
+                    session_->body().reset();
+                    resetHistory_ = true;
+                    log::info("Skript: phen {} -> ({:.2f}, {:.2f}) Ziel ({:.2f}, {:.2f})", arg, px, py, at.x, at.y);
+                }
+            }
         } else if (cmd == "health" && session_) {  // V9: Health setzen (Tests)
             session_->stats().health = std::clamp(std::atof(arg.c_str()), 1.0, 100.0);
         } else if (cmd == "sanity" && session_) {  // V7: Sanity setzen (Tests)

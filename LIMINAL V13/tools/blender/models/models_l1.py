@@ -2349,11 +2349,14 @@ def _scene_interieur(c):
            (0.05, 0.04, 0.03), 0.0)
 
 
-def _painting(W, H, seed, scene, style, lean=False):
+def _painting(W, H, seed, scene, style, lean=False, flat=False, extra=None):
     """Bild W x H (Sicht) im Rahmen mit Profil und Gehrungen, Leinwand im Falz, Malerei aus vielen Schichten mit
     pinseligen Raendern, vergilbter Firnis. Wandbild: Rueckseite bei x = 0, Mitte im Ursprung, haengt an einem Draht
     an einem Haken und kippt oben 1,5 Grad von der Wand; Staub auf der Oberkante, Abrieb an den Ecken, eine
-    Gehrungsfuge offen. lean: unten auf dem Boden an die Wand gelehnt (8 Grad), Unterkante 6 cm vor der Wand."""
+    Gehrungsfuge offen. lean: unten auf dem Boden an die Wand gelehnt (8 Grad), Unterkante 6 cm vor der Wand.
+    V13.3: scene darf eine Funktion f(canvas) sein; flat: liegt flach auf dem Boden (Bild nach oben, Oberkante des Bildes
+    zeigt nach -x, Mitte im Ursprung, ohne Aufhaengung - KREATUR_GameMaster.md); extra(mb, x0) ergaenzt Teile auf der
+    Bildebene vor dem Umlegen (x0 = Ebene der Leinwand)."""
     rg = rng(seed)
     mb = MB()
     fw = (0.055 if W > 0.8 else 0.045) if style != 'schwarz' else 0.035
@@ -2395,7 +2398,9 @@ def _painting(W, H, seed, scene, style, lean=False):
     mb.add(b_plate(rect(-W / 2 - 0.008, -H / 2 - 0.008, W / 2 + 0.008, H / 2 + 0.008), 0.0), canvas_m,
            frame(Vector((x0, 0, 0)), Vector((0, 1, 0)), Vector((0, 0, 1)), Vector((1, 0, 0))))
     c = _Canvas(mb, W, H, x0 + 0.0004, rg, seed)
-    if scene.startswith('landschaft'):
+    if callable(scene):
+        scene(c)
+    elif scene.startswith('landschaft'):
         _scene_landschaft(c, scene.split(':')[1])
     elif scene.startswith('meer'):
         _scene_meer(c, scene.split(':')[1])
@@ -2407,6 +2412,13 @@ def _painting(W, H, seed, scene, style, lean=False):
         _scene_konstrukt(c)
     else:
         _scene_interieur(c)
+    if extra is not None:
+        extra(mb, x0 + 0.0004 * (c.layer + 2))
+    if flat:
+        for v in mb.bm.verts:
+            v.co = R(-math.pi / 2, 'Y') @ v.co
+        mb.obj('bild')
+        return
     if lean:
         th = math.radians(8.0)
         for v in mb.bm.verts:

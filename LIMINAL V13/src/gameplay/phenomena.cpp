@@ -480,7 +480,7 @@ vec4 Phenomena::skinFx(int id) const {
     float f = 0.0f;
     if (a.infectT >= 0.0) {
         const double p = stageProgress(cfg_, a.infectT, a.stage);
-        f = a.stage == 1 ? 0.0f : a.stage == 2 ? (float)(0.22 + 0.25 * p) : a.stage == 3 ? (float)(0.62 + 0.3 * p) : 1.0f;
+        f = a.stage == 1 ? 0.0f : a.stage == 2 ? (float)(0.32 + 0.22 * p) : a.stage == 3 ? (float)(0.62 + 0.3 * p) : 1.0f;
     }
     float g = 0.0f;
     if (a.garden > cfg_.gardenSigns)
