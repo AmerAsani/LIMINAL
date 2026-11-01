@@ -14,6 +14,7 @@ Draufsicht (x nach rechts, y nach unten):
 """
 import math
 import os
+import random
 import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
@@ -301,5 +302,15 @@ safe_point('alte_gaenge', TJ[(0, 2)], 'Alte Gaenge')
 safe_point('ostfluegel', EJ[(4, 3)], 'Ostfluegel')
 safe_point('westfluegel', vj, 'Vor der Leere', at=(VJ.cx + 0.5, VJ.cy + 0.5))
 safe_point('treppe', ST, 'Treppe', at=(S_.x0 + 1.5, S_.cy))
+
+# V13.3: Varianten der haeufigen Klassen (Blender, name@N.glb) zufaellig gewaehlt; Anordnung unveraendert
+VARIANTS = {'bookcase_aisle': 3, 'bookcase_aisle_b': 3, 'library_wall': 3, 'candelabrum': 2, 'books_fallen': 3,
+            'ceiling_arms': 2, 'painting_renaissance_a': 2, 'painting_renaissance_b': 2}
+vrng = random.Random(53031)
+for o in m.objects:
+    if o['model'] in VARIANTS:
+        v_ = vrng.randrange(VARIANTS[o['model']])
+        if v_:
+            o['variant'] = v_
 
 m.save()
