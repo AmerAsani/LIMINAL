@@ -20,6 +20,8 @@ import bpy
 import common
 from models import kit_items as K
 
+TAU = 2 * math.pi
+
 
 # ---------------------------------------------------------------------------------------------------
 # Rasterleuchte 0,6 x 1,2 m (lange Achse x) - kommt rund 800-mal vor: sparsam (~420 Dreiecke)
@@ -27,20 +29,24 @@ from models import kit_items as K
 _TUBES = (-0.15, 0.0, 0.15)  # drei T8-Roehren hinter der Scheibe
 
 
-def _lens_class(cx, cy, hx, hy):
+def _lens_class(cx, cy, hx, hy, weak=None):
     if abs(cx) > hx - 0.026 or abs(cy) > hy - 0.024:
         return 'rim'
+    near_t = min(_TUBES, key=lambda t: abs(cy - t))
+    w = '_w' if weak is not None and near_t == weak else ''
     if abs(cx) > hx - 0.07:
-        return 'end'
-    d = min(abs(cy - t) for t in _TUBES)
+        return 'end' + w
+    d = abs(cy - near_t)
     if d < 0.017:
-        return 'tube'
+        return 'tube' + w
     if d < 0.047:
-        return 'near'
+        return 'near' + w
     return 'mid'
 
 
-def _troffer(state):
+def _troffer(state, var=0):
+    """var 0: wie gebaut; 1: eine Roehre stirbt (dunkler, schwarze Enden) bzw. aus: Scheibe gesprungen, an einem
+    Ende abgesackt; 2: staerker vergilbt, mehr Insekten, Wasserfleck (Variation nur im Kleinen, LEVEL0_STANDARD.md 2)."""
     P = K.Part('rasterleuchte')
     frame = P.mat(common.material('rahmen', (0.85, 0.84, 0.78), look='paint', r=0.8))
     frame2 = P.mat(common.material('tuerrahmen', (0.83, 0.82, 0.75), look='paint', r=0.7))
@@ -49,15 +55,27 @@ def _troffer(state):
     kehle = P.mat(common.material('kehle', (0.64, 0.63, 0.58), look='paint', r=0.9))
     bug = P.mat(common.material('insekt', (0.07, 0.055, 0.04), look='paint', r=1.0))
     if state == 'off':
-        lens = {k: P.mat(common.material('scheibe_' + k, c, look='plastic', r=rr)) for k, c, rr in (
-            ('tube', (0.80, 0.80, 0.77), 0.55), ('near', (0.77, 0.77, 0.74), 0.6), ('mid', (0.72, 0.72, 0.69), 0.6),
-            ('end', (0.66, 0.65, 0.61), 0.7), ('rim', (0.55, 0.53, 0.46), 1.0))}
+        stain = P.mat(common.material('wasserfleck', (0.36, 0.28, 0.16), look='paint', r=1.1))
+    else:  # Runde 3: Wasserfleck in der leuchtenden Scheibe als bräunlicher, schwaecher leuchtender Hof statt Schwarz
+        stain = P.mat(common.material('wasserfleck_licht', (0.95, 0.62, 0.30) if state != 'red' else (0.8, 0.2, 0.1), look='glow', glow=0.42))
+    yel = 1.0 if var != 2 else 0.93
+    weak = _TUBES[2] if (var == 1 and state != 'off') else None
+    if state == 'off':
+        dk = 0.86 if var == 2 else 1.0
+        lens = {k: P.mat(common.material('scheibe_' + k, tuple(c[i] * dk * (1 if i < 2 else yel) for i in range(3)), look='plastic', r=rr))
+                for k, c, rr in (('tube', (0.80, 0.80, 0.77), 0.55), ('near', (0.77, 0.77, 0.74), 0.6), ('mid', (0.72, 0.72, 0.69), 0.6),
+                                 ('end', (0.66, 0.65, 0.61), 0.7), ('rim', (0.55, 0.53, 0.46), 1.0))}
     else:
         red = state == 'red'
         spec = (('tube', 1.25, (1.0, 0.99, 0.93), (1.0, 0.36, 0.27)), ('near', 1.04, (1.0, 0.985, 0.91), (1.0, 0.32, 0.24)),
                 ('mid', 0.86, (1.0, 0.975, 0.88), (0.98, 0.29, 0.21)), ('end', 0.70, (1.0, 0.96, 0.84), (0.95, 0.27, 0.19)),
-                ('rim', 0.50, (0.98, 0.91, 0.74), (0.85, 0.24, 0.16)))
-        lens = {k: P.mat(common.material('scheibe_' + k, rc if red else wc, look='glow', glow=g)) for k, g, wc, rc in spec}
+                ('rim', 0.50, (0.98, 0.91, 0.74), (0.85, 0.24, 0.16)),
+                ('tube_w', 0.60, (0.98, 0.95, 0.90), (0.95, 0.30, 0.24)), ('near_w', 0.72, (0.98, 0.95, 0.88), (0.93, 0.28, 0.21)),
+                ('end_w', 0.45, (0.86, 0.80, 0.70), (0.70, 0.20, 0.14)))
+        lens = {k: P.mat(common.material('scheibe_' + k, rc if red else (wc[0], wc[1], wc[2] * yel), look='glow', glow=g))
+                for k, g, wc, rc in spec}
+        for k in ('tube', 'near', 'end'):
+            lens.setdefault(k + '_w', lens[k])
     HX, HY = 0.606, 0.306
     # Profil von aussen nach innen: Gehaeuseflansch, Schattenfuge, Tuerrahmen, Kehle zur Scheibe
     prof = [(0.000, 0.000), (0.000, 0.0092), (0.0012, 0.0118), (0.0030, 0.0122), (0.0095, 0.0122), (0.0108, 0.0110),
@@ -73,16 +91,33 @@ def _troffer(state):
           hy - 0.024, hy]
 
     def lz(x, y):
-        return 0.0050 + 0.0016 * (1 - (x / hx) ** 2) * (1 - (y / hy) ** 2)
+        sag = 0.0050 + 0.0016 * (1 - (x / hx) ** 2) * (1 - (y / hy) ** 2)
+        if state == 'off' and var == 1:  # an einem Ende aus dem Falz gerutscht
+            sag += 0.006 * max(0.0, (x / hx) - 0.2) / 0.8
+        return sag
     grid = [[P.v((x, y, -lz(x, y))) for x in xs] for y in ys]
     for j in range(len(ys) - 1):
         for i in range(len(xs) - 1):
             cx, cy = (xs[i] + xs[i + 1]) / 2, (ys[j] + ys[j + 1]) / 2
-            P.face((grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i]), lens[_lens_class(cx, cy, hx, hy)],
+            P.face((grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i]), lens[_lens_class(cx, cy, hx, hy, weak)],
                    want=(0, 0, -1))
     # tote Insekten auf der Scheibe (Schatten von innen) in einer Ecke, zwei Riegelschlitze an der Laengsseite
-    rnd = random.Random(7)
-    for k, (bx, by, s) in enumerate(((0.52, 0.226, 0.006), (0.505, 0.238, 0.004), (0.537, 0.205, 0.005), (-0.49, -0.24, 0.004))):
+    rnd = random.Random(7 + var)
+    bugs = [(0.52, 0.226, 0.006), (0.505, 0.238, 0.004), (0.537, 0.205, 0.005), (-0.49, -0.24, 0.004)]
+    if var == 2:
+        bugs += [(rnd.uniform(-0.5, 0.5), rnd.choice((-1, 1)) * rnd.uniform(0.22, 0.245), rnd.uniform(0.003, 0.006)) for _ in range(7)]
+        f = K.blob(P, (-0.30, 0.06), 0.07, 0.045, stain, seg=12, seed=91, rough=0.25, frame=K.frame_ceiling, h=lz(-0.3, 0.06) + 0.0003)
+        P.fix([f], (0, 0, -1))
+    if state == 'off' and var == 1:  # Sprung quer ueber die Scheibe
+        x, y = -0.15, -hy + 0.03
+        while y < hy - 0.03:
+            x2, y2 = x + rnd.uniform(-0.035, 0.035), min(hy - 0.03, y + rnd.uniform(0.03, 0.06))
+            w = 0.0011
+            vs = [P.v((x - w, y, -lz(x, y) - 0.0003)), P.v((x + w, y, -lz(x, y) - 0.0003)), P.v((x2 + w, y2, -lz(x2, y2) - 0.0003)),
+                  P.v((x2 - w, y2, -lz(x2, y2) - 0.0003))]
+            P.face(vs, gap, want=(0, 0, -1))
+            x, y = x2, y2
+    for k, (bx, by, s) in enumerate(bugs):
         f = K.blob(P, (bx, by), s, s * rnd.uniform(0.5, 0.9), bug, seg=6, seed=11 + k, frame=K.frame_ceiling,
                    h=lz(bx, by) + 0.0004)
         P.fix([f], (0, 0, -1))
@@ -96,8 +131,20 @@ def build_troffer():
     _troffer('on')
 
 
+def build_troffer__v1():
+    _troffer('on', 1)
+
+
+def build_troffer__v2():
+    _troffer('on', 2)
+
+
 def build_troffer_off():
     _troffer('off')
+
+
+def build_troffer_off__v1():
+    _troffer('off', 1)
 
 
 def build_troffer_red():
@@ -105,10 +152,27 @@ def build_troffer_red():
     _troffer('red')
 
 
+def build_troffer_red__v1():
+    _troffer('red', 1)
+
+
 # ---------------------------------------------------------------------------------------------------
 # Luftauslass 0,6 x 0,6 m (Vierwege-Kegelauslass) mit Staubhof an der Decke
 # ---------------------------------------------------------------------------------------------------
 def build_ceiling_diffuser():
+    _diffuser(0)
+
+
+def build_ceiling_diffuser__v1():
+    _diffuser(1)
+
+
+def build_ceiling_diffuser__v2():
+    _diffuser(2)
+
+
+def _diffuser(var):
+    """var 0: Staubhof; 1: fast sauber (neu gestrichen); 2: starker Staubhof, eine Lamelle verbogen."""
     P = K.Part('luftauslass')
     paint = P.mat(common.material('blech', (0.86, 0.85, 0.81), look='paint', r=0.7))
     lip = P.mat(common.material('blech_kante', (0.70, 0.69, 0.64), look='paint', r=1.0))
@@ -131,8 +195,13 @@ def build_ceiling_diffuser():
         t = 0.0012
         blade = [(0.0, h0), (w * 0.55, h0 + (h1 - h0) * 0.62), (w - 0.003, h1), (w, h1 + 0.0016), (w - 0.0005, h1 + 0.0032),
                  (w - 0.003, h1 + t * 0.6), (w * 0.55, h0 + (h1 - h0) * 0.62 - t), (0.0, h0 - t)]
+        n0 = K.count(P)
         K.ring_sweep(P, lambda ins, s=s: K.rrect(s - ins, s - ins, 0.0015, 1), blade, K.frame_ceiling,
                      [paint, paint, lip, dusty, dusty, paint, paint, paint], closed=True)
+        if var == 2 and k == 1:  # eine Seite der zweiten Lamelle haengt durch (jemand hat mit dem Besenstiel gestossen)
+            for v in K.new_verts_since(P, n0):
+                if v.co.x > 0.12:
+                    v.co.z -= 0.0045 * max(0.0, 1.0 - abs(v.co.y) / 0.2)
     # Kern: flache Platte mit Schraube in der Mitte
     K.bevel_box(P, (-0.036, -0.036, -0.047), (0.036, 0.036, -0.030), paint, r=0.004, seg=2)
     K.screw(P, (0.0, 0.0, -0.047), (0, 0, -1), 0.0042, screw, slot, seg=8, rot=0.4)
@@ -140,7 +209,9 @@ def build_ceiling_diffuser():
     vs = [P.v((x, y, -0.0012)) for x, y in ((-0.258, -0.258), (0.258, -0.258), (0.258, 0.258), (-0.258, 0.258))]
     P.face(vs, dark, want=(0, 0, -1))
     # Staubhof an der Decke: vier Zungen in Blasrichtung, innen dunkler (Deckentextur, getoent)
-    for lvl, (ext, mi) in enumerate(((0.027, soot[2]), (0.018, soot[1]), (0.009, soot[0]))):
+    halo = {0: ((0.027, soot[2]), (0.018, soot[1]), (0.009, soot[0])), 1: ((0.012, soot[2]),),
+            2: ((0.030, soot[1]), (0.021, soot[0]), (0.012, soot[0]))}[var]
+    for lvl, (ext, mi) in enumerate(halo):
         for side in range(4):
             rnd = random.Random(31 + side * 7 + lvl)
             pts = []
@@ -275,6 +346,19 @@ def build_arch4():
 # Streichen der Wand am Rand mit ueberstrichen, Staubrand unten
 # ---------------------------------------------------------------------------------------------------
 def build_outlet():
+    _outlet(0)
+
+
+def build_outlet__v1():
+    _outlet(1)
+
+
+def build_outlet__v2():
+    _outlet(2)
+
+
+def _outlet(var):
+    """var 0: beim Streichen ueberstrichen; 1: sauber abgeklebt, nur Griffschmutz; 2: Ecke gesprungen, Schraube fehlt."""
     P = K.Part('steckdose')
     plast = P.mat(common.material('kunststoff', (0.88, 0.86, 0.78), look='plastic', r=1.15))
     insert = P.mat(common.material('einsatz', (0.85, 0.83, 0.75), look='plastic', r=1.05))
@@ -289,7 +373,7 @@ def build_outlet():
     FH = 0.0102  # Hoehe der Rahmenflaeche ueber der Wand
     prof = [(0.000, 0.000), (0.0004, 0.0035), (0.0016, 0.0072), (0.0036, 0.0093), (0.0065, 0.0100), (0.0100, FH)]
     K.ring_sweep(P, lambda ins: K.rrect(HY - ins, HZ - ins, 0.0065 - ins * 0.5, 3), prof, K.frame_wall,
-                 [overpaint, grime, plast, plast, plast])
+                 [overpaint if var != 1 else grime, grime if var != 1 else plast, plast, plast, plast])
     # Rahmenflaeche mit zwei quadratischen Ausschnitten (Einsaetze 55 x 55 mm, Abstand 71 mm)
     iy, iz = HY - 0.0100, HZ - 0.0100
     cy0 = 0.0355
@@ -349,11 +433,27 @@ def build_outlet():
                 x, y, z = v.co
                 v.co = (0.0010 + z, cy + x, sz * (R - 0.0018) - y * sz)
         # Mittelschraube des Einsatzes
-        K.screw(P, (0.0009, cy, 0.0), (1, 0, 0), 0.0026, screw, slot, seg=8, rot=0.3 + sy * 0.5)
-    # Ueberstrichene Stellen am oberen Rand (Farbnasen) und Griffschmutz
-    for k, (y, z, ry, rz) in enumerate(((0.035, HZ - 0.0035, 0.009, 0.0022), (-0.052, HZ - 0.003, 0.006, 0.0018))):
-        f = K.blob(P, (y, z), ry, rz, overpaint, seg=8, seed=40 + k, frame=K.frame_wall, h=0.0098)
+        if var == 2 and sy > 0:  # Schraube fehlt: nur das Loch
+            vs = [P.v((0.0010, cy + 0.0016 * math.cos(a), 0.0016 * math.sin(a))) for a in [TAU * i / 8 for i in range(8)]]
+            P.face(vs, hole, want=(1, 0, 0))
+        else:
+            K.screw(P, (0.0009, cy, 0.0), (1, 0, 0), 0.0026, screw, slot, seg=8, rot=0.3 + sy * 0.5)
+    # Ueberstrichene Stellen am oberen Rand (Farbnasen) bzw. Griffschmutz rechts unten
+    if var != 1:
+        for k, (y, z, ry, rz) in enumerate(((0.035, HZ - 0.0035, 0.009, 0.0022), (-0.052, HZ - 0.003, 0.006, 0.0018))):
+            f = K.blob(P, (y, z), ry, rz, overpaint, seg=8, seed=40 + k, frame=K.frame_wall, h=0.0098)
+            P.fix([f], (1, 0, 0))
+    if var == 1:
+        f = K.blob(P, (0.050, -HZ + 0.006), 0.016, 0.0045, grime, seg=10, seed=44, frame=K.frame_wall, h=0.01025)
         P.fix([f], (1, 0, 0))
+    if var == 2:  # Sprung in der Ecke links oben (Haarriss durch den Rahmen)
+        y, z = -HY + 0.004, HZ - 0.012
+        rnd = random.Random(5)
+        for i in range(5):
+            y2, z2 = y + rnd.uniform(0.003, 0.006), z + rnd.uniform(-0.004, 0.003)
+            vs = [P.v((0.01026, y, z - 0.0003)), P.v((0.01026, y2, z2 - 0.0003)), P.v((0.01026, y2, z2 + 0.0003)), P.v((0.01026, y, z + 0.0003))]
+            P.face(vs, hole, want=(1, 0, 0))
+            y, z = y2, z2
     P.finish(smooth_deg=35.0)
 
 
@@ -362,6 +462,15 @@ def build_outlet():
 # Lamellen, Staubfahne an der Wand darueber
 # ---------------------------------------------------------------------------------------------------
 def build_vent_grille():
+    _vent(0)
+
+
+def build_vent_grille__v1():
+    _vent(1)
+
+
+def _vent(var):
+    """var 0: wie gebaut; 1: eine Lamelle eingedrueckt, staerkere Staubfahne."""
     P = K.Part('lueftungsgitter')
     paint = P.mat(common.material('lack', (0.85, 0.84, 0.79), look='paint', r=0.8))
     edge = P.mat(common.material('lack_kante', (0.70, 0.69, 0.64), look='paint', r=1.0))
@@ -389,13 +498,15 @@ def build_vent_grille():
         zc = z0 + b * pitch
         sec = [(0.0012, zc + 0.0095), (0.0050, zc + 0.0068), (0.0112, zc - 0.0015), (0.0130, zc - 0.0062),
                (0.0119, zc - 0.0070), (0.0100, zc - 0.0024), (0.0040, zc + 0.0056), (0.0008, zc + 0.0082)]
-        ring0 = [P.v((x, -iy, z)) for x, z in sec]
-        ring1 = [P.v((x, iy, z)) for x, z in sec]
-        for i in range(len(sec)):
-            j = (i + 1) % len(sec)
-            f = P.face((ring0[i], ring0[j], ring1[j], ring1[i]), paint)
-        P.face(list(reversed(ring0)), paint)
-        P.face(list(ring1), paint)
+        dent = (lambda y: 0.0) if not (var == 1 and b == nbl - 3) else (lambda y: -0.0035 * max(0.0, 1 - abs(y - 0.08) / 0.12))
+        ys = [-iy, -0.04, 0.02, 0.08, 0.14, 0.20, iy] if var == 1 and b == nbl - 3 else [-iy, iy]
+        rings_b = [[P.v((x + dent(y), y, z + dent(y) * 0.6)) for x, z in sec] for y in ys]
+        for ra, rb in zip(rings_b, rings_b[1:]):
+            for i in range(len(sec)):
+                j = (i + 1) % len(sec)
+                P.face((ra[i], ra[j], rb[j], rb[i]), paint)
+        P.face(list(reversed(rings_b[0])), paint)
+        P.face(list(rings_b[-1]), paint)
     # senkrechter Steg hinten in der Mitte
     K.box(P, (0.0008, -0.004, -iz), (0.0045, 0.004, iz), edge)
     # vier Schrauben in den Ecken des Flansches, zwei Abplatzer
@@ -407,7 +518,7 @@ def build_vent_grille():
         f = K.blob(P, (y, z), r, r * 0.7, chip, seg=7, seed=60 + k, frame=K.frame_wall, h=0.0060)
         P.fix([f], (1, 0, 0))
     # Staubfahne ueber dem Gitter (Wandtextur der Zone, dunkler getoent)
-    for lvl, (ext, mi) in enumerate(((0.028, streak[1]), (0.014, streak[0]))):
+    for lvl, (ext, mi) in enumerate(((0.028, streak[1]), (0.014, streak[0])) if var == 0 else ((0.040, streak[1]), (0.022, streak[0]))):
         rnd = random.Random(70 + lvl)
         pts = []
         n = 12
