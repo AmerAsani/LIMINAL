@@ -1338,7 +1338,12 @@ bool entityFromGlb(Entity e, FigureModel& out, std::string& info, const std::str
         {"ent_ratfur", FM_ENT_RATFUR}, {"ent_hornglow", FM_ENT_HORNGLOW}, {"ent_view", FM_ENT_VIEW}, {"ent_ooze", FM_ENT_OOZE},
         {"ent_humanskin", FM_ENT_HUMANSKIN}, {"ent_ratskin", FM_ENT_RATSKIN}, {"ent_umbra", FM_ENT_UMBRA},
         {"ent_cloth_c", FM_ENT_CLOTH_C}, {"ent_cloth_d", FM_ENT_CLOTH_D}, {"ent_humanskin_b", FM_ENT_HUMANSKIN_B}, {"ent_hair_grey", FM_ENT_HAIR_GREY},
-        {"ent_dullerskin", FM_ENT_DULLERSKIN}, {"ent_rotskin", FM_ENT_ROTSKIN}, {"ent_smoke", FM_ENT_SMOKE}, {"ent_concrete", FM_ENT_CONCRETE}};  // V13.3
+        {"ent_dullerskin", FM_ENT_DULLERSKIN}, {"ent_rotskin", FM_ENT_ROTSKIN}, {"ent_smoke", FM_ENT_SMOKE}, {"ent_concrete", FM_ENT_CONCRETE},  // V13.3
+        // V13.3: Wrangler
+        {"ent_wr_membrane", FM_ENT_WR_MEMBRANE}, {"ent_wr_membrane_f", FM_ENT_WR_MEMBRANE_F}, {"ent_wr_hide", FM_ENT_WR_HIDE},
+        {"ent_wr_gut", FM_ENT_WR_GUT}, {"ent_wr_pith", FM_ENT_WR_PITH}, {"ent_wr_bone", FM_ENT_WR_BONE}, {"ent_wr_slime", FM_ENT_WR_SLIME},
+        {"ent_wr_seed", FM_ENT_WR_SEED}, {"ent_wr_dust", FM_ENT_WR_DUST}, {"ent_wr_crack", FM_ENT_WR_CRACK},
+        {"ent_wr_pincer", FM_ENT_WR_PINCER}, {"ent_wr_debris", FM_ENT_WR_DEBRIS}};
     const CreatureSkeleton& sk = entitySkeleton(e);
     FigureModel m;
     std::vector<mat4> frames;

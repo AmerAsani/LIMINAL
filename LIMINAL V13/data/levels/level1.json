@@ -19,7 +19,10 @@
                // every: mittlerer Abstand der Auftritte, s); Arms kommen im Dunkeln aus den Deckenlueftungen (every: Abstand, solange
                // es dunkel ist; chance: Anteil, mit dem es ohne Lueftung in der Naehe durch einen Riss in der Decke kommt)
                "duller": { "every": 150 },
-               "arms": { "every": 40, "chance": 0.7 } },
+               "arms": { "every": 40, "chance": 0.7 },
+               // V13.3 (KREATUR_Wrangler.md): Wrangler ziehen durch Waende, Boden oder Decke (Level 1: bebt es, leise gehen);
+               // chance: Anteil der Weibchen (davon 40 % traechtig); count: einmal je Ebene Jungtiere an einer Wand (selten)
+               "wrangler": { "mode": "mixed", "every": 320, "chance": 0.4, "count": 1 } },
   "next_level": "level2",
   "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0 },
 

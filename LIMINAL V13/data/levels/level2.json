@@ -17,7 +17,9 @@
   "presence": { "hound": true, "smiler": true, "gestalt": false, "blackout": true, "clump": 0.45,
                "faceling": { "mode": "irritable", "group": [2, 4], "every": 200 },
                "wretch": { "mode": "mixed", "group": [1, 1], "every": 240, "chance": 0.3 },
-               "rat": { "mode": "bald", "group": [2, 4], "every": 140 } },
+               "rat": { "mode": "bald", "group": [2, 4], "every": 140 },
+               // V13.3 (KREATUR_Wrangler.md): vor allem Maennchen graben sich durch den Boden und brechen in die Gaenge; keine Jungtiere
+               "wrangler": { "mode": "mixed", "every": 260, "chance": 0.15 } },
   "next_level": "level3",
   "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0 },
 

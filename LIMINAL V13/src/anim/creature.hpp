@@ -29,6 +29,9 @@
 //                       Vierbeiner (rt), langer Schwanz.
 //   Fensterwesen (E. 2) ein Fenster: verschwommene Landschaft, darin ein dunkler Umriss, der winkt; greift mit einem Arm
 //                       aus dem Fenster (wn). Wurzel: Mitte der Fensteroeffnung auf der Wand, x zeigt aus der Wand.
+//   V13.3:
+//   Wrangler (E. 75)    riesige, durchscheinende Schlange: ein Abschnitt des Leibs aus starren Ringen, Verschlucktes darin,
+//                       Hals und Kopf (Laecheln oder Zangen), Kraenze an den Durchbruchstellen (wg).
 //
 // Wie beim Menschen (anim/skeleton) werden Gelenkpositionen animiert; jeder Knochen ist ein starrer
 // Rahmen vom Start- zum Endgelenk, gedreht nach einem Hinweisvektor ("oben"). Skinning-Matrix =
@@ -43,7 +46,7 @@
 
 namespace lim::anim {
 
-enum class Entity : std::uint8_t { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Count };
+enum class Entity : std::uint8_t { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Wrangler, Count };
 constexpr int kEntityCount = (int)Entity::Count;
 
 struct CBone {
@@ -364,5 +367,40 @@ constexpr float kSegLen = 0.3f, kTop = 0.35f;  // Gliedlaenge; Ruhepose: C0 so h
 constexpr float kHand = 0.17f, kOutMax = 3.0f;  // Handgelenk bis Knoechel; so weit (m) gleitet der Arm hoechstens heraus
 CreatureSkeleton skeleton();
 }  // namespace ar
+// V13.3: Wrangler (Entity 75, KREATUR_Wrangler.md) - eine riesige, durchscheinende Schlange, von der man nie das Ganze sieht.
+// Ein Abschnitt des Leibs zieht als Kette starrer Ringe vorbei (je Ring ein Knochen; jeder laeuft fuer sich die Bahn entlang
+// und springt tief im Boden an ihren Anfang zurueck), darin Verschlucktes (eigene Knochen, die nur einmal vorbeiziehen); der
+// Hals mit dem Kopf bricht aus Wand oder Boden (Maennchen: Gesicht mit breitem Laecheln und Unterkiefer, Weibchen: zwei
+// Zangen); Kraenze aus Schutt und Schleim, wo der Leib eine Flaeche durchstoesst. Ruhepose: alles auf einer Geraden entlang
+// x in 1 m Hoehe (Ringe -8,25..8,25 m, Hals und Kopf ab 9,5 m), die Kraenze flach am Boden. Wurzel: Mitte der Bahn am Boden.
+namespace wg {
+constexpr int kRings = 30, kItems = 4, kNeck = 6, kCollars = 3;
+constexpr float kRingLen = 0.55f, kRingR = 0.74f, kNeckLen = 0.5f, kAxisZ = 1.0f;
+enum J : std::uint8_t {
+    ROOT,
+    RING0,                           // + 2 * r: hinten, + 2 * r + 1: vorn
+    ITEM0 = RING0 + 2 * kRings,      // + 2 * k
+    NECK0 = ITEM0 + 2 * kItems,      // .. NECK0 + kNeck (= Schaedelbasis)
+    SNOUT = NECK0 + kNeck + 1,
+    JAWH, JAWTIP, PINC_L0, PINC_L1, PINC_R0, PINC_R1,
+    COL0,                            // + 2 * c (0 Eintritt, 1 Austritt, 2 Kopf): Mitte auf der Flaeche, + 1: Normale
+    JCOUNT = COL0 + 2 * kCollars
+};
+enum B : std::uint8_t {
+    B_ROOT,
+    B_RING0,                         // + r
+    B_ITEM0 = B_RING0 + kRings,      // + k
+    B_NECK0 = B_ITEM0 + kItems,      // + i
+    B_SKULL = B_NECK0 + kNeck,
+    B_JAW, B_PINC_L, B_PINC_R,
+    B_COL0,                          // + c
+    BCOUNT = B_COL0 + kCollars
+};
+static_assert(BCOUNT <= 64, "hoechstens 64 Knochen");
+inline int ringA(int r) { return RING0 + 2 * r; }
+inline int itemA(int k) { return ITEM0 + 2 * k; }
+inline int colA(int c) { return COL0 + 2 * c; }
+CreatureSkeleton makeWrangler();  // creature_wrangler.cpp
+}  // namespace wg
 
 }  // namespace lim::anim

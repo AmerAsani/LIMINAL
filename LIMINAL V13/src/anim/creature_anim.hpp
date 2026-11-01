@@ -18,6 +18,9 @@
 //              winken, zuschlagen, zugreifen, flehen, Hand vor das Gesicht.
 //   Ratte      Trab, im Rennen Galopp in Spruengen; richtet sich witternd auf, frisst, beisst; der Schwanz schleift nach.
 //   Fenster    der Umriss wiegt sich und winkt; greift er zu, lehnt er sich heraus, der Arm streckt sich bis 2 m.
+//   V13.3:
+//   Wrangler   der Leib zieht Ring um Ring durch Boden, Wand oder Decke, dreht sich wie ein Bohrer und zieht sich in Wellen
+//              zusammen; der Kopf bricht heraus und schnappt zu; die Jungtiere winden sich am Ast (creature_wrangler.cpp).
 #pragma once
 
 #include <vector>
@@ -98,6 +101,7 @@ private:
     void updateWindow(float dt, const Input& in);  // V13.2: Fensterwesen
     void updateDuller(float dt, const Input& in);  // V13.3: Duller (anim/creature_duller.cpp)
     void updateArms(float dt, const Input& in);    // V13.3: Arms (anim/creature_arms.cpp)
+    void updateWrangler(float dt, const Input& in);  // V13.3: Wrangler (creature_wrangler.cpp)
     // Gangzyklus fuer n Beine; rest: Ruhepunkte (Welt) dieses Bildes
     void stepLegs(float dt, int n, const float* offs, float duty, float S, const vec3* rest, float standDur, const float* weight);
     vec3 footPos(int i, const float* lift) const;
@@ -137,6 +141,7 @@ private:
     // V13.2: Gesten der Zweibeiner und des Fensterwesens
     float wave_ = 0.0f, waveV_ = 0.0f, talk_ = 0.0f, talkV_ = 0.0f, plea_ = 0.0f, pleaV_ = 0.0f;
     bool walk_ = false;  // V13.2 Zweibeiner: ging im letzten Bild (Anlauf: der hintere Fuss tritt zuerst)
+    float flow_ = 0.0f;  // V13.3 Wrangler: Weg, den der Leib gezogen ist (m)
     // V11 Buendel: je Arm die aufgesetzte Hand und der Schwung zum naechsten Griff; der Kern zieht ruckweise
     // nach und schaukelt; die Beine schleifen
     struct Grip {

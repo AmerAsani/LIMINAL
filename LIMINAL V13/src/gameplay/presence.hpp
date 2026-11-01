@@ -48,8 +48,8 @@ namespace lim::game {
 class Presence {
 public:
     // V11: Clump (Buendel); V13.2: Faceling, Skin-Stealer, Wretch, Death Rat, Fensterwesen (gleiche Reihenfolge wie anim::Entity)
-    enum class Role { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms };
-    static constexpr int kRoleCount = 13;  // V13.3: Duller, Arms
+    enum class Role { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Wrangler };
+    static constexpr int kRoleCount = 14;  // V13.3: Duller, Arms, Wrangler (KREATUR_Wrangler.md)
     static const char* roleName(Role r);
 
     struct Event {
@@ -94,6 +94,12 @@ public:
             Burst,       // Duller: die Wand bricht auf; Arms: die Lueftung oeffnet sich (sehr leise)
             Burn,        // Arms: Licht verbrennt den Arm - heiserer Todesschrei, Zischen
             Retract,     // Duller/Arms: der Arm gleitet zurueck
+            // V13.3: Wrangler
+            Tremor,      // Beben: Rumpeln in der Tiefe, das naeher kommt (strength: Staerke)
+            Breach,      // der Leib bricht durch Boden, Wand oder Decke
+            Slither,     // der Leib gleitet (strength 1: Stoehnen des Maennchens)
+            Sense,       // es hat einen gespuert: Knacken und Einatmen an der Durchbruchstelle - in 1,8 s schnappt es zu (F2)
+            Sink,        // der Leib versinkt, es zieht ab
         } type;
         Role role = Role::Smiler;
         vec3 pos;
@@ -168,6 +174,14 @@ public:
     // Gast: Puppen anlegen, nachfuehren (Zeitstempel auf der Uhr dieser Praesenz, netTime) und entfernen
     void netApply(const std::vector<NetState>& in, double stamp);
     double netTime() const { return time_; }
+    // V13.3 Wrangler: Beben am eigenen Spieler (0..1; Kamera, Staub) und der Sog des Leibs (0..1; wohin er den Blick zieht)
+    float quake() const { return quake_; }
+    // V13.3: Klangquellen des naechsten Wranglers (app/wrangler_audio.cpp): Rumpeln und Leib (Ort, Staerke 0..1); false: keiner
+    bool wranglerSound(vec3 ear, vec3& rumbleAt, float& rumble, vec3& bodyAt, float& body) const;
+    float trance(vec3* at = nullptr) const {
+        if (at) *at = tranceAt_;
+        return trance_;
+    }
 
     Presence();
     ~Presence();
@@ -274,6 +288,15 @@ private:
     void regieArms(double dt, const Context& c, std::vector<Event>& out);
     bool spawnArms(const Context& c, std::vector<Event>& out, bool forced);
     void thinkArms(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    // V13.3: Wrangler (presence_wrangler.cpp)
+    void regieWrangler(double dt, const Context& c, std::vector<Event>& out);
+    bool spawnWrangler(const Context& c, std::vector<Event>& out, int mode, vec3* near = nullptr);
+    bool placeBrood(const Context& c);
+    void thinkWrangler(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    void thinkBrood(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    bool wranglerBreak(const Context& c, vec3 q, vec3 toward, vec3& at, vec3& n) const;
+    void wranglerFeel(double dt, const Context& c);
+    bool wranglerActive() const;
     bool roomAllowed(const Context& c, vec3 p, int kin) const;
     bool wander(Agent& a, double dt, const Context& c, double speed, int kin);
     void updateHive(double dt, const Context& c, std::vector<Event>& out);
@@ -301,6 +324,10 @@ private:
     double nextScream_ = 120.0, screamT_ = 0.0, screamTick_ = 0.0;  // V13.2: Schrei-Ereignis der Ratten (Dauer, Flackern)
     vec3 screamPos_;
     int nextGroup_ = 1;
+    double nextWrangler_ = 160.0;  // V13.3: naechster Durchzug eines Wranglers
+    bool broodPlaced_ = false;     // V13.3: Jungtiere der Ebene gesetzt
+    float quake_ = 0.0f, trance_ = 0.0f;
+    vec3 tranceAt_;
     double forcedDist_ = 0.0;
     Hive hive_;
 };
