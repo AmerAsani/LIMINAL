@@ -102,6 +102,58 @@ float redMask(float2 uv, float level, float pulse)
     return saturate(q + pulse * (2.0 / 12.0) * step(0.001, q));
 }
 
+// V13.3 (KREATUR_Crawler.md, KREATUR_L1_Erscheinungen.md, KREATUR_GameMaster.md): gExtra.y Pilz (Sicht schwimmt,
+// weisser Flaum waechst vom Rand ein, Fieber), gExtra.z Garden (gruener Rand aus Blattwerk), gExtra.w Bildschirmgesicht
+// der Spielleiterin (Ausdruck * 2 + Staerke 0..1)
+float vn2(float2 p)
+{
+    float2 c = floor(p), f = frac(p);
+    f = f * f * (3.0 - 2.0 * f);
+    uint2 u = (uint2)(int2)(c + 4096.0);
+    float a = hash01(u.x * 73856093u ^ u.y * 19349663u), b = hash01((u.x + 1u) * 73856093u ^ u.y * 19349663u);
+    float c0 = hash01(u.x * 73856093u ^ (u.y + 1u) * 19349663u), d = hash01((u.x + 1u) * 73856093u ^ (u.y + 1u) * 19349663u);
+    return lerp(lerp(a, b, f.x), lerp(c0, d, f.x), f.y);
+}
+float fbm2(float2 p) { return 0.5 * vn2(p) + 0.3 * vn2(p * 2.07 + 13.1) + 0.2 * vn2(p * 4.31 + 7.7); }
+float sdSeg(float2 p, float2 a, float2 b)
+{
+    float2 pa = p - a, ba = b - a;
+    return length(pa - ba * saturate(dot(pa, ba) / dot(ba, ba)));
+}
+// Bildschirmgesicht: zwei rote X, darunter ein Mund (0 Grinsen, 1 verzogen, 2 lachend offen, 3 leer)
+float3 jesterFace(float2 uv, float3 col, float inten, float expr, float t)
+{
+    float aspect = gPost3.y / max(gPost3.z, 1.0);
+    float2 p = (uv - 0.5) * float2(aspect, 1.0);
+    float scan = 0.82 + 0.18 * sin(uv.y * gPost3.z * 1.6);
+    float3 glass = float3(0.012, 0.014, 0.02) * scan + 0.025 * vn2(uv * 300.0 + t * 40.0);
+    float glow = 0.0;
+    if (expr < 2.5)
+    {
+        for (int k = 0; k < 2; ++k)
+        {
+            float2 e = float2(k == 0 ? -0.2 : 0.2, -0.1);
+            float2 q = p - e;
+            float d = min(sdSeg(q, float2(-0.075, -0.075), float2(0.075, 0.075)), sdSeg(q, float2(-0.075, 0.075), float2(0.075, -0.075)));
+            glow = max(glow, smoothstep(0.022, 0.012, d));
+            glow = max(glow, 0.35 * smoothstep(0.08, 0.0, d));
+        }
+        float2 m = p - float2(0.0, 0.14);
+        float dm;
+        if (expr < 0.5)  // Cartoon-Grinsen
+            dm = abs(length(m - float2(0.0, -0.17)) - 0.26) + step(m.y + 0.03, 0.0) * 1.0;
+        else if (expr < 1.5)  // verzogen
+            dm = abs(length(m - float2(0.0, 0.2)) - 0.24) + step(0.0, m.y - 0.035) * 1.0 + step(0.17, abs(m.x));
+        else  // offen lachend
+            dm = abs(length(m * float2(1.0, 1.6) - float2(0.0, 0.02)) - 0.17);
+        glow = max(glow, smoothstep(0.022, 0.012, dm));
+        glow = max(glow, 0.3 * smoothstep(0.07, 0.0, dm));
+    }
+    float3 face = glass + float3(1.0, 0.09, 0.06) * glow * (0.85 + 0.15 * sin(t * 37.0)) * 1.6;
+    face *= 1.0 - 0.6 * pow(saturate(dot(p, p) * 1.2), 1.4);
+    return lerp(col, face, inten);
+}
+
 float4 PSMain(PSIn i) : SV_Target
 {
     float2 uv = i.uv;
@@ -110,9 +162,16 @@ float4 PSMain(PSIn i) : SV_Target
     uint mode = (uint)gPost3.x;
     float3 col;
 
+    const float fung = gExtra.y, gard = gExtra.z, tNow = gCameraPos.w;
     if (mode == 0u)
     {
-        col = sceneColor(uv, exposure);
+        // V13.3: Pilz - die Sicht schwimmt; spaeter ein versetztes Doppelbild
+        float2 suv = uv;
+        if (fung > 0.001)
+            suv += fung * fung * 0.006 * float2(sin(tNow * 1.3 + uv.y * 9.0), cos(tNow * 1.05 + uv.x * 7.0));
+        col = sceneColor(suv, exposure);
+        if (fung > 0.6)
+            col = lerp(col, sceneColor(suv + float2(0.012, 0.004) * sin(tNow * 0.7), exposure), (fung - 0.6) * 0.6);
     }
     else
     {
@@ -170,6 +229,37 @@ float4 PSMain(PSIn i) : SV_Target
     {
         float3 b = agxTonemap(gBlurred.SampleLevel(gLinearClamp, uv, 0).rgb * exposure);
         col = lerp(col, b * 0.32, gPost.z);
+    }
+
+    // V13.3: Pilz - weisser Flaum waechst vom Rand ein (Faeden), Fieber toent warm
+    if (fung > 0.001)
+    {
+        float r = length(cv) * 1.414;
+        float n = fbm2(uv * float2(gPost3.y / max(gPost3.z, 1.0), 1.0) * 9.0 + tNow * 0.01);
+        float th = vn2(uv * 140.0) * vn2(uv * float2(20.0, 260.0)) * 0.5;
+        float edge = saturate((r + n * 0.35 + th * 0.25 - (1.18 - fung * 0.52)) / 0.12);
+        float3 d = toDisplay(col);
+        d = lerp(d, d * float3(1.06, 0.95, 0.86), smoothstep(0.5, 1.0, fung) * 0.5);
+        d = lerp(d, float3(0.80, 0.79, 0.73) * (0.75 + 0.25 * n), edge * (0.55 + 0.4 * fung));
+        col = toLinear(d);
+    }
+    // V13.3: Garden - gruener Rand aus Blattwerk, unten am dichtesten
+    if (gard > 0.001)
+    {
+        float2 a = uv * float2(gPost3.y / max(gPost3.z, 1.0), 1.0);
+        float leaf = vn2(a * 14.0) * 0.6 + vn2(a * 37.0 + 3.1) * 0.4;
+        float r = max(length(cv) * 1.3, uv.y * 0.95);
+        float edge = saturate((r + leaf * 0.4 - (1.2 - gard * 0.55)) / 0.1);
+        float3 d = toDisplay(col);
+        d = lerp(d, d * float3(0.9, 1.04, 0.86), gard * 0.35);
+        d = lerp(d, float3(0.06, 0.16, 0.05) * (0.6 + 0.8 * leaf), edge * (0.6 + 0.35 * gard));
+        col = toLinear(d);
+    }
+    // V13.3: das Gesicht der Spielleiterin fuellt den Bildschirm
+    if (gExtra.w > 0.001)
+    {
+        float expr = floor(gExtra.w * 0.5);
+        col = jesterFace(uv, col, saturate(gExtra.w - expr * 2.0), expr, tNow);
     }
 
     // Roter Rand mit Herzschlag

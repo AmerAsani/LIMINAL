@@ -13,6 +13,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "core/math.hpp"
@@ -106,6 +107,7 @@ struct SceneParams {
     float time = 0, dt = 0.016f;
     float redEdge = 0, redPulse = 0;
     float menuDim = 0, desaturate = 0;
+    float fungus = 0, garden = 0, jester = 0;  // V13.3: Pilz, Garden (0..1), Gesicht der Spielleiterin (Ausdruck * 2 + Staerke)
     float moodExposure = 1.0f;  // Faktor aus der Raumhelligkeit (dunkle Zonen bleiben dunkel)
     bool resetHistory = false;
     // V6: Bewegung des Spielers seit dem letzten Bild (Welt -> Welt), fuer mitbewegte Objekte
@@ -141,6 +143,7 @@ struct MeshDraw {
     int material = -1;       // >= 0: statt der Materialien der Teile (das Trugbild)
     vec4 clip{0, 0, 0, 0};   // V13: Schnittkugel (w > 0: Pixel darin verwerfen)
     bool dualQuat = false;   // V13.2 (B-001): Dual-Quaternion-Skinning (Bit 31 des Knochenversatzes im Shader)
+    vec4 fx{0, 0, 0, 0};     // V13.3: Zeichen auf der Haut (x Pilz, y Ranken)
 };
 
 struct RenderStats {
@@ -193,6 +196,9 @@ public:
     void present();
 
     int meshId(const std::string& name) const { return meshes_.find(name); }
+    // V13.3: Ausstattungsmodell als frei bewegliches Netz ("modell" oder "modell@variante"; Materialien aus der Bank der
+    //        Welt, wie die festen Teile der Karte). -1: unbekannt. Gilt bis zur naechsten Welt (clearWorld)
+    int propMesh(const std::string& name, world::MaterialBank& bank);
     ID3D11ShaderResourceView* itemIcon(const std::string& kind);
     // Bilder fuer die Oberflaeche (Karte, Vorschaubilder): anlegen oder aktualisieren
     ID3D11ShaderResourceView* uiImage(const std::string& key, const u8* rgba, int w, int h);
@@ -221,6 +227,8 @@ private:
     UiRenderer ui_;
     WorldRenderer world_;
     MeshLibrary meshes_;
+    std::unordered_map<std::string, int> propMeshes_;  // V13.3: propMesh (je Welt neu)
+    int propGen_ = 0;
     RenderSettings settings_;
     JobSystem* jobs_ = nullptr;
 

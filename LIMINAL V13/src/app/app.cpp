@@ -1836,6 +1836,8 @@ void App::renderWorld(double dt, bool clean) {
         for (auto& v : visible_) {
             if (*v.meshId == -2) {
                 *v.meshId = renderer_->meshId(*v.model);
+                if (*v.meshId < 0 && v.model->rfind("prop:", 0) == 0)  // V13.3: bewegliche Ausstattung (Gemaelde)
+                    *v.meshId = renderer_->propMesh(v.model->substr(5), s.world().bank());
                 // V13: Nachweis, welches Netz fuer ein Wesen gezeichnet wird (einmal je Name; Quelle steht beim Hochladen)
                 if (v.model->rfind("ent_", 0) == 0) {
                     static std::set<std::string> logged;
@@ -1851,6 +1853,7 @@ void App::renderWorld(double dt, bool clean) {
                 md.material = v.material == game::kShadowLook ? (int)gfx::FM_ENT_SHADOW : v.material;  // V10
                 md.clip = v.clip;  // V13
                 md.dualQuat = v.dualQuat;  // V13.2
+                md.fx = v.fx;              // V13.3: Pilz, Ranken (KREATUR_Crawler.md)
                 draws_.push_back(md);
             }
         }
