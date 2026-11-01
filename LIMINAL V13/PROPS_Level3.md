@@ -223,8 +223,9 @@ Bogen `docs/screens/props/level3/r5/greek_torso.jpg`.
 
 ## Prüfungen
 - `python tools/qa/validate_models.py` (alle eigenen Klassen mit Varianten): 38 Modelle, 0 Fehler.
-- `gameplay_test`: 525 Prüfungen, 0 Fehler. „Halt der Ausstattung“: level3 497 Objekte, 0 ohne Halt; gesamt 10493,
-  0 ohne Halt.
+- `gameplay_test` vor dem Merge von f22134c: 525 Prüfungen, 0 Fehler. Nach dem Merge: 647 Prüfungen, 1 Fehler, und
+  der gehört nicht zu Level 3 (bekannt: „Ouroboros: der Träger weicht nicht aus“, Level 1, behebt ein anderer
+  Agent). „Halt der Ausstattung“: level3 497 Objekte, 0 ohne Halt; gesamt 10506, 0 ohne Halt.
 - `python tools/qa/room_metrics.py --check level3`: Raummetrik OK (Decke min/Median 2,60/2,90 m, Gang 2,0 m,
   verstellt 0/11).
 - **Dreiecke der Ausstattung von Level 3** (alle 1302 Objekte, propdump): 2,94 Mio. (vor dem Merge 0,31 Mio. für die
