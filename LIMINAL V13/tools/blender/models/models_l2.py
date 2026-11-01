@@ -2346,12 +2346,12 @@ def build_door_plywood():
           Matrix.Rotation(0.5, 4, 'X'))
     G.add(edge_d, box((xf - 0.001, y0 + 0.01, 0.02), (xf + 0.0006, y0 + 0.17, 0.12)))
     # Schraubenreihen (Senkkopf) auf das Rahmenholz dahinter
-    for z in (0.05, 0.75, 1.40, DH - 0.05):
-        for k in range(9):
-            screw_head(G, C['steel_dark'], (xf, y0 + 0.04 + k * (y1 - y0 - 0.08) / 8, z), (1, 0, 0), 0.0045, C['black'], seg=6, kind='flat')
+    for z in (0.05, 1.05, DH - 0.05):
+        for k in range(7):
+            screw_head(G, C['steel_dark'], (xf, y0 + 0.04 + k * (y1 - y0 - 0.08) / 6, z), (1, 0, 0), 0.0045, seg=6, kind='flat')
     for s in (-1, 1):
-        for k in range(8):
-            screw_head(G, C['steel_dark'], (xf, s * (DW / 2 - 0.045), 0.25 + k * 0.23), (1, 0, 0), 0.0045, C['black'], seg=6, kind='flat')
+        for k in range(6):
+            screw_head(G, C['steel_dark'], (xf, s * (DW / 2 - 0.045), 0.20 + k * 0.29), (1, 0, 0), 0.0045, seg=6, kind='flat')
     # D-Griff, Ueberfalle mit Vorhaengeschloss
     for z in (0.93, 1.13):
         G.add(C['steel'], box((xf, y1 - 0.12 - 0.012, z - 0.015), (xf + 0.004, y1 - 0.12 + 0.012, z + 0.015), bev=0.001))
@@ -3175,8 +3175,9 @@ def build_macchina_parts():
     C = M_common()
     G = Geo()
     iron = mat('guss_werkbank', (0.17, 0.18, 0.18), 'paint', tex='painted_metal_grey', r=1.25)
-    top = mat('werkbank_holz', (0.40, 0.33, 0.24), 'wood', r=1.2)
-    crate = mat('kiste_holz', (0.45, 0.38, 0.28), 'concrete', r=1.35)
+    top = mat('werkbank_holz', (0.27, 0.21, 0.15), 'wood', r=1.0)
+    crate = mat('kiste_holz', (0.34, 0.29, 0.22), 'concrete', r=1.35)
+    shelf = mat('ablage_holz', (0.28, 0.24, 0.19), 'concrete', r=1.4)
     brass = mat('messing_alt', (0.55, 0.43, 0.22), 'metal', r=0.9, m=0.7)
     copper = mat('kupfer', (0.58, 0.34, 0.20), 'metal', r=0.9, m=0.7)
     x0, x1, yw, zt = -0.30, 0.40, 0.75, 0.86
@@ -3189,7 +3190,7 @@ def build_macchina_parts():
     for y in (-yw + 0.06, yw - 0.06):
         G.add(iron, box((x0 + 0.04, y - 0.015, 0.16), (x1 - 0.04, y + 0.015, 0.20)))
     G.add(iron, box((x1 - 0.06, -yw + 0.06, 0.16), (x1 - 0.03, yw - 0.06, 0.20)))
-    G.add(crate, box((x0 + 0.03, -yw + 0.06, 0.20), (x1 - 0.03, yw - 0.06, 0.218)))
+    G.add(shelf, box((x0 + 0.03, -yw + 0.06, 0.20), (x1 - 0.03, yw - 0.06, 0.218)))
     # Platte mit Stahlkante vorn
     G.add(top, box((x0, -yw, zt - 0.06), (x1, yw, zt), bev=0.004))
     G.add(C['steel_dark'], box((x0 - 0.004, -yw, zt - 0.062), (x0, yw, zt + 0.002), bev=0.001))
@@ -3268,7 +3269,7 @@ def build_macchina_parts():
             a = j * 5 + i
             fs.append((a, a + 1, a + 6, a + 5))
     G.add(rag, (vs, fs), mt((x0 + 0.15, 0.30, zt), (0, 0, 0.4)))
-    vise = mat('schraubstock', (0.20, 0.30, 0.38), 'paint', r=1.1)
+    vise = mat('schraubstock', (0.20, 0.24, 0.21), 'paint', r=1.15)
     Mv = Matrix.Translation((x0 + 0.02, -0.66, zt))
     G.add(vise, box((0.0, -0.06, 0.0), (0.20, 0.06, 0.05), bev=0.006), Mv)
     G.add(vise, box((0.14, -0.065, 0.05), (0.20, 0.065, 0.13), bev=0.005), Mv)
@@ -3278,9 +3279,10 @@ def build_macchina_parts():
     G.add(C['steel'], cyl(0.009, 0.16, 8), Mv @ along((-0.10, 0, 0.08), (0.06, 0, 0.08)))
     G.add(C['steel'], cyl(0.006, 0.16, 6), Mv @ along((-0.10, -0.08, 0.08), (-0.10, 0.08, 0.08)))
     # Staub und Oel
-    for _ in range(9):
-        G.add(C['dust'], blob((rng.uniform(x0 + 0.05, x1 - 0.05), rng.uniform(-0.7, 0.7), zt + 0.0006), (1, 0, 0), (0, 1, 0), rng.uniform(0.06, 0.18),
-                              rng.uniform(0.05, 0.14), rng, 12, 2, 0.4, off=0.0))
+    dustw = mat('staub_holz', (0.36, 0.32, 0.27), 'concrete', r=1.5)
+    for _ in range(6):
+        G.add(dustw, blob((rng.uniform(x0 + 0.05, x1 - 0.05), rng.uniform(-0.7, 0.7), zt + 0.0006), (1, 0, 0), (0, 1, 0), rng.uniform(0.04, 0.10),
+                          rng.uniform(0.03, 0.08), rng, 12, 2, 0.4, off=0.0))
     for _ in range(4):
         G.add(C['oil'], blob((rng.uniform(x0 + 0.05, x1 - 0.05), rng.uniform(-0.7, 0.7), zt + 0.0009), (1, 0, 0), (0, 1, 0), rng.uniform(0.03, 0.08),
                              rng.uniform(0.02, 0.06), rng, 12, 2, 0.5, off=0.0))
@@ -3294,8 +3296,8 @@ def build_macchina_tools():
     rng = random.Random(123)
     C = M_common()
     G = Geo()
-    cab = mat('werkzeugschrank', (0.30, 0.36, 0.32), 'paint', tex='painted_metal_grey', r=1.2)
-    board = mat('lochplatte', (0.46, 0.44, 0.38), 'paint', r=1.3)
+    cab = mat('werkzeugschrank', (0.22, 0.27, 0.24), 'paint', r=1.15)
+    board = mat('lochplatte', (0.36, 0.32, 0.26), 'concrete', r=1.4)
     shadow = mat('schattenumriss', (0.12, 0.12, 0.11), 'paint', r=1.3)
     wood = mat('stiel_holz', (0.50, 0.38, 0.25), 'wood', r=1.1)
     x0, x1, yw = -0.25, 0.45, 0.60
@@ -3366,27 +3368,29 @@ def build_macchina_tools():
     for i in range(n + 1):
         blade.append((Lb * i / n, -0.004 if i % 2 else 0.0))
     blade = [(0.0, 0.0)] + [(x, y) for x, y in blade[1:]] + [(Lb, 0.06), (0.0, 0.11)]
-    G.add(C['steel'], prism(blade, 0.0, 0.0012), FXN((xs - 0.001, -0.45, 1.08)))
-    G.add(wood, prism([(-0.13, 0.0), (0.0, 0.0), (0.0, 0.12), (-0.13, 0.12), (-0.15, 0.06)], 0.0, 0.022), FXN((xs - 0.002, -0.45, 1.06)))
+    G.add(C['steel'], prism(blade, 0.0, 0.0012), FXN((xs - 0.001, -0.08, 1.08)))
+    G.add(wood, prism([(-0.13, 0.0), (0.0, 0.0), (0.0, 0.12), (-0.13, 0.12), (-0.15, 0.06)], 0.0, 0.022), FXN((xs - 0.002, -0.08, 1.06)))
     hook(-0.30, 1.17)
     # Schraubendreher (Reihe), Zange, Rohrzange, Kabelrolle
     for i in range(6):
-        y = 0.05 + i * 0.05
+        y = 0.17 + i * 0.05
         G.add(mat(f'griff{i % 3}', [(0.55, 0.10, 0.07), (0.70, 0.55, 0.10), (0.10, 0.25, 0.55)][i % 3], 'plastic', r=0.9),
               lathe([(0, 0), (0.012, 0), (0.014, 0.07), (0.01, 0.1), (0, 0.1)], 8), along((xs - 0.02, y, 1.20), (xs - 0.02, y, 1.30)))
         G.add(C['steel'], cyl(0.003, 0.08 + 0.02 * (i % 2), 5), along((xs - 0.02, y, 1.20), (xs - 0.02, y, 1.12 - 0.02 * (i % 2))))
-    G.add(C['steel_dark'], box((xs - 0.015, 0.02, 1.30), (xs - 0.005, 0.36, 1.31)))
+    G.add(C['steel_dark'], box((xs - 0.015, 0.14, 1.30), (xs - 0.005, 0.46, 1.31)))
     for s in (-1, 1):
-        G.add(C['steel_dark'], prism([(-0.008, 0.0), (0.008, 0.0), (0.012, 0.15), (-0.004, 0.15)], 0.0, 0.006), FXN((xs - 0.002 - (0.006 if s > 0 else 0), 0.48, 1.10), roll=s * 0.12))
-    G.add(C['steel_dark'], cyl(0.006, 0.02, 8), along((xs - 0.002, 0.48, 1.24), (xs - 0.02, 0.48, 1.24)))
+        G.add(C['steel_dark'], prism([(-0.008, 0.0), (0.008, 0.0), (0.012, 0.15), (-0.004, 0.15)], 0.0, 0.006), FXN((xs - 0.002 - (0.006 if s > 0 else 0), 0.53, 0.92), roll=s * 0.12))
+    G.add(C['steel_dark'], cyl(0.006, 0.02, 8), along((xs - 0.002, 0.53, 1.06), (xs - 0.02, 0.53, 1.06)))
     G.add(C['red'], prism([(-0.01, 0.0), (0.01, 0.0), (0.012, 0.32), (-0.012, 0.32)], 0.0, 0.012), FXN((xs - 0.002, 0.40, 1.48)))
     G.add(C['steel_dark'], prism([(-0.02, 0.32), (0.05, 0.32), (0.05, 0.40), (-0.02, 0.40)], 0.0, 0.016), FXN((xs - 0.002, 0.40, 1.48)))
     G.add(mat('kabel_schwarz', (0.08, 0.08, 0.08), 'rubber', r=1.2), torus(0.09, 0.012, 16, 6, sz=1.6), FXN((xs - 0.03, -0.20, 1.70)))
     hook(-0.20, 1.80)
     # Staub auf dem Schrank, Rost am Sockel, Abplatzer
-    for _ in range(5):
-        G.add(C['dust'], blob((rng.uniform(x0 + 0.05, xb - 0.03), rng.uniform(-0.55, 0.55), 0.8506), (1, 0, 0), (0, 1, 0), rng.uniform(0.06, 0.14), rng.uniform(0.05, 0.1),
-                              rng, 12, 2, 0.4, off=0.0))
+    dustm = mat('staub_schrank', (0.30, 0.31, 0.28), 'concrete', r=1.5)
+    for _ in range(4):
+        G.add(dustm, blob((rng.uniform(x0 + 0.05, xb - 0.03), rng.uniform(-0.55, 0.55), 0.8506), (1, 0, 0), (0, 1, 0), rng.uniform(0.05, 0.10), rng.uniform(0.04, 0.08),
+                          rng, 12, 2, 0.4, off=0.0))
+    chips_on_plane(G, C['steel_dark'], (x0 - 0.0009, 0.0, 0.42), (0, -1, 0), (0, 0, 1), 2 * yw - 0.04, 0.8, rng, 8, 0.004, 0.012)
     Sf = lambda u, v: (Vector((x0 - 0.0009, -u, v)), Vector((-1, 0, 0)))  # noqa: E731
     G.add(C['rust'], orient(strip_uv(Sf, -yw + 0.02, yw - 0.02, 0.004, 0.04, rng, 14, 0.8), lambda m: Vector((-1, 0, 0))))
     G.build('macchina_werkzeug', angle=40.0)
