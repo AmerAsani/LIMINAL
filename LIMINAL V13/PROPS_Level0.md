@@ -161,7 +161,9 @@ waren ab `FM_FIG_END` = 143 nur 17 Plätze frei (Runde 1: Teile von Notausgang u
 - `gameplay_test`: 647 Prüfungen, 1 Fehler (Ouroboros-Träger, bekannt, anderer Auftrag); Halt der Ausstattung: level0 1057 Objekte,
   0 ohne Halt; alle Ebenen 10 506, 0 ohne Halt.
 - `room_metrics.py --check`: alle Ebenen OK (Level 0: Decke min 2,70 m, Sicht Median 25,5 m).
-- `audio_test` 106/0; `coop_test` siehe Bericht (bekannte Fehler in testLateJoin, anderer Auftrag).
+- `audio_test` 106/0; `coop_test` 209 Prüfungen, 3 Fehler: 2 in testLateJoin (bekannt, anderer Auftrag) und eine Ortsabweichung
+  von 7,7 m im Lauf mit simuliertem schlechtem Netz (250 ms, 10 % Verlust) – Netzcode, unabhängig von dieser Arbeit (nur
+  Darstellung der Fundstücke geändert).
 
 ## Aufwand
 
