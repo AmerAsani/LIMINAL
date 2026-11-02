@@ -69,6 +69,7 @@ def _mats():
         'tape': mat('klebeband', (0.70, 0.66, 0.52), 'plastic', r=0.8),
         'frame': mat('rahmen_holz', (0.30, 0.20, 0.12), 'wood', r=1.0),
         'cushion': mat('kissen', (0.20, 0.24, 0.42), 'fabric', r=1.45),
+        'flame': mat('kerzenflamme', (1.0, 0.72, 0.36), 'glow', glow=4.0),
     }
 
 
@@ -185,14 +186,15 @@ def build_jerry_perch():
         cyl(wheel, V((rx, 0.44, zc + 0.125)), V((rx + 0.058 * math.cos(a), 0.44 + 0.058 * math.sin(a), zc + 0.125)), 0.005, 5)
     # abgewetzt, wo die Zehen greifen: blanker Rost oben auf dem Abzweig (dunkler Streifen)
     sweep(k(M['iron'], 30), [V((rx + 0.002, -0.1, zc + R2 - 0.002)), V((rx + 0.002, 0.12, zc + R2 - 0.002))], 0.006, 6)
-    # Kot: weisse Laeufe vom Abzweig und am Rohr herab, Kleckse am Boden darunter (der Vogel sitzt hier seit Jahren)
-    for i in range(14):
-        y = rng.uniform(-0.2, 0.25)
-        x = rx + rng.uniform(-0.01, 0.012)
-        top = zc - R2 * 0.6
-        L = rng.uniform(0.02, 0.09)
-        sweep(k(M['dung'], 30), [V((x - R2 * 0.85, y, top)), V((x - R2 * 0.9, y + rng.uniform(-0.004, 0.004), top - L))],
-              [0.004, 0.0025], 6, caps=True)
+    # Kot: Krusten auf dem Abzweig hinter den Fuessen, kurze Laeufe am Rohr herab, Kleckse am Boden darunter (der Vogel sitzt
+    # hier seit Jahren). Runde 1: vierzehn gleich lange Faeden unter dem Abzweig lasen sich wie ein Kamm
+    for i in range(5):
+        y = rng.uniform(-0.25, 0.25)
+        a = rng.uniform(2.2, 3.6)  # an der Rueckseite des Rohrs
+        c = V((rx + math.cos(a) * R2, y, zc + math.sin(a) * R2))
+        blob(k(M['dung'], 40), c, (math.cos(a), 0, math.sin(a)), rng.uniform(0.008, 0.016), 0.003, rng, 9, 1.0, 0.5)
+        if rng.random() < 0.5:
+            sweep(k(M['dung'], 30), [c, c + V((-0.004, rng.uniform(-0.004, 0.004), -rng.uniform(0.012, 0.035)))], [0.0035, 0.002], 6)
     for i in range(10):
         z0 = rng.uniform(0.6, 1.4)
         a = rng.uniform(1.2, 2.4)
@@ -251,6 +253,9 @@ def build_jerry_shrine():
             sweep(k(M['wax'], 35), [V((x + math.cos(a) * r, y + math.sin(a) * r, top + h - 0.004)),
                                     V((x + math.cos(a) * r * 1.1, y + math.sin(a) * r * 1.1, top + h * rng.uniform(0.2, 0.7)))], [0.004, 0.003], 6)
         cyl(k(M['wick'], 30), V((x, y, top + h)), V((x + 0.002, y, top + h + 0.012)), 0.0016, 5)
+        if h > 0.04:  # Runde 1: der Raum war schwarz - die Followers halten die Kerzen am Brennen (Auslegung)
+            sweep(k(M['flame'], 40), [V((x + 0.002, y, top + h + 0.008)), V((x + 0.002, y, top + h + 0.02)), V((x + 0.003, y, top + h + 0.04))],
+                  [0.004, 0.0065, 0.0005], 8)
     # Blechteller mit Nuessen und Saaten, Becher mit truebem Wasser
     cyl(k(M['tin'], 35), V((0.06, -0.08, top)), V((0.06, -0.08, top + 0.012)), 0.11, 18)
     for i in range(14):

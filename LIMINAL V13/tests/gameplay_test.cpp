@@ -4855,6 +4855,211 @@ static void testV133Level2Kin(const std::string& dataDir) {
     }
 }
 
+// V13.3 Teil 4: Jerry (KREATUR_Jerry.md) - sein Raum in der Karte, Auftreten ungesehen, Murmeln vor Sicht, Blickkontakt und
+// Bann, Wegsehen rettet, Sprung bei Naehe (angekuendigt, Zurueckweichen rettet), Puppe beim Gast
+static void testV133Jerry(const std::string& dataDir) {
+    std::printf("V13.3 Teil 4: Jerry (Level 2)\n");
+    const game::Content& content = *gContent11;
+    game::PrefabLibrary prefabs;
+    prefabs.loadDirectory(dataDir + "/prefabs");
+    JobSystem jobs(2);
+    using PE = game::Presence::Event;
+    using Role = game::Presence::Role;
+    const auto L2 = content.level("level2", world::kLayoutV6);
+    if (!L2 || !L2->map) return check(false, "Jerry: Karte von Level 2");
+    // --- Karte: ein Spawnpunkt auf dem Sitzrohr in einer blauen Kammer mit nur einer Tuer; Opfertisch, Wandbild, Wegweiser --
+    const world::MapSpawn* sp = nullptr;
+    int nSpawn = 0;
+    for (const auto& s : L2->map->spawns)
+        if (s.kind == "entity" && s.role == "jerry") sp = &s, ++nSpawn;
+    check(nSpawn == 1, std::format("Jerry: genau ein Platz in der Karte ({})", nSpawn));
+    if (!sp) return;
+    const int room = L2->map->roomAt(sp->x, sp->y);
+    int doors = 0;
+    for (const auto& d : L2->map->doors) doors += d.a == room || d.b == room ? 1 : 0;
+    check(room >= 0 && L2->map->rooms[(size_t)room].zone == "jerry" && doors == 1, std::format("Jerry: in einer blau gestrichenen Kammer mit einer Tuer ({} Tueren)", doors));
+    std::map<std::string, int> inRoom, outside;
+    bool perchAt = false;
+    for (const world::MapObject& o : L2->map->objects) {
+        if (o.model.rfind("jerry_", 0) != 0) continue;
+        (L2->map->roomAt(o.x, o.y) == room ? inRoom : outside)[o.model]++;
+        perchAt = perchAt || (o.model == "jerry_perch" && std::hypot(o.x - sp->x, o.y - sp->y) < 0.05);
+    }
+    check(perchAt && inRoom["jerry_mural"] == 1 && inRoom["jerry_shrine"] == 1, "Jerry: Sitzrohr am Platz, Wandbild und Opfertisch der Followers im Raum");
+    check(outside["jerry_poster"] >= 2, std::format("Jerry: Wegweiser der Followers vor dem Raum ({} Fotos und Pfeile)", outside["jerry_poster"]));
+    check(L2->kin[world::KIN_JERRY].on && L2->kin[world::KIN_JERRY].mode == "room", "Jerry: Level 2 kennt ihn (presence.jerry)");
+    // Tuer und Blick vom Platz zur Tuer
+    vec3 doorC{};
+    for (const auto& d : L2->map->doors)
+        if (d.a == room || d.b == room) doorC = {(float)(d.x0 + d.x1) * 0.5f, (float)(d.y0 + d.y1) * 0.5f, 0.0f};
+    const vec3 toDoor = normalize(vec3{doorC.x - (float)sp->x, doorC.y - (float)sp->y, 0.0f});
+    auto open = [&](i64 seed) {
+        auto s = std::make_unique<game::GameSession>(content, prefabs, L2, seed, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        s->presence().setGrace(3000.0);
+        return s;
+    };
+    auto step = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, double secs, const std::function<bool()>& each = {}) {
+        for (int i = 0; i < (int)(secs * 60.0); ++i) {
+            if (each && each()) break;
+            s.update(1.0 / 60.0, {}, false);
+            ev.insert(ev.end(), s.events().begin(), s.events().end());
+            s.events().clear();
+        }
+    };
+    auto count = [](const std::vector<game::GameEvent>& ev, PE::Type t, Role r, float minI = -1.0f) {
+        return (int)std::count_if(ev.begin(), ev.end(), [&](const game::GameEvent& e) {
+            return e.type == game::GameEvent::Figure && e.index == (int)t && e.role == (int)r && e.intensity >= minI;
+        });
+    };
+    auto put = [](game::GameSession& s, double x, double y, double angle, double pitch = 0.0) {
+        auto& pl = s.player();
+        pl.x = x, pl.y = y, pl.z = s.world().tile(ifloor(x), ifloor(y)).floor, pl.vx = pl.vy = 0.0;
+        pl.angle = angle, pl.pitch = pitch;
+        s.body().reset();
+    };
+    auto aimAt = [](game::GameSession& s, vec3 q) {
+        auto& pl = s.player();
+        pl.angle = std::atan2(q.y - pl.y, q.x - pl.x);
+        pl.pitch = std::atan2(q.z - pl.eye(), std::max(0.3, std::hypot(q.x - pl.x, q.y - pl.y)));
+    };
+    // Stelle im Raum, d m vor ihm Richtung Tuer
+    auto front = [&](double d) { return vec3{(float)sp->x + toDoor.x * (float)d, (float)sp->y + toDoor.y * (float)d, 0.0f}; };
+    vec3 hall{};
+    {
+        auto s = open(11);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.5);
+        auto& P = s->presence();
+        // Stelle im Gang vor der Tuer: begehbar, das Rohr von dort nicht zu sehen
+        const vec3 perchHead{(float)sp->x, (float)sp->y, s->world().tile(ifloor(sp->x), ifloor(sp->y)).floor + 1.95f};
+        bool found = false;
+        for (float k : {2.0f, 3.0f, 4.0f, 1.5f})
+            for (float sd : {1.5f, -1.5f, 1.0f, -1.0f, 0.5f, -0.5f}) {
+                if (found) break;
+                const vec3 q = doorC + toDoor * k + vec3{-toDoor.y, toDoor.x, 0.0f} * sd;
+                const world::Tile& tq = s->world().tile(ifloor(q.x), ifloor(q.y));
+                if (!tq.open() || game::clearSight(s->world(), vec3{q.x, q.y, tq.floor + 1.6f}, perchHead)) continue;
+                hall = q, found = true;
+            }
+        check(found, "Jerry: vor der Tuer eine Stelle ausser Sicht des Rohrs");
+        check(!P.has(Role::Jerry), "Jerry: am Start weit weg - nicht da");
+        put(*s, hall.x, hall.y, std::atan2(toDoor.y, toDoor.x));  // Ruecken zur Tuer
+        ev.clear();
+        step(*s, ev, 40.0);
+        check(P.has(Role::Jerry), "Jerry: sitzt auf seinem Rohr, sobald man in die Naehe kommt");
+        const auto J = P.jerryInfo();
+        const float floorZ = s->world().tile(ifloor(sp->x), ifloor(sp->y)).floor;
+        check(J.active && std::hypot(J.pos.x - sp->x, J.pos.y - sp->y) < 0.05 && std::fabs(J.pos.z - floorZ - anim::jy::kPerchZ) < 0.02f,
+              std::format("Jerry: auf dem Sitzrohr ({:.2f} m ueber dem Boden)", J.pos.z - floorZ));
+        check(count(ev, PE::Speak, Role::Jerry) >= 2 && count(ev, PE::Speak, Role::Jerry, 0.9f) == 0,
+              std::format("Jerry: man hoert ihn vor dem Raum murmeln, bevor man ihn sieht ({} Saetze)", count(ev, PE::Speak, Role::Jerry)));
+        check(!s->stats().dead && P.jerrySpell(s->netSelfId) == 0.0f, "Jerry: ausser Sicht kein Bann");
+        // --- in die Tuer, ihm ins Gesicht sehen: er bemerkt, spricht, der Bann waechst bis zur Unterwerfung -------------------
+        const vec3 at = front(3.2);
+        put(*s, at.x, at.y, 0.0);
+        aimAt(*s, P.jerryInfo().head);
+        s->flashlight().on = true;  // im Halbdunkel: die Lampe auf ihn (sonst sieht man ihm nicht in die Augen)
+        ev.clear();
+        double tNotice = -1.0, tWarn = -1.0, tDead = -1.0, t = 0.0, hold = 0.0;
+        step(*s, ev, 10.0, [&] {
+            t += 1.0 / 60.0;
+            if (!s->stats().dead) aimAt(*s, P.jerryInfo().head);  // haelt den Blick (gegen den Zug)
+            const auto I = P.jerryInfo();
+            if (tNotice < 0.0 && I.state >= anim::jy::S_NOTICE) tNotice = t;
+            if (tWarn < 0.0 && count(ev, PE::Announce, Role::Jerry) > 0) tWarn = t;
+            hold = std::max(hold, (double)P.jerryHold(s->netSelfId));
+            if (s->stats().dead) tDead = t;
+            return s->stats().dead;
+        });
+        check(tNotice >= 0.0 && tNotice < 0.7, std::format("Jerry: bemerkt den Spieler in der Tuer ({:.2f} s)", tNotice));
+        check(count(ev, PE::Speak, Role::Jerry, 0.9f) >= 1, "Jerry: spricht ihn mit ruhiger Stimme an");
+        check(count(ev, PE::Spell, Role::Jerry) >= 2, "Jerry: der Bann kuendigt sich an (Klingeln, Fluestern - zwei Stufen)");
+        check(hold > 0.5, std::format("Jerry: der Bann laehmt die Schritte ({:.2f})", hold));
+        check(tWarn > 0.0 && tDead > tWarn + 0.3, std::format("Jerry: Warnung (Fluegel, Kreischen) vor der Unterwerfung ({:.2f} s / {:.2f} s)", tWarn, tDead));
+        check(tDead > 1.5 && tDead < 6.0 && s->killRole() == (int)Role::Jerry && s->deathCause() == "stalker",
+              std::format("Jerry: wer ihm in die Augen sieht, ist nach {:.1f} s unterworfen (toedlich)", tDead));
+        // Wiedereinstieg am Sicherungspunkt (die Wesen bleiben): Jerry sitzt wieder auf seinem Rohr, der Bann ist fort
+        s->respawnCoop();
+        step(*s, ev, 4.0);
+        const auto J2 = P.jerryInfo();
+        check(!s->stats().dead && J2.active && J2.state != anim::jy::S_SUBDUE && std::hypot(J2.pos.x - sp->x, J2.pos.y - sp->y) < 0.05 &&
+                  P.jerrySpell(s->netSelfId) == 0.0f,
+              "Jerry: nach dem Wiedereinstieg wieder auf seinem Rohr, kein Bann mehr");
+    }
+    {   // --- wegsehen rettet: nach dem ersten Klingeln den Blick abwenden und gehen ------------------------------------------
+        auto s = open(12);
+        std::vector<game::GameEvent> ev;
+        auto& P = s->presence();
+        put(*s, hall.x, hall.y, std::atan2(toDoor.y, toDoor.x));
+        step(*s, ev, 6.0);
+        const vec3 at = front(3.2);
+        put(*s, at.x, at.y, 0.0);
+        s->flashlight().on = true;
+        float peak = 0.0f;
+        step(*s, ev, 6.0, [&] {
+            aimAt(*s, P.jerryInfo().head);
+            peak = P.jerrySpell(s->netSelfId);
+            return peak >= 0.55f;
+        });
+        const auto& pl = s->player();
+        put(*s, pl.x, pl.y, std::atan2(toDoor.y, toDoor.x));  // umdrehen
+        float low = 1.0f;
+        step(*s, ev, 4.0, [&] {
+            low = std::min(low, P.jerrySpell(s->netSelfId));
+            return false;
+        });
+        check(peak >= 0.55f && low < 0.05f && !s->stats().dead && count(ev, PE::Attack, Role::Jerry) == 0,
+              std::format("Jerry: wer wegsieht, entkommt - der Bann klingt ab ({:.2f} -> {:.2f})", peak, low));
+    }
+    {   // --- Naehe: wer bis auf Armlaenge herankommt, dem springt er nach einer Ankuendigung ins Gesicht ----------------------
+        auto s = open(13);
+        std::vector<game::GameEvent> ev;
+        auto& P = s->presence();
+        put(*s, hall.x, hall.y, std::atan2(toDoor.y, toDoor.x));
+        step(*s, ev, 6.0);
+        const vec3 nearP = front(1.1);
+        put(*s, nearP.x, nearP.y, std::atan2(toDoor.y, toDoor.x));  // nah, Ruecken zu ihm (kein Blickkontakt)
+        ev.clear();
+        bool warned = false;
+        double t = 0.0, tScreech = -1.0, tDead = -1.0;
+        step(*s, ev, 3.0, [&] {
+            t += 1.0 / 60.0;
+            if (tScreech < 0.0 && count(ev, PE::Screech, Role::Jerry) > 0) tScreech = t, warned = true;
+            if (s->stats().dead) tDead = t;
+            return s->stats().dead;
+        });
+        check(warned && tDead > tScreech + 0.45, std::format("Jerry: zu nah - er kuendigt den Sprung an (Kreischen, Fluegel) und springt ({:.2f} / {:.2f} s)", tScreech, tDead));
+        check(s->killRole() == (int)Role::Jerry, "Jerry: der Sprung ins Gesicht ist toedlich");
+        // zurueckweichen rettet
+        auto s2 = open(14);
+        auto& P2 = s2->presence();
+        put(*s2, hall.x, hall.y, std::atan2(toDoor.y, toDoor.x));
+        step(*s2, ev, 6.0);
+        put(*s2, nearP.x, nearP.y, std::atan2(toDoor.y, toDoor.x));
+        ev.clear();
+        step(*s2, ev, 1.0, [&] { return count(ev, PE::Screech, Role::Jerry) > 0; });
+        const vec3 back = front(3.6);
+        put(*s2, back.x, back.y, std::atan2(toDoor.y, toDoor.x));
+        step(*s2, ev, 2.0);
+        check(count(ev, PE::Screech, Role::Jerry) > 0 && !s2->stats().dead && P2.has(Role::Jerry), "Jerry: wer nach der Warnung zurueckweicht, entkommt dem Sprung");
+        // --- Koop: die Puppe beim Gast traegt Rolle 18 und den Bann ihres Ziels ---------------------------------------------------
+        std::vector<game::Presence::NetState> ns;
+        P2.netStates(ns, {(float)sp->x, (float)sp->y, 0.0f}, 8);
+        const auto it = std::find_if(ns.begin(), ns.end(), [](const auto& n) { return n.role == (int)Role::Jerry; });
+        check(it != ns.end(), "Jerry: im Netzzustand des Hosts (Rolle 18)");
+        if (it != ns.end()) {
+            game::Presence guest;
+            auto one = *it;
+            one.glow = 0.7f, one.target = 2;
+            guest.netApply({one}, 0.0);
+            check(guest.has(Role::Jerry) && std::fabs(guest.jerrySpell(2) - 0.7f) < 1e-4f && guest.jerrySpell(1) == 0.0f,
+                  "Jerry: beim Gast kommt der Bann aus der Puppe (nur fuer ihr Ziel)");
+        }
+    }
+}
+
 int main(int argc, char** argv) {
     if (argc < 2) {
         std::printf("Aufruf: gameplay_test <data-Ordner>\n");
@@ -4901,6 +5106,7 @@ int main(int argc, char** argv) {
     testV133LureTalk(argv[1]);    // V13.3: Leuchtstab (Smiler), Ansprechen (Skin-Stealer)
     testV133Phenomena(argv[1]);   // V13.3: Erscheinungen in Level 1 (Pilz, Garden, Gemaelde, Tuerspuren)
     testV133Level2Kin(argv[1]);   // V13.3 Teil 4: Level 2 (Fenster am Gangende, Motten, Ratten an Faessern, Spuren)
+    testV133Jerry(argv[1]);       // V13.3 Teil 4: Jerry (Level 2)
     std::printf("%s: %d Pruefungen, %d Fehler\n", gFails ? "FEHLGESCHLAGEN" : "OK", gChecks, gFails);
     return gFails ? 1 : 0;
 }

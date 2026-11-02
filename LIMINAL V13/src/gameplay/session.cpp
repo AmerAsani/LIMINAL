@@ -943,6 +943,7 @@ ViewCamera GameSession::camera(bool thirdPerson, double dt) {
         c.pitch += std::sin(t * 43.0f + 0.7f) * shake;
         c.roll = std::sin(t * 29.0f) * shake * 1.6f;
         c.fovMul = 1.0f - 0.22f * (float)std::min(1.0, killT_ / 0.09);
+        if (killRole_ == (int)Presence::Role::Jerry) c.fovMul *= 0.4f + 0.6f * (float)std::exp(-killT_ * 1.5);  // V13.3 Teil 4: der Blick versinkt in seinen Augen
         return c;
     }
     c.yaw = (float)(player_.angle + player_.sway());

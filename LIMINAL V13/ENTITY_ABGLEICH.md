@@ -85,7 +85,7 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 | Smiler (Entity 3) | Häufig, lieben Dunkelheit, schwärmten beim großen Stromausfall. | **umgesetzt** (an Stromausfälle gebunden) |
 | Deathmoths (Entity 4) | Vom Licht angezogen, meist friedlich, seit dem Stromausfall kleiner. | **umgesetzt (V13.3)**: kleine Gruppen an brennenden Röhren ohne Nest, meist Männchen mit Saugrüssel; die Lampe lockt sie, aus der Nähe gereizt schwirren sie vor dem Gesicht, nur ein Weibchen beißt (leicht); treiben in die Netze der Nguithr'xurh – [KREATUR_Deathmoth.md](KREATUR_Deathmoth.md), Abschnitt Level 2 |
 | Clump (Entity 5) | Häufig und tödlich; lauern an Ecken und springen. | **umgesetzt** (Lager an Kreuzungen und in Schächten) |
-| Jerry (Entity 7) | In einem Zimmer eingeschlossen; wen er oder sein Kult sieht, der entkommt nicht. | **bewusst weggelassen**: Die Gefahr geht von einem menschlichen Kult aus; das Spiel hat keine Kämpfe gegen Menschen. Jerry selbst beschreibt die Seite nicht. |
+| Jerry (Entity 7) | In einem Zimmer eingeschlossen; wen er oder sein Kult sieht, der entkommt nicht. | **umgesetzt (V13.3)**: ein kranker, halb gerupfter Hyazinth-Ara auf einem rostigen Rohr in einer blau gestrichenen Kammer mit nur einer Tür (Bild der Followers an der Wand, Opfertisch mit Kerzen); man hört ihn vorher mit ruhiger Menschenstimme murmeln. Gefahr ist der Blickkontakt: der Bann wächst, zieht den Blick zu ihm und lähmt, kündigt sich mit Klingeln und zuletzt mit ausgebreiteten Flügeln und Kreischen an – wegsehen und gehen rettet; wer ihm zu nahe kommt, dem springt er ins Gesicht – [KREATUR_Jerry.md](KREATUR_Jerry.md) |
 | Hound (Entity 8) | In Rudeln, werden gestört zu schnellen Jägern. | **teilweise**: Hound umgesetzt, aber einzeln; Rudel fehlen |
 | Faceling (Entity 9) | Intelligent, in Gruppen, lassen einen in Ruhe, wenn man sie nicht reizt. | **neu (V13.2)**: Gruppen, reizbar (Lampe im Gesicht, Bedrängen, Anrempeln), dann leichte Schläge; die Gruppe macht mit (`KREATUR_Faceling.md`) |
 | Skin-Stealer (Entity 10) | Haben die Ebene nach dem Stromausfall verlassen. | **umgesetzt (V13.3): Spuren, laut Seite nicht mehr da** – abgestreifte, vertrocknete Menschenhäute (eine geschmolzen in den heißen Tunneln, eine an einem Haken), Kratzspuren, eine verlassene Lagerstelle – [KREATUR_L2_Spuren.md](KREATUR_L2_Spuren.md) |
@@ -98,7 +98,7 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 | Growler (Entity 130) | Klein; verschmelzen in engen Gängen, bis sie stecken bleiben. | **umgesetzt (V13.3)**: junge Growler (leuchtend bunt), verschmelzen, bleiben stecken und verhungern; Leichen in den Gängen – [KREATUR_Growler.md](KREATUR_Growler.md) |
 | Swindlebird (Entity 192) | Eine einzelne, unbestätigte Sichtung. | **bewusst weggelassen** (unbestätigt) |
 | Macchina (Entity 189) | Seit etwa 1850 nicht mehr gesehen. | **bewusst weggelassen** (ausgestorben) |
-| Gruppen (Followers of Jerry, Survivors, B.N.T.G. …) | Menschen. | **bewusst weggelassen** (Menschen) |
+| Gruppen (Followers of Jerry, Survivors, B.N.T.G. …) | Menschen. | **bewusst weggelassen** (Menschen). V13.3: von den Followers of Jerry nur ihre Spuren – Wandbild, Opfertisch, Fotos und Pfeile zu seiner Tür, Flugblätter als Notizen ([KREATUR_Jerry.md](KREATUR_Jerry.md)) |
 
 ### Level 3 – „Electrical Station“
 
@@ -115,7 +115,8 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 | „Purpurne“ tote Wesen in den Wänden | Unklare Erscheinung mit violetter Energie. | **fehlt**: Priorität 12 (Dekoration) |
 | Schattenfigur hinter den Gittern, Stimmen in Paranoia-Gängen | Unbestätigt. | **umgesetzt** über den Paranoia-Gang der Karte und die Halluzinationen |
 | Engelsstatue im Sanktuarium | Schreckt alle Wesen ab; einziger sicherer Ort. | **umgesetzt** (Sanktuarium mit Engel, bleibt hell). Neu in V13.2: Wesen meiden den Raum (siehe Briefings) |
-| Red Knight (Entity 71), Jerry (Entity 7), Basen und Gruppen | Nur in Vorfallberichten oder Gruppen. | **bewusst weggelassen** (Erzählung, Menschen) |
+| Jerry (Entity 7) | Nur in einem Vorfallbericht (Followers in den Wartungsgängen unter einer Basis). | **umgesetzt (V13.3)** als Wesen von Level 2 (sein Raum, Blick und Bann) – [KREATUR_Jerry.md](KREATUR_Jerry.md); auf Level 3 kein eigener Auftritt (die Seite zeigt ihn dort nicht) |
+| Red Knight (Entity 71), Basen und Gruppen | Nur in Vorfallberichten oder Gruppen. | **bewusst weggelassen** (Erzählung, Menschen) |
 
 ### Level 5 – „Terror Hotel“
 

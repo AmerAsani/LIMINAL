@@ -346,13 +346,19 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     // V13.3 Teil 4: Jerry (KREATUR_Jerry.md) - Hyazinth-Ara: tiefes Kobaltblau mit seidigem Glanz, Unterseite der Schwingen
     // schwarzgrau; gerupfte Haut grau-rosa (laesst Licht ein), Blutkiele wachsig blaugrau; Schnabel und Krallen schwarzes
     // Horn mit Glanz; nackte Haut am Auge und Schnabel kraeftig gelb; blasse, nasse Iris (zu menschlich - Auslegung)
-    materialData_[FM_ENT_JY_FEATHER] = GpuMaterial{{0.030f, 0.055f, 0.26f}, 0, ent(EL_FUR, ML_FIBER), 0.5f, 0, 0.25f};
+    // Runde 1: im Halbdunkel ein schwarzer Umriss - kraeftigeres Kobalt, etwas glatter (Federglanz)
+    // Runde 3: im Lichtkegel immer noch fast schwarz - helleres Kobalt
+    materialData_[FM_ENT_JY_FEATHER] = GpuMaterial{{0.065f, 0.12f, 0.58f}, 0, ent(EL_FUR, ML_FIBER), 0.38f, 0, 0.25f};
     materialData_[FM_ENT_JY_FEATHER_DARK] = GpuMaterial{{0.020f, 0.022f, 0.030f}, 0, ent(EL_FUR, ML_FIBER), 0.6f, 0, 0.2f};
-    materialData_[FM_ENT_JY_SKIN] = GpuMaterial{{0.42f, 0.30f, 0.30f}, 0, ent(EL_SKIN, ML_PORES) | kMatFlagSkin, 0.5f, 0, 0.35f};
+    // Runde 2: im warmen Licht goldbraun wie Muenzen - grauer, kaelter, stumpf (gerupfte Vogelhaut)
+    // Runde 4: immer noch braun wie Leder (die Haut-Ebene ist gelblich) - Menschenhaut-Ebene, blass grau-rosa
+    materialData_[FM_ENT_JY_SKIN] = GpuMaterial{{0.46f, 0.37f, 0.38f}, 0, ent(EL_HUMAN, ML_PORES) | kMatFlagSkin, 0.62f, 0, 0.3f};  // Runde 5: lachsrosa - grauer
     materialData_[FM_ENT_JY_QUILL] = GpuMaterial{{0.22f, 0.26f, 0.36f}, 0, ent(EL_HORN, ML_CRAZE), 0.3f, 0, 0.2f};
-    materialData_[FM_ENT_JY_BEAK] = GpuMaterial{{0.025f, 0.025f, 0.028f}, 0, ent(EL_HORN, ML_CRAZE), 0.28f, 0, 0.1f};
+    materialData_[FM_ENT_JY_BEAK] = GpuMaterial{{0.035f, 0.034f, 0.036f}, 0, ent(EL_HORN, ML_CRAZE), 0.42f, 0, 0.1f};  // Runde 4: weniger Plastikglanz
     materialData_[FM_ENT_JY_YELLOW] = GpuMaterial{{0.85f, 0.58f, 0.05f}, 0, ent(EL_SKIN, ML_PORES), 0.4f, 0, 0.2f};
-    materialData_[FM_ENT_JY_EYE] = GpuMaterial{{0.55f, 0.40f, 0.16f}, 0.15f, ent(EL_TOOTH, ML_PORES), 0.04f, 0, 0.0f};
+    // Runde 2: die Augen verschwanden - nasser Glanz, der das Kerzenlicht faengt (man sieht, wohin er blickt; Auslegung)
+    // Runde 5: gelb wie ein Vogelauge - blasses Graugruen wie ein Menschenauge (um die Pupille, auf weissem Augapfel)
+    materialData_[FM_ENT_JY_EYE] = GpuMaterial{{0.42f, 0.47f, 0.38f}, 0.35f, ent(EL_TOOTH, ML_PORES), 0.03f, 0, 0.0f};
     materialData_[FM_ENT_JY_PUPIL] = GpuMaterial{{0.004f, 0.004f, 0.004f}, 0, ent(EL_TOOTH, ML_PORES), 0.03f, 0, 0.0f};
     materialData_[FM_ENT_JY_TONGUE] = GpuMaterial{{0.035f, 0.030f, 0.030f}, 0, ent(EL_SKIN, ML_PORES), 0.25f, 0, 0.3f};
     materialData_[FM_ENT_JY_FOOT] = GpuMaterial{{0.10f, 0.10f, 0.11f}, 0, ent(EL_SKIN, ML_SCALE), 0.6f, 0, 0.2f};

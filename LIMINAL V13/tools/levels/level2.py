@@ -782,7 +782,9 @@ for r in cand:
         m.obj('jerry_poster', f[0], f[1], R.floor, f[2], tag='deco')
     R.zone = 'jerry'  # blau gestrichen (Level-JSON, Zone "jerry")
     for l_ in R.lights:
-        l_[3] = 0.24  # Halbdunkel: die Roehre glimmt nur
+        l_[3] = 0.45  # Halbdunkel: die Roehre glimmt nur (Runde 6: bei 0,3 war er auch aus 3 m nur ein Umriss)
+    # Kerzen auf dem Opfertisch (Kritikrunde 1: der Raum war schwarz, Jerry nicht zu erkennen) - warmes, tiefes Licht
+    m.light(r, shrine[0], shrine[1], 0, 0.55, 4.6, z=R.floor + 1.1, panel=False, color=(1.0, 0.64, 0.32))  # Runde 3: heller, weiter
     R.kw['flicker'] = 1
     break
 # Wegweiser der Followers: in den Gaengen vor der Tuer Fotos und Pfeile, die zur Tuer zeigen (Modell: +y zeigt zum Ziel)

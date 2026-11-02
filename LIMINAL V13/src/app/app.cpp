@@ -375,6 +375,11 @@ void App::scriptStep() {
             double val = 0.0;
             if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) < 2 || !session_->presence().ouroSet(key, val))
                 log::warn("Skript: ouro '{}' unbekannt oder keine Baustelle", arg);
+        } else if (cmd == "jerry" && session_) {  // V13.3 Teil 4 (Bilder, Tests): jerry <quick|state|yaw|spell> <wert>
+            char key[32] = {};
+            double val = 0.0;
+            if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) < 2 || !session_->presence().jerrySet(key, val))
+                log::warn("Skript: jerry '{}' unbekannt oder kein Jerry", arg);
         } else if (cmd == "goblin" && session_) {  // V13.3 (Bilder): goblin <phase|mob|friendly|quick|rout> <wert> - die Bande steuern
             char key[32] = {};
             double val = 0.0;
@@ -1990,7 +1995,7 @@ void App::renderWorld(double dt, bool clean) {
             cam.pitch += daze * 0.025f * std::sin(t * 0.51f + 1.0f);
             cam.fovY *= 1.0f + 0.04f * stc * std::sin(t * 4.0f) + 0.05f * daze;
             const float jsp = s.presence().jerrySpell(s.netSelfId);  // V13.3 Teil 4: Jerrys Bann - der Blick verengt sich auf ihn
-            cam.fovY *= 1.0f - 0.16f * jsp * jsp;
+            cam.fovY *= 1.0f - 0.16f * jsp * jsp - 0.22f * jsp * jsp * jsp;
         }
         if (playing && coop()) {  // V13.2: Namen ueber den Mitspielern (nach allen Kameras; dieselben Matrizen wie das Bild)
             std::vector<ui::Ui::NameTag> tags;

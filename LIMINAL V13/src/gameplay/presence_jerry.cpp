@@ -15,9 +15,10 @@
 //                 Halskrause straeubt sich, die Pupillen verengen sich.
 //   Bann          nur bei gegenseitigem Blick (sein Kopf zeigt auf den Spieler, der Spieler sieht ihm ins Gesicht): waechst
 //                 in etwa 3 s (aus der Naehe schneller); wegsehen oder ausser Sicht gehen laesst ihn abklingen. Ab 0,3
-//                 klingelt es (Event::Spell), ab 0,45 zieht er den Blick zu sich und laehmt die Schritte (Sitzung), ab 0,85
-//                 breitet er die Fluegel aus und kreischt (Announce - letzte Warnung), bei 1 ist der Spieler unterworfen
-//                 (Attack; Zustand 10: Fluegel weit, die Kamera erstarrt an seinem Gesicht).
+//                 klingelt es (Event::Spell), ab 0,45 zieht er den Blick zu sich und laehmt die Schritte (Sitzung), ab 0,75
+//                 breitet er die Fluegel aus und kreischt (Announce - letzte Warnung; danach waechst der Bann halb so schnell,
+//                 knapp 1 s zum Wegsehen), bei 1 ist der Spieler unterworfen (Attack; Zustand 10: Fluegel weit, die Kamera
+//                 erstarrt an seinem Gesicht).
 //   Naehe         wer bis auf 1,6 m herankommt (wie zum Beruehren), dem springt er nach 0,55 s Ankuendigung (Fluegel,
 //                 Kreischen) ins Gesicht - zurueckweichen rettet.
 //   Rueckzug      ist keiner mehr zu sehen, wendet er sich ab, plustert sich auf, putzt sich.
@@ -34,7 +35,7 @@ namespace {
 constexpr float kSee = 17.0f;        // so weit sieht er (freie Sicht)
 constexpr float kContactJ = 0.88f;   // sein Blick zeigt auf den Spieler (cos 28 Grad)
 constexpr float kContactP = 0.94f;   // der Spieler sieht ihm ins Gesicht (cos 20 Grad)
-constexpr float kRate = 0.32f;       // Bann je s bei Blickkontakt (aus der Ferne; nah bis doppelt)
+constexpr float kRate = 0.25f;       // Bann je s bei Blickkontakt (aus der Ferne; nah bis doppelt) - Runde 3: 0,32 liess keine Zeit, ihn anzusehen
 constexpr float kLunge = 1.6f;       // so nah: er springt
 struct JerryAg {
     vec3 perch;                // Wurzel auf dem Rohr
@@ -217,7 +218,7 @@ void Presence::thinkJerry(Agent& a, double dt, const Context& c, std::vector<Eve
                 a.state = S_TURN, a.stateT = 0.0;
                 out.push_back({Event::Preen, Role::Jerry, head, 1.0f});
             }
-            if (a.state == S_WARN && sp < 0.7f && a.stateT > 1.2) a.state = S_FIX, a.stateT = 0.0;
+            if (a.state == S_WARN && sp < 0.6f && a.stateT > 1.2) a.state = S_FIX, a.stateT = 0.0;
             break;
         default: break;
     }
@@ -343,17 +344,17 @@ void Presence::jerryGaze(double dt, const Context& c, std::vector<Event>& out) {
         // der Spieler sieht ihm ins Gesicht: Blickrichtung, freie Sicht, und Jerry ist ueberhaupt zu sehen (Licht, Lampe)
         const bool hisFace = dot(p.v->look, -dn) > kContactP && perceive(*p.v, *c.world, a.feet(), a.height()).level > 0.2f;
         const bool contact = clear && hisLook && hisFace && a.state != S_SUBDUE && J.backT < 0.0;
-        if (contact) {
+        if (contact) {  // nach der Warnung langsamer: knapp 1 s, um wegzusehen (F2)
             const float near = std::clamp((7.0f - d) / 5.0f, 0.0f, 1.0f);
-            s = std::min(1.0f, s + q * kRate * (1.0f + near));
+            s = std::min(1.0f, s + q * kRate * (1.0f + near) * (stage >= 3 ? 0.5f : 1.0f));
         } else {
             s = std::max(0.0f, s - q * (clear && hisLook ? 0.3f : 0.55f));
         }
-        if (c.mode < 2) s = std::min(s, 0.84f);  // ohne Angriffe: nur bis zur Warnung
+        if (c.mode < 2) s = std::min(s, 0.95f);  // ohne Angriffe: nur bis zur Warnung
         // Stufen (je Aufbau einmal): Klingeln, Blickzug, Warnung, Unterwerfung
         if (s >= 0.3f && stage < 1) stage = 1, out.push_back({Event::Spell, Role::Jerry, head, 0.3f, p.id});
-        if (s >= 0.6f && stage < 2) stage = 2, out.push_back({Event::Spell, Role::Jerry, head, 0.6f, p.id});
-        if (s >= 0.85f && stage < 3) {
+        if (s >= 0.55f && stage < 2) stage = 2, out.push_back({Event::Spell, Role::Jerry, head, 0.6f, p.id});
+        if (s >= 0.75f && stage < 3) {
             stage = 3;
             out.push_back({Event::Announce, Role::Jerry, head, 1.0f, p.id});
             out.push_back({Event::Flap, Role::Jerry, head, 1.0f, p.id});

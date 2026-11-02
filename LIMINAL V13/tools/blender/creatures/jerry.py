@@ -48,10 +48,12 @@ def check(bones):
 
 # --- Oberflaechen -----------------------------------------------------------------------------------------------------
 def feather_disp(Q):  # Konturfedern: dachziegelartig nach unten gestreckt, Kanten, feine Aeste
-    d1, d2 = sdf.worley(Q * np.array([1.25, 1.25, 0.8]), 80, seed=7001)
+    # Runde 4: glatt wie Pluesch - groessere Federn mit deutlichen Kanten, stellenweise gestraeubt (struppig, krank)
+    d1, d2 = sdf.worley(Q * np.array([1.25, 1.25, 0.8]), 55, seed=7001)
     edge = np.exp(-((d2 - d1) / 0.1) ** 2)
     barb = sdf.ridged(Q * np.array([1.0, 1.0, 0.3]), 260, 2, seed=7002)
-    return -0.0011 * d1 - 0.0006 * edge - 0.00035 * (barb - 0.5) + 0.0003 * sdf.fbm(Q, 30, 2, seed=7003)
+    shag = np.clip(sdf.fbm(Q, 18, 2, seed=7004) - 0.15, 0.0, 1.0)
+    return -0.0024 * d1 - 0.0013 * edge - 0.0005 * (barb - 0.5) + 0.0003 * sdf.fbm(Q, 30, 2, seed=7003) + 0.004 * shag * d1
 
 
 def vane_disp(Q):  # Schwungfedern: feine Aeste, ausgefranst, ein paar Luecken
@@ -109,18 +111,18 @@ def build(J, bones):
     check(bones)
     J = np.asarray(J, dtype=float)
     rng = np.random.default_rng(7000)
-    feather, dark, skin, quill, beak, yellow, eye, pupil, tongue, mouth, foot, claw = ([] for _ in range(12))
+    feather, dark, skin, quill, beak, yellow, eye, pupil, tongue, mouth, foot, claw, sclera = ([] for _ in range(13))
 
     # Rumpf: Bauch, breite Brust, Schultern; Hals; der Kopf gross und rund
     ax_b = A.unit(J[CHEST] - J[PELVIS])
-    body_c = [(-0.032, 0, 0.135), (-0.006, 0, 0.232), (0.018, 0, 0.300)]
-    body_r = [(0.07, 0.058, 0.062), (0.082, 0.066, 0.07), (0.058, 0.056, 0.052)]
+    # Runde 1: von vorn schmal und hoch wie eine Menschengestalt - breitere Brust und Schultern, voller Bauch, der bis auf die
+    # Zehen faellt (keine "Hosen"-Kugeln mehr)
+    body_c = [(-0.022, 0, 0.122), (-0.004, 0, 0.232), (0.018, 0, 0.300)]
+    body_r = [(0.078, 0.066, 0.072), (0.086, 0.076, 0.078), (0.06, 0.066, 0.056)]
     feather += [A.ell(B_PELVIS, body_c[0], ax_b, body_r[0], up=-X, k=0.0),
                 A.ell(B_SPINE, body_c[1], A.unit(J[NECK0] - J[SPINE]), body_r[1], up=X, k=0.035),
                 A.ell(B_CHEST, body_c[2], A.unit(J[NECK0] - J[CHEST]), body_r[2], up=X, k=0.03)]
-    # Bauchgefieder ("Hosen") um die Knie, Steiss ueber dem Schwanz
-    for g in (1.0, -1.0):
-        feather.append(A.ell(B_PELVIS, (0.012, g * 0.038, 0.085), Z, (0.03, 0.026, 0.035), k=0.02))
+    # Steiss ueber dem Schwanz
     feather.append(A.ell(B_PELVIS, (-0.075, 0, 0.11), A.unit((-0.5, 0, -0.8)), (0.05, 0.035, 0.022), up=X, k=0.025))
     # Hals mit Halskrause (eigener Knochen - straeubt sich): die Federn im Nacken und an den Seiten haengen an B_RUFF
     feather += [A.tube(B_NECK0, J[NECK0], J[NECK1], (0.036, 0.034), (0.032, 0.031), up=X, k=0.025),
@@ -129,45 +131,62 @@ def build(J, bones):
     for g in (1.0, -1.0):
         feather.append(A.ell(B_RUFF, (0.005, g * 0.026, 0.375), A.unit((0.2, 0, 1.0)), (0.03, 0.016, 0.02), up=g * Y, k=0.018))
     # Kopf: rund, flache Stirn zum Schnabel, Wangen; Augenhoehlen
-    feather += [A.ell(B_HEAD, (0.052, 0, 0.44), X, (0.044, 0.039, 0.041), k=0.02),
-                A.ell(B_HEAD, (0.075, 0, 0.452), A.unit((1.0, 0, -0.35)), (0.03, 0.03, 0.022), k=0.015)]
+    # Runde 1: der Kopf war zu klein (der Ara hat einen grossen, runden Kopf)
+    feather += [A.ell(B_HEAD, (0.05, 0, 0.442), X, (0.05, 0.045, 0.047), k=0.02),
+                A.ell(B_HEAD, (0.075, 0, 0.455), A.unit((1.0, 0, -0.35)), (0.033, 0.034, 0.024), k=0.015)]
     for g in (1.0, -1.0):
-        feather.append(A.ell(B_HEAD, (0.07, g * 0.022, 0.425), X, (0.028, 0.02, 0.022), k=0.015))  # Wange
+        feather.append(A.ell(B_HEAD, (0.07, g * 0.025, 0.425), X, (0.03, 0.022, 0.024), k=0.015))  # Wange
     eye_c = []
     for s_, g in ((0, 1.0), (1, -1.0)):
         e = J[EYE_L if s_ == 0 else EYE_R]
         ed = A.unit(J[PUP_L if s_ == 0 else PUP_R] - e)
-        c = e - ed * 0.0085  # Mitte des Augapfels
+        c = e - ed * 0.0098  # Mitte des Augapfels (das Gelenk liegt auf der Hornhaut)
         eye_c.append((c, ed))
         feather.append(A.ell(B_HEAD, c + ed * 0.004, ed, (0.012, 0.0125, 0.0125), op='sub', k=0.004))
 
     # --- gerupft (Auslegung): kahle Stellen an Brust, Flanken, Hals; darunter die Haut, Blutkiele, abgebrochene Kiele ------
-    skin += [A.ell(B_SPINE, body_c[1], A.unit(J[NECK0] - J[SPINE]), np.array(body_r[1]) - 0.0045, up=X, k=0.0),
+    skin += [A.ell(B_SPINE, body_c[1], A.unit(J[NECK0] - J[SPINE]), np.array(body_r[1]) - 0.0045, up=X, k=0.0),  # noqa: E501
              A.ell(B_PELVIS, body_c[0], ax_b, np.array(body_r[0]) - 0.0045, up=-X, k=0.03),
              A.ell(B_CHEST, body_c[2], A.unit(J[NECK0] - J[CHEST]), np.array(body_r[2]) - 0.0045, up=X, k=0.03),
              A.tube(B_NECK0, J[NECK0], J[NECK1], (0.031, 0.029), (0.028, 0.027), up=X, k=0.02)]
+    # Runde 2: kleine runde Stellen lasen sich wie Muenzen - die Brust ist fast ganz kahl gerupft (wie bei Papageien, die
+    # sich rupfen), dazu Kehle, Halsseite, Bauch, Flanken
     patches = [  # (Knochen, Mitte, Radien) - aus dem Gefieder geschnitten
-        (B_SPINE, (0.07, 0.006, 0.215), (0.03, 0.036, 0.05)),     # Brust, vorn (aus der Ferne sichtbar)
-        (B_PELVIS, (0.04, -0.03, 0.15), (0.026, 0.025, 0.03)),    # Bauch, rechts
-        (B_SPINE, (0.0, 0.07, 0.235), (0.035, 0.022, 0.045)),     # Flanke links (unter dem Fluegel)
-        (B_SPINE, (0.005, -0.07, 0.245), (0.03, 0.022, 0.04)),    # Flanke rechts
-        (B_NECK0, (0.045, -0.025, 0.37), (0.016, 0.016, 0.018)),  # Halsseite
+        (B_SPINE, (0.078, 0.004, 0.22), (0.05, 0.06, 0.09)),      # Brust, vorn (aus der Ferne sichtbar; Runde 4: groesser)
+        (B_PELVIS, (0.05, -0.02, 0.14), (0.034, 0.038, 0.04)),    # Bauch
+        (B_SPINE, (0.0, 0.075, 0.235), (0.04, 0.026, 0.05)),      # Flanke links (unter dem Fluegel)
+        (B_SPINE, (0.005, -0.075, 0.245), (0.035, 0.026, 0.045)),  # Flanke rechts
+        (B_NECK0, (0.05, -0.022, 0.37), (0.022, 0.02, 0.024)),    # Halsseite
+        (B_NECK0, (0.06, 0.012, 0.355), (0.02, 0.022, 0.02)),     # Kehle
     ]
     for b, c, r in patches:
+        # Runde 1: eine runde Scheibe las sich wie ein Aufkleber - ausgefranster Rand aus mehreren kleinen Ausschnitten
         rr = np.array(r) * (1.0 + 0.25 * (rng.random(3) - 0.5))
-        feather.append(A.ell(b, c, A.unit(X + 0.3 * (rng.random(3) - 0.5)), rr, op='sub', k=0.012))
+        feather.append(A.ell(b, c, A.unit(X + 0.3 * (rng.random(3) - 0.5)), rr * 0.75, op='sub', k=0.006))
+        for _ in range(9):
+            off = rng.normal(0, 1.0, 3) * np.array(r) * 0.8
+            feather.append(A.ell(b, np.array(c) + off, A.unit(rng.normal(0, 1, 3)), rr * rng.uniform(0.2, 0.45), op='sub', k=0.004))
+        # Runde 4: der Rand war glatt wie ausgeschnitten - einzelne Federn stehen zerzaust ab, halb ausgerissen
+        if b != B_NECK0:
+            ce, re_ = (body_c[1], np.array(body_r[1])) if b != B_PELVIS else (body_c[0], np.array(body_r[0]))
+            for _ in range(10):
+                ang = rng.uniform(0, 2 * math.pi)
+                d = A.unit(np.array(c) - np.array(ce) + (np.cos(ang) * Y + np.sin(ang) * Z) * np.array(r).mean() * 1.1)
+                p, n = ell_surface(ce, re_, d)
+                tip = p + A.unit(n * 0.7 - Z * 0.7 + rng.normal(0, 0.3, 3)) * rng.uniform(0.012, 0.022)
+                feather.append(A.cone(b, p - n * 0.002, tip, rng.uniform(0.003, 0.0045), 0.0008, k=0.002))
         # Blutkiele (blaeulich, wachsig) und abgebrochene Kiele in und am Rand der kahlen Stelle
-        for _ in range(16):
-            d = A.unit(np.array(c) - np.array(body_c[1] if b != B_PELVIS else body_c[0]) + rng.normal(0, 0.012, 3))
+        for _ in range(30):
+            d = A.unit(np.array(c) - np.array(body_c[1] if b != B_PELVIS else body_c[0]) + rng.normal(0, 0.02, 3))
             ce, re_ = (body_c[1], np.array(body_r[1]) - 0.0045) if b != B_PELVIS else (body_c[0], np.array(body_r[0]) - 0.0045)
             if b == B_NECK0:
                 p = np.array(c) + rng.normal(0, 0.008, 3)
                 n = A.unit(p - (J[NECK0] + J[NECK1]) / 2)
             else:
                 p, n = ell_surface(ce, re_, d)
-            L = rng.uniform(0.004, 0.013)
+            L = rng.uniform(0.005, 0.017)
             dn = A.unit(n - Z * 0.6 + rng.normal(0, 0.25, 3))  # Kiele zeigen nach unten
-            quill.append(A.cone(b, p - n * 0.001, p + dn * L, rng.uniform(0.0012, 0.0019), 0.0005))
+            quill.append(A.cone(b, p - n * 0.001, p + dn * L, rng.uniform(0.0014, 0.0022), 0.0006))
     # Fluegelunterseite: kahl (sichtbar, wenn er die Fluegel ausbreitet)
     for s_, g in ((0, 1.0), (1, -1.0)):
         a, b = J[wingJ(s_, 0)], J[wingJ(s_, 1)]
@@ -235,12 +254,18 @@ def build(J, bones):
     # --- Gesicht: nackter gelber Augenring, gelbe Hautsichel am Unterschnabel ---------------------------------------------
     for (c, ed) in eye_c:
         R = sdf.frame_from(ed, Z)
-        yellow.append(sdf.Part('torus', B_HEAD, k=0.0, c=c + ed * 0.0045, R=np.stack([R[:, 1], R[:, 2], R[:, 0]], axis=1),
-                               major=0.0108, minor=0.0034))
-        eye.append(A.ell(B_HEAD, c, ed, (0.0088, 0.0088, 0.0088), k=0.0))
-        # Pupille: flache Scheibe auf der Hornhaut, am Pupillenknochen (verengt sich um die Mitte)
-        e0 = c + ed * 0.0085
-        pupil.append(A.ell(B_PUP_L if ed[1] > 0 else B_PUP_R, e0 + ed * 0.0004, ed, (0.0009, 0.0042, 0.0042), k=0.0))
+        # Runde 2: die Augen waren aus 2 m nicht zu sehen - groesser, der gelbe Ring breiter (wie beim Hyazinth-Ara)
+        yellow.append(sdf.Part('torus', B_HEAD, k=0.0, c=c + ed * 0.0042, R=np.stack([R[:, 1], R[:, 2], R[:, 0]], axis=1),
+                               major=0.0128, minor=0.0045))
+        # Runde 4: dunkle Vogelaugen lasen sich wie Knoepfe - Menschenaugen im Vogelgesicht (Auslegung: er denkt wie ein
+        # Mensch): weisser Augapfel, der am Rand sichtbar ist, blasse Iris, schwere graue Lider
+        sclera.append(A.ell(B_HEAD, c, ed, (0.0096, 0.0102, 0.0102), k=0.0))
+        e0 = c + ed * 0.0098
+        eye.append(A.ell(B_HEAD, e0 - ed * 0.0009, ed, (0.0011, 0.0071, 0.0071), k=0.0))  # Iris (Scheibe auf dem Augapfel)
+        # Pupille: flache Scheibe auf der Iris, am Pupillenknochen (verengt sich um die Mitte)
+        pupil.append(A.ell(B_PUP_L if ed[1] > 0 else B_PUP_R, e0 + ed * 0.0004, ed, (0.0009, 0.0036, 0.0036), k=0.0))
+        skin.append(A.ell(B_HEAD, c + ed * 0.0035 + Z * 0.0112, ed, (0.0072, 0.0118, 0.0035), up=Z, k=0.003))   # Oberlid (Runde 5: deckte das Auge zu)
+        skin.append(A.ell(B_HEAD, c + ed * 0.0035 - Z * 0.0112, ed, (0.006, 0.0105, 0.0026), up=Z, k=0.003))  # Unterlid
     for g in (1.0, -1.0):  # Hautsichel: halbmondfoermig am Ansatz des Unterschnabels
         yellow.append(A.tube(B_HEAD, (0.078, g * 0.016, 0.43), (0.088, g * 0.021, 0.414), (0.006, 0.0032), (0.0055, 0.003), up=g * Y, k=0.0))
         yellow.append(A.tube(B_HEAD, (0.088, g * 0.021, 0.414), (0.092, g * 0.017, 0.4), (0.0055, 0.003), (0.004, 0.0025), up=g * Y, k=0.004))
@@ -275,7 +300,8 @@ def build(J, bones):
         {'name': 'kiele', 'fm': 'ent_jy_quill', 'parts': quill, 'disp': None, 'h': 0.0004, 'cav_scale': 0.001, 'lod_weight': 0.6},
         {'name': 'schnabel', 'fm': 'ent_jy_beak', 'parts': beak, 'disp': beak_disp, 'h': 0.0006, 'cav_scale': 0.002, 'lod_weight': 1.0},
         {'name': 'gelb', 'fm': 'ent_jy_yellow', 'parts': yellow, 'disp': yellow_disp, 'h': 0.00045, 'cav_scale': 0.001, 'lod_weight': 0.7},
-        {'name': 'augen', 'fm': 'ent_jy_eye', 'parts': eye, 'disp': None, 'h': 0.0004, 'cav_scale': 0.001, 'lod_weight': 0.8},
+        {'name': 'augapfel', 'fm': 'ent_tooth', 'parts': sclera, 'disp': None, 'h': 0.0004, 'cav_scale': 0.001, 'lod_weight': 0.6},
+        {'name': 'augen', 'fm': 'ent_jy_eye', 'parts': eye, 'disp': None, 'h': 0.0003, 'cav_scale': 0.001, 'lod_weight': 0.8},
         {'name': 'pupillen', 'fm': 'ent_jy_pupil', 'parts': pupil, 'disp': None, 'h': 0.0003, 'cav_scale': 0.001, 'lod_weight': 0.5},
         {'name': 'zunge', 'fm': 'ent_jy_tongue', 'parts': tongue, 'disp': tongue_disp, 'h': 0.0005, 'cav_scale': 0.001, 'lod_weight': 0.4},
         {'name': 'rachen', 'fm': 'ent_pg_mouth', 'parts': mouth, 'disp': None, 'h': 0.0007, 'cav_scale': 0.002, 'lod_weight': 0.2},
