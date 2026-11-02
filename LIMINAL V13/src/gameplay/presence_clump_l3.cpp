@@ -24,7 +24,7 @@
 namespace lim::game {
 
 namespace {
-constexpr float kBig = 1.5f;      // Massstab des Modells (Buendelskelett)
+constexpr float kBig = 1.35f;     // Massstab des Modells (Buendelskelett) - Runde 1: 1,5 sprengte die Gaenge
 constexpr float kCeilMin = 2.45f;  // so viel freie Hoehe braucht es an der Decke
 
 struct BigClump {  // je Wesen (Agent::ext)

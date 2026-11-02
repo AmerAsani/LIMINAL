@@ -50,13 +50,14 @@ def overlay(J, skin_group, fm, name, seed, lift=0.0007, drips=0):
             best[m], tt[m], t0s[m] = dd[m], t[m], t0
         # ausgefranster Rand (Runde 1: der glatte Rand las sich wie Stiefel/Handschuhe): lange Zungen laufen den Arm hinauf,
         # darueber Spritzer und Flecken, unten reisst der Ueberzug an den Knoecheln auf
-        n = sdf.fbm(Q, 9, 3, seed=seed) - 0.5
-        n2 = sdf.fbm(Q, 34, 2, seed=seed + 1) - 0.5
-        edge = t0s + 0.55 * n + 0.18 * n2
+        # Runde 4: fbm ist um 0 verteilt (Streuung ~0,25) - vorher um 0,5 verschoben, der Rand lag glatt und Spritzer fehlten
+        n = sdf.fbm(Q, 9, 3, seed=seed)
+        n2 = sdf.fbm(Q, 34, 2, seed=seed + 1)
+        edge = t0s + 0.9 * n + 0.3 * n2
         covered = np.clip((tt - edge) / 0.03, 0, 1)
-        spots = np.clip((sdf.fbm(Q, 48, 2, seed=seed + 3) - 0.66) * 9, 0, 1) * (tt > t0s - 0.45)
+        spots = np.clip((sdf.fbm(Q, 48, 2, seed=seed + 3) - 0.36) * 9, 0, 1) * (tt > t0s - 0.45)
         covered = np.maximum(covered, spots)
-        covered *= 1.0 - np.clip((sdf.fbm(Q, 60, 2, seed=seed + 4) - 0.74) * 9, 0, 1) * (tt > t0s + 0.2)
+        covered *= 1.0 - np.clip((sdf.fbm(Q, 60, 2, seed=seed + 4) - 0.42) * 9, 0, 1) * (tt > t0s + 0.2)
         return d + 0.012 * (1.0 - covered)
 
     groups = [{'name': name, 'fm': fm, 'parts': parts, 'disp': disp, 'h': 0.0022, 'cav_scale': 0.008}]
@@ -102,7 +103,7 @@ def lichtenberg(skin_group, seed, roots):
     surface = torso_probe(skin_group)
     rng = np.random.default_rng(seed)
     R = 0.115
-    cones = []
+    cones, halo = [], []
 
     def grow(x, th, head, r, depth, budget):
         p0, n0 = surface(x, th)
@@ -124,17 +125,19 @@ def lichtenberg(skin_group, seed, roots):
                 return
             nrm = A.unit(np.array([0.0, p1[1], p1[2] - 0.735]))
             cones.append((bone_at(x2), p0 - nrm * r * 0.45, p1 - nrm * r * 0.45, r, r * 0.97, x2, side))
+            # Runde 2: verbrannte Haut um die Narbe (dunkler Hof, flach) - vorher las sich die Figur kaum
+            halo.append((bone_at(x2), p0 - nrm * r * 2.5, p1 - nrm * r * 2.5, r * 2.7, r * 2.6, x2, side))
             x, th, p0 = x2, th2, p1
             r *= 0.975
             if r < 0.0016:
                 return
-            if depth < 4 and rng.random() < 0.20:
+            if depth < 4 and rng.random() < 0.26:  # Runde 2: dichter verzweigt (die Figur las sich nur als einzelne Striche)
                 grow(x, th, head + rng.choice((-1, 1)) * rng.uniform(0.5, 1.0), r * 0.72, depth + 1, int(budget * 0.6))
 
     for x, side in roots:
         th0 = side * rng.uniform(0.04, 0.22)
         for k in range(2):  # zwei Hauptaeste je Wurzel
-            grow(x + rng.normal(0, 0.01), th0, (1.0 if side > 0 else -1.0) * (1.2 + 0.4 * k) + rng.normal(0, 0.2), 0.0042, 0, 46)
+            grow(x + rng.normal(0, 0.01), th0, (1.0 if side > 0 else -1.0) * (1.2 + 0.4 * k) + rng.normal(0, 0.2), 0.0058, 0, 64)
     # in Haufen teilen (je Gruppe ein eigenes Gitter), danach ein Netz
     groups = []
     for xi, (x0, x1) in enumerate(((-0.5, -0.22), (-0.22, 0.04), (0.04, 0.3))):
@@ -143,7 +146,16 @@ def lichtenberg(skin_group, seed, roots):
             if ps:
                 groups.append({'name': f'narbe{xi}{si}', 'fm': 'ent_hd_scar', 'parts': ps, 'disp': scar_disp, 'h': 0.0013,
                                'cav_scale': 0.004, 'merge': 'narben'})
+            hs = [A.cone(b, a, c, ra, rb, k=0.006) for (b, a, c, ra, rb, x, s) in halo if x0 <= x < x1 and s == sd]
+            if hs:
+                groups.append({'name': f'brand{xi}{si}', 'fm': 'ent_hd_burn', 'parts': hs, 'disp': burn_disp, 'h': 0.0016,
+                               'cav_scale': 0.005, 'merge': 'brand'})
     return groups
+
+
+def burn_disp(Q):
+    # verbrannte Haut: rissig, schuppig
+    return -0.0003 * sdf.fbm(Q, 150, 2, seed=93) - 0.0004 * np.clip((sdf.ridged(Q, 90, 2, seed=94) - 0.7) * 4, 0, 1)
 
 
 def scar_disp(Q):
@@ -172,3 +184,20 @@ def sores(skin_group, seed, count):
         rims.append(A.ell(bone_at(x), p + n * 0.0021, ax, (r * 1.15, r * 0.88, 0.0030), up=n, op='sub', k=0.002))
         raw.append(A.ell(bone_at(x), p - n * 0.0004, ax, (r * 1.22, r * 0.94, 0.0022), up=n, k=0.002))
     return raw, rims
+
+
+def underside(skin_group, fm, name, seed, lift=0.0015):
+    """Runde 2 (Level 2): Bauch, Brust und Flanken von unten mit der Fluessigkeit bespritzt - die Schale bedeckt den Rumpf
+    unterhalb einer unruhigen Linie (darueber einzelne Spritzer), sonst liegt sie 1 cm unter der Haut."""
+    parts = [p for p in skin_group['parts'] if p.bone in TORSO_BONES | {4, 5} and p.op == 'add']
+    base = skin_group['disp']
+
+    def disp(Q):
+        n = sdf.fbm(Q, 10, 3, seed=seed)
+        # Runde 3: Linie bis zur Mitte der Flanken (unter dem Bauch allein sah man es von der Seite nicht); Runde 4: fbm um 0
+        line = 0.745 + 0.12 * n + 0.03 * sdf.fbm(Q, 40, 2, seed=seed + 1)
+        covered = np.clip((line - Q[:, 2]) / 0.012, 0, 1)
+        spots = np.clip((sdf.fbm(Q, 55, 2, seed=seed + 2) - 0.38) * 9, 0, 1) * (Q[:, 2] < line + 0.07)
+        covered = np.maximum(covered, spots)
+        return base(Q) - lift + 0.012 * (1.0 - covered)
+    return [{'name': name, 'fm': fm, 'parts': parts, 'disp': disp, 'h': 0.0024, 'cav_scale': 0.008}]

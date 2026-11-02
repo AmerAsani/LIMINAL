@@ -777,9 +777,9 @@ void CreatureAnimator::updateHound(float dt, const Input& in) {
         if (ph0 < duty) limp = 0.04f * std::sin(kPi * ph0 / duty);
     }
     vec3 C = W({B[CHEST].x + flex * 0.5f, 0.0f, 0.0f});
-    C.z = pos_.z + B[CHEST].z - crouchE * 0.2f - (run_ ? 0.03f : 0.0f) + bobC - limp + 0.012f * breath + 0.05f * perc_ - 0.17f * lurk + 0.05f * bark;
+    C.z = pos_.z + B[CHEST].z - crouchE * 0.2f - (run_ ? 0.03f : 0.0f) + bobC - limp + 0.012f * breath + 0.05f * perc_ - 0.3f * lurk + 0.05f * bark;
     vec3 P = W({B[PELVIS].x - flex * 0.5f, 0.0f, 0.0f});
-    P.z = pos_.z + B[PELVIS].z - crouchE * 0.1f + bobP - 0.03f * reach_ - 0.06f * light_ - 0.13f * lurk;
+    P.z = pos_.z + B[PELVIS].z - crouchE * 0.1f + bobP - 0.03f * reach_ - 0.06f * light_ - 0.28f * lurk;
     C = C + swayC + trem + lunge;
     P = P + swayP + lunge * 0.4f;
     // ausgemergelt: der Ruecken buckelt
@@ -867,7 +867,7 @@ void CreatureAnimator::updateHound(float dt, const Input& in) {
     hl = hl + (vec3{0.74f, 0.0f, 0.5f} - hl) * crouch_;
     // V13.2: wittern - der Kopf hebt sich und streckt sich vor; Licht - er zieht ihn ein und senkt ihn
     hl = hl + vec3{0.06f, 0.0f, 0.16f} * perc_ + vec3{-0.12f, 0.0f, -0.1f} * light_;
-    hl = hl + vec3{0.08f, 0.0f, -0.24f} * lurk + vec3{0.07f, 0.0f, 0.13f} * bark;  // V13.3: lauern, bellen
+    hl = hl + vec3{0.1f, 0.0f, -0.36f} * lurk + vec3{0.07f, 0.0f, 0.13f} * bark;  // V13.3: lauern (flach, Kinn am Boden), bellen
     // Schnueffeln in Stoessen (0,75 s an der Luft, 0,75 s Pause)
     spring(sniff_, sniffV_, perc_ > 0.3f && std::fmod(time_, 1.5f) < 0.75f ? 1.0f : 0.0f, 10.0f, dt);
     vec3 headT = W(hl) + Lw * (lean_ * 0.5f);

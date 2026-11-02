@@ -97,6 +97,8 @@ void CreatureAnimator::updateClumpL3(float dt, const Input& in) {
     const vec3 ceilCore = W({0.0f, 0.0f, ceilL - 0.40f + 0.5f * breath});
     const vec3 want = lerpC(floorCore, ceilCore, cs);
     if (!S.init) {
+        // Runde 1: der Anfang muss der Eingabe folgen (vorher stand er an der Decke - die Haende griffen am Boden nach oben)
+        S.ceil = ceilIn, S.ceilV = 0.0f;
         S.core = want, S.coreV = {};
         for (int a = 0; a < kArms; ++a) {
             const vec3 d0 = Mb({std::cos(kArm[a].ang), std::sin(kArm[a].ang), 0.0f});
@@ -135,12 +137,13 @@ void CreatureAnimator::updateClumpL3(float dt, const Input& in) {
         const vec3 Sh = body(armJ(a, 0));
         const float lu = upperLen(a), lf = foreLen(a);
         const vec3 d0 = Mb({std::cos(kArm[a].ang), std::sin(kArm[a].ang), 0.0f});
-        const float reach = (lu + lf) * (a == 0 ? 0.5f : 0.64f) * (1.0f - 0.25f * cs) + 0.12f * S.perc;
+        // Runde 2: der lange Arm 0 liegt am Boden fast gestreckt nach vorn (gefaltet stand er wie ein Spinnenbein 2 m hoch)
+        const float reach = (lu + lf) * (a == 0 ? 0.88f - 0.3f * cs : 0.64f * (1.0f - 0.25f * cs)) + 0.12f * S.perc;
         const vec3 ideal = vec3{S.core.x, S.core.y, surfZ} + d0 * reach + F * std::min(0.3f, vLocal * 0.35f);
         const bool groupA = k < 2, myHalf = groupA ? S.gait < 0.5f : S.gait >= 0.5f;
         const vec3 plantL = unvis(g.plant);
         const float off = length(vec3{plantL.x - ideal.x, plantL.y - ideal.y, (plantL.z - ideal.z) * 0.5f});
-        const bool wantStep = moving ? (myHalf && off > 0.1f) : (off > 0.32f && swinging == 0);
+        const bool wantStep = moving ? (myHalf && off > 0.1f) : (off > 0.32f && swinging < (off > 0.8f ? 2 : 1));
         if (!g.swing && wantStep) {
             g.swing = true;
             ++swinging;
@@ -162,7 +165,8 @@ void CreatureAnimator::updateClumpL3(float dt, const Input& in) {
         vec3 target = g.swing ? lerpC(unvis(g.from), unvis(g.to), t) + lift : unvis(g.plant);
         // lauschend tippen die Finger
         const float tap = S.perc * std::max(0.0f, std::sin(time_ * (12.0f + 1.5f * (float)a) + (float)a));
-        const vec3 pole = cs > 0.5f ? nC(-U + d0 * 0.4f, -U) : nC(U + d0 * 0.4f, U);
+        // Runde 2: Ellbogen nach aussen und nur wenig hoch (geordnet, nicht spinnenhaft); an der Decke nach aussen unten
+        const vec3 pole = cs > 0.5f ? nC(-U * 0.6f + d0 * 0.8f, -U) : nC(d0 * 0.85f + U * (a == 0 ? 0.1f : 0.35f), U);
         vec3 E, Wr;
         ik2(Sh, target, lu, lf, pole, E, Wr);
         J[armJ(a, 0)] = Sh;

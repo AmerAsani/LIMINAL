@@ -35,6 +35,7 @@ def build(J, bones):
     raw, rims = M.sores(skin, 2207, 7)
     skin['parts'] = skin['parts'] + rims
     groups += M.overlay(J, skin, 'ent_hd_oil', 'fluessigkeit', 2201, lift=0.0009, drips=5)
+    groups += M.underside(skin, 'ent_hd_oil', 'bauch', 2203)  # Runde 2: von unten bespritzt (zweifarbiger Umriss)
     groups.append({'name': 'wunden', 'fm': 'ent_cl_raw', 'parts': raw, 'disp': lambda Q: -0.0004 * sdf.fbm(Q, 160, 2, seed=97),
                    'h': 0.0011, 'cav_scale': 0.004})
     hair = M.part_of(groups, 'haar')

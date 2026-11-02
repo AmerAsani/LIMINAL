@@ -33,6 +33,8 @@ C = CL.C
 Z = np.array([0.0, 0.0, 1.0])
 X = np.array([1.0, 0.0, 0.0])
 TONES = CL.TONES
+# Runde 2: lebende Arme in eigener, stumpfer, trockener Haut (die Toene des kleinen Buendels glaenzten wie Kunststoff)
+HIDE = {'clump_a': 'ent_cl_hide_a', 'clump_b': 'ent_cl_hide_b', 'clump_c': 'ent_cl_hide_b'}
 
 
 def arm_joints(J, a):
@@ -48,7 +50,7 @@ def bone_spike(W, df, side, bone, length, rng, fresh):
     bone_p, raw, skin = [], [], []
     up = A.perp(df)
     lat = A.unit(np.cross(df, up))
-    for k, (o, L, r) in enumerate(((0.012, length, 0.0125), (-0.011, length * 0.78, 0.0105))):
+    for k, (o, L, r) in enumerate(((0.014, length, 0.019), (-0.013, length * 0.78, 0.016))):
         b0 = W - df * 0.04 + lat * o
         tip = W + df * L + lat * (o * 0.4) + up * rng.normal(0, 0.008)
         mid = A.lerp(b0, tip, 0.55) + up * 0.004
@@ -98,15 +100,15 @@ def sickle(E, W, df, side, bone, rng):
     pts, rad = [], []
     for i in range(9):
         t = i / 8
-        q = A.lerp(E, W, 0.25 + 0.95 * t) + lat * (0.035 + 0.13 * math.sin(t * math.pi * 0.9)) + up * (0.02 * t)
+        q = A.lerp(E, W, 0.25 + 1.15 * t) + lat * (0.04 + 0.22 * math.sin(t * math.pi * 0.9)) + up * (0.03 * t)
         pts.append(q)
-        rad.append(0.011 * (1 - 0.82 * t ** 1.5) + 0.0012)
+        rad.append(0.018 * (1 - 0.82 * t ** 1.5) + 0.0015)
     bone_p += A.chain(lambda q: bone, pts, rad, k=0.004)
     # Schneide: eine flache Klinge innen am Bogen (abgeschabt), Kerben
     for i in range(1, 8):
         a, b = pts[i], pts[i + 1]
         n = A.unit(np.cross(b - a, up))
-        bone_p.append(A.tube(bone, a - n * 0.006, b - n * 0.006, (0.0016, 0.007 * (1 - i / 9)), up=up, k=0.003))
+        bone_p.append(A.tube(bone, a - n * 0.009, b - n * 0.009, (0.0022, 0.011 * (1 - i / 9)), up=up, k=0.003))
         if rng.random() < 0.5:
             bone_p.append(A.ell(bone, A.lerp(a, b, 0.5) - n * 0.01, b - a, (0.004, 0.004, 0.006), up=up, op='sub', k=0.001))
     raw.append(A.ell(bone, pts[0] - lat * 0.004, df, (0.03, 0.02, 0.016), up=lat, k=0.006))  # Austrittswunde
@@ -119,15 +121,15 @@ def pipe(W, hd, back, hs, bone, rng):
     g = W + hd * 0.065 - back * 0.022
     ax = A.unit(side * 0.94 + hd * 0.34)
     steel, wire = [], []
-    a, b = g - ax * 0.17, g + ax * 0.6
-    steel.append(A.cone(bone, a, b, 0.0205, 0.0205, k=0.0))
-    steel.append(A.cone(bone, a - ax * 0.002, a + ax * 0.03, 0.024, 0.024, k=0.003))       # Muffe
+    a, b = g - ax * 0.17, g + ax * 0.72
+    steel.append(A.cone(bone, a, b, 0.026, 0.026, k=0.0))
+    steel.append(A.cone(bone, a - ax * 0.002, a + ax * 0.035, 0.031, 0.031, k=0.003))       # Muffe
     el = b + ax * 0.03
     bend = A.unit(ax * 0.3 - back * 0.95)
-    steel.append(A.ell(bone, el, ax, (0.034, 0.029, 0.029), k=0.006))                         # Winkelstueck
-    steel.append(A.cone(bone, el, el + bend * 0.11, 0.022, 0.022, k=0.004))
+    steel.append(A.ell(bone, el, ax, (0.042, 0.036, 0.036), k=0.006))                         # Winkelstueck
+    steel.append(A.cone(bone, el, el + bend * 0.13, 0.028, 0.028, k=0.004))
     for k in range(3):  # Gewindegaenge
-        steel.append(A.cone(bone, el + bend * (0.07 + 0.012 * k), el + bend * (0.076 + 0.012 * k), 0.0235, 0.0235, k=0.001))
+        steel.append(A.cone(bone, el + bend * (0.08 + 0.014 * k), el + bend * (0.087 + 0.014 * k), 0.0295, 0.0295, k=0.001))
     # Draht um den Griff, schraeg gewickelt
     pts = []
     for i in range(70):
@@ -136,7 +138,7 @@ def pipe(W, hd, back, hs, bone, rng):
         q = g + ax * (-0.11 + 0.24 * t)
         rv = A.perp(ax)
         rv2 = np.cross(ax, rv)
-        pts.append(q + (rv * math.cos(ang) + rv2 * math.sin(ang)) * 0.0235)
+        pts.append(q + (rv * math.cos(ang) + rv2 * math.sin(ang)) * 0.0295)
     wire += A.chain(lambda q: bone, pts, [0.0022] * len(pts), k=0.0015)
     return steel, wire
 
@@ -166,7 +168,7 @@ def build_big(J, bones, bare):
         bb = arm_bones(a)
         back_hint = bones[bb[2]]['frame'][:3, 2]
         hs = 1 if a % 2 == 0 else -1
-        th = 1.18 if a == 0 else 1.55 + 0.1 * ((a * 37) % 3) / 2
+        th = 1.4 if a == 0 else 1.85 + 0.12 * ((a * 37) % 3) / 2
         curl = None
         if a == 3 and not bare:
             curl = [(55, 80, 60), (58, 84, 62), (60, 86, 64), (62, 88, 66)]  # Faust um das Rohr
@@ -178,7 +180,7 @@ def build_big(J, bones, bare):
         if a == 1 or (a == 3 and bare):  # Hand ab, Knochenspiess
             skin = [p for p in skin if p.bone != bb[2]]
             nails = []
-            bp, rw, sk = bone_spike(W, df, hs, bb[2], 0.24 if a == 1 else 0.2, rng, fresh=a == 3)
+            bp, rw, sk = bone_spike(W, df, hs, bb[2], 0.36 if a == 1 else 0.32, rng, fresh=a == 3)
             bone_parts += bp
             raw += rw
             skin += sk
@@ -193,12 +195,21 @@ def build_big(J, bones, bare):
             st, wi = pipe(W, hd, back, hs, bb[2], rng)
             steel += st
             wire += wi
+        # Runde 2: pralle Muskelbaeuche (die Arme lasen sich als glatte Rohre) - Bizeps, Trizeps, Unterarmbeuger, Deltamuskel
+        du = A.unit(E - S)
+        lu, lf = CL.norm(E - S), CL.norm(W - E)
+        nfl = CL.orth(df, du)
+        if a != 0:
+            skin.append(A.ell(bb[0], S + du * lu * 0.55 + nfl * 0.03, du, (lu * 0.3, 0.075, 0.07), up=nfl, k=0.04))
+            skin.append(A.ell(bb[0], S + du * lu * 0.42 - nfl * 0.035, du, (lu * 0.34, 0.07, 0.075), up=nfl, k=0.04))
+            skin.append(A.ell(bb[1], E + df * lf * 0.24 + CL.orth(-nfl, df) * 0.02, df, (lf * 0.26, 0.06, 0.055), up=nfl, k=0.04))
+            skin.append(A.ell(bb[0], S + du * 0.07, du, (0.13, 0.085, 0.075), up=A.unit(S - C), k=0.05))
         # dicke Adern ueber den Unterarmen (Kraft)
         for k in range(3):
             p0 = A.lerp(E, W, 0.1) + A.perp(df) * rng.normal(0, 0.03)
             p1 = A.lerp(E, W, 0.5) + A.perp(df) * rng.normal(0, 0.03) + A.unit(np.cross(df, Z)) * rng.normal(0, 0.02)
             p2 = A.lerp(E, W, 0.85) + A.perp(df) * rng.normal(0, 0.02)
-            skin += A.chain(lambda q, b=bb[1]: b, [p0, p1, p2], [0.0055, 0.005, 0.004], k=0.004)
+            skin += A.chain(lambda q, b=bb[1]: b, [p0, p1, p2], [0.0075, 0.007, 0.0055], k=0.004)
         tone_parts[TONES[tone_of_arm[a]]].append((f'arm{a}', skin))
         if nails:
             nails_by_hand.append(nails)
@@ -312,7 +323,8 @@ def build_big(J, bones, bare):
         return -0.0012 * (sdf.ridged(Q, 110, 2, seed=193) - 0.5) - 0.0006 * sdf.fbm(Q, 60, 2, seed=194)
 
     def rust_disp(Q):
-        return -0.0007 * np.clip((sdf.fbm(Q, 45, 3, seed=195) - 0.45) * 3, 0, 1) - 0.0002 * sdf.fbm(Q, 220, 1, seed=196)
+        # Rostnarben (fbm um 0 verteilt - Runde 4: vorher fast nie)
+        return -0.0009 * np.clip((sdf.fbm(Q, 45, 3, seed=195) - 0.1) * 3, 0, 1) - 0.0002 * sdf.fbm(Q, 220, 1, seed=196)
 
     core_add = [p for p in core if p.op == 'add']
     limb_add = [p for t in TONES for _, ps in tone_parts[t] for p in ps if p.op == 'add']
@@ -320,8 +332,9 @@ def build_big(J, bones, bare):
                'cav_extra': limb_add}]
     for t in TONES:
         for name, ps in tone_parts[t]:
-            groups.append({'name': name, 'fm': t, 'parts': ps, 'disp': limb_disp, 'h': 0.0022, 'cav_scale': 0.010,
-                           'cav_extra': core_add, 'merge': 'glieder_' + t[-1]})
+            fm = HIDE[t] if name.startswith(('arm', 'bein')) else t
+            groups.append({'name': name, 'fm': fm, 'parts': ps, 'disp': limb_disp, 'h': 0.0022, 'cav_scale': 0.010,
+                           'cav_extra': core_add, 'merge': 'glieder_' + fm})
     for i, ns in enumerate(nails_by_hand):
         groups.append({'name': f'naegel{i}', 'fm': 'ent_horn', 'parts': ns, 'disp': None, 'h': 0.0006, 'cav_scale': 0.003,
                        'merge': 'naegel'})

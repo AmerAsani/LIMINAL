@@ -369,6 +369,11 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     materialData_[FM_ENT_HD_SOOT] = GpuMaterial{{0.12f, 0.11f, 0.10f}, 0, ent(EL_SKIN, ML_CRAZE), 1.3f, 0, 0.35f};
     materialData_[FM_ENT_CL_RAW] = GpuMaterial{{1.45f, 0.38f, 0.36f}, 0, ent(EL_NEST, ML_FIBER) | kMatFlagSkin, 0.28f, 0, 0.2f};
     materialData_[FM_ENT_CL_BONE] = GpuMaterial{{1.0f, 0.93f, 0.82f}, 0, ent(EL_TOOTH, ML_CRAZE), 0.75f, 0, 0.3f};
+    // Runde 2: verbrannte Haut (dunkel rotbraun, stumpf, rissig); die Arme des grossen Buendels trocken und stumpf (zwei Toene;
+    // Runde 3: dunkler - im Lampenlicht lasen sie sich wie Puppenhaut)
+    materialData_[FM_ENT_HD_BURN] = GpuMaterial{{0.55f, 0.26f, 0.18f}, 0, ent(EL_SKIN, ML_CRAZE) | kMatFlagSkin, 1.25f, 0, 0.3f};
+    materialData_[FM_ENT_CL_HIDE_A] = GpuMaterial{{1.42f, 1.08f, 0.95f}, 0, ent(EL_SKIN, ML_CRAZE) | kMatFlagSkin, 0.85f, 0, 0.3f};
+    materialData_[FM_ENT_CL_HIDE_B] = GpuMaterial{{0.98f, 0.70f, 0.58f}, 0, ent(EL_SKIN, ML_CRAZE) | kMatFlagSkin, 0.9f, 0, 0.3f};
     writeMaterials(gpu);
     lights_ = gpu.createStructured(sizeof(GpuLight), 2048, true, false);
     puddles_ = gpu.createStructured(sizeof(vec4), kMaxPuddles * 2, true, false);  // V13.3
