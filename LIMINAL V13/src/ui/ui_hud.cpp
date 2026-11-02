@@ -455,6 +455,8 @@ void Ui::drawDead(Host& h) {
              : cause == "tiefe"  ? "E S   H A T   D I C H   G E H O L T"
              : cause == "pilz"   ? "D E R   P I L Z   H A T   D I C H"           // V13.3 (KREATUR_Crawler.md)
              : cause == "garten" ? "D U   B I S T   E I N E   P F L A N Z E"   // V13.3 (Garden)
+             : cause == "photoshop" ? "A U S G E S C H N I T T E N"           // V13.3 Teil 4 (KREATUR_Photoshop.md)
+             : cause == "automat" ? "D E R   A U T O M A T   H A T   D I C H"  // V13.3 Teil 4 (KREATUR_CannibalCuisine.md)
                                  : "D U   H A S T   D E N   V E R S T A N D   V E R L O R E N",
              rgba8(226, 104, 92), gfx::FontFace::Bold, gfx::Align::Center);
     r_->rect(x + w * 0.5f - 60 * s, y + 94 * s, 120 * s, 1.5f * s, rgba8(200, 84, 72, 170));
@@ -484,6 +486,8 @@ void Ui::drawDead(Host& h) {
                            : cause == "tiefe" ? "Was geholfen hätte: nicht so lange über der Tiefe bleiben. Licht nach unten hält es kurz fern."
                            : cause == "pilz" ? "Was geholfen hätte: nichts Offenes trinken, nicht durch weiß befallene Pfützen waten; früh Mandelwasser."
                            : cause == "garten" ? "Was geholfen hätte: den Garden nicht zu lange durchstreifen. Draußen erholt man sich langsam."
+                           : cause == "photoshop" ? "Was geholfen hätte: fünf Fuß Abstand zum Klotz. In der Box nicht gehen – ihm etwas hinwerfen (Q)."
+                           : cause == "automat" ? "Was geholfen hätte: den Automaten nicht angreifen. Klappern die Klappen: zurück, weiter als zwei Schritte."
                            : role == 0   ? "Was geholfen hätte: nicht rennen. Hinsehen, stehen bleiben, Lampe aus, langsam zurück ins Licht."
                            : role == 1 ? "Was geholfen hätte: ihm nie den Rücken zukehren, nicht rennen. Ansehen, wenn es knurrt, dann langsam weg."
                            : role == 2 ? "Was geholfen hätte: kein Licht auf das Nest. Lampe aus, ruhig an der Wand vorbei."

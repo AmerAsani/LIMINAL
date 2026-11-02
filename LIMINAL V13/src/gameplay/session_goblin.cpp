@@ -138,7 +138,12 @@ void GameSession::goblinWorld(const Presence::Event& e) {
 
 int GameSession::hatchetSwing(const Player& p, vec3 eye, int who) {
     const vec3 look = forwardFromAngles((float)p.angle, (float)p.pitch);
-    return presence_.goblinSwing(who, eye, look);
+    const int r = presence_.goblinSwing(who, eye, look);
+    if (r != 0 || !appar_.any()) return r;
+    std::vector<Apparitions::Event> ev;  // V13.3 Teil 4: ein Automat oder Photoshop - beide schlagen zurueck
+    const int hit = appar_.swing(who, eye, look, ev);
+    applyApparitions(ev);
+    return hit;
 }
 
 }  // namespace lim::game

@@ -387,6 +387,17 @@ void App::scriptStep() {
             double val = 0.0;
             if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) < 2 || !session_->presence().goblinSet(key, val))
                 log::warn("Skript: goblin '{}' unbekannt oder keine Bande", arg);
+        } else if (cmd == "rand" && session_) {  // V13.3 Teil 4 (Bilder, Tests): rand <cuisine|swindle|photoshop|macchina> [abstand]
+            // [winkel] [nr] - der Spieler steht vor dem Randwesen von Level 2 und sieht es an (Swindlebird/Photoshop: erzwungen)
+            char name[32] = {};
+            double dist = 3.0, side = 0.0;
+            int nr = -1;
+            std::sscanf(arg.c_str(), "%31s %lf %lf %d", name, &dist, &side, &nr);
+            if (!session_->scriptApparition(name, dist, side, nr)) log::warn("Skript: rand '{}' - nicht gefunden oder kein Platz", arg);
+        } else if (cmd == "randstate" && session_) {  // V13.3 Teil 4: randstate <cc_vend|cc_anger|cc_lurch|cc_arm|sb_flee|sb_t|ps_box|ps_fed|ps_glitch> <wert>
+            char key[32] = {};
+            double val = 0.0;
+            if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) == 2) session_->apparitions().setState(key, val);
         } else if (cmd == "figclear" && session_) {  // V13 (Tests): Vorfuehrungen entfernen
             session_->presence().clearShowcase();
         } else if (cmd == "presence" && session_) {  // V10: Entity erscheinen lassen: presence <smiler|hound|moth|gestalt|blackout> [abstand]
@@ -2306,6 +2317,24 @@ void App::renderWorld(double dt, bool clean) {
             L.soft = 0.3f;
             L.shadows = false;
             sp.extraLights.push_back(L);
+        }
+        // V13.3 Teil 4: Automaten der Cannibal Cuisine (ihr Licht bleibt im Stromausfall an), der Bildschirm von Photoshop
+        if (playing) {
+            std::vector<game::Apparitions::Light> al;
+            s.apparitions().lights(al, cam.pos);
+            for (const auto& a : al) {
+                if (sp.extraLights.size() >= 10) break;
+                gfx::ExtraLight L;
+                L.pos = a.pos;
+                L.dir = a.dir;
+                L.color = a.color;
+                L.range = a.range;
+                L.spill = 0.7f;
+                L.size = 0.35f;
+                L.soft = 0.5f;
+                L.shadows = false;
+                sp.extraLights.push_back(L);
+            }
         }
         // V11: Level 6 - Tasten: was in Armlaenge ist, zeichnet sich ganz schwach ab (kein Schatten, kein Glanz)
         if (playing && s.world().level().touchLight) {

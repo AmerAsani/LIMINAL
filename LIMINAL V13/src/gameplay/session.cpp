@@ -43,6 +43,7 @@ GameSession::GameSession(const Content& content, const PrefabLibrary& prefabs,
     world_->onChunkLoaded = [this](const world::ChunkData& cd) { onChunk(cd, true); };
     world_->onChunkUnloaded = [this](const world::ChunkData& cd) { onChunk(cd, false); };
     phenomena_.setup(world_->level(), (u64)seed);  // V13.3: Erscheinungen ohne Figur (session_phenomena.cpp)
+    appar_.setup(world_->level(), (u64)seed);  // V13.3 Teil 4: Randwesen von Level 2 (session_apparitions.cpp)
     // V7: Laufbuch (V8: in der Welt beginnt jeder Lauf in der ersten Ebene)
     runLog_.levels.push_back(world_->level().world() ? world_->level().regions.front().id : levelId);
 }
@@ -112,6 +113,7 @@ void GameSession::respawnAtCheckpoint() {
     killCam_ = false, killT_ = 0.0, killRole_ = -1;
     air_ = 30.0, deepT_ = 0.0, deepStage_ = 0;  // V11
     phenomena_.reset(0);  // V13.3: neuer Anfang ohne Pilz und Ranken
+    appar_.resetPlayer(0);  // V13.3 Teil 4: ohne Sucht
     presence_.clear();
     presence_.setGrace(90.0);  // Schonzeit: kein Stromausfall, keine Entity gleich wieder
     haunt_.reset();
@@ -210,6 +212,7 @@ void GameSession::onChunk(const world::ChunkData& cd, bool loaded) {
         spawnLevelEntities(cd);
         spawnFinds(cd);  // V7: Notizen, Batterien, Notausgaenge
         spawnTraces(cd);  // V13.3: offenes Mandelwasser (session_phenomena.cpp)
+        spawnApparitions(cd);  // V13.3 Teil 4: Automaten, Blechtafel der Macchina (session_apparitions.cpp)
         // V6: abgelegte Items dieses Chunks wieder hinlegen
         for (auto& d : dropped_)
             if (!reg_.alive(d.entity) && world::chunkOf(ifloor(d.pos.x), ifloor(d.pos.y)) == cd.key) spawnDropped(d, {}, true);
@@ -606,6 +609,7 @@ void GameSession::carryOver(const GameSession& from) {
     levelMemory[from.levelId] = {from.picked, from.mapNotes_};
     if (auto it = levelMemory.find(levelId); it != levelMemory.end()) picked = it->second.picked, mapNotes_ = it->second.notes;
     phenomena_.ailment(0) = from.phenomena_.ailment(0);  // V13.3: der Pilz reist mit (die Garden-Uhr geht draussen zurueck)
+    appar_.addict(0) = from.appar_.addict(0);  // V13.3 Teil 4: die Sucht nach der Ware reist mit
 }
 
 // Wanderer: gehen zu zufaelligen Zielen in der Naehe, bleiben auf begehbaren Kacheln
@@ -907,6 +911,7 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
                 if (p) pawnTick(*p, dt);
         updatePresence(dt);  // V10
         updatePhenomena(dt);  // V13.3: Pilz, Garden, Gemaelde, Tuerspuren (nach den Wesen: others_ ist gefuellt)
+        updateApparitions(dt);  // V13.3 Teil 4: Randwesen von Level 2
     }
     if (killCam_ && !paused) killT_ += dt;  // V11
     target_ = ecs::kNull;
@@ -1122,6 +1127,15 @@ void GameSession::interact() {
         }
         return;
     }
+    // V13.3 Teil 4: Automat der Cannibal Cuisine - eine Taste, die Ware faellt (gratis)
+    if (auto* au = reg_.get<ApparitionUse>(target_)) {
+        std::string msg;
+        const ApparitionUse use = *au;
+        const bool ok = useApparition(use, nullptr, msg);
+        if (!msg.empty()) events_.push_back({ok ? GameEvent::Toast : (msg == "Inventar voll" ? GameEvent::InventoryFull : GameEvent::Toast), msg, 3.0f});
+        if (auto* t = reg_.get<Transform>(target_)) body_.gesture(Body::Gesture::Grab, t->pos + vec3{0, 0, 1.2f}, "", 0.0f, 1.0f);
+        return;
+    }
     // V8: Aufzug rufen bzw. in der Kabine losfahren
     if (auto* el = reg_.get<Elevator>(target_)) {
         auto* t = reg_.get<Transform>(target_);
@@ -1240,6 +1254,7 @@ void GameSession::useSlot(int idx) {
             std::vector<Phenomena::Event> pe;  // V13.3: eigenes Bild und Klang (die Werte rechnet der Host)
             const std::string extra = phenomena_.drink(0, inventory_.slots[(size_t)idx]->kind, pe);
             if (!extra.empty()) events_.push_back({GameEvent::Toast, extra, 3.0f});
+            if (inventory_.slots[(size_t)idx]->kind == "cc_ware") appar_.eat(0);  // V13.3 Teil 4: eigenes Bild und Klang (Sucht)
             netAction(2, (u32)idx);
         }
         return;
@@ -1263,7 +1278,15 @@ void GameSession::useSlot(int idx) {
         events_.push_back(ev);
         return;
     }
+    if (appar_.refuses(0, d->key)) {  // V13.3 Teil 4: suechtig nach der Ware der Cannibal Cuisine
+        GameEvent ev{GameEvent::Consume, "Du würgst es wieder hoch. Dein Körper will nur noch das aus dem Automaten.", 3.5f};
+        ev.sound = d->useSound;
+        events_.push_back(ev);
+        body_.gesture(Body::Gesture::Use, {}, d->model, (float)d->holdOffset, (float)d->scale);
+        return;
+    }
     GameEvent ev{GameEvent::Consume, stats_.consume(*d), 3.0f};
+    if (d->key == "cc_ware") ev.text += " · " + appar_.eat(0), ev.duration = 4.5f;  // V13.3 Teil 4
     std::vector<Phenomena::Event> pe;  // V13.3: offenes Mandelwasser steckt an, versiegeltes heilt frueh (KREATUR_Crawler.md)
     if (const std::string extra = phenomena_.drink(0, d->key, pe); !extra.empty()) ev.text += " · " + extra, ev.duration = 4.0f;
     ev.sound = d->useSound;
@@ -1377,6 +1400,7 @@ void GameSession::collectMeshes(std::vector<VisibleMesh>& out) {
     });
     lures_.collect(out, eye);  // V13.3: Leuchtstaebe
     phenomena_.collect(out, eye);  // V13.3: Gemaelde am Boden (KREATUR_GameMaster.md)
+    appar_.collect(out, eye);  // V13.3 Teil 4: Automaten, Swindlebird, Photoshop
     haunt_.collect(out);  // V7: "Der Andere"
     presence_.collect(out, palette_, eye, figureDetail);  // V10: die Figuren
     for (Pawn* p : pawns)  // V13.2 Koop: die Mitspieler (Spielermodell, Lampe von aussen)
@@ -1420,6 +1444,7 @@ Json GameSession::toJson() const {
     j.set("player", std::move(p));
     j.set("stats", stats_.toJson());
     j.set("phenomena", phenomena_.toJson(0));  // V13.3
+    j.set("apparitions", appar_.toJson(0));  // V13.3 Teil 4: Sucht
     j.set("inventory", inventory_.toJson());
     j.set("selected", inventory_.selected);
     std::vector<std::string> ids(picked.begin(), picked.end());
@@ -1521,6 +1546,7 @@ void GameSession::fromJson(const Json& j) {
     player_.distance = p["distance"].asNumber(0.0);
     stats_.fromJson(j["stats"]);
     phenomena_.fromJson(0, j["phenomena"]);  // V13.3
+    appar_.fromJson(0, j["apparitions"]);  // V13.3 Teil 4
     inventory_.fromJson(j["inventory"]);
     inventory_.selected = (int)(j["selected"].asInt(0) % Inventory::kHotbar);
     picked.clear();

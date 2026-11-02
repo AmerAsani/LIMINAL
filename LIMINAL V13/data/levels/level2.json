@@ -31,6 +31,11 @@
                // V13.3 Teil 4 (KREATUR_Jerry.md): Jerry auf dem Rohr in seinem Raum (Spawnpunkt "entity"/"jerry" der Karte)
                "jerry": { "mode": "room" } },
   "next_level": "level3",
+  // V13.3 Teil 4: Randwesen ohne Rolle (gameplay/apparitions_l2.hpp) - Automaten der Cannibal Cuisine (KREATUR_CannibalCuisine.md),
+  // eine seltene Sichtung des Swindlebird (KREATUR_Swindlebird.md), Photoshop in einem Buero (KREATUR_Photoshop.md),
+  // Reste der Macchina in der Werkstatt (KREATUR_Macchina.md)
+  "apparitions": { "cuisine": true, "swindle": true, "photoshop": true, "macchina": true, "stock": 3, "strike": 30,
+                   "photoshop_chance": 0.6, "box_range": 1.52, "box_time": 5.0, "swindle_chance": 0.5, "swindle_after": 240, "swindle_span": 900 },
   // V13.3 (KREATUR_Smiler.md): Leuchtstaebe liegen herum, eher in dunklen Raeumen - Koeder fuer Smiler
   "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0, "glowstick": 0.03, "glowstick_dark": 0.12 },
 

@@ -829,6 +829,32 @@ else:
 # Anordnung der Ebene bleibt gleich. Spawnpunkte kind "trace" mit set cuisine / swindle / photoshop / macchina.
 t6 = _random.Random(4406)
 used6 = [(x, y) for x, y in win_ends]
+
+
+def cc_block(r, x, y, yaw):
+    """Der Automat steht fest: die Kacheln unter seiner Grundflaeche (1,22 x 0,76 m) als unsichtbarer Block (Kollision,
+    Schatten, Wege). None, wenn er dabei eine Tuer verstellen wuerde."""
+    R = m.R(r)
+    c, s = math.cos(yaw), math.sin(yaw)
+    pts = [(x + c * dx - s * dy, y + s * dx + c * dy) for dx in (-0.38, 0.38) for dy in (-0.61, 0.61)]
+    x0 = max(R.x0, math.floor(min(p[0] for p in pts) + 0.05))
+    x1 = min(R.x1, math.ceil(max(p[0] for p in pts) - 0.05))
+    y0 = max(R.y0, math.floor(min(p[1] for p in pts) + 0.05))
+    y1 = min(R.y1, math.ceil(max(p[1] for p in pts) - 0.05))
+    if any(m.in_door(i, j) is not None for i in range(x0, x1) for j in range(y0, y1)):
+        return None
+    # vor jeder Tuer haelt die Welt drei Kacheln frei (room.cpp, planClearance) - dort gaebe es keinen Block
+    for d in m.doors:
+        if r not in (d.get('a'), d.get('b')):
+            continue
+        dx0, dy0, dx1, dy1 = d['rect']
+        for i in range(x0, x1):
+            for j in range(y0, y1):
+                gx = max(dx0 - (i + 0.5), 0, (i + 0.5) - dx1)
+                gy = max(dy0 - (j + 0.5), 0, (j + 0.5) - dy1)
+                if max(gx, gy) < 4.2:
+                    return None
+    return (r, x0, y0, x1, y1)
 # Cannibal Cuisines (Wikidot Level 2: recht haeufig, meist am Ende von Sackgassen oder an Waenden ohne Maschinen und Rohre;
 # ihr Licht war im Blackout ein Wegpunkt). Der Automat steht mit dem Ruecken 0,40 m vor der Stirnwand, Blick in den Gang.
 cuisines = []
@@ -844,18 +870,23 @@ for r, dirs in sorted(ends_open.items()):
         x, y, yaw = R.x0 + R.w / 2, (R.y0 + 0.42 if oy > 0 else R.y1 - 0.42), (math.pi / 2 if oy > 0 else -math.pi / 2)
     if math.hypot(x - m.start[0], y - m.start[1]) < 30 or min(R.w, R.h) < 2 or R.zone == 'jerry':
         continue
-    ends6.append((x, y, R.floor, yaw))
+    ends6.append((x, y, R.floor, yaw, r))
 t6.shuffle(ends6)
-for (x, y, z, yaw) in ends6:
+for (x, y, z, yaw, r) in ends6:
     if len(cuisines) >= 4:
         break
     # eine andere Sackgasse als die Fensterwesen (12 m), zu anderen Automaten 24 m
     if any(math.hypot(x - p[0], y - p[1]) < 12 for p in win_ends) or any(math.hypot(x - p[0], y - p[1]) < 24 for p in cuisines) \
             or not t4_free(x, y, 0.8):
         continue
+    blk = cc_block(r, x, y, yaw)
+    if blk is None:
+        continue
+    m.block(*blk, 1.83)
+    # der Spawnpunkt liegt vor dem Block (Tag o: so weit dahinter steht der Automat)
+    m.spawn('trace', x + math.cos(yaw) * 0.64, y + math.sin(yaw) * 0.64, z, yaw, set='cuisine', tags=['end', f'v{len(cuisines) % 3}', 'o0.64'])
     cuisines.append((x, y))
     used6.append((x, y))
-    m.spawn('trace', x, y, z, yaw, set='cuisine', tags=['end'])
 # zwei weitere an kahlen Kammerwaenden (keine Maschine, kein Rohr, keine Tuer im Umkreis von 1,6 m)
 walls6 = []
 for r in C.values():
@@ -868,16 +899,20 @@ for r in C.values():
             continue
         if any(math.hypot(o['pos'][0] - fx, o['pos'][1] - fy) < 1.6 for o in m.objects if o['model'] not in mapkit_ceiling):
             continue
-        walls6.append((x, y, R.floor, fyaw))
+        walls6.append((x, y, R.floor, fyaw, r))
 t6.shuffle(walls6)
-for (x, y, z, yaw) in walls6:
+for (x, y, z, yaw, r) in walls6:
     if len(cuisines) >= 6:
         break
     if any(math.hypot(x - p[0], y - p[1]) < 24 for p in used6) or not t4_free(x, y, 0.8):
         continue
+    blk = cc_block(r, x, y, yaw)
+    if blk is None:
+        continue
+    m.block(*blk, 1.83)
+    m.spawn('trace', x + math.cos(yaw) * 0.64, y + math.sin(yaw) * 0.64, z, yaw, set='cuisine', tags=['wall', f'v{len(cuisines) % 3}', 'o0.64'])
     cuisines.append((x, y))
     used6.append((x, y))
-    m.spawn('trace', x, y, z, yaw, set='cuisine', tags=['wall'])
 print('Cannibal Cuisines:', len(cuisines), ', '.join(f'({x:.0f}, {y:.0f})' for x, y in cuisines))
 
 # Swindlebird (Wikidot Level 2: eine alte, nie bestaetigte Meldung eines blauen Exemplars; Entity 192: Nester am Boden):
@@ -914,13 +949,17 @@ for o in desks6:
     dyaw = o.get('yaw', 0.0)
     if math.hypot(dx - m.start[0], dy - m.start[1]) < 40:
         continue
-    fyaw = dyaw - math.pi / 2  # Blick des Schreibtischs in den Raum (wie oben: m.obj(desk_crt, ..., fyaw + pi/2))
-    c_, s_ = math.cos(fyaw), math.sin(fyaw)
+    # hinter dem Monitor (lokal x = -0,95, an der Wand), Blick wie der Monitor (lokal +x): ueber dem Roehrenbildschirm,
+    # der sein Bild zeigt, ragt das Fotogesicht auf; wer an die Tastatur tritt, ist naeher als fuenf Fuss. Davor 1,6 m frei
+    c_, s_ = math.cos(dyaw), math.sin(dyaw)
     for side in (1, -1):
-        x, y = dx - s_ * 1.25 * side + c_ * 0.12, dy + c_ * 1.25 * side + s_ * 0.12
-        if m.at(x, y) != m.at(dx, dy) or m.in_door(math.floor(x), math.floor(y)) is not None or not t4_free(x, y, 0.55):
+        lx, ly = -0.95, -0.08 * side
+        x, y = dx + c_ * lx - s_ * ly, dy + s_ * lx + c_ * ly
+        fx_, fy_ = dx + c_ * 1.6, dy + s_ * 1.6
+        if m.at(x, y) != m.at(dx, dy) or m.at(fx_, fy_) != m.at(dx, dy) or m.in_door(math.floor(x), math.floor(y)) is not None \
+                or not t4_free(x, y, 0.5) or not t4_free(fx_, fy_, 0.5):
             continue
-        m.spawn('trace', x, y, dz, fyaw, set='photoshop', tags=[f'pc{dx:.3f},{dy:.3f},{dyaw:.4f},{o.get("variant", 0)}'])
+        m.spawn('trace', x, y, dz, dyaw, set='photoshop', tags=[f'pc{dx:.3f},{dy:.3f},{dyaw:.4f},{o.get("variant", 0)}'])
         ps6 += 1
         break
 print('Photoshop: moegliche Stellen', ps6)

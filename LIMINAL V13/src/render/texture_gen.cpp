@@ -1089,6 +1089,23 @@ std::vector<u8> generateItemIcon(const std::string& kind, int size) {
                 float hl = std::exp(-std::pow((u - 0.42f) * 22.0f, 2.0f)) * 0.22f;
                 r += hl, g += hl, b += hl;
             }
+        } else if (kind == "cc_ware") {
+            // V13.3 Teil 4: Ware der Cannibal Cuisine - Schokoriegelpapier, ein Ende aufgerissen, darin rohes Fleisch mit Fett
+            float c = 0.7071f, s = 0.7071f;
+            float x = (u - 0.5f) * c + (v - 0.5f) * s, y = -(u - 0.5f) * s + (v - 0.5f) * c;
+            if (std::fabs(x) < 0.4f && std::fabs(y) < 0.15f) {
+                a = 1;
+                r = 0.30f, g = 0.15f, b = 0.06f;  // braunes Papier
+                if (std::fabs(y) < 0.05f && x < 0.2f) r = 0.85f, g = 0.66f, b = 0.22f;  // Goldstreifen
+                if (x > 0.22f) {  // aufgerissen: Fleisch
+                    const float m = std::sin(u * 60.0f) * std::sin(v * 47.0f);
+                    r = 0.55f + 0.1f * m, g = 0.09f, b = 0.08f;
+                    if (m > 0.6f) r = 0.86f, g = 0.78f, b = 0.62f;  // Fett
+                }
+                if (std::fabs(x - 0.22f) < 0.02f && std::sin(y * 90.0f) > 0.0f) r = 0.22f, g = 0.11f, b = 0.05f;  // Rissrand
+                float hl = std::exp(-std::pow((y + 0.09f) * 18.0f, 2.0f)) * 0.22f;
+                r += hl, g += hl, b += hl;
+            }
         } else {
             // Flasche
             float x = std::fabs(u - 0.5f);

@@ -4198,6 +4198,296 @@ static void testV133LureTalk(const std::string& dataDir) {
 }
 
 // --- V13.3: Level 3 - Wretch mit Waffe, Skin-Stealer im Mantel (KREATUR_Wretch.md, KREATUR_SkinStealer.md) -------------
+// V13.3 Teil 4: Randwesen von Level 2 ohne Rolle (KREATUR_CannibalCuisine.md, KREATUR_Swindlebird.md, KREATUR_Photoshop.md,
+// KREATUR_Macchina.md)
+static void testV133L2Rand(const std::string& dataDir) {
+    std::printf("V13.3 Teil 4: Randwesen von Level 2 (Automat, Swindlebird, Photoshop, Macchina)\n");
+    const game::Content& content = *gContent11;
+    game::PrefabLibrary prefabs;
+    prefabs.loadDirectory(dataDir + "/prefabs");
+    JobSystem jobs(2);
+    using AE = game::Apparitions::Event;
+    const auto L2 = content.level("level2", world::kLayoutV6);
+    if (!L2 || !L2->map) return check(false, "Randwesen: Karte von Level 2");
+    // --- Karte ---------------------------------------------------------------------------------------------------------
+    std::map<std::string, int> sets, objs;
+    for (const auto& s : L2->map->spawns)
+        if (s.kind == "trace") sets[s.set]++;
+    bool inShop = true;
+    for (const world::MapObject& o : L2->map->objects) {
+        if (o.model.rfind("macchina_", 0) != 0 || o.model == "macchina_parts" || o.model == "macchina_tools") continue;
+        objs[o.model]++;
+        const int r = L2->map->roomAt(o.x, o.y);
+        inShop = inShop && r >= 0 && L2->map->rooms[(size_t)r].zone == "macchina";
+    }
+    check(sets["cuisine"] >= 4 && sets["swindle"] >= 10 && sets["photoshop"] >= 3 && sets["macchina"] >= 1,
+          std::format("Randwesen: Plaetze in der Karte (Automaten {}, Swindlebird {}, Photoshop {}, Macchina {})", sets["cuisine"],
+                      sets["swindle"], sets["photoshop"], sets["macchina"]));
+    check(objs["macchina_suit"] >= 1 && objs["macchina_tapestry"] >= 1 && objs["macchina_cradle"] >= 1 && objs["macchina_spear"] >= 1 && inShop,
+          "Macchina: Anzug, Wandtuch, Kindergestell und Pike liegen in der Werkstatt");
+    auto open = [&](i64 seed) {
+        auto s = std::make_unique<game::GameSession>(content, prefabs, L2, seed, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        s->presence().setGrace(3000.0);
+        return s;
+    };
+    auto step = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, double secs, const std::function<bool()>& each = {}) {
+        for (int i = 0; i < (int)(secs * 60.0); ++i) {
+            if (each && each()) break;
+            s.update(1.0 / 60.0, {}, false);
+            ev.insert(ev.end(), s.events().begin(), s.events().end());
+            s.events().clear();
+        }
+    };
+    auto said = [](const std::vector<game::GameEvent>& ev, const char* part) {
+        return std::any_of(ev.begin(), ev.end(), [&](const game::GameEvent& e) { return e.text.find(part) != std::string::npos; });
+    };
+    auto heard = [](const std::vector<game::GameEvent>& ev, const char* snd) {
+        return std::any_of(ev.begin(), ev.end(), [&](const game::GameEvent& e) { return e.type == game::GameEvent::SoundAt && e.sound == snd; });
+    };
+    auto slotOf = [](game::GameSession& s, const char* kind) {
+        for (int i = 0; i < game::Inventory::kSize; ++i)
+            if (s.inventory().slots[(size_t)i] && s.inventory().slots[(size_t)i]->kind == kind) return i;
+        return -1;
+    };
+    auto put = [](game::GameSession& s, vec3 p, vec3 lookAt) {
+        auto& pl = s.player();
+        pl.x = p.x, pl.y = p.y, pl.z = s.world().tile(ifloor(p.x), ifloor(p.y)).floor, pl.vx = pl.vy = 0.0;
+        pl.angle = std::atan2(lookAt.y - p.y, lookAt.x - p.x);
+        pl.pitch = std::atan2(lookAt.z - pl.eye(), std::max(0.3, (double)std::hypot(lookAt.x - p.x, lookAt.y - p.y)));
+        s.body().reset();
+    };
+    // --- Cannibal Cuisine: fest, leuchtet, gratis Ware, Sucht ------------------------------------------------------------
+    {
+        auto s = open(5);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& A = s->apparitions();
+        check((int)A.cuisines().size() == sets["cuisine"], std::format("Automat: alle {} Plaetze besetzt", sets["cuisine"]));
+        bool solid = true;
+        std::string fl;
+        for (const auto& c : A.cuisines()) {
+            const float h = s->world().tile(ifloor(c.pos.x), ifloor(c.pos.y)).floor - c.pos.z;
+            solid = solid && h > 1.5f;
+            fl += std::format(" ({:.1f},{:.1f}):{:.2f}", c.pos.x, c.pos.y, h);
+        }
+        check(solid, "Automat: steht fest (unsichtbarer Block unter der Grundflaeche)" + fl);
+        check(s->scriptApparition("cuisine", 1.7, 0.0, 0), "Automat: der Spieler steht davor");
+        step(*s, ev, 3.0);
+        std::vector<game::Apparitions::Light> lights;
+        A.lights(lights, s->body().eye());
+        check(!lights.empty() && lights[0].range > 5.0f, "Automat: leuchtet (Wegmarke, auch im Stromausfall)");
+        ev.clear();
+        step(*s, ev, 16.0);
+        check(heard(ev, "cc_whisper"), "Automat: in der Naehe fluestern die Leichen im Inneren");
+        int got = 0;
+        for (int k = 0; k < 4; ++k) {
+            step(*s, ev, 1.8);
+            const int before = s->inventory().count("cc_ware");
+            s->interact();
+            got += s->inventory().count("cc_ware") - before;
+        }
+        step(*s, ev, 0.2);
+        check(got == 3 && A.cuisines()[0].stock == 0, std::format("Automat: drei Waren gratis, dann leer ({} genommen, Rest {})", got, A.cuisines()[0].stock));
+        check(heard(ev, "cc_keys") && heard(ev, "cc_hand") && heard(ev, "cc_drop") && said(ev, "leer"),
+              "Automat: Tasten, die Knochenhand schiebt, die Ware faellt; danach leere Faecher");
+        // essen: Rausch, dann Sucht - Mandelwasser wirkt nicht mehr
+        s->stats().sanity = 50.0;
+        s->useSlot(slotOf(*s, "cc_ware"));
+        check(s->stats().sanity > 85.0 && A.addicted(0), std::format("Ware: Rausch (+40 % Verstand: {:.0f} %), danach suechtig", s->stats().sanity));
+        s->inventory().add("almond");
+        const double before = s->stats().sanity;
+        s->useSlot(slotOf(*s, "almond"));
+        step(*s, ev, 0.1);
+        check(std::fabs(s->stats().sanity - before) < 0.5 && said(ev, "würgst"), "Sucht: Mandelwasser nimmt der Koerper nicht mehr an");
+        // Entzug: weit weg von allen Automaten
+        vec3 far{};
+        float best = 0.0f;
+        for (const vec3& p : A.swindleSpots()) {
+            float m = 1e9f;
+            for (const auto& c : A.cuisines()) m = std::min(m, std::hypot(c.pos.x - p.x, c.pos.y - p.y));
+            if (m > best) best = m, far = p;
+        }
+        put(*s, far, far + vec3{1, 0, 1.5f});
+        step(*s, ev, 32.0);
+        check(best > 40.0f && A.sanityDrain(0) > 0.05, std::format("Sucht: fern der Automaten ({:.0f} m) zehrt der Entzug ({:.3f} %/s)", best, A.sanityDrain(0)));
+        // Spielstand: die Sucht bleibt
+        game::Apparitions copy;
+        copy.fromJson(0, A.toJson(0));
+        check(copy.addicted(0) && copy.addict(0).eaten == 1, "Sucht: im Spielstand");
+    }
+    // --- Cannibal Cuisine: wer angreift, den schlagen die Arme -----------------------------------------------------------
+    {
+        auto s = open(6);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& A = s->apparitions();
+        check(s->scriptApparition("cuisine", 1.35, 0.0, 1), "Zorn: vor den Automaten");
+        step(*s, ev, 2.0);
+        s->inventory().add("hatchet");
+        s->stats().health = 100.0;
+        s->useSlot(slotOf(*s, "hatchet"));
+        step(*s, ev, 0.9);
+        check(A.cuisines()[1].angerT >= 0.0 && s->stats().health > 99.0 && heard(ev, "cc_rattle"),
+              "Zorn: kuendigt sich an (Klappern, Kopfschild flackert) - noch kein Hieb");
+        step(*s, ev, 1.4);
+        check(s->stats().health < 99.0 && s->stats().health > 0.0 && heard(ev, "cc_strike") && said(ev, "Knochenarm"),
+              std::format("Zorn: Skelettarme schlagen aus den Klappen ({:.0f} % Gesundheit)", s->stats().health));
+        const auto& c = A.cuisines()[1];
+        const vec3 f{std::cos(c.yaw), std::sin(c.yaw), 0.0f};
+        put(*s, c.pos + f * 4.6f, c.pos + vec3{0, 0, 1.0f});
+        const double h = s->stats().health;
+        ev.clear();
+        step(*s, ev, 4.0);
+        check(s->stats().health >= h - 0.01 && !said(ev, "Knochenarm") && heard(ev, "cc_strike"),
+              std::format("Zorn: ausser Reichweite der Arme (1,37 m) trifft nichts ({:.0f} -> {:.0f} %, Abstand {:.1f} m)", h, s->stats().health,
+                          std::hypot(s->player().x - c.pos.x, s->player().y - c.pos.y)));
+        step(*s, ev, 3.0);
+        check(A.cuisines()[1].angerT < 0.0, "Zorn: die Arme ziehen sich zurueck, die Klappen schliessen");
+    }
+    // --- Swindlebird: eine Sichtung, ungesehen aufgetaucht, fort beim Hinsehen, ohne Spur ---------------------------------
+    {
+        auto s = open(7);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& A = s->apparitions();
+        int k = -1;
+        for (int i = 0; i < (int)A.swindleSpots().size() && k < 0; ++i)
+            if (s->scriptApparition("swindle", 15.0, 0.0, i) && std::hypot(s->player().x - A.swindleSpots()[(size_t)i].x, s->player().y - A.swindleSpots()[(size_t)i].y) > 12.0)
+                k = i;
+        check(k >= 0, "Swindlebird: eine Stelle mit langem Blick durch den Tunnel");
+        if (k >= 0) {
+            A.setState("sb_clear", 1.0);
+            s->player().angle += 3.14159;  // wegsehen
+            step(*s, ev, 1.0);
+            A.scheduleBird(0.3);
+            step(*s, ev, 1.5);
+            const auto& b = A.bird();
+            const float d = std::hypot(b.pos.x - (float)s->player().x, b.pos.y - (float)s->player().y);
+            check(b.state == 1 && !b.wasSeen && d > 10.0f && d < 29.0f,
+                  std::format("Swindlebird: taucht auf, wo niemand hinsieht ({:.1f} m, Zustand {})", d, b.state));
+            put(*s, vec3{(float)s->player().x, (float)s->player().y, 0.0f}, b.pos + vec3{0, 0, 0.16f});
+            step(*s, ev, 3.0, [&] { return A.bird().state == 2; });
+            check(A.bird().state == 2 && A.bird().wasSeen && heard(ev, "sb_flutter"), "Swindlebird: angesehen fliegt er fort");
+            step(*s, ev, 4.0);
+            check(A.bird().state == 3 && said(ev, "Keine Feder"), "Swindlebird: fort, keine Spur, kein Beweis");
+            A.scheduleBird(0.2);
+            step(*s, ev, 1.0);
+            check(A.bird().state == 3, "Swindlebird: nur eine Sichtung je Lauf");
+            // naeher kommen: fort
+            A.setState("sb_clear", 1.0);
+            A.forceBird(k);
+            const vec3 sp = A.swindleSpots()[(size_t)k];
+            const vec3 dir{std::cos(A.swindleYaws()[(size_t)k]), std::sin(A.swindleYaws()[(size_t)k]), 0.0f};
+            put(*s, sp + dir * 6.0f, sp + dir * 12.0f);
+            step(*s, ev, 0.2);
+            check(A.bird().state == 2, "Swindlebird: wer naeher kommt (8 m), vor dem fliegt er fort");
+            // weggesehen: einfach nicht mehr da
+            A.setState("sb_clear", 1.0);
+            A.forceBird(k);
+            put(*s, sp + dir * 15.0f, sp + vec3{0, 0, 0.16f});
+            step(*s, ev, 0.4);
+            const bool seen = A.bird().wasSeen;
+            const vec3 p0 = A.bird().pos;
+            s->player().angle += 3.14159;
+            step(*s, ev, 0.7);
+            check(seen && A.bird().state == 3 && length(A.bird().pos - p0) < 0.01f, "Swindlebird: kurz weggesehen - er ist fort, ohne Flug");
+        }
+    }
+    // --- Photoshop: Box bei fuenf Fuss, Gabe rettet, sonst ausgeschnitten -------------------------------------------------
+    for (int variant = 0; variant < 3; ++variant) {
+        auto s = open(8 + variant);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& A = s->apparitions();
+        check(s->scriptApparition("photoshop", 3.2, 0.0, 0), "Photoshop: vor ihm, im Buero mit dem Rechner");
+        step(*s, ev, 2.0);
+        const auto& P = A.shop();
+        if (variant == 0) check(P.present && P.state == 0 && !s->stats().dead, "Photoshop: aus der Ferne harmlos");
+        const vec3 f{std::cos(P.yaw), std::sin(P.yaw), 0.0f};
+        put(*s, P.pos + f * 1.75f, P.pos + vec3{0, 0, 1.6f});
+        step(*s, ev, 0.3);
+        check(P.state == 1 && P.victim == 0 && said(ev, "Box"), "Photoshop: naeher als fuenf Fuss - die Box schliesst ein");
+        if (variant == 0) {
+            s->inventory().add("almond");
+            step(*s, ev, 1.0);
+            s->dropStack("almond", 1);
+            step(*s, ev, 0.6);
+            check(P.state == 2 && heard(ev, "ps_arm"), "Photoshop: hingeworfen - der Arm holt es in den Bildschirm");
+            step(*s, ev, 3.0);
+            check(P.state == 3 && !s->stats().dead, "Photoshop: mit der Gabe faellt die Box, er sucht anderswo");
+        } else if (variant == 1) {
+            step(*s, ev, A.config().boxTime + 0.5);
+            check(s->stats().dead && s->deathCause() == "photoshop" && heard(ev, "ps_crop"), "Photoshop: ohne Gabe ausgeschnitten");
+        } else {
+            step(*s, ev, 1.0);
+            const bool alive = !s->stats().dead;
+            put(*s, P.boxC + f * 1.3f, P.pos + vec3{0, 0, 1.0f});
+            step(*s, ev, 0.2);
+            check(alive && s->stats().dead && s->deathCause() == "photoshop", "Photoshop: wer durch die Wand der Box geht, wird ausgeschnitten");
+        }
+    }
+    // --- Macchina: Reste, der Fund, die Tafel im Notizbuch (nie zufaellig) -----------------------------------------------
+    {
+        auto s = open(12);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& A = s->apparitions();
+        check(!A.relics().empty() && s->scriptApparition("macchina", 1.8, 0.0, 0), "Macchina: vor dem leeren Anzug");
+        step(*s, ev, 2.0);
+        check(A.addict(0).macchinaSeen && said(ev, "Anzug") && heard(ev, "mc_creak"), "Macchina: der erste Blick erzaehlt den Fund");
+        int plate = -1;
+        for (size_t i = 0; i < content.notes().size(); ++i)
+            if (content.notes()[i].title == "Blechtafel der Macchina") plate = (int)i;
+        bool random = false;
+        for (u64 h = 0; h < 400; ++h) random = random || content.noteFor("level2", h, false) == plate || content.noteFor("level2", h, true) == plate;
+        check(plate >= 0 && !random, "Macchina: die Blechtafel liegt nur beim Anzug (keine Zufallsnotiz)");
+    }
+    // --- Koop: der Gast sieht, was der Host entscheidet (Weltereignis "l2rand") -----------------------------------------
+    {
+        auto s = open(13);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        game::Apparitions host, guest;
+        host.setup(*L2, 4242), guest.setup(*L2, 4242);
+        check(host.cuisines().size() == guest.cuisines().size() && host.shop().present == guest.shop().present && host.shop().spot == guest.shop().spot,
+              "Koop: beim Gast dieselben Automaten und derselbe Photoshop (Karte, Startwert)");
+        std::vector<AE> out, sink;
+        auto relay = [&] {
+            for (const AE& e : out)
+                if (e.kind == AE::Net) guest.applyNet(e.code, e.pos, "almond", sink);
+            out.clear();
+        };
+        std::string msg;
+        host.vend(0, 1, msg, out);
+        relay();
+        check(guest.cuisines()[0].stock == host.cuisines()[0].stock && guest.cuisines()[0].vendT >= 0.0, "Koop: Ausgabe beim Gast (Hand, Ware)");
+        const auto& c = host.cuisines()[2];
+        const vec3 cf{std::cos(c.yaw), std::sin(c.yaw), 0.0f};
+        const vec3 eye = c.pos + cf * 1.4f + vec3{0, 0, 1.6f};
+        check(host.swing(1, eye, normalize(c.pos + cf * 0.38f + vec3{0, 0, 1.0f} - eye), out) == 2, "Koop: Beil des Gastes trifft den Automaten");
+        relay();
+        check(guest.cuisines()[2].angerT >= 0.0, "Koop: der Zorn des Automaten beim Gast");
+        host.forceShop(0), guest.forceShop(0);
+        std::array<game::Apparitions::PlayerIn, game::Apparitions::kPlayers> pl{};
+        const auto& P = host.shop();
+        const vec3 pf{std::cos(P.yaw), std::sin(P.yaw), 0.0f};
+        pl[2].alive = true, pl[2].feet = P.pos + pf * 1.7f, pl[2].eye = pl[2].feet + vec3{0, 0, 1.6f}, pl[2].look = -pf;
+        host.update(0.1, pl, {}, true, s->world(), out);
+        relay();
+        check(guest.shop().state == 1 && guest.shop().victim == 2 &&
+                  std::any_of(sink.begin(), sink.end(), [](const AE& e) { return e.kind == AE::Toast && e.player == 2; }),
+              "Koop: die Box beim Gast, die Meldung an das Opfer");
+        host.offered(P.pos + pf * 1.2f, "almond", out);
+        guest.applyNet((7u << 24) | 1u, P.pos + pf * 1.2f, "almond", sink);
+        check(guest.shop().state == 2, "Koop: die Gabe beim Gast (Arm aus dem Bildschirm)");
+        host.forceBird(1);
+        guest.applyNet((3u << 24) | 1u, host.swindleSpots()[1], "", sink);
+        check(guest.bird().state == 1 && guest.bird().spot == 1, "Koop: die Sichtung des Swindlebird beim Gast");
+    }
+}
+
 static void testV133Level3Kin(const std::string& dataDir) {
     std::printf("V13.3: Level 3 - Wretch mit Waffe, Skin-Stealer im Mantel\n");
     const game::Content& content = *gContent11;
@@ -5498,6 +5788,7 @@ int main(int argc, char** argv) {
     testV133Phenomena(argv[1]);   // V13.3: Erscheinungen in Level 1 (Pilz, Garden, Gemaelde, Tuerspuren)
     testV133Level2Kin(argv[1]);   // V13.3 Teil 4: Level 2 (Fenster am Gangende, Motten, Ratten an Faessern, Spuren)
     testV133Jerry(argv[1]);       // V13.3 Teil 4: Jerry (Level 2)
+    testV133L2Rand(argv[1]);      // V13.3 Teil 4: Randwesen von Level 2 (Automat, Swindlebird, Photoshop, Macchina)
     testV133Level3Kin(argv[1]);   // V13.3: Level 3 - Wretch mit Waffe, Skin-Stealer im Mantel
     std::printf("%s: %d Pruefungen, %d Fehler\n", gFails ? "FEHLGESCHLAGEN" : "OK", gChecks, gFails);
     return gFails ? 1 : 0;

@@ -346,6 +346,23 @@ def build_cc_body(v=0):
     # Fach: Rueckwand leuchtet, fuenf Reihen Ware je vier Plaetze, hinter jeder Ware eine Knochenhand
     bx = -0.20
     box(K(M['backlit']), (bx - 0.01, gy0, gz0), (bx, gy1, gz1))
+    # Runde 2: die Rueckwand ist nicht sauber - blutige Handabdruecke von innen, Schlieren, nach unten verlaufen
+    for (py, pz, sc) in ((gy0 + 0.12 + 0.05 * v, 1.32, 1.0), (gy0 + 0.47, 0.98 - 0.04 * v, 0.85), (gy0 + 0.66, 1.42, 0.7)):
+        o = V((bx + 0.0012, py, pz))
+        palm = [(0.032 * math.cos(a) * sc, 0.038 * math.sin(a) * sc) for a in [i * TAU / 12 for i in range(12)]]
+        poly_on(K(M['blood']), palm, o, (0, 1, 0), (0, 0, 1))
+        for f in range(5):
+            fa = -0.9 + f * 0.42 if f else -1.9
+            fl = (0.07 if f in (2, 3) else 0.06) * sc
+            p0 = (0.03 * math.cos(fa + 1.57) * sc, 0.03 * math.sin(fa + 1.57) * sc)
+            p1 = (p0[0] + fl * math.cos(fa + 1.57), p0[1] + fl * math.sin(fa + 1.57))
+            poly_on(K(M['blood']), L1.stroke([p0, p1], 0.007 * sc), o + V((0.0002, 0, 0)), (0, 1, 0), (0, 0, 1))
+        for k in range(3):  # verlaufen
+            x0 = rng.uniform(-0.02, 0.02) * sc
+            poly_on(K(M['blood']), L1.stroke([(x0, -0.03 * sc), (x0 + rng.uniform(-0.004, 0.004), -0.03 * sc - rng.uniform(0.05, 0.16))], 0.0035), o + V((0.0004, 0, 0)), (0, 1, 0), (0, 0, 1))
+    for k in range(5):  # Schmier: Finger, die abgerutscht sind
+        py, pz = rng.uniform(gy0 + 0.05, gy1 - 0.05), rng.uniform(gz0 + 0.1, gz1 - 0.15)
+        poly_on(K(M['meat_d']), L1.stroke([(py, pz), (py + rng.uniform(-0.03, 0.03), pz - rng.uniform(0.08, 0.2))], 0.009), V((bx + 0.0008, 0, 0)), (0, 1, 0), (0, 0, 1))
     for s_, yy in ((-1, gy0), (1, gy1)):
         box(K(M['shelf']), (bx, yy - 0.005, gz0), (fx - 0.02, yy + 0.005, gz1))
     box(K(M['shelf']), (bx, gy0, gz1 - 0.005), (fx - 0.02, gy1, gz1))
@@ -368,7 +385,8 @@ def build_cc_body(v=0):
             if kind:
                 _ware(K, M, kind, xf, yy, z, rng)
             hx = (xf - 0.15) if kind else (fx - 0.08)
-            bone_hand(K, M, (hx - 0.075, yy, z + 0.03), (1, 0, 0), (0, 1, 0), (0, 0, 1), 0.9, curl=0.15, spread=0.4)
+            # Runde 2: groessere Haende, die die Ware umgreifen (aus der Naehe sofort zu erkennen)
+            bone_hand(K, M, (hx - 0.085, yy, z + 0.035), (1, 0, 0), (0, 1, 0), (0, 0, 1), 1.15, curl=0.38, spread=0.3)
     # rechte Saeule: Anzeige, Ziffernfeld, Buchstabenfeld, statt des Muenzschlitzes ein glattes Blech
     sy0, sy1 = gy1 + 0.04, hw - 0.04
     yc = (sy0 + sy1) / 2
@@ -491,10 +509,10 @@ def build_cc_humerus():
     K = Kit()
     M = _mats()
     L = CC_ARM_LEN[0]
-    _coated_bone(K, M, (0, 0, 0), (L, 0, 0), 0.016, 0.014, rng)
-    ellipsoid(K(M['bone'], 30), (0.0, 0.0, 0.0), (1, 0, 0), 0.03, 0.028, 10, 5)  # Gelenkkopf
+    _coated_bone(K, M, (0, 0, 0), (L, 0, 0), 0.025, 0.021, rng)  # Runde 2: kraeftiger (wirkte duenn wie Insektenbeine)
+    ellipsoid(K(M['bone'], 30), (0.0, 0.0, 0.0), (1, 0, 0), 0.044, 0.04, 10, 5)  # Gelenkkopf
     for d in (-1, 1):
-        ellipsoid(K(M['bone_d'], 30), (L, d * 0.016, 0.0), (0, 1, 0), 0.016, 0.018, 8, 4)  # Kondylen
+        ellipsoid(K(M['bone_d'], 30), (L, d * 0.024, 0.0), (0, 1, 0), 0.024, 0.026, 8, 4)  # Kondylen
     K.finish()
 
 
@@ -503,16 +521,16 @@ def build_cc_forearm():
     K = Kit()
     M = _mats()
     L = CC_ARM_LEN[1]
-    _coated_bone(K, M, (0.0, 0.012, 0.0), (L, 0.014, 0.0), 0.011, 0.012, rng)   # Elle
-    _coated_bone(K, M, (0.01, -0.012, 0.004), (L, -0.018, -0.002), 0.009, 0.013, rng)  # Speiche
-    ellipsoid(K(M['bone'], 30), (-0.01, 0.012, 0.0), (1, 0, 0), 0.02, 0.016, 8, 4)  # Ellenhaken
+    _coated_bone(K, M, (0.0, 0.017, 0.0), (L, 0.02, 0.0), 0.017, 0.018, rng)   # Elle
+    _coated_bone(K, M, (0.01, -0.017, 0.006), (L, -0.025, -0.002), 0.014, 0.019, rng)  # Speiche
+    ellipsoid(K(M['bone'], 30), (-0.012, 0.017, 0.0), (1, 0, 0), 0.03, 0.024, 8, 4)  # Ellenhaken
     K.finish()
 
 
 def build_cc_hand(v=0):
     K = Kit()
     M = _mats()
-    bone_hand(K, M, (0.0, 0.0, 0.0), (1, 0, 0), (0, 1, 0), (0, 0, 1), scale=2.25, curl=0.75 if v == 0 else 0.12,
+    bone_hand(K, M, (0.0, 0.0, 0.0), (1, 0, 0), (0, 1, 0), (0, 0, 1), scale=2.7, curl=0.75 if v == 0 else 0.12,
               spread=0.15 if v == 0 else 0.9, mat_b='bone', mat_j='coat_d', coat='coat')
     K.finish()
 
@@ -576,16 +594,17 @@ def build_sb_body():
     ellipsoid(K(M['blue_d'], 50), c, (1, 0, 0.18), 0.135, 0.068, 16, 10)
     ellipsoid(K(M['blue'], 50), c + V((0.045, 0.0, -0.005)), (0.4, 0, 1), 0.07, 0.062, 14, 8)  # Brust
     # Federschuppen in Reihen ueber Ruecken, Flanken und Brust
-    for row in range(9):
-        t = row / 8
-        x = 0.11 - t * 0.21
+    # Runde 2: kleinere, flach anliegende Federn in mehr Reihen (vorher Stacheln wie ein Zapfen)
+    for row in range(13):
+        t = row / 12
+        x = 0.115 - t * 0.215
         rr = 0.068 * math.sqrt(max(0.05, 1.0 - ((x - 0.015) / 0.14) ** 2))
-        for k in range(14):
-            a = -math.pi * 0.95 + TAU * 0.95 * k / 13 + (row % 2) * 0.12
+        for k in range(18):
+            a = -math.pi * 0.95 + TAU * 0.95 * k / 17 + (row % 2) * 0.1
             nrm = V((0.0, math.cos(a), math.sin(a)))
-            p = V((x, 0.0, 0.035)) + nrm * rr * 1.01
+            p = V((x, 0.0, 0.035)) + nrm * rr * 1.0
             mat_ = 'blue_l' if (nrm.z > 0.4 and rng.random() < 0.35) else ('blue' if nrm.z > -0.3 else 'blue_d')
-            _feather(K(M[mat_], 40), p, V((-1.0, 0.0, 0.0)) + nrm * 0.25, nrm.cross(V((1, 0, 0))), 0.035 + 0.01 * rng.random(), 0.022, curl=-0.4)
+            _feather(K(M[mat_], 40), p, V((-1.0, 0.0, 0.0)) + nrm * 0.06, nrm.cross(V((1, 0, 0))), 0.024 + 0.006 * rng.random(), 0.017, curl=-0.12)
     # der Belag: nasse, glaenzende Perlen und Laeufe (das halluzinogene Mittel der aeusseren Federn)
     for _ in range(26):
         a = rng.uniform(-math.pi, math.pi * 0.2)
@@ -1065,6 +1084,8 @@ def build_ps_handle():
 def _mc_mats():
     return {
         'pipe': mat('mc_rohrblech', (0.95, 0.88, 0.82), 'metal', tex='metal_rusty_iron', r=1.25, m=0.1),
+        'plate': mat('mc_tafelblech', (0.42, 0.36, 0.30), 'metal', tex='metal_rusty_iron', r=1.2, m=0.15),
+        'tint': mat('mc_anlauffarbe', (0.22, 0.20, 0.34), 'metal', r=0.6, m=0.4),
         'brass': mat('mc_messing', (0.62, 0.48, 0.24), 'metal', r=0.75, m=0.2),
         'steel': mat('mc_stahl_alt', (0.36, 0.36, 0.37), 'metal', r=0.95),
         'dark': mat('mc_innen', (0.04, 0.035, 0.03), 'plastic', r=1.3),
@@ -1176,13 +1197,24 @@ def build_macchina_suit():
     vw = vu.cross(vn).normalized()
     lathe(K(M['steel'], 45), [(0.0, 0.0), (0.15, 0.0), (0.155, 0.01), (0.0, 0.012)], 16, Matrix.Translation(vis_c) @ hq)
     fo = vis_c + vn * 0.013
+    # Runde 2: das Gesicht als grobe Schweissraupen aus einzelnen Perlen mit Anlauffarben, schief und zu menschlich -
+    # vorher duenne Linien, die wie ein gemaltes Roboterlaecheln wirkten
+    def beads(pts2, r0=0.0075):
+        path = [fo + vu * a + vw * b for (a, b) in pts2]
+        for i in range(len(path) - 1):
+            for k in range(4):
+                p = path[i].lerp(path[i + 1], k / 4)
+                ellipsoid(K(M['weld'], 40), p + vn * 0.002, vn, r0 * rng.uniform(0.6, 0.9), r0 * rng.uniform(0.9, 1.3), 7, 3)
+                ellipsoid(K(M['tint'], 30), p, vn, 0.0012, r0 * 1.9, 8, 2)
     for side in (-1, 1):
-        pts = [(side * 0.03, 0.05), (side * 0.07, 0.065), (side * 0.11, 0.05)]
-        sweep(K(M['weld'], 40), [fo + vu * a + vw * b for (a, b) in pts], 0.006, 6)                # Braue
-        sweep(K(M['weld'], 40), [fo + vu * (side * 0.07 + 0.025 * math.cos(t)) + vw * (0.02 + 0.014 * math.sin(t)) for t in [k * TAU / 10 for k in range(11)]], 0.005, 6)  # Auge
-        ellipsoid(K(M['dark'], 30), fo + vu * side * 0.07 + vw * 0.02, vn, 0.004, 0.009, 6, 3)
-    sweep(K(M['weld'], 40), [fo + vw * 0.035, fo + vu * 0.012 + vw * -0.025, fo + vw * -0.03], 0.006, 6)  # Nase
-    sweep(K(M['weld'], 40), [fo + vu * a + vw * (-0.075 + 0.012 * math.cos(a * 18)) for a in [-0.06 + k * 0.02 for k in range(7)]], 0.006, 6)  # Mund
+        ex, ey = side * (0.068 + 0.006 * side), 0.022 + 0.008 * side  # Augen nicht auf einer Hoehe
+        beads([(side * 0.025, 0.052 + 0.01 * side), (side * 0.07, 0.072), (side * 0.118, 0.05 - 0.012 * side)])  # Braue
+        beads([(ex + 0.03 * math.cos(t), ey + 0.019 * math.sin(t)) for t in [k * TAU / 9 for k in range(10)]], 0.006)  # Lid
+        ellipsoid(K(M['dark'], 30), fo + vu * ex + vw * ey - vn * 0.004, vn, 0.006, 0.012, 8, 3)  # gebohrt: dunkles Loch
+    beads([(0.0, 0.04), (0.006, 0.0), (0.016, -0.028), (-0.004, -0.032)])  # Nase
+    beads([(-0.075, -0.07), (-0.04, -0.082), (0.0, -0.078), (0.03, -0.086), (0.07, -0.072)], 0.0085)  # Mund
+    for a in (-0.05, -0.025, 0.0, 0.025, 0.05):  # Zaehne: Punkte unter der Raupe
+        ellipsoid(K(M['weld'], 40), fo + vu * a + vw * -0.097, vn, 0.004, 0.005, 6, 3)
     # Staub auf allem, was oben liegt
     for _ in range(18):
         p = V((rng.uniform(0.15, 1.1), rng.uniform(-0.35, 0.35), 0.002))
@@ -1282,6 +1314,71 @@ def build_macchina_tapestry():
     for _ in range(14):  # Flecken, Stockflecken
         cy, cz = rng.uniform(-w, w), rng.uniform(z0, z1)
         poly_on(K(M['cloth_d']), blob2(rng, cy, cz, rng.uniform(0.02, 0.06), rng.uniform(0.02, 0.05), 10, 0.4), o2 + V((0.002, 0, 0)), U, W)
+    K.finish()
+
+
+def build_macchina_plate():
+    """Fund (Notiz): Tafel aus flachgeklopftem Rohrblech am Boden, 32 x 22 cm, Ecken hochgebogen; eingeschlagene Zeichen
+    in Reihen, in der Mitte eine Lichtkugel mit herabsteigenden Gestalten, unten kniende Anzuege; am Rand mit einem Nagel
+    eingeritzte Zeilen der Lost (duenne Kratzer). Ursprung Mitte am Boden."""
+    rng = random.Random(1894)
+    K = Kit()
+    M = _mc_mats()
+    w, h, z = 0.16, 0.11, 0.006
+    bm = K(M['plate'], 40)
+    n = 8
+    grid = []
+    for i in range(n + 1):  # leicht gewellt, Ecken hoch
+        row = []
+        for j in range(n + 1):
+            u, v = -w + 2 * w * i / n, -h + 2 * h * j / n
+            lift = 0.012 * (abs(u) / w) ** 3 * (abs(v) / h) ** 2 + 0.0015 * math.sin(i * 1.7 + j * 0.9)
+            row.append(bm.verts.new((u, v, z + lift)))
+        grid.append(row)
+    for i in range(n):
+        for j in range(n):
+            bm.faces.new([grid[i][j], grid[i + 1][j], grid[i + 1][j + 1], grid[i][j + 1]])
+    box(K(M['steel'], 40), (-w, -h, 0.0), (w, h, z - 0.001))  # Unterseite / Kante
+    up, side, top = V((0, 0, 1)), V((1, 0, 0)), V((0, 1, 0))
+    zz = z + 0.0035
+    # Zeichen in vier Reihen: Kreise, Striche, Augen, Helmfiguren
+    for r_ in range(4):
+        for c_ in range(9):
+            x, y = -w + 0.025 + c_ * 0.034, (h - 0.02) - r_ * 0.022
+            if r_ in (1, 2) and abs(x) < 0.06:
+                continue  # Platz fuer die Lichtkugel
+            k = rng.randrange(4)
+            o = V((x, y, zz))
+            if k == 0:
+                poly_on(K(M['soot']), [(0.006 * math.cos(a), 0.006 * math.sin(a)) for a in [i * TAU / 8 for i in range(8)]], o, side, top)
+            elif k == 1:
+                poly_on(K(M['soot']), L1.stroke([(-0.006, -0.006), (0.006, 0.006)], 0.0015), o, side, top)
+                poly_on(K(M['soot']), L1.stroke([(-0.006, 0.006), (0.006, -0.006)], 0.0015), o, side, top)
+            elif k == 2:
+                poly_on(K(M['soot']), [(0.008 * math.cos(a), 0.0045 * math.sin(a)) for a in [i * TAU / 10 for i in range(10)]], o, side, top)
+                poly_on(K(M['pipe']), [(0.0025 * math.cos(a), 0.0025 * math.sin(a)) for a in [i * TAU / 8 for i in range(8)]], o + V((0, 0, 0.0004)), side, top)
+            else:
+                poly_on(K(M['soot']), [(-0.004, -0.007), (0.004, -0.007), (0.004, 0.002), (0.0, 0.007), (-0.004, 0.002)], o, side, top)
+    # Lichtkugel mit Strahlen, drei Gestalten steigen herab
+    c = V((0.0, 0.0, zz))
+    poly_on(K(M['brass']), [(0.02 * math.cos(a), 0.02 * math.sin(a)) for a in [i * TAU / 16 for i in range(16)]], c, side, top)
+    for k in range(10):
+        a = k * TAU / 10
+        poly_on(K(M['soot']), L1.stroke([(0.024 * math.cos(a), 0.024 * math.sin(a)), (0.034 * math.cos(a), 0.034 * math.sin(a))], 0.0012), c, side, top)
+    for k, dx in enumerate((-0.05, 0.0, 0.05)):
+        o = V((dx, -0.03 - 0.004 * abs(dx) * 10, zz))
+        poly_on(K(M['soot']), [(-0.003, -0.008), (0.003, -0.008), (0.004, 0.003), (0.0, 0.008), (-0.004, 0.003)], o, side, top)
+    for k in range(6):  # kniende Anzuege unten
+        o = V((-w + 0.04 + k * 0.045, -h + 0.018, zz))
+        poly_on(K(M['soot']), [(-0.006, -0.005), (0.006, -0.005), (0.005, 0.004), (0.0, 0.008), (-0.005, 0.004)], o, side, top)
+    # eingeritzte Zeilen am Rand (hell: blankes Metall unter dem Rost)
+    for k in range(3):
+        y = -h + 0.006 + k * 0.004
+        x0 = -w + 0.01
+        while x0 < w - 0.02:
+            ln = rng.uniform(0.008, 0.02)
+            poly_on(K(M['ink_w']), L1.stroke([(x0, y + 0.03), (x0 + ln, y + 0.03 + rng.uniform(-0.001, 0.001))], 0.0006), V((0, 0, zz + 0.0002)), side, top)
+            x0 += ln + rng.uniform(0.003, 0.006)
     K.finish()
 
 

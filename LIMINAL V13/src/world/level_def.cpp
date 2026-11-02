@@ -231,6 +231,7 @@ std::optional<LevelDef> LevelDef::fromJson(const Json& jIn, std::string* error, 
     L.dressing = j["dressing"];
     L.spawnRules = j["spawn_rules"];
     L.phenomena = j["phenomena"];  // V13.3 (gameplay/phenomena.hpp)
+    L.apparitions = j["apparitions"];  // V13.3 Teil 4 (gameplay/apparitions_l2.hpp)
     L.displayTitle = j["display_title"].asString(L.title);
     if (L.sectorSize < 32 || L.sectorSize % 16 != 0) return fail("sector_size muss ein Vielfaches von 16 (>= 32) sein");
     L.rarityDistance = j["rarity"]["distance"].asNumber(700.0);

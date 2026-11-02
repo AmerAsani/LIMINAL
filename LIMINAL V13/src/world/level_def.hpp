@@ -268,6 +268,7 @@ struct LevelDef {
     // V11: Daten fuer Klang, Ausstattung und Spawnregeln der Ebene (roh, werden von den Systemen gelesen)
     Json audio, dressing, spawnRules;
     Json phenomena;  // V13.3: Erscheinungen ohne Figur (gameplay/phenomena.hpp: Pilz, Garden, Gemaelde, Tuerspuren)
+    Json apparitions;  // V13.3 Teil 4: Randwesen von Level 2 ohne Rolle (gameplay/apparitions_l2.hpp)
     std::string displayTitle;  // eigener Titel im Spiel (Weg B, LICENSE_REVIEW.md)
     // V8: zusammenhaengende Welt (leer = ein einzelnes Level wie bisher)
     std::vector<RegionDef> regions;

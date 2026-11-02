@@ -27,6 +27,7 @@
 #include "gameplay/lure.hpp"
 #include "gameplay/pawn.hpp"
 #include "gameplay/phenomena.hpp"
+#include "gameplay/apparitions_l2.hpp"
 #include "gameplay/player.hpp"
 #include "gameplay/prefabs.hpp"
 #include "gameplay/stats.hpp"
@@ -219,6 +220,9 @@ public:
     // Der eigene Spieler hat immer die Nummer 0 (Gast: Bild und Klang aus eigener Rechnung)
     const Phenomena& phenomena() const { return phenomena_; }
     Phenomena& phenomena() { return phenomena_; }
+    const Apparitions& apparitions() const { return appar_; }  // V13.3 Teil 4: Randwesen von Level 2
+    Apparitions& apparitions() { return appar_; }
+    bool scriptApparition(const std::string& name, double dist, double side, int nr);  // Skript "rand" (Bilder, Tests)
     bool inGarden(double x, double y) const;
 
     // Darstellung
@@ -299,6 +303,7 @@ public:
     // abgelegte Dinge (Kennzahl, Art, Ort) - er bekommt sie als Ereignisse Picked/Dropped nach dem Willkommen
     void netWorldState(std::vector<u32>& pickedOut, std::vector<NetWorldEvent>& dropsOut) const;
     void netPowerCut(vec3 pos, float seconds);
+    void netApparition(u32 code, vec3 pos);  // V13.3 Teil 4: Randwesen von Level 2 (session_apparitions.cpp)
     void netFlicker(vec3 pos);
     std::vector<Presence::NetState> netCreatures;          // letzte Momentaufnahme der Wesen
     double netCreatureStamp = -1.0;
@@ -500,6 +505,14 @@ private:
     void updatePhenomena(double dt);
     void applyPhenomena(std::vector<Phenomena::Event>& evs);
     void spawnTraces(const world::ChunkData& cd);
+    // V13.3 Teil 4 (session_apparitions.cpp): Randwesen von Level 2 ohne Rolle
+    Apparitions appar_;
+    std::vector<Apparitions::Event> apparEvents_;
+    void updateApparitions(double dt);
+    void applyApparitions(std::vector<Apparitions::Event>& evs);
+    void applyApparitionsLocal(const Apparitions::Event& e);
+    void spawnApparitions(const world::ChunkData& cd);
+    bool useApparition(const ApparitionUse& au, Pawn* p, std::string& msg);
     std::vector<mat4> palette_;
     FigureRig playerRig_;
     int bodyStyle_ = -1;  // angewendete Koerperart (0 Strichmaennchen, 1 realistisch)
