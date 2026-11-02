@@ -49,6 +49,32 @@ Unzip and double-click `LIMINAL.exe`. The executables are **not code-signed**: W
 | Tab, M, Esc | inventory, map, menu |
 | H / F1 | all keys |
 
+## Source code
+
+The complete source of every released version is public. V1–V10 are folders on `main`; V11 and V12 each live on their own branch.
+
+| Version | Source | Branch / tag |
+|---|---|---|
+| V1 | [`LIMINAL V1`](https://github.com/AmerAsani/LIMINAL/tree/main/LIMINAL%20V1) | `main` |
+| V2 | [`LIMINAL V2`](https://github.com/AmerAsani/LIMINAL/tree/main/LIMINAL%20V2) | `main` |
+| V3 | [`LIMINAL V3`](https://github.com/AmerAsani/LIMINAL/tree/main/LIMINAL%20V3) | `main` |
+| V4 | [`LIMINAL V4`](https://github.com/AmerAsani/LIMINAL/tree/main/LIMINAL%20V4) | `main` |
+| V5 | [`LIMINAL V5`](https://github.com/AmerAsani/LIMINAL/tree/main/LIMINAL%20V5) | `main` |
+| V6 | [`LIMINAL V6`](https://github.com/AmerAsani/LIMINAL/tree/main/LIMINAL%20V6) | `main` |
+| V7 | [`LIMINAL V7`](https://github.com/AmerAsani/LIMINAL/tree/main/LIMINAL%20V7) | `main` |
+| V8 | [`LIMINAL V8`](https://github.com/AmerAsani/LIMINAL/tree/main/LIMINAL%20V8) | `main` |
+| V9 | [`LIMINAL V9`](https://github.com/AmerAsani/LIMINAL/tree/main/LIMINAL%20V9) | `main` |
+| V10 | [`LIMINAL V10`](https://github.com/AmerAsani/LIMINAL/tree/main/LIMINAL%20V10) | `main` |
+| V11 | [`LIMINAL V11`](https://github.com/AmerAsani/LIMINAL/tree/liminal-v11/LIMINAL%20V11) | branch [`liminal-v11`](https://github.com/AmerAsani/LIMINAL/tree/liminal-v11), tag `v11` |
+| V12 | [`LIMINAL V12`](https://github.com/AmerAsani/LIMINAL/tree/liminal-v12/LIMINAL%20V12) | branch [`liminal-v12`](https://github.com/AmerAsani/LIMINAL/tree/liminal-v12), tag `v12` |
+| V13 | coming | published once V13.3 is complete |
+
+Clone only the version you want, for example V12:
+
+```
+git clone --branch liminal-v12 --single-branch https://github.com/AmerAsani/LIMINAL.git
+```
+
 ## Build from source
 
 No Visual Studio needed. The build script downloads a portable toolchain (llvm-mingw / Clang, CMake, Ninja) into `.toolchain\` inside the version folder; nothing is installed on your system.
@@ -59,7 +85,7 @@ powershell -ExecutionPolicy Bypass -File tools\build.ps1
 build\Release\bin\LiminalGame.exe
 ```
 
-`--level level5` starts directly on a level, `--seed N` uses a fixed seed. V11 and V12 live on their own branches (see below); check out the branch first.
+`--level level5` starts directly on a level, `--seed N` uses a fixed seed. For V11 and V12, clone their branch first (see [Source code](#source-code)).
 
 ## Versions
 
