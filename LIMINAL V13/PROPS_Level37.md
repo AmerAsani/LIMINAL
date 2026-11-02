@@ -48,7 +48,9 @@ Die Runden liefen gemeinsam mit Level 903 (gleicher Builder); je Runde Kontaktbo
 ## Prüfungen
 - `validate_models.py metro_car_37`: 0 Fehler (gemeinsamer Lauf mit Level 903: 21 Modelle, 0 Fehler).
 - `gameplay_test`: 647 Prüfungen, 0 Fehler; „Halt der Ausstattung“ level37: 2 Objekte, 0 ohne Halt.
-- `room_metrics.py --check level37`: OK (338 Räume, verstellt 0/0).
+- `room_metrics.py --check` (alle Ebenen): OK (Level 37: 338 Räume, verstellt 0/0).
+- Abschluss nach `git merge liminal-v13`, neu gebaut: alle Testprogramme grün (gameplay 647/0, audio 106/0, worldgen
+  29 658/0, Koop 209/0, supply, net 72/0, Transport 90/0).
 - Budget: 43 284 Dreiecke Ausstattung (Wagen 39 895).
 
 ## Restmängel (ehrlich)

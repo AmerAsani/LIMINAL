@@ -202,7 +202,11 @@ Prüfbögen der Runden (50 cm im Licht, 50 cm von der Seite, 50 cm nur Lampe):
   Modelle, 86 mit Fehlern – keines davon aus Level 903/37 (Wesen und andere Ebenen).
 - `gameplay_test` (Spiel neu gebaut auf Stand liminal-v13): 647 Prüfungen, 0 Fehler. „Halt der Ausstattung“: level903
   553 Objekte, 0 ohne Halt; level37 2, 0 ohne Halt; gesamt 10 506, 0 ohne Halt.
-- `python tools/qa/room_metrics.py --check level903 level37`: Raummetrik OK (903: 1 Raum, verstellt 0/0).
+- `python tools/qa/room_metrics.py --check` (alle Ebenen): Raummetrik OK (903: 1 Raum, verstellt 0/0).
+- Abschluss nach `git merge liminal-v13` (e8fcf28), neu gebaut: gameplay 647/0 (Halt gesamt 10 506, 0 ohne Halt),
+  audio 106/0, worldgen 29 658/0, Koop 209/0, supply OK, net 72/0, Transport 90/0. Ein früherer Koop-Lauf meldete
+  einmal 1 Fehler im Szenario „schlechtes Netz“ (Abweichung Host/Gast nach dem Anhalten); der Wiederholungslauf auf
+  demselben Code war fehlerfrei – zeitabhängig, nicht durch Modelle oder Karte bedingt.
 - Budget (propdump): Level 903 511 429 Dreiecke Ausstattung, Level 37 43 284.
 
 ## Restmängel (ehrlich)
