@@ -458,7 +458,7 @@ void HotelL5::updateAnts(double dt, const std::array<PlayerIn, kPlayers>& pl, bo
         }
         if (pl[(size_t)i].health > cfg_.antFloor) {
             Event h{Event::Hurt};
-            h.player = i, h.value = (float)(dt * cfg_.antBite * n), h.text = "ants";
+            h.player = i, h.value = (float)(dt * cfg_.antBite * std::min(n, 80)), h.text = "ants";  // hoechstens 80 beissen zugleich
             out.push_back(h);
         }
         Event s{Event::Sanity};
@@ -1085,6 +1085,7 @@ void HotelL5::setState(const std::string& f, double v) {
         for (Watcher& a : wa_) a.arm = (float)v;
     else if (f == "host_arm") host_.arm = (float)v;
     else if (f == "host_lamp") host_.lamp = (float)v;
+    else if (f == "fear_end" && host_.fearUntil >= 0.0) host_.fearUntil = clock_ + v;  // Tests: die Rechnung frueher
 }
 
 // --- Bild ------------------------------------------------------------------------------------------------------------

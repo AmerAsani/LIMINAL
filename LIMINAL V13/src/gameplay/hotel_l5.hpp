@@ -75,7 +75,8 @@ public:
         double colonyChance = 0.65;  // je Ecke: wohnt hier eine Kolonie? (sie wandern - je Lauf anders)
         int woodlinGroup = 3, watcherCount = 3;
         double woodlinEvery = 140.0;                 // mittlerer Abstand der Auftritte einer Gruppe (s)
-        double antBite = 0.012, antFloor = 30.0;     // Gesundheit je Tier und s; nie unter antFloor
+        // Gesundheit je Tier und s (80 Tiere: gut 5/s - knapp mehr, als der Koerper erholt: man muss sie abzupfen); nie unter antFloor
+        double antBite = 0.065, antFloor = 30.0;
         double woodlinBite = 6.0, watcherStrike = 12.0, floor = 10.0;
         double hostAfter = 240.0, hostSanity = 70.0, fearless = 180.0;
     };

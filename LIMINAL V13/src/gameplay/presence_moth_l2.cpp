@@ -67,6 +67,10 @@ bool Presence::spawnMothL2(const Context& c, std::vector<Event>& out, bool force
     // brennende Leuchtstoffroehren der Karte (tube_white, tube_orange; die toten Gruppen sind tube_dead)
     static const props::Model* tubes[4] = {props::model("tube_white", 0), props::model("tube_white", 1), props::model("tube_orange", 0),
                                            props::model("tube_orange", 1)};
+    // V13.3 Teil 4 Level 5 (mode "lamps", KREATUR_Deathmoth.md): die Maennchen streifen umher (Level-5-Seite) - an den
+    // Gluehbirnen der Kesselgaenge, ohne Nest; die Weibchen bleiben im Stock
+    static const props::Model* bulbs[4] = {props::model("hanging_bulb", 0), nullptr, nullptr, nullptr};
+    const props::Model* const* lights = K.mode == "lamps" ? bulbs : tubes;
     const int lo = forced ? 30 : 80, hi = forced ? 220 : 340;
     // Netze der Nguithr'xurh in der Naehe: dort sammeln sie sich auch (die Spinnen fressen Motten)
     std::vector<vec3> webs;
@@ -77,7 +81,7 @@ bool Presence::spawnMothL2(const Context& c, std::vector<Event>& out, bool force
     const world::Tile* st = nullptr;
     for (const auto& pr : sec->props) {
         bool tube = false;
-        for (const props::Model* m : tubes) tube = tube || (m && pr.model == m);
+        for (int q = 0; q < 4; ++q) tube = tube || (lights[q] && pr.model == lights[q]);
         if (!tube || hdist({pr.x, pr.y, 0.0f}, eye) > (float)hi * 0.1f + 2.0f) continue;
         const i64 x = ifloor(pr.x), y = ifloor(pr.y);
         const int cost = fld().at(x, y);

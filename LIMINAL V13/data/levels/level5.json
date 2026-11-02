@@ -22,7 +22,10 @@
                "growler": { "mode": "adult", "group": [1, 1], "every": 450 },
                "nguithrxurh": { "mode": "medium", "group": [2, 3], "every": 260, "chance": 0.7 },
                // V13.3 Teil 4 (KREATUR_Samantha.md): die Katze wandert manchmal durch die Haupthalle (Gaenge) - hoechstens dreimal je Besuch
-               "samantha": { "every": 300, "chance": 0.75, "count": 3, "rooms": ["flur"] } },
+               "samantha": { "every": 300, "chance": 0.75, "count": 3, "rooms": ["flur"] },
+               // V13.3 Teil 4 (KREATUR_Deathmoth.md, Level 5): Maennchen streifen umher - kleine Gruppen an den Gluehbirnen der
+               // Kesselgaenge (friedlich, Saugruessel); chance 0: keine Weibchen (die bleiben im Stock)
+               "moth": { "mode": "lamps", "group": [3, 5], "every": 150, "chance": 0.0 } },
   // V13.3 Teil 4 (gameplay/hotel_l5.hpp): Wesen ohne Rolle - Kolonien (Entity 89) in dunklen Zimmerecken, Woodlins in den Moebeln
   // der Gaenge, Watchers in Tueroeffnungen, der Gastgeber (Entity 18) mit seinem Buero, Fleisch fuer die Katze
   "apparitions": { "hotel": { "ants": true, "woodlins": true, "watchers": true, "host": true, "meat": true,

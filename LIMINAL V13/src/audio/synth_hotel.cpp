@@ -166,7 +166,7 @@ Sound samScream(int rate) {  // Kampfschrei: Jaulen mit Periodenverdopplung
     v.jitter = 0.07f, v.shimmer = 0.3f, v.subharm = 0.6f, v.breath = 0.35f, v.rough = 0.9f, v.roughHz = 37.0f, v.tiltHz = 7000.0f;
     voice(b, 0.0f, L, v, r);
     hissN(b, 0.0f, 0.3f, 4200.0f, 0.6f, 0.5f, r);
-    finish(b, level::kCreature + 6.0f, 0.15f, 9130u);
+    finish(b, level::kCreature + 4.5f, 0.15f, 9130u);  // unter der Grenze von -14 LUFS (audio_test)
     return b.sound();
 }
 Sound samBite(int rate, int var) {  // Knurren, Krallen reissen, Zaehne

@@ -5745,6 +5745,338 @@ static void testV133Jerry(const std::string& dataDir) {
     }
 }
 
+// V13.3 Teil 4 Level 5 (KREATUR_Samantha.md, KREATUR_Ants.md, KREATUR_Woodlins.md, KREATUR_Watchers.md, KREATUR_Gastgeber.md):
+// Orte in der Karte, Samantha (Murmeln vor Sicht, Tausch mit Lesung, ohne Fleisch angekuendigter, nie toedlicher Angriff,
+// Zurueckweichen rettet, Puppe beim Gast), Kolonie (ab 0,9 m, leichter Schaden, Abzupfen), Woodlins (reglos im Blick, Biss
+// nach Knarren), Watchers (Hieb nach Knacken), Gastgeber (Stimme, Buero, Hand, Handel, Rechnung), Fleisch
+static void testV133Level5Hotel(const std::string& dataDir) {
+    std::printf("V13.3 Teil 4: Level 5 - Samantha, Kolonien, Woodlins, Watchers, Gastgeber\n");
+    const game::Content& content = *gContent11;
+    game::PrefabLibrary prefabs;
+    prefabs.loadDirectory(dataDir + "/prefabs");
+    JobSystem jobs(2);
+    using PE = game::Presence::Event;
+    using Role = game::Presence::Role;
+    namespace sa = anim::sa;
+    const auto L5 = content.level("level5", world::kLayoutV6);
+    if (!L5 || !L5->map) return check(false, "Level 5: Karte");
+    // --- Karte und Ebene ----------------------------------------------------------------------------------------------------
+    std::map<std::string, int> sets;
+    int good = 0, poor = 0;
+    for (const auto& s : L5->map->spawns) {
+        if (s.kind != "trace") continue;
+        ++sets[s.set];
+        if (s.set == "meat") (s.hasTag("poor") ? poor : good) += 1;
+    }
+    std::map<std::string, int> objs;
+    for (const auto& o : L5->map->objects) ++objs[o.model];
+    check(sets["ants"] >= 10 && sets["woodlin"] >= 8 && sets["watcher"] >= 10 && sets["office"] == 1,
+          std::format("Level 5: Orte in der Karte (Ecken {}, Moebel {}, Tueren {}, Buero {})", sets["ants"], sets["woodlin"], sets["watcher"], sets["office"]));
+    check(good >= 3 && poor >= 2, std::format("Level 5: Fleisch in der Karte (Steaks {}, Dosen {})", good, poor));
+    check(objs["e18_desk"] == 1 && objs["e18_wingchair"] == 1 && objs["e18_portrait"] == 1, "Level 5: Buero des Gastgebers (Schreibtisch, Sessel, Bildnis)");
+    const auto& K = L5->kin[world::KIN_SAMANTHA];
+    check(K.on && K.count == 3 && K.rooms.size() == 1 && K.rooms[0] == "flur", "Level 5: die Katze kennt die Ebene (presence.samantha, nur Gaenge, hoechstens dreimal)");
+    const game::ItemDef* steak = content.item("steak");
+    const game::ItemDef* tin = content.item("dosenfleisch");
+    check(steak && tin && steak->health > 0.0 && tin->health > 0.0 && game::hotel::meatQuality("steak") > game::hotel::meatQuality("dosenfleisch"),
+          "Level 5: Fleisch als Fund (essbar; Steak besser als Dosenfleisch)");
+    check(game::kinRole((int)Role::Samantha) && game::kinLine(300 + game::hotel::SAM_ASK0) && game::kinLine(300 + game::hotel::SAM_ASK0)->sub &&
+              std::string(game::kinLine(300 + game::hotel::SAM_ASK0)->sub).find("Samantha") == std::string::npos,
+          "Samantha: Saetze mit Untertitel, ohne den Namen des Wikis (E-039)");
+
+    auto open = [&](i64 seed) {
+        auto s = std::make_unique<game::GameSession>(content, prefabs, L5, seed, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        s->presence().setGrace(3000.0);
+        return s;
+    };
+    auto step = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, double secs, const std::function<bool()>& each = {}) {
+        for (int i = 0; i < (int)(secs * 60.0); ++i) {
+            if (each && each()) break;
+            s.update(1.0 / 60.0, {}, false);
+            ev.insert(ev.end(), s.events().begin(), s.events().end());
+            s.events().clear();
+        }
+    };
+    auto cues = [](const std::vector<game::GameEvent>& ev, int lo, int hi) {
+        return (int)std::count_if(ev.begin(), ev.end(), [&](const game::GameEvent& e) {
+            const int c = game::kinCueOf(e.intensity, e.role);
+            return e.type == game::GameEvent::Figure && e.role == (int)Role::Samantha && c >= 300 + lo && c <= 300 + hi;
+        });
+    };
+    auto toast = [](const std::vector<game::GameEvent>& ev, const std::string& part) {
+        return std::any_of(ev.begin(), ev.end(), [&](const game::GameEvent& e) { return e.type == game::GameEvent::Toast && e.text.find(part) != std::string::npos; });
+    };
+    auto put = [](game::GameSession& s, double x, double y, double angle, double pitch = 0.0) {
+        auto& pl = s.player();
+        pl.x = x, pl.y = y, pl.z = s.world().tile(ifloor(x), ifloor(y)).floor, pl.vx = pl.vy = 0.0;
+        pl.angle = angle, pl.pitch = pitch;
+        s.body().reset();
+    };
+    auto aimAt = [](game::GameSession& s, vec3 q) {
+        auto& pl = s.player();
+        pl.angle = std::atan2(q.y - pl.y, q.x - pl.x);
+        pl.pitch = std::atan2(q.z - pl.eye(), std::max(0.3, std::hypot(q.x - pl.x, q.y - pl.y)));
+    };
+    // vor die Katze stellen: d m vor ihr, freie Kachel
+    auto before = [&](game::GameSession& s, double d) {
+        const auto I = s.presence().samInfo();
+        for (int k = 0; k < 16; ++k) {
+            const double a = k * 0.3927;
+            const double x = I.pos.x + std::cos(a) * d, y = I.pos.y + std::sin(a) * d;
+            const world::Tile& t = s.world().tile(ifloor(x), ifloor(y));
+            if (!t.open() || std::fabs(t.floor - I.pos.z) > 0.3f || !game::clearSight(s.world(), vec3{(float)x, (float)y, t.floor + 1.6f}, I.head)) continue;
+            put(s, x, y, 0.0);
+            aimAt(s, I.head);
+            return true;
+        }
+        return false;
+    };
+    // --- Samantha: Auftreten, Murmeln vor Sicht, Tausch ---------------------------------------------------------------------
+    {
+        auto s = open(5);
+        std::vector<game::GameEvent> ev;
+        put(*s, 70.5, 66.5, 0.0);
+        step(*s, ev, 0.5);
+        auto& P = s->presence();
+        P.force(Role::Samantha, 12.0);
+        step(*s, ev, 0.3);
+        check(P.has(Role::Samantha), "Samantha: erscheint (ungesehen) in einem Gang der Haupthalle");
+        const auto I0 = P.samInfo();
+        const world::Tile* t0 = s->world().tileIfLoaded(ifloor(I0.pos.x), ifloor(I0.pos.y));
+        check(t0 && t0->room && t0->room->type && t0->room->type->key == "flur" && std::hypot(I0.pos.x - 70.5, I0.pos.y - 66.5) > 3.0,
+              std::format("Samantha: im Gang, nicht neben dem Spieler ({:.1f} m)", std::hypot(I0.pos.x - 70.5, I0.pos.y - 66.5)));
+        aimAt(*s, I0.head);
+        s->player().angle += 3.14159;  // Ruecken zu ihr
+        ev.clear();
+        P.samSet("state", sa::S_SIT);
+        step(*s, ev, 14.0, [&] { return P.samInfo().state == sa::S_ASK; });
+        check(cues(ev, game::hotel::SAM_PURR, game::hotel::SAM_MURMUR0 + 2) >= 1, "Samantha: man hoert sie vor Sicht (Murmeln in fremden Sprachen, Schnurren)");
+        // Tausch: ein Steak im Rucksack, naeher als 1,5 m - sie nimmt es, frisst, gibt die Lesung
+        s->inventory().add("steak");
+        check(before(*s, 1.1), "Samantha: Platz vor ihr");
+        ev.clear();
+        const double h0 = s->stats().health;
+        bool stolen = false, eaten = false;
+        step(*s, ev, 12.0, [&] {
+            if (const auto I = P.samInfo(); I.state >= 0) aimAt(*s, I.head);
+            stolen = stolen || s->inventory().count("steak") == 0;
+            eaten = P.samInfo().trades > 0;
+            return eaten && P.samInfo().state == sa::S_LEAVE;
+        });
+        check(stolen && eaten && std::fabs(P.samInfo().quality - 1.0f) < 1e-3f, "Samantha: nimmt das Steak, frisst es (Guete 1)");
+        check(toast(ev, "Sie spricht leise") && toast(ev, "Schritte von hier"), "Samantha: gutes Fleisch - eine ausfuehrliche Lesung (Weg hinaus, Richtung, Entfernung)");
+        check(P.samInfo().attacks == 0 && s->stats().health >= h0 - 1e-6, "Samantha: nach dem Tausch kein Angriff");
+        check(cues(ev, game::hotel::SAM_EAT, game::hotel::SAM_EAT) >= 1, "Samantha: man hoert sie fressen");
+        step(*s, ev, 20.0, [&] { return !P.has(Role::Samantha); });
+        check(!P.has(Role::Samantha), "Samantha: geht danach fort und ist verschwunden (teleportiert, ungesehen)");
+        // minderwertiges Fleisch: vage Lesung
+        P.force(Role::Samantha, 8.0);
+        step(*s, ev, 0.3);
+        s->inventory().add("dosenfleisch");
+        if (before(*s, 1.1)) {
+            ev.clear();
+            step(*s, ev, 12.0, [&] {
+                if (const auto I = P.samInfo(); I.state >= 0) aimAt(*s, I.head);
+                return P.samInfo().trades > 1;
+            });
+            check(P.samInfo().trades > 1 && P.samInfo().quality < 0.5f && toast(ev, "Billiges Zeug"), "Samantha: Dosenfleisch - eine vage, aergerliche Lesung");
+        }
+        // Koop: im Netzzustand des Hosts (Rolle 19), Puppe beim Gast
+        std::vector<game::Presence::NetState> ns;
+        P.netStates(ns, vec3{(float)s->player().x, (float)s->player().y, 0.0f}, 8);
+        const auto it = std::find_if(ns.begin(), ns.end(), [](const auto& n) { return n.role == (int)Role::Samantha; });
+        check(it != ns.end() && it->role < 40, "Samantha: im Netzzustand des Hosts (Rolle 19)");
+        if (it != ns.end()) {
+            game::Presence guest;
+            guest.netApply({*it}, 0.0);
+            check(guest.has(Role::Samantha), "Samantha: beim Gast als Puppe");
+        }
+    }
+    // --- Samantha ohne Fleisch: Warnung, dann Angriff (nie toedlich); Zurueckweichen rettet --------------------------------------
+    {
+        auto s = open(6);
+        std::vector<game::GameEvent> ev;
+        put(*s, 70.5, 66.5, 0.0);
+        step(*s, ev, 0.5);
+        auto& P = s->presence();
+        P.force(Role::Samantha, 10.0);
+        step(*s, ev, 0.3);
+        check(before(*s, 1.6), "Samantha: Platz vor ihr (ohne Fleisch)");
+        s->stats().health = 40.0;
+        ev.clear();
+        double tWarn = -1.0, tHit = -1.0, t = 0.0;
+        step(*s, ev, 12.0, [&] {
+            t += 1.0 / 60.0;
+            if (const auto I = P.samInfo(); I.state >= 0 && I.state != sa::S_ATTACK) aimAt(*s, I.head);
+            if (tWarn < 0.0 && cues(ev, game::hotel::SAM_WARN, game::hotel::SAM_WARN) > 0) tWarn = t;
+            if (tHit < 0.0 && P.samInfo().hits > 0) tHit = t;
+            return P.samInfo().state == sa::S_LEAVE;
+        });
+        std::printf("  Samantha ohne Fleisch (1,6 m): Warnung nach %.2f s, erster Biss nach %.2f s, Gesundheit 40 -> %.1f\n", tWarn, tHit, s->stats().health);
+        check(tWarn > 0.0 && tHit > tWarn + 1.5, "Samantha: der Angriff kuendigt sich an (Fauchen, Buckel, gut 1,6 s)");
+        check(P.samInfo().attacks == 1 && P.samInfo().hits >= 1 && s->stats().health < 40.0, "Samantha: springt ins Gesicht, kratzt und beisst (Schaden)");
+        check(!s->stats().dead && s->stats().health >= 10.0, "Samantha: nie toedlich (Wiki: bisher keine Toten)");
+        // Zurueckweichen in der Warnung
+        auto s2 = open(7);
+        put(*s2, 70.5, 66.5, 0.0);
+        step(*s2, ev, 0.5);
+        auto& P2 = s2->presence();
+        P2.force(Role::Samantha, 10.0);
+        step(*s2, ev, 0.3);
+        if (before(*s2, 1.6)) {
+            ev.clear();
+            step(*s2, ev, 8.0, [&] { return P2.samInfo().state == sa::S_WARN; });
+            const auto I = P2.samInfo();
+            const vec3 away = normalize(vec3{(float)s2->player().x - I.pos.x, (float)s2->player().y - I.pos.y, 0.0f});
+            for (double d = 7.0; d > 4.6; d -= 0.4) {
+                const double x = I.pos.x + away.x * d, y = I.pos.y + away.y * d;
+                if (s2->world().tile(ifloor(x), ifloor(y)).open()) {
+                    put(*s2, x, y, s2->player().angle);
+                    break;
+                }
+            }
+            step(*s2, ev, 3.0);
+            check(I.state == sa::S_WARN && P2.samInfo().attacks == 0, "Samantha: wer in der Warnung weit zurueckweicht, wird nicht angesprungen");
+        }
+    }
+    // --- Kolonie (Entity 89) ----------------------------------------------------------------------------------------------
+    {
+        auto s = open(5);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& H = s->hotel();
+        check(!H.colonies().empty() && H.colonies().size() < H.spots("ants").size(), std::format("Kolonie: in einem Teil der Ecken ({} von {}; sie wandern)", H.colonies().size(), H.spots("ants").size()));
+        if (!H.colonies().empty()) {
+            const auto& c = H.colonies()[0];
+            check(c.balls.size() >= 100, std::format("Kolonie: Dutzende bis Hunderte Tierchen ({})", c.balls.size()));
+            const vec3 into = vec3{std::cos(c.yaw), std::sin(c.yaw), 0.0f};
+            put(*s, c.pos.x + into.x * 2.5, c.pos.y + into.y * 2.5, std::atan2(-into.y, -into.x));
+            step(*s, ev, 2.0);
+            check(H.antsOn(0) == 0, "Kolonie: aus 2,5 m kommen sie nicht");
+            put(*s, c.pos.x + into.x * 0.75, c.pos.y + into.y * 0.75, std::atan2(-into.y, -into.x));
+            s->stats().health = 100.0;
+            ev.clear();
+            step(*s, ev, 4.0);
+            const int on = H.antsOn(0);
+            check(on >= 40, std::format("Kolonie: naeher als 0,9 m klettern sie hoch ({} am Spieler)", on));
+            check(s->targetPrompt() == "Abzupfen", "Kolonie: Hinweis Abzupfen (Benutzen-Taste)");
+            const double h1 = s->stats().health;
+            step(*s, ev, 10.0);
+            check(s->stats().health < h1 && s->stats().health > 60.0 && !s->stats().dead, std::format("Kolonie: leichter Dauerschaden wie Blutegel ({:.1f} in 10 s, trotz Erholung)", h1 - s->stats().health));
+            int presses = 0;
+            while (H.antsOn(0) > 0 && presses < 30) {
+                s->interact();
+                ++presses;
+                step(*s, ev, 0.25);
+            }
+            check(H.antsOn(0) == 0 && presses <= 12, std::format("Kolonie: abzupfen ({} Griffe)", presses));
+            s->stats().health = 31.0;
+            put(*s, c.pos.x + into.x * 0.75, c.pos.y + into.y * 0.75, 0.0);
+            step(*s, ev, 30.0);
+            check(s->stats().health >= 30.0 - 1e-6, "Kolonie: nie toedlich (hoechstens leichte Blutergüsse)");
+        }
+    }
+    // --- Woodlins und Watchers --------------------------------------------------------------------------------------------
+    {
+        auto s = open(5);
+        std::vector<game::GameEvent> ev;
+        put(*s, 70.5, 66.5, 0.0);
+        step(*s, ev, 0.5);
+        auto& H = s->hotel();
+        check(s->hotelForce("woodlins", -1), "Woodlins: eine Gruppe in den Moebeln");
+        int act = -1;
+        for (size_t k = 0; k < H.woodlins().size(); ++k)
+            if (H.woodlins()[k].state != 0) act = (int)k;
+        if (act >= 0) {
+            // im Blick (und hell): reglos
+            const vec3 p0 = H.woodlins()[(size_t)act].pos;
+            aimAt(*s, p0 + vec3{0, 0, 0.3f});
+            s->flashlight().on = true;
+            step(*s, ev, 4.0, [&] { aimAt(*s, H.woodlins()[(size_t)act].pos + vec3{0, 0, 0.3f}); return false; });
+            check(length(H.woodlins()[(size_t)act].pos - p0) < 0.05f, "Woodlins: wer hinsieht, sieht nur Schnitzwerk (reglos)");
+            // Ruecken zu: sie kommen naeher, knarren, beissen
+            s->player().angle = std::atan2(s->player().y - p0.y, s->player().x - p0.x);
+            s->player().pitch = 0.0;
+            s->stats().health = 50.0;
+            ev.clear();
+            double tCreak = -1.0, tBite = -1.0, t = 0.0, hPrev = 50.0, hDrop = 0.0;
+            step(*s, ev, 60.0, [&] {
+                t += 1.0 / 60.0;
+                for (const auto& e : ev)
+                    if (tCreak < 0.0 && e.type == game::GameEvent::SoundAt && e.sound == "wl_creak") tCreak = t;
+                if (tBite < 0.0 && H.stats().woodBites > 0) tBite = t, hDrop = hPrev - s->stats().health;
+                hPrev = s->stats().health;
+                return tBite > 0.0;
+            });
+            std::printf("  Woodlins (Ruecken zu): Knarren nach %.1f s, Biss nach %.1f s, Zuege %d, Gesundheit 50 -> %.1f\n", tCreak, tBite, H.stats().woodMoves, s->stats().health);
+            check(H.stats().woodMoves >= 1 && tBite > 0.0 && tCreak > 0.0 && tBite >= tCreak + 0.6, "Woodlins: ungesehen kommen sie naeher; vor dem Biss knarrt Holz");
+            check(hDrop > 2.0 && s->stats().health >= 10.0 && !s->stats().dead, std::format("Woodlins: Biss in den Knoechel (leicht: {:.1f}, nie toedlich)", hDrop));
+            check(s->hotelSlow(0) < 1.0f, "Woodlins: der Biss bremst kurz");
+        }
+        // Watchers: wer der Tuer den Ruecken zukehrt und dicht vorbeigeht, den trifft der lange Arm - nach dem Knacken
+        check(!H.watchers().empty(), "Watchers: in Tueroeffnungen gesetzt");
+        if (!H.watchers().empty()) {
+            const auto& w = H.watchers()[0];
+            const auto& S = H.spots("watcher")[(size_t)w.spot];
+            const vec3 o{std::cos(S.yaw), std::sin(S.yaw), 0.0f};
+            put(*s, S.pos.x + o.x * 1.1, S.pos.y + o.y * 1.1, S.yaw);  // Ruecken zur Tuer
+            s->stats().health = 50.0;
+            s->hotelForce("watcher", 0);  // er lugt
+            ev.clear();
+            double tCrack = -1.0, t = 0.0;
+            step(*s, ev, 6.0, [&] {
+                t += 1.0 / 60.0;
+                for (const auto& e : ev)
+                    if (tCrack < 0.0 && e.type == game::GameEvent::SoundAt && e.sound == "wa_crack") tCrack = t;
+                return H.stats().waStrikes > 0;
+            });
+            check(tCrack > 0.0 && H.stats().waStrikes == 1 && s->stats().health < 50.0 && s->stats().health >= 10.0,
+                  std::format("Watchers: Hieb nach dem Knacken der Finger ({:.1f} s), nicht toedlich", tCrack));
+        }
+    }
+    // --- der Gastgeber (Entity 18) ----------------------------------------------------------------------------------------
+    {
+        auto s = open(5);
+        std::vector<game::GameEvent> ev;
+        auto& H = s->hotel();
+        check(H.hasOffice(), "Gastgeber: Buero in der Karte");
+        const vec3 desk = H.officeDesk();
+        const vec3 f{std::cos(H.officeYaw()), std::sin(H.officeYaw()), 0.0f};
+        // im Gang vor dem Buero, voller Angst (er riecht sie), lange genug auf der Ebene
+        double gx = desk.x + f.x * 5.5, gy = desk.y + f.y * 5.5;
+        put(*s, gx, gy, H.officeYaw());
+        H.setState("host_on", 400.0);
+        s->stats().sanity = 40.0;
+        ev.clear();
+        step(*s, ev, 12.0);
+        check(H.host().chosen == 0 && H.host().phase == 1, "Gastgeber: er waehlt den mit der meisten Angst und bittet ihn ins Buero");
+        check(toast(ev, "Ich habe Sie erwartet") && toast(ev, "Büro"), "Gastgeber: Stimme mit Untertitel (eigene Worte)");
+        put(*s, desk.x + f.x * 1.3, desk.y + f.y * 1.3, H.officeYaw() + 3.14159);
+        step(*s, ev, 8.0);
+        vec3 hand;
+        check(H.host().phase == 2 && H.handAt(hand), "Gastgeber: im Buero reicht eine Hand ueber den Schreibtisch");
+        s->inventory().add("almond");
+        s->inventory().add("energy");
+        s->stats().sanity = 30.0;
+        aimAt(*s, hand);
+        step(*s, ev, 0.2, [&] { aimAt(*s, hand); return false; });
+        check(s->targetPrompt() == "Die Hand nehmen", "Gastgeber: die Hand laesst sich nehmen");
+        s->interact();
+        step(*s, ev, 0.5);
+        check(H.host().phase == 3 && s->stats().sanity >= 99.0 && s->inventory().count("almond") + s->inventory().count("energy") == 0,
+              "Gastgeber: Handschlag - keine Angst mehr, dafuer nimmt er ein paar Dinge");
+        s->stats().sanity = 50.0;
+        step(*s, ev, 1.0);
+        check(s->stats().sanity >= 99.0, "Gastgeber: furchtlos (der Verstand sinkt nicht)");
+        H.setState("fear_end", 0.5);
+        ev.clear();
+        step(*s, ev, 2.0);
+        check(H.host().phase == 4 && s->stats().sanity <= 20.0 && toast(ev, "noch nicht fertig"), "Gastgeber: die Rechnung - der Handel laesst einen nicht los");
+    }
+}
+
 // --- V13.3: Level 3 - purpifizierte tote Wesen in der Wand (KREATUR_L3_Purpur.md) --------------------------------------------
 static void testV133Purple(const std::string& dataDir) {
     std::printf("V13.3: Level 3 - purpifizierte Wesen in der Wand (Licht, Klang, Strahlung, Lampe, Botschaft)\n");
@@ -6917,6 +7249,7 @@ int main(int argc, char** argv) {
     testV133Level3RatMoth(argv[1]);  // V13.3: Level 3 - Death Rats mit Fallen, Mottenschwarm mit Praetorianern
     testV133PackBigClump(argv[1]);   // V13.3: Level 2/3 - Hound-Rudel, grosses bewaffnetes Buendel
     testV133Level3Rest(argv[1]);     // V13.3: Level 3 - Smiler ohne Anlass, Red Knight
+    testV133Level5Hotel(argv[1]);    // V13.3 Teil 4: Level 5 - Samantha, Kolonien, Woodlins, Watchers, Gastgeber
     std::printf("%s: %d Pruefungen, %d Fehler\n", gFails ? "FEHLGESCHLAGEN" : "OK", gChecks, gFails);
     return gFails ? 1 : 0;
 }

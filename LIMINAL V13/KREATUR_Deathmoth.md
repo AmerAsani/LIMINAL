@@ -208,3 +208,18 @@ Bilder: `docs/screens/creatures/l3_motten/` (je Runde ein Ordner, Bogen `*_sheet
 
 ### Tests (`gameplay_test`, „V13.3: Level 3 – Death Rats …, Deathmoth-Schwarm mit Praetorianern“)
 Level-JSON: Schwarm mit über 40 % Praetorianern, Level 2 unverändert. Schwarm aus ≥ 3 Motten und ≥ 2 Praetorianern (≥ 38 %); die Lampe lockt – der Schwarm fliegt auf (Brummen); wer stehen bleibt und leuchtet: mehrere Motten im Gesicht, das Brummen kommt vor dem ersten Biss, Health sinkt; Lampe aus und rennen – keine Motte mehr im Gesicht; Praetorianer: Aufbäumen vor dem Stich, der Stich lähmt. Die Level-2- und Level-5-Prüfungen der Motten bleiben grün.
+
+## V13.3 Teil 4: Level 5 – Prüfung des Nests, Männchen außerhalb des Stocks
+
+Quelle: [Level 5](https://backrooms-wiki.wikidot.com/level-5) Rev. 184 (Deathmoths: zahlreich, Nester überall, kommen meist aus dunklen
+Zimmern und schwärmen in die Flure; **die Männchen streifen umher, die Weibchen bleiben überwiegend in den Nestern**) und Entity 4 Rev. 6,
+CC BY-SA 3.0, eigene Worte.
+
+**Nest (Prüfung):** Alle Merkmale der Entity-4-Seite stehen im Modell (`tools/blender/creatures/nest.py`): Schichten aus verdautem
+Material, Pflanzenfasern und Harz bis 0,9 m, Säulen aus unverdaulichen Resten, eine fleischige Wucherung über der Tür, Eier in Säulen,
+Puppen in der Wand, Knochen vor der Tür; die Weibchen fliegen gestört aus dem dunklen Zimmer. Nichts davon stand noch als teilweise offen.
+
+**Ergänzt – die Männchen:** In Level 5 gab es nur den Weibchenschwarm am Nest. Jetzt streifen kleine Gruppen Männchen umher – friedlich,
+mit Saugrüssel (das Modell der Level-2-Männchen) – an den Glühbirnen der Kesselgänge, ohne Nest und ohne Weibchen (Level-JSON
+`presence.moth`: Modus `lamps`, Gruppen 3–5, etwa alle 150 s, `chance` 0 = keine Weibchen; `presence_moth_l2.cpp` wählt in diesem Modus
+die Glühbirnen statt der Leuchtstoffröhren). Das Licht lockt sie (Entity 4), die Weibchen bleiben im Stock (Level 5).
