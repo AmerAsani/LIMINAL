@@ -1,39 +1,38 @@
 # LIMINAL
 
-Ein Erkundungs- und Horrorspiel in den „Backrooms“ für Windows, in C++20 mit eigener Direct3D-11-Engine. Man wandert durch Ebenen, die sich an den Beschreibungen des Backrooms-Wikis (Wikidot) orientieren, sammelt Vorräte, liest Notizen anderer Wanderer und weicht Wesen aus, die das Wiki beschreibt.
+Ein Erkundungs- und Horrorspiel in den „Backrooms“ für Windows, in C++20 mit eigener Direct3D-11-Engine.
+Übersicht, Bilder und alle Versionen: [README auf `main`](https://github.com/AmerAsani/LIMINAL/blob/main/README.md).
 
-Dieses Repository sichert die Entwicklungsstände. Jede Version liegt in einem eigenen Ordner (`LIMINAL V<n>`); ältere Versionen werden nie verändert, eine neue Version beginnt als Kopie der vorigen.
+Jede Version liegt in einem eigenen Ordner (`LIMINAL V<n>`); ältere Versionen werden nie verändert, eine neue Version
+beginnt als Kopie der vorigen.
 
 ## Versionen
 
 | Version | Branch / Tag | Inhalt in Kürze |
 |---|---|---|
-| V1–V10 | `main` | Frühere Stände (seit langem öffentlich in diesem Repository). |
+| V1–V10 | `main` | Frühere Stände, spielfertige Pakete von V5–V10 unter `downloads/`. |
 | V11 | `liminal-v11` / Tag `v11` | Zehn feste Ebenen als eine Reise von Level 0 bis Level 37, tödliche Begegnungen mit Wiedereinstieg, Wasser, eigene Klänge je Ebene. Bericht: `LIMINAL V11/CHANGELOG.md`. |
-| V12 | `liminal-v12` / Tag `v12` | Autonomes Neudesign der zehn Ebenen mit festen Karten aus Python-Skripten, Modellen aus Blender, CC0-Texturen (ambientCG), neuer Oberfläche. Bericht: `LIMINAL V12/REPORT.md`. |
-| V13 | `liminal-v13` / Tag `v13` | Neue Hand an der Taschenlampe, sechs Wesen neu gebaut, Kachelbruch der Texturen, Fehlersuche; Mehrspieler-Arbeit. Berichte: `LIMINAL V13/REPORT_V13.md`, `LIMINAL V13/REPORT_V13_2.md`. |
-
-## Voraussetzungen
-
-- Windows 10 oder 11 (64 Bit), Grafikkarte mit Direct3D 11.
-- Zum Bauen: PowerShell. Das Bauskript lädt eine portable Toolchain (llvm-mingw, CMake, Ninja) in `.toolchain\` des jeweiligen Versionsordners; es ändert nichts am System.
-- Optional für die Modelle: Blender 4.5 (`tools\setup_blender.ps1` lädt eine portable Fassung nach `.toolchain\blender\`).
+| V12 | `liminal-v12` / Tag `v12` | Neudesign der zehn Ebenen mit festen Karten aus Python-Skripten, Modellen aus Blender, CC0-Texturen (ambientCG), neuer Oberfläche. Bericht: `LIMINAL V12/REPORT.md`. |
+| V13 | folgt | Wird veröffentlicht, sobald V13.3 vollständig fertig ist. |
 
 ## Bauen und starten
 
-Im Ordner der gewünschten Version, z. B. `LIMINAL V13`:
+Voraussetzungen: Windows 10 oder 11 (64 Bit), Grafikkarte mit Direct3D 11, PowerShell. Das Bauskript lädt eine portable
+Toolchain (llvm-mingw, CMake, Ninja) nach `.toolchain\` im Versionsordner und ändert nichts am System.
+
+Im Ordner der gewünschten Version, z. B. `LIMINAL V12`:
 
 ```
 powershell -ExecutionPolicy Bypass -File tools\build.ps1
 build\Release\bin\LiminalGame.exe
 ```
 
-Mit `--level level5` startet man direkt auf einer Ebene, mit `--seed N` mit festem Seed. Tests stehen in der README des Versionsordners und im jeweiligen Bericht.
+Mit `--level level5` startet man direkt auf einer Ebene, mit `--seed N` mit festem Seed.
 
-Fertige Spielpakete (ausführbare Dateien) liegen nicht im Repository.
+## Lizenzen und Quellen
 
-## Lizenzen und Rechtslage
-
-- Fremdes Material, Quellen und Lizenzen: `LICENSES.md` im Versionsordner (ab V12), dazu `ATTRIBUTION.md` und `LICENSE_REVIEW.md` (V11).
-- Inhalte des Backrooms-Wikis (Wikidot) stehen unter CC BY-SA 3.0; im Projekt werden sie nur in eigenen Worten und mit Quellenangabe verwendet.
-- **Die Lizenz des Spiels ist nicht geklärt.** Der Licensing Guide des Wikis knüpft Spiele, die auf Wiki-Inhalten aufbauen, an CC BY-SA 3.0 oder GPLv3. Die Entscheidung steht aus; dieses Repository ist deshalb privat zu halten. Nichts hier behauptet, die Rechtslage sei geklärt.
+- Übersicht: [`LICENSES.md`](LICENSES.md); Namensnennung des Backrooms-Wikis: [`ATTRIBUTION.md`](ATTRIBUTION.md);
+  Lizenztexte der mitgelieferten Bibliotheken und der Schrift: [`licenses/`](licenses/).
+- Die Ebenen und Wesen beruhen auf dem [Backrooms Wiki](https://backrooms-wiki.wikidot.com) (Wikidot, CC BY-SA 3.0),
+  nur in eigenen Worten und eigener Gestaltung.
+- Für das Spiel selbst ist noch keine Lizenz gewählt (Einzelheiten in `LICENSES.md`).
