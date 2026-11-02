@@ -159,3 +159,13 @@ Agenten: alle ausser „Props Level 1 Blender-Modelle“ (vom Nutzer gestoppt, A
   - Wow-Check der vorhandenen Wesen;
   - Hound-Rudel und großer Clump.
 - **Offener Befund für Level 903:** Verdeckte Blöcke werfen Schatten (`visualTile`, V6), deshalb bleibt die Wagenseite im Lampenlicht dunkel. Lösung in der Engine oder per Blockschalter prüfen.
+
+### V13.3 Zwischenstand 8 (02.11.2026)
+- **Teil 6 Audio zusammengeführt** (Agent `a1a310e23cd626c63`, `AUDIO_BUG.md`):
+  - Ursache B-017: gestoppte, unhörbare Dauerschleifen gaben ihre Stimme nie frei; nach 2–3 min waren alle 96 belegt, neue Klänge wurden still abgewiesen;
+  - B-018 Unterläufe (Mischer jetzt TIME_CRITICAL/MMCSS), B-019–B-021 Neuverbinden, Klänge beim Öffnen, Dämpfung im Menü;
+  - Watchdog mit Stille-Erkennung am Master-Ausgang; Stresstests 1 000 Starts, 220 Ebenenwechsel, 17 Wesen, Koop;
+  - nicht geprüft: echtes Umstecken, echter Formatwechsel, Bluetooth, Hören (Lautsprecher stumm; Pegelmessung).
+- **Schatten verdeckter Blöcke behoben** (`lighting.hlsl`, `traceShadow`): Modelle auf unsichtbaren Blöcken liegen nicht mehr im Schatten ihres eigenen Blocks (Wagenseite 903/37, Treppenblock, Rohre L2). Gegenprobe 198 Ansichten in allen zehn Ebenen, nur gewollte Änderungen (`docs/screens/level903/schatten_*.jpg`).
+- **Tests:** gameplay 647/0, audio 121/0, audio_device 66/0, coop 209/0, net 72/0 und 90/0, worldgen 29658/0, supply OK.
+- **Laufend:** `wf_25ac8506-59d` (Level 2), `wf_35cb0125-472` (Level 3).
