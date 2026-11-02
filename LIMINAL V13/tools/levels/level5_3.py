@@ -334,12 +334,12 @@ def _local(o, lx, ly):
 
 m.obj('lore_lectern', LECT[0], LECT[1], U_.floor, LECT[2])
 m.block(U, 64, 41, 66, 42, 1.25, hidden=True)
-sx, sy = _local(LECT, 0.033, 0.13)  # der Zettel auf der linken Seite des Folios (Brett 20 Grad, models_l53_wissen.py)
+sx, sy = _local(LECT, 0.031, -0.13)  # der Zettel auf der Textseite des Folios (Brett 20 Grad; Blender-y ist im Spiel -y)
 fx, fy = _local(LECT, 0.9, 0.0)     # der Spawnpunkt selbst steht vor dem Pult (im Block liegt keiner); Tag p: wo der Fund liegt
-m.spawn('trace', fx, fy, U_.floor + 1.103, LECT[2], set='lore', tags=['e141', f'p{sx:.3f},{sy:.3f}'])
+m.spawn('trace', fx, fy, U_.floor + 1.096, LECT[2], set='lore', tags=['e141', f'p{sx:.3f},{sy:.3f}'])
 m.obj('lore_catalog', CATA[0], CATA[1], U_.floor, CATA[2] + grng.uniform(-0.02, 0.02))
 m.block(U, 67, 45, 68, 46, 1.05, hidden=True)
-cx_, cy_ = _local(CATA, 0.05, -0.15)  # die Karteikarten oben auf dem Schrank
+cx_, cy_ = _local(CATA, 0.05, 0.15)  # die Karteikarten oben auf dem Schrank, neben dem Kohleabrieb (Blender-y ist im Spiel -y)
 fx, fy = _local(CATA, 0.9, 0.0)
 m.spawn('trace', fx, fy, U_.floor + 1.02, CATA[2] + 0.35, set='lore', tags=['e189', f'p{cx_:.3f},{cy_:.3f}'])
 

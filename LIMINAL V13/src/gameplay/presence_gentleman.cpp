@@ -38,9 +38,9 @@ constexpr float kNoticeNear = 3.0f;   // so nah, und er bemerkt einen
 constexpr double kLightLimit = 2.2;   // so lange Licht im Gesicht (bis 12 m)
 constexpr float kGiveUp = 16.0f;      // so weit weg: er laesst ab
 constexpr double kLostLimit = 5.0;    // so lange ohne Sicht: er laesst ab
-constexpr float kWarnAt = 2.4f;       // Ankuendigung
-constexpr float kEscape = 3.8f;       // in der Ankuendigung so weit weg: gerettet
-constexpr float kGripReach = 2.6f;    // Reichweite des Griffs (Arm mit drei Gliedern)
+constexpr float kWarnAt = 2.1f;       // Ankuendigung
+constexpr float kEscape = 3.4f;       // in der Ankuendigung so weit weg: gerettet
+constexpr float kGripReach = 2.5f;    // so nah: der Griff (Runde 4: er tritt dabei bis 0,85 m heran - der Arm allein reicht 1,1 m)
 constexpr double kWarnTime = 1.5, kGripTime = 1.8;
 constexpr double kWalk = 1.45, kHuntSeen = 1.7, kHuntUnseen = 4.0;  // m/s (der Spieler geht 3, rennt 5,7)
 constexpr float kGripHit = 14.0f, kGripMind = 70.0f;  // Hit (Health), Whisper (x 0,4 Verstand)
@@ -387,10 +387,16 @@ void Presence::thinkGentleman(Agent& a, double dt, const Context& c, std::vector
             }
             break;
         }
-        case S_GRIP: {  // die Hand ins Gesicht, die Finger wachsen
+        case S_GRIP: {  // ein langer Schritt heran, die Hand ins Gesicht, die Finger wachsen
             a.alert = 1.0f, a.look = true, a.lookAt = eye, a.growl = 1.0f, a.reach = 1.0f;
             a.strike = (float)std::min(1.0, a.stateT / 0.35);
             faceTo(std::atan2(eye.y - a.pos.y, eye.x - a.pos.x), 4.0f);
+            if (a.stateT < 0.4 && hd > 0.85f) {  // Runde 4: aus 1,9 m erreichte die Hand das Gesicht nicht
+                const vec3 to = nrmF(flat(eye - a.pos), F);
+                const float stepL = std::min(hd - 0.85f, (float)q * 5.0f);
+                const vec3 np = a.pos + to * stepL;
+                if (const world::Tile* t = c.world->tileIfLoaded(ifloor(np.x), ifloor(np.y)); t && t->open()) a.pos.x = np.x, a.pos.y = np.y;
+            }
             if (!M.said && a.stateT > 0.3) {
                 M.said = true;
                 out.push_back({Event::Hit, Role::Gentleman, head, kGripHit});

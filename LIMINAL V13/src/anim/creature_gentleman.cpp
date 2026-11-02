@@ -424,12 +424,14 @@ void CreatureAnimator::updateGentleman(float dt, const Input& in) {
                 blend(Pp + tf.dir(throwWrist(throwU) - Bd[PELVIS]), tf.dir(nrm({throwU < 0.3f ? 0.3f : -0.6f, -0.2f, 0.75f}, U)), back);
             }
             if (reach > 0.001f) {  // Griff: zum Gesicht des Ziels
+                // Runde 5: die Ankuendigung geschah unter dem Bildrand und die Hand fuhr beim Griff durch die Kamera - jetzt hebt
+                // sich der Arm schon in der Ankuendigung auf das Gesicht zu (Glied fuer Glied, aus der Haltung auf dem Ruecken), und
+                // die Handflaeche bleibt 30 cm vor dem Auge stehen, die gewachsenen Finger greifen um das Bild
                 const vec3 aim = nrm(in.reachAt - S, F);
                 const float maxL = (L[0] + L[1] + L[2]) * 0.98f;
-                const vec3 face = in.reachAt - aim * 0.17f;
+                const vec3 face = in.reachAt - aim * 0.38f;
                 const vec3 at = length(face - S) > maxL ? S + aim * maxL : face;
-                // erst das obere Glied, dann das mittlere (entfaltet sich sichtbar Glied fuer Glied)
-                blend(lerp3(S + tf.dir({0.25f, -0.08f, -0.45f}), at, sm01((reach - 0.2f) / 0.8f)), aim, sm01(reach / 0.3f));
+                blend(lerp3(S + aim * 0.22f, at, sm01(reach)), nrm(aim + tf.z * 0.15f * (1.0f - strike), aim), sm01(reach / 0.25f));
             }
         } else if (ph > 3.0f && ph <= 4.0f) {  // linke Hand: blaettert
             const float leaf = std::sin(t * 2.3f);
@@ -441,7 +443,7 @@ void CreatureAnimator::updateGentleman(float dt, const Input& in) {
         P[armJ(sd, 1)] = p[1];
         P[armJ(sd, 2)] = p[2];
         P[armJ(sd, 3)] = p[3];
-        const float handS = sd == 1 ? 1.0f + 0.24f * strike : 1.0f;  // die Finger wachsen beim Griff
+        const float handS = sd == 1 ? 1.0f + 0.18f * strike : 1.0f;  // die Finger wachsen beim Griff
         P[armJ(sd, 4)] = p[3] + hd * LH;
         pose_.s[(size_t)armB(sd, 4)] = handS;
         if (sd == 1 && bookInHand) {

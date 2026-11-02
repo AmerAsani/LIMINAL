@@ -1598,7 +1598,7 @@ void Presence::animate(Agent& a, double dt, const Context& c, std::vector<Event>
     in.reachAt = (a.puppet ? a.lookAt : c.view.eye) - vec3{0, 0, a.role == Role::Window ? 0.75f : 0.35f};  // V13.2: Fenster greift nach der Brust
     if (a.role == Role::Wrangler && !a.puppet && !a.showcase) in.reachAt = a.goal;  // V13.3: schnappt nach dem Spieler oder dem Geraeusch
     if (a.role == Role::Goblin) in.reachAt = a.heard;  // V13.3: Plague Goblins - Ware, Boden, Sprungziel (presence_goblin.cpp)
-    if (a.role == Role::Gentleman) in.reachAt = a.lookAt - vec3{0, 0, 0.1f};  // V13.3 Teil 4 Level 5.3: Griff zum Gesicht des Ziels
+    if (a.role == Role::Gentleman) in.reachAt = a.lookAt - vec3{0, 0, 0.03f};  // V13.3 Teil 4 Level 5.3: Griff zum Gesicht des Ziels
     in.jaw = a.jaw;
     in.alert = a.alert;
     in.crouch = a.crouch;

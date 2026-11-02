@@ -74,7 +74,7 @@ void Library53::setup(const world::LevelDef& level) {
                 if (t.size() > 3 && t[0] == 'p' && t.find(',') != std::string::npos)
                     L.pos.x = (float)std::atof(t.c_str() + 1), L.pos.y = (float)std::atof(t.c_str() + t.find(',') + 1);
             if (s.hasTag("e141")) {  // rote Lichter (Entity 141): Folio auf dem Lesepult
-                L.id = "trace:l53_lore141", L.title = "Folio mit roter Tafel", L.model = "prop:lore_folio", L.prompt = "Folio lesen";
+                L.id = "trace:l53_lore141", L.title = "Folio mit roter Tafel", L.model = "prop:lore_slip", L.prompt = "Folio lesen";
             } else if (s.hasTag("e189")) {  // das Volk in den Anzuegen (Entity 189): Karteikarten auf dem Katalogschrank
                 L.id = "trace:l53_lore189", L.title = "Karteikarten mit Zahnrad", L.model = "prop:lore_cards", L.prompt = "Karteikarten lesen";
             } else {

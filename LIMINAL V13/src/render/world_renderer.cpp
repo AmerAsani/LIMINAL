@@ -410,7 +410,7 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     // Runde 1: mit der Menschenhaut im Kerzenlicht braun, im Lampenlicht eine Puppe - jetzt Zahnschmelz-Ebene (vergilbt, Flecken,
     // feine Risse) wie Porzellan unter altem Firnis
     materialData_[FM_ENT_GM_FACE] = GpuMaterial{{0.72f, 0.66f, 0.56f}, 0, ent(EL_TOOTH, ML_CRAZE), 0.4f, 0, 0.15f};  // Runde 2: im Lampenlicht ueberstrahlt
-    materialData_[FM_ENT_GM_HAND] = GpuMaterial{{0.74f, 0.69f, 0.62f}, 0, ent(EL_HUMAN, ML_PORES) | kMatFlagSkin, 0.42f, 0, 0.15f};
+    materialData_[FM_ENT_GM_HAND] = GpuMaterial{{0.84f, 0.81f, 0.76f}, 0, ent(EL_HUMAN, ML_PORES) | kMatFlagSkin, 0.45f, 0, 0.1f};  // Runde 5: im Kerzenlicht braun
     materialData_[FM_ENT_GM_HAIR] = GpuMaterial{{0.02f, 0.018f, 0.016f}, 0, ent(EL_HAIR, ML_FIBER), 0.28f, 0, 0.1f};
     materialData_[FM_ENT_GM_EYE] = GpuMaterial{{0.12f, 0.07f, 0.04f}, 0, ent(EL_TOOTH, ML_PORES), 0.03f, 0, 0.0f};
     materialData_[FM_ENT_GM_SCLERA] = GpuMaterial{{0.80f, 0.72f, 0.66f}, 0, ent(EL_TOOTH, ML_PORES), 0.05f, 0, 0.1f};

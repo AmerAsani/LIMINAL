@@ -14,6 +14,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <filesystem>  // V13.3 Teil 4 Level 5.3: Modelle der Funde
 #include <format>
 #include <functional>
 #include <map>
@@ -7295,6 +7296,14 @@ static void testV133Level53Gentleman(const std::string& dataDir) {
         step(*s, ev, 0.5);
         check(noteThere(*s, "trace:l53_lore141") == 1 && noteThere(*s, "trace:l53_lore189") == 1,
               "Wissen: Folio (rote Lichter) und Karteikarten (Volk in den Anzuegen) liegen als Funde bereit");
+        // die Modelle der Funde gibt es (prop:<name> - fehlt eines, ist der Fund unsichtbar)
+        bool models = true;
+        s->registry().each<game::NoteFind, game::MeshRenderer>([&](ecs::Entity, game::NoteFind& f, game::MeshRenderer& m) {
+            if (f.id.rfind("trace:l53_", 0) == 0 && m.model.rfind("prop:", 0) == 0)
+                models = models && std::filesystem::exists(dataDir + "/models/" + m.model.substr(5) + ".glb");
+        });
+        check(models && std::filesystem::exists(dataDir + "/models/gm_notebook.glb") && std::filesystem::exists(dataDir + "/models/ent_gentleman_l0.glb"),
+              "Wissen: die Modelle der Funde (Zettel, Karteikarten, Notizbuch) und des Hausherrn liegen in data/models");
     }
     // --- der Besuch: Regie, Szene, Fund, Stille, Zorn; kein Angriff ohne Stoerung -------------------------------------------
     {

@@ -38,7 +38,7 @@ def _mats():
         'brass_d': mat('wissen_messing_angelaufen', (0.40, 0.30, 0.16), 'metal', r=0.9, m=0.6),
         'paper': mat('wissen_papier', (0.84, 0.79, 0.66), 'paint', r=1.25),
         'paper_o': mat('wissen_papier_alt', (0.74, 0.65, 0.48), 'paint', r=1.3),
-        'card': mat('wissen_karton', (0.86, 0.82, 0.72), 'paint', r=1.2),
+        'card': mat('wissen_karton', (0.93, 0.90, 0.82), 'paint', r=1.2),
         'ink': mat('wissen_tinte', (0.10, 0.08, 0.07), 'paint', r=1.0),
         'pencil': mat('wissen_bleistift', (0.30, 0.30, 0.32), 'paint', r=0.7),
         'charcoal': mat('wissen_kohle', (0.06, 0.06, 0.06), 'paint', r=1.5),
@@ -78,13 +78,17 @@ def build_lore_lectern():
     rng = random.Random(14101)
     K = Kit()
     M = _mats()
-    # Fuss: Kreuz aus zwei Balken, Saeule mit Ringen, Kopfstueck
+    # Fuss (Wissen Runde 2: zu duenn, ein Notenstaender): Sockel, Kreuzfuesse mit Klauen, kraeftige gedrechselte Saeule
+    blk(K(M['walnut_d'], 25), (0.36, 0.36, 0.07), (0, 0, 0.035), bevel=0.012)
     for a in (0.0, math.pi / 2):
-        blk(K(M['walnut_d'], 25), (0.46, 0.07, 0.06), (0, 0, 0.03), rz=a, bevel=0.008)
-    cyl(K(M['walnut'], 30), V((0, 0, 0.06)), V((0, 0, 0.95)), 0.045, 14)
-    for z in (0.12, 0.5, 0.88):
-        cyl(K(M['walnut_d'], 30), V((0, 0, z - 0.015)), V((0, 0, z + 0.015)), 0.058, 14)
-    blk(K(M['walnut_d'], 25), (0.28, 0.42, 0.06), (0.0, 0, 0.98), bevel=0.01)
+        blk(K(M['walnut_d'], 25), (0.56, 0.08, 0.05), (0, 0, 0.025), rz=a, bevel=0.01)
+    for k in range(4):
+        a = math.pi / 4 + k * math.pi / 2
+        ellipsoid(K(M['walnut'], 30), V((0.27 * math.cos(a - math.pi / 4), 0.27 * math.sin(a - math.pi / 4), 0.03)), V((0, 0, 1)), 0.03, 0.035, 10, 6)
+    cyl(K(M['walnut'], 30), V((0, 0, 0.07)), V((0, 0, 0.95)), 0.062, 16)
+    for z, rr in ((0.11, 0.085), (0.3, 0.075), (0.52, 0.082), (0.74, 0.075), (0.9, 0.088)):
+        cyl(K(M['walnut_d'], 30), V((0, 0, z - 0.02)), V((0, 0, z + 0.02)), rr, 16)
+    blk(K(M['walnut_d'], 25), (0.3, 0.46, 0.07), (0.0, 0, 0.98), bevel=0.012)
     # schraeges Brett mit Buchleiste
     c = V((0.0, 0.0, 1.07))
     Mt = _slant_matrix(c)
@@ -104,30 +108,32 @@ def build_lore_lectern():
         t = k / 5.0
         for sg in (1, -1):
             _tf(K(M['plate_g'], 0), Mt, blk, (0.004, 0.18 * (1.0 - t) * 0.5 + 0.01, 0.0008), (-0.10 + 0.04 * k, -0.15 + sg * 0.07 * (1 - t), 0.0343))
-    _tf(K(M['red_halo'], 0), Mt, blk, (0.05, 0.05, 0.0008), (0.035, -0.15, 0.0345))
-    _tf(K(M['red_glow'], 0), Mt, blk, (0.022, 0.022, 0.0012), (0.035, -0.15, 0.0352))
+    _tf(K(M['red_halo'], 0), Mt, blk, (0.07, 0.07, 0.0008), (0.035, -0.15, 0.0345))
+    _tf(K(M['red_glow'], 0), Mt, blk, (0.032, 0.032, 0.0014), (0.035, -0.15, 0.0352))
     _tf(K(M['ink'], 0), Mt, blk, (0.03, 0.009, 0.0008), (-0.05, -0.148, 0.0352))  # Silhouette eines Menschen (Ruecken)
     _tf(K(M['ink'], 0), Mt, blk, (0.009, 0.009, 0.0008), (-0.03, -0.148, 0.0352))
     # Diktiergeraet (schwarz, Lautsprechergitter, roter Knopf) auf der Ecke des Bretts, Bleistift in der Falz
-    Md = Matrix.Translation(V((0.09, -0.27, 1.03))) @ Matrix.Rotation(SLANT, 4, 'Y')
-    _tf(K(M['plastic'], 30), Md, blk, (0.055, 0.13, 0.025), (0.0, 0.0, 0.0), bevel=0.006)
-    for k in range(6):
-        _tf(K(M['chrome'], 20), Md, blk, (0.035, 0.002, 0.001), (0.0, 0.035 + 0.006 * k, 0.0128))
-    _tf(K(M['button_r'], 20), Md, cyl, V((0.012, -0.03, 0.012)), V((0.012, -0.03, 0.016)), 0.006, 10)
+    # Wissen Runde 2: das Diktiergeraet war ein schwarzer Strich - groesser, Chromgitter, Kassettenfenster, rote Leuchte
+    Md = Matrix.Translation(V((0.085, -0.255, 1.04))) @ Matrix.Rotation(SLANT, 4, 'Y') @ Matrix.Rotation(0.25, 4, 'Z')
+    _tf(K(M['plastic'], 30), Md, blk, (0.07, 0.16, 0.032), (0.0, 0.0, 0.0), bevel=0.007)
+    for k in range(7):
+        _tf(K(M['chrome'], 20), Md, blk, (0.045, 0.0025, 0.0012), (0.0, 0.03 + 0.0065 * k, 0.0162))
+    _tf(K(M['chrome'], 20), Md, blk, (0.05, 0.05, 0.001), (0.0, -0.035, 0.0161))
+    _tf(K(M['plate_d'], 0), Md, blk, (0.04, 0.04, 0.0012), (0.0, -0.035, 0.0168))   # Kassettenfenster
+    _tf(K(M['red_glow'], 0), Md, cyl, V((0.026, -0.068, 0.0155)), V((0.026, -0.068, 0.0175)), 0.0028, 8)  # rote Leuchte
+    _tf(K(M['button_r'], 20), Md, cyl, V((-0.018, -0.068, 0.016)), V((-0.018, -0.068, 0.02)), 0.0065, 10)
     _tf(K(M['oak'], 25), _slant_matrix(c) @ Matrix.Translation(V((0.0, 0.29, 0.034))), cyl, V((-0.15, 0.0, 0.003)), V((0.02, 0.0, 0.003)), 0.0035, 6)
     K.finish()
 
 
 def _tf(bm, mtx, fn, *a, **kw):
     """Teil mit fn(bm, ...) bauen und nur die neuen Punkte mit mtx bewegen (ein Kit-bmesh sammelt mehrere Teile)."""
+    # Wissen Runde 3: mit v.tag markiert loeschte die Fase (bevel) die Marken - der Fuss landete oben auf dem Pult
     import bmesh
-    for v in bm.verts:
-        v.tag = True
+    old = set(bm.verts)
     fn(bm, *a, **kw)
-    new = [v for v in bm.verts if not v.tag]
+    new = [v for v in bm.verts if v not in old]
     bmesh.ops.transform(bm, matrix=mtx, verts=new)
-    for v in bm.verts:
-        v.tag = False
 
 
 def build_lore_slip():
@@ -136,8 +142,10 @@ def build_lore_slip():
     K = Kit()
     M = _mats()
     Ms = Matrix.Rotation(SLANT, 4, 'Y') @ Matrix.Rotation(-0.12, 4, 'Z')
-    _tf(K(M['paper'], 20), Ms, blk, (0.11, 0.15, 0.0012), (0, 0, 0.0006))
-    _tf(K(M['paper'], 20), Ms, blk, (0.11, 0.004, 0.0024), (0, 0.0, 0.0012))  # Knick
+    # Wissen Runde 2: verschwand auf dem gleichfarbigen Folio - groesser, heller, eine Ecke umgeknickt
+    _tf(K(M['card'], 20), Ms, blk, (0.13, 0.17, 0.0014), (0, 0, 0.0007))
+    _tf(K(M['card'], 20), Ms, blk, (0.13, 0.004, 0.0026), (0, 0.0, 0.0013))  # Knick
+    _tf(K(M['card'], 20), Ms, blk, (0.03, 0.03, 0.0014), (0.052, 0.072, 0.0028), rz=0.785)  # umgeknickte Ecke
     _tf(K(M['pencil'], 0), Ms, _strokes, rng, -0.045, 0.045, -0.065, 0.065, 0.0013, 16, w=0.0011)
     K.finish()
 
