@@ -21,6 +21,8 @@
                "wretch": { "mode": "armed", "group": [1, 1], "every": 480 },
                "rat": { "group": [2, 3], "every": 180 } },
   "next_level": "level5",
+  // V13.3 (KREATUR_L3_Purpur.md): purpifizierte tote Wesen in den Ziegelwaenden (Karte: trace/purple), Strahlung, Licht, Klang
+  "phenomena": { "purple": true },
   // V13.3 (KREATUR_Smiler.md): Leuchtstaebe liegen herum (hier seltener - die Smiler stutzen nur, smiler_bait)
   "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0, "glowstick": 0.02, "glowstick_dark": 0.08 },
 

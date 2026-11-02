@@ -27,6 +27,7 @@
 #include "gameplay/lure.hpp"
 #include "gameplay/pawn.hpp"
 #include "gameplay/phenomena.hpp"
+#include "gameplay/purpification.hpp"
 #include "gameplay/player.hpp"
 #include "gameplay/prefabs.hpp"
 #include "gameplay/stats.hpp"
@@ -220,6 +221,9 @@ public:
     const Phenomena& phenomena() const { return phenomena_; }
     Phenomena& phenomena() { return phenomena_; }
     bool inGarden(double x, double y) const;
+    // V13.3 (session_purple.cpp): purpifizierte tote Wesen in den Ziegelwaenden von Level 3 (KREATUR_L3_Purpur.md)
+    const Purpification& purple() const { return purple_; }
+    Purpification& purple() { return purple_; }
 
     // Darstellung
     const world::Room* currentRoom() const { return room_; }
@@ -500,6 +504,11 @@ private:
     void updatePhenomena(double dt);
     void applyPhenomena(std::vector<Phenomena::Event>& evs);
     void spawnTraces(const world::ChunkData& cd);
+    // V13.3 (session_purple.cpp): purpifizierte Wesen - Strahlung (Verstand, auch der Gaeste beim Host), Klang, Hinweise
+    Purpification purple_;
+    std::vector<Purpification::Event> purpleEvents_;
+    void updatePurple(double dt);
+    void collectPurpleSounds(std::vector<SoundSource>& out);
     std::vector<mat4> palette_;
     FigureRig playerRig_;
     int bodyStyle_ = -1;  // angewendete Koerperart (0 Strichmaennchen, 1 realistisch)

@@ -65,6 +65,7 @@ WALL_MOUNT = {'outlet', 'vent_grille', 'painting', 'power_box', 'wall_sconce', '
               'formwork', 'ivy_wall', 'neon_tube', 'neon_sign', 'panel_vermilion', 'pipe_wall',  # V13.3 L1-Sektoren
               'fungus_wall', 'claw_marks',  # V13.3 L1-Erscheinungen (Crawler-Pilz, Tuerspuren)
               'departure_board', 'exit_sign_36', 'storefront_a', 'storefront_b', 'storefront_c', 'storefront_closed', 'gate_sign_c30', 'gate_sign_c31', 'gate_sign_c32', 'gate_sign_c33', 'gate_sign_c34', 'gate_door_closed', 'gate_door_boarding', 'clock_36', 'clock_36_b', 'water_fountain', 'restroom_sign'}  # V12 L36
+WALL_MOUNT |= {'purple_stealer', 'purple_hound'}  # V13.3 L3: purpifizierte Wesen in der Wand (KREATUR_L3_Purpur.md)
 DOOR_MODELS = {'steel_door', 'hotel_door', 'damaged_door'}
 CEILING_MOUNT = {'batten', 'highbay', 'chandelier', 'safety_light', 'ceiling_vent',
                  'troffer', 'troffer_off', 'troffer_red', 'ceiling_diffuser', 'hanging_bulb',  # V12: Blender-Modelle

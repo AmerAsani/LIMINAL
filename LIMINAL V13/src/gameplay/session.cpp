@@ -43,6 +43,7 @@ GameSession::GameSession(const Content& content, const PrefabLibrary& prefabs,
     world_->onChunkLoaded = [this](const world::ChunkData& cd) { onChunk(cd, true); };
     world_->onChunkUnloaded = [this](const world::ChunkData& cd) { onChunk(cd, false); };
     phenomena_.setup(world_->level(), (u64)seed);  // V13.3: Erscheinungen ohne Figur (session_phenomena.cpp)
+    purple_.setup(world_->level(), (u64)seed);     // V13.3: purpifizierte Wesen in der Wand (session_purple.cpp)
     // V7: Laufbuch (V8: in der Welt beginnt jeder Lauf in der ersten Ebene)
     runLog_.levels.push_back(world_->level().world() ? world_->level().regions.front().id : levelId);
 }
@@ -897,6 +898,7 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
                 if (p) pawnTick(*p, dt);
         updatePresence(dt);  // V10
         updatePhenomena(dt);  // V13.3: Pilz, Garden, Gemaelde, Tuerspuren (nach den Wesen: others_ ist gefuellt)
+        updatePurple(dt);     // V13.3: purpifizierte Wesen in der Wand (session_purple.cpp)
     }
     if (killCam_ && !paused) killT_ += dt;  // V11
     target_ = ecs::kNull;
@@ -1394,6 +1396,7 @@ void GameSession::collectSounds(std::vector<SoundSource>& out) {
     reg_.each<AudioEmitter, Transform>([&](ecs::Entity e, AudioEmitter& a, Transform& t) {
         out.push_back({e, &a.sound, t.pos, a.volume, a.radius, &a.voice});
     });
+    collectPurpleSounds(out);  // V13.3: Brummen der purpifizierten Wesen (session_purple.cpp)
 }
 
 // --- Spielstand -----------------------------------------------------------------------------

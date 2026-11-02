@@ -472,4 +472,62 @@ for o in m.objects:
         if v_:
             o['variant'] = v_
 
+# V13.3 (KREATUR_L3_Purpur.md): "purpifizierte" tote Wesen, halb in der Ziegelwand (Wiki: selten, 17 Faelle; ein
+# Skin-Stealer in einem dunkleren Bereich, ein Hound mit gemalter Botschaft daneben). Eigener Zufall, ganz am Ende - die
+# Anordnung der Ebene bleibt unveraendert. Nur Gaenge mit der Ziegeltextur der Modelle (bricks_grey_black). Das Modell
+# braucht eine durchgehende Wand ueber seine Breite (violette Ziegel, Schrift) und keine andere Wandausstattung davor.
+# Lage im Modell: +x in den Gang, +y nach rechts, wenn man auf die Wand blickt (Welt: sin(yaw), -cos(yaw)).
+import random as _random  # noqa: E402
+
+prng = _random.Random(3303)
+PURPLE = [  # (Modell, Raeume, Breite links/rechts des Ursprungs in m, Tag)
+    ('purple_stealer', [p2, p1], (1.55, 1.75), 'stealer'),
+    ('purple_hound', [h5, h2], (1.05, 3.05), 'hound'),
+]
+
+
+def purple_spot(r, ext):
+    R = m.R(r)
+    others = [o for o in m.objects if R.contains(o['pos'][0], o['pos'][1]) and o['pos'][2] < R.floor + R.height - 0.4]
+    spawns = [s_ for s_ in m.spawns if R.contains(s_['pos'][0], s_['pos'][1])]
+    out = []
+    for yaw, run in wall_runs(r, margin=1):
+        if len(run) < 2:
+            continue
+        rx, ry = math.sin(yaw), -math.cos(yaw)  # rechts, wenn man auf die Wand blickt
+        a0 = run[0][0] * rx + run[0][1] * ry - 0.5  # Wandkacheln: je 1 m, Mitte +-0,5
+        a1 = run[-1][0] * rx + run[-1][1] * ry + 0.5
+        lo, hi = min(a0, a1), max(a0, a1)
+        for (fx, fy) in run:
+            s0 = fx * rx + fy * ry
+            if s0 - ext[0] < lo or s0 + ext[1] > hi:
+                continue
+            nx, ny = math.cos(yaw), math.sin(yaw)
+            bad = False
+            for o in others:
+                s = o['pos'][0] * rx + o['pos'][1] * ry
+                dn = (o['pos'][0] - fx) * nx + (o['pos'][1] - fy) * ny
+                if dn < 1.0 and s0 - ext[0] - 0.5 < s < s0 + ext[1] + 0.5:
+                    bad = True
+                    break
+            for s_ in spawns:
+                s = s_['pos'][0] * rx + s_['pos'][1] * ry
+                dn = (s_['pos'][0] - fx) * nx + (s_['pos'][1] - fy) * ny
+                if dn < 1.6 and s0 - ext[0] - 0.8 < s < s0 + ext[1] + 0.8:
+                    bad = True
+                    break
+            if not bad:
+                out.append((fx, fy, yaw))
+    return out
+
+
+for (model, rooms, ext, tag) in PURPLE:
+    cands = [(r, c) for r in rooms for c in purple_spot(r, ext)]
+    assert cands, model
+    r, (fx, fy, fyaw) = cands[prng.randrange(len(cands))]
+    R = m.R(r)
+    # tag 'emergency': eigene Energie - leuchtet ohne Stromkreis weiter (world/generator.cpp: kein Ausfall, kein Flackern)
+    m.obj(model, fx, fy, R.floor, fyaw, tag='emergency')
+    m.spawn('trace', fx + math.cos(fyaw) * 0.3, fy + math.sin(fyaw) * 0.3, R.floor, fyaw, tags=[tag], set='purple')  # 0,3 m vor der Wand
+
 m.save()

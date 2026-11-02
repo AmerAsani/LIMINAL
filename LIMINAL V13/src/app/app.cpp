@@ -2024,6 +2024,12 @@ void App::renderWorld(double dt, bool clean) {
                 sp.moodExposure *= 1.0f - 0.35f * daze;
             }
         }
+        // V13.3 (KREATUR_L3_Purpur.md): Strahlung der purpifizierten Wesen - Bildrauschen, beim Knistern ein Schub
+        if (playing) {
+            const auto& pl = s.player();
+            const float pg = s.purple().grain(vec3{(float)pl.x, (float)pl.y, (float)pl.eye()});
+            if (pg > 0.0f) sp.grainBoost = std::max(sp.grainBoost, 2.2f * pg), sp.chromaBoost = std::max(sp.chromaBoost, 0.8f * pg);
+        }
         // V11: Schreck - weisser Blitz in den ersten Bildern, roter Rand, danach fast schwarz
         if (playing && scareT_ >= 0.0) {
             const float pop = std::exp(-(float)scareT_ * 11.0f);
@@ -2085,6 +2091,7 @@ void App::renderWorld(double dt, bool clean) {
                 L.pos = fb.pos;
                 L.dir = fb.dir;
                 L.color = vec3{1.0f, 0.93f, 0.8f} * (3.6f * fb.power);
+                L.color = L.color * s.purple().lampFactor(fb.pos, time_);  // V13.3: nahe purpifizierten Wesen stockt die Lampe
                 L.range = 24.0f;
                 L.spot = true;
                 L.cosInner = 0.975f;  // ~13 Grad heller Kern
@@ -2178,6 +2185,25 @@ void App::renderWorld(double dt, bool clean) {
             L.soft = 0.3f;
             L.shadows = false;
             sp.extraLights.push_back(L);
+        }
+        // V13.3 (KREATUR_L3_Purpur.md): purpifizierte Wesen - violettes Licht vor dem Koerper (atmet, Schwall, Lampe darauf)
+        if (playing) {
+            static std::vector<game::Purpification::Light> purpleLights;
+            purpleLights.clear();
+            s.purple().lights(purpleLights, cam.pos, 24.0f, time_);
+            for (const auto& pl : purpleLights) {
+                if (sp.extraLights.size() >= 10) break;
+                gfx::ExtraLight L;
+                L.pos = pl.pos;
+                L.dir = {0.0f, 0.0f, -1.0f};
+                L.color = pl.color;
+                L.range = pl.range;
+                L.spill = 1.0f;
+                L.size = 0.3f;
+                L.soft = 0.45f;
+                L.shadows = false;
+                sp.extraLights.push_back(L);
+            }
         }
         // V11: Level 6 - Tasten: was in Armlaenge ist, zeichnet sich ganz schwach ab (kein Schatten, kein Glanz)
         if (playing && s.world().level().touchLight) {
