@@ -1727,7 +1727,8 @@ static Mount mountOf(const std::string& m) {
     static const char* wall2[] = {"formwork", "ivy_wall", "neon_tube", "neon_sign", "panel_vermilion", "pipe_wall",
                                   "fungus_wall", "claw_marks",  // V13.3 L1-Erscheinungen
                                   "skin_hung", "skin_scratches",  // V13.3 L2: Spuren der Skin-Stealer
-                                  "jerry_mural", "jerry_poster"};  // V13.3 Teil 4 L2: Jerrys Raum, Wegweiser der Followers
+                                  "jerry_mural", "jerry_poster",  // V13.3 Teil 4 L2: Jerrys Raum, Wegweiser der Followers
+                                  "macchina_tapestry"};  // V13.3 Teil 4 L2: Wandtuch der Macchina
     static const char* ceil2[] = {"vines_ceiling", "cable_hang", "arcade_gothic"};
     static const char* floor2[] = {"scaffold", "wall_unfinished", "cement_bags", "rebar_bundle", "work_light", "cement_mixer", "wheelbarrow",
                                    "sawhorse", "site_barrier", "tarp_pile", "moss_patch", "fern_cluster", "roots_floor", "shrub_concrete",
@@ -1736,7 +1737,8 @@ static Mount mountOf(const std::string& m) {
                                    "lounge_table",
                                    "fungus_floor", "fungus_camp", "goo_trail", "plant_wanderer",  // V13.3 L1-Erscheinungen
                                    "skin_shed", "skin_lair", "food_scraps",  // V13.3 L2: Spuren der Skin-Stealer, Futter der Ratten
-                                   "jerry_perch", "jerry_shrine"};  // V13.3 Teil 4 L2: Jerrys Sitzrohr, Opfertisch der Followers
+                                   "jerry_perch", "jerry_shrine",  // V13.3 Teil 4 L2: Jerrys Sitzrohr, Opfertisch der Followers
+                                   "macchina_suit", "macchina_cradle", "macchina_spear"};  // V13.3 Teil 4 L2: Reste der Macchina
     for (const char* w : wall2)
         if (m == w) return Mount::Wall;
     for (const char* c : ceil2)
