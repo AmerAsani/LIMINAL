@@ -411,14 +411,18 @@ def build_skin_hung():
     # Umriss in (y, z): Kopf am Haken gestreckt, Schultern haengen, Leib, Aermel, Beine
     caps = [(0.0, hz - 0.03, 0.0, hz - 0.12, 0.035, 0.085), (0.0, hz - 0.12, 0.0, hz - 0.36, 0.085, 0.075),
             (0.0, hz - 0.36, 0.0, hz - 0.46, 0.06, 0.07),
-            (0.0, 1.30, 0.0, 1.30, 0.16, 0.16), (-0.12, 1.31, 0.12, 1.31, 0.075, 0.075),
-            (0.0, 1.30, 0.0, 0.95, 0.17, 0.18), (0.0, 0.95, 0.0, 0.74, 0.18, 0.14)]
+            (0.0, 1.24, 0.0, 1.24, 0.14, 0.15),
+            (0.0, 1.24, 0.0, 0.95, 0.155, 0.18), (0.0, 0.95, 0.0, 0.74, 0.18, 0.14)]
+    # Runde 5: ohne Knochen fallen die Schultern ab - vom Hals schraeg nach unten wie ein Mantel am Haken (vorher gerade
+    # Schultern auf 1,31 m: der Umriss eines stehenden Menschen, las sich wie ein Pappaufsteller)
+    for g in (1, -1):
+        caps += [(0.0, 1.40, g * 0.15, 1.22, 0.07, 0.075)]
     for g in (1, -1):  # Runde 4: Aermel frei neben dem Leib (vorher verschmolzen)
-        caps += [(g * 0.16, 1.33, g * 0.285, 1.04, 0.062, 0.054), (g * 0.285, 1.04, g * 0.30, 0.80, 0.054, 0.04)]
-        caps += [(g * 0.30, 0.80, g * 0.305, 0.74, 0.04, 0.048)]
+        caps += [(g * 0.15, 1.22, g * 0.26, 0.96, 0.058, 0.05), (g * 0.26, 0.96, g * 0.27, 0.72, 0.05, 0.038)]
+        caps += [(g * 0.27, 0.72, g * 0.275, 0.66, 0.038, 0.045)]
         for f in range(5):  # Finger haengen
-            y = g * (0.305 + (f - 1.5) * 0.024) if f < 4 else g * 0.35
-            z0 = 0.70 if f < 4 else 0.74
+            y = g * (0.275 + (f - 1.5) * 0.022) if f < 4 else g * 0.315
+            z0 = 0.62 if f < 4 else 0.66
             caps.append((y, z0, y + g * 0.004, z0 - [0.09, 0.10, 0.095, 0.08, 0.06][f], 0.013, 0.009))
         caps += [(g * 0.09, 0.78, g * 0.105, 0.44, 0.13, 0.09), (g * 0.105, 0.44, g * 0.10, 0.16, 0.09, 0.055),
                  (g * 0.10, 0.16, g * 0.10, 0.06, 0.055, 0.05)]
@@ -436,7 +440,9 @@ def build_skin_hung():
         h += 0.024 * _r2(u, v, 7.0, 24, su=1.0, sv=0.18, warp=0.05) ** 3 * np.clip((1.45 - v) / 0.3, 0, 1)
         h += 0.012 * _r2(u, v, 9.0, 25, su=0.35, sv=1.0, warp=0.04) ** 5 * np.clip((1.0 - v) / 0.3, 0, 1)  # unten gestaucht
         h += 0.05 * np.exp(-(u / 0.13) ** 2 - ((v - 1.05) / 0.24) ** 2)                                              # Bauch haengt vor
-        h += 0.022 * np.exp(-((np.abs(u) - 0.29) / 0.035) ** 2) * (v > 0.75) * (v < 1.3)                               # Aermel rund
+        h += 0.022 * np.exp(-((np.abs(u) - 0.265) / 0.035) ** 2) * (v > 0.66) * (v < 1.2)                              # Aermel rund
+        # Runde 5: schraege Zugfalten vom Hals zu den abfallenden Schultern
+        h += 0.016 * np.exp(-((v - (1.40 - 1.2 * np.abs(u))) / 0.025) ** 2) * (np.abs(u) < 0.17) * (np.abs(u) > 0.04)
         dz = v - fz
         h += 0.012 * np.exp(-(u / 0.010) ** 2 - ((dz + 0.0) / 0.05) ** 2)  # Nasenruecken
         h += 0.006 * np.exp(-((np.abs(u) - 0.04) / 0.02) ** 2 - ((dz - 0.11) / 0.012) ** 2)

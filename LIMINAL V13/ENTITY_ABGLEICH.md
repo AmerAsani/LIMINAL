@@ -81,17 +81,17 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 
 | Wesen | Wiki (eigene Worte) | Status |
 |---|---|---|
-| Windows (Entity 2) | Am Gangende; nicht nähern. | **fehlt (bewusst offen, E-031)**: die Rohrgänge haben keine Fenster; ein eigenes Fenster an Gangenden wäre ein neues Ausstattungsstück. Fensterwesen gibt es in Level 188. |
+| Windows (Entity 2) | Am Gangende; nicht nähern. | **umgesetzt (V13.3)**: bildet sich ungesehen ein eigenes altes Stahlfenster in der Stirnwand einer Sackgasse (9 Gangenden), kündigt sich mit Glas, Rahmen und Außenluft an, dann Flüstern, Winken, Greifen wie in Level 188 – [KREATUR_Fensterwesen.md](KREATUR_Fensterwesen.md), Abschnitt Level 2 |
 | Smiler (Entity 3) | Häufig, lieben Dunkelheit, schwärmten beim großen Stromausfall. | **umgesetzt** (an Stromausfälle gebunden) |
-| Deathmoths (Entity 4) | Vom Licht angezogen, meist friedlich, seit dem Stromausfall kleiner. | **bewusst weggelassen**: Die Motten mit Nest sind auf Level 5 verdichtet (dort „zentraler Stock“); auf Level 2 beschreibt die Seite sie als selten und friedlich. |
+| Deathmoths (Entity 4) | Vom Licht angezogen, meist friedlich, seit dem Stromausfall kleiner. | **umgesetzt (V13.3)**: kleine Gruppen an brennenden Röhren ohne Nest, meist Männchen mit Saugrüssel; die Lampe lockt sie, aus der Nähe gereizt schwirren sie vor dem Gesicht, nur ein Weibchen beißt (leicht); treiben in die Netze der Nguithr'xurh – [KREATUR_Deathmoth.md](KREATUR_Deathmoth.md), Abschnitt Level 2 |
 | Clump (Entity 5) | Häufig und tödlich; lauern an Ecken und springen. | **umgesetzt** (Lager an Kreuzungen und in Schächten) |
 | Jerry (Entity 7) | In einem Zimmer eingeschlossen; wen er oder sein Kult sieht, der entkommt nicht. | **bewusst weggelassen**: Die Gefahr geht von einem menschlichen Kult aus; das Spiel hat keine Kämpfe gegen Menschen. Jerry selbst beschreibt die Seite nicht. |
 | Hound (Entity 8) | In Rudeln, werden gestört zu schnellen Jägern. | **teilweise**: Hound umgesetzt, aber einzeln; Rudel fehlen |
 | Faceling (Entity 9) | Intelligent, in Gruppen, lassen einen in Ruhe, wenn man sie nicht reizt. | **neu (V13.2)**: Gruppen, reizbar (Lampe im Gesicht, Bedrängen, Anrempeln), dann leichte Schläge; die Gruppe macht mit (`KREATUR_Faceling.md`) |
-| Skin-Stealer (Entity 10) | Haben die Ebene nach dem Stromausfall verlassen. | **bewusst weggelassen** (laut Seite nicht mehr da) |
+| Skin-Stealer (Entity 10) | Haben die Ebene nach dem Stromausfall verlassen. | **umgesetzt (V13.3): Spuren, laut Seite nicht mehr da** – abgestreifte, vertrocknete Menschenhäute (eine geschmolzen in den heißen Tunneln, eine an einem Haken), Kratzspuren, eine verlassene Lagerstelle – [KREATUR_L2_Spuren.md](KREATUR_L2_Spuren.md) |
 | Wretch (Entity 15) | Auf fast jeder Ebene; griffen 2014 die Survivors an. | **neu (V13.2)**: gemischt träge und schnell, 30 % im zweiten Stadium (flehen, greifen nicht an) |
 | Nguithr'xurh (Entity 16) | Jagen Insekten und Motten, selten Menschen. | **umgesetzt (V13.3)**: klein, über den Maschinen, eingesponnene Deathmoths im Netz; nur selten hungrig – [KREATUR_Nguithrxurh.md](KREATUR_Nguithrxurh.md) |
-| Death Rat (Entity 24) | Fast harmlos, fressen Flüssigkeiten aus Fässern und Essen. | **neu (V13.2), teilweise**: haarlose Ratten (Entity 24), stieben davon, beißen bedrängt (`KREATUR_DeathRat.md`); das Fressen aus Fässern fehlt |
+| Death Rat (Entity 24) | Fast harmlos, fressen Flüssigkeiten aus Fässern und Essen. | **umgesetzt (V13.3)**: haarlose Ratten klettern auf die Fässer und trinken am Spund, fressen Essensreste, fliehen vor dem Spieler in die Ecken – [KREATUR_DeathRat.md](KREATUR_DeathRat.md), Abschnitt Level 2 |
 | Cannibal Cuisine (Entity 36) | Unbewegliche, leuchtende Wesen an Sackgassen; Wegmarken im Stromausfall, nicht gefährlich. | **fehlt**: Priorität 11 |
 | Wrangler (Entity 75) | Graben sich durch den Boden und überfallen aus den Gängen. | **umgesetzt (V13.3)**: vor allem Männchen, quer durch die Gänge, Kopf bricht aus Wand oder Boden; keine Jungtiere – [KREATUR_Wrangler.md](KREATUR_Wrangler.md) |
 | Photoshop (Entity 104) | Keine Art; selten, vor allem in PC-Räumen. | **bewusst weggelassen**: Die Seite beschreibt weder Gestalt noch Verhalten auf dieser Ebene. |
