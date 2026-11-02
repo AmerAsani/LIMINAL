@@ -79,10 +79,82 @@ LEVEL2 = {
     'wretch': ('Wretch (Entity 15)',
         W0 + 'presence wretch 9; wait 150; near wretch 4; wait 20; shot {out}/wretch_1.png; ' + _lamp('wretch', 2) + 'quit'),
 }
+
+
+def _purple(name, px, py, tx, ty, tz, lamp=False):
+    """V13.3 Level 3: Spielerkamera vor eine purpifizierte Stelle der Karte (KREATUR_L3_Purpur.md)."""
+    a = math.atan2(ty - py, tx - px)
+    p = math.atan2(tz - 1.62, math.hypot(tx - px, ty - py))
+    return f'pos {px} {py} {a:.4f} {p:.4f}; ' + ('key T; ' if lamp else '') + f'wait 90; shot {{out}}/{name}.png; ' + \
+        ('key T; wait 30; ' if lamp else '')
+
+
+def _knight():
+    # V13.3 Level 3: erzwungener Lauf des Red Knight; er kommt ausser Sicht, rennt vorbei, haut in die Luft und ist fort.
+    # Die Spielerkamera dreht sich jedes Bild zu ihm (face wretch); die zweite Haelfte mit Lampe.
+    s = W0 + 'knight run 1; wait 150; '
+    for k in range(1, 11):
+        if k == 6:
+            s += 'key T; '
+        s += f'face wretch; wait 2; shot {{out}}/knight_{k}.png; wait 28; '
+    return s + 'quit'
+
+
+# V13.3 Level 3 (Abnahme): alle Wesen der Ebene in ihren Raeumen. Dritter Eintrag: eigene Startargumente (Saat), wo die
+# Kreaturen-Runden einen Ort mit passender Decke/Nische gefunden hatten (KREATUR_Clump.md, KREATUR_Hound.md).
+LEVEL3 = {
+    'bigclump': ('Grosses Buendel (Entity 5, Level 3)',
+        W0 + 'bigclump next 99999; bigclump spawn 16; wait 90; near clump 6 90; wait 20; shot {out}/bigclump_1.png; ' +
+        _lamp('bigclump', 2) + 'bigclump state 3; wait 70; shot {out}/bigclump_3.png; key T; wait 90; '
+        'shot {out}/bigclump_4.png; bigclump state 5; wait 45; shot {out}/bigclump_5.png; key T; wait 30; '
+        'figclear; bigclump next 99999; figure clump 2.6; figstate variant 1; figstate hang 0; wait 90; key T; wait 90; '
+        'figcam 60 10 2.8 1.0; wait 5; shot {out}/bigclump_6.png; figcam 130 8 1.5 1.1; wait 5; shot {out}/bigclump_7.png; quit',
+        '--level level3 --seed 9'),
+    # das kleine Buendel braucht ein Lager (Spawnpunkt der Karte mit Deckenluefter) in der geladenen Gegend: erst hingehen
+    'clump': ('Clump, klein (Entity 5)',
+        W0 + 'pos 73.6 51.4 -1.5708; wait 60; presence clump 8; wait 150; pos 73.6 45.4 -1.5708 0.42; wait 20; '
+        'shot {out}/clump_1.png; ' + _lamp('clump', 2) + 'figclear; figure clump 3.0; figstate variant 0; wait 60; key T; wait 90; '
+        'figcam 30 12 2.6 0.5; wait 5; shot {out}/clump_3.png; quit'),
+    'pack': ('Hound-Rudel (Entity 8, Level 3)',
+        W0 + 'pack next 99999; pack spawn 22; wait 60; near hound 6; wait 20; shot {out}/pack_1.png; key T; wait 90; '
+        'shot {out}/pack_2.png; wait 150; shot {out}/pack_3.png; near hound 2.6; wait 2; shot {out}/pack_4.png; quit',
+        '--level level3 --seed 7'),
+    # die Gruppe geht los, sobald sie einen bemerkt: im Gang aus 5 m, dann die Vorfuehrung des Entwickelten nah mit Lampe
+    'faceling': ('Faceling bewaffnet (Entity 9)',
+        W0 + 'presence faceling 12; wait 150; near faceling 5; wait 1; shot {out}/faceling_1.png; key T; wait 90; '
+        'near faceling 3.2; wait 1; shot {out}/faceling_2.png; figclear; figure faceling 2.2; figstate variant 1; figstate look 1; '
+        'wait 60; figcam 10 4 1.2 1.55; wait 5; shot {out}/faceling_3.png; figcam -40 4 2.6 1.0; wait 5; shot {out}/faceling_4.png; quit'),
+    'skinstealer': ('Skin-Stealer im Mantel (Entity 10)',
+        W0 + 'presence skinstealer 6; wait 240; near skinstealer 3.2; wait 2; shot {out}/skinstealer_1.png; ' +
+        _lamp('skinstealer', 2) + 'near skinstealer 1.8; wait 2; shot {out}/skinstealer_3.png; quit'),
+    'wretch': ('Wretch bewaffnet (Entity 15)',
+        W0 + 'presence wretch 9; wait 150; near wretch 4; wait 20; shot {out}/wretch_1.png; ' + _lamp('wretch', 2) +
+        'near wretch 2.0; key T; wait 90; shot {out}/wretch_3.png; quit'),
+    'rat': ('Death Rats und Falle (Entity 24)',
+        W0 + 'presence rat; wait 90; near rat 6; key T; wait 90; shot {out}/rat_1.png; key T; wait 30; near rat 3; wait 20; '
+        'shot {out}/rat_2.png; l3 trap 2.5; wait 10; l3near 2.6; wait 40; shot {out}/rat_3.png; key T; wait 90; '
+        'shot {out}/rat_4.png; l3near 1.6; wait 10; shot {out}/rat_5.png; l3near 4.0; wait 10; shot {out}/rat_6.png; quit'),
+    'moth': ('Deathmoth-Schwarm (Entity 4)',
+        W0 + 'presence moth; wait 90; near moth 5; wait 30; shot {out}/moth_1.png; ' + _lamp('moth', 2) +
+        'key T; l3 swarm 1; wait 80; shot {out}/moth_3.png; wait 200; shot {out}/moth_4.png; wait 40; shot {out}/moth_5.png; quit'),
+    'prae': ('Praetorianer (Entity 4)',
+        W0 + 'presence moth; wait 90; l3prae 4.5; wait 30; shot {out}/prae_1.png; key T; wait 90; shot {out}/prae_2.png; '
+        'l3prae 2.2; l3 pstate 3; wait 30; shot {out}/prae_3.png; quit'),
+    # Smiler nur im Stromausfall und nur in Bereich 1 (am Start: Bereich 0) - im Hauptgang die Welle erzwingen, dann er
+    'smiler': ('Smiler (Entity 3, Level 3)',
+        W0 + 'pos 30 73 0; wait 60; presence encounter; wait 700; face smiler; wait 2; shot {out}/smiler_1.png; ' +
+        _lamp('smiler', 2) + 'near smiler 5; wait 2; shot {out}/smiler_3.png; quit'),
+    'knight': ('Red Knight (Entity 71)', _knight()),
+    'purple': ('Purpurne Wesen (Purpification)',
+        W0 + 'wait 200; ' + _purple('purple_1', 70.0, 100.55, 72.5, 99.2, 1.3) +
+        _purple('purple_2', 70.0, 100.55, 72.5, 99.2, 1.3, lamp=True) +
+        _purple('purple_3', 30.55, 52.4, 31.7, 54.5, 0.55) + _purple('purple_4', 30.55, 52.4, 31.7, 54.5, 0.55, lamp=True) +
+        _purple('purple_5', 30.25, 54.6, 31.95, 56.3, 1.45) + 'quit'),
+}
 # Spuren (Ausstattung der Karte): Kamera vor das Modell aus dem Ausstattungs-Abzug
 TRACES = {'level2': [('skin_hung', 0, 2.3), ('skin_lair', 0, 2.6), ('skin_shed', 0, 2.2), ('skin_shed', 1, 2.2),
                      ('skin_scratches', 0, 1.8)]}
-JOBS = {'level2': LEVEL2}
+JOBS = {'level2': LEVEL2, 'level3': LEVEL3}
 
 
 def trace_job(level):
@@ -164,12 +236,12 @@ def main():
     raw = os.path.join(ROOT, 'build', 'qa', 'creatures', a.level, a.round)
     os.makedirs(raw, exist_ok=True)
     report = {}
-    for job, (label, script) in jobs.items():
+    for job, (label, script, *args) in jobs.items():
         if not a.sheet_only:
             for f in os.listdir(raw):
                 if f.startswith(job + '_'):
                     os.remove(os.path.join(raw, f))
-            code, log = run(f'--level {a.level} --seed {a.seed}', script.format(out=raw.replace('\\', '/')),
+            code, log = run(args[0] if args else f'--level {a.level} --seed {a.seed}', script.format(out=raw.replace('\\', '/')),
                             userdir=os.path.join(ROOT, 'build', 'qa', 'ud_creatures', job), size=a.size)
             warn = [ln.strip() for ln in log.splitlines() if 'Skript' in ln and ('kein' in ln or 'unbekannt' in ln or 'nicht' in ln)]
             report[job] = {'exit': code, 'warn': warn[:6]}

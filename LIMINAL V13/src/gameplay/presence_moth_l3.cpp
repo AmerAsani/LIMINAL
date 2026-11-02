@@ -70,6 +70,13 @@ bool Presence::swarmRoused() const {
     return S && S->roused;
 }
 
+int Presence::mothFaceCount(vec3 eye) const {
+    int n = 0;
+    for (const auto& o : agents_)
+        if (o->role == Role::Moth && (o->variant == 3 || o->variant == 4) && (o->state == 4 || o->puppet) && length(o->pos - eye) < 0.3f) ++n;
+    return n;
+}
+
 void Presence::prepMothL3(Agent& a, const Context& c) {
     if (a.variant == 5) {
         a.cre.setExtra({5.0f});

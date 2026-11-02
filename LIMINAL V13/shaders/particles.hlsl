@@ -55,7 +55,10 @@ VSOut VSMain(uint vid : SV_VertexID)
     float3 edge = 0.5 - abs(rel);
     float fade = saturate(min(edge.x, min(edge.y, edge.z)) * E / 0.6);
     float d = length(p - cam);
-    fade *= saturate((d - 0.25) / 0.5) * saturate((E * 0.48 - d) / 1.0);
+    // V13.3 Abnahme Level 3: Fluegelstaub der Deathmoths dicht vor dem Gesicht - gPass1.y naechster Abstand (0: 0,25 m),
+    // gPass1.z Groesse (0: 1); kleiner Wuerfel, daher auch der Rand weich nach Kantenlaenge
+    const float nearD = gPass1.y > 0.0 ? gPass1.y : 0.25;
+    fade *= saturate((d - nearD) / (2.0 * nearD)) * saturate((E * 0.48 - d) / min(1.0, E * 0.25));
 
     // Licht der naechsten Leuchten (ohne Schatten; hinter Waenden verdeckt der Tiefentest)
     float3 L = 0.0;
@@ -78,7 +81,7 @@ VSOut VSMain(uint vid : SV_VertexID)
 
     // Groesse: wenige Millimeter, aber mindestens gut ein Pixel (dann entsprechend dunkler)
     float4 c = mul(gViewProj, float4(p, 1.0));
-    float radius = 0.0016 + 0.0016 * hash01(i * 13u + 5u);
+    float radius = (0.0016 + 0.0016 * hash01(i * 13u + 5u)) * (gPass1.z > 0.0 ? gPass1.z : 1.0);
     float px = radius * gProj.y * gScreen.y * 0.5 / max(c.w, 1e-3);
     float pxClamped = max(px, 1.25);
     float energy = (px * px) / (pxClamped * pxClamped);

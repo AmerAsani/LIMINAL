@@ -124,6 +124,8 @@ struct SceneParams {
     float blackoutFront = -1.0f;  // m; < 0 keine Welle
     // V13.3: Beben (Wrangler) - der Staub in der Luft faellt (Weg in m, aufsummiert) und leuchtet staerker (0..1)
     float dustFall = 0.0f, dustBoost = 0.0f;
+    // V13.3 Abnahme Level 3: Fluegelstaub der Deathmoths vor dem Gesicht (0..1) - dichter, heller Staub nah um die Kamera
+    float mothDust = 0.0f;
     // V10: Knochenmatrizen der Figuren dieses Bildes (je Matrix 3 Zeilen) und Kapseln fuer
     // weiche Schatten: je Figur 2 vec4 Kopf (Huellkugel xyz/r, Kapselzahl/Flags) + je Kapsel 2 vec4
     const std::vector<vec4>* bones = nullptr;

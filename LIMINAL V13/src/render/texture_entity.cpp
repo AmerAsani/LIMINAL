@@ -28,6 +28,7 @@ const EntLayerDesc kEntLayers[EL_COUNT] = {
     {"mensch", 0.5f, 0.6f},    // V13.2
     {"blass", 0.35f, 0.9f},    // V13.2
     {"wretch", 0.3f, 1.0f},    // V13.3 Wow-Check
+    {"buendel", 0.55f, 1.0f},  // V13.3 Abnahme Level 3
 };
 const EntLayerDesc kMicroLayers[ML_COUNT] = {
     {"poren", 0.08f, 0.45f},
@@ -418,6 +419,67 @@ Tex wretch(float u, float v) {
     return make(col, h, std::clamp(rough, 0.1f, 0.95f), 1.0f - 0.45f * crack - 0.6f * hole);
 }
 
+// V13.3 Abnahme Level 3 (KREATUR_Clump.md, Abschnitt Level 3): Haut des grossen, bewaffneten Buendels. Vorher die Haut des
+// Hound - nah im Lampenlicht glatt und gleichmaessig glaenzend wie eine Puppe. Jetzt verschmolzene Menschenhaut ueber
+// ueberdehnten Muskeln (Auslegung): fahl-gelblich, fleckweise gestaute Roete, Totenflecken (blauviolett) und alte
+// Blutergüsse (gelbgruen); Dehnungsstreifen laengs der Glieder (blassrosa, eingesunken); grobe Poren und Stoppeln; wulstige
+// Narbennaehte, wo Glieder zusammengewachsen sind; eingetrocknetes Blut (Spritzer, Schlieren nach unten); schwarzer Schmier
+// aus den Rohren der Ebene und Russ; naessende Blaeschen. Nass glaenzt sie nur fleckweise (Schweiss, Lymphe), sonst stumpf.
+Tex bundle(float u, float v) {
+    const float macro = fbm(u, v, 3, 3, 4, 501);
+    const float mott = fbm(u, v, 8, 8, 4, 502);
+    // Runde 4: aus 3 m noch blass und glatt - dunkler, kraeftigere grosse Flecken, Beulen unter der Haut
+    C3 col = mixc({0.44f, 0.36f, 0.29f}, {0.37f, 0.34f, 0.31f}, sm(-0.4f, 0.4f, macro));
+    const float flush = sm(0.05f, 0.5f, mott);
+    col = mixc(col, {0.52f, 0.27f, 0.23f}, flush * 0.6f);  // gestaute Roete (lebende Teile)
+    const float livor = sm(0.0f, 0.35f, fbm(u, v, 4, 4, 4, 503) + 0.25f * N(u, v, 24, 24, 504));
+    col = mixc(col, {0.25f, 0.20f, 0.32f}, livor * 0.75f);  // Totenflecken (tote Glieder)
+    const Cell lu = worley(u + 0.02f * N(u, v, 8, 8, 523), v, 14, 524);  // Beulen: Zysten, Muskelknoten unter der Haut
+    const float lump = (r01(lu.id) > 0.45f ? 1.0f : 0.0f) * sq(1.0f - sm(0.0f, 0.42f, lu.d1));
+    col = mixc(col, {0.50f, 0.30f, 0.30f}, lump * 0.25f);
+    const float bruise = sm(0.25f, 0.55f, fbm(u, v, 7, 7, 3, 505)) * (1.0f - livor);
+    col = mixc(col, {0.47f, 0.46f, 0.24f}, bruise * 0.45f);  // alte Blutergüsse
+    // Dehnungsstreifen: laengs (v laeuft an den Seiten nach oben, also entlang der Glieder), nur fleckweise
+    const float striMask = sm(0.0f, 0.4f, fbm(u, v, 4, 4, 3, 506));
+    const float su = u + 0.02f * N(u, v, 6, 6, 507);
+    const float stri = std::pow(1.0f - std::fabs(N(su, v, 46, 5, 508)), 10.0f) * striMask;
+    col = mixc(col, {0.63f, 0.46f, 0.48f}, stri * 0.55f);
+    // Poren, Stoppeln
+    const Cell pore = worley(u, v, 220, 509);
+    const float pr = 1.0f - sm(0.0f, 0.2f, pore.d1);
+    const Cell st = worley(u, v, 300, 510);
+    const float stub = (r01(st.id) > 0.7f ? 1.0f : 0.0f) * (1.0f - sm(0.03f, 0.12f, st.d1)) * sm(-0.2f, 0.3f, N(u, v, 5, 5, 511));
+    col = mulc(col, 1.0f - 0.1f * pr);
+    col = mixc(col, {0.10f, 0.08f, 0.07f}, stub * 0.6f);
+    // Narbennaehte: wulstige Grate an Zellkanten, stellenweise, quer gerippt wie grob verheilt
+    const Cell sc = worley(u + 0.03f * N(u, v, 9, 9, 512), v + 0.03f * N(u, v, 9, 9, 513), 5, 514);
+    const float seam = (1.0f - sm(0.0f, 0.035f, sc.d2 - sc.d1)) * sm(-0.1f, 0.2f, N(u, v, 7, 7, 515));
+    const float rib = seam * sm(0.3f, 0.8f, 0.5f + 0.5f * std::sin((u + v) * 6.2831853f * 48.0f));
+    col = mixc(col, {0.58f, 0.28f, 0.26f}, seam * 0.7f);
+    // eingetrocknetes Blut: Spritzer und Schlieren (nach unten gezogen)
+    const Cell sp = worley(u, v, 40, 516);
+    const float spat = (r01(sp.id) > 0.8f ? 1.0f : 0.0f) * (1.0f - sm(0.05f, 0.14f, sp.d1));
+    const float smear = sm(0.3f, 0.55f, fbm(u, v, 10, 3, 3, 517)) * sm(0.1f, 0.5f, fbm(u, v, 3, 3, 2, 518));
+    col = mixc(col, {0.30f, 0.11f, 0.08f}, smear * 0.6f);
+    col = mixc(col, {0.21f, 0.06f, 0.05f}, spat * 0.85f);
+    // schwarzer Schmier aus den Rohren und Russ (Level 3): dunkle, laengs gezogene Flecken (Runde 4: groesser, haeufiger)
+    const float oil = sm(0.22f, 0.5f, fbm(u, v, 6, 2, 3, 519));
+    col = mixc(col, {0.05f, 0.045f, 0.04f}, oil * 0.8f);
+    // naessende Blaeschen
+    const Cell bl = worley(u, v, 26, 520);
+    const float blis = (r01(bl.id) > 0.86f ? 1.0f : 0.0f) * (1.0f - sm(0.04f, 0.1f, bl.d1));
+    col = mixc(col, {0.70f, 0.58f, 0.36f}, blis * 0.7f);
+    // feine Querfalten (Runde 4: die Grat-Linien des Rauschens lasen sich als Wuermer - jetzt gerichtete, flache Falten)
+    const float wr = sq(sm(0.2f, 0.9f, N(u, v, 70, 9, 521) * 0.5f + 0.5f)) * sm(-0.1f, 0.4f, N(u, v, 6, 6, 525));
+    col = mulc(col, 1.0f - 0.06f * wr);
+    // Naesse fleckweise (Schweiss, Lymphe): glatt; der Schmier glaenzt halb; Blut, Narben und Stoppeln trocken
+    const float wet = sm(0.05f, 0.35f, fbm(u, v, 4, 4, 3, 522)) * (1.0f - 0.7f * spat);
+    const float h = 0.0006f * macro + 0.0007f * lump - 0.00012f * pr - 0.00025f * stri + 0.0003f * seam + 0.00015f * rib +
+                    0.00025f * blis - 0.00008f * wr + 0.00006f * spat + 0.00003f * stub;
+    const float rough = 0.8f + 0.06f * pr + 0.08f * stub - 0.64f * wet - 0.3f * oil - 0.6f * blis - 0.25f * seam + 0.05f * smear;
+    return make(col, h, std::clamp(rough, 0.08f, 0.95f), 1.0f - 0.15f * pr - 0.1f * wr - 0.15f * stri);
+}
+
 Tex layerSample(int layer, float u, float v) {
     switch (layer) {
         case EL_SKIN: return skin(u, v);
@@ -431,6 +493,7 @@ Tex layerSample(int layer, float u, float v) {
         case EL_HUMAN: return human(u, v);
         case EL_PALE: return pale(u, v);
         case EL_WRETCH: return wretch(u, v);  // V13.3
+        case EL_BUNDLE: return bundle(u, v);  // V13.3 Abnahme Level 3
         default: return nest(u, v);
     }
 }
