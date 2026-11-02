@@ -179,3 +179,9 @@ Agenten: alle ausser „Props Level 1 Blender-Modelle“ (vom Nutzer gestoppt, A
   - Level 2 Randwesen (Cannibal Cuisine, Swindlebird, Photoshop, Macchina);
   - Level 3: purpurne Wesen → Death Rats (groß, Fallen) und Deathmoths (Praetorianer) → Hound-Rudel und großer Clump → Smiler „ohne Anlass“, Red Knight, Wow-Check (Skin-Stealer wahre Gestalt wirkt glatt wie eine Puppe, Wretch-Gesicht zu sauber).
 - **Danach:** Level-2- und Level-3-Abnahme (Kritikrunden mit Wesen, Laufweg, Smoke, AUFWAND), dann Level 0, 5, 5.3, 188, 903, 37, 36.
+
+### V13.3 Zwischenstand 10 (02.11.2026) – GitHub
+- **Öffentlich auf origin:** `main` (3952886, neues README mit Bildern aus V12/V11), `liminal-v11` (67ccfe8), `liminal-v12` (1cd40a1), Tags `v11`, `v12`; `ls-remote` geprüft. V13 nicht hochgeladen.
+- **Prüfung vor dem Push:** keine Geheimnisse, Pfade oder Dateien über 20 MB; Lizenztexte ergänzt; Lizenz des Spiels offen (Eigentümer).
+- **Repository-Seite:** Beschreibung und Themen gesetzt; Release v11 mit Paket veröffentlicht, Release v12 als Entwurf (Paket 157 MB über der 10-MB-Grenze des Browser-Werkzeugs, liegt unter `Release\LIMINAL_V12.zip`).
+- Einzelheiten: `GITHUB_UPLOAD.md`, E-043. Weiter mit V13.3 (Level 2 und 3 abnehmen, sobald `wf_17c86cdf-667` fertig ist).

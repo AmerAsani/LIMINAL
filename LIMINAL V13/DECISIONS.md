@@ -526,7 +526,7 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
 
 - **Auftrag:** alle im Wikidot-Wiki dokumentierten Wesen; „bewusst weggelassen“ ist nicht erlaubt. `LICENSE_REVIEW.md` schloss benannte Einzelfiguren aus.
 - **Entscheidung:**
-  - Benannte Einzelfiguren (Jerry, später Samantha, Entity 18) werden als eigene Gestaltung gebaut; im Spieltext nie der Wiki-Name, keine Zitate, Quelle und Lizenz im Briefing (`LICENSE_REVIEW.md` ergänzt). Orts- und Gruppennamen bleiben ausgeschlossen (ein Satz des Skin-Stealers nannte „Base Gamma“ – ersetzt).
+  - Benannte Einzelfiguren (Jerry, später Samantha, Entity 18) werden als eigene Gestaltung gebaut; im Spieltext nie der Wiki-Name, keine Zitate, Quelle und Lizenz im Briefing (`LICENSE_REVIEW.md` ergänzt). Gruppen und Stützpunkte der Wikis (M.E.G., B.N.T.G., „Base …“) erscheinen nicht im Spiel (ein Satz des Skin-Stealers nannte „Base Gamma“ – ersetzt); die seit V12 sichtbaren Namen aus dem Wiki (Titel der Ebenen, „The Beverly Room“, „Promethei Bibliotheca“, Gate C32/C33) stehen mit Namensnennung in `LICENSES.md`.
   - Jerry (Entity 7, Rolle 18): Auslöser ist gegenseitiger Blickkontakt (Auslegung), Unterwerfung tödlich wie bei den anderen tödlichen Wesen; Krankheit und Menschenaugen als Körperhorror-Auslegung; Followers nur als Spuren.
   - Fensterwesen Level 2: bildet ungesehen ein eigenes Stahlfenster in der Stirnwand einer Sackgasse (E-031 aufgelöst).
   - Deathmoths Level 2 ohne Nest; nur Weibchen beißen (nach Ankündigung), Männchen friedlich.
@@ -549,3 +549,14 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
 
 - **Ursache und Behebung:** siehe `AUDIO_BUG.md` (B-017 Stimmen gestoppter, unhörbarer Schleifen nie frei; B-018 Unterläufe; B-019–B-021 Gerätewechsel, Öffnen, Dämpfung). Watchdog mit Stille-Erkennung am Master-Ausgang.
 - **Grenze:** Echtes Umstecken, echter Formatwechsel, Bluetooth und Hören nicht geprüft (ein Gerät, Lautsprecher stumm); simuliert und dokumentiert.
+
+## E-043 Öffentlicher Upload von V11 und V12 (02.11.2026)
+
+- **Auftrag des Nutzers (ersetzt E-025 und den Auftrag „privates Repository“):** V11 und V12 öffentlich im bestehenden Repository `origin` wie V1–V10; V13 erst, wenn V13.3 vollständig fertig ist.
+- **Entscheidung:**
+  - Hochgeladen: `main`, `liminal-v11`, `liminal-v12`, Tags `v11`, `v12`; nicht hochgeladen: `liminal-v13`, Tag `v13`, Agenten-Branches.
+  - LFS nur für diese drei Branches (`git lfs push origin main liminal-v11 liminal-v12` statt `--all`), damit nichts aus V13 hochgeht.
+  - Wurzeldateien der Branches neu (README ohne „privat“, `LICENSES.md`, `ATTRIBUTION.md`, `licenses/`); Versionsordner unverändert; Tags bleiben auf den Ständen vom 26.10.
+  - README auf `main` neu, Bilder neu in 1920×1080 aus V12/V11 aufgenommen (Auswahl und Gründe in `GITHUB_UPLOAD.md`).
+  - Lizenz des Spiels nicht gewählt (Entscheidung des Eigentümers, `LICENSES.md`).
+- **Beleg:** `GITHUB_UPLOAD.md`, `git ls-remote origin`.
