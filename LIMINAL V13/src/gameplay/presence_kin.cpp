@@ -520,12 +520,18 @@ void Presence::thinkRat(Agent& a, double dt, const Context& c, std::vector<Event
                 // weg vom Spieler
                 const vec3 away = nrmF(flat(a.pos - feet), dirYaw(a.yaw));
                 a.hasGoal = false;
-                for (int t = 0; t < 10 && !a.hasGoal; ++t) {
-                    const vec3 g = a.pos + rotateYaw(away, (float)rng_.uniform(-0.9, 0.9)) * (float)rng_.uniform(4.0, 7.0);
+                // V13.3 Teil 4 (Kritikrunde 3, Level 2): nur Ziele, zu denen der Weg kaum laenger ist als die Luftlinie - vorher
+                // lag das Ziel oft hinter einer Wand, und der Weg dorthin fuehrte durch die Tuer am Spieler vorbei. Zuletzt
+                // eine nahe Ecke seitlich (in einer Kammer ohne zweiten Ausgang drueckt sie sich an die Wand).
+                for (int t = 0; t < 16 && !a.hasGoal; ++t) {
+                    const bool corner = t >= 10;
+                    const vec3 g = a.pos + rotateYaw(away, (float)rng_.uniform(corner ? -1.7 : -0.9, corner ? 1.7 : 0.9)) *
+                                               (float)(corner ? rng_.uniform(1.5, 3.5) : rng_.uniform(4.0, 7.0));
                     const world::Tile* tl = c.world->tileIfLoaded(ifloor(g.x), ifloor(g.y));
-                    if (!figureWalkable(tl, 0.4f)) continue;
+                    if (!figureWalkable(tl, 0.4f) || hdist(g, feet) < d + 0.5f) continue;
                     a.field.build(*c.world, ifloor(g.x), ifloor(g.y), 0.4f);
-                    if (a.field.at(ifloor(a.pos.x), ifloor(a.pos.y)) < 0) continue;
+                    const int fc = a.field.at(ifloor(a.pos.x), ifloor(a.pos.y));
+                    if (fc < 0 || fc > (int)(hdist(g, a.pos) * 16.0f) + 15) continue;
                     a.goal = {g.x, g.y, tl->floor};
                     a.hasGoal = true;
                 }

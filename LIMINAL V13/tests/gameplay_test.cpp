@@ -4762,6 +4762,95 @@ static void testV133Level2Kin(const std::string& dataDir) {
             check(count(ev, PE::Squeak, Role::Rat) > 0 && (n == 0 || fled > 0), "Death Rat: kommt man, quieken sie und fliehen");
         }
     }
+    // --- Kritikrunden 4 und 5: Kammer mit nur einer Tuer - am Spund trinken, nicht am Spieler vorbei zur Tuer fliehen ------
+    {
+        const world::MapDef& M = *L2->map;
+        int room = -1;
+        double fx = 0, fy = 0, dx = 0, dy = 0;
+        for (const world::MapObject& o : M.objects) {
+            if (o.model != "food_scraps" || room >= 0) continue;
+            for (int r = 0; r < (int)M.rooms.size() && room < 0; ++r) {
+                const world::MapRoom& R = M.rooms[(size_t)r];
+                if (o.x < (double)R.x0 || o.x >= (double)R.x1 || o.y < (double)R.y0 || o.y >= (double)R.y1) continue;
+                int nd = 0;
+                double cx = 0, cy = 0;
+                for (const world::MapDoor& d : M.doors)
+                    if (d.a == r || d.b == r) ++nd, cx = (double)(d.x0 + d.x1) * 0.5, cy = (double)(d.y0 + d.y1) * 0.5;
+                int barrels = 0;  // eine Fassreihe an der Rueckwand
+                for (const world::MapObject& b : M.objects) barrels += (b.model == "barrel" && std::hypot(b.x - o.x, b.y - o.y) < 1.5) ? 1 : 0;
+                if (nd == 1 && barrels >= 3 && std::hypot(cx - o.x, cy - o.y) > 8.5) room = r, fx = o.x, fy = o.y, dx = cx, dy = cy;
+            }
+        }
+        check(room >= 0, "Death Rat: eine Kammer mit nur einer Tuer, Faesser und Reste an der Rueckwand");
+        if (room >= 0) {
+            auto s = open(17);
+            std::vector<game::GameEvent> ev;
+            step(*s, ev, 0.3);
+            auto& P = s->presence();
+            const double il = std::hypot(fx - dx, fy - dy), ix = (fx - dx) / il, iy = (fy - dy) / il;  // von der Tuer zum Futter
+            put(*s, dx + ix * 0.8, dy + iy * 0.8, std::atan2(-iy, -ix));                                  // in der Tuer, Blick hinaus
+            step(*s, ev, 0.5);
+            bool here = false;  // die Gruppe soll an diesem Futter auftauchen (der Auftritt waehlt zufaellig unter den nahen)
+            for (int k = 0; k < 12 && !here; ++k) {
+                P.clear();
+                P.force(Role::Rat);
+                step(*s, ev, 0.2);
+                vec3 q;
+                int s2 = 0, v2 = 0;
+                for (int i = 0; P.agentInfo(Role::Rat, i, q, s2, v2); ++i) here = here || std::hypot(q.x - fx, q.y - fy) < 2.5;
+            }
+            std::printf("  Kammer: Futter (%.1f, %.1f), Tuer (%.1f, %.1f), Gruppe dort: %d\n", fx, fy, dx, dy, here ? 1 : 0);
+            std::vector<game::Presence::NetState> ns;
+            int onLid = 0, atBung = 0;
+            ev.clear();
+            step(*s, ev, 30.0, [&] {
+                ns.clear();
+                P.netStates(ns, vec3{(float)fx, (float)fy, 0.0f}, 32);
+                for (const auto& m : ns) {
+                    const world::Tile* t = s->world().tileIfLoaded(ifloor(m.pos.x), ifloor(m.pos.y));
+                    if (m.role != (int)Role::Rat || m.state != 0 || !t || m.pos.z < t->floor + 0.8f) continue;
+                    double bd = 1e9;  // naechstes Fass
+                    const world::MapObject* bo = nullptr;
+                    for (const world::MapObject& o : M.objects)
+                        if (o.model == "barrel" && std::hypot(o.x - m.pos.x, o.y - m.pos.y) < bd) bd = std::hypot(o.x - m.pos.x, o.y - m.pos.y), bo = &o;
+                    // grosser Spund je Fassvariante (aus barrel@0..2.glb gemessen, Blender-y gespiegelt; wie presence_rat_l2.cpp)
+                    static const double kB[3][2] = {{-0.1775, -0.1025}, {-0.1775, 0.1025}, {0.2042, 0.0179}};
+                    const int bv = std::clamp(bo->variant, 0, 2);
+                    const double gx = bo->x + kB[bv][0] * std::cos(bo->yaw) - kB[bv][1] * std::sin(bo->yaw);
+                    const double gy = bo->y + kB[bv][0] * std::sin(bo->yaw) + kB[bv][1] * std::cos(bo->yaw);
+                    const double sb = std::hypot(m.pos.x + std::cos(m.yaw) * 0.2 - gx, m.pos.y + std::sin(m.yaw) * 0.2 - gy);
+                    ++onLid, atBung += sb < 0.07 ? 1 : 0;  // die Schnauze ueber dem Spund
+                }
+                return onLid >= 90;  // 1,5 s auf dem Deckel beobachtet
+            });
+            std::printf("  Death Rats in der Kammer: %d, Laute %d\n", P.count(Role::Rat), count(ev, PE::Snip, Role::Rat));
+            check(onLid > 0 && atBung * 10 >= onLid * 8,
+                  std::format("Death Rat: auf dem Deckel die Schnauze am Spund, nicht mitten auf dem Deckel ({} von {} Proben)", atBung, onLid));
+            // umdrehen, 3,6 m vor das Futter, Lampe an: sie fliehen in die Ecken - nicht durch die Tuer hinter dem Spieler
+            const double px = fx - ix * 3.6, py = fy - iy * 3.6;
+            put(*s, px, py, std::atan2(iy, ix));
+            s->flashlight().on = true;
+            aimAt(*s, vec3{(float)fx, (float)fy, 0.3f});
+            ev.clear();
+            std::map<u16, std::pair<float, float>> dist;  // je Ratte: Abstand zu Beginn, kleinster Abstand
+            step(*s, ev, 3.0, [&] {
+                ns.clear();
+                P.netStates(ns, vec3{(float)px, (float)py, 0.0f}, 32);
+                for (const auto& m : ns) {
+                    if (m.role != (int)Role::Rat) continue;
+                    const float dd = (float)std::hypot(m.pos.x - px, m.pos.y - py);
+                    auto it = dist.find(m.netId);
+                    if (it == dist.end()) dist[m.netId] = {dd, dd};
+                    else it->second.second = std::min(it->second.second, dd);
+                }
+                return false;
+            });
+            float worst = 1e9f;  // naeher gekommen als zu Beginn (hoechstens 1,5 m angerechnet)
+            for (const auto& [id, d2] : dist) worst = std::min(worst, d2.second - std::min(d2.first, 1.5f));
+            check(count(ev, PE::Squeak, Role::Rat) > 0, "Death Rat: angeleuchtet quieken sie und stieben davon");
+            check(!dist.empty() && worst > -0.35f, std::format("Death Rat: sie fliehen nicht am Spieler vorbei zur Tuer ({} Ratten, {:.2f} m)", dist.size(), worst));
+        }
+    }
 }
 
 int main(int argc, char** argv) {

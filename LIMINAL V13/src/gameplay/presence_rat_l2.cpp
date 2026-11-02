@@ -26,6 +26,7 @@ struct RatFeed {
     int stage = 0;
     int kind = 0;  // 0 Fass (Deckel), 1 Reste, 2 Lache am Fuss eines besetzten Fasses
     vec3 spot, base, top, from;
+    float face = 0.0f;  // Kritikrunde 5: Blick auf dem Deckel - die Schnauze ueber dem grossen Spund
     double t = 0.0, pause = 0.0, sound = 0.0, dur = 0.0;
 };
 template <class A>
@@ -37,15 +38,21 @@ RatFeed& feedOf(A& a) {
 struct Food {
     vec3 p;
     int kind;  // 0 Fass, 1 Reste
+    vec3 bung;  // Fass: der grosse Spund (2 Zoll) auf dem Deckel
 };
 
-// 0 Fass, 1 Reste (Variante 0), 2 Reste (Variante 1), -1 nichts
-int foodKind(const props::Model* m) {
+// Kritikrunde 5: Lage des grossen Spunds je Fassvariante (aus barrel@0..2.glb gemessen, models_l2.py: Radius 0,205 m;
+// Blender-y gespiegelt): v0 mit Kunststoffkappe, v1 ohne Stopfen (offenes Loch), v2 mit Oel, das heraussickert
+constexpr float kBung[3][2] = {{-0.1775f, -0.1025f}, {-0.1775f, 0.1025f}, {0.2042f, 0.0179f}};
+constexpr float kSnout = 0.20f;  // Wurzel bis Schnauze (Skelett makeRat, Massstab 0,62)
+
+// 0 Fass, 1 Reste (Variante 0), 2 Reste (Variante 1), -1 nichts; bv: Variante des Fasses
+int foodKind(const props::Model* m, int& bv) {
     static const props::Model* barrel[3] = {props::model("barrel", 0), props::model("barrel", 1), props::model("barrel", 2)};
     static const props::Model* scraps[2] = {props::model("food_scraps", 0), props::model("food_scraps", 1)};
     if (!m) return -1;
-    for (const props::Model* b : barrel)
-        if (b && m == b) return 0;
+    for (int v = 0; v < 3; ++v)
+        if (barrel[v] && m == barrel[v]) return bv = v, 0;
     for (int v = 0; v < 2; ++v)
         if (scraps[v] && m == scraps[v]) return 1 + v;
     return -1;
@@ -58,13 +65,15 @@ void foods(const Presence::Context& c, vec3 near, float range, std::vector<Food>
     for (const auto& p : sec->props) {
         vec3 q{p.x, p.y, p.z};
         if (hdist(q, near) > range || std::fabs(q.z - near.z) > 1.2f) continue;
-        const int k = foodKind(p.model);
+        int bv = 0;
+        const int k = foodKind(p.model, bv);
         if (k < 0) continue;
         if (k > 0) {  // Runde 2: dort, wo das Essbare liegt (v0: ausgelaufene Bohnen, v1: der Brotkanten; Blender-y gespiegelt)
             const vec3 local = k == 1 ? vec3{0.20f, -0.15f, 0.0f} : vec3{0.12f, 0.05f, 0.0f};
             q += rotateYaw(local, p.yaw);
         }
-        out.push_back({q, k > 0 ? 1 : 0});
+        const vec3 bung = k == 0 ? q + rotateYaw(vec3{kBung[bv][0], kBung[bv][1], 0.0f}, p.yaw) : q;
+        out.push_back({q, k > 0 ? 1 : 0, bung});
     }
 }
 
@@ -180,6 +189,13 @@ bool Presence::ratFeed(Agent& a, double dt, const Context& c, std::vector<Event>
             }
             const vec3 dir = nrmF(flat(F.spot - F.base), {1, 0, 0});
             F.top = F.spot - dir * 0.05f + vec3{0, 0, kBarrelTop};
+            F.face = std::atan2(dir.y, dir.x);
+            if (F.kind == 0) {  // Kritikrunde 5: die Schnauze am grossen Spund (vorher sass sie mitten auf dem Deckel)
+                const vec3 out = nrmF(flat(pick->bung - pick->p), dir);
+                F.top = pick->bung - out * kSnout + vec3{0, 0, kBarrelTop};
+                F.top.z = F.spot.z + kBarrelTop;
+                F.face = std::atan2(out.y, out.x);
+            }
             a.field.build(*c.world, ifloor(F.base.x), ifloor(F.base.y), 0.4f);
             if (a.field.at(ifloor(a.pos.x), ifloor(a.pos.y)) < 0) {
                 F.pause = 8.0;
@@ -222,12 +238,13 @@ bool Presence::ratFeed(Agent& a, double dt, const Context& c, std::vector<Event>
             const float e = s * s * (3.0f - 2.0f * s);
             a.pos = F.from + (F.top - F.from) * e + vec3{0, 0, 0.08f * std::sin(3.14159f * s)};
             a.perceive = 1.0f, a.perceiveAt = F.top + vec3{0, 0, 0.3f};  // aufgerichtet, die Nase voran
-            if (s >= 1.0f) a.pos = F.top, F.stage = 3, F.t = 0.0;
+            if (s > 0.5f) a.yaw += wrapA(F.face - a.yaw) * (float)std::min(1.0, dt * 10.0);  // oben zum Spund drehen
+            if (s >= 1.0f) a.pos = F.top, a.yaw = F.face, F.stage = 3, F.t = 0.0;
             return true;
         }
         case 3:
         case 4: {  // trinkt am Spundloch / frisst die Reste, schleckt die Lache
-            if (F.stage == 3) a.pos = F.top;
+            if (F.stage == 3) a.pos = F.top, a.yaw = F.face;
             // Kopf zum Futter, kauen; ab und zu hebt sie den Kopf und wittert
             const bool sniff = std::fmod(F.t, 6.5) > 5.3;
             a.jaw = sniff ? 0.0f : 1.0f;
