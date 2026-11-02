@@ -703,11 +703,12 @@ inline vec3 bookShelf() { return {0.18f, -0.95f, 1.52f}; }
 inline vec3 bookFeet() { return {0.34f, -0.14f, 0.012f}; }
 inline vec3 bookLand() { return {-4.6f, 1.3f, 0.012f}; }
 // Zustaende (Presence, Animation): 0 kommt durch den Gang, 1 sieht sich um (Seufzer), 2 das Buch faellt, 3 hebt es auf,
-// 4 liest, 5 wirft es weg, 6 spricht zur Bibliothek (Stille), 7 geht, 8 fort; Stoerung: 9 bemerkt, 10 kommt auf ihn zu,
-// 11 Ankuendigung (der Arm entfaltet sich), 12 Griff, 13 richtet sich (Revers) und geht
+// 4 liest, 5 wirft es weg, 6 spricht zur Bibliothek (Stille), 7 geht, 8 fort; Stoerung: 11 bemerkt, 12 kommt auf ihn zu,
+// 13 Ankuendigung (der Arm entfaltet sich), 14 Griff, 15 richtet sich (Revers) und geht. 9 und 10 sind frei: in der Praesenz
+// heissen sie fuer alle Wesen "abgehen" und "toedlicher Zugriff"
 enum State : int {
     S_ENTER = 0, S_GLANCE = 1, S_FALL = 2, S_PICK = 3, S_READ = 4, S_THROW = 5, S_SPEAK = 6, S_LEAVE = 7, S_GONE = 8,
-    S_NOTICE = 9, S_HUNT = 10, S_WARN = 11, S_GRIP = 12, S_COMPOSE = 13
+    S_NOTICE = 11, S_HUNT = 12, S_WARN = 13, S_GRIP = 14, S_COMPOSE = 15
 };
 CreatureSkeleton makeSkeleton();  // creature_gentleman.cpp
 }  // namespace gm

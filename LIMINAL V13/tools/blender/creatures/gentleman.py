@@ -97,10 +97,10 @@ def build(J, bones):
         e = c + X * r[0] * 0.80 + Y * g * r[1] * 0.40 + Z * r[2] * 0.04
         skin.append(A.ell(HEAD, e + X * 0.013, X, (0.017, 0.0165, 0.0125), op='sub', k=0.003))  # Loch, kein Lid
         skin.append(A.ell(HEAD, c + Y * g * r[1] * 0.97 - Z * r[2] * 0.06 - X * 0.014, Y * g, (0.008, 0.019, 0.029), up=Z, k=0.008))  # Ohren
-        eyes.append(A.ell(HEAD, e - X * 0.0005, X, (0.0128, 0.0136, 0.0128), k=0.0))  # Runde 2: nur die Iris war zu sehen
+        eyes.append(A.ell(HEAD, e + X * 0.0018, X, (0.0128, 0.0136, 0.0128), k=0.0))  # Runde 2/3: nur die Iris war zu sehen - weiter vor
         lid.append(A.ell(HEAD, e - X * 0.004, X, (0.0085, 0.0168, 0.013), k=0.0))   # roher, nasser Rand um das Auge (hinter dem Augapfel)
-        iris.append(A.ell(HEAD, e + X * 0.0112, X, (0.0022, 0.0066, 0.0066), k=0.0))   # dunkle Iris
-        pupil.append(A.ell(HEAD, e + X * 0.0128, X, (0.001, 0.0027, 0.0027), k=0.0))
+        iris.append(A.ell(HEAD, e + X * 0.0135, X, (0.0022, 0.0066, 0.0066), k=0.0))   # dunkle Iris
+        pupil.append(A.ell(HEAD, e + X * 0.0151, X, (0.001, 0.0027, 0.0027), k=0.0))
 
     # gemalte Zuege: auf die Oberflaeche gesetzt (Strahl vom Kopf aus bis zur Haut), 0,6 mm erhaben
     def surf(p_hint):

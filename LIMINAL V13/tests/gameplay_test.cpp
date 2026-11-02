@@ -34,6 +34,7 @@
 #include "gameplay/prefabs.hpp"
 #include "gameplay/session.hpp"
 #include "gameplay/kin_l3.hpp"  // V13.3 Level 3
+#include "gameplay/library_l53.hpp"  // V13.3 Teil 4 Level 5.3
 #include "gameplay/sound_field.hpp"
 #include "props/glb_import.hpp"
 #include "gameplay/stats.hpp"
@@ -7197,6 +7198,230 @@ static void testV133Level3Rest(const std::string& dataDir) {
     }
 }
 
+// V13.3 Teil 4 Level 5.3 (KREATUR_Gentleman.md, KREATUR_Ambassadors.md, KREATUR_Macchina.md Abschnitt Level 5.3): Orte und
+// Wissen in der Karte, der Besuch des Hausherrn (kommt aus dem Gang, Szene nach der Seite: Notizbuch faellt, Wurf, Fund,
+// Ansprache, Stille, Zorn der Bibliothek, kein Angriff ohne Stoerung), Stoerung durch Naehe (bemerken, kommen, Ankuendigung,
+// Griff - nie toedlich), Ausweichen rettet, Licht im Gesicht, Puppe beim Gast; Wiki-Namen nicht im Spieltext (E-039)
+static void testV133Level53Gentleman(const std::string& dataDir) {
+    std::printf("V13.3 Teil 4: Level 5.3 - der Hausherr, Wissen der Bibliothek\n");
+    const game::Content& content = *gContent11;
+    game::PrefabLibrary prefabs;
+    prefabs.loadDirectory(dataDir + "/prefabs");
+    JobSystem jobs(2);
+    using Role = game::Presence::Role;
+    namespace gm = anim::gm;
+    namespace lb = game::lib53;
+    const auto L = content.level("level5_3", world::kLayoutV6);
+    if (!L || !L->map) return check(false, "Level 5.3: Karte");
+    // --- Karte, Ebene, Texte ------------------------------------------------------------------------------------------------
+    int door = 0, stand = 0, l141 = 0, l189 = 0;
+    for (const auto& s : L->map->spawns) {
+        if (s.kind != "trace") continue;
+        door += s.set == "gm" && s.hasTag("door"), stand += s.set == "gm" && s.hasTag("stand");
+        l141 += s.set == "lore" && s.hasTag("e141"), l189 += s.set == "lore" && s.hasTag("e189");
+    }
+    std::map<std::string, int> objs;
+    for (const auto& o : L->map->objects) ++objs[o.model];
+    check(door == 1 && stand == 1, "Level 5.3: Szene des Hausherrn in der Karte (Gang, Platz in der Halle)");
+    check(l141 == 1 && l189 == 1 && objs["lore_lectern"] == 1 && objs["lore_catalog"] == 1,
+          "Level 5.3: Wissen in der Karte (Lesepult mit Folio, Katalogschrank mit Karten)");
+    const auto& K = L->kin[world::KIN_GENTLEMAN];
+    check(K.on && K.count == 1 && K.every >= 60.0, "Level 5.3: der Hausherr kennt die Ebene (presence.gentleman, einmal je Besuch)");
+    static const char* kWiki[] = {"Gentleman", "Beast", "Ambassador", "Macchina", "Entity", "Library Mind", "Terror Hotel"};
+    auto clean = [&](const std::string& t) {
+        for (const char* w : kWiki)
+            if (t.find(w) != std::string::npos) return false;
+        return true;
+    };
+    int found = 0;
+    bool namesOk = clean(anim::entityName(anim::Entity::Gentleman)) && clean(game::Presence::roleName(Role::Gentleman));
+    for (const auto& n : content.notes())
+        if (n.title == "Folio mit roter Tafel" || n.title == "Karteikarten mit Zahnrad" || n.title == "Notizbuch mit Skizzen")
+            ++found, namesOk = namesOk && clean(n.text) && clean(n.title);
+    for (int c = 0; c < lb::GM_COUNT; ++c)
+        if (const game::KinLine* Ln = game::kinLine(700 + c); Ln && Ln->sub) namesOk = namesOk && clean(Ln->sub);
+    check(found == 3, "Level 5.3: drei Funde (Folio, Karteikarten, Notizbuch) in den Notizen");
+    check(namesOk, "Level 5.3: kein Wiki-Name in Spieltext, Untertiteln und Namen (E-039)");
+    check(game::kinRole((int)Role::Gentleman) && game::kinLine(700 + lb::GM_SPEAK2) && game::kinLine(700 + lb::GM_SPEAK2)->sub &&
+              game::kinLine(700 + lb::GM_ANNOUNCE)->hint,
+          "Hausherr: Saetze mit Untertitel (Klangnummern ab 700), Ankuendigung mit Rat");
+
+    auto open = [&](i64 seed) {
+        auto s = std::make_unique<game::GameSession>(content, prefabs, L, seed, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        s->presence().setGrace(3000.0);
+        return s;
+    };
+    auto step = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, double secs, const std::function<bool()>& each = {}) {
+        for (int i = 0; i < (int)(secs * 60.0); ++i) {
+            if (each && each()) break;
+            s.update(1.0 / 60.0, {}, false);
+            ev.insert(ev.end(), s.events().begin(), s.events().end());
+            s.events().clear();
+        }
+    };
+    auto cue = [](const std::vector<game::GameEvent>& ev, int c) {
+        return (int)std::count_if(ev.begin(), ev.end(), [&](const game::GameEvent& e) {
+            return e.type == game::GameEvent::Figure && e.role == (int)Role::Gentleman && game::kinCueOf(e.intensity, e.role) == 700 + c;
+        });
+    };
+    auto put = [](game::GameSession& s, double x, double y, double angle, double pitch = 0.0) {
+        auto& pl = s.player();
+        pl.x = x, pl.y = y, pl.z = s.world().tile(ifloor(x), ifloor(y)).floor, pl.vx = pl.vy = 0.0;
+        pl.angle = angle, pl.pitch = pitch;
+        s.body().reset();
+    };
+    auto aimAt = [](game::GameSession& s, vec3 q) {
+        auto& pl = s.player();
+        pl.angle = std::atan2(q.y - pl.y, q.x - pl.x);
+        pl.pitch = std::atan2(q.z - pl.eye(), std::max(0.3, std::hypot(q.x - pl.x, q.y - pl.y)));
+    };
+    auto noteThere = [](game::GameSession& s, const std::string& id) {
+        int n = 0;
+        s.registry().each<game::NoteFind>([&](ecs::Entity, game::NoteFind& f) { n += f.id == id; });
+        return n;
+    };
+    auto piles = [](game::GameSession& s) {
+        int n = 0;
+        s.registry().each<game::MeshRenderer>([&](ecs::Entity, game::MeshRenderer& m) { n += m.model == "prop:books_fallen"; });
+        return n;
+    };
+    // --- Wissen: Funde auf Lesepult und Katalogschrank ------------------------------------------------------------------------
+    {
+        auto s = open(3);
+        std::vector<game::GameEvent> ev;
+        put(*s, 64.0, 46.0, 0.0);  // Obergeschoss
+        step(*s, ev, 0.5);
+        check(noteThere(*s, "trace:l53_lore141") == 1 && noteThere(*s, "trace:l53_lore189") == 1,
+              "Wissen: Folio (rote Lichter) und Karteikarten (Volk in den Anzuegen) liegen als Funde bereit");
+    }
+    // --- der Besuch: Regie, Szene, Fund, Stille, Zorn; kein Angriff ohne Stoerung -------------------------------------------
+    {
+        auto s = open(3);
+        std::vector<game::GameEvent> ev;
+        auto& P = s->presence();
+        put(*s, 49.5, 101.0, -1.2);  // in der Halle, 6 m von seinem Platz, Blick weg
+        step(*s, ev, 0.5);
+        P.gentSet("next", 0.5);
+        step(*s, ev, 6.0, [&] { return P.has(Role::Gentleman); });
+        check(P.has(Role::Gentleman), "Hausherr: besucht die Bibliothek, sobald jemand in der Halle steht (Regie)");
+        const auto I0 = P.gentInfo();
+        check(I0.pos.y > 115.0f && I0.state == gm::S_ENTER, std::format("Hausherr: kommt hinten aus dem alten Gang ({:.1f}, {:.1f})", I0.pos.x, I0.pos.y));
+        check(cue(ev, lb::GM_DOOR) == 1, "Hausherr: vor Sicht geht hinten im Gang eine Tuer");
+        const double h0 = s->stats().health;
+        float hushMax = 0.0f;
+        bool sawStand = false;
+        step(*s, ev, 90.0, [&] {
+            const auto I = P.gentInfo();
+            hushMax = std::max(hushMax, s->library().hush);
+            sawStand = sawStand || (I.state == gm::S_GLANCE && std::hypot(I.pos.x - 54.5f, I.pos.y - 105.6f) < 0.1f);
+            return I.state == gm::S_LEAVE;
+        });
+        check(sawStand, "Hausherr: geht durch die alte Tuer an seinen Platz in der Halle");
+        check(cue(ev, lb::GM_SIGH) == 1 && cue(ev, lb::GM_BOOKDROP) == 1 && cue(ev, lb::GM_THROW) == 1 && cue(ev, lb::GM_LAND) == 1,
+              "Hausherr: seufzt, das Notizbuch faellt ihm vor die Fuesse, er wirft es hinter sich");
+        check(P.gentInfo().landed && s->library().thrown && noteThere(*s, "trace:l53_notebook") == 1,
+              "Hausherr: das geworfene Notizbuch liegt als Fund in der Halle (4,6 m hinter seinem Platz)");
+        check(cue(ev, lb::GM_SPEAK0) == 1 && cue(ev, lb::GM_SPEAK1) == 1 && cue(ev, lb::GM_SPEAK2) == 1 && cue(ev, lb::GM_HUSH) == 1,
+              "Hausherr: spricht zur Bibliothek (drei Saetze), dazwischen Stille");
+        check(hushMax > 0.9f, std::format("Bibliothek: schweigt, waehrend er spricht (Stille {:.2f})", hushMax));
+        step(*s, ev, 60.0, [&] { return !P.has(Role::Gentleman); });
+        check(!P.has(Role::Gentleman) && P.gentInfo().wrath && piles(*s) >= 1, "Hausherr: geht durch den Gang - hinter ihm stuerzen Buecher (Zorn der Bibliothek)");
+        check(cue(ev, lb::GM_WRATH) == 1, "Bibliothek: Zorn ist zu hoeren (Holz aechzt, Buecher stuerzen)");
+        check(s->stats().health >= h0 - 1e-6 && P.gentInfo().grips == 0, "Hausherr: ohne Stoerung kein Angriff");
+        P.gentSet("next", 0.0);
+        step(*s, ev, 5.0);
+        check(!P.has(Role::Gentleman) && P.gentInfo().visits == 1, "Hausherr: einmal je Besuch der Ebene");
+    }
+    // --- Stoerung: zu nah - bemerken, kommen, Ankuendigung, Griff (nie toedlich), Revers, Rueckzug ----------------------------------
+    {
+        auto s = open(4);
+        std::vector<game::GameEvent> ev;
+        auto& P = s->presence();
+        put(*s, 49.5, 101.0, 0.0);
+        step(*s, ev, 3.0);  // die Halle laedt (sonst kein Platz fuer ihn)
+        P.force(Role::Gentleman, 0.0);
+        step(*s, ev, 0.2);
+        check(P.has(Role::Gentleman), "Hausherr: erzwungen (Skript, Test)");
+        P.gentSet("stand", gm::S_SPEAK);
+        put(*s, 52.6, 105.4, 0.0);  // 1,9 m vor ihm
+        aimAt(*s, P.gentInfo().head);
+        const double h0 = s->stats().health, m0 = s->stats().sanity;
+        double tNotice = -1.0, tWarn = -1.0, tGrip = -1.0, t = 0.0, hMin = h0;
+        step(*s, ev, 20.0, [&] {
+            const auto I = P.gentInfo();
+            hMin = std::min(hMin, s->stats().health);
+            if (I.state >= 0) aimAt(*s, I.head);
+            if (tNotice < 0.0 && I.state == gm::S_NOTICE) tNotice = t;
+            if (tWarn < 0.0 && I.state == gm::S_WARN) tWarn = t;
+            if (tGrip < 0.0 && I.state == gm::S_GRIP) tGrip = t;
+            t += 1.0 / 60.0;
+            return I.state == gm::S_LEAVE;
+        });
+        std::printf("  Stoerung (1,9 m): bemerkt nach %.2f s, Ankuendigung nach %.2f s, Griff nach %.2f s; Gesundheit %.0f -> %.1f (heilt nach), Verstand %.0f -> %.1f\n",
+                    tNotice, tWarn, tGrip, h0, hMin, m0, s->stats().sanity);
+        check(tNotice >= 0.0 && tWarn > tNotice && tGrip > tWarn + 1.4, "Hausherr: bemerkt den Stoerenden, kommt, kuendigt den Griff 1,5 s vorher an");
+        check(cue(ev, lb::GM_NOTICE) == 1 && cue(ev, lb::GM_ANNOUNCE) == 1 && cue(ev, lb::GM_GRIP) == 1 && cue(ev, lb::GM_COMPOSE) == 1,
+              "Hausherr: Saetze zu Bemerken, Ankuendigung, Griff und Rueckzug");
+        check(hMin < h0 - 5.0 && hMin > 50.0 && !s->stats().dead && s->stats().sanity < m0 - 25.0,
+              "Hausherr: der Griff schadet (Gesundheit, viel Verstand), toetet aber nicht");
+        check(P.gentInfo().grips == 1 && P.gentInfo().state == gm::S_LEAVE, "Hausherr: nach dem Griff richtet er sich und geht");
+        // Koop: im Netzzustand des Hosts (Rolle 20), Puppe beim Gast mit Zustand und Kanaelen
+        std::vector<game::Presence::NetState> ns;
+        P.netStates(ns, vec3{(float)s->player().x, (float)s->player().y, 0.0f}, 8);
+        const auto it = std::find_if(ns.begin(), ns.end(), [](const auto& n) { return n.role == (int)Role::Gentleman; });
+        check(it != ns.end() && it->role < 40, "Hausherr: im Netzzustand des Hosts (Rolle 20)");
+        if (it != ns.end()) {
+            game::Presence guest;
+            guest.netApply({*it}, 0.0);
+            check(guest.has(Role::Gentleman) && guest.gentInfo().state == it->state, "Hausherr: beim Gast als Puppe (Zustand wie beim Host)");
+        }
+    }
+    // --- Ausweichen: in der Ankuendigung weit genug weg - kein Griff -----------------------------------------------------------------
+    {
+        auto s = open(5);
+        std::vector<game::GameEvent> ev;
+        auto& P = s->presence();
+        put(*s, 49.5, 101.0, 0.0);
+        step(*s, ev, 3.0);  // die Halle laedt (sonst kein Platz fuer ihn)
+        P.force(Role::Gentleman, 0.0);
+        step(*s, ev, 0.2);
+        check(P.has(Role::Gentleman), "Hausherr: erzwungen (Skript, Test)");
+        P.gentSet("stand", gm::S_SPEAK);
+        put(*s, 52.6, 105.4, 0.0);
+        aimAt(*s, P.gentInfo().head);
+        const double h0 = s->stats().health;
+        step(*s, ev, 12.0, [&] { return P.gentInfo().state == gm::S_WARN; });
+        put(*s, 48.0, 104.0, 0.0);  // weg, ueber 3,8 m
+        aimAt(*s, P.gentInfo().head);
+        step(*s, ev, 4.0);
+        check(P.gentInfo().grips == 0 && s->stats().health >= h0 - 1e-6, "Hausherr: wer in der Ankuendigung zurueckweicht, wird nicht gegriffen");
+    }
+    // --- Licht im Gesicht: er bemerkt den, der leuchtet ----------------------------------------------------------------------------
+    {
+        auto s = open(6);
+        std::vector<game::GameEvent> ev;
+        auto& P = s->presence();
+        put(*s, 49.5, 101.0, 0.0);
+        step(*s, ev, 3.0);  // die Halle laedt (sonst kein Platz fuer ihn)
+        P.force(Role::Gentleman, 0.0);
+        step(*s, ev, 0.2);
+        check(P.has(Role::Gentleman), "Hausherr: erzwungen (Skript, Test)");
+        P.gentSet("stand", gm::S_SPEAK);
+        put(*s, 49.0, 104.5, 0.0);  // 5,6 m vor ihm
+        s->flashlight().charge = 100.0;
+        s->flashlight().on = true;
+        aimAt(*s, P.gentInfo().head);
+        ev.clear();
+        step(*s, ev, 6.0, [&] {
+            aimAt(*s, P.gentInfo().head);
+            return P.gentInfo().state == gm::S_NOTICE;
+        });
+        check(cue(ev, lb::GM_LIGHT) == 1 && P.gentInfo().state == gm::S_NOTICE, "Hausherr: Licht im Gesicht - erst eine Mahnung, dann bemerkt er dich");
+    }
+}
+
 int main(int argc, char** argv) {
     if (argc < 2) {
         std::printf("Aufruf: gameplay_test <data-Ordner>\n");
@@ -7251,6 +7476,7 @@ int main(int argc, char** argv) {
     testV133PackBigClump(argv[1]);   // V13.3: Level 2/3 - Hound-Rudel, grosses bewaffnetes Buendel
     testV133Level3Rest(argv[1]);     // V13.3: Level 3 - Smiler ohne Anlass, Red Knight
     testV133Level5Hotel(argv[1]);    // V13.3 Teil 4: Level 5 - Samantha, Kolonien, Woodlins, Watchers, Gastgeber
+    testV133Level53Gentleman(argv[1]);  // V13.3 Teil 4: Level 5.3 - der Hausherr, Wissen der Bibliothek
     std::printf("%s: %d Pruefungen, %d Fehler\n", gFails ? "FEHLGESCHLAGEN" : "OK", gChecks, gFails);
     return gFails ? 1 : 0;
 }

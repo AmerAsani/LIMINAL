@@ -163,7 +163,10 @@ void Presence::thinkGentleman(Agent& a, double dt, const Context& c, std::vector
     const vec3 F = dirYaw(a.yaw);
     auto say = [&](int cue, vec3 at) { out.push_back({Event::Mimic, Role::Gentleman, at, cueOf(cue)}); };
     auto faceTo = [&](float want, float rate) { a.yaw = wrapA(a.yaw + std::clamp(wrapA(want - a.yaw), -rate * (float)q, rate * (float)q)); };
-    auto setState = [&](int s) { a.state = s, a.stateT = 0.0, M.said = false; };
+    auto setState = [&](int s) {
+        log::info("Praesenz: Hausherr Zustand {} -> {} ({:.1f} m)", a.state, s, hdist(a.pos, c.view.eye));
+        a.state = s, a.stateT = 0.0, M.said = false;
+    };
     lightReact(a, c, head, 12.0f, dt, 99.0);
     a.glow = 0.0f;
     // Haltung fuer Bilder (Skript): fest in einer Pose, keine Entscheidungen
