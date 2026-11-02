@@ -111,6 +111,13 @@ trugen die Namen der Seite. *Änderung:* eigene Wörter (LICENSE_REVIEW).
 `r5_pov_cc_zorn.jpg`. *Gut:* Die Taste ist erkennbar („Automat: eine Taste drücken“); im Stromausfall ist der Automat das einzige Licht
 im Tunnel – genau die Wegmarke der Seite; im Zorn greifen die Arme in die Kamera. Abnahme.
 
+**Runde 6 (Abnahme von Level 2, `docs/screens/level2/wesen_r4_1.jpg`, `r6_cc_lack_vorher_nachher.jpg`)** – *Gut:* Hände und Ware
+lesen sich in der Sackgasse. *Schlecht:* Das Gehäuse ist glatt wie neu, ein blauer Lack ohne jede Spur. Neben den verdreckten
+Maschinen der Ebene wirkt der Automat wie ein Spielzeug. *Änderung:* Lack mit Textur (Kratzer, Abplatzer, Schmutz; `painted_metal_white`,
+schwarz `painted_metal_grey`), auf dem Gehäuse und der Kopfklappe. Die UV setzt `_box_uv` nach der größten Normalenkomponente, denn
+bewegliche Modelle tasten ihre Textur über die UV ab; ohne UV wäre sie einfarbig. *Nachweis* (rechts im Bogen): Abrieb an den Kanten,
+dunkle Flecken, der Lack ist stumpf. Abnahme.
+
 ## Tests (`gameplay_test`, `testV133L2Rand`)
 
 Plätze in der Karte; alle Plätze besetzt; fest (Block unter der Grundfläche); leuchtet; Flüstern in der Nähe; drei Waren gratis, dann

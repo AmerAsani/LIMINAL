@@ -72,9 +72,10 @@ LEVEL2 = {
     # der Wrangler steckt bis zum Ausbruch im Boden: Vorfuehrung im Gang der Ebene (Licht der Ebene, Lampe)
     'wrangler': ('Wrangler (Entity 75)',
         W0 + 'pos 44 8 3.1416; wait 30; figure wrangler 3.6; wait 60; shot {out}/wrangler_1.png; ' + _lamp('wrangler', 2) + 'quit'),
+    # die Gruppe geht auf den Spieler zu (die Kamera stak im Koerper): Vorfuehrung im Gang, dazu die Gruppe im Gang von weitem
     'faceling': ('Faceling (Entity 9)',
-        W0 + 'presence faceling 9; wait 150; near faceling 7; wait 1; shot {out}/faceling_1.png; key T; near faceling 7; wait 1; '
-        'wait 89; near faceling 7; wait 1; shot {out}/faceling_2.png; quit'),
+        W0 + 'pos 44 8 3.1416; wait 30; figure faceling 3.4; wait 60; shot {out}/faceling_1.png; ' + _lamp('faceling', 2) +
+        'figclear; presence faceling 14; wait 60; near faceling 12; wait 1; shot {out}/faceling_3.png; quit'),
     'wretch': ('Wretch (Entity 15)',
         W0 + 'presence wretch 9; wait 150; near wretch 4; wait 20; shot {out}/wretch_1.png; ' + _lamp('wretch', 2) + 'quit'),
 }

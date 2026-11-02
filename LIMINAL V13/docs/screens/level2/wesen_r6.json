@@ -1,0 +1,42 @@
+{
+ "shots": [
+  "photoshop_1.png",
+  "photoshop_2.png",
+  "photoshop_3.png",
+  "photoshop_4.png",
+  "photoshop_5.png",
+  "cuisine_1.png",
+  "cuisine_2.png",
+  "cuisine_3.png",
+  "cuisine_4.png",
+  "macchina_1.png",
+  "macchina_2.png",
+  "macchina_3.png",
+  "macchina_4.png",
+  "jerry_1.png",
+  "jerry_2.png",
+  "jerry_3.png",
+  "faceling_1.png",
+  "faceling_2.png"
+ ],
+ "photoshop": {
+  "exit": 0,
+  "warn": []
+ },
+ "cuisine": {
+  "exit": 0,
+  "warn": []
+ },
+ "macchina": {
+  "exit": 0,
+  "warn": []
+ },
+ "jerry": {
+  "exit": 0,
+  "warn": []
+ },
+ "faceling": {
+  "exit": 0,
+  "warn": []
+ }
+}

@@ -1214,8 +1214,10 @@ def build_violet_lamp():
     C = M_common()
     G = Geo()
     hous = mat('notleuchte', (0.70, 0.70, 0.66), 'plastic', r=1.0)
-    glow = common.material('violett', (0.42, 0.10, 1.0), look='glow', glow=0.95)
-    glow2 = common.material('violett_rippe', (0.30, 0.07, 0.72), look='glow', glow=0.65)
+    # Abnahme Level 2 (Runde 6): heller (0,95 -> 1,8), sonst im Laufweg nur ein Punkt; sie bleibt ohne Raumlicht (Kachellicht
+    # und Dunkel fuer die Wesen unveraendert), das Leuchten kommt mit dem Schein (Bloom)
+    glow = common.material('violett', (0.42, 0.10, 1.0), look='glow', glow=1.8)
+    glow2 = common.material('violett_rippe', (0.30, 0.07, 0.72), look='glow', glow=1.2)
     led = common.material('led_gruen', (0.2, 1.0, 0.3), look='glow', glow=1.5)
     G.add(hous, prism(rrect(0.176, 0.096, 0.014, 3), 0.0, 0.006), FX((0, 0, 0)))
     vs, fs = prism(rrect(0.168, 0.088, 0.012, 3), 0.006, 0.040)

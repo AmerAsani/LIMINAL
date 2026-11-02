@@ -22,7 +22,7 @@ import numpy as np
 import anat as A
 import sdf
 
-LODS = (160000, 50000, 15000)
+LODS = (118000, 50000, 15000)  # Abnahme Level 2: Stufe 0 unter der Grenze der Modellpruefung (120 000; vorher 160 000)
 FEMALE = False
 SEEDS = False
 BROOD = False

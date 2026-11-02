@@ -54,7 +54,9 @@ Ein Wesen dieser Länge sieht man nie ganz. Zu sehen sind Abschnitte – und gen
 - **Männchen:** ein riesiges Menschengesicht auf dem Schlangenkopf (1,3 m breit): innen hochgezogene, flehende Brauen über einem Grinsen bis an die Seiten des Kopfs, die Lippen von zu vielen Menschenzähnen zurückgezogen (zwei Reihen à 17, Eckzähne länger, Lücken, eine zweite schiefe Reihe dahinter), Zahnfleisch, tiefe Nasolabialfalten, Krähenfüße, Stirnfalten, tiefe Augenhöhlen mit kleinen, weiß leuchtenden Augen; graue, raue Haut. Der Unterkiefer klappt hinten auf (weite Mundhöhle).
 - **Weibchen:** wurmartiger, durchscheinender Kopf mit Ringfurchen, runder wulstiger Mund mit zwei Zahnkränzen, vier Taster, zwei schwere, sichelförmige, innen gezahnte Zangen (Chitin), darin sichtbar der dunkle Hirnknoten und die Zangenmuskeln.
 - **Trächtig:** dazu Buckel voller Grübchen am Leib, in jedem ein dunkler Same.
-- Stufen 160 000 / 50 000 / 15 000 Dreiecke (Jungtiere 14 000 / 5 000 / 1 900).
+- Stufen 118 000 / 50 000 / 15 000 Dreiecke (Jungtiere 14 000 / 5 000 / 1 900). Abnahme Level 2: Stufe 0 von 160 000 auf
+  118 000 gesenkt (Grenze der Modellprüfung 120 000), alle drei Formen neu gebaut; Indexlisten mit `tools/qa/repair_glb.py`
+  bereinigt (entartete Dreiecke im Augenbereich, gedrehter Umlaufsinn nach dem Vereinfachen).
 
 **Materialien** (`FM_ENT_WR_*`): Haut (Männchen grau, dichter; Weibchen blass rosa, klarer) – im Mesh-Shader gerastert ausgedünnt (Bits 16–23 = Deckkraft, schräg dichter), dazu dünne Stellen (zwei gedrehte Rauschoktaven, dort klarer und glänzender), in der Mitte schimmert das dunkle Innere durch, der Rand leuchtet; raue Kopfhaut, Darm (nass, dunkelrot), Faserstränge (olivbraun), Knochen, Schleim (glänzend, gerastert), Samen, Staub, Risse, Zangen, Schutt.
 
