@@ -4439,7 +4439,7 @@ static void testV133L2Rand(const std::string& dataDir) {
         check(A.addict(0).macchinaSeen && said(ev, "Anzug") && heard(ev, "mc_creak"), "Macchina: der erste Blick erzaehlt den Fund");
         int plate = -1;
         for (size_t i = 0; i < content.notes().size(); ++i)
-            if (content.notes()[i].title == "Blechtafel der Macchina") plate = (int)i;
+            if (content.notes()[i].title == "Blechtafel mit Zeichen") plate = (int)i;
         bool random = false;
         for (u64 h = 0; h < 400; ++h) random = random || content.noteFor("level2", h, false) == plate || content.noteFor("level2", h, true) == plate;
         check(plate >= 0 && !random, "Macchina: die Blechtafel liegt nur beim Anzug (keine Zufallsnotiz)");

@@ -7,8 +7,8 @@ das Teil liegt entlang +x). Die Gelenkpunkte stehen hier als Konstanten und glei
 Cannibal Cuisine (Entity 36: anomaler Verkaufsautomat, etwa 1,83 x 1,22 x 0,76 m, zwei Tastenfelder - Ziffern und
 Buchstaben -, statt der Spiralen schiebt je Fach eine abgetrennte, skelettierte Menschenhand die Ware vor; Waren aus
 Menschenteilen in Snackverpackung; zwei Klappen oben und unten, aus denen metallisch ueberzogene Skelettarme bis 1,37 m
-kommen, die unteren dienen als Beine; drinnen ein Lager mit armlosen Leichen, an einer eine Karteikarte, Nachname Iris;
-hinten ein Schild des Herstellers "Cannibal Cuisine Productions", Iris Family, 2019, Arizona; Level 2: er leuchtet):
+kommen, die unteren dienen als Beine; drinnen ein Lager mit armlosen Leichen, an einer eine Karteikarte; hinten ein Schild
+des Herstellers mit Familie, Jahr und Ort; Level 2: er leuchtet). Im Bild stehen eigene Woerter statt der Namen der Seite:
   cc_body@0..2   Gehaeuse (drei Lackierungen wie Automaten verschiedener Marken, keine echten Marken), Fachwerk mit Ware
                  und Knochenhaenden, Tastenfelder, Ausgabefach, Hohlraeume hinter den Klappen (unten: das Gesicht einer
                  der Leichen mit Karteikarte), Herstellerschild hinten
@@ -74,7 +74,7 @@ def _mats():
         'dark': mat('cc_dunkel', (0.03, 0.03, 0.035), 'plastic', r=1.2),
         'cavity': mat('cc_hohlraum', (0.015, 0.012, 0.012), 'plastic', r=1.4),
         'rubber': mat('cc_gummi', (0.05, 0.05, 0.05), 'rubber', r=1.2),
-        'backlit': mat('cc_rueckwand', (1.0, 0.95, 0.86), 'glow', glow=0.55),
+        'backlit': mat('cc_rueckwand', (0.95, 0.85, 0.64), 'glow', glow=0.3),  # Runde 3: vergilbt, schwaecher (ueberstrahlte die Abdruecke)
         'tube': mat('cc_roehre', (1.0, 0.97, 0.92), 'glow', glow=2.2),
         'shelf': mat('cc_fachblech', (0.55, 0.56, 0.58), 'metal', r=0.8),
         'label': mat('cc_fachschild', (0.92, 0.91, 0.86), 'plastic', r=1.0),
@@ -88,9 +88,10 @@ def _mats():
         'tissue': mat('cc_gewebe_trocken', (0.30, 0.12, 0.08), 'plastic', r=0.9),
         'coat': mat('cc_ueberzug', (0.42, 0.44, 0.47), 'metal', r=0.6, m=0.3),
         'coat_d': mat('cc_ueberzug_dunkel', (0.18, 0.18, 0.20), 'metal', r=0.8),
-        'meat': mat('cc_fleisch', (0.52, 0.10, 0.09), 'plastic', r=0.5),
-        'meat_d': mat('cc_fleisch_dunkel', (0.25, 0.04, 0.04), 'plastic', r=0.45),
-        'fat': mat('cc_fett', (0.86, 0.78, 0.62), 'plastic', r=0.6),
+        # Runde 4: nass glaenzendes Fleisch und Fett (vorher matt wie Knete)
+        'meat': mat('cc_fleisch', (0.56, 0.08, 0.08), 'plastic', r=0.22),
+        'meat_d': mat('cc_fleisch_dunkel', (0.27, 0.03, 0.04), 'plastic', r=0.2),
+        'fat': mat('cc_fett', (0.88, 0.80, 0.62), 'plastic', r=0.3),
         'blood': mat('cc_blut', (0.22, 0.01, 0.01), 'plastic', r=0.25),
         'glass': mat('cc_flaschenglas', (0.62, 0.70, 0.66), 'glass', r=0.2),
         'wrapb': mat('cc_papier_braun', (0.30, 0.15, 0.06), 'plastic', r=0.5),
@@ -339,7 +340,7 @@ def build_cc_body(v=0):
     box(K(M['corpse'], 30), (fx - 0.33, -0.25, 0.08), (fx - 0.22, 0.16, 0.30))  # Rumpf (armlos, Stumpf)
     ellipsoid(K(M['meat_d'], 30), (fx - 0.24, 0.155, 0.24), (0, 1, 0), 0.02, 0.03, 8, 4)
     quad(K(M['indexcard']), (fx - 0.218, 0.0, 0.11), (fx - 0.218, 0.12, 0.11), (fx - 0.218, 0.12, 0.185), (fx - 0.218, 0.0, 0.185))
-    text_on(K(M['ink']), 'HENRY IRIS', 0.014, (fx - 0.217, 0.06, 0.162), (0, 1, 0), (0, 0, 1))
+    text_on(K(M['ink']), 'DONOR', 0.014, (fx - 0.217, 0.06, 0.162), (0, 1, 0), (0, 0, 1))
     text_on(K(M['ink']), 'NR. 1', 0.01, (fx - 0.217, 0.06, 0.135), (0, 1, 0), (0, 0, 1))
     for d in (0.005, 0.115):
         quad(K(M['tape']), (fx - 0.2175, d - 0.01, 0.175), (fx - 0.2175, d + 0.01, 0.175), (fx - 0.2175, d + 0.01, 0.195), (fx - 0.2175, d - 0.01, 0.195))
@@ -347,19 +348,26 @@ def build_cc_body(v=0):
     bx = -0.20
     box(K(M['backlit']), (bx - 0.01, gy0, gz0), (bx, gy1, gz1))
     # Runde 2: die Rueckwand ist nicht sauber - blutige Handabdruecke von innen, Schlieren, nach unten verlaufen
-    for (py, pz, sc) in ((gy0 + 0.12 + 0.05 * v, 1.32, 1.0), (gy0 + 0.47, 0.98 - 0.04 * v, 0.85), (gy0 + 0.66, 1.42, 0.7)):
+    # Runde 3: Hand statt Sonnenrad - Handballen, vier Finger nebeneinander nach oben, Daumen schraeg zur Seite
+    for (py, pz, sc) in ((gy0 + 0.12 + 0.05 * v, 1.30, 1.15), (gy0 + 0.47, 0.98 - 0.04 * v, 1.0), (gy0 + 0.66, 1.40, 0.9)):
         o = V((bx + 0.0012, py, pz))
-        palm = [(0.032 * math.cos(a) * sc, 0.038 * math.sin(a) * sc) for a in [i * TAU / 12 for i in range(12)]]
+        palm = [(0.04 * math.cos(a) * sc, 0.045 * math.sin(a) * sc) for a in [i * TAU / 14 for i in range(14)]]
         poly_on(K(M['blood']), palm, o, (0, 1, 0), (0, 0, 1))
-        for f in range(5):
-            fa = -0.9 + f * 0.42 if f else -1.9
-            fl = (0.07 if f in (2, 3) else 0.06) * sc
-            p0 = (0.03 * math.cos(fa + 1.57) * sc, 0.03 * math.sin(fa + 1.57) * sc)
-            p1 = (p0[0] + fl * math.cos(fa + 1.57), p0[1] + fl * math.sin(fa + 1.57))
-            poly_on(K(M['blood']), L1.stroke([p0, p1], 0.007 * sc), o + V((0.0002, 0, 0)), (0, 1, 0), (0, 0, 1))
+        for f, (fx0, fl) in enumerate(((-0.03, 0.058), (-0.011, 0.07), (0.009, 0.068), (0.027, 0.055))):
+            p0 = (fx0 * sc, 0.035 * sc)
+            p1 = ((fx0 + (fx0 * 0.15)) * sc, (0.035 + fl) * sc)
+            poly_on(K(M['blood']), L1.stroke([p0, p1], 0.0085 * sc), o + V((0.0002, 0, 0)), (0, 1, 0), (0, 0, 1))
+        poly_on(K(M['blood']), L1.stroke([(-0.035 * sc, -0.01 * sc), (-0.075 * sc, 0.03 * sc)], 0.009 * sc), o + V((0.0002, 0, 0)), (0, 1, 0), (0, 0, 1))
         for k in range(3):  # verlaufen
             x0 = rng.uniform(-0.02, 0.02) * sc
             poly_on(K(M['blood']), L1.stroke([(x0, -0.03 * sc), (x0 + rng.uniform(-0.004, 0.004), -0.03 * sc - rng.uniform(0.05, 0.16))], 0.0035), o + V((0.0004, 0, 0)), (0, 1, 0), (0, 0, 1))
+    for r_ in range(5):  # Runde 3: Blut laeuft von den Fachkanten (die Ware tropft)
+        zr = gz0 + 0.005 + r_ * 0.2
+        for k in range(3):
+            yy = rng.uniform(gy0 + 0.05, gy1 - 0.05)
+            ln = rng.uniform(0.02, 0.07)
+            sweep(K(M['blood'], 40), [(fx - 0.028, yy, zr - 0.001), (fx - 0.027, yy, zr - ln * 0.6), (fx - 0.027, yy + rng.uniform(-0.003, 0.003), zr - ln)], [0.003, 0.0026, 0.0012], 5)
+            ellipsoid(K(M['blood'], 40), (fx - 0.027, yy, zr - ln), (0, 0, 1), 0.004, 0.0035, 6, 3)
     for k in range(5):  # Schmier: Finger, die abgerutscht sind
         py, pz = rng.uniform(gy0 + 0.05, gy1 - 0.05), rng.uniform(gz0 + 0.1, gz1 - 0.15)
         poly_on(K(M['meat_d']), L1.stroke([(py, pz), (py + rng.uniform(-0.03, 0.03), pz - rng.uniform(0.08, 0.2))], 0.009), V((bx + 0.0008, 0, 0)), (0, 1, 0), (0, 0, 1))
@@ -405,7 +413,7 @@ def build_cc_body(v=0):
     text_on(K(M['ink']), 'NO COINS', 0.018, (fx + 0.0042, yc, 0.745), (0, 1, 0), (0, 0, 1))
     text_on(K(M['ink']), 'NO CARDS', 0.018, (fx + 0.0042, yc, 0.715), (0, 1, 0), (0, 0, 1))
     box(K(M['dark']), (fx, sy0 + 0.05, 0.42), (fx + 0.004, sy1 - 0.05, 0.56))  # Rueckgabe (zugeklebt)
-    # Herstellerschild auf der Rueckseite: Hersteller, Familie, Jahr und Ort, ein Auge (Iris) als Zeichen
+    # Herstellerschild auf der Rueckseite: Hersteller, Werbespruch, Jahr, ein Auge als Zeichen (eigene Woerter)
     o = V((-hd - 0.004, 0.0, 1.22))
     U, W = V((0, -1, 0)), V((0, 0, 1))
     box(K(M['plate']), (-hd - 0.004, -0.27, 1.04), (-hd, 0.27, 1.40))
@@ -413,11 +421,12 @@ def build_cc_body(v=0):
         for zz in (1.06, 1.38):
             lathe(K(M['trim']), [(0.006, 0.0), (0.004, 0.003), (0.0, 0.0035)], 8,
                   Matrix.Translation((-hd - 0.004, d * 0.25, zz)) @ Matrix.Rotation(-math.pi / 2, 4, 'Y'))
-    text_on(K(M['ink']), 'CANNIBAL CUISINE', 0.04, o + W * 0.12, U, W, 0.0015)
+    # eigene Woerter statt der Namen der Wiki-Seite (LICENSE_REVIEW: moeglichst wenige wiki-eigene Namen im Bild)
+    text_on(K(M['ink']), 'FAMILY KITCHEN', 0.04, o + W * 0.12, U, W, 0.0015)
     text_on(K(M['ink']), 'PRODUCTIONS', 0.03, o + W * 0.07, U, W, 0.0015)
-    text_on(K(M['ink']), 'IRIS FAMILY', 0.032, o + W * -0.02, U, W, 0.0015)
-    text_on(K(M['ink']), 'ARIZONA  2019', 0.022, o + W * -0.075, U, W, 0.0015)
-    text_on(K(M['ink']), 'SER. 36-0417-IR', 0.014, o + W * -0.135, U, W, 0.0012)
+    text_on(K(M['ink']), 'BY PEOPLE - FOR PEOPLE', 0.022, o + W * -0.02, U, W, 0.0015)
+    text_on(K(M['ink']), 'EST. 2019', 0.022, o + W * -0.075, U, W, 0.0015)
+    text_on(K(M['ink']), 'SER. 0417', 0.014, o + W * -0.135, U, W, 0.0012)
     eye = o + V((-0.0016, 0, 0)) + W * 0.025
     poly_on(K(M['ink']), [(0.22 + 0.04 * math.cos(a), 0.02 * math.sin(a)) for a in [i * TAU / 16 for i in range(16)]], eye, U, W)
     poly_on(K(M['plate']), [(0.22 + 0.016 * math.cos(a), 0.016 * math.sin(a)) for a in [i * TAU / 12 for i in range(12)]], eye - V((0.0004, 0, 0)), U, W)
@@ -552,18 +561,19 @@ def build_cc_ware():
 # --- Swindlebird ---------------------------------------------------------------------------------------------------------
 def _sb_mats():
     return {
-        'blue': mat('sb_feder_blau', (0.06, 0.20, 0.72), 'plastic', r=0.55),
-        'blue_d': mat('sb_feder_tief', (0.03, 0.08, 0.34), 'plastic', r=0.6),
-        'blue_l': mat('sb_feder_hell', (0.24, 0.48, 0.92), 'plastic', r=0.5),
+        # Runde 4: Federn stumpfer und tiefer im Ton (vorher glatt wie Spielzeugplastik)
+        'blue': mat('sb_feder_blau', (0.05, 0.15, 0.56), 'fabric', r=0.85),
+        'blue_d': mat('sb_feder_tief', (0.025, 0.06, 0.26), 'fabric', r=0.9),
+        'blue_l': mat('sb_feder_hell', (0.18, 0.36, 0.78), 'fabric', r=0.75),
         'under': mat('sb_feder_unten', (0.10, 0.11, 0.16), 'fabric', r=1.1),
-        'coat': mat('sb_belag', (0.62, 0.66, 0.95), 'plastic', r=0.12),
+        'coat': mat('sb_belag', (0.34, 0.44, 0.80), 'plastic', r=0.08),
         'beak': mat('sb_schnabel', (0.10, 0.10, 0.11), 'plastic', r=0.35),
         'beak_l': mat('sb_schnabel_rand', (0.36, 0.34, 0.30), 'plastic', r=0.5),
         'ring': mat('sb_augenring', (0.86, 0.84, 0.74), 'plastic', r=0.8),
         'eye': mat('sb_auge', (0.02, 0.02, 0.02), 'glass', r=0.1),
         'iris': mat('sb_iris', (0.85, 0.72, 0.30), 'plastic', r=0.4),
         'leg': mat('sb_lauf', (0.42, 0.40, 0.44), 'plastic', r=0.9),
-        'leg_d': mat('sb_lauf_schuppe', (0.22, 0.21, 0.24), 'plastic', r=1.0),
+        'leg_d': mat('sb_lauf_schuppe', (0.33, 0.31, 0.35), 'plastic', r=1.0),
         'claw': mat('sb_kralle', (0.05, 0.05, 0.05), 'plastic', r=0.4),
         'tongue': mat('sb_zunge', (0.12, 0.10, 0.12), 'plastic', r=0.4),
     }
@@ -606,7 +616,7 @@ def build_sb_body():
             mat_ = 'blue_l' if (nrm.z > 0.4 and rng.random() < 0.35) else ('blue' if nrm.z > -0.3 else 'blue_d')
             _feather(K(M[mat_], 40), p, V((-1.0, 0.0, 0.0)) + nrm * 0.06, nrm.cross(V((1, 0, 0))), 0.024 + 0.006 * rng.random(), 0.017, curl=-0.12)
     # der Belag: nasse, glaenzende Perlen und Laeufe (das halluzinogene Mittel der aeusseren Federn)
-    for _ in range(26):
+    for _ in range(18):  # Runde 3: weniger, kleinere Perlen (wirkten wie Sterne)
         a = rng.uniform(-math.pi, math.pi * 0.2)
         x = rng.uniform(-0.09, 0.1)
         rr = 0.07 * math.sqrt(max(0.05, 1.0 - ((x - 0.015) / 0.14) ** 2))
@@ -849,6 +859,11 @@ def _eye_photo(K, M, o, U, W, w, h, rng, iris='iris_a', look=(0.0, 0.0)):
         a = rng.uniform(0, TAU)
         sx, sy = math.cos(a) * ew * 0.95, math.sin(a) * eh * 0.7
         poly_on(K(M['redvein']), L1.stroke([(sx, sy), (sx * 0.75 + rng.uniform(-0.004, 0.004), sy * 0.7), (sx * 0.5, sy * 0.45 + rng.uniform(-0.004, 0.004))], 0.0012), d(5), U, W)
+    for _ in range(120):  # Runde 3: Poren und Haerchen auf der Haut (vorher glatt wie gemalt)
+        x, y = rng.uniform(-iw, iw), rng.uniform(-ih, ih)
+        if abs(x) < ew * 1.05 and abs(y) < eh * 1.1:
+            continue
+        poly_on(K(M['skin_d']), [(x + 0.0012 * math.cos(a), y + 0.0012 * math.sin(a)) for a in [k * TAU / 5 for k in range(5)]], d(2), U, W)
     ic = (look[0] * ew * 0.3, look[1] * eh * 0.2)
     ir = eh * 0.95
     clip = lambda pts: [(x, max(-eh * 0.75, min(eh * 0.98, y))) for (x, y) in pts]
@@ -876,11 +891,15 @@ def _mouth_photo(K, M, o, U, W, w, h, rng):
     poly_on(K(M['paper']), [(-w / 2, -h / 2), (w / 2, -h / 2), (w / 2, h / 2), (-w / 2, h / 2)], d(0), U, W)
     iw, ih = w / 2 - 0.016, h / 2 - 0.016
     poly_on(K(M['fur']), [(-iw, -ih), (iw, -ih), (iw, ih), (-iw, ih)], d(1), U, W)
-    for _ in range(140):  # Fellstriche
+    for _ in range(460):  # Fellstriche (Runde 3: dichter, kuerzer, drei Toene - vorher wie gemalt)
         x, y = rng.uniform(-iw, iw), rng.uniform(-ih, ih)
         a = math.atan2(y, x) + rng.uniform(-0.3, 0.3)
-        m_ = 'fur_d' if rng.random() < 0.45 else ('fur_w' if (abs(x) < iw * 0.25 and y < -ih * 0.4) else 'fur')
-        poly_on(K(M[m_]), L1.stroke([(x, y), (max(-iw, min(iw, x + math.cos(a) * 0.02)), max(-ih, min(ih, y + math.sin(a) * 0.02)))], 0.0035), d(2), U, W)
+        ln = rng.uniform(0.008, 0.022)
+        m_ = 'fur_d' if rng.random() < 0.4 else ('fur_w' if (abs(x) < iw * 0.25 and y < -ih * 0.4) else 'fur')
+        poly_on(K(M[m_]), L1.stroke([(x, y), (max(-iw, min(iw, x + math.cos(a) * ln)), max(-ih, min(ih, y + math.sin(a) * ln)))], rng.uniform(0.0018, 0.003)), d(2), U, W)
+    for k in range(4):  # Fotovignette: die Ecken dunkler
+        sx, sy = (1 if k % 2 else -1), (1 if k // 2 else -1)
+        poly_on(K(M['fur_d']), [(sx * iw, sy * ih), (sx * iw * 0.7, sy * ih), (sx * iw, sy * ih * 0.62)], d(2), U, W)
     mw, mh = iw * 0.82, ih * 0.72
     outline = [(mw * math.cos(a) * (1.0 - 0.12 * math.cos(2 * a)), mh * math.sin(a) * (1.1 if math.sin(a) > 0 else 0.95) - ih * 0.05)
                for a in [k * TAU / 36 for k in range(36)]]
@@ -907,6 +926,14 @@ def _mouth_photo(K, M, o, U, W, w, h, rng):
         x = rng.uniform(-mw * 0.7, mw * 0.7)
         poly_on(K(M['drool']), L1.stroke([(x, mh * 0.7), (x + rng.uniform(-0.01, 0.01), 0.0), (x + rng.uniform(-0.02, 0.02), -mh * 0.6)], 0.0016), d(10), U, W)
     poly_on(K(M['nose']), [(iw * 0.3 * math.cos(a), ih * 0.9 + ih * 0.12 * math.sin(a)) for a in [k * TAU / 16 for k in range(16)]], d(4), U, W)
+    # Runde 3: nasse Lichter auf Zaehnen, Zunge und Zahnfleisch, Speichel am Rand (Foto mit Blitz)
+    for _ in range(26):
+        x, y = rng.uniform(-mw * 0.8, mw * 0.8), rng.uniform(-mh * 0.8, mh * 0.8)
+        poly_on(K(M['shine']), blob2(rng, x, y, rng.uniform(0.003, 0.009), rng.uniform(0.002, 0.005), 8, 0.3), d(11), U, W)
+    for _ in range(7):
+        x = rng.uniform(-mw * 0.9, mw * 0.9)
+        y = -mh * 0.85
+        poly_on(K(M['drool']), L1.stroke([(x, y), (x + rng.uniform(-0.005, 0.005), y - rng.uniform(0.03, 0.08))], 0.002), d(11), U, W)
 
 
 def _ps_block_geo(K, M, rng):
@@ -1085,7 +1112,7 @@ def _mc_mats():
     return {
         'pipe': mat('mc_rohrblech', (0.95, 0.88, 0.82), 'metal', tex='metal_rusty_iron', r=1.25, m=0.1),
         'plate': mat('mc_tafelblech', (0.42, 0.36, 0.30), 'metal', tex='metal_rusty_iron', r=1.2, m=0.15),
-        'tint': mat('mc_anlauffarbe', (0.22, 0.20, 0.34), 'metal', r=0.6, m=0.4),
+        'tint': mat('mc_anlauffarbe', (0.20, 0.17, 0.22), 'metal', r=0.7, m=0.4),  # Runde 3: gedeckter (leuchtete violett)
         'brass': mat('mc_messing', (0.62, 0.48, 0.24), 'metal', r=0.75, m=0.2),
         'steel': mat('mc_stahl_alt', (0.36, 0.36, 0.37), 'metal', r=0.95),
         'dark': mat('mc_innen', (0.04, 0.035, 0.03), 'plastic', r=1.3),
@@ -1139,8 +1166,9 @@ def build_macchina_suit():
     tc = V((0.32, 0.0, 0.62))
     lean = V((0.42, 0.0, 1.0)).normalized()
     q = V((0, 0, 1)).rotation_difference(lean).to_matrix().to_4x4()
+    # Runde 3: die Oeffnung zeigt nach vorn (vorher zur Seite - der Anzug wirkte geschlossen)
     lathe(K(M['pipe'], 45), [(0.0, -0.3), (0.2, -0.3), (0.25, -0.2), (0.27, 0.05), (0.25, 0.25), (0.18, 0.33), (0.0, 0.34)], 18,
-          Matrix.Translation(tc) @ q, a0=math.pi * 0.65, a1=math.pi * 2.0 + math.pi * 0.35)
+          Matrix.Translation(tc) @ q, a0=math.pi * 0.3, a1=math.pi * 1.7)
     lathe(K(M['dark'], 45), [(0.0, -0.28), (0.18, -0.28), (0.235, -0.19), (0.25, 0.05), (0.23, 0.24), (0.0, 0.31)], 18,
           Matrix.Translation(tc) @ q)
     for s in (-1, 1):  # die zwei Brustschalen, aufgeklappt zur Seite
@@ -1205,7 +1233,7 @@ def build_macchina_suit():
             for k in range(4):
                 p = path[i].lerp(path[i + 1], k / 4)
                 ellipsoid(K(M['weld'], 40), p + vn * 0.002, vn, r0 * rng.uniform(0.6, 0.9), r0 * rng.uniform(0.9, 1.3), 7, 3)
-                ellipsoid(K(M['tint'], 30), p, vn, 0.0012, r0 * 1.9, 8, 2)
+                ellipsoid(K(M['tint'], 30), p, vn, 0.0012, r0 * 1.45, 8, 2)
     for side in (-1, 1):
         ex, ey = side * (0.068 + 0.006 * side), 0.022 + 0.008 * side  # Augen nicht auf einer Hoehe
         beads([(side * 0.025, 0.052 + 0.01 * side), (side * 0.07, 0.072), (side * 0.118, 0.05 - 0.012 * side)])  # Braue
@@ -1281,8 +1309,12 @@ def build_macchina_tapestry():
         hz = cz - r - 0.06
         poly_on(K(M['ink_k']), [(cy + 0.025 * math.cos(a), hz + 0.03 * math.sin(a)) for a in [k * TAU / 12 for k in range(12)]], o2 + V((0.001, 0, 0)), U, W)
         poly_on(K(M['ink_k']), L1.stroke([(cy, hz - 0.03), (cy + 0.01, hz - 0.36)], 0.022), o2 + V((0.001, 0, 0)), U, W)
-        for s in (-1, 1):
-            poly_on(K(M['ink_k']), L1.stroke([(cy, hz - 0.06), (cy + s * 0.08, hz - 0.2), (cy + s * 0.1, hz - 0.3)], 0.01), o2 + V((0.001, 0, 0)), U, W)
+        for s in (-1, 1):  # Runde 4: die Arme greifen weit nach den Knienden, lange Finger (Wiki: nach ihnen ausgestreckt)
+            ex, ez = cy + s * 0.17, hz - 0.34
+            poly_on(K(M['ink_k']), L1.stroke([(cy, hz - 0.06), (cy + s * 0.1, hz - 0.17), (ex, ez)], 0.01), o2 + V((0.001, 0, 0)), U, W)
+            for f in range(3):
+                fa = -1.2 - 0.35 * f if s > 0 else -1.94 + 0.35 * f
+                poly_on(K(M['ink_k']), L1.stroke([(ex, ez), (ex + 0.05 * math.cos(fa), ez + 0.05 * math.sin(fa))], 0.004), o2 + V((0.001, 0, 0)), U, W)
             poly_on(K(M['ink_k']), L1.stroke([(cy + 0.01, hz - 0.36), (cy + s * 0.03, hz - 0.5)], 0.012), o2 + V((0.001, 0, 0)), U, W)
     # kniende Anzugtraeger (klobig: Tonne, Kugelhelm), Arme hoch
     for i, cy in enumerate((-0.62, -0.38, -0.14, 0.12, 0.36, 0.6)):
@@ -1311,7 +1343,7 @@ def build_macchina_tapestry():
                 poly_on(K(m_), L1.stroke([(cy - 0.015, cz + 0.008), (cy + 0.015, cz + 0.008)], 0.005), o2, U, W)
             else:
                 poly_on(K(m_), [(cy - 0.018, cz - 0.015), (cy + 0.018, cz - 0.015), (cy, cz + 0.018)], o2, U, W)
-    for _ in range(14):  # Flecken, Stockflecken
+    for _ in range(34):  # Flecken, Stockflecken (Runde 4: mehr - es hing zweihundert Jahre im Dunkeln)
         cy, cz = rng.uniform(-w, w), rng.uniform(z0, z1)
         poly_on(K(M['cloth_d']), blob2(rng, cy, cz, rng.uniform(0.02, 0.06), rng.uniform(0.02, 0.05), 10, 0.4), o2 + V((0.002, 0, 0)), U, W)
     K.finish()

@@ -36,7 +36,9 @@
 
 **Wesen** (Auswahl): Smiler (sehr häufig, an Dunkelheit gebunden), Deathmoths (kleiner geworden, friedlich, nicht reizen), Clumps (häufig, lauern an Ecken und Kreuzungen), Hounds (in Rudeln), Facelings (meist friedlich), weitere ohne Spielmodell.
 
-**Gruppen:** Die B.N.T.G. baute eine Schmalspurbahn mit Batterieloks und Trichterwagen; nach Entgleisungen und dem Ausfall verfällt das Gleis. Weitere Gruppen (Macchina, M.E.G. u. a.) – nicht dargestellt.
+**Gruppen:** Die B.N.T.G. baute eine Schmalspurbahn mit Batterieloks und Trichterwagen; nach Entgleisungen und dem Ausfall verfällt das Gleis. Weitere Gruppen (M.E.G. u. a.) – nicht dargestellt. **Macchina (V13.3):** nur ihre Reste in der Werkstatt – leerer Anzug, Kindergestell, Wandtuch, Pike, eine Blechtafel mit Zeichen ([KREATUR_Macchina.md](KREATUR_Macchina.md)).
+
+**Randwesen (V13.3, ohne eigene Rolle):** leuchtende Automaten der Cannibal Cuisine an Sackgassen und kahlen Wänden, im Stromausfall Wegmarken ([KREATUR_CannibalCuisine.md](KREATUR_CannibalCuisine.md)); höchstens eine flüchtige, unbestätigte Sichtung eines blauen Swindlebird ([KREATUR_Swindlebird.md](KREATUR_Swindlebird.md)); selten Photoshop neben dem Röhrenmonitor eines Büros ([KREATUR_Photoshop.md](KREATUR_Photoshop.md)).
 
 **Ein- und Ausgänge**
 - Hinein aus Level 1 über ungewöhnlich lange Gänge.

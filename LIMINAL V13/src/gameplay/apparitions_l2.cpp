@@ -406,7 +406,7 @@ int Apparitions::swing(int player, vec3 eye, vec3 look, std::vector<Event>& out)
 // --- Swindlebird ----------------------------------------------------------------------------------------------------
 
 bool Apparitions::birdSeen(const std::vector<Viewer>& viewers, world::World& w) const {
-    const vec3 c = bird_.pos + vec3{0, 0, 0.16f};
+    const vec3 c = bird_.pos + vec3{0, 0, 0.25f};  // Mitte des Vogels (Ara-Groesse)
     for (const Viewer& v : viewers) {
         const vec3 d = c - v.eye;
         const float len = length(d);
@@ -795,7 +795,8 @@ void Apparitions::collect(std::vector<VisibleMesh>& out, vec3 eye) {
             vec3 target, bend;
             if (upper) {
                 // Hieb: ausholen (hoch) und niederschlagen, die Arme abwechselnd
-                const float phase = (c.strikeArm == (a % 2)) ? (float)std::clamp(1.0 - c.strikeT / 0.85, 0.0, 1.0) : 0.15f;
+                // Runde 3: der ruhende Arm lauert auf Brusthoehe vor dem Automaten (vorher hoch wie ein Fuehler)
+                const float phase = (c.strikeArm == (a % 2)) ? (float)std::clamp(1.0 - c.strikeT / 0.85, 0.0, 1.0) : 0.36f;
                 const float swingT = phase < 0.55f ? phase / 0.55f : 1.0f - (phase - 0.55f) / 0.45f;
                 // Runde 2: nach vorn zum Ziel statt seitlich hoch (wirkte wie Fuehler)
                 const vec3 reach = vec3{kCcFront + 0.75f + 0.6f * swingT, side * (0.38f - 0.2f * swingT), 2.05f - 0.95f * swingT};
@@ -834,8 +835,11 @@ void Apparitions::collect(std::vector<VisibleMesh>& out, vec3 eye) {
         const vec3 hipL{0.01f, 0.0f, -0.012f};
         const vec3 hipW = apply(R, hipL);
         const float drop = kSbLeg[0] * std::sin(a1) + kSbLeg[1] * std::sin(a2) + kSbLeg[2] + 0.004f;
-        const vec3 root = fly ? b.pos : b.pos + vec3{0, 0, drop - hipW.z};
-        const mat4 B = mat4::translation(root) * R;
+        // Runde 3: "ungewoehnlich maechtig" (Level-2-Meldung) - groesser als ein gewoehnlicher (Ara-Groesse)
+        constexpr float kSc = 1.6f;
+        const vec3 root = fly ? b.pos : b.pos + vec3{0, 0, (drop - hipW.z) * kSc};
+        const mat4 Sc = mat4::scale(vec3{kSc, kSc, kSc});
+        const mat4 B = mat4::translation(root) * Sc * R;
         push(out, b.body, B);
         float hTurn = 0.6f * std::sin(t * 0.9f) * std::sin(t * 0.37f + 1.0f), hTilt = 0.35f * std::sin(t * 1.3f + 0.5f), hPitch = -bodyPitch + 0.1f;
         const float preen = fly ? 0.0f : std::max(0.0f, std::sin(t * 0.55f - 1.2f));
@@ -867,11 +871,11 @@ void Apparitions::collect(std::vector<VisibleMesh>& out, vec3 eye) {
                 d2 = f * std::cos(a2) + vec3{0, 0, -std::sin(a2)};
                 d3 = vec3{0, 0, -1.0f};
             }
-            const vec3 k1 = hip + d1 * kSbLeg[0], k2 = k1 + d2 * kSbLeg[1];
-            push(out, b.shin[s], along(hip, d1, l));
-            push(out, b.tars[s], along(k1, d2, l));
-            if (fly) push(out, b.foot[s], along(k2, d3, l));
-            else push(out, b.foot[s], basis(vec3{0, 0, -1}, -l, -f, k2));  // Zehen: zwei vor, zwei zurueck
+            const vec3 k1 = hip + d1 * (kSbLeg[0] * kSc), k2 = k1 + d2 * (kSbLeg[1] * kSc);
+            push(out, b.shin[s], along(hip, d1, l) * Sc);
+            push(out, b.tars[s], along(k1, d2, l) * Sc);
+            if (fly) push(out, b.foot[s], along(k2, d3, l) * Sc);
+            else push(out, b.foot[s], basis(vec3{0, 0, -1}, -l, -f, k2) * Sc);  // Zehen: zwei vor, zwei zurueck
         }
     }
     // Photoshop
@@ -884,7 +888,7 @@ void Apparitions::collect(std::vector<VisibleMesh>& out, vec3 eye) {
     // Bild auf dem Monitor: sein Bild; nach der Gabe der genommene Gegenstand (flach wie ein Foto)
     const mat4 S = mat4::translation(s.screen) * mat4::rotationZ(s.screenYaw);
     const bool showItem = s.state == 3 || (s.state == 2 && s.t > 1.5);
-    if (!showItem) push(out, s.screenImg, S, s.burst > 0.0);
+    if (!showItem) push(out, s.screenImg, S * mat4::scale(vec3{1.0f, 1.18f, 1.18f}), s.burst > 0.0);  // Runde 4: fuellt die Scheibe
     else if (!s.offer.model.empty())
         push(out, s.offer, S * mat4::translation(vec3{0.004f, 0.0f, -0.1f}) * mat4::scale(vec3{0.05f, 0.8f, 0.8f}), false);
     // Box: zwoelf schwarze Kanten, Anfasser an den Ecken (wie das Freistellwerkzeug)
@@ -902,7 +906,7 @@ void Apparitions::collect(std::vector<VisibleMesh>& out, vec3 eye) {
             for (float sy : {-1.0f, 1.0f}) edge(vec3{sx * h, sy * h, 0.0f}, vec3{0, 0, 1}, H);
         for (float sx : {-1.0f, 1.0f})
             for (float sy : {-1.0f, 1.0f})
-                for (float z : {0.0f, H}) push(out, s.handle, Bx * mat4::translation(vec3{sx * h, sy * h, z}));
+                for (float z : {0.0f, H}) push(out, s.handle, Bx * mat4::translation(vec3{sx * h, sy * h, z}) * mat4::scale(vec3{1.4f, 1.4f, 1.4f}));
         for (float sx : {-1.0f, 1.0f}) push(out, s.handle, Bx * mat4::translation(vec3{sx * h, 0.0f, H}));
         for (float sy : {-1.0f, 1.0f}) push(out, s.handle, Bx * mat4::translation(vec3{0.0f, sy * h, H}));
     }
@@ -919,7 +923,7 @@ void Apparitions::collect(std::vector<VisibleMesh>& out, vec3 eye) {
         // ist, dehnt er sich - vorher faltete er sich beim Zurueckziehen nach oben aus dem Monitor
         const float st = dist / ((kPsArm[0] + kPsArm[1] + kPsHand * 0.6f) * 0.96f);
         const float l1 = kPsArm[0] * st, l2 = (kPsArm[1] + kPsHand * 0.6f) * st;
-        if (dist > 0.12f) {
+        if (dist > 0.12f && e > 0.1f) {  // Runde 3: ganz zurueckgezogen ist er im Bildschirm (kein Stummel mit Hand)
             const vec3 E = elbowOf(S0, T, l1, l2, vec3{0, 0, 1} + sd * 0.3f);
             const vec3 side{-sd.y, sd.x, 0.0f};
             push(out, s.armA, along(S0, E - S0, side) * mat4::scale(vec3{st, 1.0f, 1.0f}));
@@ -927,7 +931,8 @@ void Apparitions::collect(std::vector<VisibleMesh>& out, vec3 eye) {
             push(out, s.armB, along(E, W - E, side) * mat4::scale(vec3{st, 1.0f, 1.0f}));
             s.hand.model = t < 0.7f ? "prop:ps_hand@0" : "prop:ps_hand@1";
             if (t >= 0.68f && t < 0.72f) s.hand.id = -2;
-            push(out, s.hand, along(W, T - W + vec3{0, 0, -0.05f}, side));
+            const float hs = std::clamp(st * 1.15f, 0.35f, 1.0f);  // die Hand waechst mit dem Arm aus dem Bild
+            push(out, s.hand, along(W, T - W + vec3{0, 0, -0.05f}, side) * mat4::scale(vec3{hs, hs, hs}));
             if (t >= 0.7f && t < 1.42f && !s.offer.model.empty()) push(out, s.offer, mat4::translation(T + vec3{0, 0, -0.06f}) * mat4::rotationZ(s.yaw), true);
         }
         if (t < 0.7f && !s.offer.model.empty()) push(out, s.offer, mat4::translation(s.item) * mat4::rotationZ(s.yaw + 0.6f), false);

@@ -48,7 +48,7 @@ void GameSession::spawnApparitions(const world::ChunkData& cd) {
         reg_.add<AudioEmitter>(h, AudioEmitter{"cc_hum", 0.5f, 11.0f, -1});
         reg_.add<ChunkOwned>(h, ChunkOwned{cd.key});
     }
-    static const char* kPlate = "Blechtafel der Macchina";
+    static const char* kPlate = "Blechtafel mit Zeichen";  // Notiz mit mode "fund" (nur beim Anzug)
     const int note = fundNote(content_, kPlate);
     for (const Apparitions::Relic& r : appar_.relics()) {
         if (!inChunk(r.pos)) continue;
@@ -243,7 +243,7 @@ bool GameSession::scriptApparition(const std::string& name, double dist, double 
         const size_t i = pick(n) == n ? 0 : pick(n);
         if (i >= n) return false;
         appar_.forceBird((int)i);
-        at = appar_.swindleSpots()[i], yaw = appar_.swindleYaws()[i], aim = 0.15f;
+        at = appar_.swindleSpots()[i], yaw = appar_.swindleYaws()[i], aim = 0.25f;
     } else if (name == "photoshop") {
         const int n = appar_.shopSpots();
         const int i = nr >= 0 && nr < n ? nr : (appar_.shop().present ? appar_.shop().spot : 0);
