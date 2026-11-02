@@ -222,4 +222,4 @@ Puppen in der Wand, Knochen vor der Tür; die Weibchen fliegen gestört aus dem 
 **Ergänzt – die Männchen:** In Level 5 gab es nur den Weibchenschwarm am Nest. Jetzt streifen kleine Gruppen Männchen umher – friedlich,
 mit Saugrüssel (das Modell der Level-2-Männchen) – an den Glühbirnen der Kesselgänge, ohne Nest und ohne Weibchen (Level-JSON
 `presence.moth`: Modus `lamps`, Gruppen 3–5, etwa alle 150 s, `chance` 0 = keine Weibchen; `presence_moth_l2.cpp` wählt in diesem Modus
-die Glühbirnen statt der Leuchtstoffröhren). Das Licht lockt sie (Entity 4), die Weibchen bleiben im Stock (Level 5).
+die Glühbirnen statt der Leuchtstoffröhren). Das Licht lockt sie (Entity 4), die Weibchen bleiben im Stock (Level 5). Bild: `docs/screens/creatures/moth/l5_maennchen_birne.jpg` (fünf Männchen an der Decke um die Birne eines Kesselgangs).
