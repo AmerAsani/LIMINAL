@@ -484,6 +484,8 @@ PURPLE = [  # (Modell, Raeume, Breite links/rechts des Ursprungs in m, Tag)
     ('purple_stealer', [p2, p1], (1.55, 1.75), 'stealer'),
     ('purple_hound', [h5, h2], (1.05, 3.05), 'hound'),
 ]
+PURPLE_BODY = (1.0, 0.7)  # Koerper: halbe Breite entlang der Wand, Tiefe in den Gang (Hound 0,68 m, Skin-Stealer 0,51 m)
+PURPLE_OPPOSITE = {'pipe_black': (2.95, 0.9)}  # gegenueber: halbe Laenge, Tiefe (Spiel: build/qa/props_level3.json); sonst 0,7/0,7
 
 
 def purple_spot(r, ext):
@@ -510,6 +512,17 @@ def purple_spot(r, ext):
                 if dn < 1.0 and s0 - ext[0] - 0.5 < s < s0 + ext[1] + 0.5:
                     bad = True
                     break
+            # gegenueber: Ausstattung am Boden darf mit dem Koerper den Gang nicht unter 0,9 m verengen (room_metrics)
+            for o in others:
+                if bad:
+                    break
+                dn = (o['pos'][0] - fx) * nx + (o['pos'][1] - fy) * ny
+                if dn < 1.0 or o['pos'][2] - R.floor > 0.5:
+                    continue
+                half, depth = PURPLE_OPPOSITE.get(o['model'], (0.7, 0.7))
+                s = o['pos'][0] * rx + o['pos'][1] * ry
+                if abs(s - s0) < half + PURPLE_BODY[0] and dn - depth - PURPLE_BODY[1] < 1.05:
+                    bad = True
             for s_ in spawns:
                 s = s_['pos'][0] * rx + s_['pos'][1] * ry
                 dn = (s_['pos'][0] - fx) * nx + (s_['pos'][1] - fy) * ny
