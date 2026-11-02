@@ -30,6 +30,7 @@
 #include "gameplay/apparitions_l2.hpp"
 #include "gameplay/purpification.hpp"
 #include "gameplay/hotel_l5.hpp"
+#include "gameplay/library_l53.hpp"  // V13.3 Teil 4 Level 5.3
 #include "gameplay/player.hpp"
 #include "gameplay/prefabs.hpp"
 #include "gameplay/stats.hpp"
@@ -235,6 +236,8 @@ public:
     bool scriptHotel(const std::string& name, double dist, double side, int nr);
     float hotelSlow(int id) const;  // Biss eines Woodlins: Tempo-Faktor (1 frei)
     bool hotelForce(const std::string& what, int nr);  // Skript/Test: colony <nr>, host <phase>, watcher <nr>, woodlins
+    // V13.3 Teil 4 Level 5.3 (session_library.cpp): Orte und Funde der Bibliothek, Notizbuch und Zorn nach dem Besuch des Hausherrn
+    const Library53& library() const { return lib53_; }
 
     // Darstellung
     const world::Room* currentRoom() const { return room_; }
@@ -541,6 +544,12 @@ private:
     bool hotelPick();
     bool hotelInteractPawn(Pawn& p, u32 hash, std::string& msg);
     bool useHotel(const ApparitionUse& au, Pawn* p, std::string& msg);
+    // V13.3 Teil 4 Level 5.3 (session_library.cpp): Bibliothek - Wissen (Folio, Karteikarten), Notizbuch, Zorn
+    Library53 lib53_;
+    void updateLibrary(double dt);
+    void spawnLibrary(const world::ChunkData& cd);
+    void libraryNote(vec3 pos, float yaw, const std::string& title, const std::string& id, const std::string& model, const std::string& prompt);
+    void libraryPile();
     void samanthaWorld(const Presence::Event& e);
     std::vector<mat4> palette_;
     FigureRig playerRig_;

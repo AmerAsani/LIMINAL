@@ -36,6 +36,7 @@ const char* Presence::roleName(Role r) {
         case Role::Goblin: return "Plague Goblin";  // V13.3
         case Role::Jerry: return "Jerry";           // V13.3 Teil 4
         case Role::Samantha: return "Samantha";     // V13.3 Teil 4 Level 5
+        case Role::Gentleman: return "Hausherr";    // V13.3 Teil 4 Level 5.3
     }
     return "?";
 }
@@ -54,6 +55,7 @@ void Presence::clear() {
     goblinCtl_.reset(), nextGoblin_ = 50.0;          // V13.3: Plague Goblins - neue Ebene, neue Bande (auch nach einer Flucht)
     spell_.fill(0.0f), spellStage_.fill(0), jerryTry_ = 0.0;  // V13.3 Teil 4: Jerry
     samTry_ = 0.0, samVisits_ = 0;                            // V13.3 Teil 4 Level 5: Samantha
+    gent_.reset();                                            // V13.3 Teil 4 Level 5.3: der Hausherr (neue Ebene, neuer Besuch)
 }
 
 void Presence::setGrace(double s) {
@@ -1138,6 +1140,7 @@ void Presence::think(Agent& a, double dt, const Context& c, std::vector<Event>& 
         case Role::Goblin: thinkGoblin(a, dt, c, out); break;  // V13.3
         case Role::Jerry: thinkJerry(a, dt, c, out); break;    // V13.3 Teil 4
         case Role::Samantha: thinkSamantha(a, dt, c, out); break;  // V13.3 Teil 4 Level 5
+        case Role::Gentleman: thinkGentleman(a, dt, c, out); break;  // V13.3 Teil 4 Level 5.3
         default: break;
     }
 }
@@ -1391,6 +1394,8 @@ void Presence::regie(double dt, const Context& c, std::vector<Event>& out) {
                 if (!spawnOuroboros(c, out, true)) log::info("Praesenz: erzwungene Ouroboros-Baustelle nicht moeglich (kein Sektor Ouroboros geladen)");
             } else if (r == Role::Goblin) {  // V13.3: eine Bande Plague Goblins (Portal ausser Sicht)
                 if (!spawnGoblin(c, out, true)) log::info("Praesenz: erzwungene Plague Goblins nicht moeglich (kein Platz fuer das Portal)");
+            } else if (r == Role::Gentleman) {  // V13.3 Teil 4 Level 5.3: der Hausherr kommt durch den Gang (Szene der Karte)
+                if (!spawnGentleman(c, out, true)) log::info("Praesenz: erzwungener Hausherr nicht moeglich (keine Szene in der Karte)");
             } else if (r == Role::Samantha) {  // V13.3 Teil 4 Level 5: die Katze im Gang, ausser Sicht
                 if (!spawnSamantha(c, out, true)) log::info("Praesenz: erzwungene Samantha nicht moeglich (kein Gang ausser Sicht)");
             } else if (r == Role::Jerry) {  // V13.3 Teil 4: Jerry auf seinem Rohr (Spawnpunkt der Karte)
@@ -1527,6 +1532,7 @@ void Presence::regie(double dt, const Context& c, std::vector<Event>& out) {
     if (c.mode > 0 && !c.suspended) regieGoblin(dt, c, out);     // V13.3: Plague Goblins
     if (c.mode > 0 && !c.suspended) regieJerry(dt, c, out);      // V13.3 Teil 4: Jerry in seinem Raum
     if (c.mode > 0 && !c.suspended) regieSamantha(dt, c, out);   // V13.3 Teil 4 Level 5: die Katze in der Haupthalle
+    if (c.mode > 0 && !c.suspended) regieGentleman(dt, c, out);  // V13.3 Teil 4 Level 5.3: der Hausherr besucht die Bibliothek
     regieKnight(dt, c, out);                                     // V13.3 Level 3: Red Knight (presence_knight.cpp)
     regieHoundPack(dt, c, out);  // V13.3 Level 2/3: Hound-Rudel (Verletzungen heilen auch ohne Rudel)
     regieClumpL3(dt, c, out);    // V13.3 Level 3: das grosse, bewaffnete Buendel
@@ -1569,7 +1575,7 @@ void Presence::animate(Agent& a, double dt, const Context& c, std::vector<Event>
     if (a.role == Role::Moth && a.state == 0 && a.stateT > 2.0 && !a.showcase && a.variant != 5) return;  // V13.3 Level 3: der Praetorianer wacht (bewegt sich)
     const bool audible = a.role == Role::Hound || a.role == Role::Smiler || a.role == Role::Clump || a.role == Role::Faceling ||
                          a.role == Role::SkinStealer || a.role == Role::Wretch || a.role == Role::Rat || a.role == Role::Growler ||
-                         a.role == Role::Goblin;  // V13.2, V13.3
+                         a.role == Role::Goblin || a.role == Role::Gentleman;  // V13.2, V13.3; Teil 4 Level 5.3: Schritte des Hausherrn
     const bool audibleRat = !(a.role == Role::Rat && a.variant >= 2) && !(a.role == Role::Wretch && a.variant == kKnightVariant);  // V13.3 Level 3: eigene Schritte (Klangnummer)
     if (a.human) {
         anim::Animator::Input in;
@@ -1592,6 +1598,7 @@ void Presence::animate(Agent& a, double dt, const Context& c, std::vector<Event>
     in.reachAt = (a.puppet ? a.lookAt : c.view.eye) - vec3{0, 0, a.role == Role::Window ? 0.75f : 0.35f};  // V13.2: Fenster greift nach der Brust
     if (a.role == Role::Wrangler && !a.puppet && !a.showcase) in.reachAt = a.goal;  // V13.3: schnappt nach dem Spieler oder dem Geraeusch
     if (a.role == Role::Goblin) in.reachAt = a.heard;  // V13.3: Plague Goblins - Ware, Boden, Sprungziel (presence_goblin.cpp)
+    if (a.role == Role::Gentleman) in.reachAt = a.lookAt - vec3{0, 0, 0.1f};  // V13.3 Teil 4 Level 5.3: Griff zum Gesicht des Ziels
     in.jaw = a.jaw;
     in.alert = a.alert;
     in.crouch = a.crouch;

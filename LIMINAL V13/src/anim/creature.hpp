@@ -44,6 +44,9 @@
 //                       Pupillen (verengen sich), Halsgefieder (straeubt sich) (jy).
 //   Samantha (E. 26)    kleine schwarz-weisse Katze mit gruenen Augen; Kiefer, der sich viel zu weit oeffnet, Saegezaehne,
 //                       Zunge (spricht), Ohren, langer Schwanz; sitzt, geht, buckelt, springt ins Gesicht (sa).
+//   Hausherr (E. 18)    der Herr des Hotels zu Besuch in der Bibliothek (Level 5.3): 2,1 m, Frack, Arme mit zwei Ellbogen,
+//                       wachsbleiche Haende mit zu langen Fingern, Gesicht wie gemalt (Firnis mit Rissen); im selben Skelett
+//                       das Notizbuch, das ihm vor die Fuesse faellt (gm).
 //
 // Wie beim Menschen (anim/skeleton) werden Gelenkpositionen animiert; jeder Knochen ist ein starrer
 // Rahmen vom Start- zum Endgelenk, gedreht nach einem Hinweisvektor ("oben"). Skinning-Matrix =
@@ -58,7 +61,7 @@
 
 namespace lim::anim {
 
-enum class Entity : std::uint8_t { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Wrangler, Growler, Nguithr, Ouroboros, Goblin, Jerry, Samantha, Count };
+enum class Entity : std::uint8_t { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Wrangler, Growler, Nguithr, Ouroboros, Goblin, Jerry, Samantha, Gentleman, Count };
 constexpr int kEntityCount = (int)Entity::Count;
 
 struct CBone {
@@ -668,5 +671,45 @@ inline int legB(int l, int i) { return B_LEG0 + l * 3 + i; }
 enum State : int { S_SIT = 0, S_WALK = 1, S_ASK = 2, S_EAT = 3, S_WARN = 4, S_ATTACK = 5, S_LEAVE = 6, S_GONE = 7 };
 CreatureSkeleton makeSkeleton();  // creature_samantha.cpp
 }  // namespace sa
+
+// V13.3 Teil 4 Level 5.3: der Hausherr (Wikidot entity-18 Rev. 54, level-5-3 Rev. 40; KREATUR_Gentleman.md) - besucht die
+// Bibliothek, ein Notizbuch faellt ihm vor die Fuesse, er wirft es weg, spricht zur Bibliothek und geht. Wurzel am Boden;
+// Ruhe: aufrecht, Arme haengend. Arme mit drei Gliedern (zwei Ellbogen), Hand mit zu langen Fingern; Rockschoesse; Kiefer
+// (spricht kaum); ein Riss im gemalten Gesicht (Massstab 0 geschlossen .. 1 offen); das Notizbuch als eigener Knochen.
+namespace gm {
+enum J : std::uint8_t {
+    ROOT, PELVIS, SPINE, CHEST, NECK, HEAD, HEADTOP, JAWP, JAWT, CRA, CRB,
+    ARM0,                     // + Seite * 5 + i (0 links, 1 rechts): Schulter, Ellbogen 1, Ellbogen 2, Handgelenk, Fingerspitzen
+    LEG0 = ARM0 + 10,         // + Seite * 4 + i: Huefte, Knie, Knoechel, Zehen
+    TAILA_L = LEG0 + 8, TAILB_L, TAILA_R, TAILB_R,  // Rockschoesse
+    BKA, BKB,                 // Notizbuch (Ruecken, Vorderkante)
+    JCOUNT
+};
+enum B : std::uint8_t {
+    B_ROOT, B_PELVIS, B_SPINE, B_CHEST, B_NECK, B_HEAD, B_JAW, B_CRACK,
+    B_ARM0,                   // + Seite * 5 + i: Schluesselbein, Oberarm, Mittelarm, Unterarm, Hand
+    B_LEG0 = B_ARM0 + 10,     // + Seite * 3 + i: Oberschenkel, Unterschenkel, Fuss
+    B_TAIL_L = B_LEG0 + 6, B_TAIL_R, B_BOOK,
+    BCOUNT
+};
+inline int armJ(int s, int i) { return ARM0 + s * 5 + i; }
+inline int armB(int s, int i) { return B_ARM0 + s * 5 + i; }
+inline int legJ(int s, int i) { return LEG0 + s * 4 + i; }
+inline int legB(int s, int i) { return B_LEG0 + s * 3 + i; }
+constexpr float kBookPhases = 6.0f;  // Kanal fly = Phase / 6 (0 kein Buch, 0..1 faellt, 1..2 liegt, 2..3 aufheben, 3..4 lesen,
+                                     // 4..5 werfen und fliegen, 5..6 liegt hinter ihm)
+// Lage des Notizbuchs im Wurzelrahmen (vorn, links, oben): faellt aus dem Regal rechts von ihm vor die Fuesse, landet hinter ihm
+inline vec3 bookShelf() { return {0.18f, -0.95f, 1.52f}; }
+inline vec3 bookFeet() { return {0.34f, -0.14f, 0.012f}; }
+inline vec3 bookLand() { return {-4.6f, 1.3f, 0.012f}; }
+// Zustaende (Presence, Animation): 0 kommt durch den Gang, 1 sieht sich um (Seufzer), 2 das Buch faellt, 3 hebt es auf,
+// 4 liest, 5 wirft es weg, 6 spricht zur Bibliothek (Stille), 7 geht, 8 fort; Stoerung: 9 bemerkt, 10 kommt auf ihn zu,
+// 11 Ankuendigung (der Arm entfaltet sich), 12 Griff, 13 richtet sich (Revers) und geht
+enum State : int {
+    S_ENTER = 0, S_GLANCE = 1, S_FALL = 2, S_PICK = 3, S_READ = 4, S_THROW = 5, S_SPEAK = 6, S_LEAVE = 7, S_GONE = 8,
+    S_NOTICE = 9, S_HUNT = 10, S_WARN = 11, S_GRIP = 12, S_COMPOSE = 13
+};
+CreatureSkeleton makeSkeleton();  // creature_gentleman.cpp
+}  // namespace gm
 
 }  // namespace lim::anim

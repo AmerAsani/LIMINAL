@@ -46,6 +46,7 @@ GameSession::GameSession(const Content& content, const PrefabLibrary& prefabs,
     appar_.setup(world_->level(), (u64)seed);  // V13.3 Teil 4: Randwesen von Level 2 (session_apparitions.cpp)
     purple_.setup(world_->level(), (u64)seed);     // V13.3: purpifizierte Wesen in der Wand (session_purple.cpp)
     hotel_.setup(world_->level(), (u64)seed);      // V13.3 Teil 4 Level 5: Wesen des Hotels (session_hotel.cpp)
+    lib53_.setup(world_->level());                 // V13.3 Teil 4 Level 5.3: Bibliothek (session_library.cpp)
     // V7: Laufbuch (V8: in der Welt beginnt jeder Lauf in der ersten Ebene)
     runLog_.levels.push_back(world_->level().world() ? world_->level().regions.front().id : levelId);
 }
@@ -216,6 +217,7 @@ void GameSession::onChunk(const world::ChunkData& cd, bool loaded) {
         spawnTraces(cd);  // V13.3: offenes Mandelwasser (session_phenomena.cpp)
         spawnApparitions(cd);  // V13.3 Teil 4: Automaten, Blechtafel der Macchina (session_apparitions.cpp)
         spawnHotel(cd);        // V13.3 Teil 4 Level 5: Fleisch (session_hotel.cpp)
+        spawnLibrary(cd);      // V13.3 Teil 4 Level 5.3: Wissen, Notizbuch, Buecherhaufen (session_library.cpp)
         // V6: abgelegte Items dieses Chunks wieder hinlegen
         for (auto& d : dropped_)
             if (!reg_.alive(d.entity) && world::chunkOf(ifloor(d.pos.x), ifloor(d.pos.y)) == cd.key) spawnDropped(d, {}, true);
@@ -820,6 +822,13 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
         player_.angle += std::remainder(std::atan2(d.y, d.x) - player_.angle, 2.0 * 3.14159265) * k;
         player_.pitch += (std::atan2(d.z, std::max(0.15f, std::hypot(d.x, d.y))) - player_.pitch) * k;
     }
+    // V13.3 Teil 4 Level 5.3 (KREATUR_Gentleman.md): greift der Hausherr ins Gesicht, reisst es den Blick in seines
+    if (const auto gi = presence_.gentInfo(); !paused && !stats_.dead && gi.state == anim::gm::S_GRIP && gi.target == netSelfId) {
+        const vec3 d = gi.head - body_.eye();
+        const double k = std::min(1.0, dt * 6.0);
+        player_.angle += std::remainder(std::atan2(d.y, d.x) - player_.angle, 2.0 * 3.14159265) * k;
+        player_.pitch += (std::atan2(d.z, std::max(0.15f, std::hypot(d.x, d.y))) - player_.pitch) * k;
+    }
     // V13.3 Teil 4: Jerrys Bann (KREATUR_Jerry.md) - ab 0,45 zieht er den Blick zu seinem Gesicht; wegsehen kostet Kraft
     if (vec3 at; !paused && !stats_.dead && presence_.jerrySpell(netSelfId, &at) > 0.45f) {
         const float pull = (presence_.jerrySpell(netSelfId) - 0.45f) / 0.55f;
@@ -926,6 +935,7 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
         updateApparitions(dt);  // V13.3 Teil 4: Randwesen von Level 2
         updatePurple(dt);     // V13.3: purpifizierte Wesen in der Wand (session_purple.cpp)
         updateHotel(dt);      // V13.3 Teil 4 Level 5: Kolonien, Woodlins, Watchers, Gastgeber (session_hotel.cpp)
+        updateLibrary(dt);    // V13.3 Teil 4 Level 5.3: Notizbuch, Zorn, Stille (session_library.cpp)
     }
     if (killCam_ && !paused) killT_ += dt;  // V11
     target_ = ecs::kNull;

@@ -90,6 +90,11 @@ enum FixedMaterial : u32 {
     // V13.3 Teil 4 Level 5 (KREATUR_Samantha.md): schwarzes und weisses Katzenfell, gruene Augen mit Tapetum (leuchten im
     // Lampenlicht), Nase und Ballen, Schnurrhaare, Zahnfleisch und Gaumen (nass)
     FM_ENT_SM_FUR, FM_ENT_SM_FURW, FM_ENT_SM_EYE, FM_ENT_SM_NOSE, FM_ENT_SM_WHISKER, FM_ENT_SM_GUM,
+    // V13.3 Teil 4 Level 5.3 (KREATUR_Gentleman.md): Frack (Kammgarn), Weste (ochsenblutrot), gestaerktes Hemd, Lackschuhe,
+    // das gemalte Gesicht (Firnis mit Rissen), wachsbleiche Haende, pomadisiertes Haar, nasse Augen, rohes Fleisch im Riss,
+    // Siegelring, das schwarze Notizbuch
+    FM_ENT_GM_SUIT, FM_ENT_GM_VEST, FM_ENT_GM_SHIRT, FM_ENT_GM_SHOE, FM_ENT_GM_FACE, FM_ENT_GM_HAND, FM_ENT_GM_HAIR, FM_ENT_GM_EYE,
+    FM_ENT_GM_SCLERA, FM_ENT_GM_RAW, FM_ENT_GM_GOLD, FM_ENT_GM_BOOK,
     FM_FIG_END,
 };
 static_assert(FM_FIG_END <= kFixedMaterials);

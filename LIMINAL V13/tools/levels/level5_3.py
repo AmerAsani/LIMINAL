@@ -313,4 +313,34 @@ for o in m.objects:
         if v_:
             o['variant'] = v_
 
+# --- V13.3 Teil 4: der Hausherr und das Wissen der Bibliothek (KREATUR_Gentleman.md, KREATUR_Bibliothekswissen.md) ------------
+# Am Ende angefuegt, eigener Zufall - die Anordnung oben bleibt unveraendert.
+# Hausherr (Wiki: kommt durch eine kleine Holztuer am Ende eines Flurs; ein Notizbuch faellt aus dem naechsten Regal vor seine
+# Fuesse; er wirft es hinter sich): "door" - hinten im alten Eingangsgang (er kommt aus dem Hotel), "stand" - sein Platz in der
+# Halle an der Suedwand, Blick nach Westen in die Halle, rechts von ihm das Regal; das Notizbuch landet 4,6 m hinter ihm.
+grng = random.Random(53032)
+m.spawn('trace', 63.5, 129.0, 0.0, -math.pi / 2, set='gm', tags=['door'])
+m.spawn('trace', 54.5, 105.6, 0.0, math.pi, set='gm', tags=['stand'])
+# Wissen (Wiki: die Buecher kennen die roten Lichter und das Volk in den Anzuegen - beide nicht anwesend): im Obergeschoss,
+# abseits des Wegs zwischen den beiden Tueren, je an einem der frei stehenden Regale
+LECT = (65.0, 41.2, math.pi / 2)        # Lesepult, der Leser steht suedlich davor
+CATA = (67.4, 45.6, math.pi / 2)        # Katalogschrank frei vor dem oestlichen Regalblock, Front nach Sueden (zur Treppe)
+
+
+def _local(o, lx, ly):
+    c_, s_ = math.cos(o[2]), math.sin(o[2])
+    return o[0] + c_ * lx - s_ * ly, o[1] + s_ * lx + c_ * ly
+
+
+m.obj('lore_lectern', LECT[0], LECT[1], U_.floor, LECT[2])
+m.block(U, 64, 41, 66, 42, 1.25, hidden=True)
+sx, sy = _local(LECT, 0.033, 0.13)  # der Zettel auf der linken Seite des Folios (Brett 20 Grad, models_l53_wissen.py)
+fx, fy = _local(LECT, 0.9, 0.0)     # der Spawnpunkt selbst steht vor dem Pult (im Block liegt keiner); Tag p: wo der Fund liegt
+m.spawn('trace', fx, fy, U_.floor + 1.103, LECT[2], set='lore', tags=['e141', f'p{sx:.3f},{sy:.3f}'])
+m.obj('lore_catalog', CATA[0], CATA[1], U_.floor, CATA[2] + grng.uniform(-0.02, 0.02))
+m.block(U, 67, 45, 68, 46, 1.05, hidden=True)
+cx_, cy_ = _local(CATA, 0.05, -0.15)  # die Karteikarten oben auf dem Schrank
+fx, fy = _local(CATA, 0.9, 0.0)
+m.spawn('trace', fx, fy, U_.floor + 1.02, CATA[2] + 0.35, set='lore', tags=['e189', f'p{cx_:.3f},{cy_:.3f}'])
+
 m.save()

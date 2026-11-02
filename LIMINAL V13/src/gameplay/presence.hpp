@@ -54,8 +54,9 @@ public:
     // V13.3: Plague Goblins hinter den Ouroboros-Arbeitern (presence_goblin.cpp)
     // V13.3 Teil 4: Jerry hinter den Plague Goblins (presence_jerry.cpp)
     // V13.3 Teil 4 Level 5: Samantha hinter Jerry (presence_samantha.cpp)
-    enum class Role { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Wrangler, Growler, Nguithr, Ouroboros, Goblin, Jerry, Samantha };
-    static constexpr int kRoleCount = 20;  // V13.3: Duller, Arms, Wrangler (KREATUR_Wrangler.md), Growler, Nguithr'xurh, Ouroboros-Arbeiter, Plague Goblins, Jerry
+    // V13.3 Teil 4 Level 5.3: der Hausherr hinter Samantha (presence_gentleman.cpp)
+    enum class Role { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Wrangler, Growler, Nguithr, Ouroboros, Goblin, Jerry, Samantha, Gentleman };
+    static constexpr int kRoleCount = 21;  // V13.3: Duller, Arms, Wrangler (KREATUR_Wrangler.md), Growler, Nguithr'xurh, Ouroboros-Arbeiter, Plague Goblins, Jerry
     static const char* roleName(Role r);
 
     struct Event {
@@ -440,6 +441,21 @@ public:
     };
     SamInfo samInfo() const;
     bool samSet(const std::string& key, double v);
+    // V13.3 Teil 4 Level 5.3 (KREATUR_Gentleman.md; presence_gentleman.cpp): der Hausherr besucht die Bibliothek. gentScene: Orte
+    // aus der Karte (Sitzung: Spawnpunkte trace/gm - Gang hinter der alten Tuer, Platz in der Halle mit Blickrichtung);
+    // gentInfo (Sitzung, Tests): Lage, Zustand, Buch geworfen/gelandet, Stille, Zorn; gentProvoke: jemand hat das Notizbuch
+    // genommen (Sitzung); gentSet (Tests, Skripte): next, quick, state, hold, pose, book, yaw, provoke
+    struct GentInfo {
+        bool active = false, landed = false, wrath = false, gone = false;
+        int state = -1, target = -1, visits = 0, grips = 0, notices = 0;
+        float hush = 0.0f;  // 0..1: die Bibliothek schweigt (Klangbetten treten zurueck)
+        float book = 0.0f;  // Phase des Notizbuchs 0..6 (anim::gm; 5..6: liegt hinter ihm, 0: fort)
+        vec3 pos, head;
+    };
+    void gentScene(vec3 door, vec3 stand, float standYaw);
+    GentInfo gentInfo() const;
+    void gentProvoke(int player);
+    bool gentSet(const std::string& key, double v);
 
 private:
     struct Agent;
@@ -591,6 +607,10 @@ private:
     void regieSamantha(double dt, const Context& c, std::vector<Event>& out);
     bool spawnSamantha(const Context& c, std::vector<Event>& out, bool forced);
     void thinkSamantha(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    // V13.3 Teil 4 Level 5.3: der Hausherr (presence_gentleman.cpp)
+    void regieGentleman(double dt, const Context& c, std::vector<Event>& out);
+    bool spawnGentleman(const Context& c, std::vector<Event>& out, bool forced);
+    void thinkGentleman(Agent& a, double dt, const Context& c, std::vector<Event>& out);
     void updateHive(double dt, const Context& c, std::vector<Event>& out);
     bool walkTo(Agent& a, const NavField& f, double speed, double dt, const Context& c);
     bool hiddenSpawn(const Context& c, int lo, int hi, bool behind, vec3& out, const std::function<bool(vec3)>& ok = {});
@@ -652,6 +672,8 @@ private:
     double samTry_ = 0.0, samQuick_ = 1.0;
     int samVisits_ = 0;
     std::shared_ptr<void> samStats_;
+    // V13.3 Teil 4 Level 5.3: der Hausherr - Szene (Orte), Regie, Zaehler (presence_gentleman.cpp)
+    std::shared_ptr<void> gent_;
 };
 
 }  // namespace lim::game

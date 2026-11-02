@@ -213,7 +213,7 @@ std::optional<LevelDef> LevelDef::fromJson(const Json& jIn, std::string* error, 
         L.allowClump = L.clumpRate > 0.0;
         L.allowGestalt = (*pr)["gestalt"].asBool(true), L.allowBlackout = (*pr)["blackout"].asBool(true);
         // V13.2: neue Wesen
-        static const char* kKin[KIN_COUNT] = {"faceling", "skinstealer", "wretch", "rat", "window", "duller", "arms", "wrangler", "growler", "nguithrxurh", "ouroboros", "goblin", "moth", "jerry", "samantha"};
+        static const char* kKin[KIN_COUNT] = {"faceling", "skinstealer", "wretch", "rat", "window", "duller", "arms", "wrangler", "growler", "nguithrxurh", "ouroboros", "goblin", "moth", "jerry", "samantha", "gentleman"};
         for (int k = 0; k < KIN_COUNT; ++k) {
             const Json* kj = pr->find(kKin[k]);
             if (!kj || !kj->isObject()) continue;
