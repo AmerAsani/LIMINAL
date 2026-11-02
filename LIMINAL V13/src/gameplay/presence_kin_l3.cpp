@@ -211,7 +211,7 @@ void Presence::thinkWretchL3(Agent& a, double dt, const Context& c, std::vector<
         case 0: {  // lauert im Schatten, schlurft umher - die Waffe schleift ueber den Boden
             a.look = false;
             if (sees || hears) {
-                if (!hears && d > 6.5f && los) {  // von weitem: erst locken
+                if (!hears && d > 5.5f && los) {  // von weitem: erst locken (man kann ihn hoeren und ansprechen - man soll nicht)
                     setState(5);
                     a.provoke = 0.0, a.timer = rng_.uniform(0.4, 1.2), w.lostT = 0.0;
                     w.lureLimit = rng_.uniform(7.0, 10.0);
@@ -233,11 +233,11 @@ void Presence::thinkWretchL3(Agent& a, double dt, const Context& c, std::vector<
             a.look = los, a.lookAt = eye;
             a.plea = 0.75f, a.perceive = 1.0f, a.perceiveAt = eye;
             if (a.timer <= 0.0) a.timer = rng_.uniform(2.6, 4.2), frag(0, KC_FRAG_LURE);
-            if (d > 7.5f && los) walkTo(a, fld(), 0.45, dt, c);  // kriecht naeher
+            if (d > 6.2f && los) walkTo(a, fld(), 0.45, dt, c);  // kriecht naeher, bis man ihn ansprechen koennte
             else turnTo(a, toP, 2.0, dt);
             if (a.light > 0.5f) a.provoke += dt;  // im Lichtkegel: er ist erkannt
             w.lostT = los ? 0.0 : w.lostT + dt;
-            if (d < 6.0f) charge("man kommt naeher");
+            if (d < 4.5f) charge("man kommt naeher");
             else if (hears) charge("Laerm");
             else if (a.provoke > 1.4) charge("im Licht erkannt");
             else if (a.stateT > w.lureLimit) charge("lange genug gelockt");
@@ -356,7 +356,7 @@ void Presence::thinkSkinL3(Agent& a, double dt, const Context& c, std::vector<Ev
     const vec3 chest = a.pos + vec3{0, 0, 1.45f};
     lightReact(a, c, head, 9.0f, dt, 1e9, &chest);
     const bool sees = los && d < 18.0f && (facing > 0.1f || d < 4.0f);
-    a.talk = 0.0f, a.reach = 0.0f, a.perceive = 0.0f, a.alert = 0.0f, a.jaw = 0.0f, a.shiver = 0.0f, a.tilt = 0.0f;
+    a.talk = 0.0f, a.reach = 0.0f, a.perceive = 0.0f, a.alert = 0.0f, a.jaw = 0.0f, a.shiver = 0.0f, a.tilt = 0.0f, a.crouch = 0.0f;
     auto setState = [&](int st) { a.state = st, a.stateT = 0.0; };
     auto cue = [&](int k) { out.push_back({Event::Mimic, Role::SkinStealer, head, kKinCue + (float)k}); };
     auto talkFor = [&](double sec) { s.talkT = sec; };
@@ -401,7 +401,8 @@ void Presence::thinkSkinL3(Agent& a, double dt, const Context& c, std::vector<Ev
                 a.look = true, a.lookAt = eye;
                 a.alert = 1.0f;
                 const float u = (float)s.phaseT;
-                a.shiver = u < 1.5f ? 1.0f : std::max(0.0f, 1.0f - (u - 1.5f) / 0.6f);
+                a.shiver = u < 1.5f ? 1.0f : std::max(0.0f, 1.0f - (u - 1.5f) / 0.9f);
+                a.crouch = u < 1.5f ? 0.45f * std::min(1.0f, u / 0.4f) : std::max(0.0f, 0.45f - (u - 1.5f) * 0.9f);  // kruemmt sich, richtet sich auf
                 a.jaw = std::min(1.0f, u / 1.2f);
                 a.tilt = u < 1.5f ? 0.35f * std::sin(u * 7.0f) + 0.2f : 0.1f;
                 if (!s.swapped && u >= 1.5f) {

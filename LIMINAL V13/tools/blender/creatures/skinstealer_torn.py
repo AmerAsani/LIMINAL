@@ -67,10 +67,16 @@ def build(J, bones):
                np.array([-0.12, g * 0.07, B.waist]), np.array([-0.1, g * 0.12, zw + 0.02])]
         bns = [Hm.NECK, Hm.CHEST, Hm.CHEST, Hm.SPINE, Hm.SPINE]
         skin += A.chain(lambda i, bns=bns: bns[i], pts, [0.009, 0.012, 0.013, 0.011, 0.012], k=0.006)
-    # das Gesicht des Opfers: eine leere Maske, die am Hals auf der Brust haengt - gross genug, um sie zu erkennen
-    mc = np.array([0.175, 0.0, B.shZ - 0.12])
-    up = A.unit(np.array([0.28, 0.0, 1.0]))
-    fw = A.unit(np.cross(Y, up))  # aus der Brust heraus (nach vorn, leicht unten)
+    # das Gesicht des Opfers: eine leere Maske, am Kinn noch mit dem Hals verbunden, die kopfueber auf der Brust haengt
+    # (die Stirn unten, das Haar haengt nach unten) - gross genug, um sie zu erkennen
+    mc = np.array([0.185, 0.0, B.shZ - 0.2])
+    up = A.unit(np.array([0.12, 0.0, -1.0]))  # "oben" der Maske (Stirn) zeigt nach unten
+    fw = A.unit(np.cross(up, Y))  # aus der Brust heraus
+    raw = []  # rohe Unterseite der Haut an den Risskanten
+    for k in range(18):  # Rand der Maske
+        a = 2 * math.pi * k / 18
+        q = mc - fw * 0.006 + Y * math.cos(a) * 0.088 + up * math.sin(a) * 0.118
+        raw.append(A.ell(Hm.CHEST, q, fw, (0.007, 0.012, 0.012), up=up, k=0.004))
     skin.append(A.ell(Hm.CHEST, mc, fw, (0.016, 0.09, 0.12), up=up, k=0.0))
     skin.append(A.ell(Hm.CHEST, mc - fw * 0.014, fw, (0.014, 0.08, 0.108), up=up, op='sub', k=0.004))  # hohl, liegt auf
     for s in (0, 1):
@@ -93,11 +99,19 @@ def build(J, bones):
     # Hautkragen des Halses, an dem die Maske haengt
     skin.append(A.tube(Hm.NECK, np.array([0.02, 0, B.shZ + 0.1]), np.array([0.01, 0, B.shZ - 0.0]), (0.085, 0.078), (0.095, 0.085), up=X, k=0.02))
     skin.append(A.tube(Hm.NECK, np.array([0.02, 0, B.shZ + 0.13]), np.array([0.01, 0, B.shZ - 0.03]), (0.07, 0.064), (0.08, 0.07), up=X, op='sub', k=0.004))
-    skin.append(A.tube(Hm.CHEST, np.array([0.1, 0, B.shZ + 0.02]), mc + up * 0.11, (0.06, 0.012), (0.08, 0.014), up=fw, k=0.02))
-    for k in range(13):  # kurzes Haar an der Oberkante (Stirn des Opfers), Strähnen
-        y = (k - 6) * 0.013
-        b0 = mc + up * (0.112 - 0.0006 * (k - 6) ** 2) + Y * y + fw * 0.006
-        hair += A.chain(lambda i: Hm.CHEST, [b0, b0 + up * 0.022 + Y * y * 0.15 + fw * 0.004], [0.006, 0.003], k=0.003)
+    skin.append(A.tube(Hm.CHEST, np.array([0.1, 0, B.shZ + 0.02]), mc - up * 0.11, (0.06, 0.012), (0.075, 0.013), up=fw, k=0.02))  # vom Hals zum Kinn
+    for k in range(15):  # kurzes Haar an der Stirn (unten) - es haengt nach unten
+        y = (k - 7) * 0.012
+        b0 = mc + up * (0.112 - 0.0005 * (k - 7) ** 2) + Y * y + fw * 0.004
+        hair += A.chain(lambda i: Hm.CHEST, [b0, b0 - Z * 0.03 + Y * y * 0.12 + fw * 0.006, b0 - Z * 0.05 + fw * 0.01], [0.006, 0.004, 0.0018], k=0.003)
+    # rohe Kanten: oben am Hautwulst der Huefte, an den Rissen des Rueckens
+    for k in range(24):
+        a = 2 * math.pi * k / 24
+        raw.append(A.ell(Hm.PELVIS, np.array([0.205 * math.cos(a), 0.215 * math.sin(a), zw + 0.045]), Z, (0.014, 0.016, 0.008), k=0.006))
+    for s in (0, 1):
+        g = Hm.side(s)
+        for z in np.linspace(B.waist, B.shZ, 6):
+            raw.append(A.ell(Hm.CHEST if z > B.chestZ - 0.1 else Hm.SPINE, np.array([-0.128, g * 0.062, z]), Z, (0.02, 0.008, 0.006), k=0.006))
     # Mantelfetzen, die hinten am Wulst haengen (eingeklemmt)
     for k in range(5):
         ang = math.pi + (k - 2) * 0.42 + (rng.random() - 0.5) * 0.15
@@ -119,6 +133,7 @@ def build(J, bones):
     groups += [
         {'name': 'menschenhaut', 'fm': 'ent_humanskin', 'parts': skin, 'disp': skin_disp, 'h': 0.0022, 'cav_scale': 0.008, 'lod_weight': 1.4},
         {'name': 'haar', 'fm': 'ent_hair', 'parts': hair, 'disp': F.hair_disp, 'h': 0.0025, 'cav_scale': 0.005},
+        {'name': 'roh', 'fm': 'ent_mouth', 'parts': raw, 'disp': None, 'h': 0.002, 'cav_scale': 0.004},
         {'name': 'fetzen', 'fm': 'ent_cloth_b', 'parts': rag, 'disp': rag_disp, 'h': 0.004, 'cav_scale': 0.012},
         {'name': 'klar', 'fm': 'ent_wr_slime', 'parts': slime, 'disp': None, 'h': 0.0012, 'cav_scale': 0.002},
     ]

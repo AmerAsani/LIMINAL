@@ -255,19 +255,26 @@ void CreatureAnimator::bipedKinL3(float dt, const Input& in) {
         const vec3 polePk = nK(loc({-0.9f, sg * 0.4f, -0.1f}), -F);
         // Haende in den Manteltaschen (Huefte, leicht vorn), die Hand zeigt hinein
         if (k.pocket > 0.001f) {
-            const vec3 wt = S + loc({0.06f, -sg * 0.0f, -0.47f}) + loc({0.0f, -sg * 0.035f, 0.0f});
-            setArm(si, wt, nK(loc({0.15f, -sg * 0.1f, -1.0f}), -U), nK(loc({1.0f, 0.0f, 0.1f}), F), polePk, k.pocket);
+            // Taschenoeffnung an der Huefte (Klappe im Modell): Handgelenk an der Oeffnung, die Hand nach innen unten hinein
+            const vec3 wt = S + loc({0.075f, -sg * 0.025f, -0.52f});
+            setArm(si, wt, nK(loc({-0.35f, -sg * 0.45f, -1.0f}), -U), nK(loc({1.0f, 0.0f, 0.1f}), F), polePk, k.pocket);
         }
-        // Verwandlung: die Arme reissen nach aussen und oben, zitternd
-        if (k.conv > 0.001f) {
-            const vec3 wt = S + loc({0.12f, sg * 0.38f, -0.18f}) + k.armJ[si] * 0.06f;
-            const vec3 hd = nK(loc({0.3f, sg * 0.8f, -0.3f}) + k.armJ[si] * 0.4f, Lw * sg);
-            setArm(si, wt, hd, nK(loc({0.0f, 0.0f, 1.0f}), U), nK(loc({-0.3f, sg * 0.4f, -0.8f}), -U), k.conv);
+        // Verwandlung, noch im Mantel: die Haende krallen sich ins eigene Gesicht (dort reisst die Haut), Ellbogen weit
+        // aussen, zuckend; danach (zerrissen) entfalten sich die Arme weit nach aussen und oben
+        if (k.conv > 0.001f && variant == 2) {
+            const vec3 wt = headPos_ + headDir_ * 0.1f - U * 0.1f - Lw * (sg * -0.075f) + k.armJ[si] * 0.035f;
+            const vec3 hd = nK(U * 0.8f + headDir_ * 0.2f - Lw * (sg * 0.25f) + k.armJ[si] * 0.3f, U);
+            setArm(si, wt, hd, nK(headDir_ * -1.0f, -F), nK(loc({-0.2f, sg * 0.9f, -0.3f}), Lw * sg), k.conv);
         }
-        // wahre Gestalt, wachsam: Arme gespreizt, die langen Finger vorn
+        if (k.conv > 0.001f && variant == 3) {  // entfaltet: die Arme ueber den Kopf, Ellbogen weit, Krallen nach vorn
+            const vec3 wt = S + loc({0.14f, sg * 0.3f, 0.36f}) + k.armJ[si] * 0.05f;
+            const vec3 hd = nK(loc({0.6f, sg * 0.25f, 0.5f}) + k.armJ[si] * 0.3f, U);
+            setArm(si, wt, hd, nK(loc({0.0f, 0.0f, 1.0f}), U), nK(loc({-0.3f, sg * 0.9f, -0.2f}), Lw * sg), k.conv);
+        }
+        // wahre Gestalt, wachsam: geduckt, beide Haende vor der Brust nach vorn gestreckt, die langen Finger zum Ziel
         if (k.spread > 0.001f) {
-            const vec3 wt = S + loc({0.22f, sg * 0.30f, -0.34f});
-            setArm(si, wt, nK(loc({0.7f, sg * 0.25f, -0.4f}), F), nK(loc({0.0f, 0.0f, 1.0f}), U), nK(loc({-0.4f, sg * 0.7f, -0.5f}), -F), k.spread);
+            const vec3 wt = S + loc({0.34f, -sg * 0.08f, -0.24f});
+            setArm(si, wt, nK(loc({0.85f, -sg * 0.1f, -0.25f}), F), nK(loc({0.0f, 0.0f, 1.0f}), U), nK(loc({-0.3f, sg * 0.8f, -0.5f}), -U), k.spread);
         }
     }
     // Lampe im Gesicht: die rechte Hand vor die Brille, der Handruecken zum Licht
