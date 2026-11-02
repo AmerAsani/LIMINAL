@@ -17,7 +17,7 @@ import faceling as F
 import human as Hm
 import sdf
 
-LODS = (30000, 10000, 3400)
+LODS = (30000, 10000, 4200)
 SKELETON = 'ent_skinstealer'
 
 
@@ -70,18 +70,14 @@ def build(J, bones):
         coat.append(A.cone(Hm.FORE + 4 * s, A.lerp(E, W, 0.9), A.lerp(E, W, 1.02), 0.042, 0.042, op='sub', k=0.004))  # offen
     # Schoss: ein weiter Rock bis eine Handbreit ueber das Knie (am Becken), vorn offen, hinten ein Gehschlitz
     zt, zb = B.hip + 0.04, B.j(Hm.jKNEE, 0)[2] + 0.09
-    coat.append(A.tube(Hm.PELVIS, np.array([0.0, 0, B.waist]), np.array([0.01, 0, zb]), (B.hipW + 0.12, 0.13), (B.hipW + 0.16, 0.165), up=X, k=0.05))
-    coat.append(A.tube(Hm.PELVIS, np.array([0.0, 0, B.hip - 0.08]), np.array([0.01, 0, zb - 0.03]), (B.hipW + 0.1, 0.11), (B.hipW + 0.145, 0.15), up=X, op='sub', k=0.0))
+    # (vorn weiter: im Schritt kommen die Knie nach vorn - die Hose darf nicht durch den Schoss stechen)
+    coat.append(A.tube(Hm.PELVIS, np.array([0.0, 0, B.waist]), np.array([0.03, 0, zb]), (B.hipW + 0.12, 0.13), (B.hipW + 0.17, 0.205), up=X, k=0.05))
+    coat.append(A.tube(Hm.PELVIS, np.array([0.0, 0, B.hip - 0.08]), np.array([0.03, 0, zb - 0.03]), (B.hipW + 0.1, 0.11), (B.hipW + 0.155, 0.19), up=X, op='sub', k=0.0))
     coat.append(A.box(Hm.PELVIS, np.array([0.17, 0, zb + 0.08]), X, (0.05, 0.022, 0.14), 0.01, op='sub', k=0.01))  # vorn offen
     coat.append(A.box(Hm.PELVIS, np.array([-0.17, 0, zb + 0.06]), X, (0.05, 0.012, 0.12), 0.006, op='sub', k=0.006))  # Gehschlitz
     coat.append(A.cone(Hm.CHEST, np.array([-0.01, 0, B.shZ - 0.02]), np.array([0.0, 0, B.shZ + 0.12]), 0.098, 0.092, k=0.03))  # Kragen
     coat.append(A.cone(Hm.CHEST, np.array([0.0, 0, B.shZ - 0.03]), np.array([0.01, 0, B.shZ + 0.14]), 0.078, 0.075, op='sub', k=0.01))
-    # Revers: zwei Klappen, die vom Kragen schraeg zur Knopfleiste laufen
-    for s in (0, 1):
-        g = Hm.side(s)
-        a0 = np.array([0.075, g * 0.07, B.shZ + 0.02])
-        a1 = np.array([0.125, g * 0.015, B.chestZ - 0.06])
-        coat.append(A.tube(Hm.CHEST, a0, a1, (0.03, 0.007), (0.012, 0.006), up=A.unit(np.array([1.0, g * 0.3, 0.0])), k=0.008))
+
     # Taschenklappen (die Haende stecken darin)
     flaps = []
     for s in (0, 1):
@@ -115,13 +111,13 @@ def build(J, bones):
         e = c + X * r[0] * 0.80 + Y * g * r[1] * 0.40 + Z * r[2] * 0.04
         lens = e + X * 0.03
         glass.append(A.ell(Hm.HEAD, lens, X, (0.0035, 0.024, 0.018), k=0.0))
-        frame.append(A.ell(Hm.HEAD, lens - X * 0.0005, X, (0.0045, 0.0265, 0.0205), k=0.0))
-        frame.append(A.ell(Hm.HEAD, lens - X * 0.0005, X, (0.006, 0.0235, 0.0175), op='sub', k=0.0))
-        frame += A.chain(lambda i: Hm.HEAD, [lens + Y * g * 0.024, c + Y * g * (r[1] + 0.006) + Z * r[2] * 0.06 + X * r[0] * 0.3],
-                         [0.0022, 0.002], k=0.001)
+        frame.append(A.ell(Hm.HEAD, lens - X * 0.0005, X, (0.0055, 0.0275, 0.0215), k=0.0))
+        frame.append(A.ell(Hm.HEAD, lens - X * 0.0005, X, (0.0075, 0.0235, 0.0175), op='sub', k=0.0))
+        frame += A.chain(lambda i: Hm.HEAD, [lens + Y * g * 0.025, c + Y * g * (r[1] + 0.007) + Z * r[2] * 0.06 + X * r[0] * 0.3],
+                         [0.003, 0.0028], k=0.001)
     frame += A.chain(lambda i: Hm.HEAD, [c + X * (r[0] * 0.8 + 0.03) + Y * r[1] * 0.18 + Z * r[2] * 0.08,
                                          c + X * (r[0] * 0.82 + 0.034) + Z * r[2] * 0.1,
-                                         c + X * (r[0] * 0.8 + 0.03) - Y * r[1] * 0.18 + Z * r[2] * 0.08], [0.0022, 0.0024, 0.0022], k=0.001)
+                                         c + X * (r[0] * 0.8 + 0.03) - Y * r[1] * 0.18 + Z * r[2] * 0.08], [0.003, 0.0032, 0.003], k=0.001)
     pants = B.leg(0, t=0.015) + B.leg(1, t=0.015)
     boots = B.foot(0, t=0.016) + B.foot(1, t=0.016)
     for s in (0, 1):
@@ -137,6 +133,6 @@ def build(J, bones):
         {'name': 'schal', 'fm': 'ent_cloth_a', 'parts': scarf, 'disp': F.cloth_disp(1093), 'h': 0.0032, 'cav_scale': 0.01},
         {'name': 'glas', 'fm': 'ent_pg_glass', 'parts': glass, 'disp': None, 'h': 0.0012, 'cav_scale': 0.002, 'lod_weight': 1.6},
         {'name': 'brille', 'fm': 'ent_ob_rubber', 'parts': frame, 'disp': None, 'h': 0.001, 'cav_scale': 0.002, 'lod_weight': 1.4},
-        {'name': 'hose', 'fm': 'ent_cloth_a', 'parts': pants, 'disp': F.cloth_disp(1094), 'h': 0.0048, 'cav_scale': 0.012},
+        {'name': 'hose', 'fm': 'ent_cloth_d', 'parts': pants, 'disp': F.cloth_disp(1094), 'h': 0.0048, 'cav_scale': 0.012},
         {'name': 'stiefel', 'fm': 'ent_ob_rubber', 'parts': boots, 'disp': None, 'h': 0.0038, 'cav_scale': 0.006},
     ]

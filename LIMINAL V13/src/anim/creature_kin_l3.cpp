@@ -140,7 +140,7 @@ void CreatureAnimator::bipedKinL3(float dt, const Input& in) {
             carry = G({0.16f, 0.0f, -0.5f + tw}, {0.85f, 0.12f, -0.5f}, {0, 1, 0});
             runG = G({0.2f + 0.06f * gait, 0.02f, -0.38f}, {0.9f, 0.1f, -0.2f}, {0, 1, 0});
             lure = G({-0.12f, 0.0f, -0.52f}, {-0.3f, 0.1f, -0.95f}, {0, -1, 0});
-            wind = G({-0.22f, -0.05f, -0.32f}, {0.95f, 0.0f, 0.1f}, {0, 1, 0});
+            wind = G({-0.14f, -0.05f, 0.0f}, {0.95f, 0.0f, 0.1f}, {0, 1, 0});  // Runde 4: auf Schulterhoehe zurueckgezogen (sichtbar)
             hit = G({0.6f, 0.04f, -0.12f}, {1.0f, 0.0f, 0.05f}, {0, 1, 0});
             follow = G({0.62f, 0.04f, -0.14f}, {1.0f, 0.03f, 0.0f}, {0.2f, 1, 0});
         }
@@ -273,7 +273,7 @@ void CreatureAnimator::bipedKinL3(float dt, const Input& in) {
         }
         // wahre Gestalt, wachsam: geduckt, beide Haende vor der Brust nach vorn gestreckt, die langen Finger zum Ziel
         if (k.spread > 0.001f) {
-            const vec3 wt = S + loc({0.34f, -sg * 0.08f, -0.24f});
+            const vec3 wt = S + loc({0.32f, sg * 0.04f, -0.42f});  // unter der Maske auf der Brust (sie bleibt sichtbar)
             setArm(si, wt, nK(loc({0.85f, -sg * 0.1f, -0.25f}), F), nK(loc({0.0f, 0.0f, 1.0f}), U), nK(loc({-0.3f, sg * 0.8f, -0.5f}), -U), k.spread);
         }
     }

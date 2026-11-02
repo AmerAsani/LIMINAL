@@ -70,12 +70,18 @@ def pipe(G, D, hd, p, rng):
         steel.append(A.cone(HB, c - hd * 0.002, c + hd * 0.002, 0.0255, 0.0255, k=0.001))
     steel.append(A.cone(HB, out1 - hd * 0.01, out1 + hd * 0.04, 0.0235, 0.0235))
     steel.append(A.cone(HB, out1 - hd * 0.005, out1 + hd * 0.045, 0.018, 0.018, op='sub'))
-    # Rost in Flecken und am Winkel
-    for k in range(9):
-        t = 0.15 + 0.7 * rng.random()
+    # Rost: als duenne Kruste am Winkel, am Gewinde und von dort in Laeufen das Rohr entlang (dunkle Flecken mitten auf dem
+    # Rohr sahen im Spiel wie Loecher aus - Runde 2)
+    for k in range(6):
+        t = 0.82 + 0.16 * rng.random()
         ang = rng.random() * 2 * math.pi
-        c = a + (b - a) * t + (hd * math.cos(ang) + p * math.sin(ang)) * 0.018
-        rust.append(A.ell(HB, c, D, (0.03 + 0.04 * rng.random(), 0.012, 0.01), up=hd * math.cos(ang) + p * math.sin(ang), k=0.004))
+        n = hd * math.cos(ang) + p * math.sin(ang)
+        c = a + (b - a) * t + n * 0.0205
+        rust.append(A.ell(HB, c, D, (0.05 + 0.04 * rng.random(), 0.016, 0.0028), up=n, k=0.004))
+    for k in range(3):  # am abgesaegten Ende
+        ang = rng.random() * 2 * math.pi
+        n = hd * math.cos(ang) + p * math.sin(ang)
+        rust.append(A.ell(HB, a + D * (0.01 + 0.02 * k) + n * 0.0205, D, (0.025, 0.018, 0.0028), up=n, k=0.004))
     rust.append(A.ell(HB, bend, D, (0.036, 0.035, 0.035), up=hd, k=0.006))
     rust.append(A.ell(HB, bend - hd * 0.02 + D * 0.01, D, (0.03, 0.03, 0.02), up=hd, op='sub', k=0.01))
     # Isolierband am Griff
@@ -172,12 +178,12 @@ def blade(G, D, hd, p, rng):
     cable += A.chain(lambda i: HB, tail, [0.0058, 0.0055, 0.005], k=0.002)
     for k in range(4):  # Kupferadern am Ende des Kabels
         d = A.unit(-D * 0.6 - hd * 0.8 + w * (k - 1.5) * 0.4)
-        copper += A.chain(lambda i: HB, [tail[-1], tail[-1] + d * (0.02 + 0.01 * k)], [0.0014, 0.0011], k=0.0)
+        copper += A.chain(lambda i: HB, [tail[-1], tail[-1] + d * (0.02 + 0.01 * k)], [0.0021, 0.0017], k=0.0)
     return [
         {'name': 'klinge', 'fm': 'ent_ob_steel', 'parts': steel, 'disp': metal_disp(1552), 'h': 0.0009, 'cav_scale': 0.003, 'lod_weight': 1.5},
         {'name': 'lack', 'fm': 'ent_ob_paint', 'parts': paint, 'disp': None, 'h': 0.0009, 'cav_scale': 0.002},
         {'name': 'kabel', 'fm': 'ent_ob_rubber', 'parts': cable, 'disp': None, 'h': 0.0012, 'cav_scale': 0.003},
-        {'name': 'kupfer', 'fm': 'ent_wire', 'parts': copper, 'disp': None, 'h': 0.0007, 'cav_scale': 0.002},
+        {'name': 'kupfer', 'fm': 'ent_wire', 'parts': copper, 'disp': None, 'h': 0.0007, 'cav_scale': 0.002, 'lod_weight': 1.8},
     ]
 
 

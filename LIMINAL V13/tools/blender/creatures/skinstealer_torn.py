@@ -19,7 +19,7 @@ import human as Hm
 import sdf
 import skinstealer as SS
 
-LODS = (30000, 10000, 3400)
+LODS = (30000, 10000, 4200)
 SKELETON = 'ent_skinstealer'
 
 
@@ -43,6 +43,11 @@ def build(J, bones):
         z = zw + 0.035 * k - 0.02
         skin.append(A.tube(Hm.PELVIS, np.array([0.0, 0.0, z]), np.array([0.0, 0.0, z - 0.04]), (0.205 - 0.01 * k, 0.16 - 0.008 * k),
                            (0.215 - 0.01 * k, 0.165 - 0.008 * k), up=X, k=0.02))
+    for k in range(9):  # schlaffe Falten und Beulen im Wulst (ungleichmaessig, vorn tiefer)
+        a = 2 * math.pi * k / 9 + rng.random() * 0.4
+        q = np.array([0.215 * math.cos(a), 0.225 * math.sin(a), zw - 0.03 - (0.05 if math.cos(a) > 0.3 else 0.0) * rng.random()])
+        skin.append(A.ell(Hm.PELVIS, q, A.unit(np.array([-math.sin(a), math.cos(a), 0.0])), (0.05 + 0.03 * rng.random(), 0.03, 0.035 + 0.02 * rng.random()),
+                          up=Z, k=0.02))
     skin.append(A.tube(Hm.PELVIS, np.array([0.0, 0.0, zw + 0.12]), np.array([0.0, 0.0, zw - 0.1]), (0.17, 0.125), (0.18, 0.13), up=X, op='sub', k=0.01))
     # die leeren Arme der Haut: platt (ohne Inhalt), von den Seiten des Wulsts bis zum Knie, unten eine schlaffe Hand
     for s in (0, 1):
@@ -72,11 +77,13 @@ def build(J, bones):
     mc = np.array([0.185, 0.0, B.shZ - 0.2])
     up = A.unit(np.array([0.12, 0.0, -1.0]))  # "oben" der Maske (Stirn) zeigt nach unten
     fw = A.unit(np.cross(up, Y))  # aus der Brust heraus
-    raw = []  # rohe Unterseite der Haut an den Risskanten
-    for k in range(18):  # Rand der Maske
-        a = 2 * math.pi * k / 18
-        q = mc - fw * 0.006 + Y * math.cos(a) * 0.088 + up * math.sin(a) * 0.118
-        raw.append(A.ell(Hm.CHEST, q, fw, (0.007, 0.012, 0.012), up=up, k=0.004))
+    raw = []  # rohe Unterseite der Haut an den Risskanten: durchgehende, unregelmaessige Wuelste
+
+    def ring(bone, pts, r0, jitter):
+        rr = [r0 * (0.7 + jitter * rng.random()) for _ in pts]
+        return A.chain(lambda i: bone, pts + [pts[0]], rr + [rr[0]], k=0.006)
+    raw += ring(Hm.CHEST, [mc - fw * 0.008 + Y * math.cos(2 * math.pi * k / 20) * 0.09 + up * math.sin(2 * math.pi * k / 20) * 0.12
+                           for k in range(20)], 0.006, 0.6)
     skin.append(A.ell(Hm.CHEST, mc, fw, (0.016, 0.09, 0.12), up=up, k=0.0))
     skin.append(A.ell(Hm.CHEST, mc - fw * 0.014, fw, (0.014, 0.08, 0.108), up=up, op='sub', k=0.004))  # hohl, liegt auf
     for s in (0, 1):
@@ -99,19 +106,18 @@ def build(J, bones):
     # Hautkragen des Halses, an dem die Maske haengt
     skin.append(A.tube(Hm.NECK, np.array([0.02, 0, B.shZ + 0.1]), np.array([0.01, 0, B.shZ - 0.0]), (0.085, 0.078), (0.095, 0.085), up=X, k=0.02))
     skin.append(A.tube(Hm.NECK, np.array([0.02, 0, B.shZ + 0.13]), np.array([0.01, 0, B.shZ - 0.03]), (0.07, 0.064), (0.08, 0.07), up=X, op='sub', k=0.004))
-    skin.append(A.tube(Hm.CHEST, np.array([0.1, 0, B.shZ + 0.02]), mc - up * 0.11, (0.06, 0.012), (0.075, 0.013), up=fw, k=0.02))  # vom Hals zum Kinn
+    skin.append(A.tube(Hm.CHEST, np.array([0.1, 0, B.shZ + 0.02]), mc - up * 0.11, (0.035, 0.009), (0.05, 0.01), up=fw, k=0.02))  # vom Hals zum Kinn
     for k in range(15):  # kurzes Haar an der Stirn (unten) - es haengt nach unten
         y = (k - 7) * 0.012
         b0 = mc + up * (0.112 - 0.0005 * (k - 7) ** 2) + Y * y + fw * 0.004
-        hair += A.chain(lambda i: Hm.CHEST, [b0, b0 - Z * 0.03 + Y * y * 0.12 + fw * 0.006, b0 - Z * 0.05 + fw * 0.01], [0.006, 0.004, 0.0018], k=0.003)
+        hair += A.chain(lambda i: Hm.CHEST, [b0, b0 - Z * 0.03 + Y * y * 0.12 + fw * 0.006, b0 - Z * 0.05 + fw * 0.01], [0.0065, 0.0048, 0.003], k=0.003)
     # rohe Kanten: oben am Hautwulst der Huefte, an den Rissen des Rueckens
-    for k in range(24):
-        a = 2 * math.pi * k / 24
-        raw.append(A.ell(Hm.PELVIS, np.array([0.205 * math.cos(a), 0.215 * math.sin(a), zw + 0.045]), Z, (0.014, 0.016, 0.008), k=0.006))
+    raw += ring(Hm.PELVIS, [np.array([0.2 * math.cos(2 * math.pi * k / 28), 0.21 * math.sin(2 * math.pi * k / 28), zw + 0.045 + 0.012 * math.sin(k * 1.7)])
+                            for k in range(28)], 0.012, 0.8)
     for s in (0, 1):
         g = Hm.side(s)
-        for z in np.linspace(B.waist, B.shZ, 6):
-            raw.append(A.ell(Hm.CHEST if z > B.chestZ - 0.1 else Hm.SPINE, np.array([-0.128, g * 0.062, z]), Z, (0.02, 0.008, 0.006), k=0.006))
+        pts = [np.array([-0.128, g * 0.062, z]) for z in np.linspace(B.waist, B.shZ, 6)]
+        raw += A.chain(lambda i, pts=pts: Hm.CHEST if pts[i][2] > B.chestZ - 0.1 else Hm.SPINE, pts, [0.007, 0.008, 0.006, 0.008, 0.007, 0.005], k=0.004)
     # Mantelfetzen, die hinten am Wulst haengen (eingeklemmt)
     for k in range(5):
         ang = math.pi + (k - 2) * 0.42 + (rng.random() - 0.5) * 0.15
@@ -132,7 +138,7 @@ def build(J, bones):
         slime.append(A.ell(bn, p0 - Z * ln, Z, (0.005, 0.005, 0.0065), k=0.002))
     groups += [
         {'name': 'menschenhaut', 'fm': 'ent_humanskin', 'parts': skin, 'disp': skin_disp, 'h': 0.0022, 'cav_scale': 0.008, 'lod_weight': 1.4},
-        {'name': 'haar', 'fm': 'ent_hair', 'parts': hair, 'disp': F.hair_disp, 'h': 0.0025, 'cav_scale': 0.005},
+        {'name': 'haar', 'fm': 'ent_hair', 'parts': hair, 'disp': None, 'h': 0.0013, 'cav_scale': 0.004, 'lod_weight': 1.6},
         {'name': 'roh', 'fm': 'ent_mouth', 'parts': raw, 'disp': None, 'h': 0.002, 'cav_scale': 0.004},
         {'name': 'fetzen', 'fm': 'ent_cloth_b', 'parts': rag, 'disp': rag_disp, 'h': 0.004, 'cav_scale': 0.012},
         {'name': 'klar', 'fm': 'ent_wr_slime', 'parts': slime, 'disp': None, 'h': 0.0012, 'cav_scale': 0.002},
