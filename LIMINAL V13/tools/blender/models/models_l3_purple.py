@@ -50,7 +50,8 @@ WALL_TEX = 'bricks_grey_black'  # die Gaenge mit den Fundstellen (ziegel_grau, z
 def mats():
     return {
         # Haut: matt in der Flaeche, glasig auf Knochen und Wuelsten (die Purpifizierung als Glasur), tief in den Falten
-        'skin': material('purpur_haut', (0.33, 0.13, 0.50), look='rubber', rough=0.6, r=0.85),
+        # Runde 5: dunkler - vor der leuchtenden Wand steht der Leib als Silhouette (vorher lavendelhell wie Pluesch)
+        'skin': material('purpur_haut', (0.24, 0.08, 0.40), look='rubber', rough=0.6, r=0.85),
         'skin_deep': material('purpur_haut_falte', (0.08, 0.02, 0.14), look='rubber', rough=0.8, r=1.1),
         # Runde 4: Glasur dunkler und satter - der Glanz kommt aus dem Licht, nicht aus heller Farbe (vorher Flecken wie Spielzeug)
         'skin_sheen': material('purpur_glasur', (0.44, 0.20, 0.70), look='plastic', rough=0.15, r=0.26),
@@ -60,7 +61,7 @@ def mats():
         'fleshbrick': material('purpur_fleischziegel', (0.42, 0.20, 0.58), look='concrete', tex='concrete_rough', rough=0.9, r=1.15),
         'pore': material('purpur_noppe', (0.58, 0.22, 1.0), look='glow', glow=0.75),
         'sinew': material('purpur_sehne', (0.22, 0.07, 0.30), look='rubber', rough=0.4, r=0.5),
-        'skin_mottle': material('purpur_haut_fleck', (0.27, 0.09, 0.43), look='rubber', rough=0.5, r=0.7),
+        'skin_mottle': material('purpur_haut_fleck', (0.19, 0.05, 0.32), look='rubber', rough=0.5, r=0.7),
         'teeth': material('purpur_zahn', (0.74, 0.64, 0.86), look='ceramic', rough=0.3, r=0.5),
         'nail': material('purpur_nagel', (0.13, 0.05, 0.19), look='plastic', rough=0.3, r=0.35),
         'hair': material('purpur_haar', (0.09, 0.03, 0.14), look='plastic', rough=0.35, r=0.45),
@@ -69,6 +70,8 @@ def mats():
         'brick1': material('purpur_ziegel_kern', (0.46, 0.08, 1.0), look='concrete', tex=WALL_TEX, glow=0.5, rough=0.8, r=0.85),
         'brick2': material('purpur_ziegel_mitte', (0.52, 0.16, 1.0), look='concrete', tex=WALL_TEX, glow=0.22, rough=0.85, r=0.9),
         'brick3': material('purpur_ziegel_rand', (0.58, 0.28, 1.0), look='concrete', tex=WALL_TEX, glow=0.06, rough=0.9, r=0.95),
+        # Runde 5: blasser Saum ausserhalb - die Farbe sickert aus, statt wie ein Aufkleber abzubrechen
+        'brick4': material('purpur_ziegel_saum', (0.72, 0.52, 0.95), look='concrete', tex=WALL_TEX, rough=0.9, r=1.0),
         'burn': material('purpur_brand', (0.12, 0.04, 0.17), look='concrete', tex='concrete_rough', rough=0.95, r=1.2),
         'vein': material('purpur_bahn', (0.60, 0.22, 1.0), look='glow', glow=0.65),
         # Runde 4: herausgedrueckte Brocken sind Ziegel derselben violetten Wand (vorher grau wie fremder Schutt)
@@ -297,7 +300,7 @@ def _dist_to(pts, Q):
     return out
 
 
-def stain(K, M, cpts, rings, rng, seed, zmax, step=0.03):
+def stain(K, M, cpts, rings, rng, seed, zmax, step=0.024):
     """Violette Ziegel um die Beruehrungslinie: Stufen (Radius, Material, Tiefe) als ebene Flaechen vor der Wand,
     Rand mit Rauschen, an die Isolinie gezogen und zu wenigen Dreiecken zusammengefasst."""
     rmax = max(r for r, _, _ in rings) + 0.25
@@ -309,7 +312,8 @@ def stain(K, M, cpts, rings, rng, seed, zmax, step=0.03):
     Q = np.stack([Y.ravel(), Z.ravel()], axis=1)
     d = _dist_to(cpts, Q)
     P3 = np.stack([np.zeros(len(Q)), Q[:, 0], Q[:, 1]], axis=1)
-    L = d + 0.10 * sdf.fbm(P3, 2.2, 3, seed) + 0.05 * sdf.fbm(P3, 7.0, 2, seed + 3)
+    # Runde 5: Rand ausgefranst (feines Rauschen, Ausleger entlang der Fugen) statt glatter Blase
+    L = d + 0.10 * sdf.fbm(P3, 2.2, 3, seed) + 0.06 * sdf.fbm(P3, 7.0, 2, seed + 3) + 0.035 * sdf.fbm(P3 * np.array([1.0, 0.45, 1.6]), 15.0, 2, seed + 7)
     L = L.reshape(Y.shape)
     for (rad, mat, depth) in rings:
         bm = bmesh.new()
@@ -345,7 +349,7 @@ def stain(K, M, cpts, rings, rng, seed, zmax, step=0.03):
         for v, (yy, zz) in moved.items():
             v.co.y, v.co.z = yy, zz
         # Rand glaetten (in der Wandebene; der Boden bleibt Boden)
-        for _ in range(3):
+        for _ in range(1):
             edge_vs = [v for v in bm.verts if v.is_boundary and v.co.z > 0.002]
             bmesh.ops.smooth_vert(bm, verts=edge_vs, factor=0.5, use_axis_x=False, use_axis_y=True, use_axis_z=True)
         bmesh.ops.dissolve_limit(bm, angle_limit=0.01, verts=list(bm.verts), edges=list(bm.edges))
@@ -701,7 +705,8 @@ def build_purple_stealer():
     # Wand: Beruehrungslinie, violette Ziegel, Lichtbahnen, Brocken
     cpts = contact(parts, disp, -1.0, 1.15, 0.0, 2.3)
     center = (0.08, 1.15)
-    stain(K, M, cpts, [(0.62, M['brick3'], 0.0014), (0.36, M['brick2'], 0.0022), (0.14, M['brick1'], 0.0030)], rng, 51, 2.55)
+    stain(K, M, cpts, [(0.84, M['brick4'], 0.0010), (0.62, M['brick3'], 0.0017), (0.36, M['brick2'], 0.0024), (0.14, M['brick1'], 0.0031)],
+          rng, 51, 2.55)
     lichtenberg(K, M, cpts, center, rng, n_roots=11, reach=(0.25, 0.7), zmax=2.5)
     pushed_bricks(K, M, cpts, center, rng, n=22)
     floor_debris(K, M, -0.75, 0.55, rng, n=9, xmax=0.36)
@@ -834,7 +839,8 @@ def build_purple_hound():
     hair(K, M, H, f, u, side, rng)
     cpts = contact(parts, disp, -0.7, 0.6, 0.0, 1.0)
     center = (-0.02, 0.5)
-    stain(K, M, cpts, [(0.58, M['brick3'], 0.0014), (0.34, M['brick2'], 0.0022), (0.13, M['brick1'], 0.0030)], rng, 63, 1.6)
+    stain(K, M, cpts, [(0.78, M['brick4'], 0.0010), (0.58, M['brick3'], 0.0017), (0.34, M['brick2'], 0.0024), (0.13, M['brick1'], 0.0031)],
+          rng, 63, 1.6)
 
     def avoid(p):  # keine Bahnen ueber die Schrift
         return p[0] > 0.72 and 0.95 < p[1] < 1.85
