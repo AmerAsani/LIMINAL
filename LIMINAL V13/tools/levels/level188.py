@@ -12,6 +12,7 @@ Draufsicht (x nach rechts, y nach unten):
 """
 import math
 import os
+import random
 import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
@@ -220,4 +221,13 @@ m.checkpoint('fenster', 14.5, 33.5, 0.0, 'Am Eingangsfenster')
 safe_point('gang', G, 'Weisser Gang', GR.cx, GR.y0 + 4.5)
 
 print('Fenster:', n_win)
+# V13.3: Varianten der haeufigen Klassen (Blender, name@N.glb) zufaellig gewaehlt; Anordnung unveraendert.
+# window_188_c@1 behaelt den Freiraum fuer das Fensterwesen (presence.cpp waehlt nach Modellname).
+VARIANTS = {'window_188_a': 2, 'window_188_b': 2, 'window_188_c': 2, 'paving_strip': 3}
+vrng = random.Random(18831)
+for o in m.objects:
+    if o['model'] in VARIANTS:
+        v_ = vrng.randrange(VARIANTS[o['model']])
+        if v_:
+            o['variant'] = v_
 m.save()
