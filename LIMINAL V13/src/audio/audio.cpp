@@ -1228,6 +1228,8 @@ struct DeviceThread {
     bool simRemoved = false;
     std::wstring removedId;
     std::thread aux;  // V13.3: Sitzungsmeldungen/Lautstaerke (blockiert den Strom nicht)
+    std::atomic<bool> auxDone{true};
+    std::string devName;
 
     explicit DeviceThread(AudioSystem& s) : a(s) {}
 
@@ -1331,48 +1333,16 @@ struct DeviceThread {
             std::lock_guard lock(a.mutex_);
             a.setMixRate(rate);
         }
+        // Sitzungsmeldungen/Lautstaerke im Hilfsthread vor dem Start; hoechstens 250 ms darauf warten
+        devName = name;
+        startAux();
+        for (int i = 0; i < 25 && !auxDone; ++i) Sleep(10);
+        lap("Sitzungsmeldungen");
         // mit Stille vorfuellen, dann starten
         BYTE* d = nullptr;
         if (SUCCEEDED(render->GetBuffer(buf, &d))) render->ReleaseBuffer(buf, AUDCLNT_BUFFERFLAGS_SILENT);
         if (FAILED(h = client->Start())) return fail("Start", h);
         lap("Start");
-        // V13.3: Sitzungsmeldungen und Lautstaerke-Hinweise in einem Hilfsthread: unter Last brauchten diese Aufrufe an den
-        // Audiodienst bis 4,4 s - im Audiothread waere es so lange still geblieben (der Puffer wird nicht gefuellt)
-        {
-            Com<IAudioClient> c2 = client;
-            Com<IMMDevice> d2 = dev;
-            aux = std::thread([this, c2, d2, name] {
-                CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-                const long long ta = nowMs();
-                // Trennung der Sitzung (Formatwechsel, exklusiver Modus, Geraet entfernt, Dienst beendet) melden lassen
-                Com<IAudioSessionControl> sc;
-                if (SUCCEEDED(c2->GetService(__uuidof(IAudioSessionControl), (void**)sc.put()))) {
-                    auto* ev = new SessionEvents(&a);
-                    if (SUCCEEDED(sc->RegisterAudioSessionNotification(ev))) {
-                        std::lock_guard lock(a.statMutex_);
-                        session = sc, events = ev;
-                        a.sessionEvents_ = ev;
-                    } else {
-                        log::warn("Audio: Sitzungsbenachrichtigung nicht verfuegbar");
-                        ev->Release();
-                    }
-                }
-                // Windows-Lautstaerke: stumm geschaltete Sitzung oder Geraet ist keine Stoerung des Spiels, erklaert aber Stille
-                Com<ISimpleAudioVolume> sv;
-                float v = 1.0f;
-                BOOL m = FALSE;
-                if (SUCCEEDED(c2->GetService(__uuidof(ISimpleAudioVolume), (void**)sv.put())) && SUCCEEDED(sv->GetMasterVolume(&v)) &&
-                    SUCCEEDED(sv->GetMute(&m)) && (m || v < 0.05f))
-                    log::warn("Audio: Windows-Lautstaerke dieses Spiels {:.0f} %{}", v * 100.0f, m ? ", STUMM geschaltet" : "");
-                Com<IAudioEndpointVolume> epv;
-                if (SUCCEEDED(d2->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_ALL, nullptr, (void**)epv.put())) &&
-                    SUCCEEDED(epv->GetMute(&m)) && SUCCEEDED(epv->GetMasterVolumeLevelScalar(&v)) && (m || v < 0.05f))
-                    log::warn("Audio: Geraet '{}' ist {} (Lautstaerke {:.0f} %)", name, m ? "STUMM geschaltet" : "fast auf null", v * 100.0f);
-                const long long dt = nowMs() - ta;
-                if (dt > 500) log::info("Audio: Sitzungsmeldungen und Lautstaerke abgefragt in {} ms (Hilfsthread)", dt);
-                CoUninitialize();
-            });
-        }
         {
             std::lock_guard lock(a.statMutex_);
             ++a.dev_.opens;
@@ -1386,6 +1356,48 @@ struct DeviceThread {
                   name, mixRate, mixCh, mixBits, (double)period / 10000.0, rate, channels, isFloat ? "float" : "PCM", bits, buf,
                   1000.0 * buf / rate, nowMs() - now, laps.empty() ? "" : " - davon ", laps);
         return true;
+    }
+
+    // V13.3: Sitzungsmeldungen und Lautstaerke-Hinweise in einem Hilfsthread. Unter Last brauchten diese Aufrufe an den
+    // Audiodienst bis 4,4 s (im Audiothread waere es so lange still geblieben). Bei laufendem Strom gestellt, stoerten sie
+    // ihn (je ein Unterlauf in der Haelfte der Starts) - daher vor dem Start, mit hoechstens 250 ms Wartezeit.
+    void startAux() {
+        auxDone = false;
+        Com<IAudioClient> c2 = client;
+        Com<IMMDevice> d2 = dev;
+        const std::string name = devName;
+        aux = std::thread([this, c2, d2, name] {
+        CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+        const long long ta = nowMs();
+        // Trennung der Sitzung (Formatwechsel, exklusiver Modus, Geraet entfernt, Dienst beendet) melden lassen
+        Com<IAudioSessionControl> sc;
+        if (SUCCEEDED(c2->GetService(__uuidof(IAudioSessionControl), (void**)sc.put()))) {
+            auto* ev = new SessionEvents(&a);
+            if (SUCCEEDED(sc->RegisterAudioSessionNotification(ev))) {
+                std::lock_guard lock(a.statMutex_);
+                session = sc, events = ev;
+                a.sessionEvents_ = ev;
+            } else {
+                log::warn("Audio: Sitzungsbenachrichtigung nicht verfuegbar");
+                ev->Release();
+            }
+        }
+        // Windows-Lautstaerke: stumm geschaltete Sitzung oder Geraet ist keine Stoerung des Spiels, erklaert aber Stille
+        Com<ISimpleAudioVolume> sv;
+        float v = 1.0f;
+        BOOL m = FALSE;
+        if (SUCCEEDED(c2->GetService(__uuidof(ISimpleAudioVolume), (void**)sv.put())) && SUCCEEDED(sv->GetMasterVolume(&v)) &&
+            SUCCEEDED(sv->GetMute(&m)) && (m || v < 0.05f))
+            log::warn("Audio: Windows-Lautstaerke dieses Spiels {:.0f} %{}", v * 100.0f, m ? ", STUMM geschaltet" : "");
+        Com<IAudioEndpointVolume> epv;
+        if (SUCCEEDED(d2->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_ALL, nullptr, (void**)epv.put())) &&
+            SUCCEEDED(epv->GetMute(&m)) && SUCCEEDED(epv->GetMasterVolumeLevelScalar(&v)) && (m || v < 0.05f))
+            log::warn("Audio: Geraet '{}' ist {} (Lautstaerke {:.0f} %)", name, m ? "STUMM geschaltet" : "fast auf null", v * 100.0f);
+        const long long dt = nowMs() - ta;
+        if (dt > 250) log::info("Audio: Sitzungsmeldungen und Lautstaerke abgefragt in {} ms (Hilfsthread, Strom laeuft schon)", dt);
+        CoUninitialize();
+        auxDone = true;
+        });
     }
 
     HRESULT padding(UINT32& p) {
@@ -1441,6 +1453,8 @@ struct DeviceThread {
         }
         a.running_ = true;
         long long lastEvent = nowMs();
+        const long long started = lastEvent;
+        int underLogged = 0;
         bool first = true;
         while (!a.stop_) {
             ++a.heartbeat_;
@@ -1467,14 +1481,19 @@ struct DeviceThread {
                 if (now - lastEvent >= 500) return std::format("Strom haengt: seit {} ms keine Meldung des Treibers", now - lastEvent);
                 continue;
             }
+            const long long prevEvent = lastEvent;
             lastEvent = now;
             a.step_ = kPadding;
             UINT32 pad = 0;
             HRESULT h = padding(pad);
             if (FAILED(h)) return lost("GetCurrentPadding", h);
             if (pad == 0 && !first) {
-                std::lock_guard lock(a.statMutex_);
-                ++a.dev_.underruns;  // Puffer leergelaufen: der Mischer kam zu spaet
+                {
+                    std::lock_guard lock(a.statMutex_);
+                    ++a.dev_.underruns;  // Puffer leergelaufen: der Mischer kam zu spaet
+                }
+                if (underLogged++ < 3)
+                    log::info("Audio: Unterlauf {} ms nach dem Start des Stroms (seit dem letzten Ereignis {} ms)", now - started, now - prevEvent);
             }
             first = false;
             const UINT32 frames = buf - std::min(buf, pad);
