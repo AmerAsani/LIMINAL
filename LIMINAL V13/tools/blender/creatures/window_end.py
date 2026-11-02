@@ -73,15 +73,19 @@ def build(J, bones):
     glass = []
     pane_c = np.array([D * 0.42, -W2 / 4 - 0.004, (ZT + Z1) * 0.5])
     glass.append(_box(0, pane_c, (0.0025, W2 / 4 - 0.02, (Z1 - ZT) * 0.5 - 0.02), 0.0))
-    # Runde 2: ein Einschlag mit sternfoermigen Spruengen (vorher kreuz und quer wie Kritzelei)
+    # Runde 2: ein Einschlag statt Kritzelei; Runde 3: die Spruenge gezackt und ungleich lang (vorher ein Stern wie ein Symbol)
     hit = pane_c + np.array([0.0, 0.07, -0.03])
-    for k in range(7):
-        a = k * 2 * np.pi / 7 + rng.uniform(-0.3, 0.3)
-        L_ = rng.uniform(0.04, 0.11)
-        dv = np.array([0.0, np.cos(a), np.sin(a)])
-        up = np.array([0.0, -np.sin(a), np.cos(a)])
-        glass.append(_box(0, hit + dv * L_ * 0.5, (0.006, L_ * 0.5, 0.0011), 0.0, op='sub', up=np.cross(X, dv) * 0 + up))
-    glass.append(_box(0, hit, (0.006, 0.006, 0.006), 0.002, op='sub'))
+    for k in range(5):
+        a = k * 2 * np.pi / 5 + rng.uniform(-0.5, 0.5)
+        p = hit.copy()
+        for seg in range(rng.integers(2, 5)):
+            a += rng.uniform(-0.6, 0.6)
+            L_ = rng.uniform(0.02, 0.05)
+            dv = np.array([0.0, np.cos(a), np.sin(a)])
+            up = np.array([0.0, -np.sin(a), np.cos(a)])
+            glass.append(_box(0, p + dv * L_ * 0.5, (0.006, L_ * 0.5 + 0.001, 0.0009), 0.0, op='sub', up=up))
+            p = p + dv * L_
+    glass.append(_box(0, hit, (0.006, 0.005, 0.004), 0.002, op='sub'))
     for k in range(6):  # Schmutz auf dem Glas (unten dichter)
         glass.append(A.ell(0, pane_c + np.array([0.003, rng.uniform(-0.2, 0.2), rng.uniform(-0.17, -0.08)]), X, (0.0015, rng.uniform(0.02, 0.05), rng.uniform(0.01, 0.025)), k=0.01))
     for (cy, cz, sy, sz) in ((W2 / 2 - 0.02, Z0 + 0.02, -1, 1), (-W2 / 2 + 0.02, Z0 + 0.02, 1, 1), (W2 / 2 - 0.02, ZT - 0.03, -1, -1),
@@ -117,11 +121,22 @@ def build(J, bones):
     def mortar_disp(Q):
         return 0.0012 * sdf.fbm(Q, 60.0, 3, 73)
 
+    # Runde 3: der Kasten ist durchgerostet (vorher schwarz lackiert - im Dunkel unsichtbar); Reste des Lacks als Platten
+    paint = []
+    for s in (1, -1):
+        for k in range(5):
+            z = rng.uniform(Z0 - FR * 0.4, Z1 + FR * 0.4)
+            paint.append(_box(0, (D + 0.0012, s * (W2 / 2 + FR / 2 + 0.008) + rng.uniform(-0.02, 0.02), z),
+                              (0.0012, rng.uniform(0.015, FR / 2), rng.uniform(0.03, 0.12)), 0.004))
+    for k in range(5):
+        paint.append(_box(0, (D + 0.0012, rng.uniform(-W2 / 2, W2 / 2), Z1 + FR / 2 + 0.006), (0.0012, rng.uniform(0.04, 0.14), rng.uniform(0.015, FR / 2)), 0.004))
     groups += [
-        {'name': 'kasten', 'fm': 'ent_ob_paint', 'parts': case, 'disp': case_disp, 'h': 0.0028, 'cav_scale': 0.006, 'lod_weight': 0.8},
+        {'name': 'kasten', 'fm': 'ent_ob_rust', 'parts': case, 'disp': case_disp, 'h': 0.0028, 'cav_scale': 0.006, 'lod_weight': 0.8},
+        {'name': 'lack', 'fm': 'ent_ob_paint', 'parts': paint, 'disp': lambda Q: 0.0004 * sdf.fbm(Q, 60.0, 2, 75), 'h': 0.0016, 'cav_scale': 0.003,
+         'lod_weight': 0.3},
         {'name': 'nieten', 'fm': 'ent_ob_steel', 'parts': rivets, 'disp': None, 'h': 0.0016, 'cav_scale': 0.003, 'lod_weight': 0.3},
         {'name': 'glas', 'fm': 'ent_pg_glass', 'parts': glass, 'disp': None, 'h': 0.0016, 'cav_scale': 0.003, 'lod_weight': 0.5},
-        {'name': 'rost', 'fm': 'ent_ob_rust', 'parts': rust, 'disp': lambda Q: 0.0005 * sdf.fbm(Q, 80.0, 2, 74), 'h': 0.0016,
+        {'name': 'schmutz', 'fm': 'ent_ob_paint', 'parts': rust, 'disp': lambda Q: 0.0005 * sdf.fbm(Q, 80.0, 2, 74), 'h': 0.0016,
          'cav_scale': 0.003, 'lod_weight': 0.4},
         {'name': 'moertel', 'fm': 'ent_concrete', 'parts': mortar, 'disp': mortar_disp, 'h': 0.0028, 'cav_scale': 0.006, 'lod_weight': 0.4},
     ]

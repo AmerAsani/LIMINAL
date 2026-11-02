@@ -42,7 +42,7 @@ def _mats():
     return {
         # vertrocknete Haut: pergamentartig, graugelb, matt; in Falten dunkler, an duennen Raendern heller
         # Runde 3: dunkler und entsaettigt (vorher cremig-rosa), Flecken nur knapp abgesetzt (vorher Tarnmuster)
-        'skin': mat('haut_trocken', (0.44, 0.37, 0.27), 'cardboard', r=1.3),
+        'skin': mat('haut_trocken', (0.40, 0.33, 0.24), 'cardboard', r=1.3),  # Runde 5: noch etwas dunkler (im Licht der Ebene zu hell)
         'skin_dark': mat('haut_falte', (0.23, 0.18, 0.12), 'cardboard', r=1.5),
         'skin_pale': mat('haut_duenn', (0.52, 0.45, 0.33), 'cardboard', r=1.2),
         'skin_spot': mat('haut_fleckig', (0.39, 0.31, 0.22), 'cardboard', r=1.35),
@@ -386,7 +386,7 @@ def build_skin_shed__v1():
         out = np.where(cav > 0.5, 1, 0)
         above = z > ph + 0.005
         near = z < ph + 0.014
-        out[above & ~near] = 2  # Runde 3: was noch Haut ist, zusammenhaengend (vorher Flecken wie Aufkleber)
+        out[above & ~near] = 6  # Runde 3: was noch Haut ist, zusammenhaengend; Runde 5: angeschmort (fleckig statt bleich)
         out[above & ~near & (_mottle(C, 51, 6.0) > 0.45)] = 6
         out[above & ~near & (cav > 0.55)] = 3
         out[(pool_o.d(x, y) > -0.05) & (z < 0.006)] = 5
@@ -783,14 +783,14 @@ def build_food_scraps():
     can.append(Pcone(c0 + d * 0.05, c0 + d * 0.06, 0.038, 0.038, k=0.0, op='sub'))  # offen
     cob = sculpt('dose', can, 0.0015, lambda P: 0.0002 * sdf.fbm(P, 120.0, 2, 52), target=4000)
     paint_vec(cob, can, None, [mat('dose_blech', (0.55, 0.55, 0.53), 'metal', r=0.9), mat('dose_rost', (0.36, 0.22, 0.13), 'metal', tex='metal_rusty_iron', r=1.4),
-                               mat('dose_etikett', (0.55, 0.22, 0.12), 'paint', r=1.2)],
+                               mat('dose_etikett', (0.38, 0.20, 0.13), 'paint', r=1.3)],  # Runde 5: ausgeblichen (vorher grell)
               lambda C, N, cav, edge: np.where(cav > 0.5, 1, np.where(np.abs((C - c0) @ d) < 0.035, 2, 0)), cav_scale=0.004)
     # ausgelaufener Inhalt (Bohnen in Sosse, eingetrocknet) und Nagespuren
     goo = [Pell((0.2 + 0.03 * i * math.cos(0.5) + rng.uniform(-0.02, 0.02), 0.15 + 0.03 * i * math.sin(0.5) + rng.uniform(-0.02, 0.02), 0.004),
                 (rng.uniform(0.02, 0.04), rng.uniform(0.015, 0.03), 0.004), k=0.02) for i in range(5)]
     goo += [Pell((0.2 + rng.uniform(-0.03, 0.12), 0.15 + rng.uniform(-0.04, 0.08), 0.008), (0.006, 0.004, 0.0035), k=0.003) for _ in range(16)]
     gob = sculpt('inhalt', goo, 0.0012, None, target=3000)
-    paint_vec(gob, goo, None, [mat('bohnen_sosse', (0.30, 0.13, 0.06), 'plastic', r=0.6), mat('bohnen', (0.42, 0.24, 0.12), 'plastic', r=0.7)],
+    paint_vec(gob, goo, None, [mat('bohnen_sosse', (0.20, 0.09, 0.05), 'plastic', r=0.7), mat('bohnen', (0.30, 0.18, 0.09), 'plastic', r=0.8)],
               lambda C, N, cav, edge: np.where(C[:, 2] > 0.0065, 1, 0))
     # zerrissene Folienverpackung mit Kruemeln
     wo = Outline([(-0.18, -0.20, -0.04, -0.27, 0.07, 0.06)], k=0.02)
@@ -812,7 +812,7 @@ def build_food_scraps__v1():
     for i in range(7):  # Nagekerben (Ratten)
         bread.append(Pell((0.05 + rng.uniform(-0.01, 0.02), -0.09 + i * 0.012, 0.03 + rng.uniform(-0.01, 0.015)), (0.012, 0.004, 0.01), k=0.002, op='sub'))
     bob = sculpt('brot', bread, 0.0015, lambda P: 0.0008 * sdf.fbm(P, 90.0, 3, 62), target=4000)
-    paint_vec(bob, bread, None, [mat('brot_kruste', (0.45, 0.30, 0.15), 'concrete', r=1.4), mat('brot_innen', (0.70, 0.62, 0.48), 'concrete', r=1.5),
+    paint_vec(bob, bread, None, [mat('brot_kruste', (0.34, 0.23, 0.12), 'concrete', r=1.4), mat('brot_innen', (0.55, 0.49, 0.38), 'concrete', r=1.5),
                                  mat('schimmel', (0.38, 0.42, 0.34), 'fabric', r=1.5)],
               lambda C, N, cav, edge: np.where(cav > 0.5, 1, np.where(_mottle(C, 63, 30.0) > 0.35, 2, 0)), cav_scale=0.004)
     bisc = []
@@ -824,4 +824,4 @@ def build_food_scraps__v1():
     po = Outline([(0.0, 0.18, 0.12, 0.24, 0.07, 0.06)], k=0.02)
     pap = sheet(po, lambda u, v: 0.003 + 0.012 * _r2(u, v, 14.0, 64, warp=0.02) ** 2, t0=0.001, hmax=0.02, fade=0.01, ragged=0.01, rseed=65)
     pob = sculpt('papier', [pap], 0.0014, None, target=2500)
-    pob.data.materials.append(mat('papier_fettig', (0.62, 0.58, 0.48), 'cardboard', r=1.3))
+    pob.data.materials.append(mat('papier_fettig', (0.44, 0.41, 0.34), 'cardboard', r=1.3))

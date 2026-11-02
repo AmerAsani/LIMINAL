@@ -4551,7 +4551,7 @@ static void testV133Level2Kin(const std::string& dataDir) {
         });
         check(P.has(Role::Window), "Fensterwesen: bildet sich an einem Gangende (Regie)");
         check(P.has(Role::Window) && !seenAtBirth, "Fensterwesen: niemand sieht es entstehen");
-        check(P.variantOf(Role::Window) == 1, "Fensterwesen: im Stahlfenster der Ebene (Modell ent_window_l2)");
+        check(P.variantOf(Role::Window) == 1, "Fensterwesen: im Stahlfenster der Ebene (Modell ent_window_end)");
         check(count(ev, PE::Burst, Role::Window, 0.9f) == 1, "Fensterwesen: Ankuendigung beim Entstehen (Glas, Rahmen, Aussenluft)");
         if (P.has(Role::Window)) {
             const vec3 w = P.posOf(Role::Window);
@@ -4693,22 +4693,21 @@ static void testV133Level2Kin(const std::string& dataDir) {
         auto& P = s->presence();
         // ein Fass mit Resten daneben: 12 m davon weg stellen, Blick weg
         const world::MapObject* fb = nullptr;
-        for (const world::MapObject& o : L2->map->objects)
-            if (o.model == "food_scraps") {
-                fb = &o;
-                break;
-            }
-        check(fb != nullptr, "Death Rat: Essensreste an einem Fass");
-        if (fb) {
-            double px = fb->x, py = fb->y;
-            for (int k = 0; k < 24; ++k) {  // freie Stelle 10-13 m Weg vom Futter
-                const double a = k * 0.2618, x = fb->x + std::cos(a) * 11.0, y = fb->y + std::sin(a) * 11.0;
-                const world::Tile* q = s->world().tileIfLoaded(ifloor(x), ifloor(y));
-                if (q && q->open() && q->clearance() > 2.0f) {
-                    px = x, py = y;
-                    break;
+        double px = 0.0, py = 0.0;
+        bool found = false;
+        for (const world::MapObject& o : L2->map->objects) {  // Reste, zu denen man 9-11 m gerade Sicht hat (Weg = Abstand)
+            if (o.model != "food_scraps" || found) continue;
+            for (double r = 11.0; r >= 9.0 && !found; r -= 1.0)
+                for (int k = 0; k < 48 && !found; ++k) {
+                    const double a = k * 0.1309, x = o.x + std::cos(a) * r, y = o.y + std::sin(a) * r;
+                    const world::Tile* q = s->world().tileIfLoaded(ifloor(x), ifloor(y));
+                    if (q && q->open() && q->clearance() > 2.0f &&
+                        game::clearSight(s->world(), vec3{(float)x, (float)y, q->floor + 0.3f}, vec3{(float)o.x, (float)o.y, (float)o.z + 0.3f}))
+                        px = x, py = y, found = true, fb = &o;
                 }
-            }
+        }
+        check(fb != nullptr, "Death Rat: Essensreste an einem Fass, mit gerader Sicht darauf");
+        if (fb) {
             put(*s, px, py, std::atan2(py - fb->y, px - fb->x));
             step(*s, ev, 1.0);
             P.force(Role::Rat);

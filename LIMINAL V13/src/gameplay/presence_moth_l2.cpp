@@ -7,7 +7,7 @@
 // die kleinen Nguithr'xurh an den Decken ueber den Maschinen (presence_nguithrxurh.cpp, Netz mit eingesponnenen Motten).
 //
 // Im Spiel: eine kleine Gruppe (presence.moth.group) an einer brennenden Roehre, kein Nest. Maennchen (Variante 1,
-// ent_moth_l2, Massstab 0,52: etwa 23 cm Spannweite), manchmal ein Weibchen (Variante 2, ent_moth, Massstab 0,66).
+// ent_moth_male, Massstab 0,52: etwa 23 cm Spannweite), manchmal ein Weibchen (Variante 2, ent_moth, Massstab 0,66).
 //
 //   state 0  sitzt      an der Decke neben der Roehre; ab und zu fliegt eine auf
 //         1  fliegt     friedlich (stage 0: um die Roehre, stoesst klickend ans Glas; 1: um die Lampe des Spielers -
@@ -22,6 +22,7 @@
 // (TakeOff); das Flattern der fliegenden Motten ist die Schleife moth_flutter (Presence::swarm).
 #include "gameplay/presence.hpp"
 #include "gameplay/presence_agent.hpp"
+#include "props/prop_library.hpp"
 
 #include "core/log.hpp"
 
@@ -61,8 +62,12 @@ bool Presence::spawnMothL2(const Context& c, std::vector<Event>& out, bool force
     if (!mothL2(c) || !fld().valid()) return false;
     const world::KinDef& K = c.kin[world::KIN_MOTH];
     const vec3 eye = c.view.eye;
-    std::vector<std::pair<i64, i64>> cand;
-    fld().ring(forced ? 30 : 80, forced ? 220 : 340, cand);
+    const world::Sector* sec = c.world->sectorIfReady(c.player->x, c.player->y);
+    if (!sec) return false;
+    // brennende Leuchtstoffroehren der Karte (tube_white, tube_orange; die toten Gruppen sind tube_dead)
+    static const props::Model* tubes[4] = {props::model("tube_white", 0), props::model("tube_white", 1), props::model("tube_orange", 0),
+                                           props::model("tube_orange", 1)};
+    const int lo = forced ? 30 : 80, hi = forced ? 220 : 340;
     // Netze der Nguithr'xurh in der Naehe: dort sammeln sie sich auch (die Spinnen fressen Motten)
     std::vector<vec3> webs;
     for (const auto& a : agents_)
@@ -70,12 +75,17 @@ bool Presence::spawnMothL2(const Context& c, std::vector<Event>& out, bool force
     float best = 1e9f;
     vec3 site;
     const world::Tile* st = nullptr;
-    for (int tries = 0; tries < 300 && !cand.empty(); ++tries) {
-        auto [x, y] = cand[(size_t)rng_.randint(0, (i64)cand.size() - 1)];
+    for (const auto& pr : sec->props) {
+        bool tube = false;
+        for (const props::Model* m : tubes) tube = tube || (m && pr.model == m);
+        if (!tube || hdist({pr.x, pr.y, 0.0f}, eye) > (float)hi * 0.1f + 2.0f) continue;
+        const i64 x = ifloor(pr.x), y = ifloor(pr.y);
+        const int cost = fld().at(x, y);
+        if (cost < lo || cost > hi) continue;
         const world::Tile* t = c.world->tileIfLoaded(x, y);
-        if (!t || !t->open() || !(t->flags & world::TF_LAMP) || t->clearance() > 4.2f) continue;
-        if (darkTile(c, t, (float)x + 0.5f, (float)y + 0.5f)) continue;
-        const vec3 lamp{(float)x + 0.5f, (float)y + 0.5f, t->ceil - 0.12f};
+        if (!t || !t->open() || t->clearance() > 4.2f) continue;
+        if (darkTile(c, t, pr.x, pr.y)) continue;
+        const vec3 lamp{pr.x, pr.y, t->ceil - 0.12f};
         bool visible = false;
         for (const vec3& q : {lamp, lamp + vec3{0.5f, 0, 0}, lamp + vec3{-0.5f, 0, 0}, lamp + vec3{0, 0.5f, 0}, lamp + vec3{0, -0.5f, 0}})
             if (dot(nrmF(q - eye, {1, 0, 0}), c.view.look) > 0.25f && clearSight(*c.world, eye, q)) visible = true;

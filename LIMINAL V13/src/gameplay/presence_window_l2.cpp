@@ -2,7 +2,7 @@
 //
 // Level 2: selten, meist am Ende von Gaengen; man soll nicht hingehen. Entity 2: ein Fenster bildet sich auf fast jeder
 // Flaeche, lieber an Waenden, im Stil der Ebene; es bleibt, wo es entstanden ist. Die Rohrgaenge haben keine Fenster -
-// also bildet es sich selbst eines: ein altes Stahlfenster in der Stirnwand einer Sackgasse (Modell ent_window_l2;
+// also bildet es sich selbst eines: ein altes Stahlfenster in der Stirnwand einer Sackgasse (Modell ent_window_end;
 // Spawnpunkte "entity"/"window" der Karte, tools/levels/level2.py). Dahinter die verschwommene, vertraute Landschaft und
 // der dunkle Umriss eines Menschen.
 //
@@ -65,7 +65,7 @@ bool Presence::spawnWindowL2(const Context& c, std::vector<Event>& out, bool for
         auto a = std::make_unique<Agent>();
         a->role = Role::Window;
         a->ent = Entity::Window;
-        a->variant = 1;  // ent_window_l2: Stahlfenster der Ebene
+        a->variant = 1;  // ent_window_end: Stahlfenster der Ebene
         a->mode = 1;
         a->glow = 1.0f;
         a->noShadow = true;

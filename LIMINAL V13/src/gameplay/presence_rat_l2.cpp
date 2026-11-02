@@ -39,14 +39,15 @@ struct Food {
     int kind;  // 0 Fass, 1 Reste
 };
 
+// 0 Fass, 1 Reste (Variante 0), 2 Reste (Variante 1), -1 nichts
 int foodKind(const props::Model* m) {
     static const props::Model* barrel[3] = {props::model("barrel", 0), props::model("barrel", 1), props::model("barrel", 2)};
     static const props::Model* scraps[2] = {props::model("food_scraps", 0), props::model("food_scraps", 1)};
     if (!m) return -1;
     for (const props::Model* b : barrel)
         if (b && m == b) return 0;
-    for (const props::Model* s : scraps)
-        if (s && m == s) return 1;
+    for (int v = 0; v < 2; ++v)
+        if (scraps[v] && m == scraps[v]) return 1 + v;
     return -1;
 }
 
@@ -55,10 +56,15 @@ void foods(const Presence::Context& c, vec3 near, float range, std::vector<Food>
     const world::Sector* sec = c.world->sectorIfReady(near.x, near.y);
     if (!sec) return;
     for (const auto& p : sec->props) {
-        const vec3 q{p.x, p.y, p.z};
+        vec3 q{p.x, p.y, p.z};
         if (hdist(q, near) > range || std::fabs(q.z - near.z) > 1.2f) continue;
         const int k = foodKind(p.model);
-        if (k >= 0) out.push_back({q, k});
+        if (k < 0) continue;
+        if (k > 0) {  // Runde 2: dort, wo das Essbare liegt (v0: ausgelaufene Bohnen, v1: der Brotkanten; Blender-y gespiegelt)
+            const vec3 local = k == 1 ? vec3{0.20f, -0.15f, 0.0f} : vec3{0.12f, 0.05f, 0.0f};
+            q += rotateYaw(local, p.yaw);
+        }
+        out.push_back({q, k > 0 ? 1 : 0});
     }
 }
 
@@ -84,7 +90,7 @@ bool barrelBase(const Presence::Context& c, vec3 center, vec3& base) {
 bool Presence::ratFoodSpawn(const Context& c, vec3& out) {
     if (!c.kin || c.kin[world::KIN_RAT].mode != "bald" || !fld().valid()) return false;
     std::vector<Food> fs;
-    foods(c, c.view.eye, 26.0f, fs);
+    foods(c, vec3{(float)c.player->x, (float)c.player->y, (float)c.player->z}, 26.0f, fs);
     for (size_t k = fs.size(); k > 1; --k) std::swap(fs[k - 1], fs[(size_t)rng_.randint(0, (i64)k - 1)]);
     const vec3 fl = nrmF(flat(c.view.look), {1, 0, 0});
     for (const Food& f : fs) {
@@ -99,6 +105,7 @@ bool Presence::ratFoodSpawn(const Context& c, vec3& out) {
         out = base;
         return true;
     }
+    log::info("Praesenz: Death Rats - keine Futterstelle ausser Sicht ({} Faesser/Reste im Umkreis)", fs.size());
     return false;
 }
 
@@ -165,7 +172,7 @@ bool Presence::ratFeed(Agent& a, double dt, const Context& c, std::vector<Event>
                         const RatFeed& G = *static_cast<const RatFeed*>(o->ext.get());
                         if ((G.stage == 2 || G.stage == 3 || (G.stage == 1 && G.kind == 0)) && hdist(G.spot, F.spot) < 0.1f) F.kind = 2;
                     }
-            if (F.kind == 1) F.base = pick->p + nrmF(flat(base - pick->p), {1, 0, 0}) * 0.22f, F.base.z = base.z;
+            if (F.kind == 1) F.base = pick->p + nrmF(flat(base - pick->p), {1, 0, 0}) * 0.16f, F.base.z = base.z;
             if (F.kind == 2) {  // seitlich am Fuss
                 const vec3 side = rotateYaw(nrmF(flat(base - pick->p), {1, 0, 0}), (float)rng_.uniform(-1.0, 1.0));
                 const vec3 q = pick->p + side * 0.40f;
@@ -179,6 +186,7 @@ bool Presence::ratFeed(Agent& a, double dt, const Context& c, std::vector<Event>
                 return false;
             }
             F.stage = 1, F.t = 0.0;
+            log::info("Praesenz: Death Rat geht zum {} bei ({:.1f}, {:.1f})", F.kind == 0 ? "Fass" : (F.kind == 1 ? "Essen" : "Fass (Lache)"), F.spot.x, F.spot.y);
             return true;
         }
         case 1: {  // hin
