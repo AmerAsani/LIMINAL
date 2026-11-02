@@ -8,7 +8,8 @@ Status-Begriffe:
 - **teilweise**: im Spiel, eine dokumentierte Eigenschaft fehlt (genannt)
 - **geplant (V13.2)**: in dieser Runde zu bauen (Briefing `KREATUR_<Name>.md`); wird nach Abnahme auf „neu (V13.2)“ gesetzt
 - **fehlt**: dokumentiert und sinnvoll umsetzbar, aber nicht im Spiel (Grund: Priorität, siehe unten)
-- **bewusst weggelassen**: mit Grund
+- **Ausnahme (Menschen / Erreger ohne Körper)**: einzige erlaubte Ausnahmen nach Auftrag V13.3 Teil 4
+- **bewusst weggelassen**: mit Grund (Altstand, wird in V13.3 abgebaut)
 - **eigene Ergänzung**: im Spiel ohne Wiki-Beleg
 
 ## Quellen
@@ -51,7 +52,7 @@ Die Seite nennt **keine bestätigten Wesen**.
 | Unbekannte dunkle Gestalten | Unbestätigte Berichte über dunkle Figuren, die einem folgen; das Gefühl, beobachtet zu werden. | **umgesetzt** als „Gestalt“: steht am Gangende, ändert sich nie, solange man hinsieht, und ist fort, sobald man wegsieht. Greift nie an (unbestätigt, daher harmlos). |
 | Flüstern, vertraute Stimmen | Vielleicht Einbildung. | **umgesetzt** als Halluzination (`haunt.cpp`, Klang `hal_whisper_*`) |
 | Kratzen hinter den Wänden | Folgt einem die Gänge entlang; man soll es ignorieren. | **umgesetzt** als Halluzination (`hal_scratch_*`) |
-| Andere Wanderer (Menschen) | Menschen, die ebenfalls verirrt sind. | **bewusst weggelassen**: Das Spiel zeigt andere Wanderer nur über ihre Notizen (Einsamkeit als Grundton seit V7). Im Mehrspieler sind die Mitspieler die Wanderer. |
+| Andere Wanderer (Menschen) | Menschen, die ebenfalls verirrt sind. | **Ausnahme (Menschen, keine Wesen)**: Das Spiel zeigt andere Wanderer nur über ihre Notizen (Einsamkeit als Grundton seit V7). Im Mehrspieler sind die Mitspieler die Wanderer. |
 
 ### Level 1 – „Habitable Zone“
 
@@ -70,12 +71,12 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 | Growler (Entity 130) | Wesen aus Kabeln; ein schwerer Gegenstand auf dem Kopf verwirrt sie. | **umgesetzt (V13.3)**: ausgewachsen, blind (Echoortung), telepathisches Rauschen, tödlicher Stoß nach Ankündigung; ein geworfener Gegenstand verwirrt ihn – [KREATUR_Growler.md](KREATUR_Growler.md) |
 | Nguithr'xurh (Entity 16) | Insektenartig an der Decke, bei kugelförmigen Netzen. | **umgesetzt (V13.3)**: Kolonien an Gangdecken, Netzkugeln mit Betäubungsstoff, groß und hungrig – [KREATUR_Nguithrxurh.md](KREATUR_Nguithrxurh.md) |
 | Wrangler (Entity 75) | Riesig, schlangenartig, gräbt sich durch Wände, hypnotisiert; leise gehen, wenn die Wände beben. | **umgesetzt (V13.3)**: Beben, Durchzug durch Wand, Boden oder Decke, Sog des Anblicks, wer laut ist, wird geschnappt; selten Jungtiere – [KREATUR_Wrangler.md](KREATUR_Wrangler.md) |
-| Staphylococcus liminalis (Entity 19) | Bakterieninfektion; Hygiene schützt (Fußnote). | **bewusst weggelassen**: Erreger ohne Körper; das Spiel hat kein Krankheitssystem |
+| Staphylococcus liminalis (Entity 19) | Bakterieninfektion; Hygiene schützt (Fußnote). | **Ausnahme (Erreger ohne Körper)**: das Spiel hat kein Krankheitssystem |
 | Plague Goblins (Entity 25) | Kleine Wesen, mit Messer oder Axt zu verscheuchen (Fußnote; die Wesensseite: katzengroße Vogel-Katzen in Pestarztmaske und Umhang, Banden von 9–27, bestehlen Alleinreisende). | **umgesetzt (V13.3)**: Bande mit Portal der Torwächterin, Späher, Henchmen; Diebstahl von hinten mit Ankündigung, Geschwächte werden bedrängt (nie bis zum Tod), Handel gegen Mandelwasser, Flucht vor Hounds; das Beil als Fund in Level 1 verscheucht und trifft – [KREATUR_PlagueGoblins.md](KREATUR_PlagueGoblins.md) |
 | Narrenfigur im Gemälde (Entity 99) | Ein Bild, das als Ausgang zu Level 389 dient. | **umgesetzt (V13.3)**: Gemälde am Boden vor den Hallentüren verschwinden unbeobachtet; ihr Bild mit Bildschirmgesicht (wechselt ungesehen), roten Kugeln und Fäden lädt ein und wirft „aus dem Spiel“ – anderswo in Level 1 (Interpretation, Level 389 fehlt) – [KREATUR_GameMaster.md](KREATUR_GameMaster.md) |
 | Garden-Sektor (Verwandlung) | Wer etwa eine Stunde bleibt, wird zur Pflanze. | **umgesetzt (V13.3)**: Garden-Uhr, Zeichen, Ranken und Rinde auf der Hand, Blätter am Rand der Sicht, Tod durch Verwandlung, Erholung draußen; Gestalten aus Rinde – [KREATUR_L1_Erscheinungen.md](KREATUR_L1_Erscheinungen.md) |
 | Dunkles, stilles Wesen an der Schlafraumtür (Erzählung) | Klatschende Schritte, Krallenspuren, zähe Flüssigkeit. | **umgesetzt (V13.3)**: Krallenrillen und schwarze Läufer neben einer Zimmertür, Abdrücke an der Schwelle, selten Schritte, Krallen und Atem hinter der Tür – [KREATUR_L1_Erscheinungen.md](KREATUR_L1_Erscheinungen.md) |
-| Gruppen (M.E.G., B.N.T.G., Ariane Circle u. a.) | Menschliche Gruppen. | **bewusst weggelassen**: Menschen, keine Wesen; nur über Notizen angedeutet |
+| Gruppen (M.E.G., B.N.T.G., Ariane Circle u. a.) | Menschliche Gruppen. | **Ausnahme (Menschen, keine Wesen)**: Menschen, keine Wesen; nur über Notizen angedeutet |
 | Schattenhafte Arbeiter im Overall (Sektor Ouroboros; backrooms-remodeling-co) | Reparieren seit Jahrzehnten ohne Fortschritt, beachten Lebende nicht, verletzen mit ihren Maschinen; meiden. | **umgesetzt (V13.3)**: Baustelle nur im Sektor Ouroboros – eine Mauer, gebaut und wieder eingerissen, ein Gerüst, das umkippt; sie sehen nie zum Spieler und schieben ihn beiseite; Gefahr nur durch Maschinen im Absperrband, jede angekündigt – [KREATUR_OuroborosArbeiter.md](KREATUR_OuroborosArbeiter.md) |
 
 ### Level 2 – „Pipe Dreams“
@@ -99,7 +100,7 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 | Growler (Entity 130) | Klein; verschmelzen in engen Gängen, bis sie stecken bleiben. | **umgesetzt (V13.3)**: junge Growler (leuchtend bunt), verschmelzen, bleiben stecken und verhungern; Leichen in den Gängen – [KREATUR_Growler.md](KREATUR_Growler.md) |
 | Swindlebird (Entity 192) | Eine einzelne, unbestätigte Sichtung. | **umgesetzt (V13.3)**: höchstens eine flüchtige Sichtung je Lauf (50 %) – ein großer blauer, papageienhafter Vogel am Ende eines Tunnels, aufgetaucht, wo niemand hinsah; angesehen, angeleuchtet oder bei Annäherung fort, beim Wegsehen einfach weg; keine Spur, kein Beweis – [KREATUR_Swindlebird.md](KREATUR_Swindlebird.md) |
 | Macchina (Entity 189) | Seit etwa 1850 nicht mehr gesehen. | **umgesetzt (V13.3): Reste, laut Seite seit 1850 nicht gesehen** – in der Werkstatt ein leerer Anzug mit geschweißtem Gesicht (klingt im Luftzug), ein unfertiges Kindergestell, ein Wandtuch der großen Antwort, eine Pike mit Brandröhre und eine Blechtafel mit Zeichen (Notizbuch) – [KREATUR_Macchina.md](KREATUR_Macchina.md) |
-| Gruppen (Followers of Jerry, Survivors, B.N.T.G. …) | Menschen. | **bewusst weggelassen** (Menschen). V13.3: von den Followers of Jerry nur ihre Spuren – Wandbild, Opfertisch, Fotos und Pfeile zu seiner Tür, Flugblätter als Notizen ([KREATUR_Jerry.md](KREATUR_Jerry.md)) |
+| Gruppen (Followers of Jerry, Survivors, B.N.T.G. …) | Menschen. | **Ausnahme (Menschen, keine Wesen)** (Menschen). V13.3: von den Followers of Jerry nur ihre Spuren – Wandbild, Opfertisch, Fotos und Pfeile zu seiner Tür, Flugblätter als Notizen ([KREATUR_Jerry.md](KREATUR_Jerry.md)) |
 
 ### Level 3 – „Electrical Station“
 
@@ -118,7 +119,7 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 | Engelsstatue im Sanktuarium | Schreckt alle Wesen ab; einziger sicherer Ort. | **umgesetzt** (Sanktuarium mit Engel, bleibt hell). Neu in V13.2: Wesen meiden den Raum (siehe Briefings) |
 | Jerry (Entity 7) | Nur in einem Vorfallbericht (Followers in den Wartungsgängen unter einer Basis). | **umgesetzt (V13.3)** als Wesen von Level 2 (sein Raum, Blick und Bann) – [KREATUR_Jerry.md](KREATUR_Jerry.md); auf Level 3 kein eigener Auftritt (die Seite zeigt ihn dort nicht) |
 | Red Knight (Entity 71) | Vorfall GB-03: rannte in Panik durch das Atrium von Base Gamma, die Rüstung schwer verbeult, mit Purpurspuren; niemand erinnert sich, wie er kam oder ging; vermutlich wegen einer antimemetischen Kraft. Entity-71-Seite: Ritter in Plattenrüstung, Zweihänder auf der Schulter, roter Umhang mit Goldsaum; rettet Menschen, schneidet einen weißen Riss in die Luft. | **umgesetzt (V13.3)**: selten (~15 min, höchstens zweimal); man hört ihn vor Sicht (Rüstung im Laufschritt, Keuchen im Helm), er rennt in Panik am Spieler vorbei (eigenes Modell: verbeulte Platten mit violett glimmenden Dellen, zerfetzter roter Umhang, Zweihänder), haut in die leere Luft hinter sich, sieht den Spieler kurz an, schneidet außer Sicht einen Riss (weißes Licht) und ist fort; danach zieht unsichtbar der Verfolger vorbei (Leuchten flackern, Druck in den Ohren, einmal −3 Verstand). Greift nie an. Variante der Rolle Wretch (keine eigene Rolle) – [KREATUR_RedKnight.md](KREATUR_RedKnight.md) |
-| Basen und Gruppen (M.E.G., Base Gamma) | Menschen und Siedlungen. | **bewusst weggelassen** (Menschen, keine Wesen; nur über Notizen angedeutet) |
+| Basen und Gruppen (M.E.G., Base Gamma) | Menschen und Siedlungen. | **Ausnahme (Menschen, keine Wesen)** (Menschen, keine Wesen; nur über Notizen angedeutet) |
 
 ### Level 5 – „Terror Hotel“
 
@@ -135,7 +136,7 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 | Samantha (Entity 26) | Wandert manchmal durch die Haupthalle; wer sich nähert, soll gutes Fleisch mitbringen. | **fehlt**: Priorität 14. Ein einzelnes, benanntes Wesen mit Handel (Fleisch) – das Spiel hat keinen Tauschhandel. |
 | Entity 18 (Stimme, die in ihr Büro bittet) | Erzählstimme der Seite. | **bewusst weggelassen** (Erzählung) |
 | Unsichtbare Anwesenheit, Flüstern aus den Kesseln, Partygeräusche | Unbestätigt. | **umgesetzt** als Halluzinationen und Klang der Ebene |
-| Gruppen (Housekeeping, Homely Hotel, The Originals, Lost Hall Society) | Menschen. | **bewusst weggelassen** (Menschen) |
+| Gruppen (Housekeeping, Homely Hotel, The Originals, Lost Hall Society) | Menschen. | **Ausnahme (Menschen, keine Wesen)** (Menschen) |
 
 ### Level 5.3 – „Promethei Bibliotheca“
 
@@ -144,7 +145,7 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 | Library Mind | Bewusstsein der Bibliothek; nimmt Erinnerungen gegen Wissen, zeigt Wut durch fallende Bücher und einstürzende Regale. | **umgesetzt** als Erscheinung: Bücher fallen, Verstand sinkt langsam (keine Gestalt) |
 | Entity 18 („Gentleman“, Beast of Level 5) | Feind der Bibliothek, erscheint in der Schlussgeschichte. | **bewusst weggelassen** (Erzählung, keine Begegnung auf der Ebene) |
 | Ambassadors (Entity 141), Macchina (Entity 189) | Nur als Wissen in der Bibliothek genannt. | **bewusst weggelassen** (nicht anwesend) |
-| Menschen und Gruppen | Erzählung. | **bewusst weggelassen** |
+| Menschen und Gruppen | Erzählung. | **Ausnahme (Menschen, keine Wesen)** |
 
 ### Level 188 – „The Courtyard of Windows“
 
@@ -163,7 +164,7 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 |---|---|---|
 | Metro (Entity 756) | Ein empfindungsfähiger, selbstfahrender Zug, der Ziele annimmt; neutral. | **umgesetzt** als fahrender Wagen, der Ziele annimmt (Level 37, Level 36) |
 | Faceling (Entity 9) | Friedlich, leben neben Menschen. | **neu (V13.2)**: drei gewöhnliche Varianten, winken, wen sie wiedererkennen |
-| Bewohner, feindselige Lokomotiv-Basen | Menschen. | **bewusst weggelassen** (Menschen; der bewohnte Wagen ist als Kulisse da) |
+| Bewohner, feindselige Lokomotiv-Basen | Menschen. | **Ausnahme (Menschen, keine Wesen)** (Menschen; der bewohnte Wagen ist als Kulisse da) |
 
 ### Level 37 – „Sublimity“
 
@@ -199,6 +200,6 @@ Bewertet nach Zahl der Ebenen, Dichte der Beschreibung auf den Ebenenseiten und 
 | 8 | Growler (Entity 130) | 1, 2, 5 | **umgesetzt (V13.3)**: [KREATUR_Growler.md](KREATUR_Growler.md) |
 | 9 | Arms (entite-15-fr) | 1 | **umgesetzt (V13.3)**: [KREATUR_Arms.md](KREATUR_Arms.md) |
 | 10 | Wrangler (Entity 75) | 1, 2, 5 (Kesselraum) | umgesetzt (V13.3) – [KREATUR_Wrangler.md](KREATUR_Wrangler.md) |
-| 11–14 | Cannibal Cuisine, purpurne Wesen, Woodlins/Watchers/Ants, Samantha | je eine | offen |
+| 11–14 | Cannibal Cuisine, purpurne Wesen, Woodlins/Watchers/Ants, Samantha | je eine | Cannibal Cuisine und purpurne Wesen **umgesetzt (V13.3)**; Woodlins/Watchers/Ants und Samantha offen (Level 5) |
 
 Ab Rang 6 sind die Wesen in dieser Runde nicht gebaut. Der Grund ist der Aufwand je Wesen: Briefing, Blender-Modell, Rig, Animationen, Verhalten, Klang, Gleichgewicht, mindestens drei Kritikrunden sowie Server-KI und Tests im Mehrspieler. Die Reihenfolge steht hier, damit die nächste Runde dort weitermacht. Der jeweilige Stand ist in `REPORT_V13_2.md` vermerkt.
