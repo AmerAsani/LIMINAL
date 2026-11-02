@@ -4468,6 +4468,7 @@ static void testV133Level3Kin(const std::string& dataDir) {
         check(dMin > 1.6f && dMax < 9.0f, std::format("Level 3: er haelt Abstand ({:.1f}-{:.1f} m)", dMin, dMax));
         check(count(ev, PE::Mimic, Role::SkinStealer, game::KC_SAY0, game::KC_SAY0 + game::KC_SAYS - 1) >= 1,
               "Level 3: er spricht einfache, leicht falsche Saetze");
+        check(count(ev, PE::Drag, Role::SkinStealer, game::KC_COAT) >= 1, "Level 3: beim Gehen schwingt der schwere Mantel (eigenes Geraeusch)");
         // ansprechen: Antwort; noch einmal: derselbe Satz genau gleich; beim dritten Mal faellt die Tarnung
         auto talk = [&] {
             placeNear(*s, Role::SkinStealer, 3.6, 2.0);

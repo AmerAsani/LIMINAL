@@ -68,6 +68,7 @@ const std::array<KinLine, KC_COUNT>& lines() {
         t[KC_WAIT] = {"skin_wait", "„Wait! Where you go?“", 0.95f, 26.0f, 2.2f, nullptr};
         t[KC_BYE] = {"skin_bye", "„I go now. Goodbye, friend.“", 0.75f, 18.0f, 2.8f, nullptr};
         t[KC_TEAR] = {"skin_tear", nullptr, 1.0f, 26.0f};
+        t[KC_COAT] = {"skin_coat", nullptr, 0.45f, 12.0f};
         return t;
     }();
     return L;
@@ -105,7 +106,9 @@ WretchL3& wl3(A& a) {
 struct SkinL3 {
     int phase = 0;  // Zustand 7: 0 begleitet, 1 lauscht (angesprochen), 2 verwandelt sich
     double phaseT = 0.0, sayT = 1.5, replyT = 0.0, talkT = 0.0, company = 0.0, limit = 100.0, lightT = 0.0;
-    double lastAddr = -1e9, waitCall = 0.0, unseen = 0.0, nearT = 0.0;
+    double lastAddr = -1e9, waitCall = 0.0, unseen = 0.0, nearT = 0.0, coatT = 1.0;
+    vec3 prev;
+    bool init = false;
     int addrN = 0, lastAns = -1, lastSay = -1, reply = -1;
     bool swapped = false, greeted = false;
 };
@@ -355,6 +358,14 @@ void Presence::thinkSkinL3(Agent& a, double dt, const Context& c, std::vector<Ev
     s.waitCall -= dt;
     const vec3 chest = a.pos + vec3{0, 0, 1.45f};
     lightReact(a, c, head, 9.0f, dt, 1e9, &chest);
+    if (!s.init) s.init = true, s.prev = a.pos;
+    const float vel = (float)(hdist(a.pos, s.prev) / std::max(1e-3, dt));
+    s.prev = a.pos;
+    s.coatT -= dt;
+    if (a.variant == 2 && vel > 0.4f && s.coatT <= 0.0 && d < 14.0f) {  // der Mantel schwingt beim Gehen (eigenes Geraeusch)
+        s.coatT = rng_.uniform(1.0, 1.6);
+        out.push_back({Event::Drag, Role::SkinStealer, a.pos + vec3{0, 0, 0.9f}, kKinCue + (float)KC_COAT});
+    }
     const bool sees = los && d < 18.0f && (facing > 0.1f || d < 4.0f);
     a.talk = 0.0f, a.reach = 0.0f, a.perceive = 0.0f, a.alert = 0.0f, a.jaw = 0.0f, a.shiver = 0.0f, a.tilt = 0.0f, a.crouch = 0.0f;
     auto setState = [&](int st) { a.state = st, a.stateT = 0.0; };

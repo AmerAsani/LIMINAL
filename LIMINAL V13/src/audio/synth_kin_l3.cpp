@@ -560,6 +560,26 @@ Sound skinTear(int rate) {
     return b.sound();
 }
 
+// Mantel: schwerer Stoff schwingt (gefiltertes Rauschen, langsam an- und abschwellend), Leder der Stiefel knarrt kurz
+Sound skinCoat(int rate) {
+    Rand r(15560u);
+    Buf b(1.0f, rate);
+    dsp::Svf f;
+    for (size_t i = 0; i < b.n(); ++i) {
+        const float t = b.t(i);
+        f.set(700.0f + 900.0f * std::sin(kPi * std::min(1.0f, t / 0.7f)), 0.9f, (float)rate);
+        const float env = envAHR(t, 0.18f, 0.12f, 0.4f) * (0.75f + 0.25f * std::sin(t * 23.0f));
+        b.x[i] = f.bp(r.bi()) * env * 0.5f;
+    }
+    CreakSpec ck;
+    ck.rate0 = 45.0f, ck.rate1 = 70.0f, ck.formants = {380.0f, 1100.0f, 2300.0f}, ck.q = 6.0f;
+    creak(b, 0.32f, 0.12f, ck, 0.12f, r);
+    filter(b, Biquad::HP, 120.0f, 0.7f);
+    trim(b);
+    normalize(b, level::kFoley - 4.0f);
+    return b.sound();
+}
+
 // --- Waffen -------------------------------------------------------------------------------------------------------------
 // Luftzug eines Schwungs (Bandpass steigt und faellt, Laenge len)
 void whoosh(Buf& b, float at, float len, float hz0, float hz1, float amp, Rand& r) {
@@ -725,6 +745,7 @@ void addKinL3Sounds(std::vector<SoundDef>& d, int rate) {
     d.push_back({"skin_wait", [=] { return skinLine(rate, kSkinWait, 15250u, true); }});
     d.push_back({"skin_bye", [=] { return skinLine(rate, kSkinBye, 15260u); }});
     d.push_back({"skin_tear", [=] { return skinTear(rate); }});
+    d.push_back({"skin_coat", [=] { return skinCoat(rate); }});
     for (int k = 0; k < 8; ++k) d.push_back({std::format("wretch_frag_{}", k), [=] { return wretchFrag(rate, k); }});
     for (int k = 0; k < 3; ++k) d.push_back({std::format("wretch_cry_{}", k), [=] { return wretchCry(rate, k); }});
     static const char* const w[3] = {"pipe", "board", "blade"};

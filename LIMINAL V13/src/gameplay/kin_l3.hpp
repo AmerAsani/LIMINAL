@@ -23,7 +23,8 @@ enum KinCue : int {
     KC_SAY0 = 30, KC_SAYS = 8,
     KC_ANS0 = 38, KC_ANSWERS = 4,
     KC_WAIT = 42, KC_BYE = 43, KC_TEAR = 44,
-    KC_COUNT = 45
+    KC_COAT = 45,  // der schwere Mantel schwingt, Leder knarrt (Bewegungsgeraeusch beim Gehen)
+    KC_COUNT = 46
 };
 
 struct KinLine {
