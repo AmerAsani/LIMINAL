@@ -53,7 +53,7 @@ def build(J, bones, fist=False):
     for row, dz, dirz in ((0, 0.012, -1.0), (1, -0.012, 1.0)):
         pts = [mouthC + X * (0.008 - 0.0004 * k * k) + Y * (k - 4.5) * 0.0085 + Z * dz for k in range(10)]
         teeth += A.teeth_row(Hm.HEAD if row == 0 else Hm.JAW, pts, 0.011, 0.0045, [Z * dirz] * 10, rng, jitter=0.5)
-    gums = [A.ell(Hm.JAW, mouthC, X, (0.022, 0.04, 0.02), k=0.0)]
+    gums = [A.ell(Hm.JAW, mouthC - X * 0.01, X, (0.016, 0.036, 0.016), k=0.0)]  # Runde 3: zurueck (lag wie eine graue Lippe vor dem Mund)
     # Zaehne, die anderswo nachgewachsen sind (die Seite: an ungewoehnlichen Stellen, in ungewoehnlicher Zahl und Groesse):
     # durch die linke Wange und unter dem Kinn
     cheek = c + X * r[0] * 0.66 + Y * r[1] * 0.62 - Z * r[2] * 0.36
@@ -72,9 +72,57 @@ def build(J, bones, fist=False):
         ln = 0.03 + 0.08 * rng.random()
         ooze += A.chain(lambda i, b=bone: b, [p, p - Z * ln * 0.5 + X * 0.004, p - Z * ln], [0.004, 0.0035, 0.002], k=0.003)
         ooze.append(A.ell(bone, p - Z * ln, Z, (0.004, 0.004, 0.006), k=0.002))
-    sludge = A.chain(lambda i: Hm.JAW, [mouthC + X * 0.01 - Z * 0.02, mouthC + X * 0.03 - Z * 0.06, mouthC + X * 0.03 - Z * 0.12],
-                     [0.009, 0.007, 0.004], k=0.006)
+    # V13.3 Wow-Check Runde 3: der Schlamm aus dem Mund duenner, kuerzer und unregelmaessig (las sich wie ein Stab)
+    sludge = A.chain(lambda i: Hm.JAW, [mouthC + X * 0.012 - Z * 0.015, mouthC + X * 0.024 - Z * 0.035 + Y * 0.004, mouthC + X * 0.026 - Z * 0.06 - Y * 0.003,
+                                        mouthC + X * 0.024 - Z * 0.075], [0.006, 0.0045, 0.0035, 0.002], k=0.004)
+    sludge.append(A.ell(Hm.JAW, mouthC + X * 0.024 - Z * 0.079, Z, (0.003, 0.003, 0.0045)))
     ooze += sludge
+    # V13.3 Wow-Check (KREATUR_Wretch.md, Abschnitt "Wow-Check Level 3"): im vollen Lampenlicht war das Gesicht zu sauber.
+    # Jetzt am Kopf: Schorfplatten (Kruste), gelbe, nass glaenzende Pusteln, aufgeplatzte Pusteln mit Krater, Loecher mit
+    # rohem Grund, aus denen Saft laeuft, rohe, entzuendete Raender um die lidlosen Augen und den lippenlosen Mund
+    hr = np.random.default_rng(1515)
+    crust, pus, raw = [], [], []
+    sk = c + Z * r[2] * 0.12
+    skr = np.array([r[0], r[1], r[2] * 0.86])
+
+    def head_pt(th, ph, out=0.0):
+        n = np.array([math.cos(ph) * math.cos(th), math.cos(ph) * math.sin(th), math.sin(ph)])
+        return sk + n * (skr + out), A.unit(n / skr)
+
+    for k in range(16):  # Schorf auf Schaedel, Stirn, Schlaefen
+        th, ph = (hr.random() - 0.5) * 3.6 + (0.0 if hr.random() < 0.7 else math.pi), 0.1 + hr.random() * 1.2
+        p, nrm = head_pt(th, ph)
+        rr = (0.0018, 0.008 + 0.012 * hr.random(), 0.007 + 0.01 * hr.random())
+        crust.append(A.ell(Hm.HEAD, p + nrm * 0.0006, nrm, rr, up=A.unit(np.cross(nrm, Z) + X * 0.01), k=0.0))
+    for k in range(14):  # Pusteln (gelb, prall, nass)
+        th, ph = (hr.random() - 0.5) * 2.6, -0.35 + hr.random() * 1.2
+        p, nrm = head_pt(th, ph)
+        rad = 0.0028 + 0.003 * hr.random()
+        pus.append(A.ell(Hm.HEAD, p + nrm * rad * 0.15, nrm, (rad * 0.85, rad, rad), k=0.0))
+        raw.append(A.ell(Hm.HEAD, p - nrm * 0.0005, nrm, (0.0012, rad * 1.7, rad * 1.7), k=0.0))  # entzuendeter Hof
+    for k in range(5):  # aufgeplatzt: Krater mit Krustenrand
+        th, ph = (hr.random() - 0.5) * 2.2, -0.2 + hr.random() * 0.9
+        p, nrm = head_pt(th, ph)
+        skin.append(A.ell(Hm.HEAD, p + nrm * 0.002, nrm, (0.004, 0.006, 0.006), op='sub', k=0.002))
+        crust.append(A.ell(Hm.HEAD, p + nrm * 0.0005, nrm, (0.0016, 0.0085, 0.0085), k=0.0))
+        raw.append(A.ell(Hm.HEAD, p - nrm * 0.002, nrm, (0.0015, 0.005, 0.005), k=0.0))
+    holes = [head_pt(0.75, -0.25), head_pt(-0.55, 0.45), head_pt(-1.1, -0.05), head_pt(0.25, 0.75)]
+    fc = c + X * r[0] * 0.42 - Z * r[2] * 0.30
+    holes.append((fc + np.array([r[0] * 0.5, -r[1] * 0.62, -r[2] * 0.2]), A.unit(np.array([0.6, -1.0, -0.2]))))  # Wange
+    for p, nrm in holes:  # Loecher: tief, roher Grund, Saft laeuft heraus
+        skin.append(A.ell(Hm.HEAD, p + nrm * 0.004, nrm, (0.009, 0.007, 0.006), op='sub', k=0.002))
+        raw.append(A.ell(Hm.HEAD, p - nrm * 0.004, nrm, (0.002, 0.0065, 0.0055), k=0.0))
+        a0 = p + nrm * 0.001 - Z * 0.005
+        ln = 0.02 + 0.03 * hr.random()
+        ooze += A.chain(lambda i: Hm.HEAD, [a0, a0 - Z * ln * 0.5 + nrm * 0.001, a0 - Z * ln], [0.0026, 0.0022, 0.0015], k=0.002)
+    for s in (0, 1):  # rohe Raender um die Augen
+        g = Hm.side(s)
+        e = c + X * r[0] * 0.80 + Y * g * r[1] * 0.40 + Z * r[2] * 0.04
+        ring = [e + X * 0.012 + (Y * math.cos(t) * 0.024 + Z * math.sin(t) * 0.02) for t in np.linspace(0, 2 * math.pi, 11)]
+        raw += A.chain(lambda i: Hm.HEAD, ring[:7], [0.002] * 7, k=0.0015)  # Runde 2: duenner, nur unten (las sich wie eine Brille)
+    for k in range(7):  # Runde 2: Krustenbroeckchen statt eines roten Lippenrings (las sich wie Lippenstift)
+        q = mouthC + X * 0.022 + Y * (k - 3.0) * 0.012 + Z * (0.017 + 0.004 * hr.random())
+        crust.append(A.ell(Hm.HEAD, q, X, (0.0025, 0.004 + 0.003 * hr.random(), 0.003), k=0.0))
 
     def skin_disp(Q):
         d1, d2 = sdf.worley(Q, 26, seed=1501)
@@ -109,6 +157,9 @@ def build(J, bones, fist=False):
         {'name': 'zaehne', 'fm': 'ent_tooth', 'parts': teeth, 'disp': None, 'h': 0.0011, 'cav_scale': 0.003, 'lod_weight': 1.6, 'merge': 'zaehne'},
         {'name': 'gaumen', 'fm': 'ent_mouth', 'parts': gums, 'disp': None, 'h': 0.002, 'cav_scale': 0.004},
         {'name': 'saft', 'fm': 'ent_ooze', 'parts': ooze, 'disp': None, 'h': 0.0012, 'cav_scale': 0.003},
+        {'name': 'schorf', 'fm': 'ent_wre_crust', 'parts': crust, 'disp': None, 'h': 0.0011, 'cav_scale': 0.002},
+        {'name': 'pusteln', 'fm': 'ent_wre_pus', 'parts': pus, 'disp': None, 'h': 0.0009, 'cav_scale': 0.002, 'lod_weight': 1.4},
+        {'name': 'roh', 'fm': 'ent_cl_raw', 'parts': raw, 'disp': None, 'h': 0.001, 'cav_scale': 0.002},
         {'name': 'hose', 'fm': 'ent_cloth_b', 'parts': rags, 'disp': rag_disp, 'h': 0.0045, 'cav_scale': 0.01},
         {'name': 'hemd', 'fm': 'ent_cloth_a', 'parts': shirt, 'disp': rag_disp, 'h': 0.0045, 'cav_scale': 0.01},
     ]

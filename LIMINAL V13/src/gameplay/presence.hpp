@@ -221,6 +221,11 @@ public:
         // V13.3 (KREATUR_Smiler.md): leuchtende Leuchtstaebe; Smiler folgen dem staerkeren Licht (0) oder stutzen nur (1, Level 3)
         const std::vector<Lure>* lures = nullptr;
         int smilerBait = 0;
+        double smilerUnprovoked = 0.0;  // V13.3 Level 3: Anteil der Smiler, die ohne Anlass angreifen (KREATUR_Smiler.md)
+        double redKnightEvery = 0.0;    // V13.3 Level 3: mittlerer Abstand der Laeufe des Red Knight (s; 0 = nie)
+        // V13.3 Level 2/3 (KREATUR_Hound.md, KREATUR_Clump.md): Hound-Rudel, grosses bewaffnetes Buendel (nullptr: keins)
+        const world::KinDef* houndPack = nullptr;
+        const world::KinDef* clumpBig = nullptr;
     };
 
     // V13.2 Koop: Zustand eines Wesens fuer die Momentaufnahme (Host) und die Puppe beim Gast
@@ -299,6 +304,17 @@ public:
     bool kinSet(Role r, const std::string& key, double v);
     // V13.3 Teil 4 (Tests, Skripte): naechster Auftritt eines Fensters am Gangende und einer Mottengruppe in Level 2 (s)
     void l2Timers(double window, double moth) { nextWindowL2_ = window, nextMothL2_ = moth; }
+    // V13.3 Level 3 (Tests, Skripte; KREATUR_DeathRat.md, KREATUR_Deathmoth.md): l3Set - trap <abstand> (Falle vor dem Spieler),
+    // say <satz>, job <Auftrag der ersten Ratte>, quick <Bauzeit-Faktor>, rats <Sekunden bis zur Brigade>, swarm <1: aufscheuchen>,
+    // pstate <Zustand des ersten Praetorianers>, mem <0: Gedaechtnis loeschen>. l3Info: Zahlen fuer Tests.
+    struct L3Info {
+        int rats = 0, traps = 0, armed = 0, commons = 0, praetorians = 0, onFace = 0, ratJob = -1, pState = -1;
+        int jumped = 0, shocked = 0, lit = 0, encounters = 0, trail = 0;
+        bool roused = false;
+        vec3 trapL, trapR, trapPos;
+    };
+    bool l3Set(const std::string& key, double v, const Context* c = nullptr);
+    L3Info l3Info() const;
     // V13.3 Teil 4 (Tests): das i-te Wesen dieser Rolle (ohne Vorfuehrungen) - Ort, Zustand, Variante; false: keins
     bool agentInfo(Role r, int i, vec3& pos, int& state, int& variant) const;
     int variantOf(Role r) const;
@@ -359,6 +375,20 @@ public:
     bool address(world::World& w, vec3 eye, vec3 look, int by, int phrase);
     bool exposedOf(Role r) const;  // V13.3 (Tests): Skin-Stealer entlarvt (hat verraeterisch geantwortet)
     bool luredOf(Role r) const;    // V13.3 (Tests): Smiler folgt gerade einem Leuchtstab
+    // V13.3 Level 3 (KREATUR_RedKnight.md, presence_knight.cpp): der Red Knight - Variante 4 der Rolle Wretch (keine eigene
+    // Rolle). knightLights: der Riss in der Luft (weiss) und das Glimmen der Purpurspuren; knightInfo (Tests); knightSet
+    // (Tests, Skripte): run <Abstand> (gleich einen Lauf am Spieler vorbei), quick, unseen
+    struct KnightInfo {
+        bool active = false, pursuer = false;
+        int state = -1, runs = 0;
+        vec3 pos;
+        float closest = 1e9f;  // naechster Abstand zum Spieler in diesem Lauf
+        bool slashed = false, rift = false, seen = false;
+    };
+    void knightLights(std::vector<std::pair<vec3, vec3>>& out, vec3 near) const;
+    KnightInfo knightInfo() const;
+    bool knightSet(const std::string& key, double v);
+    static constexpr int kKnightVariant = 4;
     // V13.3 Teil 4: Jerry (presence_jerry.cpp). Bann je Spieler (0..1; beim Gast aus der Puppe): ab 0,45 zieht er den Blick zu
     // seinem Kopf (at), ab 1 ist der Spieler unterworfen. jerryHold: wie stark der Bann die Schritte laehmt (0..1).
     // jerryInfo (Tests): Lage, Zustand, Blick; jerrySet (Tests, Skripte): state, spell <Wert> (eigener Spieler), quick
@@ -372,6 +402,31 @@ public:
     };
     JerryInfo jerryInfo() const;
     bool jerrySet(const std::string& key, double v);
+    // V13.3 Level 2/3 (KREATUR_Hound.md, Abschnitt "Rudel"; presence_hound_pack.cpp): Hound-Rudel aus der Rolle Hound -
+    // Variante 1 (Level 2: zieht langsam umher, gestoert schlagartig schnell, kreist ein) und 2 (Level 3: lauern allein, bellen,
+    // jagen gemeinsam, quaelen). packSet (Tests, Skripte): spawn <abstand>, phase, quick, interest, bark, lunge; packInfo: Zahlen.
+    // houndMute: Kehle verletzt (Sekunden) - kein Ruf; packSlow: Bein verletzt (Tempo-Faktor 0..1)
+    struct PackInfo {
+        bool active = false, encircled = false, gaveUp = false;
+        int hounds = 0, phase = 0, bites = 0, barks = 0, answers = 0, fast = 0, lunges = 0, aborted = 0, l3 = 0, torment = 0;
+        float barkEvery = 0.0f, interest = 0.0f, trap = 0.0f;
+        vec3 caller;
+    };
+    PackInfo packInfo() const;
+    bool packSet(const std::string& key, double v);
+    float houndMute(int target) const;
+    float packSlow(int target) const;
+    // V13.3 Level 3 (KREATUR_Clump.md, Abschnitt "Level 3"; presence_clump_l3.cpp): das grosse, bewaffnete Buendel aus der Rolle
+    // Clump - Variante 1 (Rohr, Knochenspiess, Knochensichel) und 2 (entwaffnet: zweiter Knochenspiess). bigClumpSet (Tests,
+    // Skripte): spawn <abstand>, state, ceil <0|1>, disarm, quick; bigClumpInfo: Zahlen
+    struct BigClumpInfo {
+        bool active = false;
+        int state = 0, variant = 0, strikes = 0, hits = 0, misses = 0, tears = 0, drops = 0, fled = 0;
+        float ceil = 0.0f;
+        vec3 pos;
+    };
+    BigClumpInfo bigClumpInfo() const;
+    bool bigClumpSet(const std::string& key, double v);
 
 private:
     struct Agent;
@@ -476,16 +531,49 @@ private:
     bool spawnJerry(const Context& c, std::vector<Event>& out, bool forced);
     void thinkJerry(Agent& a, double dt, const Context& c, std::vector<Event>& out);
     void jerryGaze(double dt, const Context& c, std::vector<Event>& out);
+    // V13.3 Level 3: Death Rats wie Wasserschweine mit Fallen (presence_rat_l3.cpp), Mottenschwarm mit Praetorianern
+    // (presence_moth_l3.cpp) - Varianten der Rollen Rat (2 Ratte, 3 Falle) und Moth (3, 4 gewoehnlich, 5 Praetorianer)
+    bool ratL3(const Context& c) const;
+    void regieRatL3(double dt, const Context& c, std::vector<Event>& out);
+    bool spawnRatL3(const Context& c, std::vector<Event>& out, bool forced);
+    void thinkRatL3(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    void thinkRatTrap(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    bool trapSite(const Context& c, vec3& pos, float& yaw, bool cornered);
+    Agent* buildTrap(const Context& c, vec3 pos, float yaw, std::vector<Event>& out);
+    void ratSay(Agent& a, int line, std::vector<Event>& out);
+    void prepRatL3(Agent& a, const Context& c);  // Variante -> Animation (auch Puppen und Vorfuehrungen)
+    bool mothL3(const Context& c) const;
+    void regieMothL3(double dt, const Context& c, std::vector<Event>& out);
+    bool spawnMothL3(const Context& c, std::vector<Event>& out, bool forced);
+    void thinkMothL3(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    void thinkPraetorian(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    void prepMothL3(Agent& a, const Context& c);
+    void swarmRouse(bool on);
+    bool swarmRoused() const;
     bool roomAllowed(const Context& c, vec3 p, int kin) const;
     bool wander(Agent& a, double dt, const Context& c, double speed, int kin);
     // V13.3 (presence_lure.cpp): Smiler am Leuchtkoeder (true: das Licht hat ihn, der Rest von thinkSmiler entfaellt);
     // Skin-Stealer angesprochen (true: diese Runde erledigt)
     bool baitSmiler(Agent& a, double dt, const Context& c, std::vector<Event>& out, float d, bool dark);
+    bool unprovokedSmiler(Agent& a, double dt, const Context& c, std::vector<Event>& out, float d, bool dark);  // V13.3 Level 3 (presence_smiler_l3.cpp)
+    // V13.3 Level 3: Red Knight (presence_knight.cpp)
+    void regieKnight(double dt, const Context& c, std::vector<Event>& out);
+    bool spawnKnight(const Context& c, std::vector<Event>& out, bool forced);
+    void thinkKnight(Agent& a, double dt, const Context& c, std::vector<Event>& out);
     bool talkSkinStealer(Agent& a, double dt, const Context& c, std::vector<Event>& out, float d, bool los);
     // V13.3 Level 3 (presence_kin_l3.cpp): Wretch mit Waffe, Skin-Stealer im Mantel; Modellwechsel ohne Neuanlage
     void thinkWretchL3(Agent& a, double dt, const Context& c, std::vector<Event>& out);
     void thinkSkinL3(Agent& a, double dt, const Context& c, std::vector<Event>& out);
     void swapVariant(Agent& a, int v);
+    // V13.3 Level 2/3: Hound-Rudel (presence_hound_pack.cpp), grosses Buendel (presence_clump_l3.cpp)
+    void regieHoundPack(double dt, const Context& c, std::vector<Event>& out);
+    bool spawnHoundPack(const Context& c, std::vector<Event>& out, double dist);
+    void thinkPackHound(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    void prepPackHound(Agent& a);
+    void regieClumpL3(double dt, const Context& c, std::vector<Event>& out);
+    bool spawnClumpL3(const Context& c, std::vector<Event>& out, double dist);
+    void thinkClumpL3(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    void prepClumpL3(Agent& a, const Context& c);
     void updateHive(double dt, const Context& c, std::vector<Event>& out);
     bool walkTo(Agent& a, const NavField& f, double speed, double dt, const Context& c);
     bool hiddenSpawn(const Context& c, int lo, int hi, bool behind, vec3& out, const std::function<bool(vec3)>& ok = {});
@@ -493,6 +581,7 @@ private:
     void remove(size_t i);
 
     std::vector<std::unique_ptr<Agent>> agents_;
+    std::vector<const Agent*> cull_;  // V13.3 (B-026): nach der Wesen-Schleife zu entfernen (abgeraeumte Fallen)
     NavField playerField_;
     double fieldT_ = 0.0;
     Rng rng_{0x9E3779B1u};
@@ -536,6 +625,12 @@ private:
     std::array<float, 4> spell_{};
     std::array<int, 4> spellStage_{};
     double jerryTry_ = 0.0, jerryQuick_ = 1.0;
+    // V13.3 Level 3: Gedaechtnis der Death Rats (Weg des Spielers, Lampe, Fallen), der Mottenschwarm
+    std::shared_ptr<void> l3Mem_, l3Swarm_;
+    // V13.3 Level 2/3: Rudel (Zustand in presence_hound_pack.cpp), grosses Buendel (presence_clump_l3.cpp)
+    std::shared_ptr<void> pack_, bigClump_;
+    // V13.3 Level 3 (KREATUR_RedKnight.md): Regie des Red Knight (presence_knight.cpp)
+    std::shared_ptr<void> knight_;
 };
 
 }  // namespace lim::game

@@ -149,13 +149,16 @@ void CreatureAnimator::setHidden(bool hidden) {
 }
 
 float CreatureAnimator::height() const {
-    if (e_ == Entity::Hound) return sk_->height - crouch_ * 0.2f;
+    if (e_ == Entity::Hound) return (sk_->height - crouch_ * 0.2f) * scale_;  // V13.3 Level 2/3: Rudel-Hounds je Variante
+    if (bigClump()) return std::max(0.6f, pose_.j[cl::TOP].z - pos_.z + 0.25f * scale_);  // V13.3 Level 3: grosses Buendel
     if (isBiped(e_)) return std::max(0.5f, pose_.j[bp::HEADTOP].z - pos_.z);  // V13.2: gebeugt (Wretch), geduckt
     if (e_ == Entity::Duller) return std::max(0.5f, pose_.j[du::HEADTOP].z - pos_.z);  // V13.3: gebueckt
     if (e_ == Entity::Growler) return std::max(0.3f, pose_.j[gw::HUMP].z - pos_.z + 0.12f * scale_);  // V13.3: aufgerichtet, zusammengesunken
     if (e_ == Entity::Nguithr) return sk_->height * scale_;
     if (e_ == Entity::Ouroboros) return ouroHeight();  // V13.3: Arbeiter gebueckt, Mauer, Geruest
     if (e_ == Entity::Goblin) return goblinHeight();   // V13.3: aufrecht, auf allen vieren, Portal
+    if (e_ == Entity::Rat && !extra_.empty() && extra_[0] > 1.5f) return ratL3Height();  // V13.3 Level 3: grosse Ratte, Falle
+    if (praetorian()) return std::max(0.4f, pose_.j[mo::ANTT_L].z - pos_.z);             // V13.3 Level 3: Praetorianer
     return sk_->height;
 }
 
@@ -212,6 +215,9 @@ void CreatureAnimator::update(double dtIn, const Input& in) {
     if (e_ == Entity::Ouroboros) turn = 1000.0f;  // V13.3: eigene Feder je Variante (Mauer und Geruest stehen fest)
     if (e_ == Entity::Goblin) turn = 1000.0f;     // V13.3: eigene Feder (ruckartige Vogelwendungen)
     if (e_ == Entity::Jerry) turn = 2.2f;         // V13.3 Teil 4: tritt auf dem Rohr langsam herum
+    if (e_ == Entity::Rat && !extra_.empty() && extra_[0] > 1.5f) turn = extra_[0] > 2.5f ? 1000.0f : 3.5f;  // V13.3 Level 3: schwer; Falle fest
+    if (praetorian()) turn = 7.0f;                // V13.3 Level 3: Praetorianer - wendig
+    if (bigClump()) turn = 3.2f;                  // V13.3 Level 3: das grosse Buendel - wendiger als das kleine
     const float yawBefore = yaw_;
     yaw_ += wrapPi(in.yaw - yaw_) * std::min(1.0f, dt * turn);
     speed_ = air ? length(vel_) : std::hypot(vel_.x, vel_.y);
@@ -219,6 +225,10 @@ void CreatureAnimator::update(double dtIn, const Input& in) {
         case Entity::Smiler: updateSmiler(dt, in); break;
         case Entity::Hound: updateHound(dt, in); break;
         case Entity::Moth: {
+            if (praetorian()) {  // V13.3 Level 3: laeuft auf acht Beinen (creature_moth_l3.cpp)
+                updatePraetorian(dt, in);
+                break;
+            }
             // Querneigung aus der Drehgeschwindigkeit (in die Kurve legen)
             const float yawRate = dt > 0.0f ? wrapPi(yaw_ - yawBefore) / dt : 0.0f;
             spring(bank_, bankV_, std::clamp(yawRate * speed_ * 0.35f, -0.75f, 0.75f), 5.0f, dt);
@@ -230,11 +240,17 @@ void CreatureAnimator::update(double dtIn, const Input& in) {
             break;
         }
         case Entity::Gestalt: updateGestalt(dt, in); break;
-        case Entity::Clump: updateClump(dt, in); break;
+        case Entity::Clump:
+            if (bigClump()) updateClumpL3(dt, in);  // V13.3 Level 3: gross, bewaffnet
+            else updateClump(dt, in);
+            break;
         case Entity::Faceling:
         case Entity::SkinStealer:
         case Entity::Wretch: updateBiped(dt, in); break;
-        case Entity::Rat: updateRat(dt, in); break;
+        case Entity::Rat:
+            if (!extra_.empty() && extra_[0] > 1.5f) extra_[0] > 2.5f ? updateRatTrap(dt, in) : updateRatL3(dt, in);  // V13.3 Level 3
+            else updateRat(dt, in);
+            break;
         case Entity::Window: updateWindow(dt, in); break;
         case Entity::Duller: updateDuller(dt, in); break;  // V13.3
         case Entity::Arms: updateArms(dt, in); break;
@@ -690,7 +706,14 @@ void CreatureAnimator::updateHound(float dt, const Input& in) {
     spring(light_, lightV_, in.light, 4.0f, dt);
     spring(perc_, percV_, in.perceive, 3.0f, dt);
     spring(idleW_, idleWV_, speed_ > 0.07f ? 0.0f : 1.0f, 2.5f, dt);
-    const float crouchE = std::clamp(crouch_ + 0.35f * light_, 0.0f, 1.0f);
+    // V13.3 Level 2/3 (Rudel, KREATUR_Hound.md): bellen (talk - der Kopf stoesst hoch und vor, das Maul reisst auf), lauern
+    // (hang - flach am Boden, der Kopf zwischen den Pfoten), Biss mit Schuetteln (strike - der Kopf reisst hin und her)
+    if (xs_.size() < 6) xs_.assign(6, 0.0f);
+    spring(xs_[0], xs_[1], in.talk, 16.0f, dt);
+    spring(xs_[2], xs_[3], in.hang, 2.2f, dt);
+    spring(xs_[4], xs_[5], in.strike, 10.0f, dt);
+    const float bark = std::clamp(xs_[0], 0.0f, 1.2f), lurk = std::clamp(xs_[2], 0.0f, 1.0f), worry = std::clamp(xs_[4], 0.0f, 1.0f);
+    const float crouchE = std::clamp(crouch_ + 0.35f * light_ + 0.4f * lurk, 0.0f, 1.0f);
     // Gangart: Kreuzgang - ab ~2,2 m/s Galopp mit Flugphase
     if (!run_ && speed_ > 2.2f) run_ = true;
     else if (run_ && speed_ < 1.6f) run_ = false;
@@ -754,9 +777,9 @@ void CreatureAnimator::updateHound(float dt, const Input& in) {
         if (ph0 < duty) limp = 0.04f * std::sin(kPi * ph0 / duty);
     }
     vec3 C = W({B[CHEST].x + flex * 0.5f, 0.0f, 0.0f});
-    C.z = pos_.z + B[CHEST].z - crouchE * 0.2f - (run_ ? 0.03f : 0.0f) + bobC - limp + 0.012f * breath + 0.05f * perc_;
+    C.z = pos_.z + B[CHEST].z - crouchE * 0.2f - (run_ ? 0.03f : 0.0f) + bobC - limp + 0.012f * breath + 0.05f * perc_ - 0.3f * lurk + 0.05f * bark;
     vec3 P = W({B[PELVIS].x - flex * 0.5f, 0.0f, 0.0f});
-    P.z = pos_.z + B[PELVIS].z - crouchE * 0.1f + bobP - 0.03f * reach_ - 0.06f * light_;
+    P.z = pos_.z + B[PELVIS].z - crouchE * 0.1f + bobP - 0.03f * reach_ - 0.06f * light_ - 0.28f * lurk;
     C = C + swayC + trem + lunge;
     P = P + swayP + lunge * 0.4f;
     // ausgemergelt: der Ruecken buckelt
@@ -844,12 +867,14 @@ void CreatureAnimator::updateHound(float dt, const Input& in) {
     hl = hl + (vec3{0.74f, 0.0f, 0.5f} - hl) * crouch_;
     // V13.2: wittern - der Kopf hebt sich und streckt sich vor; Licht - er zieht ihn ein und senkt ihn
     hl = hl + vec3{0.06f, 0.0f, 0.16f} * perc_ + vec3{-0.12f, 0.0f, -0.1f} * light_;
+    hl = hl + vec3{0.1f, 0.0f, -0.36f} * lurk + vec3{0.07f, 0.0f, 0.13f} * bark;  // V13.3: lauern (flach, Kinn am Boden), bellen
     // Schnueffeln in Stoessen (0,75 s an der Luft, 0,75 s Pause)
     spring(sniff_, sniffV_, perc_ > 0.3f && std::fmod(time_, 1.5f) < 0.75f ? 1.0f : 0.0f, 10.0f, dt);
     vec3 headT = W(hl) + Lw * (lean_ * 0.5f);
     headT.z = pos_.z + hl.z;
     headT = headT + swayC + lunge + trem;  // der Kopf folgt dem Rumpf
     headT.z += 0.011f * perc_ * sniff_ * std::sin(time_ * 42.0f);
+    headT = headT + Lw * (0.07f * worry * std::sin(time_ * 19.0f));  // V13.3: festgebissen - er reisst den Kopf hin und her
     if (reach_ > 0.01f) headT = headT + (in.reachAt - headT) * (reach_ * 0.7f);
     {
         vec3 dc = headT - C;
@@ -871,6 +896,8 @@ void CreatureAnimator::updateHound(float dt, const Input& in) {
         want = safeNorm(Mb * vec3{std::cos(sy), std::sin(sy), sp - 0.25f}, restDir);
     }
     if (perc_ > 0.01f) want = safeNorm(want + (safeNorm(in.perceiveAt - headPos_, want) - want) * perc_, restDir);
+    if (bark > 0.01f) want = safeNorm(want + U * (0.9f * bark), restDir);  // V13.3: beim Bellen hoch
+    if (worry > 0.01f) want = safeNorm(want + Lw * (0.8f * worry * std::sin(time_ * 19.0f + 0.6f)), restDir);
     if (light_ > 0.01f) {
         const vec3 toL = safeNorm(vec3{in.lightFrom.x - headPos_.x, in.lightFrom.y - headPos_.y, 0.0f}, F);
         const vec3 away = safeNorm(Lw * (dot(toL, Lw) > 0.0f ? -1.0f : 1.0f) + F * 0.5f - U * 0.7f, restDir);
@@ -901,8 +928,9 @@ void CreatureAnimator::updateHound(float dt, const Input& in) {
     J[JAWH] = xf(relH, B[JAWH]);
     // Kiefer: beim Knurren zittert er halb offen, beim Zuschnappen weit auf
     const vec3 headY = safeNorm(cross(hu, headDir_), Lw);
-    const float open = jaw_ * 0.8f + growl_ * (0.14f + 0.035f * std::sin(time_ * 47.0f) + 0.02f * std::sin(time_ * 31.0f)) +
-                       0.06f * perc_ + 0.25f * reach_;
+    float open = jaw_ * 0.8f + growl_ * (0.14f + 0.035f * std::sin(time_ * 47.0f) + 0.02f * std::sin(time_ * 31.0f)) +
+                 0.06f * perc_ + 0.25f * reach_ + 0.95f * bark;
+    open = open * (1.0f - worry) + 0.16f * worry;  // V13.3: festgebissen - der Kiefer bleibt zu
     J[JAW] = J[JAWH] + rotateAround(xfDir(relH, B[JAW] - B[JAWH]), headY, open);
     // Hals: Bogen von der Brust zum Kopf
     {
@@ -944,6 +972,10 @@ void CreatureAnimator::updateHound(float dt, const Input& in) {
     for (int h = 0; h < kBackHair; ++h) {
         const int bs[2] = {hairBB(h, 0), hairBB(h, 1)};
         chainUps(backParent[h / 2], bs, 2);
+    }
+    if (scale_ != 1.0f) {  // V13.3 Level 2/3: Rudel-Hounds je Variante etwas kleiner oder groesser (um die Wurzel)
+        for (vec3& j : pose_.j) j = pos_ + (j - pos_) * scale_;
+        pose_.s.assign(sk_->bones.size(), scale_);
     }
 }
 
@@ -1054,6 +1086,8 @@ void CreatureAnimator::updateMoth(float dt, const Input& in) {
                                 base + vec3{0.04f, sg * 0.006f, -0.034f}};
         for (int i = 1; i < 4; ++i) J[legJ(l, i)] = W(lerp(lerp(B[legJ(l, i)], tuck[i - 1], fly_), strike[i - 1], reach_));
     }
+    for (int l = 6; l < 8; ++l)  // V13.3 Level 3: viertes Beinpaar (nur der Praetorianer hat dort ein Netz) - starr am Leib
+        for (int i = 0; i < 4; ++i) J[legJ(l, i)] = W(B[legJ(l, i)]);
     // Knochen-oben: alles im Koerperrahmen (sie sitzt auch an Waenden und Decken)
     for (size_t b = 0; b < sk_->bones.size(); ++b) pose_.up[b] = Mb * sk_->bindUp[b];
     pose_.up[mo::B_ROOT] = Fw;
@@ -1189,10 +1223,13 @@ struct BipedStyle {
     float breathHz, breath;  // Atem: Frequenz, Hub der Schultern (m)
     float knees;             // Grundbeugung der Knie (Absenkung des Beckens, m)
 };
-const BipedStyle& bipedStyle(Entity e) {
+const BipedStyle& bipedStyle(Entity e, bool knight = false) {
     static const BipedStyle fc{0.03f, 0.22f, 0.05f, 0.05f, 0.11f, 0.30f, 0.22f, 1.25f, 2.4f, 1.0f, 0.07f, 0.16f, 0.0f, 0.0f, 0.25f, 0.005f, 0.01f};
     static const BipedStyle ss{0.08f, 0.42f, 0.12f, 0.12f, 0.08f, 0.09f, 0.10f, 1.0f, 2.6f, 1.08f, 0.06f, 0.2f, 0.0f, 0.08f, 0.14f, 0.009f, 0.015f};
     static const BipedStyle wr{0.40f, 0.62f, 0.55f, 0.1f, 0.16f, 0.14f, 0.45f, 1.0f, 2.2f, 0.82f, 0.035f, 0.15f, 0.7f, 0.35f, 0.45f, 0.007f, 0.06f};
+    // V13.3 Level 3 (KREATUR_RedKnight.md): Red Knight - aufrecht, schwer gepanzert, weit ausgreifend im Lauf, keuchend
+    static const BipedStyle rk{0.05f, 0.30f, 0.06f, 0.0f, 0.16f, 0.34f, 0.30f, 1.0f, 2.2f, 1.05f, 0.07f, 0.17f, 0.0f, 0.0f, 0.7f, 0.014f, 0.025f};
+    if (knight) return rk;
     return e == Entity::SkinStealer ? ss : (e == Entity::Wretch ? wr : fc);
 }
 // Richtung (Gier, Neigung) von a nach b im Rahmen F/L (Neigung + nach oben)
@@ -1207,7 +1244,8 @@ void CreatureAnimator::updateBiped(float dt, const Input& in) {
     using namespace bp;
     const auto& B = sk_->bind;
     auto& J = pose_.j;
-    const BipedStyle& st = bipedStyle(e_);
+    const bool knight = redKnight();  // V13.3 Level 3 (KREATUR_RedKnight.md)
+    const BipedStyle& st = bipedStyle(e_, knight);
     const vec3 F = dirYaw(yaw_), Lw{-F.y, F.x, 0.0f}, U{0, 0, 1};
     const M3 Mb{F, Lw, U};
     auto W = [&](vec3 l) { return pos_ + Mb * l; };
@@ -1223,7 +1261,7 @@ void CreatureAnimator::updateBiped(float dt, const Input& in) {
     spring(talk_, talkV_, in.talk, 6.0f, dt);
     spring(plea_, pleaV_, in.plea, 2.0f, dt);
     spring(idleW_, idleWV_, speed_ > 0.07f ? 0.0f : 1.0f, 2.5f, dt);
-    const bool wretch = e_ == Entity::Wretch;
+    const bool wretch = e_ == Entity::Wretch && !knight;
 
     // Gang: zwei Beine im Wechsel, ab runAt rennen (mit Flugphase)
     if (!run_ && speed_ > st.runAt) run_ = true;
@@ -1500,7 +1538,8 @@ void CreatureAnimator::updateBiped(float dt, const Input& in) {
     pose_.up[bp::B_HEAD] = Mb * (Rh * sk_->bindUp[bp::B_HEAD]);
     pose_.up[bp::B_JAW] = Mb * (Rj * sk_->bindUp[bp::B_JAW]);
     for (int s = 0; s < 2; ++s) pose_.up[(size_t)armB(bp::B_CLAV_L, s)] = Mb * (Rch * sk_->bindUp[(size_t)armB(bp::B_CLAV_L, s)]);
-    if (e_ == Entity::Wretch || e_ == Entity::SkinStealer) bipedKinL3(dt, in);  // V13.3 Level 3
+    if (knight) bipedKnight(dt, in);                                                 // V13.3 Level 3: Red Knight
+    else if (e_ == Entity::Wretch || e_ == Entity::SkinStealer) bipedKinL3(dt, in);  // V13.3 Level 3
 }
 
 // --- V13.2: Death Rat ------------------------------------------------------------------------------------------------

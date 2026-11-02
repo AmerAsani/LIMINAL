@@ -131,9 +131,16 @@ void turnTo(A& a, vec3 toP, double rate, double dt) {
 }
 }  // namespace
 
-bool kinRole(int role) { return role == (int)Presence::Role::Wretch || role == (int)Presence::Role::SkinStealer; }
+bool kinRole(int role) {
+    return role == (int)Presence::Role::Wretch || role == (int)Presence::Role::SkinStealer || role == (int)Presence::Role::Rat ||
+           role == (int)Presence::Role::Moth ||  // V13.3 Level 3: Death Rats, Deathmoths (Klangnummern ab KC_RAT_SAY0)
+           role == (int)Presence::Role::Hound || role == (int)Presence::Role::Clump;  // V13.3 Level 2/3: Rudel, grosses Buendel
+}
 
 const KinLine* kinLine(int cue) {
+    if (cue >= 200) return knightLine(cue);           // V13.3 Level 3: Red Knight (presence_knight.cpp)
+    if (cue >= KC_L3_END) return packLine(cue);       // V13.3 Level 2/3: Hound-Rudel, grosses Buendel
+    if (cue >= KC_RAT_SAY0) return ratMothLine(cue);  // V13.3 Level 3
     if (cue < 0 || cue >= KC_COUNT) return nullptr;
     const KinLine& L = lines()[(size_t)cue];
     return L.sound ? &L : nullptr;
@@ -142,7 +149,9 @@ const KinLine* kinLine(int cue) {
 const KinLine* kinLineBySound(const std::string& s) {
     for (const KinLine& L : lines())
         if (L.sound && s == L.sound) return &L;
-    return nullptr;
+    if (const KinLine* L = ratMothLineBySound(s)) return L;  // V13.3 Level 3
+    if (const KinLine* L = knightLineBySound(s)) return L;   // V13.3 Level 3: Red Knight
+    return packLineBySound(s);                                // V13.3 Level 2/3
 }
 
 // Verwandlung ohne Neuanlage (auch die Puppe beim Gast): nur das Modell wechselt, Animation und Lage bleiben

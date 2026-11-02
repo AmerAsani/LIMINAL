@@ -27,6 +27,7 @@ const EntLayerDesc kEntLayers[EL_COUNT] = {
     {"ansicht", 2.0f, 0.05f},  // V13.2: Fensterwesen - die Kachel um den Ursprung fuellt die Oeffnung (1,2 x 1,8 m)
     {"mensch", 0.5f, 0.6f},    // V13.2
     {"blass", 0.35f, 0.9f},    // V13.2
+    {"wretch", 0.3f, 1.0f},    // V13.3 Wow-Check
 };
 const EntLayerDesc kMicroLayers[ML_COUNT] = {
     {"poren", 0.08f, 0.45f},
@@ -354,10 +355,67 @@ Tex pale(float u, float v) {
     col = mixc(col, {0.58f, 0.52f, 0.36f}, cup * 0.55f);
     col = mixc(col, {0.88f, 0.84f, 0.66f}, rim * 0.35f);
     const float wu = u + 0.03f * N(u, v, 6, 6, 315), wv = v + 0.03f * N(u, v, 6, 6, 316);
-    const float vein = std::pow(1.0f - std::fabs(N(wu, wv, 8, 8, 317)), 14.0f);
-    col = mixc(col, {0.56f, 0.60f, 0.62f}, vein * 0.25f);
-    const float h = 0.00025f * macro - 0.00045f * cup + 0.00018f * rim;
-    return make(col, h, 0.32f + 0.18f * rim - 0.1f * cup, 1.0f - 0.35f * cup);
+    // V13.3 Wow-Check (KREATUR_SkinStealer.md): aus der Naehe las sich die Haut glatt wie eine Puppe. Jetzt: ein verzweigtes
+    // Adernetz (dunkel blaugrau, leicht erhaben, zwei Groessen), faulige Flecken (olivgrau bis braun, eingesunken, nass
+    // glaenzend, an den Raendern blaeulich unterlaufen), trockene, schuppende Stellen (heller, rau), feine Falten
+    const float vein = std::min(1.0f, std::pow(1.0f - std::fabs(N(wu, wv, 8, 8, 317)), 12.0f) +
+                                          0.65f * std::pow(1.0f - std::fabs(N(wu * 1.3f, wv * 1.3f, 22, 22, 318)), 16.0f));
+    // Runde 2: kleinere, unregelmaessige Flecken mit dunklem, nassem Kern (vorher grosse gruene Flaechen wie ein Tarnmuster)
+    const float rotN = fbm(u + 0.03f * N(u, v, 11, 11, 319), v, 7, 7, 4, 320) + 0.35f * N(u, v, 26, 26, 321);
+    const float rot = sm(0.2f, 0.45f, rotN);               // faulige Flecken
+    const float core = sm(0.48f, 0.68f, rotN);
+    const float bruise = sm(-0.02f, 0.14f, rotN) * (1.0f - rot);  // unterlaufener Rand
+    const float flake = sm(0.25f, 0.55f, fbm(u, v, 7, 7, 3, 322)) * (1.0f - rot);
+    const Cell fc = worley(u, v, 60, 323);
+    const float scale = flake * sm(0.0f, 0.08f, fc.d2 - fc.d1);  // Schuppenraender
+    const float wr = ridge(u, v, 34, 324, 9.0f);
+    const float wet = std::min(1.0f, sm(0.0f, 0.5f, fbm(u, v, 5, 5, 3, 325) * 0.5f + 0.5f) * 0.6f + rot * 0.4f + core * 0.4f);
+    col = mixc(col, {0.40f, 0.45f, 0.50f}, vein * 0.55f);
+    col = mixc(col, {0.44f, 0.38f, 0.44f}, bruise * 0.5f);
+    col = mixc(col, mixc({0.40f, 0.35f, 0.26f}, {0.26f, 0.18f, 0.13f}, sm(0.3f, 0.55f, rotN)), rot * 0.85f);
+    col = mixc(col, {0.17f, 0.14f, 0.08f}, core * 0.75f);  // Runde 3: nass olivbraun statt tintenschwarz
+    col = mixc(col, {0.90f, 0.87f, 0.74f}, scale * 0.5f);
+    col = mulc(col, 1.0f - 0.12f * wr);
+    const float h = 0.00025f * macro - 0.00045f * cup + 0.00018f * rim + 0.00016f * vein - 0.00035f * rot + 0.0001f * scale - 0.00008f * wr;
+    const float rough = 0.42f + 0.18f * rim - 0.1f * cup + 0.25f * flake - 0.3f * wet;
+    return make(col, h, std::clamp(rough, 0.08f, 0.95f), 1.0f - 0.35f * cup - 0.2f * rot);
+}
+
+// V13.3 Wow-Check (KREATUR_Wretch.md): Haut des Wretch (Entity 15: rotbraun, trocken, schuppig, voller Loecher und Pusteln,
+// roetlich-brauner Saft). Dicht an dicht trockene Schuppen mit dunklen Rissen dazwischen, fleckig zwischen Rotbraun, Ocker und
+// fast Schwarz; offene, nasse Wundstellen (roh rot, glaenzend); Loecher (tiefe dunkle Mulden mit Krustenrand); Pusteln (gelb,
+// prall, roter Hof); Schmutz in den Rissen
+Tex wretch(float u, float v) {
+    const float macro = fbm(u, v, 3, 3, 4, 401);
+    const float mott = fbm(u, v, 9, 9, 3, 402);
+    // Runde 3: dunkler, brauner (las sich lachsrosa), Flecken kraeftiger
+    C3 col = mixc({0.27f, 0.12f, 0.07f}, {0.38f, 0.21f, 0.11f}, sm(-0.4f, 0.5f, macro));
+    col = mixc(col, {0.13f, 0.06f, 0.04f}, sm(0.0f, 0.45f, mott) * 0.75f);
+    col = mixc(col, {0.52f, 0.36f, 0.18f}, sm(-0.6f, -0.2f, mott) * 0.45f);
+    const Cell sc = worley(u + 0.006f * N(u, v, 30, 30, 403), v, 70, 404);  // Schuppen
+    const float crack = 1.0f - sm(0.0f, 0.07f, sc.d2 - sc.d1);
+    const float plateUp = sm(0.0f, 0.5f, sc.d2 - sc.d1) * (0.5f + 0.5f * r01(sc.id));
+    col = mulc(col, 0.8f + 0.3f * r01(sc.id * 2654435761u));
+    col = mixc(col, {0.07f, 0.04f, 0.03f}, crack * 0.8f);
+    const float sore = sm(0.22f, 0.4f, fbm(u, v, 6, 6, 3, 405) + 0.3f * N(u, v, 20, 20, 406));  // nasse Wundstellen
+    col = mixc(col, mixc({0.45f, 0.06f, 0.05f}, {0.62f, 0.18f, 0.12f}, sm(0.3f, 0.6f, mott)), sore * 0.85f);
+    const Cell ho = worley(u, v, 11, 407);
+    const bool holeCell = r01(ho.id) > 0.78f;  // Runde 3: weniger, groessere Loecher (vorher gleichmaessige Punkte)
+    const float hole = holeCell ? 1.0f - sm(0.06f, 0.18f, ho.d1) : 0.0f;
+    const float holeRim = holeCell ? sm(0.12f, 0.18f, ho.d1) * (1.0f - sm(0.18f, 0.28f, ho.d1)) : 0.0f;
+    col = mixc(col, {0.03f, 0.015f, 0.01f}, hole * 0.95f);
+    col = mixc(col, {0.16f, 0.07f, 0.04f}, holeRim * 0.7f);
+    const Cell pu = worley(u, v, 17, 408);
+    const bool pusCell = !holeCell && r01(pu.id) > 0.6f;
+    const float pus = pusCell ? 1.0f - sm(0.03f, 0.09f, pu.d1) : 0.0f;
+    const float halo = pusCell ? (1.0f - sm(0.09f, 0.2f, pu.d1)) * (1.0f - pus) : 0.0f;
+    col = mixc(col, {0.55f, 0.12f, 0.08f}, halo * 0.6f);
+    col = mixc(col, {0.86f, 0.74f, 0.36f}, pus);
+    const float grime = sm(0.2f, 0.8f, fbm(u, v, 5, 5, 3, 409) * 0.5f + 0.5f);
+    col = mixc(col, {0.10f, 0.07f, 0.05f}, grime * 0.3f);
+    const float h = 0.0003f * macro + 0.00022f * plateUp - 0.0003f * crack - 0.0009f * hole + 0.00025f * holeRim + 0.0005f * pus + 0.00012f * halo - 0.00012f * sore;
+    const float rough = 0.82f - 0.1f * plateUp - 0.55f * sore - 0.55f * pus - 0.3f * hole + 0.1f * grime;
+    return make(col, h, std::clamp(rough, 0.1f, 0.95f), 1.0f - 0.45f * crack - 0.6f * hole);
 }
 
 Tex layerSample(int layer, float u, float v) {
@@ -372,6 +430,7 @@ Tex layerSample(int layer, float u, float v) {
         case EL_VIEW: return view(u, v);
         case EL_HUMAN: return human(u, v);
         case EL_PALE: return pale(u, v);
+        case EL_WRETCH: return wretch(u, v);  // V13.3
         default: return nest(u, v);
     }
 }

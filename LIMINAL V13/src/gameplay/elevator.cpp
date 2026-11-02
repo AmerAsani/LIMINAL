@@ -193,7 +193,11 @@ void GameSession::updateElevators(double dt, double prevX, double prevY) {
             return;
         }
         ElevatorLink target;
-        if (!findElevatorTarget(ride_.fromId, ride_.fromDoor, ride_.fromLayer, target)) {
+        const bool found = findElevatorTarget(ride_.fromId, ride_.fromDoor, ride_.fromLayer, target);
+        // V13.3 (B-025): die Suche kann Chunks laden und neue Aufzuege anlegen - der Pool waechst und fe zeigte auf
+        // freigegebenen Speicher (AddressSanitizer: heap-use-after-free); den Zeiger danach neu holen
+        fe = from != ecs::kNull ? reg_.get<Elevator>(from) : nullptr;
+        if (!found) {
             events_.push_back({GameEvent::Toast, "Der Aufzug rührt sich nicht.", 2.5f});
             if (fe) fe->openTarget = 1.0f, fe->hold = 5.0f;
             ride_ = {};

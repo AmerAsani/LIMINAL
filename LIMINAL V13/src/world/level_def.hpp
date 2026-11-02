@@ -259,9 +259,14 @@ struct LevelDef {
     // V11: welche Entities die Ebene ueberhaupt kennt ("presence": {"hound": false, ...}; fehlt = ja)
     bool allowHound = true, allowSmiler = true, allowGestalt = true, allowBlackout = true;
     int smilerBait = 0;  // V13.3: presence.smiler_bait - "follow" (0, Smiler folgen einem Leuchtstab) oder "hesitate" (1, stutzen nur)
+    double smilerUnprovoked = 0.0;  // V13.3 Level 3: presence.smiler_unprovoked - Anteil der Smiler, die ohne Anlass angreifen
+    double redKnightEvery = 0.0;    // V13.3 Level 3: presence.red_knight_every - mittlerer Abstand der Laeufe des Red Knight (s)
     bool allowClump = false;  // V11: Buendel (nur wo die Karte Lager hat)
     double clumpRate = 1.0;   // V11: Anteil der Gelegenheiten, bei denen es einzieht (Level 1: selten)
     std::array<KinDef, KIN_COUNT> kin;  // V13.2
+    // V13.3 Level 2/3 (KREATUR_Hound.md, KREATUR_Clump.md): presence.hound_pack (mode l2: Rudel zieht umher; l3: lauern allein,
+    // bellen, jagen gemeinsam, quaelen), presence.clump_l3 (das grosse, bewaffnete Buendel)
+    KinDef houndPack, clumpBig;
     bool flashlight = true;   // V11: Level 6 - die Lampe gibt kein Licht
     bool touchLight = false;  // V11: Level 6 - Waende in Armlaenge zeichnen sich schwach ab
     bool mapped() const { return map != nullptr; }

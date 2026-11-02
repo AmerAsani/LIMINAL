@@ -36,6 +36,19 @@ Getrennt von den bestätigten Fehlern oben. Ausführlich in `AUDIO_BUG.md`, Absc
 | B-023 | Audio: 3D-Culling | Im ersten Bild nach Ebenenwechsel/Wiedereinstieg stand der Hörer für `play3d` noch an der alten Stelle (Quellen könnten fälschlich verworfen werden). Nicht gemessen. | gehärtet: Hörer vor den Klängen des Bildes gesetzt. |
 | B-024 | Fenster/Audio | Einmal im alten Stand nach Minimieren/Wiederherstellen ~22 s keine neuen Klänge (das Spiel rechnete vermutlich keine Bilder). In 158 weiteren Zyklen (alt und neu) nicht wieder aufgetreten. | offen, Ursache nicht geklärt; kein Audiofehler im engeren Sinn. |
 
+## Speicherfehler nach dem Einmischen der Wesen-Zweige (V13.3, 02.11.2026)
+
+Nach dem Merge der Level-2- und Level-3-Wesen stürzten `gameplay_test` und `coop_test` ab (Heap beschädigt). Gefunden mit
+einem eigenen Build unter AddressSanitizer (`build/asan`, RelWithDebInfo, `-fsanitize=address`); danach beide Tests unter
+ASan ohne Befund (901/0, 209/0).
+
+| Nr. | Bereich | Fehler | Stand |
+|---|---|---|---|
+| B-025 | Aufzüge (seit V8) | `updateElevators` hielt einen Zeiger auf die Aufzug-Komponente über `findElevatorTarget` hinweg; die Suche kann Chunks laden und Aufzüge anlegen, der Pool wächst – heap-use-after-free. Erst durch das neue Speicherbild sichtbar. | **behoben**: Zeiger nach der Suche neu geholt (`elevator.cpp`). |
+| B-026 | Wesen-Schleife | `Presence::update` lief mit Iterator über `agents_`; `buildTrap` (Fallen der Death Rats) legte darin ein Wesen an und entfernte die älteste Falle – Iterator ungültig. | **behoben**: Schleife über den Index bis zur Anzahl davor (neue Wesen ab dem nächsten Bild); abgeräumte Fallen erst nach der Schleife entfernt (`cull_`). |
+| B-027 | Level-3-Motten | Platz im Gesicht: negativer Rest bei negativer `phase` las vor `taken[8]`; Gruppenvergleiche ohne Rolle konnten fremde Wesen (z. B. Fallen, Rolle Rat, Variante 3) als Motten behandeln und ihr `ext` falsch umdeuten. | **behoben**: Index normalisiert, alle Gruppenvergleiche nur für Motten der Varianten 3–5. |
+| B-028 | Koop-Test | `testReconnectKick` gab die Sitzung des gesperrten Gasts frei, bevor `stop()` darin aufräumte (die App räumt in der richtigen Reihenfolge auf: `leaveCoop` → `stop()` → Sitzung). | **behoben** im Test (erst `stop()`, dann die Sitzung). |
+
 ## Prüfungen (Teil 5)
 
 | Prüfung | Werkzeug | Ergebnis |

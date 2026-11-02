@@ -1729,7 +1729,9 @@ static Mount mountOf(const std::string& m) {
                                   "fungus_wall", "claw_marks",  // V13.3 L1-Erscheinungen
                                   "skin_hung", "skin_scratches",  // V13.3 L2: Spuren der Skin-Stealer
                                   "jerry_mural", "jerry_poster",  // V13.3 Teil 4 L2: Jerrys Raum, Wegweiser der Followers
-                                  "macchina_tapestry"};  // V13.3 Teil 4 L2: Wandtuch der Macchina
+                                  "macchina_tapestry",  // V13.3 Teil 4 L2: Wandtuch der Macchina
+
+                                  "purple_stealer", "purple_hound"};  // V13.3 L3: purpifizierte Wesen (KREATUR_L3_Purpur.md)
     static const char* ceil2[] = {"vines_ceiling", "cable_hang", "arcade_gothic"};
     static const char* floor2[] = {"scaffold", "wall_unfinished", "cement_bags", "rebar_bundle", "work_light", "cement_mixer", "wheelbarrow",
                                    "sawhorse", "site_barrier", "tarp_pile", "moss_patch", "fern_cluster", "roots_floor", "shrub_concrete",
@@ -4613,7 +4615,7 @@ static void testV133Level3Kin(const std::string& dataDir) {
         check(bad == 0, "Level 3: Klangnummern haben Namen (auch fuer die Gaeste)");
         check(game::kinLine(game::KC_SAY0)->sub && game::kinLine(game::KC_FRAG0)->hint && !game::kinLine(game::KC_DRAG0)->sub,
               "Level 3: Saetze und Fetzen mit Untertitel, der Rat des Wikis beim ersten Mal");
-        check(game::kinCueOf(30.0f, (int)Role::Wretch) < 0 && game::kinCueOf(100.0f + 3.0f, (int)Role::Hound) < 0 &&
+        check(game::kinCueOf(30.0f, (int)Role::Wretch) < 0 && game::kinCueOf(100.0f + 3.0f, (int)Role::Smiler) < 0 &&
                   game::kinCueOf(100.0f + 3.0f, (int)Role::Wretch) == 3,
               "Level 3: nur Wretch und Skin-Stealer tragen Klangnummern (Schaden bleibt Schaden)");
         const auto L3 = content.level("level3", world::kLayoutV6);
@@ -5741,6 +5743,1125 @@ static void testV133Jerry(const std::string& dataDir) {
     }
 }
 
+// --- V13.3: Level 3 - purpifizierte tote Wesen in der Wand (KREATUR_L3_Purpur.md) --------------------------------------------
+static void testV133Purple(const std::string& dataDir) {
+    std::printf("V13.3: Level 3 - purpifizierte Wesen in der Wand (Licht, Klang, Strahlung, Lampe, Botschaft)\n");
+    const game::Content& content = *gContent11;
+    game::PrefabLibrary prefabs;
+    prefabs.loadDirectory(dataDir + "/prefabs");
+    JobSystem jobs(2);
+    auto open = [&](const char* level, i64 seed) {
+        auto s = std::make_unique<game::GameSession>(content, prefabs, content.level(level, world::kLayoutV6), seed, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        return s;
+    };
+    auto step = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, double secs) {
+        for (int i = 0; i < (int)(secs * 60.0); ++i) {
+            s.update(1.0 / 60.0, game::PlayerControl{}, false);
+            ev.insert(ev.end(), s.events().begin(), s.events().end());
+            s.events().clear();
+        }
+    };
+    // Spieler mit den Fuessen an feet, Blick auf das Ziel
+    auto put = [](game::GameSession& s, vec3 feet, vec3 target) {
+        auto& pl = s.player();
+        pl.x = feet.x, pl.y = feet.y, pl.z = s.world().tile(ifloor(feet.x), ifloor(feet.y)).floor, pl.vx = pl.vy = 0.0;
+        const double eye = pl.z + 1.6;
+        pl.angle = std::atan2(target.y - feet.y, target.x - feet.x);
+        pl.pitch = std::atan2(target.z - eye, std::hypot(target.x - feet.x, target.y - feet.y));
+        s.body().reset();
+        s.preload();
+    };
+    auto sounds = [](const std::vector<game::GameEvent>& ev, const char* name) {
+        return (int)std::count_if(ev.begin(), ev.end(), [&](const game::GameEvent& e) { return e.type == game::GameEvent::SoundAt && e.sound == name; });
+    };
+    auto toast = [](const std::vector<game::GameEvent>& ev, const char* part) {
+        return std::any_of(ev.begin(), ev.end(), [&](const game::GameEvent& e) {
+            return e.type == game::GameEvent::Toast && e.text.find(part) != std::string::npos;
+        });
+    };
+    {
+        auto s0 = open("level0", 3);
+        check(!s0->purple().any(), "Purpur: Level 0 hat keine");
+    }
+    auto s = open("level3", 3);
+    const game::Purpification& P = s->purple();
+    int iSt = -1, iHo = -1;
+    for (size_t i = 0; i < P.sites().size(); ++i) (P.sites()[i].kind == "stealer" ? iSt : iHo) = (int)i;
+    std::printf("  Stellen %zu\n", P.sites().size());
+    check(P.sites().size() == 2 && iSt >= 0 && iHo >= 0, "Purpur: zwei Stellen in Level 3 (Skin-Stealer, Hound) - selten");
+    if (iSt < 0 || iHo < 0) return;
+    const game::Purpification::Site st = P.sites()[(size_t)iSt], ho = P.sites()[(size_t)iHo];
+    // in Ziegelgaengen, Wand dahinter, Gang davor
+    bool placed = true;
+    for (const auto* x : {&st, &ho}) {
+        const vec3 n{std::cos(x->yaw), std::sin(x->yaw), 0.0f};
+        const vec3 front = x->base + n * 0.5f, back = x->base - n * 0.4f;
+        const world::Tile& tf = s->world().tile(ifloor(front.x), ifloor(front.y));
+        const world::Tile& tb = s->world().tile(ifloor(back.x), ifloor(back.y));
+        const std::string type = tf.room && tf.room->type ? tf.room->type->key : "";
+        placed = placed && tf.open() && tb.solid() && (type == "gang" || type == "paranoia");
+        std::printf("  %s bei %.1f/%.1f im Raum %s\n", x->kind.c_str(), x->base.x, x->base.y, type.c_str());
+    }
+    check(placed, "Purpur: beide Stellen an einer Ziegelwand im Gang (dahinter Wand)");
+    const vec3 nS{std::cos(st.yaw), std::sin(st.yaw), 0.0f}, rS{std::sin(st.yaw), -std::cos(st.yaw), 0.0f};
+    // Strahlung: dicht davor stark, ab einigen Metern nichts, hinter der Wand nichts
+    const float eNear = P.exposure(st.base + nS * 0.8f + vec3{0, 0, 1.6f});
+    const float eFar = P.exposure(st.base + nS * 0.8f + rS * 6.0f + vec3{0, 0, 1.6f});
+    const float eBehind = P.exposure(st.base - nS * 0.6f + vec3{0, 0, 1.6f});
+    std::printf("  Strahlung nah %.2f, 6 m %.2f, hinter der Wand %.2f\n", eNear, eFar, eBehind);
+    check(eNear > 0.8f && eFar == 0.0f && eBehind == 0.0f, "Purpur: Strahlung nur dicht vor dem Koerper");
+    // Licht: violett, nur in der Naehe
+    std::vector<game::Purpification::Light> lights, farL;
+    P.lights(lights, st.glow + nS * 2.0f, 24.0f, 1.0);
+    const bool violet = !lights.empty() && lights[0].color.z > lights[0].color.x && lights[0].color.x > lights[0].color.y && lights[0].range > 3.0f;
+    P.lights(farL, st.glow + nS * 0.5f + rS * 40.0f, 24.0f, 1.0);
+    check(violet && farL.empty(), "Purpur: violettes Licht vor dem Koerper, aus 40 m keines");
+    // Lampe: stockt nah, fern nicht
+    float minNear = 1.0f, minFar = 1.0f;
+    for (int i = 0; i < 600; ++i) {
+        minNear = std::min(minNear, P.lampFactor(st.glow + nS * 0.6f, i / 60.0));
+        minFar = std::min(minFar, P.lampFactor(st.glow + nS * 0.6f + rS * 8.0f, i / 60.0));
+    }
+    std::printf("  Lampe nah min %.2f, 8 m min %.2f\n", minNear, minFar);
+    check(minNear < 0.6f && minFar == 1.0f, "Purpur: die Taschenlampe stockt nur nahe der Stelle");
+    // Lampe auf dem Koerper: die Glut schwillt an (Interpretation)
+    {
+        game::Purpification Q = P;
+        std::vector<game::Purpification::Event> qe;
+        const vec3 lp = st.glow + nS * 3.0f;
+        const float before = Q.glowLevel(Q.sites()[(size_t)iSt], 2.0);
+        for (int i = 0; i < 180; ++i) Q.update(1.0 / 60.0, lp, nS * -1.0f, true, true, lp, normalize(st.glow - lp), qe);
+        const float after = Q.glowLevel(Q.sites()[(size_t)iSt], 2.0);
+        std::printf("  Glut ohne Lampe %.2f, nach 3 s im Lichtkegel %.2f\n", before, after);
+        check(after > before * 1.4f, "Purpur: angeleuchtet schwillt die Glut an");
+    }
+    // Sitzung: nah - Knistern, Hinweise, Verstand sinkt; fern - nichts davon
+    std::vector<game::GameEvent> ev;
+    put(*s, st.base + nS * 0.8f, st.glow);
+    s->stats().sanity = 80.0;
+    s->stats().health = 100.0;
+    step(*s, ev, 12.0);
+    const double dropNear = 80.0 - s->stats().sanity;
+    const int crNear = sounds(ev, "purple_crackle");
+    const bool hints = toast(ev, "Violett.") && toast(ev, "Metall auf der Zunge");
+    std::vector<game::GameEvent> ev2;
+    vec3 farFeet = st.base + nS * 1.0f + rS * 30.0f;
+    if (s->world().tile(ifloor(farFeet.x), ifloor(farFeet.y)).solid()) farFeet = st.base + nS * 1.0f - rS * 30.0f;
+    put(*s, farFeet, st.base);
+    s->stats().sanity = 80.0;
+    step(*s, ev2, 12.0);
+    const double dropFar = 80.0 - s->stats().sanity;
+    std::printf("  12 s nah: Verstand -%.2f, Knistern %d; fern: -%.2f, Knistern %d\n", dropNear, crNear, dropFar, sounds(ev2, "purple_crackle"));
+    check(dropNear - dropFar > 2.0, "Purpur: Strahlung zehrt nah am Verstand");
+    check(crNear >= 3 && sounds(ev2, "purple_crackle") == 0, "Purpur: Knistern nah zu hoeren, fern nicht");
+    check(hints, "Purpur: Hinweise beim ersten Anblick und bei der Strahlung");
+    // die Botschaft neben dem Hound lesen
+    const vec3 nH{std::cos(ho.yaw), std::sin(ho.yaw), 0.0f};
+    std::vector<game::GameEvent> ev3;
+    put(*s, ho.text + nH * 1.4f - vec3{0, 0, ho.text.z - ho.base.z}, ho.text);
+    step(*s, ev3, 1.0);
+    check(toast(ev3, "An die Wand gemalt"), "Purpur: die Botschaft neben dem Hound laesst sich lesen");
+    // Klangschleife: eine je Stelle (Brummen)
+    std::vector<game::SoundSource> src;
+    s->collectSounds(src);
+    const int hums = (int)std::count_if(src.begin(), src.end(), [](const game::SoundSource& x) { return x.sound && *x.sound == "purple_hum"; });
+    check(hums == 2, "Purpur: Brummen als Klangquelle an jeder Stelle");
+}
+
+// V13.3 Level 3 (KREATUR_DeathRat.md, KREATUR_Deathmoth.md): grosse Death Rats mit Stromfallen, Mottenschwarm mit Praetorianern
+static void testV133Level3RatMoth(const std::string& dataDir) {
+    std::printf("V13.3: Level 3 - Death Rats (Wasserschwein, Fallen, Klugheit), Deathmoth-Schwarm mit Praetorianern\n");
+    const game::Content& content = *gContent11;
+    game::PrefabLibrary prefabs;
+    prefabs.loadDirectory(dataDir + "/prefabs");
+    JobSystem jobs(2);
+    using PE = game::Presence::Event;
+    using Role = game::Presence::Role;
+    auto open = [&](i64 seed) {
+        auto s = std::make_unique<game::GameSession>(content, prefabs, content.level("level3", world::kLayoutV6), seed, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        s->presence().setGrace(3000.0);
+        return s;
+    };
+    auto step = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, double secs, const std::function<bool()>& each = {},
+                    const std::function<game::PlayerControl(int)>& ctl = {}) {
+        for (int i = 0; i < (int)(secs * 60.0); ++i) {
+            if (each && each()) break;
+            s.update(1.0 / 60.0, ctl ? ctl(i) : game::PlayerControl{}, false);
+            ev.insert(ev.end(), s.events().begin(), s.events().end());
+            s.events().clear();
+        }
+    };
+    auto count = [](const std::vector<game::GameEvent>& ev, PE::Type t, Role r, int cue = -1, int cue2 = -1) {
+        return (int)std::count_if(ev.begin(), ev.end(), [&](const game::GameEvent& e) {
+            if (e.type != game::GameEvent::Figure || e.index != (int)t || e.role != (int)r) return false;
+            const int k = game::kinCueOf(e.intensity, e.role);
+            return cue < 0 ? k < 0 : (k >= cue && k <= (cue2 < 0 ? cue : cue2));
+        });
+    };
+    // Index des ersten Ereignisses (Art, Rolle, Klangnummer-Bereich; cue < 0: ohne Nummer), -1: keins
+    auto first = [](const std::vector<game::GameEvent>& ev, PE::Type t, Role r, int cue = -1, int cue2 = -1) {
+        for (size_t i = 0; i < ev.size(); ++i) {
+            const auto& e = ev[i];
+            if (e.type != game::GameEvent::Figure || e.index != (int)t || e.role != (int)r) continue;
+            const int k = game::kinCueOf(e.intensity, e.role);
+            if (cue < 0 ? k < 0 : (k >= cue && k <= (cue2 < 0 ? cue : cue2))) return (int)i;
+        }
+        return -1;
+    };
+    auto aim = [](game::GameSession& s, vec3 q) {
+        auto& pl = s.player();
+        pl.angle = std::atan2(q.y - pl.y, q.x - pl.x);
+        pl.pitch = std::atan2(q.z - pl.eye(), std::max(0.4, std::hypot(q.x - pl.x, q.y - pl.y)));
+    };
+    auto eyeOf = [](game::GameSession& s) { return vec3{(float)s.player().x, (float)s.player().y, (float)s.player().eye()}; };
+    auto put = [](game::GameSession& s, double x, double y) {
+        auto& pl = s.player();
+        pl.x = x, pl.y = y, pl.z = s.world().tile(ifloor(x), ifloor(y)).floor, pl.vx = pl.vy = 0.0, pl.vz = 0.0, pl.onGround = true;
+        s.body().reset();
+    };
+    // freie Kachel in d m Entfernung von 'at' mit Sicht auf 'look'
+    auto spotNear = [&](game::GameSession& s, vec3 at, double d, vec3 look, double& ox, double& oy) {
+        world::World& w = s.world();
+        for (int k = 0; k < 72; ++k) {
+            const double a = k * 0.0873 * 1.0;
+            for (double dd = d; dd > d * 0.6; dd -= 0.3) {
+                const double x = at.x + std::cos(a) * dd, y = at.y + std::sin(a) * dd;
+                const world::Tile* t = w.tileIfLoaded(ifloor(x), ifloor(y));
+                if (!t || !t->open() || t->clearance() < 2.0f || std::fabs(t->floor - at.z) > 0.3f) continue;
+                if (!game::clearSight(w, vec3{(float)x, (float)y, t->floor + 1.6f}, look)) continue;
+                ox = x, oy = y;
+                return true;
+            }
+        }
+        return false;
+    };
+    // --- Klaenge und Ebene -------------------------------------------------------------------------------------------------
+    {
+        int bad = 0;
+        for (int k = game::KC_RAT_SAY0; k < game::KC_L3_END; ++k) {
+            const game::KinLine* L = game::kinLine(k);
+            bad += !L || !L->sound || game::kinLineBySound(L->sound) != L;
+        }
+        check(bad == 0, "Death Rats/Motten: jede Klangnummer hat einen Namen (auch fuer die Gaeste)");
+        check(game::kinLine(game::KC_RAT_SAY0)->sub && game::kinLine(game::KC_RAT_SAY0 + 11)->sub && game::kinLine(game::KC_TRAP_CRACKLE)->hint &&
+                  game::kinLine(game::KC_PR_REAR)->hint && !game::kinLine(game::KC_RAT_GRIND)->sub,
+              "Death Rats: das Sprachgeraet mit Untertitel; Falle, Schwarm und Praetorianer mit einmaligem Hinweis");
+        check(game::kinCueOf(14.0f, (int)Role::Rat) < 0 && game::kinCueOf(9.0f, (int)Role::Moth) < 0 &&
+                  game::kinCueOf(100.0f + game::KC_RAT_HISS, (int)Role::Rat) == game::KC_RAT_HISS,
+              "Death Rats/Motten: Schaden bleibt Schaden, Klangnummern erst ab 100");
+        const auto L3 = content.level("level3", world::kLayoutV6);
+        const auto L2 = content.level("level2", world::kLayoutV6);
+        check(L3 && L3->kin[world::KIN_RAT].mode == "l3" && L3->kin[world::KIN_RAT].count >= 2 && L3->kin[world::KIN_RAT].chance == 0.0,
+              "Level 3: Death Rats mit Fallen (mode l3, hoechstens count Fallen, kein Schrei-Ereignis)");
+        check(L3 && L3->kin[world::KIN_MOTH].on && L3->kin[world::KIN_MOTH].mode == "swarm" && L3->kin[world::KIN_MOTH].chance > 0.4,
+              "Level 3: Mottenschwarm mit ueber 40 % Praetorianern (Wikidot Level 3)");
+        check(L2 && L2->kin[world::KIN_RAT].mode == "bald" && L2->kin[world::KIN_MOTH].mode.empty(), "Level 2: Ratten und Motten unveraendert");
+    }
+    // --- Death Rats: Auftritt, Wetzen, Wahrnehmen, Sprechen, Abstand zur Lampe ---------------------------------------------
+    {
+        auto s = open(5);
+        auto& P = s->presence();
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.5);
+        P.l3Set("mem", 0.0);
+        P.force(Role::Rat);
+        step(*s, ev, 1.0, [&] { return P.l3Info().rats > 0; });
+        auto I = P.l3Info();
+        check(I.rats >= 2 && I.rats <= 3 && P.variantOf(Role::Rat) >= 2, std::format("Death Rats: eine Brigade aus {} grossen Ratten (Variante 2)", I.rats));
+        // niemand erscheint im Blick
+        int seen = 0;
+        vec3 rp;
+        int st = 0, var = 0;
+        const vec3 eye = eyeOf(*s);
+        const vec3 look{(float)(std::cos(s->player().angle) * std::cos(s->player().pitch)), (float)(std::sin(s->player().angle) * std::cos(s->player().pitch)),
+                        (float)std::sin(s->player().pitch)};
+        for (int i = 0; P.agentInfo(Role::Rat, i, rp, st, var); ++i)
+            if (var == 2 && dot(normalize(rp + vec3{0, 0, 0.4f} - eye), look) > 0.3f && game::clearSight(s->world(), eye, rp + vec3{0, 0, 0.4f})) ++seen;
+        check(seen == 0, "Death Rats: erscheinen ausser Sicht");
+        // die erste Ratte: Spieler 9 m vor ihr, Lampe an, freie Sicht - sie bemerkt ihn, das Geraet spricht
+        vec3 r0;
+        P.agentInfo(Role::Rat, 0, r0, st, var);
+        for (int i = 0; P.agentInfo(Role::Rat, i, rp, st, var); ++i)
+            if (var == 2) {
+                r0 = rp;
+                break;
+            }
+        step(*s, ev, 4.0);
+        const int grind = count(ev, PE::Mimic, Role::Rat, game::KC_RAT_GRIND);
+        double x = 0, y = 0;
+        bool placed = spotNear(*s, r0, 9.0, r0 + vec3{0, 0, 0.4f}, x, y);
+        check(placed, "Death Rats: Platz mit Sicht auf die Ratte gefunden");
+        if (!placed) return;
+        put(*s, x, y);
+        aim(*s, r0 + vec3{0, 0, 0.4f});
+        s->flashlight().on = true;
+        step(*s, ev, 4.0);  // ev: seit dem Auftritt (der erste Satz faellt, sobald sie ihn bemerken)
+        I = P.l3Info();
+        const int say = count(ev, PE::Mimic, Role::Rat, game::KC_RAT_SAY0, game::KC_RAT_SAY0 + game::KC_RAT_SAYS - 1);
+        check(grind >= 1 || I.ratJob != 0, std::format("Death Rats: wetzen die Zaehne, bevor man sie sieht (Geraeusch vor Sicht: {} x)", grind));
+        check(I.ratJob >= 1 && say >= 1, std::format("Death Rats: bemerken den Spieler (Auftrag {}), das Sprachgeraet spricht ({} Saetze)", I.ratJob, say));
+        // Abstand mit Lampe groesser als ohne (sie warten ausserhalb der Lampe)
+        auto meanDist = [&](double secs) {
+            double sum = 0.0;
+            int n = 0;
+            step(*s, ev, secs, [&] {
+                vec3 p;
+                int st2 = 0, v2 = 0;
+                for (int i = 0; P.agentInfo(Role::Rat, i, p, st2, v2); ++i)
+                    if (v2 == 2) sum += std::hypot(p.x - s->player().x, p.y - s->player().y), ++n;
+                return false;
+            });
+            return n ? sum / n : 0.0;
+        };
+        P.l3Set("clear", 1.0);  // ohne Falle in der Naehe: sie lauern (sonst treiben sie); der Fallenbau wird unten geprueft
+        P.l3Set("build", 0.0);
+        P.l3Set("job", 1.0);
+        step(*s, ev, 6.0);
+        const double dOn = meanDist(8.0);
+        s->flashlight().on = false;
+        P.l3Set("clear", 1.0);
+        step(*s, ev, 6.0);
+        const double dOff = meanDist(8.0);
+        check(dOn > dOff + 1.0 && dOn > 5.5, std::format("Death Rats: warten ausserhalb der Lampe ({:.1f} m mit Lampe, {:.1f} m ohne)", dOn, dOff));
+        I = P.l3Info();
+        check(I.encounters >= 1 && I.trail >= 1, std::format("Death Rats: Gedaechtnis - {} Begegnungen, {} Wegpunkte des Spielers", I.encounters, I.trail));
+        // Drohen vor dem Biss: der Spieler tritt dicht heran - erst Zischen und "STOP.", dann (bleibt er) der Biss
+        bool threat = false, bitAfterWarn = false;
+        for (int tries = 0; tries < 4 && !threat; ++tries) {
+            vec3 rr;
+            for (int i = 0; P.agentInfo(Role::Rat, i, rr, st, var); ++i)
+                if (var == 2) break;
+            if (!spotNear(*s, rr, 1.3, rr + vec3{0, 0, 0.4f}, x, y)) continue;
+            put(*s, x, y);
+            aim(*s, rr + vec3{0, 0, 0.4f});
+            ev.clear();
+            step(*s, ev, 3.0, [&] { return false; }, [&](int) {
+                vec3 q;
+                int s2 = 0, v2 = 0;
+                for (int i = 0; P.agentInfo(Role::Rat, i, q, s2, v2); ++i)
+                    if (v2 == 2) break;
+                return game::PlayerControl{};
+            });
+            const int hiss = first(ev, PE::Mimic, Role::Rat, game::KC_RAT_HISS), hit = first(ev, PE::Hit, Role::Rat);
+            threat = hiss >= 0;
+            bitAfterWarn = hit < 0 || hit > hiss;
+        }
+        check(threat && bitAfterWarn, "Death Rats: drohen (Zischen, aufgerichtet, \"STOP.\") vor jedem Biss");
+    }
+    // --- Falle: sichtbar (Draht quer im Gang, Knistern), Schlag mit Laehmung, darueber springen, versagt manchmal -----------
+    {
+        auto s = open(7);
+        auto& P = s->presence();
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.5);
+        // einen Gang suchen: der Spieler blickt entlang
+        world::World& w = s->world();
+        double gx = 0, gy = 0, ang = 0;
+        bool found = false;
+        for (int r = 2; r < 30 && !found; ++r)
+            for (int k = 0; k < 8 * r && !found; ++k) {
+                const double a = k * 6.2831853 / (8 * r);
+                const double x = s->player().x + std::cos(a) * r, y = s->player().y + std::sin(a) * r;
+                const world::Tile* t = w.tileIfLoaded(ifloor(x), ifloor(y));
+                if (!t || !t->open() || !t->room || !t->room->type || t->room->type->key != "gang") continue;
+                for (int d = 0; d < 4 && !found; ++d) {
+                    const int dx = d == 0 ? 1 : d == 1 ? -1 : 0, dy = d == 2 ? 1 : d == 3 ? -1 : 0;
+                    bool ok = true;
+                    for (int q = 1; q <= 5 && ok; ++q) {
+                        const world::Tile* u = w.tileIfLoaded(ifloor(x) + dx * q, ifloor(y) + dy * q);
+                        ok = u && u->open() && std::fabs(u->floor - t->floor) < 0.1f && u->clearance() > 2.0f;
+                    }
+                    if (ok) gx = ifloor(x) + 0.5, gy = ifloor(y) + 0.5, ang = std::atan2((double)dy, (double)dx), found = true;
+                }
+            }
+        check(found, "Falle: ein gerader Gang gefunden");
+        if (!found) return;
+        int zaps = 0, fizz = 0, healthDrop = 0, stunned = 0, crackles = 0, wireOk = 0;
+        for (int round = 0; round < 6 && zaps == 0; ++round) {
+            P.clear();
+            put(*s, gx, gy);
+            s->player().angle = ang, s->player().pitch = -0.3;
+            P.l3Set("trap", 2.5);
+            ev.clear();
+            step(*s, ev, 5.0);
+            auto I = P.l3Info();
+            if (I.armed < 1) continue;
+            const float span = hdist2(I.trapL, I.trapR), hz = I.trapL.z - s->world().tile(ifloor(I.trapL.x), ifloor(I.trapL.y)).floor;
+            wireOk += span > 0.8f && span < 3.3f && std::fabs(hz - 0.18f) < 0.03f ? 1 : 0;
+            crackles += count(ev, PE::Mimic, Role::Rat, game::KC_TRAP_CRACKLE);
+            // durchgehen: die Fuesse am Boden quer ueber den Draht
+            const vec3 mid = (I.trapL + I.trapR) * 0.5f;
+            const vec3 along{(float)std::cos(ang), (float)std::sin(ang), 0.0f};
+            const double h0 = s->stats().health;
+            ev.clear();
+            for (int k = 0; k <= 40; ++k) {
+                const vec3 p = mid - along * 1.0f + along * (2.0f * k / 40.0f);
+                put(*s, p.x, p.y);
+                step(*s, ev, 1.0 / 60.0);
+            }
+            step(*s, ev, 0.3);
+            zaps += count(ev, PE::Mimic, Role::Rat, game::KC_TRAP_ZAP);
+            fizz += count(ev, PE::Mimic, Role::Rat, game::KC_TRAP_FIZZLE);
+            if (count(ev, PE::Mimic, Role::Rat, game::KC_TRAP_ZAP)) {
+                healthDrop += s->stats().health < h0 - 5.0 ? 1 : 0;
+                stunned += P.stupor(s->netSelfId) > 0.5f ? 1 : 0;
+            }
+        }
+        check(wireOk >= 1, "Falle: blanker Draht quer durch den Gang in 18 cm Hoehe (0,8-3,2 m)");
+        check(crackles >= 1, std::format("Falle: kuendigt sich an - Knistern mit Funken ({} x in 5 s)", crackles));
+        check(zaps >= 1 && healthDrop >= 1 && stunned >= 1, std::format("Falle: wer durchgeht, bekommt den Schlag - Schaden und Laehmung ({} Schlaege, {} versagt)", zaps, fizz));
+        // darueber springen: in der Luft ueber den Draht - kein Schlag, sie merken es sich
+        P.clear();
+        put(*s, gx, gy);
+        s->player().angle = ang, s->player().pitch = -0.3;
+        P.l3Set("trap", 2.5);
+        step(*s, ev, 1.0);
+        auto I = P.l3Info();
+        const int jumped0 = I.jumped;
+        ev.clear();
+        if (I.armed >= 1) {
+            const vec3 mid = (I.trapL + I.trapR) * 0.5f;
+            const vec3 along{(float)std::cos(ang), (float)std::sin(ang), 0.0f};
+            for (int k = 0; k <= 40; ++k) {
+                const vec3 p = mid - along * 1.0f + along * (2.0f * k / 40.0f);
+                put(*s, p.x, p.y);
+                const bool air = std::fabs(k - 20) <= 6;
+                s->player().onGround = !air;
+                s->player().z += air ? 0.45 : 0.0;
+                step(*s, ev, 1.0 / 60.0);
+            }
+        }
+        I = P.l3Info();
+        check(I.armed >= 1 && count(ev, PE::Hit, Role::Rat) == 0 && I.jumped > jumped0, "Falle: wer darueber springt, bleibt heil - die Ratten merken es sich");
+        // Fallenbau: die Brigade baut selbst (Zeitraffer) - eine weitere Falle entsteht ausser Sicht
+        P.clear();
+        put(*s, gx, gy);
+        P.force(Role::Rat);
+        step(*s, ev, 1.0);
+        const int traps0 = P.l3Info().traps;
+        P.l3Set("quick", 12.0);
+        P.l3Set("build", 1.0);
+        P.l3Set("job", 1.0);
+        step(*s, ev, 60.0, [&] { return P.l3Info().traps > traps0; });
+        check(P.l3Info().traps > traps0, std::format("Death Rats: bauen selbst Fallen auf dem Weg des Spielers ({} -> {})", traps0, P.l3Info().traps));
+        // Koop: die Puppen beim Gast tragen Rolle und Variante (Ratte 2, Falle 3)
+        std::vector<game::Presence::NetState> ns;
+        P.netStates(ns, eyeOf(*s), 32);
+        game::Presence G;
+        G.netApply(ns, 0.0);
+        int pv2 = 0, pv3 = 0;
+        vec3 q;
+        int st = 0, var = 0;
+        for (int i = 0; G.agentInfo(Role::Rat, i, q, st, var); ++i) pv2 += var == 2, pv3 += var == 3;
+        check(pv2 >= 1 && pv3 >= 1, std::format("Koop: Puppen der Ratten ({}) und Fallen ({}) beim Gast", pv2, pv3));
+    }
+    // --- Mottenschwarm: Praetorianer, Licht lockt, Angriff aufs Gesicht mit Ankuendigung, Lampe aus und rennen ------------
+    {
+        auto s = open(9);
+        auto& P = s->presence();
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.5);
+        P.force(Role::Moth);
+        step(*s, ev, 1.0, [&] { return P.l3Info().commons > 0; });
+        auto I = P.l3Info();
+        const double share = I.commons + I.praetorians > 0 ? (double)I.praetorians / (I.commons + I.praetorians) : 0.0;
+        check(I.commons >= 3 && I.praetorians >= 2 && share >= 0.38,
+              std::format("Motten: Schwarm aus {} Motten und {} Praetorianern ({:.0f} %)", I.commons, I.praetorians, share * 100.0));
+        // vor die Roehre treten, Lampe auf die Motten: sie fliegen auf
+        vec3 mp;
+        int st = 0, var = 0;
+        for (int i = 0; P.agentInfo(Role::Moth, i, mp, st, var); ++i)
+            if (var == 3 || var == 4) break;
+        double x = 0, y = 0;
+        bool placed = spotNear(*s, vec3{mp.x, mp.y, s->world().tile(ifloor(mp.x), ifloor(mp.y)).floor}, 6.0, mp, x, y);
+        check(placed, "Motten: Platz mit Sicht auf die Roehre");
+        if (!placed) return;
+        put(*s, x, y);
+        aim(*s, mp);
+        s->flashlight().on = true;
+        ev.clear();
+        step(*s, ev, 3.0, [&] { return P.l3Info().roused; });
+        check(P.l3Info().roused && count(ev, PE::TakeOff, Role::Moth) >= 1 && count(ev, PE::Mimic, Role::Moth, game::KC_MOTH_SWARM) >= 1,
+              "Motten: die Lampe lockt - der Schwarm fliegt auf (Brummen)");
+        // stehen bleiben mit Lampe: erst das Brummen vor dem Gesicht (Ankuendigung), dann Motten im Gesicht
+        const double h0 = s->stats().health;
+        int maxFace = 0;
+        step(*s, ev, 14.0, [&] {
+            maxFace = std::max(maxFace, P.l3Info().onFace);
+            return false;
+        }, [&](int) {
+            game::PlayerControl c;
+            return c;
+        });
+        const int warn = first(ev, PE::Hiss, Role::Moth), hit = first(ev, PE::Hit, Role::Moth);
+        check(maxFace >= 2 && warn >= 0 && hit > warn && s->stats().health < h0,
+              std::format("Motten: greifen Mund, Nase, Augen, Ohren an ({} zugleich), angekuendigt (Brummen vor dem ersten Biss)", maxFace));
+        // Lampe aus und rennen: sie lassen los und verlieren ihn
+        s->flashlight().on = false;
+        const vec3 away = normalize(vec3{(float)(s->player().x - mp.x), (float)(s->player().y - mp.y), 0.0f});
+        s->player().angle = std::atan2(away.y, away.x);
+        step(*s, ev, 10.0, {}, [&](int) {
+            game::PlayerControl c;
+            c.forward = 1.0f, c.sprint = true;
+            return c;
+        });
+        step(*s, ev, 4.0);
+        I = P.l3Info();
+        check(I.onFace == 0, "Motten: Lampe aus und rennen - keine Motte mehr im Gesicht");
+        // Praetorianer: aufbaeumen (Klicken, Zischen) vor dem Stich; der Stich laehmt
+        P.clear();
+        P.force(Role::Moth);
+        step(*s, ev, 1.0, [&] { return P.l3Info().praetorians > 0; });
+        vec3 pp;
+        for (int i = 0; P.agentInfo(Role::Moth, i, pp, st, var); ++i)
+            if (var == 5) break;
+        placed = spotNear(*s, pp, 1.8, pp + vec3{0, 0, 0.6f}, x, y);
+        if (placed) {
+            put(*s, x, y);
+            aim(*s, pp + vec3{0, 0, 0.6f});
+            P.l3Set("pstate", 2.0);
+            ev.clear();
+            step(*s, ev, 3.0);
+            const int rear = first(ev, PE::Mimic, Role::Moth, game::KC_PR_REAR), stab = first(ev, PE::Mimic, Role::Moth, game::KC_PR_STAB);
+            const int hitP = first(ev, PE::Hit, Role::Moth);
+            check(rear >= 0 && stab > rear && (hitP < 0 || hitP > rear), "Praetorianer: baeumt sich auf (Ankuendigung) vor dem Stich");
+            check(hitP >= 0 && P.stupor(s->netSelfId) > 0.2f, std::format("Praetorianer: der Giftstich laehmt (Betaeubung {:.2f})", P.stupor(s->netSelfId)));
+        } else {
+            check(false, "Praetorianer: Platz neben ihm gefunden");
+        }
+    }
+}
+
+// V13.3 Level 2/3 (KREATUR_Hound.md, Abschnitt "Rudel"; KREATUR_Clump.md, Abschnitt "Level 3"): Hound-Rudel und das grosse,
+// bewaffnete Buendel
+static void testV133PackBigClump(const std::string& dataDir) {
+    std::printf("V13.3: Level 2/3 - Hound-Rudel (einkreisen, bellen, quaelen), grosses bewaffnetes Buendel (Level 3)\n");
+    const game::Content& content = *gContent11;
+    game::PrefabLibrary prefabs;
+    prefabs.loadDirectory(dataDir + "/prefabs");
+    JobSystem jobs(2);
+    using PE = game::Presence::Event;
+    using Role = game::Presence::Role;
+    auto open = [&](const char* lv, i64 seed) {
+        auto s = std::make_unique<game::GameSession>(content, prefabs, content.level(lv, world::kLayoutV6), seed, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        s->presence().setGrace(3000.0);
+        s->presence().packSet("next", 1e9);
+        s->presence().bigClumpSet("next", 1e9);
+        return s;
+    };
+    auto step = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, double secs, const std::function<bool()>& each = {},
+                    const std::function<game::PlayerControl(int)>& ctl = {}) {
+        for (int i = 0; i < (int)(secs * 60.0); ++i) {
+            if (each && each()) break;
+            s.update(1.0 / 60.0, ctl ? ctl(i) : game::PlayerControl{}, false);
+            ev.insert(ev.end(), s.events().begin(), s.events().end());
+            s.events().clear();
+        }
+    };
+    auto count = [](const std::vector<game::GameEvent>& ev, PE::Type t, Role r, int cue = -1) {
+        return (int)std::count_if(ev.begin(), ev.end(), [&](const game::GameEvent& e) {
+            if (e.type != game::GameEvent::Figure || e.index != (int)t || e.role != (int)r) return false;
+            return game::kinCueOf(e.intensity, e.role) == cue;
+        });
+    };
+    auto first = [](const std::vector<game::GameEvent>& ev, PE::Type t, Role r, int cue = -1) {
+        for (size_t i = 0; i < ev.size(); ++i) {
+            const auto& e = ev[i];
+            if (e.type == game::GameEvent::Figure && e.index == (int)t && e.role == (int)r && game::kinCueOf(e.intensity, e.role) == cue) return (int)i;
+        }
+        return -1;
+    };
+    auto aim = [](game::GameSession& s, vec3 q) {
+        auto& pl = s.player();
+        pl.angle = std::atan2(q.y - pl.y, q.x - pl.x);
+        pl.pitch = std::atan2(q.z - pl.eye(), std::max(0.4, std::hypot(q.x - pl.x, q.y - pl.y)));
+    };
+    auto eyeOf = [](game::GameSession& s) { return vec3{(float)s.player().x, (float)s.player().y, (float)s.player().eye()}; };
+    auto put = [](game::GameSession& s, double x, double y) {
+        auto& pl = s.player();
+        pl.x = x, pl.y = y, pl.z = s.world().tile(ifloor(x), ifloor(y)).floor, pl.vx = pl.vy = 0.0, pl.vz = 0.0, pl.onGround = true;
+        s.body().reset();
+    };
+    // freie Kachel in etwa d m von 'at' mit Sicht auf 'look'
+    auto spotNear = [&](game::GameSession& s, vec3 at, double d, vec3 look, double& ox, double& oy) {
+        world::World& w = s.world();
+        for (int k = 0; k < 72; ++k) {
+            const double a = k * 0.0873;
+            for (double dd = d; dd > d * 0.6; dd -= 0.3) {
+                // Kachelmitte (am Rand haengt der Spieler an der Wand fest), ringsum begehbar
+                const double x = std::floor(at.x + std::cos(a) * dd) + 0.5, y = std::floor(at.y + std::sin(a) * dd) + 0.5;
+                const world::Tile* t = w.tileIfLoaded(ifloor(x), ifloor(y));
+                if (!t || !t->open() || t->clearance() < 2.0f || std::fabs(t->floor - at.z) > 0.3f) continue;
+                int free = 0;
+                for (int k2 = 0; k2 < 4; ++k2) {
+                    const world::Tile* n = w.tileIfLoaded(ifloor(x) + (k2 == 0) - (k2 == 1), ifloor(y) + (k2 == 2) - (k2 == 3));
+                    free += n && n->open() && std::fabs(n->floor - t->floor) < 0.3f;
+                }
+                if (free < 3) continue;
+                if (!game::clearSight(w, vec3{(float)x, (float)y, t->floor + 1.6f}, look)) continue;
+                ox = x, oy = y;
+                return true;
+            }
+        }
+        return false;
+    };
+    auto hounds = [](game::Presence& P, std::vector<vec3>& pos, std::vector<int>& st) {
+        pos.clear(), st.clear();
+        vec3 p;
+        int s = 0, v = 0;
+        for (int i = 0; P.agentInfo(Role::Hound, i, p, s, v); ++i)
+            if (v > 0) pos.push_back(p), st.push_back(s);
+        return (int)pos.size();
+    };
+    // --- Ebenen, Klaenge, Modelle ---------------------------------------------------------------------------------------------
+    {
+        const auto L1 = content.level("level1", world::kLayoutV6), L2 = content.level("level2", world::kLayoutV6);
+        const auto L3 = content.level("level3", world::kLayoutV6), L5 = content.level("level5", world::kLayoutV6);
+        check(L2 && !L2->allowHound && L2->houndPack.on && L2->houndPack.mode == "l2" && L2->houndPack.groupMin >= 3,
+              "Level 2: Hounds nur im Rudel (mindestens drei, zieht umher)");
+        check(L3 && !L3->allowHound && L3->houndPack.on && L3->houndPack.mode == "l3" && L3->clumpBig.on && L3->allowClump,
+              "Level 3: Rudel aus Lauerern, grosses bewaffnetes Buendel neben den kleinen");
+        check(L1 && L1->allowHound && !L1->houndPack.on && !L1->clumpBig.on && L5 && L5->allowHound && !L5->houndPack.on,
+              "Level 1 und 5: der einzelne Hound bleibt, wie er ist (kein Rudel, kein grosses Buendel)");
+        int bad = 0;
+        for (int k = game::KC_L3_END; k < game::KC_PACK_END; ++k) {
+            const game::KinLine* L = game::kinLine(k);
+            bad += !L || !L->sound || game::kinLineBySound(L->sound) != L;
+        }
+        check(bad == 0, "Rudel/Buendel: jede Klangnummer hat einen Namen (auch fuer die Gaeste)");
+        check(game::kinLine(game::KC_HP_CALL)->hint && game::kinLine(game::KC_HP_FAST)->hint && game::kinLine(game::KC_HP_LUNGE)->hint &&
+                  game::kinLine(game::KC_CL_CEIL)->hint && game::kinLine(game::KC_CL_SCRAPE)->hint,
+              "Rudel/Buendel: Ruf, schnelles Bellen, Sprung, Decke und Ausholen mit einmaligem Hinweis (Rat des Wikis)");
+        check(game::kinCueOf(22.0f, (int)Role::Hound) < 0 && game::kinCueOf(30.0f, (int)Role::Clump) < 0 &&
+                  game::kinCueOf(100.0f + game::KC_HP_MAUL, (int)Role::Hound) == game::KC_HP_MAUL,
+              "Rudel/Buendel: Schaden bleibt Schaden, Klangnummern erst ab 100");
+        const auto& hv = anim::entityVariants(anim::Entity::Hound);
+        const auto& cv = anim::entityVariants(anim::Entity::Clump);
+        check(hv.size() == 3 && std::string(hv[1]) == "ent_hound_l2" && std::string(hv[2]) == "ent_hound_l3" && cv.size() == 3 &&
+                  std::string(cv[1]) == "ent_clump_l3" && std::string(cv[2]) == "ent_clump_l3_bare",
+              "Modelle: Rudel-Hound je Ebene, grosses Buendel bewaffnet und entwaffnet");
+    }
+    // --- Level 2: das Rudel zieht umher, gestoert schlagartig schnell, kreist ein ---------------------------------------------
+    {
+        auto s = open("level2", 4);
+        auto& P = s->presence();
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.5);
+        P.packSet("spawn", 26.0);
+        step(*s, ev, 0.5);
+        std::vector<vec3> hp;
+        std::vector<int> hs;
+        const int n = hounds(P, hp, hs);
+        check(n >= 3 && n <= 4 && P.packInfo().active && P.packInfo().l3 == 0, std::format("Level 2: ein Rudel aus {} Hounds (Variante 1)", n));
+        float spread = 0.0f;
+        for (const vec3& p : hp) spread = std::max(spread, hdist2(p, hp[0]));
+        check(n > 0 && spread < 4.0f, std::format("Level 2: das Rudel steht beisammen ({:.1f} m)", spread));
+        // still stehen, Lampe aus, weggedreht: es zieht langsam umher
+        s->flashlight().on = false;
+        if (n) aim(*s, eyeOf(*s) * 2.0f - hp[0]);
+        std::vector<vec3> h0 = hp;
+        float vmax = 0.0f;
+        int alarmed = 0;
+        step(*s, ev, 6.0, [&] {
+            std::vector<vec3> q;
+            hounds(P, q, hs);
+            for (size_t i = 0; i < q.size() && i < h0.size(); ++i) vmax = std::max(vmax, hdist2(q[i], h0[i]) * 60.0f);
+            h0 = q;
+            alarmed = P.packInfo().phase;
+            return alarmed > 0;
+        });
+        check(alarmed == 0 && vmax < 1.8f, std::format("Level 2: ungestoert zieht das Rudel langsam (hoechstens {:.2f} m/s)", vmax));
+        check(count(ev, PE::Growl, Role::Hound, game::KC_HP_YIP) + count(ev, PE::Step, Role::Hound) > 0,
+              "Level 2: man hoert das Rudel, bevor man es sieht (Klaeffen, Pfoten)");
+        // gestoert (die Lampe trifft sie): Ruf, Antworten, schlagartig schnell
+        hounds(P, hp, hs);
+        double ox = 0, oy = 0;
+        const vec3 c0 = hp.empty() ? eyeOf(*s) : hp[0];
+        const bool placed = spotNear(*s, c0, 12.0, c0 + vec3{0, 0, 0.6f}, ox, oy);
+        if (placed) put(*s, ox, oy);
+        s->flashlight().on = true;
+        aim(*s, c0 + vec3{0, 0, 0.5f});
+        const size_t e0 = ev.size();
+        h0 = hp;
+        float vrun = 0.0f;
+        step(*s, ev, 4.0, [&] {
+            std::vector<vec3> q;
+            hounds(P, q, hs);
+            for (size_t i = 0; i < q.size() && i < h0.size(); ++i) vrun = std::max(vrun, hdist2(q[i], h0[i]) * 60.0f);
+            h0 = q;
+            aim(*s, q.empty() ? c0 : q[0] + vec3{0, 0, 0.5f});
+            return false;
+        });
+        std::vector<game::GameEvent> ev2(ev.begin() + (long long)e0, ev.end());
+        auto I = P.packInfo();
+        check(placed && I.phase >= 1 && count(ev2, PE::Bark, Role::Hound, game::KC_HP_CALL) >= 1 && I.answers >= 1,
+              std::format("Level 2: gesehen - einer ruft, {} antworten", I.answers));
+        s->flashlight().on = false;
+        check(vrun > 3.5f, std::format("Level 2: gestoert werden sie schlagartig schnell ({:.1f} m/s)", vrun));
+        // einkreisen und die Marke: es springt immer nur einer, und erst nach der Ankuendigung
+        put(*s, ox, oy);
+        int maxLunging = 0, phase2 = 0;
+        const size_t e1 = ev.size();
+        step(*s, ev, 16.0, [&] {
+            hounds(P, hp, hs);
+            int lunging = 0;
+            for (int st : hs) lunging += st == 3;
+            maxLunging = std::max(maxLunging, lunging);
+            phase2 = std::max(phase2, P.packInfo().phase);
+            // weggedreht vom naechsten Hound (sonst haelt der Blick sie ab)
+            if (!hp.empty()) aim(*s, eyeOf(*s) * 2.0f - hp[0]);
+            return count(std::vector<game::GameEvent>(ev.begin() + (long long)e1, ev.end()), PE::Hit, Role::Hound) > 0;
+        });
+        std::vector<game::GameEvent> ev3(ev.begin() + (long long)e1, ev.end());
+        const int fl = first(ev3, PE::Bark, Role::Hound, game::KC_HP_LUNGE), fh = first(ev3, PE::Hit, Role::Hound);
+        check(phase2 >= 2 && maxLunging == 1, std::format("Level 2: sie kreisen ein, es springt immer nur einer (Phase {}, zugleich {})", phase2, maxLunging));
+        check(fh >= 0 && fl >= 0 && fl < fh, "Level 2: vor jedem Sprung das scharfe Klaeffen (Ankuendigung)");
+        check(fh >= 0 && !s->stats().dead && s->stats().health < 100.0 && s->stats().health > 50.0,
+              std::format("Level 2: ein Biss verletzt schwer, toetet aber nicht ({:.0f} Leben)", s->stats().health));
+        // Blickkontakt bricht den Sprung ab: der naechste, der ausholt, wird angesehen
+        P.packSet("lunge", 1.0);
+        const int ab0 = P.packInfo().aborted, hits0 = count(ev, PE::Hit, Role::Hound);
+        int seenLunge = 0;
+        step(*s, ev, 6.0, [&] {
+            hounds(P, hp, hs);
+            for (size_t i = 0; i < hp.size(); ++i)
+                if (hs[i] == 3) aim(*s, hp[i] + vec3{0, 0, 0.55f}), ++seenLunge;
+            return P.packInfo().aborted > ab0;
+        });
+        check(seenLunge > 0 && P.packInfo().aborted > ab0 && count(ev, PE::Hit, Role::Hound) == hits0 && count(ev, PE::Whine, Role::Hound, game::KC_HP_FLINCH) >= 1,
+              std::format("Level 2: angesehen bricht er den Sprung ab und weicht winselnd zurueck ({} von {} Spruengen abgebrochen)", P.packInfo().aborted, P.packInfo().lunges));
+        // Rennen reizt, Interesse aufgebraucht: das Rudel gibt auf und zieht ab
+        const float i0 = P.packInfo().interest;
+        step(*s, ev, 1.5, {}, [](int) {
+            game::PlayerControl c;
+            c.forward = 1.0f, c.sprint = true;
+            return c;
+        });
+        check(P.packInfo().interest > i0 || P.packInfo().bites > 1, std::format("Level 2: Rennen reizt sie ({:.2f} -> {:.2f})", i0, P.packInfo().interest));
+        P.packSet("interest", 0.0);
+        step(*s, ev, 3.0, [&] { return P.packInfo().gaveUp; });
+        check(P.packInfo().gaveUp && P.packInfo().phase == 3, "Level 2: ohne Interesse gibt das Rudel auf");
+        step(*s, ev, 60.0, [&] { return hounds(P, hp, hs) == 0; });
+        check(hounds(P, hp, hs) == 0 && !s->stats().dead, "Level 2: das Rudel zieht ab und ist fort");
+    }
+    // --- Level 3: lauern allein, bellen, jagen gemeinsam, quaelen ------------------------------------------------------------
+    {
+        auto s = open("level3", 7);
+        auto& P = s->presence();
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.5);
+        P.packSet("spawn", 24.0);
+        step(*s, ev, 0.5);
+        std::vector<vec3> hp;
+        std::vector<int> hs;
+        const int n = hounds(P, hp, hs);
+        float minGap = 99.0f;
+        for (size_t i = 0; i < hp.size(); ++i)
+            for (size_t j = i + 1; j < hp.size(); ++j) minGap = std::min(minGap, hdist2(hp[i], hp[j]));
+        check(n == 3 && P.packInfo().l3 == 3 && minGap > 6.5f, std::format("Level 3: drei Hounds lauern einzeln ({:.1f} m auseinander)", minGap));
+        // der Lauerer: still, flach, ohne leuchtende Augen - bis man ihm nahe kommt
+        step(*s, ev, 3.0);
+        hounds(P, hp, hs);
+        int still = 0;
+        for (int st : hs) still += st == 0;
+        check(still == 3 && P.packInfo().phase == 0, "Level 3: ungestoert lauern sie reglos");
+        // vor den ersten treten (Lampe an, Blick auf ihn): er bellt, die anderen antworten aus ihrer Lage
+        s->flashlight().on = true;
+        double ox = 0, oy = 0;
+        const vec3 c0 = hp[0];
+        const bool placed = spotNear(*s, c0, 6.0, c0 + vec3{0, 0, 0.5f}, ox, oy);
+        if (placed) put(*s, ox, oy);
+        aim(*s, c0 + vec3{0, 0, 0.4f});
+        const size_t e0 = ev.size();
+        step(*s, ev, 4.0, [&] {
+            aim(*s, c0 + vec3{0, 0, 0.4f});
+            return P.packInfo().answers >= 2;
+        });
+        std::vector<game::GameEvent> ev2(ev.begin() + (long long)e0, ev.end());
+        auto I = P.packInfo();
+        int far = 0;
+        for (const auto& e : ev2)
+            if (e.type == game::GameEvent::Figure && e.index == (int)PE::Bark && game::kinCueOf(e.intensity, e.role) == game::KC_HP_ANSWER &&
+                hdist2(e.pos, c0) > 5.0f)
+                ++far;
+        check(placed && I.phase >= 1 && count(ev2, PE::Bark, Role::Hound, game::KC_HP_CALL) >= 1 && I.answers >= 2 && far >= 2,
+              std::format("Level 3: der Lauerer ruft, {} antworten aus anderen Gaengen", I.answers));
+        // das Bellen wird schneller, wenn man auf einen anderen Hound zulaeuft (sobald einer frei zu sehen ist)
+        vec3 other = c0;
+        step(*s, ev, 8.0, [&] {
+            hounds(P, hp, hs);
+            for (size_t i = 0; i < hp.size(); ++i)
+                if (hdist2(hp[i], c0) > 2.0f && hdist2(hp[i], eyeOf(*s)) < 18.0f && hdist2(hp[i], eyeOf(*s)) > 4.0f &&
+                    game::clearSight(s->world(), eyeOf(*s), hp[i] + vec3{0, 0, 0.5f}))
+                    return other = hp[i], true;
+            aim(*s, c0 + vec3{0, 0, 0.4f});
+            return false;
+        });
+        const float slow = P.packInfo().barkEvery;
+        float fastest = slow;
+        step(*s, ev, 2.5, [&] {
+            aim(*s, other + vec3{0, 0, 1.0f});
+            fastest = std::min(fastest, P.packInfo().barkEvery);
+            return false;
+        }, [](int) {
+            game::PlayerControl c;
+            c.forward = 1.0f;
+            return c;
+        });
+        check(fastest < 1.6f && fastest < slow, std::format("Level 3: laeuft man auf einen anderen zu, bellen sie schneller ({:.1f} s -> {:.1f} s)", slow, fastest));
+        // quaelen: Nacken (gelaehmt), Bein (hinkt, kein Sprint), Kehle (kein Ruf) - nie sofort tot
+        P.packSet("quick", 6.0);
+        P.packSet("phase", 2.0);
+        const size_t e1 = ev.size();
+        float stup = 0.0f, slowF = 1.0f, mute = 0.0f;
+        step(*s, ev, 50.0, [&] {
+            hounds(P, hp, hs);
+            if (!hp.empty()) {  // immer weg vom naechsten (sonst haelt der Blick sie ab)
+                vec3 nb = hp[0];
+                for (const vec3& p : hp)
+                    if (hdist2(p, eyeOf(*s)) < hdist2(nb, eyeOf(*s))) nb = p;
+                aim(*s, eyeOf(*s) * 2.0f - nb);
+            }
+            stup = std::max(stup, P.stupor(0));
+            slowF = std::min(slowF, P.packSlow(0));
+            mute = std::max(mute, P.houndMute(0));
+            return P.packInfo().torment >= 3 || s->stats().dead;
+        });
+        std::vector<game::GameEvent> ev3(ev.begin() + (long long)e1, ev.end());
+        const int fl = first(ev3, PE::Bark, Role::Hound, game::KC_HP_LUNGE), fh = first(ev3, PE::Hit, Role::Hound);
+        check(P.packInfo().torment >= 3 && stup > 0.5f && slowF < 0.8f && mute > 0.0f,
+              std::format("Level 3: sie quaelen in Stufen - gelaehmt ({:.2f}), hinkend ({:.2f}), stumm ({:.0f} s)", stup, slowF, mute));
+        check(fh >= 0 && fl >= 0 && fl < fh, "Level 3: jeder Sprung wird angekuendigt");
+        check(!s->stats().dead && s->stats().health > 40.0, std::format("Level 3: nach drei Bissen lebt man noch ({:.0f} Leben)", s->stats().health));
+        // stumm: das Ansprechen bringt nur ein Roecheln (kein Ruf, den andere hoeren)
+        s->events().clear();
+        step(*s, ev, 3.0);
+        s->events().clear();
+        s->speak();
+        bool rasp = false, call = false;
+        for (const auto& e : s->events()) {
+            rasp = rasp || (e.type == game::GameEvent::SoundAt && e.sound == "hp_rasp");
+            call = call || (e.type == game::GameEvent::SoundAt && e.sound.rfind("talk_call", 0) == 0);
+        }
+        check(rasp && !call, "Level 3: mit zerbissener Kehle kein Ruf mehr - nur ein Roecheln");
+        // Koop: die Puppe beim Gast bekommt Rolle und Variante (Modell), das Protokoll bleibt
+        std::vector<game::Presence::NetState> ns;
+        P.netStates(ns, eyeOf(*s), 32);
+        game::Presence P2;
+        P2.netApply(ns, P.netTime());
+        int puppets = 0;
+        for (const auto& m : ns) puppets += m.role == (int)Role::Hound && m.variant == 2;
+        check(puppets >= 1 && P2.variantOf(Role::Hound) == 2, std::format("Koop: {} Rudel-Hounds als Puppen (Variante 2)", puppets));
+    }
+    // --- Level 3: das grosse, bewaffnete Buendel --------------------------------------------------------------------------------
+    {
+        auto s = open("level3", 9);
+        auto& P = s->presence();
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.5);
+        P.bigClumpSet("spawn", 16.0);
+        step(*s, ev, 0.5);
+        auto B = P.bigClumpInfo();
+        check(B.active && B.variant == 1 && B.state == 0, "Grosses Buendel: erscheint bewaffnet (Variante 1) und lauert");
+        step(*s, ev, 4.0);
+        B = P.bigClumpInfo();
+        check(B.ceil > 0.9f && B.state == 0, std::format("Grosses Buendel: haengt an der Decke ({:.2f}), solange es still ist", B.ceil));
+        // Laerm in der Naehe: es jagt an der Decke, laesst sich fallen, holt aus (Knochen schabt) - erst dann der Hieb
+        double ox = 0, oy = 0;
+        const vec3 cp = B.pos;
+        const bool placed = spotNear(*s, cp, 7.0, cp + vec3{0, 0, 1.0f}, ox, oy);
+        if (placed) put(*s, ox, oy);
+        const size_t e0 = ev.size();
+        int maxState = 0;
+        step(*s, ev, 25.0, [&] {
+            maxState = std::max(maxState, P.bigClumpInfo().state);
+            return P.bigClumpInfo().strikes >= 2 || s->stats().dead;
+        }, [](int i) {
+            game::PlayerControl c;
+            c.forward = (i / 60) % 2 ? 1.0f : -1.0f;  // hin und her gehen (Schritte)
+            return c;
+        });
+        std::vector<game::GameEvent> ev2(ev.begin() + (long long)e0, ev.end());
+        B = P.bigClumpInfo();
+        const int fs = first(ev2, PE::Swing, Role::Clump, game::KC_CL_SCRAPE), fh = first(ev2, PE::Hit, Role::Clump);
+        check(placed && B.drops >= 1 && count(ev2, PE::Drop, Role::Clump, game::KC_CL_DROP) >= 1 && count(ev2, PE::Knock, Role::Clump, game::KC_CL_CEIL) >= 1,
+              std::format("Grosses Buendel: hoert die Schritte, jagt an der Decke und laesst sich fallen ({} Mal, bis Zustand {})", B.drops, maxState));
+        check(B.strikes >= 1 && fs >= 0 && (fh < 0 || fs < fh), std::format("Grosses Buendel: vor jedem Hieb das Schaben der Knochen ({} Hiebe)", B.strikes));
+        check(!s->stats().dead && (fh < 0 || s->stats().health > 40.0), std::format("Grosses Buendel: ein Hieb toetet nicht sofort ({:.0f} Leben)", s->stats().health));
+        // leise weg: still stehen, es findet nicht
+        const int st0 = P.bigClumpInfo().strikes;
+        step(*s, ev, 1.0);
+        put(*s, ox, oy);
+        step(*s, ev, 8.0);
+        check(P.bigClumpInfo().strikes <= st0 + 1 && !s->stats().dead, "Grosses Buendel: wer still steht, wird nicht gefunden (es ist blind)");
+        // entwaffnet: es reisst sich den Knochen frei (Modellwechsel), dabei hoert es nichts
+        P.bigClumpSet("disarm", 1.0);
+        const size_t e1 = ev.size();
+        step(*s, ev, 3.2);
+        std::vector<game::GameEvent> ev3(ev.begin() + (long long)e1, ev.end());
+        B = P.bigClumpInfo();
+        check(B.variant == 2 && B.tears >= 1 && count(ev3, PE::Swing, Role::Clump, game::KC_CL_TEAR) == 1,
+              "Grosses Buendel: entwaffnet reisst es sich den Knochen frei (Variante 2)");
+        // lange Stille: zurueck an die Decke und fort
+        P.bigClumpSet("state", 4.0);
+        step(*s, ev, 30.0, [&] { return P.bigClumpInfo().state >= 8; });
+        check(P.bigClumpInfo().state >= 8 || !P.bigClumpInfo().active, "Grosses Buendel: nach langer Stille zieht es sich zurueck");
+    }
+}
+
+// V13.3 Level 3, Restpunkte (KREATUR_Smiler.md "V13.3: Level 3 - Angriff ohne Anlass")
+static void testV133Level3Rest(const std::string& dataDir) {
+    std::printf("V13.3: Level 3 - Smiler ohne Anlass\n");
+    game::PrefabLibrary prefabs;
+    prefabs.loadDirectory(dataDir + "/prefabs");
+    JobSystem jobs(2);
+    using PE = game::Presence::Event;
+    using Role = game::Presence::Role;
+    const auto L1 = gContent11->level("level1", world::kLayoutV6);
+    check(gContent11->level("level3", world::kLayoutV6)->smilerUnprovoked > 0.2 && L1->smilerUnprovoked == 0.0,
+          "Level 3: presence.smiler_unprovoked gesetzt, Level 1 nicht");
+    auto look = [](game::GameSession& se, vec3 q, double off) {
+        auto& pl = se.player();
+        pl.angle = std::atan2(q.y - pl.y, q.x - pl.x) + off;
+        pl.pitch = off > 1.0 ? 0.0 : std::atan2(q.z + 1.7 - pl.eye(), std::max(0.5, std::hypot(q.x - pl.x, q.y - pl.y)));
+    };
+    // Halle Aquila (Level 1) mit der Einstellung von Level 3 (oder ohne): Stromausfall, der Smiler, davor stellen (8 m, dahinter
+    // 20 m freier Boden)
+    auto setup = [&](double unprovoked, std::unique_ptr<game::GameSession>& s) {
+        auto L = std::make_shared<world::LevelDef>(*L1);
+        L->smilerBait = unprovoked > 0.0 ? 1 : 0;
+        L->smilerUnprovoked = unprovoked;
+        s = std::make_unique<game::GameSession>(*gContent11, prefabs, L, 4242, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        for (int i = 0; i < 12; ++i) s->update(1.0 / 60.0, {}, false), s->events().clear();
+        world::World& ww = s->world();
+        auto& pl = s->player();
+        const auto [hx, hy] = hallSpot(ww);
+        pl.x = hx + 0.5, pl.y = hy + 0.5, pl.z = ww.tile(hx, hy).floor;
+        s->body().reset();
+        s->preload();
+        auto& P = s->presence();
+        P.force(Role::Smiler);
+        for (int i = 0; i < 60 * 16 && !P.has(Role::Smiler); ++i) s->update(1.0 / 60.0, {}, false), s->events().clear();
+        for (int i = 0; i < 60 * 4 && P.has(Role::Smiler) && P.stateOf(Role::Smiler) < 1; ++i) {
+            look(*s, P.posOf(Role::Smiler), 0.0);
+            s->update(1.0 / 60.0, {}, false), s->events().clear();
+        }
+        if (!P.has(Role::Smiler)) return false;
+        const vec3 sp = P.posOf(Role::Smiler);
+        for (int k = 0; k < 32; ++k) {
+            const double a = k * 0.19635, ux = std::cos(a), uy = std::sin(a);
+            bool ok = true;
+            for (double d = 5.0; d <= 28.0 && ok; d += 0.5) {
+                const world::Tile& t = ww.tile(ifloor(sp.x + ux * d), ifloor(sp.y + uy * d));
+                ok = t.open() && t.clearance() > 2.1f && std::fabs(t.floor - sp.z) < 0.2f && !(t.flags & world::TF_FEATURE);
+            }
+            // seitlich 4 m frei (zur Seite treten)
+            for (double d = 0.5; d <= 4.0 && ok; d += 0.5) {
+                const world::Tile& t = ww.tile(ifloor(sp.x + ux * 8.0 - uy * d), ifloor(sp.y + uy * 8.0 + ux * d));
+                ok = t.open() && t.clearance() > 2.1f && std::fabs(t.floor - sp.z) < 0.2f && !(t.flags & world::TF_FEATURE);
+            }
+            if (!ok) continue;
+            pl.x = sp.x + ux * 8.0, pl.y = sp.y + uy * 8.0, pl.z = sp.z, pl.vx = pl.vy = 0.0;
+            s->body().reset();
+            look(*s, sp, 0.0);
+            return true;
+        }
+        return false;
+    };
+    struct Run {
+        double tAnn = -1.0, tHit = -1.0, tCalm = -1.0;
+        int stageMax = 0;
+        bool gone = false;
+    };
+    // what: 0 stehen und hinsehen, 1 Licht aus und zur Seite treten, 2 wegrennen (Lampe an)
+    auto play = [&](game::GameSession& s, int what, double secs) {
+        auto& P = s.presence();
+        Run r;
+        double t = 0.0, tAct = -1.0;
+        for (int i = 0; i < (int)(secs * 60.0); ++i, t += 1.0 / 60.0) {
+            game::PlayerControl c;
+            if (!P.has(Role::Smiler)) {
+                r.gone = true;
+                break;
+            }
+            const vec3 sp = P.posOf(Role::Smiler);
+            if (r.tAnn >= 0.0 && tAct < 0.0) tAct = t;
+            if (what == 0 || tAct < 0.0) look(s, sp, 0.0);
+            if (what == 1 && tAct >= 0.0) {
+                s.flashlight().on = false;
+                if (t - tAct < 1.9) look(s, sp, 0.0), c.side = 1.0f;  // ruhig zur Seite (gehen)
+            }
+            if (what == 2 && tAct >= 0.0) look(s, sp, 3.14159), c.forward = 1.0f, c.sprint = true;
+            s.update(1.0 / 60.0, c, false);
+            for (const auto& e : s.events()) {
+                if (e.type == game::GameEvent::Figure && e.role == (int)Role::Smiler && e.index == (int)PE::Announce && e.intensity > 1.5f && r.tAnn < 0.0) r.tAnn = t;
+                if (e.type == game::GameEvent::Figure && e.role == (int)Role::Smiler && e.index == (int)PE::Calm && r.tAnn >= 0.0 && r.tCalm < 0.0) r.tCalm = t;
+                if (e.type == game::GameEvent::StalkerHit && r.tHit < 0.0) r.tHit = t;
+            }
+            s.events().clear();
+            r.stageMax = std::max(r.stageMax, P.stageOf(Role::Smiler));
+            if (r.tHit >= 0.0 && t > r.tHit + 0.5) break;
+        }
+        return r;
+    };
+    // a) Level 3: er kuendigt sich von selbst an (kein Rennen, kein Laerm), ruhig stehen und hinsehen hilft nicht
+    {
+        std::unique_ptr<game::GameSession> s;
+        const bool ok = setup(1.0, s);
+        check(ok, "Level-3-Smiler erschienen, 8 m davor freie Bahn");
+        if (ok) {
+            s->flashlight().on = true;
+            const Run r = play(*s, 0, 34.0);
+            std::printf("  still: Ankuendigung %.2f s, Treffer %.2f s, Stufe max %d\n", r.tAnn, r.tHit, r.stageMax);
+            check(r.tAnn >= 0.0, std::format("Level 3: ohne Anlass - Lider und Lippen reissen auf, obwohl man still steht und hinsieht ({:.1f} s)", r.tAnn));
+            check(r.tHit >= 0.0 && r.tHit - r.tAnn >= 2.15, std::format("Level 3: Zugriff fruehestens 2,2 s nach der Ankuendigung ({:.2f} s)", r.tHit - r.tAnn));
+            check(r.tHit < 0.0 || (s->stats().dead && s->killRole() == (int)Role::Smiler), "Level 3: wer stehen bleibt, stirbt");
+        }
+    }
+    // b) Licht aus und zur Seite: er stuermt zur Stelle des Lichts, verfehlt und laesst ab
+    {
+        std::unique_ptr<game::GameSession> s;
+        const bool ok = setup(1.0, s);
+        check(ok, "Level 3 (b): Smiler erschienen");
+        if (ok) {
+            s->flashlight().on = true;
+            s->presence().kinSet(Role::Smiler, "mode", 2), s->presence().kinSet(Role::Smiler, "provoke", 0.2);
+            const Run r = play(*s, 1, 14.0);
+            std::printf("  Licht aus: Ankuendigung %.2f s, Stufe max %d, Ablassen %.2f s, Treffer %.2f\n", r.tAnn, r.stageMax, r.tCalm, r.tHit);
+            check(r.tAnn >= 0.0 && r.stageMax == 6 && r.tHit < 0.0 && r.tCalm > r.tAnn && !s->stats().dead,
+                  std::format("Level 3: Licht aus und zur Seite - er stuermt zur letzten Stelle des Lichts und laesst ab (Stufe {}, Treffer {:.1f})", r.stageMax, r.tHit));
+        }
+    }
+    // c) wegrennen: der Sprint ist schneller, ab 13 m laesst er ab
+    {
+        std::unique_ptr<game::GameSession> s;
+        const bool ok = setup(1.0, s);
+        check(ok, "Level 3 (c): Smiler erschienen");
+        if (ok) {
+            s->flashlight().on = true;
+            s->presence().kinSet(Role::Smiler, "mode", 2), s->presence().kinSet(Role::Smiler, "provoke", 0.2);
+            const Run r = play(*s, 2, 14.0);
+            std::printf("  Wegrennen: Ankuendigung %.2f s, Stufe max %d, Ablassen %.2f s, Treffer %.2f\n", r.tAnn, r.stageMax, r.tCalm, r.tHit);
+            check(r.tAnn >= 0.0 && r.tHit < 0.0 && r.tCalm > r.tAnn && !s->stats().dead, "Level 3: wegrennen - er laesst ab");
+        }
+    }
+    // d) Level 1 (ohne die Einstellung): wer still steht und hinsieht, wird nie ohne Anlass angegriffen
+    {
+        std::unique_ptr<game::GameSession> s;
+        const bool ok = setup(0.0, s);
+        check(ok, "Level 1 (d): Smiler erschienen");
+        if (ok) {
+            s->flashlight().on = true;
+            const Run r = play(*s, 0, 30.0);
+            check(r.tAnn < 0.0 && r.tHit < 0.0 && r.stageMax <= 1, "Level 1: kein Angriff ohne Anlass (still stehen, hinsehen)");
+        }
+    }
+
+    // --- Red Knight (KREATUR_RedKnight.md): laeuft ungesehen an, am Wanderer vorbei, haut in die leere Luft, schneidet einen
+    // Riss und ist fort; danach zieht der unsichtbare Verfolger vorbei. Er greift nie an. -----------------------------------
+    std::printf("V13.3: Level 3 - Red Knight\n");
+    check(gContent11->level("level3", world::kLayoutV6)->redKnightEvery > 300.0 && L1->redKnightEvery == 0.0,
+          "Level 3: presence.red_knight_every gesetzt, Level 1 nicht");
+    auto knightRun = [&](double every, int seed) {
+        auto L = std::make_shared<world::LevelDef>(*L1);
+        L->redKnightEvery = every;
+        auto s = std::make_unique<game::GameSession>(*gContent11, prefabs, L, seed, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        auto& pl = s->player();
+        const auto [hx, hy] = hallSpot(s->world());
+        pl.x = hx + 0.5, pl.y = hy + 0.5, pl.z = s->world().tile(hx, hy).floor;
+        s->body().reset();
+        s->preload();
+        for (int i = 0; i < 30; ++i) s->update(1.0 / 60.0, {}, false), s->events().clear();
+        return s;
+    };
+    {
+        auto s = knightRun(900.0, 4242);
+        auto& P = s->presence();
+        P.knightSet("run", 1.0);
+        bool spawned = false, seenAtSpawn = false, heardBefore = false, seenEver = false, hit = false, gone = false;
+        int steps = 0, slashCue = 0, riftCue = 0, unseenCue = 0, flicker = 0, visions = 0, afterGoneFlicker = 0;
+        float closest = 1e9f;
+        const double h0 = s->stats().health, s0 = s->stats().sanity;
+        double t = 0.0;
+        for (int i = 0; i < 60 * 40; ++i, t += 1.0 / 60.0) {
+            const auto info = P.knightInfo();
+            if (info.active) {
+                if (!spawned) seenAtSpawn = P.seenRole(Role::Wretch);
+                spawned = true;
+                closest = std::min(closest, std::hypot(info.pos.x - (float)s->player().x, info.pos.y - (float)s->player().y));
+                look(*s, info.pos, 0.0);  // der Wanderer sieht hin (er soll ihn sehen)
+                seenEver = seenEver || P.seenRole(Role::Wretch);
+            }
+            s->update(1.0 / 60.0, {}, false);
+            for (const auto& e : s->events()) {
+                if (e.type == game::GameEvent::StalkerHit || (e.type == game::GameEvent::Figure && (e.index == (int)PE::Hit || e.index == (int)PE::Attack))) hit = true;
+                if (e.type != game::GameEvent::Figure || e.role != (int)Role::Wretch) continue;
+                const int cue = game::kinCueOf(e.intensity, e.role);
+                if (cue == 200) ++steps, heardBefore = heardBefore || !seenEver;
+                if (cue == 203) ++slashCue;
+                if (cue == 204) ++riftCue;
+                if (cue == 205) ++unseenCue;
+                if (e.index == (int)PE::Vision) ++visions;
+                if (e.index == (int)PE::Flicker) ++flicker, afterGoneFlicker += gone ? 1 : 0;
+                if (e.index == (int)PE::Gone) gone = true;
+            }
+            s->events().clear();
+            if (gone && !P.knightInfo().pursuer && t > 3.0 && afterGoneFlicker > 0) break;
+        }
+        const auto info = P.knightInfo();
+        std::printf("  Red Knight: Schritte %d, naechster Abstand %.1f m, Hieb %d, Riss %d, Verfolger %d Klaenge / %d Flackern / %d Vision, Verstand %.1f -> %.1f, %.1f s\n",
+                    steps, closest, slashCue, riftCue, unseenCue, flicker, visions, s0, s->stats().sanity, t);
+        check(spawned && !seenAtSpawn, "Red Knight: erscheint ausser Sicht");
+        check(steps > 6 && heardBefore, "Red Knight: man hoert ihn (Ruestung, Schritte), bevor man ihn sieht");
+        check(seenEver && closest < 6.5f, std::format("Red Knight: er rennt am Wanderer vorbei ({:.1f} m)", closest));
+        check(slashCue == 1 && info.slashed, "Red Knight: er haut in die leere Luft (einmal, weg vom Wanderer)");
+        check(gone && riftCue == 1 && info.rift && !info.active, "Red Knight: ein Riss in der Luft - fort");
+        check(!hit && s->stats().health >= h0, "Red Knight: kein Angriff, kein Schaden");
+        check(unseenCue >= 2 && afterGoneFlicker > 0, "Red Knight: danach zieht der unsichtbare Verfolger vorbei (Klang, die Leuchten flackern)");
+        check(visions == 1, "Red Knight: der Verfolger zehrt genau einmal am Verstand (Vision, nah am Wanderer)");
+        check(info.runs == 1, "Red Knight: ein Lauf");
+    }
+    // Level 1 (ohne die Einstellung): nie
+    {
+        auto s = knightRun(0.0, 77);
+        auto& P = s->presence();
+        P.knightSet("quick", 1.0);
+        bool any = false;
+        const double s0 = s->stats().sanity;
+        for (int i = 0; i < 60 * 31; ++i) {
+            s->update(1.0 / 60.0, {}, false), s->events().clear();
+            any = any || P.knightInfo().active;
+        }
+        std::printf("  Vergleich ohne Ritter (31 s an derselben Stelle): Verstand %.1f -> %.1f\n", s0, s->stats().sanity);
+        check(!any, "Level 1: kein Red Knight");
+    }
+    // Level 3 von selbst (Zeitraffer): hoechstens zwei Laeufe je Besuch
+    {
+        auto s = knightRun(900.0, 91);
+        auto& P = s->presence();
+        P.knightSet("quick", 1.0);
+        int starts = 0;
+        bool was = false;
+        for (int i = 0; i < 60 * 240; ++i) {
+            s->update(1.0 / 60.0, {}, false), s->events().clear();
+            const bool now = P.knightInfo().active;
+            starts += now && !was ? 1 : 0;
+            was = now;
+        }
+        check(starts >= 1 && starts <= 2, std::format("Level 3: der Red Knight kommt von selbst, hoechstens zweimal ({} Laeufe)", starts));
+    }
+}
+
 int main(int argc, char** argv) {
     if (argc < 2) {
         std::printf("Aufruf: gameplay_test <data-Ordner>\n");
@@ -5790,6 +6911,10 @@ int main(int argc, char** argv) {
     testV133Jerry(argv[1]);       // V13.3 Teil 4: Jerry (Level 2)
     testV133L2Rand(argv[1]);      // V13.3 Teil 4: Randwesen von Level 2 (Automat, Swindlebird, Photoshop, Macchina)
     testV133Level3Kin(argv[1]);   // V13.3: Level 3 - Wretch mit Waffe, Skin-Stealer im Mantel
+    testV133Purple(argv[1]);      // V13.3: Level 3 - purpifizierte Wesen in der Wand
+    testV133Level3RatMoth(argv[1]);  // V13.3: Level 3 - Death Rats mit Fallen, Mottenschwarm mit Praetorianern
+    testV133PackBigClump(argv[1]);   // V13.3: Level 2/3 - Hound-Rudel, grosses bewaffnetes Buendel
+    testV133Level3Rest(argv[1]);     // V13.3: Level 3 - Smiler ohne Anlass, Red Knight
     std::printf("%s: %d Pruefungen, %d Fehler\n", gFails ? "FEHLGESCHLAGEN" : "OK", gChecks, gFails);
     return gFails ? 1 : 0;
 }

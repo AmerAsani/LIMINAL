@@ -14,7 +14,9 @@
   "map": "level2",
   "presence_region": 1,
   // V13.2: Faceling reizbar in Gruppen, Wretch (auch im zweiten Stadium, flehend), haarlose Death Rats (Hitze)
-  "presence": { "hound": true, "smiler": true, "gestalt": false, "blackout": true, "clump": 0.45,
+  // V13.3 (KREATUR_Hound.md, Abschnitt "Rudel"): Hounds nur im Rudel (3-4) - es zieht langsam umher, gestoert schlagartig schnell
+  "presence": { "hound": false, "smiler": true, "gestalt": false, "blackout": true, "clump": 0.45,
+               "hound_pack": { "mode": "l2", "group": [3, 4], "every": 240 },
                "faceling": { "mode": "irritable", "group": [2, 4], "every": 200 },
                "wretch": { "mode": "mixed", "group": [1, 1], "every": 240, "chance": 0.3 },
                "rat": { "mode": "bald", "group": [2, 4], "every": 140 },

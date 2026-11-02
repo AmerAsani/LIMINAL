@@ -44,6 +44,7 @@ GameSession::GameSession(const Content& content, const PrefabLibrary& prefabs,
     world_->onChunkUnloaded = [this](const world::ChunkData& cd) { onChunk(cd, false); };
     phenomena_.setup(world_->level(), (u64)seed);  // V13.3: Erscheinungen ohne Figur (session_phenomena.cpp)
     appar_.setup(world_->level(), (u64)seed);  // V13.3 Teil 4: Randwesen von Level 2 (session_apparitions.cpp)
+    purple_.setup(world_->level(), (u64)seed);     // V13.3: purpifizierte Wesen in der Wand (session_purple.cpp)
     // V7: Laufbuch (V8: in der Welt beginnt jeder Lauf in der ersten Ebene)
     runLog_.levels.push_back(world_->level().world() ? world_->level().regions.front().id : levelId);
 }
@@ -783,8 +784,9 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
     // V13.3: betaeubt (Nguithr'xurh) langsamer und ohne Sprint; durch das Gewirr einer Growler-Leiche waten
     player_.speedMul *= presence_.slowFor(netSelfId, {(float)player_.x, (float)player_.y, (float)player_.z});
     player_.speedMul *= phenomena_.speedMul(0);            // V13.3: Fieber, Ranken (session_phenomena.cpp)
+    player_.speedMul *= presence_.packSlow(netSelfId);     // V13.3 Level 3: ein Hound hat ins Bein gebissen (hinkt)
     PlayerControl c = paused ? PlayerControl{} : control;
-    if (!stats_.canSprint() || presence_.stupor(netSelfId) > 0.5f) c.sprint = false;
+    if (!stats_.canSprint() || presence_.stupor(netSelfId) > 0.5f || presence_.packSlow(netSelfId) < 0.8f) c.sprint = false;
     if (ride_.active) c.forward = c.side = 0.0f, c.sprint = c.jump = false;  // V8: im Aufzug nur umsehen
     if (stats_.dead) c.forward = c.side = 0.0f, c.sprint = c.jump = c.jumpHeld = false;  // V13.2: tot (Koop: zusehen)
     if (phenomena_.frozen(0)) c.forward = c.side = 0.0f, c.sprint = c.jump = c.jumpHeld = false;  // V13.3: ihre Einladung
@@ -912,6 +914,7 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
         updatePresence(dt);  // V10
         updatePhenomena(dt);  // V13.3: Pilz, Garden, Gemaelde, Tuerspuren (nach den Wesen: others_ ist gefuellt)
         updateApparitions(dt);  // V13.3 Teil 4: Randwesen von Level 2
+        updatePurple(dt);     // V13.3: purpifizierte Wesen in der Wand (session_purple.cpp)
     }
     if (killCam_ && !paused) killT_ += dt;  // V11
     target_ = ecs::kNull;
@@ -1429,6 +1432,7 @@ void GameSession::collectSounds(std::vector<SoundSource>& out) {
     reg_.each<AudioEmitter, Transform>([&](ecs::Entity e, AudioEmitter& a, Transform& t) {
         out.push_back({e, &a.sound, t.pos, a.volume, a.radius, &a.voice});
     });
+    collectPurpleSounds(out);  // V13.3: Brummen der purpifizierten Wesen (session_purple.cpp)
 }
 
 // --- Spielstand -----------------------------------------------------------------------------
@@ -1662,6 +1666,10 @@ void GameSession::updatePresence(double dt) {
     c.noise = std::max(noise, landNoise_);
     c.pings = &noisePings_;
     c.lures = &presenceLures_, c.smilerBait = L.smilerBait;  // V13.3: Leuchtkoeder (KREATUR_Smiler.md)
+    c.smilerUnprovoked = L.smilerUnprovoked;                 // V13.3 Level 3: Angriff ohne Anlass
+    c.redKnightEvery = L.redKnightEvery;                     // V13.3 Level 3: Red Knight (KREATUR_RedKnight.md)
+    c.houndPack = L.houndPack.on ? &L.houndPack : nullptr;  // V13.3 Level 2/3: Hound-Rudel, grosses Buendel
+    c.clumpBig = L.clumpBig.on ? &L.clumpBig : nullptr;
     if (const Json& bo = L.audio["blackout"]; bo.isObject()) {
         c.blackoutEvery0 = bo["every"][0].asNumber(200.0), c.blackoutEvery1 = bo["every"][1].asNumber(340.0);
         c.blackoutLen0 = bo["duration"][0].asNumber(20.0), c.blackoutLen1 = bo["duration"][1].asNumber(32.0);

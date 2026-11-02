@@ -390,6 +390,7 @@ void Presence::thinkSkinStealer(Agent& a, double dt, const Context& c, std::vect
 // Luft. Schlaege mit uebermenschlicher Kraft (Schaden, nicht sofort toedlich). Im zweiten Stadium (pleads) fleht er
 // um Wasser, Essen, Hilfe und greift nicht an.
 void Presence::thinkWretch(Agent& a, double dt, const Context& c, std::vector<Event>& out) {
+    if (a.variant == kKnightVariant) return thinkKnight(a, dt, c, out);  // V13.3 Level 3: Red Knight (presence_knight.cpp)
     if (a.variant > 0) return thinkWretchL3(a, dt, c, out);  // V13.3 Level 3: mit Waffe (presence_kin_l3.cpp)
     const vec3 eye = c.view.eye;
     const float d = hdist(a.pos, eye);

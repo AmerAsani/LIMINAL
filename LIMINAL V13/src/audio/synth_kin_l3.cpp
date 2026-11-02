@@ -739,6 +739,17 @@ Sound wretchHit(int rate, int w) {
 }
 }  // namespace
 
+// V13.3 Level 3 (KREATUR_DeathRat.md): derselbe Synthesizer fuer das Sprachgeraet der Death Rats (synth_rat_l3.cpp) - eine
+// Maschinenstimme: Grundton fest, alle Silben gleich lang, ohne Atem und Zittern. Schreibt ab 'at' in b; Rueckgabe: Ende (s)
+float kinSpeakMachine(Buf& b, float at, const char* arpabet, float f0, float tempo, unsigned seed) {
+    Rand r(seed);
+    Speaker s;
+    s.f0 = f0, s.f0End = 1.0f, s.stressUp = 0.03f, s.fmul = 1.0f;
+    s.jitter = 0.0f, s.shimmer = 0.0f, s.breath = 0.0f, s.tilt = 0.25f;
+    s.tempo = tempo, s.isochrony = 1.0f, s.smooth = 0.018f;
+    return speak(b, at, parse(arpabet, s), s, r);
+}
+
 void addKinL3Sounds(std::vector<SoundDef>& d, int rate) {
     for (int k = 0; k < 8; ++k) d.push_back({std::format("skin_say_{}", k), [=] { return skinLine(rate, kSkinSay[k], 15100u + (unsigned)k * 13u); }});
     for (int k = 0; k < 4; ++k) d.push_back({std::format("skin_ans_{}", k), [=] { return skinLine(rate, kSkinAns[k], 15200u + (unsigned)k * 13u); }});

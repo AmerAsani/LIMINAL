@@ -175,15 +175,18 @@ enum J : std::uint8_t {
     ANTB_L, ANTT_L, ANTB_R, ANTT_R,
     WF_L, WFT_L, WH_L, WHT_L, WF_R, WFT_R, WH_R, WHT_R,
     LEG0,  // + leg * 4 + i (Bein 0..5: vorn links, vorn rechts, Mitte l, Mitte r, hinten l, hinten r)
-    JCOUNT = LEG0 + 6 * 4
+    // V13.3 Level 3: Bein 6, 7 - das vierte Paar am ersten Hinterleibsring, nur der Praetorianer (acht Beine, Wikidot
+    // Entity 4); die anderen Motten haben dort keine Punkte (KREATUR_Deathmoth.md, Abschnitt Level 3)
+    JCOUNT = LEG0 + 8 * 4
 };
 enum B : std::uint8_t {
     B_ROOT, B_THORAX, B_HEAD, B_ABD1, B_ABD2, B_ABD3, B_BRISTLE_L, B_BRISTLE_R,
     B_ANT_L, B_ANT_R,
     B_WF_L, B_WH_L, B_WF_R, B_WH_R,
     B_LEG0,  // + leg * 3 + i
-    BCOUNT = B_LEG0 + 6 * 3
+    BCOUNT = B_LEG0 + 8 * 3
 };
+constexpr int kLegs = 6, kLegsPraetorian = 8;
 inline int legJ(int leg, int i) { return LEG0 + leg * 4 + i; }
 inline int legB(int leg, int i) { return B_LEG0 + leg * 3 + i; }
 }  // namespace mo

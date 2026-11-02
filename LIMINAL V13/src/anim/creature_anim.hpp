@@ -118,6 +118,20 @@ private:
     float goblinHeight() const;
     vec3 goblinHead() const;
     void updateJerry(float dt, const Input& in);  // V13.3 Teil 4: creature_jerry.cpp (Jerry auf dem Rohr)
+    // V13.3 Level 3 (KREATUR_DeathRat.md, KREATUR_Deathmoth.md): grosse Death Rat und ihre Falle (creature_rat_l3.cpp),
+    // Praetorianer (creature_moth_l3.cpp) - Variante ueber extra_[0] (2 Ratte, 3 Falle; 5 Praetorianer)
+    void updateRatL3(float dt, const Input& in);
+    void updateRatTrap(float dt, const Input& in);
+    float ratL3Height() const;
+    void updatePraetorian(float dt, const Input& in);
+    bool praetorian() const;
+    // V13.3 Level 3 (KREATUR_Clump.md): das grosse, bewaffnete Buendel (creature_clump_l3.cpp) - extra_[0] Variante 1/2
+    void updateClumpL3(float dt, const Input& in);
+    bool bigClump() const { return e_ == Entity::Clump && !extra_.empty() && extra_[0] > 0.5f; }
+    // V13.3 Level 3 (KREATUR_RedKnight.md): der Red Knight im Skelett des Wretch (extra_[0] = 4) - Schwert, Umhang, Rennen,
+    // Blick zurueck, Hieb, Schnitt in die Luft, auf das Schwert gestuetzt (creature_knight.cpp)
+    void bipedKnight(float dt, const Input& in);
+    bool redKnight() const { return e_ == Entity::Wretch && !extra_.empty() && extra_[0] > 3.5f; }
     // Gangzyklus fuer n Beine; rest: Ruhepunkte (Welt) dieses Bildes
     void stepLegs(float dt, int n, const float* offs, float duty, float S, const vec3* rest, float standDur, const float* weight);
     vec3 footPos(int i, const float* lift) const;

@@ -136,3 +136,22 @@ Bilder: `docs/screens/creatures/l3_wretch/`.
 
 ### Tests (`gameplay_test`, „V13.3: Level 3 – Wretch mit Waffe, Skin-Stealer im Mantel“)
 Klangnummern mit Namen (auch für Gäste), Untertitel, Hinweis; nur Wretch/Skin-Stealer tragen Nummern; Level-JSON (bewaffnet, ≥ 400 s); Level 1 unverändert. Wretch: trägt eine Waffe; lockt von weitem mit verständlichen Fetzen; wer näher kommt, auf den stürmt er (hohes Fauchen); vor dem Schlag Ausholen und Schrei; wer zurückweicht, dem schlägt er ins Leere; wer stehen bleibt, wird schwer getroffen (nicht tödlich), zwischen Ausholen und Treffer ≥ 0,5 s; Treffer-Klang je Waffe; danach weicht er zurück; die Waffe schleift beim Gehen; Ansprechen beim Locken und Lampe ins Gesicht lösen den Angriff aus. Der bisherige Level-3-Test („der schnelle faucht hoch“) bleibt grün.
+
+### Wow-Check Level 3 – Gesicht im vollen Lampenlicht (V13.3, Restpunkte)
+
+**Befund vorher** (`docs/screens/creatures/l3_wretch/r5_nah_klinge_stich.jpg`): im Lampenlicht zu sauber – glatte, pfirsichfarbene Haut wie Gummi (die Haut-Textur war die des Hound), Pusteln und Löcher steckten nur in einer Verschiebung von 3–6 mm, die das Netz nicht trägt; der Schlamm aus dem Mund wie ein Stab, der Gaumen wie eine graue Lippe vor dem Mund. Die Seite (entity-15, Rev. 54): rotbraune, trockene, schuppige Haut voller Löcher und Pusteln, aus denen rötlich-brauner Saft sickert; Lider und Lippen aufgelöst.
+
+**Umsetzung**
+- **Eigene Hauttextur** `EL_WRETCH` (`render/texture_entity.cpp`, `wretch`; neue Texturebene – die Mikroebenen rücken auf Platz 108, `texture_entity.hpp` und `mesh_gbuffer.hlsl`): dicht an dicht trockene Schuppen mit dunklen Rissen, fleckig zwischen Rotbraun, Ocker und fast Schwarz; nasse, rohe Wundstellen (rot, glänzend); wenige, große Löcher mit Krustenrand; gelbe, pralle Pusteln mit rotem Hof; Schmutz in den Rissen. Die Haut des Hound bleibt, wie sie war.
+- **Modell** `wretch.py` (auch die bewaffneten Wretches von Level 3): am Kopf 16 Schorfplatten und Krustenbröckchen um den lippenlosen Mund (eigenes Material `ent_wre_crust`, trocken, rissig), 14 Pusteln (`ent_wre_pus`, gelb, nass glänzend) mit entzündetem Hof, fünf aufgeplatzte Pusteln mit Krater, fünf Löcher mit rohem Grund, aus denen Saft läuft, dünne rohe Ränder unter den lidlosen Augen; der Schlamm aus dem Mund dünner, kürzer und unregelmäßig mit Tropfen; der Gaumen zurück in den Mund.
+
+**Runden** (Bilder `docs/screens/creatures/l3_wowcheck/`)
+
+| Runde | Befund | Änderung |
+|---|---|---|
+| 1 (`r1_wretch_gesicht_lampe.jpg`, `r1_wretch_gesicht_seite.jpg`) | Schorf, Pusteln und rohe Augenränder sind da – aber die Haut selbst ist noch glatter Gummi; der rote Ring um den Mund liest sich wie Lippenstift, die Augenränder wie eine Brille. | Eigene Hauttextur (Schuppen, Risse, Wunden, Löcher, Pusteln); Lippenring durch Krustenbröckchen ersetzt, Augenränder dünn und nur unten. |
+| 2 (`r2_wretch_gesicht_lampe.jpg`, `r2_wretch_gesicht_seite.jpg`) | Die Haut ist jetzt krank und schuppig – aber lachsrosa, die Löcher gleichmäßige schwarze Punkte; der Schlamm ein Stab, der Gaumen eine graue Lippe. | Textur dunkler und brauner, Löcher seltener und größer; Schlamm dünn und unregelmäßig, Gaumen zurück. |
+| 3 (`r3_wretch_gesicht_lampe.jpg`, `r3_wretch_mittel_lampe.jpg`, `r3_wretch_mittel_raum.jpg`, `r3_wretch_rohr_gesicht.jpg`) | Aus der Mitte rotbraun, fleckig, krustig – passt; ganz nah im Lampenkegel noch zu rosa. | Material 0,86/0,78/0,72. |
+| 4 (`r4_wretch_gesicht_lampe.jpg`, `r4_wretch_gesicht_seite.jpg`) | Im vollen Lampenlicht: braungraue Schuppen, nässende rote Wunden, gelbe Pusteln, Krater und Löcher, Zähne ohne Lippen, Saft aus dem Mund. Abgenommen. | – |
+
+**Wow-Check:** Im Lampenkegel ist das Gesicht jetzt eine Landschaft aus Schorf, nässenden Wunden, prallen gelben Pusteln und Löchern, aus denen Saft läuft – über Zähnen ohne Lippen und Augen ohne Lider. Ehrlich: Wow aus der Nähe (`r4_wretch_gesicht_lampe.jpg`); Restmangel: die Pusteln am Schädel sind klein und rund wie Perlen.

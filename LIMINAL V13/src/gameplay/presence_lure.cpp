@@ -118,6 +118,7 @@ bool Presence::speakable(world::World& w, vec3 eye, vec3 look, float maxDist, ve
         const Agent& a = *ap;
         if (a.showcase || a.state >= 8) continue;
         if (a.role != Role::SkinStealer && a.role != Role::Faceling && a.role != Role::Wretch) continue;
+        if (a.role == Role::Wretch && a.variant == kKnightVariant) continue;  // V13.3 Level 3: der Red Knight laeuft vorbei
         const vec3 h = a.cre.headPos(), dv = h - eye, dc = a.pos + vec3{0, 0, 1.2f} - eye;
         const float dist = length(dv), dcl = std::max(0.01f, length(dc));
         // man sieht sie an: Kopf oder Brust hoechstens ~18 Grad neben der Blickrichtung

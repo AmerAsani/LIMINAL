@@ -15,12 +15,21 @@
   // V13.2: Faceling feindselig mit Steinwerkzeug, Skin-Stealer getarnt, Wretch schnell (behalten den Koerper, rennen), Ratten
   // V13.3 (Seite level-3, KREATUR_Smiler.md): geworfenes Licht lenkt die Smiler hier kaum ab - sie stutzen nur
   // V13.3 (KREATUR_Wretch.md, KREATUR_SkinStealer.md): Wretches selten und bewaffnet (armed), Skin-Stealer im Mantel (coat)
-  "presence": { "hound": true, "smiler": true, "gestalt": false, "blackout": true, "clump": 0.4, "smiler_bait": "hesitate",
+  // V13.3 (KREATUR_Hound.md, KREATUR_Clump.md): Hounds lauern allein und jagen gemeinsam (Rudel aus 3, je in einer Nische);
+  // das grosse, bewaffnete Buendel an der Decke (neben den kleinen in den Schaechten)
+  "presence": { "hound": false, "smiler": true, "gestalt": false, "blackout": true, "clump": 0.4, "smiler_bait": "hesitate", "smiler_unprovoked": 0.35, "red_knight_every": 900,
+               "hound_pack": { "mode": "l3", "group": [3, 3], "every": 260 },
+               "clump_l3": { "every": 300 },
                "faceling": { "mode": "armed", "group": [1, 3], "every": 200 },
                "skinstealer": { "mode": "coat", "group": [1, 1], "every": 280, "chance": 0.3 },
                "wretch": { "mode": "armed", "group": [1, 1], "every": 480 },
-               "rat": { "group": [2, 3], "every": 180 } },
+               // V13.3 Level 3 (KREATUR_DeathRat.md, KREATUR_Deathmoth.md): Death Rats wie Wasserschweine mit Stromfallen (count:
+               // hoechstens so viele Fallen); Mottenschwarm an einer Roehre (group: gewoehnliche Motten, chance: Anteil der Praetorianer)
+               "rat": { "mode": "l3", "group": [2, 3], "every": 200, "count": 3 },
+               "moth": { "mode": "swarm", "group": [5, 7], "every": 150, "chance": 0.44, "count": 1 } },
   "next_level": "level5",
+  // V13.3 (KREATUR_L3_Purpur.md): purpifizierte tote Wesen in den Ziegelwaenden (Karte: trace/purple), Strahlung, Licht, Klang
+  "phenomena": { "purple": true },
   // V13.3 (KREATUR_Smiler.md): Leuchtstaebe liegen herum (hier seltener - die Smiler stutzen nur, smiler_bait)
   "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0, "glowstick": 0.02, "glowstick_dark": 0.08 },
 

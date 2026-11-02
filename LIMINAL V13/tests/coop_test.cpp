@@ -1193,6 +1193,7 @@ static void testReconnectKick() {
     g.run(10.0, [&] { return b2.c->state() == coop::CoopClient::State::Playing; });
     checkN(g.host->kick(b2.c->selfId(), true), "Host sperrt den Gast");
     g.run(2.0);
+    b2.c->stop();  // V13.3 (B-028): wie die App (leaveCoop) - erst der Gast, dann die Sitzung freigeben (sonst raeumt stop() spaeter darin auf)
     b2.s.reset();
     checkN(b2.c->connect(g.botNet, g.directAddr, g.joinCode(), "Gesperrt", err), "gesperrter Gast versucht es erneut");
     g.run(8.0, [&] { return b2.c->state() == coop::CoopClient::State::Closed; });

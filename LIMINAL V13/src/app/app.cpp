@@ -328,8 +328,8 @@ void App::scriptStep() {
                 char name[32] = {};
                 std::sscanf(arg.c_str(), "%31s %lf", name, &off);
                 std::string n = name;
-                role = n == "smiler" ? R::Smiler : n == "moth" ? R::Moth : n == "gestalt" ? R::Gestalt : n == "nest" ? R::Nest : n == "clump" ? R::Clump : R::Hound;
-                lift = role == R::Smiler ? 1.7f : (role == R::Gestalt ? 1.6f : (role == R::Nest ? 1.3f : (role == R::Moth ? 0.0f : (role == R::Clump ? 1.6f : 0.6f))));
+                role = n == "smiler" ? R::Smiler : n == "moth" ? R::Moth : n == "gestalt" ? R::Gestalt : n == "nest" ? R::Nest : n == "clump" ? R::Clump : n == "wretch" ? R::Wretch : R::Hound;  // V13.3: wretch (auch Red Knight)
+                lift = role == R::Smiler ? 1.7f : (role == R::Gestalt ? 1.6f : (role == R::Nest ? 1.3f : (role == R::Moth ? 0.0f : (role == R::Clump ? 1.6f : (role == R::Wretch ? 1.2f : 0.6f)))));
             } else {
                 off = std::atof(arg.c_str());
             }
@@ -377,11 +377,81 @@ void App::scriptStep() {
             double val = 0.0;
             if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) < 2 || !session_->presence().ouroSet(key, val))
                 log::warn("Skript: ouro '{}' unbekannt oder keine Baustelle", arg);
+        } else if (cmd == "l3" && session_) {  // V13.3 Level 3 (Bilder, Tests): l3 <trap|say|job|quick|rats|swarm|pstate|mem> <wert> - Death Rats, Motten
+            char key[32] = {};
+            double val = 0.0;
+            if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) < 2 || !session_->presence().l3Set(key, val))
+                log::warn("Skript: l3 '{}' unbekannt oder kein Wesen", arg);
+        } else if (cmd == "l3prae" && session_) {  // V13.3 Level 3 (Bilder): l3prae <abstand> - vor den ersten Praetorianer, Blick auf ihn
+            const double dist = std::max(0.8, std::atof(arg.c_str()));
+            auto& pr = session_->presence();
+            vec3 p;
+            int st = 0, var = 0;
+            bool found = false;
+            for (int i = 0; !found && pr.agentInfo(game::Presence::Role::Moth, i, p, st, var); ++i) found = var == 5;
+            auto& pl = session_->player();
+            for (int k = 0; found && k < 36; ++k) {
+                const double a = std::atan2(pl.y - p.y, pl.x - p.x) + (double)((k + 1) / 2) * 0.35 * (k % 2 ? 1.0 : -1.0);
+                const vec3 q{(float)(p.x + std::cos(a) * dist), (float)(p.y + std::sin(a) * dist), 0.0f};
+                const world::Tile* t = session_->world().tileIfLoaded(ifloor(q.x), ifloor(q.y));
+                if (!t || !t->open() || t->clearance() < 2.0f || !game::clearSight(session_->world(), vec3{q.x, q.y, t->floor + 1.6f}, p + vec3{0, 0, 0.7f}))
+                    continue;
+                pl.x = q.x, pl.y = q.y, pl.z = t->floor, pl.vx = pl.vy = 0.0;
+                pl.angle = std::atan2(p.y - q.y, p.x - q.x);
+                pl.pitch = std::atan2(p.z + 0.6 - (t->floor + game::Player::kEye), dist);
+                session_->body().reset();
+                break;
+            }
+            if (!found) log::warn("Skript: l3prae - kein Praetorianer");
+        } else if (cmd == "l3near" && session_) {  // V13.3 Level 3 (Bilder): l3near <abstand> [seite] - vor die naechste scharfe Falle, Blick auf den Draht
+            double dist = 2.5, side = 1.0;
+            std::sscanf(arg.c_str(), "%lf %lf", &dist, &side);
+            const auto I = session_->presence().l3Info();
+            if (I.armed < 1) {
+                log::warn("Skript: l3near - keine scharfe Falle");
+            } else {
+                const vec3 mid = (I.trapL + I.trapR) * 0.5f, ac = normalize(vec3{I.trapR.x - I.trapL.x, I.trapR.y - I.trapL.y, 0.0f});
+                const vec3 axis = vec3{-ac.y, ac.x, 0.0f} * (side < 0.0 ? -1.0f : 1.0f);
+                auto& pl = session_->player();
+                for (double d = dist; d > 0.6; d -= 0.25) {
+                    const vec3 p = mid + axis * (float)d;
+                    const world::Tile* t = session_->world().tileIfLoaded(ifloor(p.x), ifloor(p.y));
+                    if (!t || !t->open() || t->clearance() < 2.0f) continue;
+                    pl.x = p.x, pl.y = p.y, pl.z = t->floor, pl.vx = pl.vy = 0.0;
+                    pl.angle = std::atan2(-axis.y, -axis.x);
+                    pl.pitch = std::atan2(mid.z - (t->floor + game::Player::kEye), d);
+                    session_->body().reset();
+                    break;
+                }
+            }
+        } else if (cmd == "pack" && session_) {  // V13.3 Level 2/3 (Bilder, Tests): pack <spawn|phase|quick|interest|bark|lunge> <wert>
+            char key[32] = {};
+            double val = 0.0;
+            if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) < 2 || !session_->presence().packSet(key, val))
+                log::warn("Skript: pack '{}' unbekannt oder kein Rudel", arg);
+        } else if (cmd == "bigclump" && session_) {  // V13.3 Level 3 (Bilder, Tests): bigclump <spawn|state|ceil|disarm|quick> <wert>
+            char key[32] = {};
+            double val = 0.0;
+            if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) < 2 || !session_->presence().bigClumpSet(key, val))
+                log::warn("Skript: bigclump '{}' unbekannt oder kein grosses Buendel", arg);
         } else if (cmd == "jerry" && session_) {  // V13.3 Teil 4 (Bilder, Tests): jerry <quick|state|yaw|spell> <wert>
             char key[32] = {};
             double val = 0.0;
             if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) < 2 || !session_->presence().jerrySet(key, val))
                 log::warn("Skript: jerry '{}' unbekannt oder kein Jerry", arg);
+        } else if (cmd == "knight" && session_) {  // V13.3 Level 3 (Bilder, Tests): knight <run|quick|runs|next> <wert> - Red Knight
+            char key[32] = {};
+            double val = 0.0;
+            if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) < 2 || !session_->presence().knightSet(key, val))
+                log::warn("Skript: knight '{}' unbekannt", arg);
+        } else if (cmd == "kinset" && session_) {  // V13.3 Level 3 (Bilder, Tests): kinset <smiler|wretch|skinstealer> <feld> <wert>
+            using R = game::Presence::Role;
+            char who[32] = {}, key[32] = {};
+            double val = 0.0;
+            const bool ok = std::sscanf(arg.c_str(), "%31s %31s %lf", who, key, &val) == 3;
+            const std::string w = who;
+            const R r = w == "smiler" ? R::Smiler : w == "skinstealer" ? R::SkinStealer : R::Wretch;
+            if (!ok || !session_->presence().kinSet(r, key, val)) log::warn("Skript: kinset '{}' unbekannt oder kein Wesen", arg);
         } else if (cmd == "goblin" && session_) {  // V13.3 (Bilder): goblin <phase|mob|friendly|quick|rout> <wert> - die Bande steuern
             char key[32] = {};
             double val = 0.0;
@@ -1622,6 +1692,9 @@ void App::handleEvents() {
                         if (role == Role::Jerry) {  // V13.3 Teil 4: Jerry breitet die Fluegel aus und kreischt - letzte Warnung
                             at(std::format("jerry_screech_{}", n % 2), e.pos, 1.0f, 40.0f);
                             at("jerry_flap_1", e.pos, 0.9f, 24.0f);
+                        } else if (role == Role::Smiler && e.intensity > 1.5f) {  // V13.3 Level 3: Angriff ohne Anlass
+                            at("smiler_peel", e.pos, 1.0f, 34.0f);
+                            ui_.toast("Lider und Lippen reißen auf – er kommt ohne Anlass. Licht aus und raus aus seiner Bahn!", 3.6f);
                         } else {
                             at("smiler_open", e.pos, 1.0f, 30.0f);
                         }
@@ -2163,6 +2236,12 @@ void App::renderWorld(double dt, bool clean) {
                 sp.desaturate = std::max(sp.desaturate, 0.6f * jsp);
             }
         }
+        // V13.3 (KREATUR_L3_Purpur.md): Strahlung der purpifizierten Wesen - Bildrauschen, beim Knistern ein Schub
+        if (playing) {
+            const auto& pl = s.player();
+            const float pg = s.purple().grain(vec3{(float)pl.x, (float)pl.y, (float)pl.eye()});
+            if (pg > 0.0f) sp.grainBoost = std::max(sp.grainBoost, 2.2f * pg), sp.chromaBoost = std::max(sp.chromaBoost, 0.8f * pg);
+        }
         // V11: Schreck - weisser Blitz in den ersten Bildern, roter Rand, danach fast schwarz
         if (playing && scareT_ >= 0.0) {
             const float pop = std::exp(-(float)scareT_ * 11.0f);
@@ -2224,6 +2303,7 @@ void App::renderWorld(double dt, bool clean) {
                 L.pos = fb.pos;
                 L.dir = fb.dir;
                 L.color = vec3{1.0f, 0.93f, 0.8f} * (3.6f * fb.power);
+                L.color = L.color * s.purple().lampFactor(fb.pos, time_);  // V13.3: nahe purpifizierten Wesen stockt die Lampe
                 L.range = 24.0f;
                 L.spot = true;
                 L.cosInner = 0.975f;  // ~13 Grad heller Kern
@@ -2332,6 +2412,43 @@ void App::renderWorld(double dt, bool clean) {
                 L.spill = 0.7f;
                 L.size = 0.35f;
                 L.soft = 0.5f;
+                L.shadows = false;
+                sp.extraLights.push_back(L);
+            }
+        }
+        // V13.3 Level 3 (KREATUR_RedKnight.md): der Riss in der Luft (weiss), das Glimmen der Purpurspuren auf der Ruestung
+        if (playing) {
+            static std::vector<std::pair<vec3, vec3>> knightLights;
+            knightLights.clear();
+            s.presence().knightLights(knightLights, cam.pos);
+            for (const auto& [lp, col] : knightLights) {
+                if (sp.extraLights.size() >= 10) break;
+                gfx::ExtraLight L;
+                L.pos = lp;
+                L.color = col;
+                L.range = col.x > 1.0f ? 9.0f : 2.2f;
+                L.spill = 1.0f;
+                L.size = 0.2f;
+                L.soft = 0.4f;
+                L.shadows = false;
+                sp.extraLights.push_back(L);
+            }
+        }
+        // V13.3 (KREATUR_L3_Purpur.md): purpifizierte Wesen - violettes Licht vor dem Koerper (atmet, Schwall, Lampe darauf)
+        if (playing) {
+            static std::vector<game::Purpification::Light> purpleLights;
+            purpleLights.clear();
+            s.purple().lights(purpleLights, cam.pos, 24.0f, time_);
+            for (const auto& pl : purpleLights) {
+                if (sp.extraLights.size() >= 10) break;
+                gfx::ExtraLight L;
+                L.pos = pl.pos;
+                L.dir = {0.0f, 0.0f, -1.0f};
+                L.color = pl.color;
+                L.range = pl.range;
+                L.spill = 1.0f;
+                L.size = 0.3f;
+                L.soft = 0.45f;
                 L.shadows = false;
                 sp.extraLights.push_back(L);
             }

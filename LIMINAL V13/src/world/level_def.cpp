@@ -205,6 +205,8 @@ std::optional<LevelDef> LevelDef::fromJson(const Json& jIn, std::string* error, 
     if (const Json* pr = j.find("presence"); pr && pr->isObject()) {
         L.allowHound = (*pr)["hound"].asBool(true), L.allowSmiler = (*pr)["smiler"].asBool(true);
         L.smilerBait = (*pr)["smiler_bait"].asString("follow") == "hesitate" ? 1 : 0;  // V13.3 (KREATUR_Smiler.md)
+        L.smilerUnprovoked = std::clamp((*pr)["smiler_unprovoked"].asNumber(0.0), 0.0, 1.0);  // V13.3 Level 3 (KREATUR_Smiler.md)
+        L.redKnightEvery = std::max(0.0, (*pr)["red_knight_every"].asNumber(0.0));              // V13.3 Level 3 (KREATUR_RedKnight.md)
         // V11: "clump": true/false oder ein Anteil 0..1 (wie oft es einzieht)
         const Json& cj = (*pr)["clump"];
         L.clumpRate = cj.isNumber() ? std::clamp(cj.asNumber(1.0), 0.0, 1.0) : (cj.asBool(false) ? 1.0 : 0.0);
@@ -225,6 +227,18 @@ std::optional<LevelDef> LevelDef::fromJson(const Json& jIn, std::string* error, 
             K.count = (int)(*kj)["count"].asInt(0);
             if (const Json* rs = kj->find("rooms"); rs && rs->isArray())
                 for (size_t i = 0; i < rs->size(); ++i) K.rooms.push_back((*rs)[i].asString(""));
+        }
+        // V13.3 Level 2/3: Hound-Rudel, grosses bewaffnetes Buendel (gleiche Felder wie oben)
+        for (auto [key, K] : {std::pair<const char*, KinDef*>{"hound_pack", &L.houndPack}, {"clump_l3", &L.clumpBig}}) {
+            const Json* kj = pr->find(key);
+            if (!kj || !kj->isObject()) continue;
+            K->on = (*kj)["on"].asBool(true);
+            K->mode = (*kj)["mode"].asString("");
+            if (const Json* g = kj->find("group"); g && g->isArray() && g->size() >= 2)
+                K->groupMin = std::max(1, (int)(*g)[0].asInt(1)), K->groupMax = std::max(K->groupMin, (int)(*g)[1].asInt(1));
+            K->every = std::max(5.0, (*kj)["every"].asNumber(180.0));
+            K->chance = std::clamp((*kj)["chance"].asNumber(0.0), 0.0, 1.0);
+            K->count = (int)(*kj)["count"].asInt(0);
         }
     }
     L.audio = j["audio"];

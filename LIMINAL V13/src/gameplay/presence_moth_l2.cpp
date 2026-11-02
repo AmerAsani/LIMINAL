@@ -45,7 +45,7 @@ MothGroup& grp(A& a) {
 constexpr float kMale = 0.52f, kFemale = 0.66f;
 }  // namespace
 
-bool Presence::mothL2(const Context& c) const { return c.kin && c.kin[world::KIN_MOTH].on; }
+bool Presence::mothL2(const Context& c) const { return c.kin && c.kin[world::KIN_MOTH].on && c.kin[world::KIN_MOTH].mode != "swarm"; }  // V13.3 Level 3: Schwarm (presence_moth_l3.cpp)
 
 bool Presence::agentInfo(Role r, int i, vec3& pos, int& state, int& variant) const {
     for (const auto& a : agents_)
@@ -155,7 +155,7 @@ void Presence::regieMothL2(double dt, const Context& c, std::vector<Event>& out)
     const world::KinDef& K = c.kin[world::KIN_MOTH];
     std::vector<int> groups;
     for (const auto& a : agents_)
-        if (a->role == Role::Moth && a->variant > 0 && !a->showcase && std::find(groups.begin(), groups.end(), a->group) == groups.end())
+        if (a->role == Role::Moth && a->variant > 0 && a->variant < 3 && !a->showcase && std::find(groups.begin(), groups.end(), a->group) == groups.end())
             groups.push_back(a->group);
     if ((int)groups.size() >= std::max(1, K.count)) return;
     nextMothL2_ -= dt;

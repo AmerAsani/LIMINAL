@@ -120,3 +120,27 @@ Bilder: `docs/screens/creatures/smiler_koeder/` (je Runde `r<N>_…`; Hand, Flug
 
 ### Tests (`gameplay_test`, „V13.3: Leuchtstab und Ansprechen“)
 Fundstellen (Level 1, 2, 3 je 4, Level 0 keine, auf freiem Boden); F knickt (aus dem Inventar, Geste), beim Loslassen fliegt er, Wurfbogen, liegt flach nach etwa 10 m, leuchtet, eigenes Licht; Level 1 im Stromausfall bei eingeschalteter Lampe: der Smiler wendet sich dem Stab zu, geht von 11,7 auf 1,4 m an ihn heran, der abgewandte Spieler überlebt; wer neben ihm rennt, holt ihn zurück; mit der Einstellung von Level 3 stutzt er nur und wendet sich wieder dem Spieler zu.
+
+## V13.3: Level 3 – Angriff ohne Anlass
+
+**Quelle** (Wikidot, CC BY-SA 3.0, eigene Worte, keine Bilder): [level-3](https://backrooms-wiki.wikidot.com/level-3) Rev. 18 (26.09.2026, Natedagreat563), Abschnitt zu den Wesen der Ebene, Smiler.
+
+**Was die Seite sagt:** Die Smiler von Level 3 haben – so die verbreitete Annahme der Forscher – Lider und Lippen entwickelt und verbergen damit Augen und Zähne; ganz dunkel werden sie dabei nicht, nur viel schwächer. Sie dienen Wesenverbänden als Fallen und Wachen. Viele Forscher nehmen deshalb an, dass sie **unter allen Umständen angreifen** – anders als die Smiler anderswo, die nur gereizt oder erschreckt zugreifen. Rat: im Zweifel ruhig und leise umkehren, nicht darauf eingehen. Als letztes Mittel nennt die Seite eine Blitzlicht-Granate aus Base Gamma (gibt es im Spiel nicht).
+
+**Umsetzung** (`gameplay/presence_smiler_l3.cpp`, Level-JSON `presence.smiler_unprovoked: 0.35`; auf allen anderen Ebenen 0 – dort unverändert):
+- Beim ersten Denken wird je Smiler gewürfelt: etwa jeder dritte greift **ohne Anlass** an. Er wartet 9–22 s, und zwar nur, solange der Wanderer 4–15 m entfernt ist (näher wäre es unfair, weiter merkt man es nicht). Stillstehen und Hinsehen – der Rat für die gewöhnliche Panik – ändert daran nichts. Stutzt er gerade am Leuchtstab, wartet er.
+- **Ankündigung (2,2 s, unbeweglich):** Lider und Lippen pressen sich erst zu – das Gesicht wird für 0,4 s fast dunkel –, dann reißen sie auf: Augen und Zähne in voller Helligkeit, das Lächeln weit offen, das Gesicht zittert. Eigener Klang `smiler_peel` (`audio/synth_smiler_l3.cpp`): dumpfes, feuchtes Quetschen, klebriges Ablösen mit einem Riss, dichtes Zähneklappern, darüber ein dünner Ton, der von 1,3 auf 3,4 kHz steigt und schwebt, scharfes Einziehen von Luft durch die Zähne. Er klingt bewusst anders als `smiler_open` (Panik), damit man sofort weiß: diesmal hilft Stillstehen nicht. Dazu der Hinweis „Lider und Lippen reißen auf – er kommt ohne Anlass. Licht aus und raus aus seiner Bahn!“.
+- **Ansturm:** 4,2 m/s, höchstens 6 s. Drei Auswege, alle aus dem Wiki abgeleitet:
+  - **Wegrennen** – der Sprint ist schneller (5,7 m/s); wächst der Abstand über 13 m, lässt er ab.
+  - **Licht aus** – das Licht zieht ihn an (Entity 3). Ist die Lampe aus und steht der Wanderer im Dunkeln, verliert er ihn und stürmt zu der Stelle, an der er ihn zuletzt im Licht sah; wer dort nicht mehr steht (1,6 m), ist sicher – er lässt ab (das Lächeln verklingt) und vergeht. Geht die Lampe in 9 m wieder an, hat er ihn wieder.
+  - **Raumlicht** – wie immer: tritt er auf eine beleuchtete Kachel, erlischt er.
+- Wer stehen bleibt oder die Lampe anlässt und nicht wegläuft, wird erreicht – der Zugriff ist tödlich wie bei jedem Smiler.
+- **Mehrspieler:** Der Host rechnet; die Puppe beim Gast bekommt Leuchten und Kiefer über die vorhandenen Kanäle, die Ankündigung als Figurereignis (Stärke 2). Protokoll unverändert.
+
+**Begründung der Fairness:** „Ohne Anlass“ heißt hier: kein Auslöser durch den Spieler – nicht: ohne Warnung. Die Ankündigung ist länger als die der Panik (2,2 statt 1,5 s), sichtbar (erst dunkel, dann grell) und hörbar anders; es gibt zwei Auswege, die jeder Spieler schon kennt (Licht aus, weg), und einen dritten (Raumlicht). Er kommt nie aus nächster Nähe (über 4 m) und nur bei einem Drittel der Smiler – die Ebene bleibt spielbar, aber kein Smiler auf Level 3 ist mehr „sicher“, nur weil man stillsteht.
+
+**Interpretation:** Würfelanteil, Wartezeit, Abstandsfenster, Ankündigungsdauer, Ansturmdauer, die Abbruchregeln und der Klang.
+
+**Gleichgewicht:** Keine Änderung an Vorräten, Spawnplänen oder anderen Wesen; nur Smiler auf Ebenen mit `smiler_unprovoked > 0` (nur Level 3).
+
+**Tests** (`gameplay_test`, „V13.3: Level 3 – Smiler ohne Anlass“; Halle Aquila mit der Einstellung von Level 3): Level 3 setzt den Wert, Level 1 nicht; still stehen und hinsehen – nach 20 s reißen Lider und Lippen auf, frühestens 2,2 s danach der tödliche Zugriff (gemessen 3,9 s); Licht aus und zur Seite treten – er stürmt zur letzten Stelle (Stufe 6), verfehlt und lässt ab; wegrennen – er lässt ab; Level 1: 30 s still stehen und hinsehen, kein Angriff ohne Anlass.

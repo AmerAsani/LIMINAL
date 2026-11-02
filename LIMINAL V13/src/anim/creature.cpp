@@ -258,6 +258,15 @@ CreatureSkeleton makeMoth() {
         k.j(legJ(l, 2), base + vec3{fx[pair], sg * 0.055f, -0.016f});
         k.j(legJ(l, 3), base + vec3{tx[pair], sg * 0.066f, -0.024f});
     }
+    // V13.3 Level 3: viertes Beinpaar (nur Praetorianer) am ersten Hinterleibsring, nach hinten gerichtet
+    for (int l = 6; l < 8; ++l) {
+        const float sg = (l % 2) == 0 ? 1.0f : -1.0f;
+        const vec3 base{-0.036f, sg * 0.010f, -0.014f};
+        k.j(legJ(l, 0), base);
+        k.j(legJ(l, 1), base + vec3{-0.024f, sg * 0.03f, 0.012f});
+        k.j(legJ(l, 2), base + vec3{-0.040f, sg * 0.055f, -0.016f});
+        k.j(legJ(l, 3), base + vec3{-0.060f, sg * 0.066f, -0.024f});
+    }
     const vec3 Z{0, 0, 1}, F{1, 0, 0};
     k.b(B_ROOT, ROOT, ROOT, -1, 0.0f, F, false);
     k.b(B_THORAX, ROOT, HEAD, B_ROOT, 0.026f, Z);
@@ -273,8 +282,8 @@ CreatureSkeleton makeMoth() {
     k.b(B_WH_L, WH_L, WHT_L, B_THORAX, 0.03f, Z);
     k.b(B_WF_R, WF_R, WFT_R, B_THORAX, 0.03f, Z);
     k.b(B_WH_R, WH_R, WHT_R, B_THORAX, 0.03f, Z);
-    for (int l = 0; l < 6; ++l)
-        for (int i = 0; i < 3; ++i) k.b(legB(l, i), legJ(l, i), legJ(l, i + 1), i == 0 ? B_THORAX : legB(l, i - 1), 0.004f, Z, false);
+    for (int l = 0; l < 8; ++l)  // V13.3 Level 3: 6, 7 am Hinterleib (Praetorianer)
+        for (int i = 0; i < 3; ++i) k.b(legB(l, i), legJ(l, i), legJ(l, i + 1), i == 0 ? (l < 6 ? B_THORAX : B_ABD1) : legB(l, i - 1), 0.004f, Z, false);
     k.s.height = 0.12f;
     k.s.reach = 0.26f;
     k.s.center = {-0.02f, 0, 0};
@@ -599,10 +608,12 @@ const char* entityModel(Entity e) {
 
 const std::vector<const char*>& entityVariants(Entity e) {
     // Faceling: entwickelt (Level 3), rosa Kleid (Level 188); Death Rat: haarlos (Level 2, Hitze); Skin-Stealer: getarnt (in Menschenhaut)
-    static const std::vector<const char*> none, fc{"ent_faceling", "ent_faceling_evo", "ent_faceling_dress", "ent_faceling_b", "ent_faceling_c"}, rat{"ent_rat", "ent_rat_bald"},
+    // V13.3 Level 3: Death Rat wie ein Wasserschwein (2) und ihre gebaute Stromfalle (3) - KREATUR_DeathRat.md
+    static const std::vector<const char*> none, fc{"ent_faceling", "ent_faceling_evo", "ent_faceling_dress", "ent_faceling_b", "ent_faceling_c"}, rat{"ent_rat", "ent_rat_bald", "ent_rat_l3", "ent_rat_trap"},
         ss{"ent_skinstealer", "ent_skinstealer_skin", "ent_skinstealer_coat", "ent_skinstealer_torn"};  // V13.3 Level 3: Mantel, zerrissen
     // V13.3 Level 3: Wretches mit selbst gebauter Waffe - Rohrstueck, Nagelbrett, Blechklinge mit Kabelgriff
-    static const std::vector<const char*> wrv{"ent_wretch", "ent_wretch_pipe", "ent_wretch_board", "ent_wretch_blade"};
+    // V13.3 Level 3 (KREATUR_RedKnight.md): 4 der Red Knight (Entity 71) - Traeger ist die Rolle Wretch (keine eigene Rolle)
+    static const std::vector<const char*> wrv{"ent_wretch", "ent_wretch_pipe", "ent_wretch_board", "ent_wretch_blade", "ent_redknight"};
     if (e == Entity::Wretch) return wrv;
     // V13.3 Wrangler: Maennchen (Laecheln), Weibchen (Zangen), traechtiges Weibchen (Samen am Leib), Jungtiere am Ast
     static const std::vector<const char*> wr{"ent_wrangler", "ent_wrangler_f", "ent_wrangler_fs", "ent_wrangler_brood"};
@@ -617,9 +628,15 @@ const std::vector<const char*>& entityVariants(Entity e) {
     static const std::vector<const char*> gbv{"ent_goblin", "ent_goblin_scout", "ent_goblin_gate", "ent_goblin_portal"};
     if (e == Entity::Goblin) return gbv;
     // V13.3 Teil 4 (Level 2): Fensterwesen im Stahlfenster der Ebene; Deathmoths - 1 Maennchen mit Ruessel, 2 Weibchen (klein)
-    static const std::vector<const char*> wnv{"ent_window", "ent_window_end"}, mov{"ent_moth", "ent_moth_male", "ent_moth"};
+    static const std::vector<const char*> wnv{"ent_window", "ent_window_end"}, mov{"ent_moth", "ent_moth_male", "ent_moth",
+        "ent_moth_male", "ent_moth", "ent_moth_praetorian"};  // V13.3 Level 3: Schwarm - 3 Maennchen, 4 Weibchen, 5 Praetorianer
     if (e == Entity::Window) return wnv;
     if (e == Entity::Moth) return mov;
+    // V13.3 Level 2/3 (KREATUR_Hound.md, KREATUR_Clump.md): Hound im Rudel - 1 Level 2 (schwarze Fluessigkeit), 2 Level 3 (Brandnarben);
+    // grosses Buendel in Level 3 - 1 bewaffnet (Rohr, Knochenspiess, Knochensichel), 2 entwaffnet (zweiter Knochenspiess)
+    static const std::vector<const char*> hdv{"ent_hound", "ent_hound_l2", "ent_hound_l3"}, clv{"ent_clump", "ent_clump_l3", "ent_clump_l3_bare"};
+    if (e == Entity::Hound) return hdv;
+    if (e == Entity::Clump) return clv;
     return e == Entity::Faceling ? fc : (e == Entity::Rat ? rat : (e == Entity::SkinStealer ? ss : none));
 }
 
