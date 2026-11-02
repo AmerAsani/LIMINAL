@@ -823,5 +823,173 @@ if jerry_room is not None:
           f'({m.R(jerry_room).cx:.0f}, {m.R(jerry_room).cy:.0f}), Wegweiser {len(markers)}')
 else:
     print('Jerrys Raum: keine passende Kammer')
+
+# --- V13.3 Teil 4 (KREATUR_CannibalCuisine.md, KREATUR_Swindlebird.md, KREATUR_Photoshop.md, KREATUR_Macchina.md): Randwesen
+# von Level 2 ohne Rolle (gameplay/apparitions_l2.cpp). Eigener Zufallsgenerator, nach allen anderen Platzierungen - die
+# Anordnung der Ebene bleibt gleich. Spawnpunkte kind "trace" mit set cuisine / swindle / photoshop / macchina.
+t6 = _random.Random(4406)
+used6 = [(x, y) for x, y in win_ends]
+
+
+def cc_block(r, x, y, yaw):
+    """Der Automat steht fest: die Kacheln unter seiner Grundflaeche (1,22 x 0,76 m) als unsichtbarer Block (Kollision,
+    Schatten, Wege). None, wenn er dabei eine Tuer verstellen wuerde."""
+    R = m.R(r)
+    c, s = math.cos(yaw), math.sin(yaw)
+    pts = [(x + c * dx - s * dy, y + s * dx + c * dy) for dx in (-0.38, 0.38) for dy in (-0.61, 0.61)]
+    x0 = max(R.x0, math.floor(min(p[0] for p in pts) + 0.05))
+    x1 = min(R.x1, math.ceil(max(p[0] for p in pts) - 0.05))
+    y0 = max(R.y0, math.floor(min(p[1] for p in pts) + 0.05))
+    y1 = min(R.y1, math.ceil(max(p[1] for p in pts) - 0.05))
+    if any(m.in_door(i, j) is not None for i in range(x0, x1) for j in range(y0, y1)):
+        return None
+    # vor jeder Tuer haelt die Welt drei Kacheln frei (room.cpp, planClearance) - dort gaebe es keinen Block
+    for d in m.doors:
+        if r not in (d.get('a'), d.get('b')):
+            continue
+        dx0, dy0, dx1, dy1 = d['rect']
+        for i in range(x0, x1):
+            for j in range(y0, y1):
+                gx = max(dx0 - (i + 0.5), 0, (i + 0.5) - dx1)
+                gy = max(dy0 - (j + 0.5), 0, (j + 0.5) - dy1)
+                if max(gx, gy) < 4.2:
+                    return None
+    return (r, x0, y0, x1, y1)
+# Cannibal Cuisines (Wikidot Level 2: recht haeufig, meist am Ende von Sackgassen oder an Waenden ohne Maschinen und Rohre;
+# ihr Licht war im Blackout ein Wegpunkt). Der Automat steht mit dem Ruecken 0,40 m vor der Stirnwand, Blick in den Gang.
+cuisines = []
+ends6 = []
+for r, dirs in sorted(ends_open.items()):
+    if len(dirs) != 1:
+        continue
+    R = m.R(r)
+    (ox, oy), = dirs
+    if ox:
+        x, y, yaw = (R.x0 + 0.42 if ox > 0 else R.x1 - 0.42), R.y0 + R.h / 2, (0.0 if ox > 0 else math.pi)
+    else:
+        x, y, yaw = R.x0 + R.w / 2, (R.y0 + 0.42 if oy > 0 else R.y1 - 0.42), (math.pi / 2 if oy > 0 else -math.pi / 2)
+    if math.hypot(x - m.start[0], y - m.start[1]) < 30 or min(R.w, R.h) < 2 or R.zone == 'jerry':
+        continue
+    ends6.append((x, y, R.floor, yaw, r))
+t6.shuffle(ends6)
+for (x, y, z, yaw, r) in ends6:
+    if len(cuisines) >= 4:
+        break
+    # eine andere Sackgasse als die Fensterwesen (12 m), zu anderen Automaten 24 m
+    if any(math.hypot(x - p[0], y - p[1]) < 12 for p in win_ends) or any(math.hypot(x - p[0], y - p[1]) < 24 for p in cuisines) \
+            or not t4_free(x, y, 0.8):
+        continue
+    blk = cc_block(r, x, y, yaw)
+    if blk is None:
+        continue
+    m.block(*blk, 1.83)
+    # der Spawnpunkt liegt vor dem Block (Tag o: so weit dahinter steht der Automat)
+    m.spawn('trace', x + math.cos(yaw) * 0.64, y + math.sin(yaw) * 0.64, z, yaw, set='cuisine', tags=['end', f'v{len(cuisines) % 3}', 'o0.64'])
+    cuisines.append((x, y))
+    used6.append((x, y))
+# zwei weitere an kahlen Kammerwaenden (keine Maschine, kein Rohr, keine Tuer im Umkreis von 1,6 m)
+walls6 = []
+for r in C.values():
+    R = m.R(r)
+    if R.type != 'kammer' or R.zone in ('jerry', 'macchina') or min(R.w, R.h) < 4:
+        continue
+    for (fx, fy, fyaw) in m.wall_faces(r, margin=1):
+        x, y = fx + math.cos(fyaw) * 0.42, fy + math.sin(fyaw) * 0.42
+        if math.hypot(x - m.start[0], y - m.start[1]) < 30 or m.in_door(math.floor(x), math.floor(y)) is not None:
+            continue
+        if any(math.hypot(o['pos'][0] - fx, o['pos'][1] - fy) < 1.6 for o in m.objects if o['model'] not in mapkit_ceiling):
+            continue
+        walls6.append((x, y, R.floor, fyaw, r))
+t6.shuffle(walls6)
+for (x, y, z, yaw, r) in walls6:
+    if len(cuisines) >= 6:
+        break
+    if any(math.hypot(x - p[0], y - p[1]) < 24 for p in used6) or not t4_free(x, y, 0.8):
+        continue
+    blk = cc_block(r, x, y, yaw)
+    if blk is None:
+        continue
+    m.block(*blk, 1.83)
+    m.spawn('trace', x + math.cos(yaw) * 0.64, y + math.sin(yaw) * 0.64, z, yaw, set='cuisine', tags=['wall', f'v{len(cuisines) % 3}', 'o0.64'])
+    cuisines.append((x, y))
+    used6.append((x, y))
+print('Cannibal Cuisines:', len(cuisines), ', '.join(f'({x:.0f}, {y:.0f})' for x, y in cuisines))
+
+# Swindlebird (Wikidot Level 2: eine alte, nie bestaetigte Meldung eines blauen Exemplars; Entity 192: Nester am Boden):
+# moegliche Stellen am Ende langer gerader Tunnelstuecke - die Sichtung waehlt zur Laufzeit eine, die niemand sieht
+swindle = 0
+segs6 = [r for r in segments if r is not None and max(m.R(r).w, m.R(r).h) >= 8 and min(m.R(r).w, m.R(r).h) <= 3]
+t6.shuffle(segs6)
+for r in segs6:
+    if swindle >= 28:
+        break
+    R = m.R(r)
+    horiz = R.w > R.h
+    for end in (0, 1):
+        if horiz:
+            x, y, yaw = (R.x0 + 0.8 if end == 0 else R.x1 - 0.8), R.y0 + R.h / 2 + t6.uniform(-0.4, 0.4), (0.0 if end == 0 else math.pi)
+        else:
+            x, y, yaw = R.x0 + R.w / 2 + t6.uniform(-0.4, 0.4), (R.y0 + 0.8 if end == 0 else R.y1 - 0.8), (math.pi / 2 if end == 0 else -math.pi / 2)
+        if math.hypot(x - m.start[0], y - m.start[1]) < 30 or not t4_free(x, y, 0.5):
+            continue
+        m.spawn('trace', x, y, R.floor, yaw, set='swindle')
+        swindle += 1
+        break
+print('Swindlebird: moegliche Stellen', swindle)
+
+# Photoshop (Wikidot Level 2: keine Art, sehr selten, vor allem in Raeumen mit PCs; erste Sichtung bei EL3A; seit dem
+# Blackout laeuft kaum noch Elektronik). Stellen neben den Schreibtischen der Bueros; der Lauf waehlt hoechstens eine.
+ps6 = 0
+desks6 = [o for o in m.objects if o['model'] == 'desk_crt' and m.at(o['pos'][0], o['pos'][1]) in offices]
+t6.shuffle(desks6)
+for o in desks6:
+    if ps6 >= 6:
+        break
+    dx, dy, dz = o['pos']
+    dyaw = o.get('yaw', 0.0)
+    if math.hypot(dx - m.start[0], dy - m.start[1]) < 40:
+        continue
+    # hinter dem Monitor (lokal x = -0,95, an der Wand), Blick wie der Monitor (lokal +x): ueber dem Roehrenbildschirm,
+    # der sein Bild zeigt, ragt das Fotogesicht auf; wer an die Tastatur tritt, ist naeher als fuenf Fuss. Davor 1,6 m frei
+    c_, s_ = math.cos(dyaw), math.sin(dyaw)
+    for side in (1, -1):
+        lx, ly = -0.95, -0.08 * side
+        x, y = dx + c_ * lx - s_ * ly, dy + s_ * lx + c_ * ly
+        fx_, fy_ = dx + c_ * 1.6, dy + s_ * 1.6
+        if m.at(x, y) != m.at(dx, dy) or m.at(fx_, fy_) != m.at(dx, dy) or m.in_door(math.floor(x), math.floor(y)) is not None \
+                or not t4_free(x, y, 0.5) or not t4_free(fx_, fy_, 0.5):
+            continue
+        m.spawn('trace', x, y, dz, dyaw, set='photoshop', tags=[f'pc{dx:.3f},{dy:.3f},{dyaw:.4f},{o.get("variant", 0)}'])
+        ps6 += 1
+        break
+print('Photoshop: moegliche Stellen', ps6)
+
+# Macchina (Wikidot Level 2 / Entity 189: seit etwa 1850 nicht mehr gesehen; ihre Anzuege trugen sie lebenslang, ohne Anzug
+# galt man als nicht lebendig, jedes dritte Kind starb ohne Anzug; Bilder von Gestalten, die aus Lichtkugeln herabsteigen):
+# in der Werkstatt ein leerer Anzug an der Wand, ein unfertiges Kindergestell, ein Wandtuch, ein Speer; Fundstelle am Anzug
+mac6 = 0
+for r in mac_cells:
+    R = m.R(r)
+    faces = [f for f in m.wall_faces(r, margin=1) if t4_free(f[0] + math.cos(f[2]) * 0.5, f[1] + math.sin(f[2]) * 0.5, 0.75)]
+    t6.shuffle(faces)
+    placed = []
+
+    def far6(f, d=1.6):
+        return all(math.hypot(f[0] - p[0], f[1] - p[1]) >= d for p in placed)
+    for name, inward, kind in (('macchina_suit', 0.45, 'floor'), ('macchina_tapestry', 0.0, 'wall'), ('macchina_cradle', 0.4, 'floor'),
+                               ('macchina_spear', 0.12, 'floor')):
+        for f in faces:
+            if not far6(f) or m.in_door(math.floor(f[0] + math.cos(f[2]) * 0.6), math.floor(f[1] + math.sin(f[2]) * 0.6)) is not None:
+                continue
+            x, y = f[0] + math.cos(f[2]) * inward, f[1] + math.sin(f[2]) * inward
+            if kind == 'floor' and not t4_free(x, y, 0.45):
+                continue
+            m.obj(name, x, y, R.floor, f[2], tag='deco')
+            placed.append(f)
+            if name == 'macchina_suit':
+                m.spawn('trace', x, y, R.floor, f[2], set='macchina', tags=['suit'])
+            mac6 += 1
+            break
+print('Macchina-Reste:', mac6)
 m.save()
 print('Knicke mit Schraege:', chamfers)

@@ -107,4 +107,12 @@ struct Wanderer {
     u32 seed = 1;
 };
 
+// V13.3 Teil 4: Bedienfeld eines Randwesens von Level 2 (kind 0: Automat der Cannibal Cuisine, index in
+// Apparitions::cuisines(); id: stabile Kennung fuer den Gast)
+struct ApparitionUse {
+    int kind = 0;
+    int index = -1;
+    std::string id;
+};
+
 }  // namespace lim::game

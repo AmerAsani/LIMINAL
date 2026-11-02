@@ -66,6 +66,7 @@ WALL_MOUNT = {'outlet', 'vent_grille', 'painting', 'power_box', 'wall_sconce', '
               'fungus_wall', 'claw_marks',  # V13.3 L1-Erscheinungen (Crawler-Pilz, Tuerspuren)
               'skin_hung', 'skin_scratches',  # V13.3 L2: Spuren der Skin-Stealer (KREATUR_L2_Spuren.md)
               'jerry_mural', 'jerry_poster',  # V13.3 Teil 4 L2: Jerrys Raum, Wegweiser der Followers (KREATUR_Jerry.md)
+              'macchina_tapestry',  # V13.3 Teil 4 L2: Wandtuch der Macchina (KREATUR_Macchina.md)
               'departure_board', 'exit_sign_36', 'storefront_a', 'storefront_b', 'storefront_c', 'storefront_closed', 'gate_sign_c30', 'gate_sign_c31', 'gate_sign_c32', 'gate_sign_c33', 'gate_sign_c34', 'gate_door_closed', 'gate_door_boarding', 'clock_36', 'clock_36_b', 'water_fountain', 'restroom_sign'}  # V12 L36
 DOOR_MODELS = {'steel_door', 'hotel_door', 'damaged_door'}
 CEILING_MOUNT = {'batten', 'highbay', 'chandelier', 'safety_light', 'ceiling_vent',
@@ -92,6 +93,7 @@ FLOOR_MOUNT = {'chair', 'rack', 'bed', 'barrel', 'cart', 'pump', 'wardrobe', 'tr
                'macchina_parts', 'macchina_tools',  # V13.3 L2
                'skin_shed', 'skin_lair', 'food_scraps',  # V13.3 L2: Spuren der Skin-Stealer (KREATUR_L2_Spuren.md), Futter der Death Rats
                'jerry_perch', 'jerry_shrine',  # V13.3 Teil 4 L2: Jerrys Sitzrohr, Opfertisch der Followers
+               'macchina_suit', 'macchina_cradle', 'macchina_spear',  # V13.3 Teil 4 L2: Reste der Macchina (KREATUR_Macchina.md)
                'carousel_36', 'luggage_pile', 'checkin_counter', 'bta_booth', 'travelator', 'travelator_stopped', 'seats_row', 'gate_counter', 'camp_c32'}  # V12 L36
 
 

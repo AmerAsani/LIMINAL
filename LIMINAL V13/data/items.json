@@ -109,6 +109,13 @@
       "key": "fuse_station", "name": "Sicherung (Umspannwerk)",
       "description": "Schwer, warm, summt leise. Der Aufzug im Umspannwerk hat keinen Strom – damit hätte er welchen.",
       "model": "fuse", "icon": "fuse", "scale": 1.0, "max_stack": 1, "rare": true, "hold_offset": 0.03
+    },
+    // V13.3 Teil 4: Ware aus dem Automaten der Cannibal Cuisine (KREATUR_CannibalCuisine.md) - gratis, kein Nachschub.
+    // Ein Rausch (+Verstand), danach Sucht: Mandelwasser und Riegel wirken nicht mehr, fern der Automaten zehrt der Entzug
+    {
+      "key": "cc_ware", "name": "Ware aus dem Automaten",
+      "description": "Ein warmer Block in Schokoriegelpapier, ein Ende aufgerissen. Riecht süß und nach Eisen. Gratis.",
+      "sanity": 40.0, "model": "prop:cc_ware", "icon": "cc_ware", "scale": 1.0, "use_sound": "eat", "max_stack": 4, "hold_offset": 0.02
     }
   ]
 }

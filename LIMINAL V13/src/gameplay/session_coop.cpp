@@ -94,6 +94,18 @@ bool GameSession::pawnInteract(Pawn& p, u32 hash, std::string& msg, int& note) {
         reg_.each<NoteFind, Transform>([&](ecs::Entity e, NoteFind& nf, Transform&) {
             if (found == ecs::kNull && worldItemHash(nf.id) == hash) found = e;
         });
+    if (found == ecs::kNull) {  // V13.3 Teil 4: Automat der Cannibal Cuisine (session_apparitions.cpp)
+        ecs::Entity ue = ecs::kNull;
+        ApparitionUse use;
+        reg_.each<ApparitionUse, Transform>([&](ecs::Entity e, ApparitionUse& au, Transform&) {
+            if (ue == ecs::kNull && worldItemHash(au.id) == hash) ue = e, use = au;
+        });
+        if (ue != ecs::kNull) {
+            const Transform* ut = reg_.get<Transform>(ue);
+            if (std::hypot(ut->pos.x - p.player.x, ut->pos.y - p.player.y) > 2.5) return false;
+            return useApparition(use, &p, msg);
+        }
+    }
     if (found == ecs::kNull) return false;  // gibt es nicht (mehr) - ein anderer war schneller oder die Kennzahl ist erfunden
     const Transform* t = reg_.get<Transform>(found);
     const Interactable* in = reg_.get<Interactable>(found);
@@ -148,7 +160,12 @@ bool GameSession::pawnUse(Pawn& p, int idx, std::string& msg, std::string& sound
         msg = std::format("{}: Taschenlampe {} %", d->name, (int)std::lround(p.flash.charge));
         return true;
     }
+    if (p.id > 0 && p.id < Apparitions::kPlayers && appar_.refuses(p.id, d->key)) {  // V13.3 Teil 4: suechtig
+        msg = "Du würgst es wieder hoch. Dein Körper will nur noch das aus dem Automaten.";
+        return true;
+    }
     msg = p.stats.consume(*d);
+    if (d->key == "cc_ware" && p.id > 0 && p.id < Apparitions::kPlayers) msg += " · " + appar_.eat(p.id);
     std::vector<Phenomena::Event> pe;  // V13.3: offenes Mandelwasser steckt an, versiegeltes heilt frueh
     if (p.id > 0 && p.id < Phenomena::kPlayers)
         if (const std::string extra = phenomena_.drink(p.id, d->key, pe); !extra.empty()) msg += " · " + extra;
@@ -184,6 +201,7 @@ void GameSession::pawnRespawn(Pawn& p) {
     p.killRole = -1;
     p.anySeq = false;
     if (p.id > 0 && p.id < Phenomena::kPlayers) phenomena_.reset(p.id);  // V13.3
+    if (p.id > 0 && p.id < Apparitions::kPlayers) appar_.resetPlayer(p.id);  // V13.3 Teil 4
     p.body.reset();
     log::info("Koop: {} kommt am Sicherungspunkt {} zurueck", p.name, checkpoint_.empty() ? "-" : checkpoint_);
 }
@@ -212,6 +230,7 @@ void GameSession::respawnCoop() {
     killCam_ = false, killT_ = 0.0, killRole_ = -1;
     air_ = 30.0, deepT_ = 0.0, deepStage_ = 0;
     phenomena_.reset(0);  // V13.3
+    appar_.resetPlayer(0);  // V13.3 Teil 4
     events_.push_back({GameEvent::TeleportCut});
 }
 
@@ -302,6 +321,10 @@ void GameSession::netAddDropped(u32 hash, const std::string& kind, vec3 pos) {
         phenomena_.netMove(hash, pos);
         return;
     }
+    if (kind == Apparitions::kNetName) {  // V13.3 Teil 4: Randwesen von Level 2 (session_apparitions.cpp)
+        netApparition(hash, pos);
+        return;
+    }
     if (!content_.item(kind)) return;
     for (const DroppedItem& d : dropped_)
         if (d.netHash == hash) return;  // schon da (doppelt gemeldet)
@@ -327,7 +350,8 @@ void GameSession::netDie(int role) {
     if (stats_.dead) return;
     stats_.health = 0.0;
     stats_.dead = true;
-    deathCause_ = role >= 0 ? "stalker" : role == -2 ? "pilz" : role == -3 ? "garten" : "stats";  // V13.3: -2/-3 Erscheinungen
+    deathCause_ = role >= 0 ? "stalker" : role == -2 ? "pilz" : role == -3 ? "garten" : role == -4 ? "photoshop" : role == -5 ? "automat"
+                                                                                                    : "stats";  // V13.3: -2/-3 Erscheinungen, -4/-5 Randwesen L2
     killRole_ = role;
     if (role >= 0) {
         killCam_ = true, killT_ = 0.0;
@@ -373,6 +397,7 @@ u32 GameSession::targetHash() const {
         return worldItemHash(pk->worldId);
     }
     if (auto* nf = reg.get<NoteFind>(target_)) return worldItemHash(nf->id);
+    if (auto* au = reg.get<ApparitionUse>(target_)) return worldItemHash(au->id);  // V13.3 Teil 4: Automat
     return 0;
 }
 
