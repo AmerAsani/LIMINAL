@@ -17,7 +17,7 @@ import random
 import sys
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SIZE = 2048
@@ -29,13 +29,24 @@ for _i, _n in enumerate(MEATS):
 BORDER = {'mouth': 30, 'eye_a': 20, 'eye_b': 20}
 
 
-def _font(px):
-    for f in ('consola.ttf', 'lucon.ttf', 'cour.ttf', 'DejaVuSansMono.ttf'):
-        try:
-            return ImageFont.truetype(f, px)
-        except OSError:
-            continue
-    return ImageFont.load_default()
+# Sieben-Segment-Ziffern wie im Datumsaufdruck alter Kompaktkameras (selbst gezeichnet, keine Schriftdatei)
+SEG = {'0': 'abcdef', '1': 'bc', '2': 'abdeg', '3': 'abcdg', '4': 'bcfg', '5': 'acdfg', '6': 'acdefg', '7': 'abc', '8': 'abcdefg',
+       '9': 'abcdfg'}
+
+
+def _seven(d, x, y, ch, hgt):
+    """Ziffer ch mit Oberkante (x, y) und Hoehe hgt; Apostroph als kurzer Strich. Rueckgabe: Vorschub."""
+    w, t = hgt * 0.55, max(2, hgt // 7)
+    if ch == "'":
+        d.rectangle([x, y, x + t, y + hgt * 0.3], fill=255)
+        return t * 3
+    segs = {'a': (x + t, y, x + w - t, y + t), 'g': (x + t, y + hgt / 2 - t / 2, x + w - t, y + hgt / 2 + t / 2),
+            'd': (x + t, y + hgt - t, x + w - t, y + hgt), 'f': (x, y + t, x + t, y + hgt / 2 - t / 2),
+            'b': (x + w - t, y + t, x + w, y + hgt / 2 - t / 2), 'e': (x, y + hgt / 2 + t / 2, x + t, y + hgt - t),
+            'c': (x + w - t, y + hgt / 2 + t / 2, x + w, y + hgt - t)}
+    for s in SEG.get(ch, ''):
+        d.rectangle(segs[s], fill=255)
+    return w + t * 2
 
 
 def develop(img, rng, cast):
@@ -55,15 +66,20 @@ def develop(img, rng, cast):
 
 
 def date_stamp(img, rng):
-    """Datumsaufdruck einer alten Kamera (orange Ziffern mit Leuchtsaum, unten rechts)."""
+    """Datumsaufdruck einer alten Kamera (orange Sieben-Segment-Ziffern mit Leuchtsaum, unten rechts)."""
     w, h = img.size
-    txt = f"'{rng.choice([91, 94, 97, 98, 99])}  {rng.randint(1, 12)}  {rng.randint(1, 28)}"
-    f = _font(max(12, h // 16))
+    groups = [f"'{rng.choice([91, 94, 97, 98, 99])}", str(rng.randint(1, 12)), str(rng.randint(1, 28))]
+    hgt = max(10, h // 18)
+    t = max(2, hgt // 7)
     glow = Image.new('L', img.size, 0)
     d = ImageDraw.Draw(glow)
-    tw = d.textlength(txt, font=f)
-    pos = (w - tw - w * 0.05, h - h * 0.11)
-    d.text(pos, txt, font=f, fill=255)
+    widths = [sum(3 * t if c == "'" else hgt * 0.55 + 2 * t for c in g) for g in groups]
+    x = w - (sum(widths) + hgt * 1.1 * (len(groups) - 1)) - w * 0.05
+    y = h - h * 0.11
+    for g in groups:
+        for c in g:
+            x += _seven(d, x, y, c, hgt)
+        x += hgt * 1.1
     blur = glow.filter(ImageFilter.GaussianBlur(2.2))
     base = np.asarray(img, np.float32)
     col = np.array([255, 150, 40], np.float32)

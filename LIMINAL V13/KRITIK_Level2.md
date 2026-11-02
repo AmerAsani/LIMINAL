@@ -166,3 +166,40 @@ Befunde:
   `food_scraps` und alle Wesen-Modelle der Ebene.
 - **Wrangler**: Stufe 0 neu gebaut mit 118 000 statt 160 000 Dreiecken (`tools/blender/creatures/wrangler.py`, alle
   drei Formen).
+
+## Runde 7 (Abnahme: alle Wesen `wesen_r7_1.jpg` … `_5.jpg`, Laufweg `wegbilder_r6_*`: 208 m durch 28 Räume, 52 Bilder)
+
+Nachweis über alle Wesen der Ebene (Licht der Ebene und Lampe):
+- **Photoshop**: Er steht hinter dem Röhrenmonitor im hellen Büro, ein Klotz aus blutigen Fotos. Der Monitor zeigt sein
+  Bild, im Glitch verrutschen die Scheiben. In der Box legt sich das Rot über das Bild.
+- **Automat**: In der Sackgasse das einzige Licht. Der Lack ist abgewetzt, die Knochenhände halten die Ware.
+- **Swindlebird**: aus 9 m ein blauer Vogel am Tunnelende, aus 5 m als Papagei zu erkennen.
+- **Macchina**: Die Werkstatt ist dunkel. Mit Lampe sieht man den rostigen Anzug mit geschweißtem Gesicht.
+- **Jerry**: Mit Lampe ein dunkler Ara mit ausgebreiteten Flügeln vor dem Wandbild; der Bann färbt das Bild rot.
+- **Fenster**: am Gangende, ein Umriss winkt vor Hügeln im Tageslicht.
+- **Motten**: umschwirren die Lampe am Verteilerkasten.
+- **Death Rats**: an den Fässern.
+- **Rudel**: kreist mit Lampe ein.
+- **Smiler**: Rauchsäule im Gangende.
+- **Clump**: Bündel aus Gliedern in der Vorführung im Gang.
+- **Nguithr'xurh**: Netzkugeln mit Spinnen über dem Kasten.
+- **Wrangler**: Stufe 0 neu gebaut mit 118 000 Dreiecken, sieht aus wie vorher.
+- **Faceling**: gesichtslose Gestalt im Gang (Vorführung).
+- **Wretch**: im Lampenlicht.
+- **Spuren**: Haut am Haken, Lager, geschmolzene Haut, Kratzer.
+
+Die bereinigten Modelle (Ratten, Rudel, Motten, Netze, Wretch, Wrangler) sehen aus wie vorher; geändert hat sich nur
+die Indexliste.
+
+Laufweg: Die schwarze Strecke (Bilder 018–027) hat jetzt violette Punkte (018, 022, 025), klein und schwach, wie in
+LOOK_2. Sie geben Richtung, ohne das Dunkel zu brechen. Sonst ist der Weg wie in Runde 4: kreidiger Beton, Maschinen
+verschiedener Epochen, Röhren in Gruppen, Rohrbündel über Kopf, verschlossene Türen in vielen Farben.
+
+Bleibt (bewusst):
+- Jerry ist im Ebenenlicht blau auf Blau kaum zu sehen.
+- Die Macchina-Werkstatt ist ohne Lampe schwarz.
+- Der Growler ist aus 0,5 m ein bunter Knäuel. So hat ihn sein Briefing angelegt (junge Growler leuchten bunt).
+
+Prüfungen: Raummetrik grün (Level 2: Decke ≥ 2,6 m, Gänge 2,0 m, Sichtachsen Median 17,8 m / P90 40,2 m, 0 von 181
+verstellt), Ähnlichkeit S 0,812 (Ausreißer 17,9 %), Schilder 0 (Grenze 0), Modellprüfung 211 Modelle der Ebene 0 Fehler.
+Abnahme der Ebene: siehe `AUFWAND.md`, Abschnitt „Level 2 – abgenommen“.
