@@ -136,6 +136,12 @@ bool Presence::address(world::World& w, vec3 eye, vec3 look, int by, int phrase)
     if (!speakable(w, eye, look, 6.5f, &head)) return false;
     for (auto& ap : agents_) {
         Agent& a = *ap;
+        // V13.3 Level 3: der bewaffnete Wretch antwortet nicht - er hat einen (presence_kin_l3.cpp)
+        if (!a.showcase && a.role == Role::Wretch && a.variant > 0 && length(a.cre.headPos() - head) <= 0.05f) {
+            a.addressed = true, a.addrBy = by;
+            log::info("Praesenz: Wretch (Level 3) wird angesprochen (Spieler {})", by);
+            return true;
+        }
         if (a.showcase || a.role != Role::SkinStealer || length(a.cre.headPos() - head) > 0.05f) continue;
         a.addressed = true, a.addrBy = by, a.phrase = std::clamp(phrase, 0, 3);
         log::info("Praesenz: Skin-Stealer wird angesprochen (Spieler {}, Satz {})", by, phrase);

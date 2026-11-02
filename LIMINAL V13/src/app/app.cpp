@@ -10,6 +10,7 @@
 #include <thread>
 
 #include "core/log.hpp"
+#include "gameplay/kin_l3.hpp"  // V13.3 Level 3: Saetze und Waffenklaenge (Wretch, Skin-Stealer)
 #include "platform/image_io.hpp"
 #include "render/world_renderer.hpp"
 #include "world/room.hpp"
@@ -1386,6 +1387,14 @@ void App::handleEvents() {
         o.volume = volume, o.pitch = pitch, o.vary = false;
         audio_->play3d(name, soundscape_.spatial(session_->world(), ear, pos, radius), o);
     };
+    // V13.3 Level 3 (gameplay/kin_l3.hpp): Satz oder Waffenklang; nah genug mit Untertitel, beim ersten Mal der Rat des Wikis
+    auto kinSay = [&](const game::KinLine& L, vec3 pos, float pitch) {
+        at(L.sound, pos, L.volume, L.radius, pitch);
+        if (!L.sub || length(pos - ear) > L.radius * 0.6f) return;
+        ui_.toast(L.sub, L.subSec);
+        static std::set<std::string> hinted;
+        if (L.hint && hinted.insert(L.hint).second) ui_.toast(L.hint, 5.5f);
+    };
     for (const auto& e : evs) {
         switch (e.type) {
             case game::GameEvent::Toast: ui_.toast(e.text, e.duration); break;
@@ -1477,7 +1486,13 @@ void App::handleEvents() {
             case game::GameEvent::GhostSeen: audio_->play("hal_whisper", 0.5f); break;
             // V8: eine neue Ebene - erst faellt hinten eine Tuer zu, viel spaeter kennt man ihren Namen
             case game::GameEvent::DistantSlam: at("dist_door", e.pos, 0.85f, 70.0f, 0.88f); break;
-            case game::GameEvent::SoundAt: at(e.sound, e.pos, e.intensity, 18.0f); break;  // V8: Aufzug
+            case game::GameEvent::SoundAt:
+                if (const game::KinLine* L = game::kinLineBySound(e.sound)) {  // V13.3 Level 3 (Gast): Satz mit Untertitel
+                    kinSay(*L, e.pos, 1.0f);
+                    break;
+                }
+                at(e.sound, e.pos, e.intensity, 18.0f);
+                break;  // V8: Aufzug
             case game::GameEvent::TeleportCut: resetHistory_ = true; break;
             // V9: Sicherungen, die Entities (V10), die letzte Fahrt
             case game::GameEvent::FuseTaken:
@@ -1535,6 +1550,10 @@ void App::handleEvents() {
                 ++n;
                 const Role role = (Role)e.role;
                 const float var = hash01(n * 31u + 7u);
+                if (const game::KinLine* L = game::kinLine(game::kinCueOf(e.intensity, e.role))) {  // V13.3 Level 3: Klangnummer
+                    kinSay(*L, e.pos, L->sub ? 1.0f : 0.96f + 0.08f * var);
+                    break;
+                }
                 switch ((PE::Type)e.index) {
                     case PE::Step:  // Hound: flache Handflaechen und Krallen auf dem Boden (ein Klang, Varianten)
                         if (role == Role::Hound) at("hound_step", e.pos, e.intensity * 0.9f, 22.0f, 0.95f + 0.1f * var);

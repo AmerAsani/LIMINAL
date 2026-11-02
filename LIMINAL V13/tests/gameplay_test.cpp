@@ -33,6 +33,7 @@
 #include "gameplay/player.hpp"
 #include "gameplay/prefabs.hpp"
 #include "gameplay/session.hpp"
+#include "gameplay/kin_l3.hpp"  // V13.3 Level 3
 #include "gameplay/sound_field.hpp"
 #include "props/glb_import.hpp"
 #include "gameplay/stats.hpp"
@@ -2570,16 +2571,17 @@ static void testV13Kin(const std::string& dataDir) {
         });
         check(s->stats().dead && s->killRole() == (int)Role::SkinStealer, "Level 5: gereizt (Lampe im Gesicht) toetet er mit blossen Haenden");
     }
-    // --- Skin-Stealer (Level 3, getarnt, hungrig): spricht nach, kommt naeher, haelt inne, greift an --------------------
+    // --- Skin-Stealer (Level 1, getarnt, hungrig): spricht nach, kommt naeher, haelt inne, greift an --------------------
+    // (V13.3: vorher in Level 3 - dort traegt er jetzt einen Mantel, testV133Level3Kin; das Grundverhalten gilt in Level 1)
     {
-        auto s = open("level3", 12);
+        auto s = open("level1", 12);
         std::vector<game::GameEvent> ev;
         step(*s, ev, 0.3);
         auto& P = s->presence();
-        check(spawn(*s, ev, Role::SkinStealer), "Level 3: ein Skin-Stealer erscheint");
-        check(P.variantOf(Role::SkinStealer) == 1, "Level 3: getarnt (in Menschenhaut)");
+        check(spawn(*s, ev, Role::SkinStealer), "Level 1: ein Skin-Stealer erscheint");
+        check(P.variantOf(Role::SkinStealer) == 1, "Level 1: getarnt (in Menschenhaut)");
         P.kinSet(Role::SkinStealer, "hungry", 1.0);
-        check(placeNear(*s, Role::SkinStealer, 11.0) || placeNear(*s, Role::SkinStealer, 8.0), "Level 3: mit Sicht in einigem Abstand");
+        check(placeNear(*s, Role::SkinStealer, 11.0) || placeNear(*s, Role::SkinStealer, 8.0), "Level 1: mit Sicht in einigem Abstand");
         bool stalked = false, paused = false;
         step(*s, ev, 30.0, [&] {
             if (P.has(Role::SkinStealer)) aim(*s, P.headOf(Role::SkinStealer));
@@ -2587,10 +2589,10 @@ static void testV13Kin(const std::string& dataDir) {
             paused = paused || P.stateOf(Role::SkinStealer) == 3;
             return s->stats().dead;
         });
-        check(stalked, "Level 3: hungrig sucht er den, der allein ist");
-        check(count(ev, PE::Mimic, Role::SkinStealer) > 0, "Level 3: er spricht nach, um zu locken");
-        check(paused, "Level 3: vor dem Angriff haelt er inne (Ankuendigung)");
-        check(s->stats().dead && s->killRole() == (int)Role::SkinStealer, "Level 3: dann toetet er");
+        check(stalked, "Level 1: hungrig sucht er den, der allein ist");
+        check(count(ev, PE::Mimic, Role::SkinStealer) > 0, "Level 1: er spricht nach, um zu locken");
+        check(paused, "Level 1: vor dem Angriff haelt er inne (Ankuendigung)");
+        check(s->stats().dead && s->killRole() == (int)Role::SkinStealer, "Level 1: dann toetet er");
         // Ausweg (Wiki: langsam und ruhig weggehen): haelt er inne und man weicht zurueck, folgt er nur wieder
         s->respawnAtCheckpoint();
         P.clear();
@@ -2618,7 +2620,7 @@ static void testV13Kin(const std::string& dataDir) {
                 }
                 return backed && P.stateOf(Role::SkinStealer) != 3;
             });
-            check(backed && !s->stats().dead && P.stateOf(Role::SkinStealer) == 1, "Level 3: wer ruhig zurueckweicht, den laesst er ziehen (er folgt nur)");
+            check(backed && !s->stats().dead && P.stateOf(Role::SkinStealer) == 1, "Level 1: wer ruhig zurueckweicht, den laesst er ziehen (er folgt nur)");
         }
     }
     // --- Wretch (Level 2): schlurfend - tiefes Gurgeln, schwere Schlaege; flehend - harmlos ------------------------------
@@ -4193,6 +4195,389 @@ static void testV133LureTalk(const std::string& dataDir) {
     }
 }
 
+// --- V13.3: Level 3 - Wretch mit Waffe, Skin-Stealer im Mantel (KREATUR_Wretch.md, KREATUR_SkinStealer.md) -------------
+static void testV133Level3Kin(const std::string& dataDir) {
+    std::printf("V13.3: Level 3 - Wretch mit Waffe, Skin-Stealer im Mantel\n");
+    const game::Content& content = *gContent11;
+    game::PrefabLibrary prefabs;
+    prefabs.loadDirectory(dataDir + "/prefabs");
+    JobSystem jobs(2);
+    using PE = game::Presence::Event;
+    using Role = game::Presence::Role;
+    auto open = [&](const char* level, i64 seed) {
+        auto s = std::make_unique<game::GameSession>(content, prefabs, content.level(level, world::kLayoutV6), seed, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        return s;
+    };
+    auto step = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, double secs, const std::function<bool()>& each = {},
+                    const std::function<game::PlayerControl(int)>& ctl = {}) {
+        for (int i = 0; i < (int)(secs * 60.0); ++i) {
+            if (each && each()) break;
+            s.update(1.0 / 60.0, ctl ? ctl(i) : game::PlayerControl{}, false);
+            ev.insert(ev.end(), s.events().begin(), s.events().end());
+            s.events().clear();
+        }
+    };
+    // Figurereignisse einer Art; cue >= 0: nur diese Klangnummer (kin_l3.hpp), cue2: bis einschliesslich
+    auto count = [](const std::vector<game::GameEvent>& ev, PE::Type t, Role r, int cue = -1, int cue2 = -1) {
+        return (int)std::count_if(ev.begin(), ev.end(), [&](const game::GameEvent& e) {
+            if (e.type != game::GameEvent::Figure || e.index != (int)t || e.role != (int)r) return false;
+            const int k = game::kinCueOf(e.intensity, e.role);
+            return cue < 0 || (k >= cue && k <= (cue2 < 0 ? cue : cue2));
+        });
+    };
+    auto lastCue = [](const std::vector<game::GameEvent>& ev, Role r, int lo, int hi) {
+        int k = -1;
+        for (const auto& e : ev)
+            if (e.type == game::GameEvent::Figure && e.role == (int)r) {
+                const int c = game::kinCueOf(e.intensity, e.role);
+                if (c >= lo && c <= hi) k = c;
+            }
+        return k;
+    };
+    auto aim = [](game::GameSession& s, vec3 q) {
+        auto& pl = s.player();
+        pl.angle = std::atan2(q.y - pl.y, q.x - pl.x);
+        pl.pitch = std::atan2(q.z - pl.eye(), std::max(0.4, std::hypot(q.x - pl.x, q.y - pl.y)));
+    };
+    // der Spieler dist m vor dem Wesen (freie Sicht, back m Platz hinter sich)
+    auto placeNear = [&](game::GameSession& s, Role r, double dist, double back = 0.0) {
+        auto& P = s.presence();
+        if (!P.has(r)) return false;
+        const vec3 at = P.posOf(r), head = P.headOf(r);
+        world::World& w = s.world();
+        for (int k = 0; k < 36; ++k) {
+            const float yaw0 = P.yawOf(r) + (float)((k + 1) / 2) * 0.27f * (k % 2 ? 1.0f : -1.0f);
+            for (double dd = dist; dd > dist * 0.6; dd -= 0.25) {
+                const double x = at.x + std::cos(yaw0) * dd, y = at.y + std::sin(yaw0) * dd;
+                const world::Tile* t = w.tileIfLoaded(ifloor(x), ifloor(y));
+                if (!t || !t->open() || t->clearance() < 2.0f || std::fabs(t->floor - at.z) > 0.3f) continue;
+                if (!game::clearSight(w, vec3{(float)x, (float)y, t->floor + (float)game::Player::kEye}, head)) continue;
+                bool room = true;
+                for (double bb = 0.5; bb <= back && room; bb += 0.5) {
+                    const world::Tile* tb = w.tileIfLoaded(ifloor(x + std::cos(yaw0) * bb), ifloor(y + std::sin(yaw0) * bb));
+                    room = tb && tb->open() && std::fabs(tb->floor - t->floor) < 0.3f && tb->clearance() > 2.0f;
+                }
+                if (!room) continue;
+                auto& pl = s.player();
+                pl.x = x, pl.y = y, pl.z = t->floor, pl.vx = pl.vy = 0.0;
+                s.body().reset();
+                aim(s, head);
+                return true;
+            }
+        }
+        return false;
+    };
+    // vom Wesen weg versetzen (so weit der Boden frei ist), Blick bleibt auf ihm
+    auto backOff = [&](game::GameSession& s, Role r, double by) {
+        auto& P = s.presence();
+        auto& pl = s.player();
+        const vec3 at = P.posOf(r);
+        const double a0 = std::atan2(pl.y - at.y, pl.x - at.x);
+        for (int k = 0; k < 25; ++k) {
+            const double a = a0 + (double)((k + 1) / 2) * 0.15 * (k % 2 ? 1.0 : -1.0);
+            const double nx = pl.x + std::cos(a) * by, ny = pl.y + std::sin(a) * by;
+            const world::Tile* t = s.world().tileIfLoaded(ifloor(nx), ifloor(ny));
+            if (t && t->open() && std::fabs(t->floor - pl.z) < 0.3 && game::clearSight(s.world(), vec3{(float)pl.x, (float)pl.y, (float)pl.eye()},
+                                                                                     vec3{(float)nx, (float)ny, (float)pl.eye()})) {
+                pl.x = nx, pl.y = ny, pl.vx = pl.vy = 0.0;
+                s.body().reset();
+                aim(s, P.headOf(r));
+                return true;
+            }
+        }
+        return false;
+    };
+    // auf der Linie zum Wesen bis auf dist herangehen (Boden frei)
+    auto approach = [&](game::GameSession& s, Role r, double dist) {
+        auto& P = s.presence();
+        auto& pl = s.player();
+        const vec3 at = P.posOf(r);
+        const double d0 = std::hypot(pl.x - at.x, pl.y - at.y);
+        if (d0 <= dist) return true;
+        const double nx = at.x + (pl.x - at.x) / d0 * dist, ny = at.y + (pl.y - at.y) / d0 * dist;
+        const world::Tile* t = s.world().tileIfLoaded(ifloor(nx), ifloor(ny));
+        if (!t || !t->open() || std::fabs(t->floor - pl.z) > 0.3) return false;
+        pl.x = nx, pl.y = ny, pl.vx = pl.vy = 0.0;
+        s.body().reset();
+        aim(s, P.headOf(r));
+        return true;
+    };
+    auto spawn = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, Role r) {
+        s.presence().setGrace(3000.0);
+        s.presence().force(r);
+        step(s, ev, 3.0, [&] { return s.presence().has(r); });
+        return s.presence().has(r);
+    };
+    // Klaenge und Untertitel: jede Nummer hat einen Namen, die Saetze einen Untertitel, die Gaeste finden sie nach dem Namen
+    {
+        int bad = 0;
+        for (int k : {(int)game::KC_FRAG0, 3, 7, (int)game::KC_CRY0, (int)game::KC_DRAG0, (int)game::KC_RAISE0 + 2, (int)game::KC_MISS0, (int)game::KC_HIT0 + 1,
+                      (int)game::KC_SAY0, (int)game::KC_SAY0 + 7, (int)game::KC_ANS0 + 3, (int)game::KC_WAIT, (int)game::KC_BYE, (int)game::KC_TEAR}) {
+            const game::KinLine* L = game::kinLine(k);
+            bad += !L || !L->sound || game::kinLineBySound(L->sound) != L;
+        }
+        check(bad == 0, "Level 3: Klangnummern haben Namen (auch fuer die Gaeste)");
+        check(game::kinLine(game::KC_SAY0)->sub && game::kinLine(game::KC_FRAG0)->hint && !game::kinLine(game::KC_DRAG0)->sub,
+              "Level 3: Saetze und Fetzen mit Untertitel, der Rat des Wikis beim ersten Mal");
+        check(game::kinCueOf(30.0f, (int)Role::Wretch) < 0 && game::kinCueOf(100.0f + 3.0f, (int)Role::Hound) < 0 &&
+                  game::kinCueOf(100.0f + 3.0f, (int)Role::Wretch) == 3,
+              "Level 3: nur Wretch und Skin-Stealer tragen Klangnummern (Schaden bleibt Schaden)");
+        const auto L3 = content.level("level3", world::kLayoutV6);
+        check(L3 && L3->kin[world::KIN_WRETCH].mode == "armed" && L3->kin[world::KIN_WRETCH].every >= 400.0,
+              "Level 3: Wretches bewaffnet und selten (Level-JSON)");
+        check(L3 && L3->kin[world::KIN_SKINSTEALER].mode == "coat", "Level 3: Skin-Stealer im Mantel (Level-JSON)");
+        const auto L1 = content.level("level1", world::kLayoutV6);
+        check(L1 && L1->kin[world::KIN_SKINSTEALER].mode == "skin" && L1->kin[world::KIN_WRETCH].mode != "armed", "Level 1 unveraendert");
+    }
+    // --- Wretch: lockt von weitem, stuermt, wer naeher kommt; holt aus (Ankuendigung), schlaegt; wer ausweicht, dem schlaegt er
+    // ins Leere ----------------------------------------------------------------------------------------------------------
+    {
+        auto s = open("level3", 31);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        check(spawn(*s, ev, Role::Wretch), "Level 3: ein Wretch erscheint");
+        const int wv = P.variantOf(Role::Wretch);
+        check(wv >= 1 && wv <= 3, std::format("Level 3: er traegt eine Waffe (Variante {})", wv));
+        bool lured = false;
+        for (int tries = 0; tries < 6 && !lured; ++tries) {
+            if (!placeNear(*s, Role::Wretch, 11.0, 2.0) && !placeNear(*s, Role::Wretch, 9.0, 2.0)) {
+                step(*s, ev, 1.0);
+                continue;
+            }
+            s->flashlight().on = true;  // er sieht einen (mit Lampe 18 m) ...
+            step(*s, ev, 0.6, [&] { aim(*s, P.posOf(Role::Wretch) + vec3{0, 0, 0.3f}); return P.stateOf(Role::Wretch) == 5; });  // ... nicht ins Gesicht
+            s->flashlight().on = false;
+            lured = P.stateOf(Role::Wretch) == 5;
+        }
+        check(lured, "Level 3: sieht er einen von weitem, lockt er erst (Zustand 5)");
+        step(*s, ev, 3.5, [&] { return P.stateOf(Role::Wretch) != 5; });
+        check(count(ev, PE::Mimic, Role::Wretch, game::KC_FRAG0, game::KC_FRAG_LURE - 1) >= 1, "Level 3: er lockt mit verstaendlichen Fetzen (Hilfe, Wasser)");
+        // naeher kommen (Wiki: nicht interagieren) - er stuermt los
+        ev.clear();
+        if (!approach(*s, Role::Wretch, 4.0)) placeNear(*s, Role::Wretch, 4.0, 4.0);
+        step(*s, ev, 0.5, [&] { return P.stateOf(Role::Wretch) == 2; });
+        check(P.stateOf(Role::Wretch) == 2 && count(ev, PE::Gurgle, Role::Wretch) >= 1, "Level 3: wer naeher kommt, auf den stuermt er los (hohes Fauchen)");
+        // Ausholen: Ankuendigung mit Schrei - dann weicht man aus: der Schlag geht ins Leere
+        double windT = -1.0;
+        int frame = 0;
+        const double h0 = s->stats().health;
+        step(*s, ev, 6.0, [&] {
+            ++frame;
+            if (P.has(Role::Wretch)) aim(*s, P.headOf(Role::Wretch));
+            if (P.stateOf(Role::Wretch) == 6 && windT < 0.0) windT = frame / 60.0;
+            return windT >= 0.0;
+        });
+        check(windT >= 0.0 && count(ev, PE::Swing, Role::Wretch, game::KC_RAISE0, game::KC_RAISE0 + 2) == 1 &&
+                  count(ev, PE::Mimic, Role::Wretch, game::KC_CRY0, game::KC_CRY0 + 2) == 1,
+              "Level 3: vor dem Schlag holt er aus und schreit (Ankuendigung)");
+        backOff(*s, Role::Wretch, 3.2);
+        step(*s, ev, 1.4, [&] { return count(ev, PE::Swing, Role::Wretch, game::KC_MISS0, game::KC_HIT0 + 2) > 0; });
+        check(count(ev, PE::Swing, Role::Wretch, game::KC_MISS0, game::KC_MISS0 + 2) == 1 && s->stats().health >= h0,
+              "Level 3: wer beim Ausholen zurueckweicht, dem schlaegt er ins Leere");
+        // stehen bleiben: Treffer mit der Waffe - schwer, nicht sofort toedlich; danach weicht er einen Schritt zurueck
+        double hitAt = -1.0, raiseAt = -1.0;
+        frame = 0;
+        step(*s, ev, 10.0, [&] {
+            ++frame;
+            if (P.has(Role::Wretch)) aim(*s, P.headOf(Role::Wretch));
+            if (raiseAt < 0.0 && P.stateOf(Role::Wretch) == 6) raiseAt = frame / 60.0;
+            if (hitAt < 0.0 && s->stats().health < h0) hitAt = frame / 60.0;
+            return hitAt >= 0.0 && P.stateOf(Role::Wretch) == 8;
+        });
+        check(hitAt > 0.0 && s->stats().health < h0 - 15.0 && !s->stats().dead,
+              std::format("Level 3: der Treffer mit der Waffe ist schwer, nicht sofort toedlich ({:.0f} -> {:.0f})", h0, s->stats().health));
+        check(raiseAt >= 0.0 && hitAt - raiseAt >= 0.5, std::format("Level 3: zwischen Ausholen und Treffer liegen {:.2f} s (>= 0,5)", hitAt - raiseAt));
+        check(count(ev, PE::Swing, Role::Wretch, game::KC_HIT0, game::KC_HIT0 + 2) >= 1, "Level 3: Klang des Treffers je Waffe");
+        check(P.stateOf(Role::Wretch) == 8, "Level 3: nach dem Schlag weicht er einen Schritt zurueck");
+        // die Waffe schleift beim Gehen (man hoert ihn, bevor man ihn sieht)
+        P.clear();
+        ev.clear();
+        s->respawnAtCheckpoint();
+        step(*s, ev, 0.3);
+        if (spawn(*s, ev, Role::Wretch)) {
+            step(*s, ev, 12.0);
+            check(count(ev, PE::Drag, Role::Wretch, game::KC_DRAG0, game::KC_DRAG0 + 2) >= 1, "Level 3: die Waffe schleift beim Gehen (Klang vor Sicht)");
+        }
+    }
+    // --- Wretch: ansprechen (Wiki, Level 1: nicht interagieren) und Licht ins Gesicht - er hat einen -----------------------
+    for (int how = 0; how < 2; ++how) {
+        auto s = open("level3", 33 + how);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        if (!spawn(*s, ev, Role::Wretch)) {
+            check(false, "Level 3: Wretch fuer Ansprechen/Licht");
+            continue;
+        }
+        bool lured = false;
+        for (int tries = 0; tries < 6 && !lured; ++tries) {
+            if (!placeNear(*s, Role::Wretch, 10.0, 1.0) && !placeNear(*s, Role::Wretch, 8.0, 1.0)) {
+                step(*s, ev, 1.0);
+                continue;
+            }
+            s->flashlight().on = true;
+            step(*s, ev, 0.6, [&] { aim(*s, P.posOf(Role::Wretch) + vec3{0, 0, 0.3f}); return P.stateOf(Role::Wretch) == 5; });
+            s->flashlight().on = how == 1;
+            lured = P.stateOf(Role::Wretch) == 5;
+        }
+        if (!lured) {
+            const vec3 q = P.has(Role::Wretch) ? P.posOf(Role::Wretch) : vec3{};
+            check(false, std::format("Level 3: Wretch lockt (fuer {}; Zustand {}, {:.1f} m)", how == 0 ? "Ansprechen" : "Licht",
+                                     P.has(Role::Wretch) ? P.stateOf(Role::Wretch) : -1, std::hypot(q.x - s->player().x, q.y - s->player().y)));
+            continue;
+        }
+        if (how == 0) {
+            check(approach(*s, Role::Wretch, 5.6) && P.stateOf(Role::Wretch) == 5, "Level 3: auf 5,6 m heran - er lockt noch (man koennte ihn ansprechen)");
+            aim(*s, P.headOf(Role::Wretch));
+            s->update(1.0 / 60.0, {}, false);
+            s->interact();
+            step(*s, ev, 0.3, [&] { return P.stateOf(Role::Wretch) == 2; });
+            check(P.stateOf(Role::Wretch) == 2, "Level 3: wer einen lockenden Wretch anspricht, auf den stuermt er los");
+        } else {
+            step(*s, ev, 2.5, [&] { aim(*s, P.headOf(Role::Wretch)); return P.stateOf(Role::Wretch) == 2; });
+            check(P.stateOf(Role::Wretch) == 2, "Level 3: die Lampe im Gesicht verraet ihn - er stuermt los");
+        }
+    }
+    // --- Skin-Stealer im Mantel: schliesst sich an, spricht, antwortet; beim zweiten Ansprechen genau gleich, beim dritten
+    // faellt die Tarnung; hungrig toetet er -------------------------------------------------------------------------------
+    {
+        auto s = open("level3", 41);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        check(spawn(*s, ev, Role::SkinStealer), "Level 3: ein Skin-Stealer erscheint");
+        check(P.variantOf(Role::SkinStealer) == 2, "Level 3: im Mantel (Kapuze, Schal, Sonnenbrille)");
+        P.kinSet(Role::SkinStealer, "hungry", 1.0);
+        bool joined = false;
+        for (int tries = 0; tries < 6 && !joined; ++tries) {
+            if (placeNear(*s, Role::SkinStealer, 8.0, 2.0) || placeNear(*s, Role::SkinStealer, 6.0, 2.0))
+                step(*s, ev, 1.0, [&] { return P.stateOf(Role::SkinStealer) == 7; });
+            joined = P.stateOf(Role::SkinStealer) == 7;
+            if (!joined) step(*s, ev, 1.0);
+        }
+        check(joined, "Level 3: sieht er einen, schliesst er sich an (Zustand 7)");
+        float dMin = 1e9f, dMax = 0.0f;
+        step(*s, ev, 20.0, [&] {
+            if (!P.has(Role::SkinStealer)) return true;
+            aim(*s, P.headOf(Role::SkinStealer));
+            const vec3 q = P.posOf(Role::SkinStealer);
+            const float d = (float)std::hypot(q.x - s->player().x, q.y - s->player().y);
+            if (P.stateOf(Role::SkinStealer) == 7) dMin = std::min(dMin, d), dMax = std::max(dMax, d);
+            return false;
+        });
+        check(P.stateOf(Role::SkinStealer) == 7 && !s->stats().dead, "Level 3: er bleibt in der Naehe (begleitet), greift nicht an");
+        check(dMin > 1.6f && dMax < 9.0f, std::format("Level 3: er haelt Abstand ({:.1f}-{:.1f} m)", dMin, dMax));
+        check(count(ev, PE::Mimic, Role::SkinStealer, game::KC_SAY0, game::KC_SAY0 + game::KC_SAYS - 1) >= 1,
+              "Level 3: er spricht einfache, leicht falsche Saetze");
+        check(count(ev, PE::Drag, Role::SkinStealer, game::KC_COAT) >= 1, "Level 3: beim Gehen schwingt der schwere Mantel (eigenes Geraeusch)");
+        // ansprechen: Antwort; noch einmal: derselbe Satz genau gleich; beim dritten Mal faellt die Tarnung
+        auto talk = [&] {
+            placeNear(*s, Role::SkinStealer, 3.6, 2.0);
+            aim(*s, P.headOf(Role::SkinStealer));
+            s->update(1.0 / 60.0, {}, false);
+            s->interact();
+        };
+        ev.clear();
+        talk();
+        step(*s, ev, 2.6, [&] { aim(*s, P.headOf(Role::SkinStealer)); return count(ev, PE::Mimic, Role::SkinStealer, game::KC_ANS0, game::KC_ANS0 + 3) > 0; });
+        const int a1 = lastCue(ev, Role::SkinStealer, game::KC_ANS0, game::KC_ANS0 + 3);
+        check(a1 >= game::KC_ANS0 && !P.exposedOf(Role::SkinStealer), "Level 3: angesprochen antwortet er mit einem Satz (noch getarnt)");
+        step(*s, ev, 2.5, [&] { aim(*s, P.headOf(Role::SkinStealer)); return false; });
+        ev.clear();
+        talk();
+        step(*s, ev, 2.6, [&] { aim(*s, P.headOf(Role::SkinStealer)); return count(ev, PE::Mimic, Role::SkinStealer, game::KC_ANS0, game::KC_ANS0 + 3) > 0; });
+        check(lastCue(ev, Role::SkinStealer, game::KC_ANS0, game::KC_ANS0 + 3) == a1, "Level 3: beim zweiten Ansprechen wiederholt er den Satz genau gleich");
+        step(*s, ev, 2.5, [&] { aim(*s, P.headOf(Role::SkinStealer)); return false; });
+        ev.clear();
+        talk();
+        step(*s, ev, 0.5);
+        check(P.exposedOf(Role::SkinStealer) && count(ev, PE::Mimic, Role::SkinStealer, game::KC_TEAR) == 1 && !s->stats().dead,
+              "Level 3: beim dritten Mal faellt die Tarnung - die Verwandlung beginnt (Ankuendigung, noch kein Angriff)");
+        step(*s, ev, 2.2, [&] { aim(*s, P.headOf(Role::SkinStealer)); return P.variantOf(Role::SkinStealer) == 3 && P.stateOf(Role::SkinStealer) == 2; });
+        check(P.variantOf(Role::SkinStealer) == 3 && count(ev, PE::Shriek, Role::SkinStealer) >= 1,
+              "Level 3: Haut und Mantel reissen (wahre Gestalt, Schrei)");
+        step(*s, ev, 6.0, [&] { if (P.has(Role::SkinStealer)) aim(*s, P.headOf(Role::SkinStealer)); return s->stats().dead; });
+        check(s->stats().dead && s->killRole() == (int)Role::SkinStealer, "Level 3: hungrig toetet er, wer stehen bleibt");
+    }
+    // --- Skin-Stealer im Mantel: Lampe im Gesicht (faulende Haut) entlarvt; satt laesst er den ziehen, der ruhig zurueckweicht
+    {
+        auto s = open("level3", 43);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        bool joined = false;
+        if (spawn(*s, ev, Role::SkinStealer)) {
+            P.kinSet(Role::SkinStealer, "hungry", 0.0);
+            for (int tries = 0; tries < 6 && !joined; ++tries) {
+                if (placeNear(*s, Role::SkinStealer, 6.0, 9.0) || placeNear(*s, Role::SkinStealer, 5.0, 6.0))
+                    step(*s, ev, 1.0, [&] { return P.stateOf(Role::SkinStealer) == 7; });
+                joined = P.stateOf(Role::SkinStealer) == 7;
+                if (!joined) step(*s, ev, 1.0);
+            }
+        }
+        check(joined, "Level 3: satt schliesst er sich ebenso an");
+        if (joined) {
+            s->flashlight().on = true;
+            step(*s, ev, 5.0, [&] { aim(*s, P.headOf(Role::SkinStealer)); return P.exposedOf(Role::SkinStealer); });
+            check(P.exposedOf(Role::SkinStealer), "Level 3: die Lampe zu lange im Gesicht entlarvt ihn (die faulende Haut)");
+            s->flashlight().on = false;
+            step(*s, ev, 2.6, [&] { aim(*s, P.headOf(Role::SkinStealer)); return P.stateOf(Role::SkinStealer) == 6; });
+            check(P.stateOf(Role::SkinStealer) == 6 && P.variantOf(Role::SkinStealer) == 3 && !s->stats().dead,
+                  "Level 3: satt steht er in wahrer Gestalt da (kein Angriff)");
+            step(*s, ev, 12.0, [&] {
+                if (!P.has(Role::SkinStealer)) return true;
+                aim(*s, P.headOf(Role::SkinStealer));
+                return s->stats().dead || P.stateOf(Role::SkinStealer) != 6;
+            }, [](int) {
+                game::PlayerControl c;
+                c.forward = -1.0f;
+                return c;
+            });
+            check(!s->stats().dead && (!P.has(Role::SkinStealer) || P.stateOf(Role::SkinStealer) == 4 || P.stateOf(Role::SkinStealer) == 9),
+                  "Level 3: wer ruhig zurueckweicht, den laesst er ziehen");
+        }
+    }
+    // --- Skin-Stealer im Mantel: haelt die Tarnung lange; hungrig verwandelt er sich erst nach langer Zeit, satt verabschiedet er
+    // sich -------------------------------------------------------------------------------------------------------------------
+    for (int hungry = 0; hungry < 2; ++hungry) {
+        auto s = open("level3", 45 + hungry);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        bool joined = false;
+        if (spawn(*s, ev, Role::SkinStealer)) {
+            P.kinSet(Role::SkinStealer, "hungry", hungry);
+            for (int tries = 0; tries < 6 && !joined; ++tries) {
+                if (placeNear(*s, Role::SkinStealer, 7.0, 2.0) || placeNear(*s, Role::SkinStealer, 5.0, 2.0))
+                    step(*s, ev, 1.0, [&] { return P.stateOf(Role::SkinStealer) == 7; });
+                joined = P.stateOf(Role::SkinStealer) == 7;
+                if (!joined) step(*s, ev, 1.0);
+            }
+        }
+        if (!joined) {
+            check(false, "Level 3: Skin-Stealer begleitet (lange Zeit)");
+            continue;
+        }
+        double t = 0.0, changed = -1.0;
+        step(*s, ev, 150.0, [&] {
+            t += 1.0 / 60.0;
+            if (P.has(Role::SkinStealer)) aim(*s, P.headOf(Role::SkinStealer));
+            if (changed < 0.0 && (P.exposedOf(Role::SkinStealer) || !P.has(Role::SkinStealer) || P.stateOf(Role::SkinStealer) != 7)) changed = t;
+            return changed >= 0.0;
+        });
+        if (hungry) {
+            check(changed >= 85.0 && P.exposedOf(Role::SkinStealer),
+                  std::format("Level 3: hungrig haelt er die Tarnung lange und verwandelt sich erst dann ({:.0f} s)", changed));
+        } else {
+            check(changed >= 60.0 && !P.exposedOf(Role::SkinStealer) && count(ev, PE::Mimic, Role::SkinStealer, game::KC_BYE) == 1 && !s->stats().dead,
+                  std::format("Level 3: satt verabschiedet er sich nach einer Weile und geht ({:.0f} s)", changed));
+        }
+    }
+}
+
 // --- V13.3: Erscheinungen ohne Figur in Level 1 - Crawler-Pilz, Garden, Gemaelde der Spielleiterin, Tuerspuren ----------
 // (gameplay/phenomena.hpp; KREATUR_Crawler.md, KREATUR_GameMaster.md, KREATUR_L1_Erscheinungen.md)
 static void testV133Phenomena(const std::string& dataDir) {
@@ -5111,6 +5496,7 @@ int main(int argc, char** argv) {
     testV133Phenomena(argv[1]);   // V13.3: Erscheinungen in Level 1 (Pilz, Garden, Gemaelde, Tuerspuren)
     testV133Level2Kin(argv[1]);   // V13.3 Teil 4: Level 2 (Fenster am Gangende, Motten, Ratten an Faessern, Spuren)
     testV133Jerry(argv[1]);       // V13.3 Teil 4: Jerry (Level 2)
+    testV133Level3Kin(argv[1]);   // V13.3: Level 3 - Wretch mit Waffe, Skin-Stealer im Mantel
     std::printf("%s: %d Pruefungen, %d Fehler\n", gFails ? "FEHLGESCHLAGEN" : "OK", gChecks, gFails);
     return gFails ? 1 : 0;
 }
