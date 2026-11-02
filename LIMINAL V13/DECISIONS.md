@@ -560,3 +560,23 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
   - README auf `main` neu, Bilder neu in 1920×1080 aus V12/V11 aufgenommen (Auswahl und Gründe in `GITHUB_UPLOAD.md`).
   - Lizenz des Spiels nicht gewählt (Entscheidung des Eigentümers, `LICENSES.md`).
 - **Beleg:** `GITHUB_UPLOAD.md`, `git ls-remote origin`.
+
+## E-044 Randwesen von Level 2 (V13.3, 02.11.2026)
+
+- **Entscheidung:** Cannibal Cuisine, Swindlebird, Photoshop und Macchina als Weltobjekte mit Verhalten ohne eigene Rolle (`gameplay/apparitions_l2.*`, Muster der Level-1-Erscheinungen); Host rechnet, Protokoll unverändert.
+  - Swindlebird: „unbestätigt“ als Spielregel – höchstens eine Sichtung je Lauf (50 %), nur ungesehen, verschwindet beim Ansehen, unter 8 m oder im Lampenlicht; keine Spur.
+  - Photoshop: ohne Kamera im Spiel rettet nur die Gabe (Ablegen/Werfen); Box schrumpft sichtbar 5 s; höchstens einer je Lauf (60 %) hinter einem Röhrenmonitor.
+  - Macchina: nur Reste in der Werkstatt (laut Seite seit etwa 1850 verschwunden); Blechtafel als Fundnotiz.
+  - Cannibal Cuisine: gefährlich nur beim Angriff mit dem Beil; Sucht als Spielregel (Mandelwasser und Riegel wirken nicht, Entzug ab 40 m); 3 Waren je Automat.
+  - Wiki-Namen nicht im Bild und nicht im Spieltext (E-039).
+- **Beleg:** `KREATUR_CannibalCuisine.md`, `KREATUR_Swindlebird.md`, `KREATUR_Photoshop.md`, `KREATUR_Macchina.md`.
+
+## E-045 Wesen von Level 3 vervollständigt (V13.3, 02.11.2026)
+
+- **Purpifizierte Wesen:** Erscheinung ohne Rolle (`gameplay/purpification.*`); die Seite nennt kein Verhalten – die Toten bewegen sich nicht; violettes Licht, Brummen, Strahlung zehrt nah am Verstand, Lampe stockt (Auslegung). Zwei seltene Fälle (Skin-Stealer, Hound mit Botschaft).
+- **Death Rats und Deathmoths:** nur Varianten (Rat 2 groß, Rat 3 Falle; Moth 3/4 gewöhnlich, Moth 5 Praetorianer mit viertem Beinpaar). Fallen wie ein Elektrozaun (Draht 18 cm, 10 Schaden und Krampf, jede vierte versagt); Klugheit als Arbeitsteilung, Gedächtnis je Ebene, Warten außerhalb des Lichts. Schwarmschaden 0,9 je Motte und Sekunde statt Sofort-Tod (Fairness).
+- **Hound-Rudel und großes Bündel:** Varianten der Rollen Hound (1: Level 2, 2: Level 3) und Clump (1 bewaffnet, 2 entwaffnet). Rudel: immer nur einer springt, mit freier Sicht und Ankündigung; Ansehen bricht ab; Level 3 quält statt sofort zu töten. Großes Bündel blind, Ausholen 1,1 s hörbar, Hiebe nicht tödlich.
+- **Smiler „ohne Anlass“** (Level 3, `presence.smiler_unprovoked` 0,35): Angriff ohne Auslöser durch den Spieler, aber 2,2 s angekündigt; bekannte Abwehr wirkt.
+- **Red Knight (Entity 71):** Körper und Auftritt in Level 3 belegt (Vorfallbericht) – gebaut als nicht feindliche Erscheinung (Flucht in Panik, Hieb gegen das Unsichtbare, Riss), Variante 4 der Rolle Wretch, eigener Zufall.
+- **Speicherfehler beim Zusammenführen:** B-025 bis B-028 (`BUGLISTE.md`), gefunden mit AddressSanitizer.
+- **Beleg:** `KREATUR_L3_Purpur.md`, `KREATUR_DeathRat.md`, `KREATUR_Deathmoth.md`, `KREATUR_Hound.md`, `KREATUR_Clump.md`, `KREATUR_Smiler.md`, `KREATUR_RedKnight.md`.

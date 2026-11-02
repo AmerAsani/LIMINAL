@@ -192,3 +192,10 @@ Agenten: alle ausser „Props Level 1 Blender-Modelle“ (vom Nutzer gestoppt, A
 - **Rulesets:** keine angelegt (Settings → Rules → Rulesets gelesen: „You haven't created any rulesets“), keine Branch-Regeln.
 - **Quelltext:** README-Abschnitt „Source code“ mit direkten Links; Bau-Test aus frischem Klon V11 und V12 bestanden (Bau rc 0, Start ohne Fehler, keine Funde).
 - `main` jetzt `4b4f5fc`; Tags v11/v12 unverändert; V13 nicht hochgeladen. Einzelheiten: `GITHUB_UPLOAD.md`.
+
+### V13.3 Zwischenstand 12 (02.11.2026)
+- **Zusammengeführt:** Level-2-Randwesen (Cannibal Cuisine, Swindlebird, Photoshop, Macchina-Reste) und die Level-3-Kette (purpurne Wesen, große Death Rats mit Fallen, Deathmoths mit Praetorianer, Hound-Rudel L2/L3, großes bewaffnetes Bündel, Smiler ohne Anlass, Red Knight, Wow-Check Skin-Stealer/Wretch) – E-044, E-045.
+- **Speicherfehler** nach dem Merge (Absturz gameplay/coop) mit AddressSanitizer gefunden und behoben: B-025 Aufzug (seit V8), B-026 Wesen-Schleife/Fallen, B-027 Motten-Platz, B-028 Koop-Test. Beide Tests unter ASan ohne Befund.
+- **Tests:** gameplay 901/0, coop 209/0, audio 121/0, net 72/0, worldgen 29658/0, supply OK.
+- **Für die Kritikrunden der Abnahme vorgemerkt:** Photoshop (Gesicht wirkt gezeichnet), großes Bündel (Haut puppenhaft glatt), Mottenschwarm im Gesicht (nur dunkel), Fallendraht kaum sichtbar.
+- **Weiter:** Level-2-Abnahme (Kritikrunden 4–5 mit allen Wesen, Laufweg, Smoke, AUFWAND), dann Level 3.
