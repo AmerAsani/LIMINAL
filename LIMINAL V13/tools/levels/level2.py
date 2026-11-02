@@ -202,6 +202,9 @@ for r, dirs in open_dirs.items():
     chamfers += 1
 
 # --- Licht: Roehren in Reihenschaltung (Gruppen von 3-6, ganze Gruppen tot), farbig gemischt, violette Notlichter -------
+DEAD_GROUPS = []
+
+
 def tube_run(r, color, step=3, dead_group=0.2, odd_color=0.06, lit_near=None):
     R = m.R(r)
     top = R.floor + R.height
@@ -219,6 +222,8 @@ def tube_run(r, color, step=3, dead_group=0.2, odd_color=0.06, lit_near=None):
         dead = rng.random() < dead_group
         if lit_near and any(math.hypot(x - lit_near[0], y - lit_near[1]) < 8 for (x, y, _) in pts[i:i + n]):
             dead = False
+        if dead:
+            DEAD_GROUPS.append((r, pts[i:i + n]))  # Abnahme Level 2: Notlichter am Ende (eigener Zufall, aendert sonst nichts)
         col = color if rng.random() > odd_color else (ORANGE if color == WHITE else WHITE)
         for (x, y, yaw) in pts[i:i + n]:
             if m.blocked(x, y):
@@ -991,5 +996,30 @@ for r in mac_cells:
             mac6 += 1
             break
 print('Macchina-Reste:', mac6)
+
+# V13.3 Abnahme Level 2 (Kritikrunde 6): Im Laufweg lagen bis zu 40 m tote Roehrengruppen am Stueck voellig schwarz. LOOK_2:
+# violettes Notlicht, klein und schwach, brennt auch im Stromausfall (Wiki: seit dem Ausfall vereinzelt). In gut der Haelfte
+# der toten Gruppen haengt daher eine Notleuchte an der Wand - nur ihr eigenes Leuchten, keine Raumleuchte: das Licht der
+# Kacheln (Dunkel fuer Smiler, Brownout) bleibt unveraendert. Eigener Zufall und als Letztes gesetzt: alles andere bleibt.
+vr6 = _random.Random(260611)
+WALLSTUFF = ('pipe_riser', 'mach_', 'door_', 'junction_box', 'pipe_wall', 'violet_lamp', 'skin_', 'jerry_', 'macchina_', 'chamfer')
+wall_objs = [(o['pos'][0], o['pos'][1]) for o in m.objects if o['model'].startswith(WALLSTUFF)]
+violet6 = 0
+for (r, grp) in DEAD_GROUPS:
+    R = m.R(r)
+    if R.zone in ('brownout', 'leere') or vr6.random() > 0.6:
+        continue
+    mx = sum(p[0] for p in grp) / len(grp)
+    my = sum(p[1] for p in grp) / len(grp)
+    faces = [f for f in m.wall_faces(r, margin=1) if math.hypot(f[0] - mx, f[1] - my) < 3.5
+             and m.in_door(math.floor(f[0] + math.cos(f[2]) * 0.6), math.floor(f[1] + math.sin(f[2]) * 0.6)) is None
+             and all(math.hypot(f[0] - ox, f[1] - oy) > 0.9 for (ox, oy) in wall_objs)]
+    if not faces:
+        continue
+    fx, fy, fyaw = min(faces, key=lambda f: math.hypot(f[0] - mx, f[1] - my) + vr6.random() * 1.5)
+    m.obj('violet_lamp', fx, fy, R.floor + 2.05, fyaw, tag='emergency')
+    wall_objs.append((fx, fy))
+    violet6 += 1
+print('Notlichter in toten Gruppen:', violet6)
 m.save()
 print('Knicke mit Schraege:', chamfers)
