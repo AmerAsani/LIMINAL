@@ -118,6 +118,13 @@ private:
     float goblinHeight() const;
     vec3 goblinHead() const;
     void updateJerry(float dt, const Input& in);  // V13.3 Teil 4: creature_jerry.cpp (Jerry auf dem Rohr)
+    // V13.3 Level 3 (KREATUR_DeathRat.md, KREATUR_Deathmoth.md): grosse Death Rat und ihre Falle (creature_rat_l3.cpp),
+    // Praetorianer (creature_moth_l3.cpp) - Variante ueber extra_[0] (2 Ratte, 3 Falle; 5 Praetorianer)
+    void updateRatL3(float dt, const Input& in);
+    void updateRatTrap(float dt, const Input& in);
+    float ratL3Height() const;
+    void updatePraetorian(float dt, const Input& in);
+    bool praetorian() const;
     // Gangzyklus fuer n Beine; rest: Ruhepunkte (Welt) dieses Bildes
     void stepLegs(float dt, int n, const float* offs, float duty, float S, const vec3* rest, float standDur, const float* weight);
     vec3 footPos(int i, const float* lift) const;

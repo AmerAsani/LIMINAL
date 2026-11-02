@@ -28,6 +28,7 @@ std::unordered_map<std::string, Sound> synthesizeAll(JobSystem& jobs, int rate) 
     addPhenomenaSounds(defs, rate);  // V13.3: Erscheinungen von Level 1
     addL2Sounds(defs, rate);         // V13.3 Teil 4: Level 2 (Fenster, Motten, Ratten)
     addKinL3Sounds(defs, rate);      // V13.3: Level 3 - Wretch mit Waffe, Skin-Stealer im Mantel
+    addRatL3Sounds(defs, rate);      // V13.3 Level 3: Death Rats (Sprachgeraet, Fallen), Mottenschwarm, Praetorianer
     addPurpleSounds(defs, rate);     // V13.3: Level 3 - purpifizierte Wesen in der Wand (KREATUR_L3_Purpur.md)
     std::vector<Sound> out(defs.size());
     jobs.parallelFor((int)defs.size(), [&](int i) { out[(size_t)i] = defs[(size_t)i].make(); });

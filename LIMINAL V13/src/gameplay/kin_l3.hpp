@@ -24,7 +24,17 @@ enum KinCue : int {
     KC_ANS0 = 38, KC_ANSWERS = 4,
     KC_WAIT = 42, KC_BYE = 43, KC_TEAR = 44,
     KC_COAT = 45,  // der schwere Mantel schwingt, Leder knarrt (Bewegungsgeraeusch beim Gehen)
-    KC_COUNT = 46
+    KC_COUNT = 46,
+    // V13.3 Level 3 (KREATUR_DeathRat.md): Death Rats - Saetze des Sprachgeraets, Wetzen am Gitter, Zaehneklappern, Zischen
+    // (Drohung), Biss, schwere Schritte, Fallenbau; die Falle: Knistern (Ankuendigung), Schlag, Versagen
+    KC_RAT_SAY0 = 46, KC_RAT_SAYS = 12,
+    KC_RAT_GRIND = 58, KC_RAT_CHATTER = 59, KC_RAT_HISS = 60, KC_RAT_BITE = 61, KC_RAT_STEP = 62, KC_RAT_TINKER = 63,
+    KC_TRAP_CRACKLE = 64, KC_TRAP_ZAP = 65, KC_TRAP_FIZZLE = 66,
+    // V13.3 Level 3 (KREATUR_Deathmoth.md): der Schwarm erhebt sich, Motten im Gesicht, eine wird abgeschuettelt; Praetorianer:
+    // Beine klicken, Faecheln (Lockstoff), Aufbaeumen (Ankuendigung), Stich, Spucken
+    KC_MOTH_SWARM = 67, KC_MOTH_FACE = 68, KC_MOTH_SHAKE = 69,
+    KC_PR_CLICK = 70, KC_PR_FAN = 71, KC_PR_REAR = 72, KC_PR_STAB = 73, KC_PR_SPIT = 74,
+    KC_L3_END = 75
 };
 
 struct KinLine {
@@ -35,8 +45,10 @@ struct KinLine {
 };
 
 const KinLine* kinLine(int cue);                     // nullptr: keine Nummer
+const KinLine* ratMothLine(int cue);                 // V13.3 Level 3: Death Rats, Deathmoths (presence_rat_l3.cpp)
+const KinLine* ratMothLineBySound(const std::string& s);
 const KinLine* kinLineBySound(const std::string& s);  // Gast: nach dem Klangnamen
-bool kinRole(int role);  // Wretch oder Skin-Stealer (nur sie tragen Klangnummern)
+bool kinRole(int role);  // Wretch, Skin-Stealer; V13.3 Level 3: Death Rat, Deathmoth (nur sie tragen Klangnummern)
 inline int kinCueOf(float strength, int role) { return strength >= kKinCue && kinRole(role) ? (int)(strength - kKinCue + 0.5f) : -1; }
 
 // Host: Figurereignisse mit Klangnummer aus der Liste fuer die Gaeste nehmen und als Klang mit Namen schicken

@@ -299,6 +299,17 @@ public:
     bool kinSet(Role r, const std::string& key, double v);
     // V13.3 Teil 4 (Tests, Skripte): naechster Auftritt eines Fensters am Gangende und einer Mottengruppe in Level 2 (s)
     void l2Timers(double window, double moth) { nextWindowL2_ = window, nextMothL2_ = moth; }
+    // V13.3 Level 3 (Tests, Skripte; KREATUR_DeathRat.md, KREATUR_Deathmoth.md): l3Set - trap <abstand> (Falle vor dem Spieler),
+    // say <satz>, job <Auftrag der ersten Ratte>, quick <Bauzeit-Faktor>, rats <Sekunden bis zur Brigade>, swarm <1: aufscheuchen>,
+    // pstate <Zustand des ersten Praetorianers>, mem <0: Gedaechtnis loeschen>. l3Info: Zahlen fuer Tests.
+    struct L3Info {
+        int rats = 0, traps = 0, armed = 0, commons = 0, praetorians = 0, onFace = 0, ratJob = -1, pState = -1;
+        int jumped = 0, shocked = 0, lit = 0, encounters = 0, trail = 0;
+        bool roused = false;
+        vec3 trapL, trapR, trapPos;
+    };
+    bool l3Set(const std::string& key, double v, const Context* c = nullptr);
+    L3Info l3Info() const;
     // V13.3 Teil 4 (Tests): das i-te Wesen dieser Rolle (ohne Vorfuehrungen) - Ort, Zustand, Variante; false: keins
     bool agentInfo(Role r, int i, vec3& pos, int& state, int& variant) const;
     int variantOf(Role r) const;
@@ -476,6 +487,25 @@ private:
     bool spawnJerry(const Context& c, std::vector<Event>& out, bool forced);
     void thinkJerry(Agent& a, double dt, const Context& c, std::vector<Event>& out);
     void jerryGaze(double dt, const Context& c, std::vector<Event>& out);
+    // V13.3 Level 3: Death Rats wie Wasserschweine mit Fallen (presence_rat_l3.cpp), Mottenschwarm mit Praetorianern
+    // (presence_moth_l3.cpp) - Varianten der Rollen Rat (2 Ratte, 3 Falle) und Moth (3, 4 gewoehnlich, 5 Praetorianer)
+    bool ratL3(const Context& c) const;
+    void regieRatL3(double dt, const Context& c, std::vector<Event>& out);
+    bool spawnRatL3(const Context& c, std::vector<Event>& out, bool forced);
+    void thinkRatL3(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    void thinkRatTrap(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    bool trapSite(const Context& c, vec3& pos, float& yaw, bool cornered);
+    Agent* buildTrap(const Context& c, vec3 pos, float yaw, std::vector<Event>& out);
+    void ratSay(Agent& a, int line, std::vector<Event>& out);
+    void prepRatL3(Agent& a, const Context& c);  // Variante -> Animation (auch Puppen und Vorfuehrungen)
+    bool mothL3(const Context& c) const;
+    void regieMothL3(double dt, const Context& c, std::vector<Event>& out);
+    bool spawnMothL3(const Context& c, std::vector<Event>& out, bool forced);
+    void thinkMothL3(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    void thinkPraetorian(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    void prepMothL3(Agent& a, const Context& c);
+    void swarmRouse(bool on);
+    bool swarmRoused() const;
     bool roomAllowed(const Context& c, vec3 p, int kin) const;
     bool wander(Agent& a, double dt, const Context& c, double speed, int kin);
     // V13.3 (presence_lure.cpp): Smiler am Leuchtkoeder (true: das Licht hat ihn, der Rest von thinkSmiler entfaellt);
@@ -536,6 +566,8 @@ private:
     std::array<float, 4> spell_{};
     std::array<int, 4> spellStage_{};
     double jerryTry_ = 0.0, jerryQuick_ = 1.0;
+    // V13.3 Level 3: Gedaechtnis der Death Rats (Weg des Spielers, Lampe, Fallen), der Mottenschwarm
+    std::shared_ptr<void> l3Mem_, l3Swarm_;
 };
 
 }  // namespace lim::game

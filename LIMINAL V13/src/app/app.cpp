@@ -377,6 +377,11 @@ void App::scriptStep() {
             double val = 0.0;
             if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) < 2 || !session_->presence().ouroSet(key, val))
                 log::warn("Skript: ouro '{}' unbekannt oder keine Baustelle", arg);
+        } else if (cmd == "l3" && session_) {  // V13.3 Level 3 (Bilder, Tests): l3 <trap|say|job|quick|rats|swarm|pstate|mem> <wert> - Death Rats, Motten
+            char key[32] = {};
+            double val = 0.0;
+            if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) < 2 || !session_->presence().l3Set(key, val))
+                log::warn("Skript: l3 '{}' unbekannt oder kein Wesen", arg);
         } else if (cmd == "jerry" && session_) {  // V13.3 Teil 4 (Bilder, Tests): jerry <quick|state|yaw|spell> <wert>
             char key[32] = {};
             double val = 0.0;

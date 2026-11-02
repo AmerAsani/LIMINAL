@@ -156,6 +156,8 @@ float CreatureAnimator::height() const {
     if (e_ == Entity::Nguithr) return sk_->height * scale_;
     if (e_ == Entity::Ouroboros) return ouroHeight();  // V13.3: Arbeiter gebueckt, Mauer, Geruest
     if (e_ == Entity::Goblin) return goblinHeight();   // V13.3: aufrecht, auf allen vieren, Portal
+    if (e_ == Entity::Rat && !extra_.empty() && extra_[0] > 1.5f) return ratL3Height();  // V13.3 Level 3: grosse Ratte, Falle
+    if (praetorian()) return std::max(0.4f, pose_.j[mo::ANTT_L].z - pos_.z);             // V13.3 Level 3: Praetorianer
     return sk_->height;
 }
 
@@ -212,6 +214,8 @@ void CreatureAnimator::update(double dtIn, const Input& in) {
     if (e_ == Entity::Ouroboros) turn = 1000.0f;  // V13.3: eigene Feder je Variante (Mauer und Geruest stehen fest)
     if (e_ == Entity::Goblin) turn = 1000.0f;     // V13.3: eigene Feder (ruckartige Vogelwendungen)
     if (e_ == Entity::Jerry) turn = 2.2f;         // V13.3 Teil 4: tritt auf dem Rohr langsam herum
+    if (e_ == Entity::Rat && !extra_.empty() && extra_[0] > 1.5f) turn = extra_[0] > 2.5f ? 1000.0f : 3.5f;  // V13.3 Level 3: schwer; Falle fest
+    if (praetorian()) turn = 7.0f;                // V13.3 Level 3: Praetorianer - wendig
     const float yawBefore = yaw_;
     yaw_ += wrapPi(in.yaw - yaw_) * std::min(1.0f, dt * turn);
     speed_ = air ? length(vel_) : std::hypot(vel_.x, vel_.y);
@@ -219,6 +223,10 @@ void CreatureAnimator::update(double dtIn, const Input& in) {
         case Entity::Smiler: updateSmiler(dt, in); break;
         case Entity::Hound: updateHound(dt, in); break;
         case Entity::Moth: {
+            if (praetorian()) {  // V13.3 Level 3: laeuft auf acht Beinen (creature_moth_l3.cpp)
+                updatePraetorian(dt, in);
+                break;
+            }
             // Querneigung aus der Drehgeschwindigkeit (in die Kurve legen)
             const float yawRate = dt > 0.0f ? wrapPi(yaw_ - yawBefore) / dt : 0.0f;
             spring(bank_, bankV_, std::clamp(yawRate * speed_ * 0.35f, -0.75f, 0.75f), 5.0f, dt);
@@ -234,7 +242,10 @@ void CreatureAnimator::update(double dtIn, const Input& in) {
         case Entity::Faceling:
         case Entity::SkinStealer:
         case Entity::Wretch: updateBiped(dt, in); break;
-        case Entity::Rat: updateRat(dt, in); break;
+        case Entity::Rat:
+            if (!extra_.empty() && extra_[0] > 1.5f) extra_[0] > 2.5f ? updateRatTrap(dt, in) : updateRatL3(dt, in);  // V13.3 Level 3
+            else updateRat(dt, in);
+            break;
         case Entity::Window: updateWindow(dt, in); break;
         case Entity::Duller: updateDuller(dt, in); break;  // V13.3
         case Entity::Arms: updateArms(dt, in); break;

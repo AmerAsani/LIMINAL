@@ -1097,14 +1097,16 @@ void Presence::think(Agent& a, double dt, const Context& c, std::vector<Event>& 
         if (a.role == Role::Growler || a.role == Role::Nguithr) prepGN(a, c);  // V13.3
         if (a.role == Role::Ouroboros) prepOuroboros(a, c);                 // V13.3
         if (a.role == Role::Goblin) prepGoblin(a, c);                       // V13.3
-        if (a.role == Role::Moth && a.variant > 0) prepMothL2(a);           // V13.3 Teil 4
+        if (a.role == Role::Moth && a.variant > 0 && a.variant < 3) prepMothL2(a);  // V13.3 Teil 4
         return;
     }
     switch (a.role) {
         case Role::Smiler: thinkSmiler(a, dt, c, out); break;
         case Role::Hound: thinkHound(a, dt, c, out); break;
         case Role::Moth:
-            if (a.variant > 0) thinkMothL2(a, dt, c, out);  // V13.3 Teil 4: Level 2, ohne Nest
+            if (a.variant == 5) thinkPraetorian(a, dt, c, out);  // V13.3 Level 3: Schwarm mit Praetorianern
+            else if (a.variant >= 3) thinkMothL3(a, dt, c, out);
+            else if (a.variant > 0) thinkMothL2(a, dt, c, out);  // V13.3 Teil 4: Level 2, ohne Nest
             else thinkMoth(a, dt, c, out);
             break;
         case Role::Gestalt: thinkGestalt(a, dt, c, out); break;
@@ -1112,7 +1114,11 @@ void Presence::think(Agent& a, double dt, const Context& c, std::vector<Event>& 
         case Role::Faceling: thinkFaceling(a, dt, c, out); break;  // V13.2
         case Role::SkinStealer: thinkSkinStealer(a, dt, c, out); break;
         case Role::Wretch: thinkWretch(a, dt, c, out); break;
-        case Role::Rat: thinkRat(a, dt, c, out); break;
+        case Role::Rat:
+            if (a.variant == 3) thinkRatTrap(a, dt, c, out);  // V13.3 Level 3: Falle der Death Rats
+            else if (a.variant == 2) thinkRatL3(a, dt, c, out);  // V13.3 Level 3: gross wie ein Wasserschwein
+            else thinkRat(a, dt, c, out);
+            break;
         case Role::Window: thinkWindow(a, dt, c, out); break;
         case Role::Duller: thinkDuller(a, dt, c, out); break;  // V13.3
         case Role::Arms: thinkArms(a, dt, c, out); break;
@@ -1354,6 +1360,10 @@ void Presence::regie(double dt, const Context& c, std::vector<Event>& out) {
                 if (!spawnClump(c, out, true)) log::info("Praesenz: erzwungenes Buendel nicht moeglich (kein Lager)");
             } else if (r == Role::Window && windowL2(c)) {  // V13.3 Teil 4: Level 2 - ein Fenster an einem Gangende
                 if (!spawnWindowL2(c, out, true)) log::info("Praesenz: erzwungenes Fenster nicht moeglich (kein Gangende)");
+            } else if (r == Role::Moth && mothL3(c)) {  // V13.3 Level 3: Schwarm mit Praetorianern an einer Roehre
+                if (!spawnMothL3(c, out, true)) log::info("Praesenz: erzwungener Mottenschwarm nicht moeglich (keine brennende Roehre)");
+            } else if (r == Role::Rat && ratL3(c)) {  // V13.3 Level 3: Death Rats mit Fallen
+                if (!spawnRatL3(c, out, true)) log::info("Praesenz: erzwungene Death Rats (Level 3) nicht moeglich");
             } else if (r == Role::Moth && mothL2(c)) {  // V13.3 Teil 4: Level 2 - Motten an einer Leuchte
                 if (!spawnMothL2(c, out, true)) log::info("Praesenz: erzwungene Motten nicht moeglich (keine brennende Leuchte)");
             } else if (r == Role::Window) {  // V13.2: Fenster der Ebene (neu verteilt)
@@ -1467,9 +1477,11 @@ void Presence::regie(double dt, const Context& c, std::vector<Event>& out) {
         regieWrangler(dt, c, out);  // V13.3
         regieWindowL2(dt, c, out);  // V13.3 Teil 4: Level 2
         regieMothL2(dt, c, out);
+        regieRatL3(dt, c, out);   // V13.3 Level 3: Death Rats mit Fallen
+        regieMothL3(dt, c, out);  // V13.3 Level 3: Mottenschwarm mit Praetorianern
         for (int k = 0; k < world::KIN_WINDOW; ++k) {
             const world::KinDef& K = c.kin[k];
-            if (!K.on) continue;
+            if (!K.on || (k == world::KIN_RAT && ratL3(c))) continue;
             const Role r = (Role)((int)Role::Faceling + k);
             bool alive = false;
             for (const auto& a : agents_) alive = alive || (a->role == r && !a->showcase);
@@ -1538,10 +1550,11 @@ void Presence::animate(Agent& a, double dt, const Context& c, std::vector<Event>
         return;
     }
     // Motten am Ruheplatz und weit weg: Pose bleibt (sie sitzen still)
-    if (a.role == Role::Moth && a.state == 0 && a.stateT > 2.0 && !a.showcase) return;
+    if (a.role == Role::Moth && a.state == 0 && a.stateT > 2.0 && !a.showcase && a.variant != 5) return;  // V13.3 Level 3: der Praetorianer wacht (bewegt sich)
     const bool audible = a.role == Role::Hound || a.role == Role::Smiler || a.role == Role::Clump || a.role == Role::Faceling ||
                          a.role == Role::SkinStealer || a.role == Role::Wretch || a.role == Role::Rat || a.role == Role::Growler ||
                          a.role == Role::Goblin;  // V13.2, V13.3
+    const bool audibleRat = !(a.role == Role::Rat && a.variant >= 2);  // V13.3 Level 3: eigene Schritte (Klangnummer)
     if (a.human) {
         anim::Animator::Input in;
         in.pos = a.pos;
@@ -1576,11 +1589,13 @@ void Presence::animate(Agent& a, double dt, const Context& c, std::vector<Event>
     in.light = a.light, in.perceive = a.perceive, in.perceiveAt = a.perceiveAt;
     in.wave = a.wave, in.talk = a.talk, in.plea = a.plea, in.strike = a.strike;
     if (a.role == Role::Wretch || a.role == Role::SkinStealer) a.cre.setExtra({(float)a.variant});  // V13.3 Level 3: Waffe, Mantel
+    if (a.role == Role::Rat && a.variant >= 2) prepRatL3(a, c);  // V13.3 Level 3: grosse Ratte, Falle
+    if (a.role == Role::Moth && a.variant >= 3) prepMothL3(a, c);  // V13.3 Level 3: Schwarm, Praetorianer
     in.lightFrom = a.showcase && a.light > 0.0f && length(a.lightFrom) < 1e-3f ? c.view.eye : a.lightFrom;
     if (const world::Tile* t = c.world->tileIfLoaded(ifloor(a.pos.x), ifloor(a.pos.y))) in.clearance = t->clearance();
     a.cre.update(dt, in);
     a.rig.setCreaturePose(a.cre.pose());
-    if (audible && a.cre.stepped()) out.push_back({Event::Step, a.role, a.cre.stepPos(), a.cre.stepWeight() * (a.cre.running() ? 1.4f : 0.8f)});
+    if (audible && audibleRat && a.cre.stepped()) out.push_back({Event::Step, a.role, a.cre.stepPos(), a.cre.stepWeight() * (a.cre.running() ? 1.4f : 0.8f)});
 }
 
 void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
@@ -1597,7 +1612,7 @@ void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
             if (a.role == Role::Growler || a.role == Role::Nguithr) prepGN(a, c);  // V13.3: Groesse, Netzkugeln
             if (a.role == Role::Ouroboros) prepOuroboros(a, c);                 // V13.3: Aufgabe, Mauer, Geruest
             if (a.role == Role::Goblin) prepGoblin(a, c);                       // V13.3: Zustand, Groesse, Portal
-            if (a.role == Role::Moth && a.variant > 0) prepMothL2(a);           // V13.3 Teil 4: kleiner (Level 2)
+            if (a.role == Role::Moth && a.variant > 0 && a.variant < 3) prepMothL2(a);  // V13.3 Teil 4: kleiner (Level 2)
             a.sight = perceive(c.view, *c.world, a.feet(), a.height());
             if (a.role == Role::Smiler) {
                 const double ph = time_ * 1.35 + 0.4 * std::sin(time_ * 0.31);
