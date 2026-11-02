@@ -16,7 +16,7 @@ import anat as A
 import sdf
 import window as WN
 
-LODS = (14000, 5000, 1600)
+LODS = (18000, 6000, 1900)  # Runde 4: mehr fuer den Umriss (vorher Kopf in der Naehe kantig)
 SKELETON = 'ent_window'
 X = np.array([1.0, 0, 0])
 Y = np.array([0, 1.0, 0])
@@ -74,18 +74,42 @@ def build(J, bones):
     pane_c = np.array([D * 0.42, -W2 / 4 - 0.004, (ZT + Z1) * 0.5])
     glass.append(_box(0, pane_c, (0.0025, W2 / 4 - 0.02, (Z1 - ZT) * 0.5 - 0.02), 0.0))
     # Runde 2: ein Einschlag statt Kritzelei; Runde 3: die Spruenge gezackt und ungleich lang (vorher ein Stern wie ein Symbol)
-    hit = pane_c + np.array([0.0, 0.07, -0.03])
-    for k in range(5):
-        a = k * 2 * np.pi / 5 + rng.uniform(-0.5, 0.5)
-        p = hit.copy()
-        for seg in range(rng.integers(2, 5)):
-            a += rng.uniform(-0.6, 0.6)
-            L_ = rng.uniform(0.02, 0.05)
+    # Runde 4: Einschlag aus der Mitte geruckt, die Strahlen laufen ungleich bis an den Rahmen, dazwischen zwei
+    # unterbrochene Ringe wie bei echtem Drahtglas (vorher fuenf kurze Strahlen - las sich weiter als Sternsymbol)
+    hit = pane_c + np.array([0.0, 0.12, -0.07])
+    hy, hz2 = W2 / 4 - 0.025, (Z1 - ZT) * 0.5 - 0.025
+
+    def crack(p, dv, L_, w):
+        up = np.array([0.0, -dv[2], dv[1]])
+        glass.append(_box(0, p + dv * L_ * 0.5, (0.006, L_ * 0.5 + 0.0008, w), 0.0, op='sub', up=up))
+
+    rays = np.sort(rng.uniform(0, 2 * np.pi, 8))
+    for a0 in rays:
+        a, p = a0, hit.copy()
+        w = rng.uniform(0.0013, 0.0017)  # Runde 5: breiter (Runde 4: duenner als ein Voxel - zerfiel in Punkte)
+        for seg in range(40):
+            a += rng.uniform(-0.35, 0.35)
+            L_ = rng.uniform(0.012, 0.03)
             dv = np.array([0.0, np.cos(a), np.sin(a)])
-            up = np.array([0.0, -np.sin(a), np.cos(a)])
-            glass.append(_box(0, p + dv * L_ * 0.5, (0.006, L_ * 0.5 + 0.001, 0.0009), 0.0, op='sub', up=up))
-            p = p + dv * L_
-    glass.append(_box(0, hit, (0.006, 0.005, 0.004), 0.002, op='sub'))
+            q = p + dv * L_
+            if abs(q[1] - pane_c[1]) > hy or abs(q[2] - pane_c[2]) > hz2:
+                break
+            crack(p, dv, L_, w)
+            p = q
+            w = max(0.0010, w * 0.97)
+    for r in (0.028, 0.06):  # Ringe: kurze Sehnen zwischen den Strahlen, nicht jede
+        for i in range(len(rays)):
+            if rng.uniform() < 0.3:
+                continue
+            a1, a2 = rays[i], rays[(i + 1) % len(rays)] + (2 * np.pi if i == len(rays) - 1 else 0.0)
+            rr1, rr2 = r * rng.uniform(0.85, 1.15), r * rng.uniform(0.85, 1.15)
+            p1 = hit + np.array([0.0, np.cos(a1) * rr1, np.sin(a1) * rr1])
+            p2 = hit + np.array([0.0, np.cos(a2) * rr2, np.sin(a2) * rr2])
+            if abs(p2[1] - pane_c[1]) > hy or abs(p2[2] - pane_c[2]) > hz2 or abs(p1[1] - pane_c[1]) > hy or abs(p1[2] - pane_c[2]) > hz2:
+                continue
+            d = p2 - p1
+            crack(p1, d / max(np.linalg.norm(d), 1e-6), np.linalg.norm(d), 0.0011)
+    glass.append(_box(0, hit, (0.006, 0.004, 0.0035), 0.002, op='sub'))
     for k in range(6):  # Schmutz auf dem Glas (unten dichter)
         glass.append(A.ell(0, pane_c + np.array([0.003, rng.uniform(-0.2, 0.2), rng.uniform(-0.17, -0.08)]), X, (0.0015, rng.uniform(0.02, 0.05), rng.uniform(0.01, 0.025)), k=0.01))
     for (cy, cz, sy, sz) in ((W2 / 2 - 0.02, Z0 + 0.02, -1, 1), (-W2 / 2 + 0.02, Z0 + 0.02, 1, 1), (W2 / 2 - 0.02, ZT - 0.03, -1, -1),
@@ -130,14 +154,18 @@ def build(J, bones):
                               (0.0012, rng.uniform(0.015, FR / 2), rng.uniform(0.03, 0.12)), 0.004))
     for k in range(5):
         paint.append(_box(0, (D + 0.0012, rng.uniform(-W2 / 2, W2 / 2), Z1 + FR / 2 + 0.006), (0.0012, rng.uniform(0.04, 0.14), rng.uniform(0.015, FR / 2)), 0.004))
+    # Runde 4: Dreiecke dorthin, wo man hinsieht - Umriss und Arme (Flecken, Lack, Moertel sind flach)
+    for g in groups:
+        if g['name'] in ('umriss', 'arme'):
+            g['lod_weight'] = 3.0 if g['name'] == 'umriss' else 2.0
     groups += [
-        {'name': 'kasten', 'fm': 'ent_ob_rust', 'parts': case, 'disp': case_disp, 'h': 0.0028, 'cav_scale': 0.006, 'lod_weight': 0.8},
+        {'name': 'kasten', 'fm': 'ent_ob_rust', 'parts': case, 'disp': case_disp, 'h': 0.0028, 'cav_scale': 0.006, 'lod_weight': 0.6},
         {'name': 'lack', 'fm': 'ent_ob_paint', 'parts': paint, 'disp': lambda Q: 0.0004 * sdf.fbm(Q, 60.0, 2, 75), 'h': 0.0016, 'cav_scale': 0.003,
-         'lod_weight': 0.3},
-        {'name': 'nieten', 'fm': 'ent_ob_steel', 'parts': rivets, 'disp': None, 'h': 0.0016, 'cav_scale': 0.003, 'lod_weight': 0.3},
-        {'name': 'glas', 'fm': 'ent_pg_glass', 'parts': glass, 'disp': None, 'h': 0.0016, 'cav_scale': 0.003, 'lod_weight': 0.5},
+         'lod_weight': 0.12},
+        {'name': 'nieten', 'fm': 'ent_ob_steel', 'parts': rivets, 'disp': None, 'h': 0.0016, 'cav_scale': 0.003, 'lod_weight': 0.2},
+        {'name': 'glas', 'fm': 'ent_pg_glass', 'parts': glass, 'disp': None, 'h': 0.0012, 'cav_scale': 0.003, 'lod_weight': 0.5},
         {'name': 'schmutz', 'fm': 'ent_ob_paint', 'parts': rust, 'disp': lambda Q: 0.0005 * sdf.fbm(Q, 80.0, 2, 74), 'h': 0.0016,
-         'cav_scale': 0.003, 'lod_weight': 0.4},
-        {'name': 'moertel', 'fm': 'ent_concrete', 'parts': mortar, 'disp': mortar_disp, 'h': 0.0028, 'cav_scale': 0.006, 'lod_weight': 0.4},
+         'cav_scale': 0.003, 'lod_weight': 0.12},
+        {'name': 'moertel', 'fm': 'ent_concrete', 'parts': mortar, 'disp': mortar_disp, 'h': 0.0028, 'cav_scale': 0.006, 'lod_weight': 0.2},
     ]
     return groups
