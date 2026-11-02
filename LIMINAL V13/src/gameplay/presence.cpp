@@ -651,6 +651,7 @@ void Presence::thinkSmiler(Agent& a, double dt, const Context& c, std::vector<Ev
         return;
     }
     if (a.state < 1) return;
+    if (unprovokedSmiler(a, dt, c, out, d, dark)) return;  // V13.3 Level 3: Angriff ohne Anlass (presence_smiler_l3.cpp)
     // Panik: wer in seiner Naehe rennt, wird angegriffen (Wikidot). V11 (F2): erst oeffnet es sich weit,
     // der Ton steigt - 1,5 s Zeit, stehen zu bleiben und den Blick zu halten (F3)
     // V13.2 (Entity-3-Seite: Panik "oder lauter Laerm"): eine harte Landung oder der Aufprall eines geworfenen

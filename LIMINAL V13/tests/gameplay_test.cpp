@@ -6322,6 +6322,157 @@ static void testV133PackBigClump(const std::string& dataDir) {
     }
 }
 
+// V13.3 Level 3, Restpunkte (KREATUR_Smiler.md "V13.3: Level 3 - Angriff ohne Anlass")
+static void testV133Level3Rest(const std::string& dataDir) {
+    std::printf("V13.3: Level 3 - Smiler ohne Anlass\n");
+    game::PrefabLibrary prefabs;
+    prefabs.loadDirectory(dataDir + "/prefabs");
+    JobSystem jobs(2);
+    using PE = game::Presence::Event;
+    using Role = game::Presence::Role;
+    const auto L1 = gContent11->level("level1", world::kLayoutV6);
+    check(gContent11->level("level3", world::kLayoutV6)->smilerUnprovoked > 0.2 && L1->smilerUnprovoked == 0.0,
+          "Level 3: presence.smiler_unprovoked gesetzt, Level 1 nicht");
+    auto look = [](game::GameSession& se, vec3 q, double off) {
+        auto& pl = se.player();
+        pl.angle = std::atan2(q.y - pl.y, q.x - pl.x) + off;
+        pl.pitch = off > 1.0 ? 0.0 : std::atan2(q.z + 1.7 - pl.eye(), std::max(0.5, std::hypot(q.x - pl.x, q.y - pl.y)));
+    };
+    // Halle Aquila (Level 1) mit der Einstellung von Level 3 (oder ohne): Stromausfall, der Smiler, davor stellen (8 m, dahinter
+    // 20 m freier Boden)
+    auto setup = [&](double unprovoked, std::unique_ptr<game::GameSession>& s) {
+        auto L = std::make_shared<world::LevelDef>(*L1);
+        L->smilerBait = unprovoked > 0.0 ? 1 : 0;
+        L->smilerUnprovoked = unprovoked;
+        s = std::make_unique<game::GameSession>(*gContent11, prefabs, L, 4242, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        for (int i = 0; i < 12; ++i) s->update(1.0 / 60.0, {}, false), s->events().clear();
+        world::World& ww = s->world();
+        auto& pl = s->player();
+        const auto [hx, hy] = hallSpot(ww);
+        pl.x = hx + 0.5, pl.y = hy + 0.5, pl.z = ww.tile(hx, hy).floor;
+        s->body().reset();
+        s->preload();
+        auto& P = s->presence();
+        P.force(Role::Smiler);
+        for (int i = 0; i < 60 * 16 && !P.has(Role::Smiler); ++i) s->update(1.0 / 60.0, {}, false), s->events().clear();
+        for (int i = 0; i < 60 * 4 && P.has(Role::Smiler) && P.stateOf(Role::Smiler) < 1; ++i) {
+            look(*s, P.posOf(Role::Smiler), 0.0);
+            s->update(1.0 / 60.0, {}, false), s->events().clear();
+        }
+        if (!P.has(Role::Smiler)) return false;
+        const vec3 sp = P.posOf(Role::Smiler);
+        for (int k = 0; k < 32; ++k) {
+            const double a = k * 0.19635, ux = std::cos(a), uy = std::sin(a);
+            bool ok = true;
+            for (double d = 5.0; d <= 28.0 && ok; d += 0.5) {
+                const world::Tile& t = ww.tile(ifloor(sp.x + ux * d), ifloor(sp.y + uy * d));
+                ok = t.open() && t.clearance() > 2.1f && std::fabs(t.floor - sp.z) < 0.2f && !(t.flags & world::TF_FEATURE);
+            }
+            // seitlich 4 m frei (zur Seite treten)
+            for (double d = 0.5; d <= 4.0 && ok; d += 0.5) {
+                const world::Tile& t = ww.tile(ifloor(sp.x + ux * 8.0 - uy * d), ifloor(sp.y + uy * 8.0 + ux * d));
+                ok = t.open() && t.clearance() > 2.1f && std::fabs(t.floor - sp.z) < 0.2f && !(t.flags & world::TF_FEATURE);
+            }
+            if (!ok) continue;
+            pl.x = sp.x + ux * 8.0, pl.y = sp.y + uy * 8.0, pl.z = sp.z, pl.vx = pl.vy = 0.0;
+            s->body().reset();
+            look(*s, sp, 0.0);
+            return true;
+        }
+        return false;
+    };
+    struct Run {
+        double tAnn = -1.0, tHit = -1.0, tCalm = -1.0;
+        int stageMax = 0;
+        bool gone = false;
+    };
+    // what: 0 stehen und hinsehen, 1 Licht aus und zur Seite treten, 2 wegrennen (Lampe an)
+    auto play = [&](game::GameSession& s, int what, double secs) {
+        auto& P = s.presence();
+        Run r;
+        double t = 0.0, tAct = -1.0;
+        for (int i = 0; i < (int)(secs * 60.0); ++i, t += 1.0 / 60.0) {
+            game::PlayerControl c;
+            if (!P.has(Role::Smiler)) {
+                r.gone = true;
+                break;
+            }
+            const vec3 sp = P.posOf(Role::Smiler);
+            if (r.tAnn >= 0.0 && tAct < 0.0) tAct = t;
+            if (what == 0 || tAct < 0.0) look(s, sp, 0.0);
+            if (what == 1 && tAct >= 0.0) {
+                s.flashlight().on = false;
+                if (t - tAct < 1.9) look(s, sp, 0.0), c.side = 1.0f;  // ruhig zur Seite (gehen)
+            }
+            if (what == 2 && tAct >= 0.0) look(s, sp, 3.14159), c.forward = 1.0f, c.sprint = true;
+            s.update(1.0 / 60.0, c, false);
+            for (const auto& e : s.events()) {
+                if (e.type == game::GameEvent::Figure && e.role == (int)Role::Smiler && e.index == (int)PE::Announce && e.intensity > 1.5f && r.tAnn < 0.0) r.tAnn = t;
+                if (e.type == game::GameEvent::Figure && e.role == (int)Role::Smiler && e.index == (int)PE::Calm && r.tAnn >= 0.0 && r.tCalm < 0.0) r.tCalm = t;
+                if (e.type == game::GameEvent::StalkerHit && r.tHit < 0.0) r.tHit = t;
+            }
+            s.events().clear();
+            r.stageMax = std::max(r.stageMax, P.stageOf(Role::Smiler));
+            if (r.tHit >= 0.0 && t > r.tHit + 0.5) break;
+        }
+        return r;
+    };
+    // a) Level 3: er kuendigt sich von selbst an (kein Rennen, kein Laerm), ruhig stehen und hinsehen hilft nicht
+    {
+        std::unique_ptr<game::GameSession> s;
+        const bool ok = setup(1.0, s);
+        check(ok, "Level-3-Smiler erschienen, 8 m davor freie Bahn");
+        if (ok) {
+            s->flashlight().on = true;
+            const Run r = play(*s, 0, 34.0);
+            std::printf("  still: Ankuendigung %.2f s, Treffer %.2f s, Stufe max %d\n", r.tAnn, r.tHit, r.stageMax);
+            check(r.tAnn >= 0.0, std::format("Level 3: ohne Anlass - Lider und Lippen reissen auf, obwohl man still steht und hinsieht ({:.1f} s)", r.tAnn));
+            check(r.tHit >= 0.0 && r.tHit - r.tAnn >= 2.15, std::format("Level 3: Zugriff fruehestens 2,2 s nach der Ankuendigung ({:.2f} s)", r.tHit - r.tAnn));
+            check(r.tHit < 0.0 || (s->stats().dead && s->killRole() == (int)Role::Smiler), "Level 3: wer stehen bleibt, stirbt");
+        }
+    }
+    // b) Licht aus und zur Seite: er stuermt zur Stelle des Lichts, verfehlt und laesst ab
+    {
+        std::unique_ptr<game::GameSession> s;
+        const bool ok = setup(1.0, s);
+        check(ok, "Level 3 (b): Smiler erschienen");
+        if (ok) {
+            s->flashlight().on = true;
+            s->presence().kinSet(Role::Smiler, "mode", 2), s->presence().kinSet(Role::Smiler, "provoke", 0.2);
+            const Run r = play(*s, 1, 14.0);
+            std::printf("  Licht aus: Ankuendigung %.2f s, Stufe max %d, Ablassen %.2f s, Treffer %.2f\n", r.tAnn, r.stageMax, r.tCalm, r.tHit);
+            check(r.tAnn >= 0.0 && r.stageMax == 6 && r.tHit < 0.0 && r.tCalm > r.tAnn && !s->stats().dead,
+                  std::format("Level 3: Licht aus und zur Seite - er stuermt zur letzten Stelle des Lichts und laesst ab (Stufe {}, Treffer {:.1f})", r.stageMax, r.tHit));
+        }
+    }
+    // c) wegrennen: der Sprint ist schneller, ab 13 m laesst er ab
+    {
+        std::unique_ptr<game::GameSession> s;
+        const bool ok = setup(1.0, s);
+        check(ok, "Level 3 (c): Smiler erschienen");
+        if (ok) {
+            s->flashlight().on = true;
+            s->presence().kinSet(Role::Smiler, "mode", 2), s->presence().kinSet(Role::Smiler, "provoke", 0.2);
+            const Run r = play(*s, 2, 14.0);
+            std::printf("  Wegrennen: Ankuendigung %.2f s, Stufe max %d, Ablassen %.2f s, Treffer %.2f\n", r.tAnn, r.stageMax, r.tCalm, r.tHit);
+            check(r.tAnn >= 0.0 && r.tHit < 0.0 && r.tCalm > r.tAnn && !s->stats().dead, "Level 3: wegrennen - er laesst ab");
+        }
+    }
+    // d) Level 1 (ohne die Einstellung): wer still steht und hinsieht, wird nie ohne Anlass angegriffen
+    {
+        std::unique_ptr<game::GameSession> s;
+        const bool ok = setup(0.0, s);
+        check(ok, "Level 1 (d): Smiler erschienen");
+        if (ok) {
+            s->flashlight().on = true;
+            const Run r = play(*s, 0, 30.0);
+            check(r.tAnn < 0.0 && r.tHit < 0.0 && r.stageMax <= 1, "Level 1: kein Angriff ohne Anlass (still stehen, hinsehen)");
+        }
+    }
+}
+
 int main(int argc, char** argv) {
     if (argc < 2) {
         std::printf("Aufruf: gameplay_test <data-Ordner>\n");
@@ -6373,6 +6524,7 @@ int main(int argc, char** argv) {
     testV133Purple(argv[1]);      // V13.3: Level 3 - purpifizierte Wesen in der Wand
     testV133Level3RatMoth(argv[1]);  // V13.3: Level 3 - Death Rats mit Fallen, Mottenschwarm mit Praetorianern
     testV133PackBigClump(argv[1]);   // V13.3: Level 2/3 - Hound-Rudel, grosses bewaffnetes Buendel
+    testV133Level3Rest(argv[1]);     // V13.3: Level 3 - Smiler ohne Anlass, Red Knight
     std::printf("%s: %d Pruefungen, %d Fehler\n", gFails ? "FEHLGESCHLAGEN" : "OK", gChecks, gFails);
     return gFails ? 1 : 0;
 }

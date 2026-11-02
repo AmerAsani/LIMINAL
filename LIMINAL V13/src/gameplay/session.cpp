@@ -1640,6 +1640,7 @@ void GameSession::updatePresence(double dt) {
     c.noise = std::max(noise, landNoise_);
     c.pings = &noisePings_;
     c.lures = &presenceLures_, c.smilerBait = L.smilerBait;  // V13.3: Leuchtkoeder (KREATUR_Smiler.md)
+    c.smilerUnprovoked = L.smilerUnprovoked;                 // V13.3 Level 3: Angriff ohne Anlass
     c.houndPack = L.houndPack.on ? &L.houndPack : nullptr;  // V13.3 Level 2/3: Hound-Rudel, grosses Buendel
     c.clumpBig = L.clumpBig.on ? &L.clumpBig : nullptr;
     if (const Json& bo = L.audio["blackout"]; bo.isObject()) {

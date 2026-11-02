@@ -17,7 +17,7 @@
   // V13.3 (KREATUR_Wretch.md, KREATUR_SkinStealer.md): Wretches selten und bewaffnet (armed), Skin-Stealer im Mantel (coat)
   // V13.3 (KREATUR_Hound.md, KREATUR_Clump.md): Hounds lauern allein und jagen gemeinsam (Rudel aus 3, je in einer Nische);
   // das grosse, bewaffnete Buendel an der Decke (neben den kleinen in den Schaechten)
-  "presence": { "hound": false, "smiler": true, "gestalt": false, "blackout": true, "clump": 0.4, "smiler_bait": "hesitate",
+  "presence": { "hound": false, "smiler": true, "gestalt": false, "blackout": true, "clump": 0.4, "smiler_bait": "hesitate", "smiler_unprovoked": 0.35,
                "hound_pack": { "mode": "l3", "group": [3, 3], "every": 260 },
                "clump_l3": { "every": 300 },
                "faceling": { "mode": "armed", "group": [1, 3], "every": 200 },

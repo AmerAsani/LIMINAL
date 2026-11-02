@@ -221,6 +221,7 @@ public:
         // V13.3 (KREATUR_Smiler.md): leuchtende Leuchtstaebe; Smiler folgen dem staerkeren Licht (0) oder stutzen nur (1, Level 3)
         const std::vector<Lure>* lures = nullptr;
         int smilerBait = 0;
+        double smilerUnprovoked = 0.0;  // V13.3 Level 3: Anteil der Smiler, die ohne Anlass angreifen (KREATUR_Smiler.md)
         // V13.3 Level 2/3 (KREATUR_Hound.md, KREATUR_Clump.md): Hound-Rudel, grosses bewaffnetes Buendel (nullptr: keins)
         const world::KinDef* houndPack = nullptr;
         const world::KinDef* clumpBig = nullptr;
@@ -539,6 +540,7 @@ private:
     // V13.3 (presence_lure.cpp): Smiler am Leuchtkoeder (true: das Licht hat ihn, der Rest von thinkSmiler entfaellt);
     // Skin-Stealer angesprochen (true: diese Runde erledigt)
     bool baitSmiler(Agent& a, double dt, const Context& c, std::vector<Event>& out, float d, bool dark);
+    bool unprovokedSmiler(Agent& a, double dt, const Context& c, std::vector<Event>& out, float d, bool dark);  // V13.3 Level 3 (presence_smiler_l3.cpp)
     bool talkSkinStealer(Agent& a, double dt, const Context& c, std::vector<Event>& out, float d, bool los);
     // V13.3 Level 3 (presence_kin_l3.cpp): Wretch mit Waffe, Skin-Stealer im Mantel; Modellwechsel ohne Neuanlage
     void thinkWretchL3(Agent& a, double dt, const Context& c, std::vector<Event>& out);

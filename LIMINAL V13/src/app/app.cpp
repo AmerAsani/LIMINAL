@@ -1668,6 +1668,9 @@ void App::handleEvents() {
                         if (role == Role::Jerry) {  // V13.3 Teil 4: Jerry breitet die Fluegel aus und kreischt - letzte Warnung
                             at(std::format("jerry_screech_{}", n % 2), e.pos, 1.0f, 40.0f);
                             at("jerry_flap_1", e.pos, 0.9f, 24.0f);
+                        } else if (role == Role::Smiler && e.intensity > 1.5f) {  // V13.3 Level 3: Angriff ohne Anlass
+                            at("smiler_peel", e.pos, 1.0f, 34.0f);
+                            ui_.toast("Lider und Lippen reißen auf – er kommt ohne Anlass. Licht aus und raus aus seiner Bahn!", 3.6f);
                         } else {
                             at("smiler_open", e.pos, 1.0f, 30.0f);
                         }
