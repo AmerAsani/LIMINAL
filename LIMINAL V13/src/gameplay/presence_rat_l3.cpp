@@ -137,7 +137,7 @@ void Presence::prepRatL3(Agent& a, const Context& c) {
     const bool snapped = a.puppet || a.showcase ? a.hang > 0.5f : T->snapped;
     a.cre.setExtra({3.0f, T->aL.x, T->aL.y, T->aL.z, T->aR.x, T->aR.y, T->aR.z, snapped ? 1.0f : 0.0f, a.strike, a.shiver});
     // die rote Leuchte blinkt (aus, wenn zerrissen)
-    a.rig.setGlow(snapped ? 0.0f : (std::fmod(time_, 1.3) < 0.12 ? 1.0f : 0.25f));
+    a.rig.setGlow(snapped ? 0.0f : (std::fmod(time_, 1.3) < 0.12 || a.strike > 0.3f ? 1.0f : 0.25f));  // Funken: voll
 }
 
 // Baustelle: Gangkachel auf dem Weg des Spielers (vor ihm oder auf seinem frueheren Weg), ausser Sicht, quer 0,8-3,2 m
@@ -731,6 +731,9 @@ bool Presence::l3Set(const std::string& key, double v, const Context* c) {
                 RatL3& R = extOf<RatL3>(*a);
                 R.job = (int)v, R.t = 0.0, R.hasHold = false, R.warned = false;
             }
+    } else if (key == "spark") {  // Bilder: alle Fallen funken jetzt
+        for (auto& a : agents_)
+            if (a->role == Role::Rat && a->variant == 3 && a->ext) static_cast<Trap*>(a->ext.get())->spark = v;
     } else if (key == "clear") {  // alle Fallen fort
         std::erase_if(agents_, [](const auto& a) { return a->role == Role::Rat && a->variant == 3 && !a->showcase; });
     } else if (key == "swarm") {

@@ -13,7 +13,7 @@
 // Falle (extra_[0] = 3; [1..3] linker, [4..6] rechter Isolator in Weltkoordinaten, [7] gerissen 0/1, [8] Funke 0..1,
 //   [9] Brummen 0..1): Brett und Quelle an der Wurzel (Gangquerung = Blickrichtung), die Isolatoren starr an den Waenden
 //   (rechts um 180 Grad gedreht), der Draht durch die Schwanzgelenke mit Durchhang (schwingt beim Brummen); gerissen haengen
-//   beide Haelften zu Boden. Der Funke (Knochen 5) wird mit 'Funke' eingeblendet.
+//   beide Haelften zu Boden. Die Funken (Knochen 5 am Unterbrecher, 12/15 an den Isolatoren) werden mit 'Funke' eingeblendet.
 #include <algorithm>
 #include <cmath>
 
@@ -257,6 +257,11 @@ void CreatureAnimator::updateRatTrap(float dt, const Input& in) {
     const vec3 sp = pos_ + Mb * vec3{0.17f, 0.0f, 0.036f};
     J[HEAD] = sp;
     J[JAW] = sp + Mb * (B[JAW] - B[HEAD]);
+    // Funken an den Isolatoren (Knochen 12 links, 15 rechts): vor der Spule, wo der Draht ansetzt
+    J[legJ(2, 0)] = aL + across * 0.03f;
+    J[legJ(2, 1)] = J[legJ(2, 0)] + Mb * (B[legJ(2, 1)] - B[legJ(2, 0)]);
+    J[legJ(3, 0)] = aR - across * 0.03f;
+    J[legJ(3, 1)] = J[legJ(3, 0)] + Mr * (B[legJ(3, 1)] - B[legJ(3, 0)]);
     // Oben-Richtungen und Massstab
     for (size_t b = 0; b < sk_->bones.size(); ++b) pose_.up[b] = Mb * sk_->bindUp[b];
     pose_.up[rt::B_ROOT] = F;
@@ -273,6 +278,8 @@ void CreatureAnimator::updateRatTrap(float dt, const Input& in) {
     // der Funke: blitzt, zuckt in der Groesse; sonst unsichtbar
     const float flick = 0.7f + 0.3f * std::sin(time_ * 91.0f) * std::sin(time_ * 57.0f);
     pose_.s[(size_t)rt::B_JAW] = spark > 0.02f ? std::max(0.001f, spark * flick * 1.3f) : 0.001f;
+    const float flick2 = 0.6f + 0.4f * std::sin(time_ * 73.0f + 1.3f);
+    for (int l : {2, 3}) pose_.s[(size_t)legB(l, 0)] = spark > 0.3f && !snapped ? std::max(0.001f, (spark - 0.3f) * flick2 * (l == 2 ? 1.2f : 1.0f)) : 0.001f;
     (void)dt;
     (void)in;
 }

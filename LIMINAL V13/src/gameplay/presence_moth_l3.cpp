@@ -310,6 +310,7 @@ void Presence::thinkMothL3(Agent& a, double dt, const Context& c, std::vector<Ev
             a.timer -= dt;
             a.shiver = a.timer < 1.4 || S.prov > 0.4 ? 1.0f : 0.0f;
             if (a.timer <= 0.0) a.state = 1, a.stateT = 0.0, a.fly = 1.0f, a.timer2 = rng_.uniform(5.0, 14.0), a.vel = vec3{0, 0, -0.8f};
+            if (S.roused && S.lampOffT < 1.0) a.state = 2, a.stateT = 0.0, a.fly = 1.0f, a.vel = vec3{0, 0, -0.8f};  // das Licht lockt sie wieder
             return;
         }
         case 1: {  // um die Roehre (ruhig)
@@ -355,6 +356,7 @@ void Presence::thinkMothL3(Agent& a, double dt, const Context& c, std::vector<Ev
                 if (slot >= 0 && dEye < 1.0f) {
                     M.slot = slot;
                     a.state = 4, a.stateT = 0.0;
+                    log::info("Praesenz: Deathmoth im Gesicht (Platz {})", slot);
                 } else if (a.stateT > 3.0) {
                     a.state = 2, a.stateT = 0.0, a.cool = 1.0;
                 }

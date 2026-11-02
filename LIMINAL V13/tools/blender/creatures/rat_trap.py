@@ -10,7 +10,7 @@ abgenagt (Zahnspuren - so bauen Nager).
 Knochen (Rattenskelett ent_rat, das Spiel stellt sie, creature_rat_l3.cpp): 0 Brett und Quelle (Wurzel, Gangquerung = +x),
 6 linker Isolator, 9 rechter Isolator (beide zeigen mit dem Nagel nach -x in ihre Wand), 18-21 der Draht (vier Stuecke,
 das Spiel dehnt sie auf die Gangbreite und laesst ihn durchhaengen; das Netz ist hier fertig gebaut, nicht ausgeduennt),
-5 der Funke am Unterbrecher (sonst auf null verkleinert).
+5 der Funke am Unterbrecher, 12 und 15 Funken an den Isolatoren (sonst auf null verkleinert).
 """
 import math
 
@@ -104,7 +104,7 @@ def build(J, bones):
         breaker.append(A.cone(ROOT, (0.17 + 0.007 * math.cos(t * 12), 0.02 + 0.007 * math.sin(t * 12), 0.026 + 0.02 * t),
                               (0.17 + 0.007 * math.cos(t * 12 + 2), 0.02 + 0.007 * math.sin(t * 12 + 2), 0.029 + 0.02 * t), 0.0012, 0.0012, k=0.0))
     led_leg = A.chain(lambda i: ROOT, A.bezier((0.04, 0.17, 0.026), (0.02, 0.2, 0.09), (0.035, 0.18, 0.14), 6), [0.0014] * 7, k=0.0)
-    led = [A.ell(ROOT, (0.035, 0.18, 0.148), Z, (0.0055, 0.0055, 0.008), k=0.0)]
+    led = [A.ell(ROOT, (0.035, 0.18, 0.15), Z, (0.0085, 0.0085, 0.012), k=0.0)]
     # Kabel: Batterie -> Spule -> Unterbrecher, und die Leitung die Wand hinauf zum linken Isolator (abgenagte Enden)
     cables_r = A.chain(lambda i: ROOT, A.bezier((0.105, -0.12, 0.192), (0.16, -0.05, 0.25), (0.13, 0.09, 0.11), 8), [0.0045] * 9, k=0.0)
     cables_b = A.chain(lambda i: ROOT, A.bezier((0.045, -0.12, 0.192), (0.0, -0.02, 0.2), (0.0, 0.0, 0.02), 8), [0.0045] * 9, k=0.0)
@@ -142,12 +142,16 @@ def build(J, bones):
     pl, nl, ll = insulator(ANCHOR_L, J[8])
     pr, nr, lr = insulator(ANCHOR_R, J[12])
     # --- Funke am Unterbrecher (Knochen 5; das Spiel blendet ihn ein) ---------------------------------------------------------
-    sc = J[5]
-    spark = [A.ell(SPARK, sc, X, (0.006, 0.006, 0.006), k=0.0)]
-    for i in range(14):
-        d = A.unit(rng.normal(0, 1, 3))
-        pts = [sc, sc + d * 0.012 + rng.normal(0, 0.004, 3), sc + d * 0.024 + rng.normal(0, 0.006, 3), sc + d * (0.03 + 0.02 * rng.random())]
-        spark += A.chain(lambda k: SPARK, pts, [0.0018, 0.0012, 0.0008, 0.0002], k=0.0)
+    sparks = []
+    # Funken: am Unterbrecher (Knochen 5) und an beiden Isolatoren (Knochen 12 links, 15 rechts - das Spiel setzt sie an die
+    # Waende); je eine eigene Gruppe, damit kein Punkt zwischen zwei Knochen gemischt wird (sie liegen in Ruhe dicht beisammen)
+    for bone, sc, n in ((SPARK, J[5], 14), (12, J[16], 9), (15, J[20], 9)):
+        spark = [A.ell(bone, sc, X, (0.005, 0.005, 0.005), k=0.0)]
+        sparks.append(spark)
+        for i in range(n):
+            d = A.unit(rng.normal(0, 1, 3))
+            pts = [sc, sc + d * 0.012 + rng.normal(0, 0.004, 3), sc + d * 0.024 + rng.normal(0, 0.006, 3), sc + d * (0.03 + 0.02 * rng.random())]
+            spark += A.chain(lambda k: bone, pts, [0.0018, 0.0012, 0.0008, 0.0002], k=0.0)
     # --- Draht: zwei verdrillte blanke Kupferlitzen entlang der Schwanzknochen (fertiges Netz) --------------------------------
     chain = [J[24 + i] for i in range(5)]
     pts, segs = [], 16
@@ -172,7 +176,7 @@ def build(J, bones):
         if sel[-1] != len(pts) - 1:
             sel.append(len(pts) - 1)
         P = [pts[i][2] for i in sel]
-        V, T, W = tube_mesh(P, lambda j: bones_of_idx(sel[j]), 0.00011, sides, nb, twist=0.9 * per, strands=2, strand_off=0.00013)
+        V, T, W = tube_mesh(P, lambda j: bones_of_idx(sel[j]), 0.00026, sides, nb, twist=0.9 * per, strands=2, strand_off=0.0003)
         cav = np.zeros(len(V))
         edge = np.full(len(V), 0.6)
         lods.append((V, T, W, cav, edge))
@@ -180,7 +184,7 @@ def build(J, bones):
     knots = []
     for i, f in ((1, 0.5), (2, 0.7)):
         c = A.lerp(chain[i], chain[i + 1], f)
-        knots.append(A.ell(WIRE0 + i, c, A.unit(chain[i + 1] - chain[i]), (0.0016, 0.00045, 0.00045), k=0.0))
+        knots.append(A.ell(WIRE0 + i, c, A.unit(chain[i + 1] - chain[i]), (0.0018, 0.0006, 0.0006), k=0.0))
 
     return [
         {'name': 'brett', 'fm': 'ent_ob_wood', 'parts': board + spool, 'disp': wood_disp, 'h': 0.0016, 'cav_scale': 0.006},
@@ -198,7 +202,9 @@ def build(J, bones):
         {'name': 'nagel_r', 'fm': 'ent_ob_rust', 'parts': nr, 'disp': None, 'h': 0.0006, 'cav_scale': 0.002, 'merge': 'nagel'},
         {'name': 'schlinge_l', 'fm': 'ent_pg_brass', 'parts': ll, 'disp': None, 'h': 0.0005, 'cav_scale': 0.002, 'merge': 'schlinge'},
         {'name': 'schlinge_r', 'fm': 'ent_pg_brass', 'parts': lr, 'disp': None, 'h': 0.0005, 'cav_scale': 0.002, 'merge': 'schlinge'},
-        {'name': 'funke', 'fm': 'ent_ob_spark', 'parts': spark, 'disp': None, 'h': 0.0006, 'cav_scale': 0.002},
+        {'name': 'funke0', 'fm': 'ent_ob_spark', 'parts': sparks[0], 'disp': None, 'h': 0.0006, 'cav_scale': 0.002, 'merge': 'funke'},
+        {'name': 'funke1', 'fm': 'ent_ob_spark', 'parts': sparks[1], 'disp': None, 'h': 0.0006, 'cav_scale': 0.002, 'merge': 'funke'},
+        {'name': 'funke2', 'fm': 'ent_ob_spark', 'parts': sparks[2], 'disp': None, 'h': 0.0006, 'cav_scale': 0.002, 'merge': 'funke'},
         {'name': 'knoten', 'fm': 'ent_ob_rubber', 'parts': knots, 'disp': None, 'h': 0.00012, 'cav_scale': 0.001},
         {'name': 'draht', 'fm': 'ent_pg_brass', 'parts': [], 'lod_mesh': lods},
     ]

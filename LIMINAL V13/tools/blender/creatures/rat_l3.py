@@ -68,7 +68,7 @@ def build(J, bones):
                      ((-0.2, 0.05, 0.2), (1.0, 0.4, 0.0), (0.035, 0.012, 0.016))):
         rips.append(A.ell(SPINE if c[0] > -0.06 else PELVIS, c, A.unit(ax), r, up=Y, op='sub', k=0.006))
     # kahl: Nasenpolster, Lippen, Augenraender
-    rips.append(A.ell(HEAD, (0.347, 0, 0.128), X, (0.012, 0.03, 0.022), op='sub', k=0.008))
+    rips.append(A.ell(HEAD, (0.35, 0, 0.13), A.unit((1.0, 0, 0.5)), (0.008, 0.021, 0.015), op='sub', k=0.006))
     fur_parts = fur + rips
     # Grannen-Bueschel: verfilzte Straehnen, die am Ruecken und an den Flanken abstehen (der Umriss franst aus)
     tufts = []
@@ -108,8 +108,8 @@ def build(J, bones):
         return -0.0016 * sdf.ridged(Q, 160, 2, seed=2418) - 0.0009 * sdf.fbm(Q, 300, 2, seed=2419)
 
     # nackte graue Haut: Nasenpolster, Lippenrand, Ohren
-    skin = [A.ell(HEAD, (0.345, 0, 0.13), X, (0.009, 0.026, 0.019), k=0.0)]
-    nostr = [A.ell(HEAD, (0.353, s * 0.012, 0.138), A.unit((1, s * 0.5, 0.6)), (0.005, 0.003, 0.0025), op='sub', k=0.002) for s in (1, -1)]
+    skin = [A.ell(HEAD, (0.347, 0, 0.133), A.unit((1.0, 0, 0.5)), (0.006, 0.019, 0.013), k=0.0)]  # kleines Nasenpolster
+    nostr = [A.ell(HEAD, (0.352, s * 0.009, 0.136), A.unit((1, s * 0.5, 0.6)), (0.005, 0.003, 0.0025), op='sub', k=0.002) for s in (1, -1)]
     lips = [A.ell(HEAD, (0.338, s * 0.019, 0.096), A.unit((0.3, s * 1.0, 0.1)), (0.012, 0.004, 0.007), k=0.003) for s in (1, -1)]
     gums = [A.ell(HEAD, (0.338, 0, 0.098), X, (0.01, 0.017, 0.009), k=0.003), A.ell(JAW, (0.326, 0, 0.074), X, (0.009, 0.014, 0.006), k=0.003)]
     ears = []
@@ -183,7 +183,7 @@ def build(J, bones):
     eyes, shine, horns, tips = [], [], [], []
     for s in (1, -1):
         eyes.append(A.ell(HEAD, (0.262, s * 0.0425, 0.157), A.unit((1, s * 0.7, 0.1)), (0.0078, 0.0078, 0.007), k=0.0))
-        shine.append(A.ell(HEAD, (0.266, s * 0.0478, 0.159), A.unit((1, s * 0.7, 0.1)), (0.0026, 0.0026, 0.0024), k=0.0))
+        shine.append(A.ell(HEAD, (0.266, s * 0.0476, 0.159), A.unit((1, s * 0.7, 0.1)), (0.0042, 0.0042, 0.0036), k=0.0))
         a = np.array([0.236, s * 0.024, 0.18])
         pts = A.bezier(a, a + np.array([-0.014, s * 0.018, 0.042]), a + np.array([-0.066, s * 0.044, 0.04]), 6)
         rad = [0.0098, 0.009, 0.008, 0.0068, 0.0056, 0.0045, 0.0035]
@@ -229,7 +229,8 @@ def build(J, bones):
         {'name': 'grannen', 'fm': 'ent_ratfur', 'parts': tufts, 'disp': None, 'h': 0.0012, 'cav_scale': 0.004, 'lod_weight': 0.7},
         {'name': 'beinfell', 'fm': 'ent_ratfur', 'parts': legs_fur, 'disp': fur_disp, 'h': 0.0009, 'cav_scale': 0.004},
         {'name': 'fleisch', 'fm': 'ent_ooze', 'parts': flesh, 'disp': flesh_disp, 'h': 0.0012, 'cav_scale': 0.004, 'lod_weight': 0.8},
-        {'name': 'haut', 'fm': 'ent_dullerskin', 'parts': skin + nostr + ears, 'disp': hand_disp, 'h': 0.0007, 'cav_scale': 0.003},
+        {'name': 'nase', 'fm': 'ent_darkskin', 'parts': skin + nostr, 'disp': hand_disp, 'h': 0.0006, 'cav_scale': 0.003},
+        {'name': 'haut', 'fm': 'ent_dullerskin', 'parts': ears, 'disp': hand_disp, 'h': 0.0007, 'cav_scale': 0.003},
         {'name': 'lippen', 'fm': 'ent_mouth', 'parts': lips + gums, 'disp': None, 'h': 0.0007, 'cav_scale': 0.003},
         {'name': 'haende', 'fm': 'ent_dullerskin', 'parts': hands, 'disp': hand_disp, 'h': 0.0006, 'cav_scale': 0.003},
         {'name': 'naegel', 'fm': 'ent_solifuge_dark', 'parts': nails, 'disp': None, 'h': 0.0005, 'cav_scale': 0.002},
