@@ -238,6 +238,9 @@ void Presence::thinkMothL2(Agent& a, double dt, const Context& c, std::vector<Ev
         case 0: {  // sitzt
             a.pos = a.rest, a.up = a.restN, a.fwd = a.restF, a.fly = 0.0f, a.vel = {};
             a.timer -= dt;
+            // Kritikrunde 5: vor dem Auffliegen zittern die Fluegel (die Flugmuskeln waermen sich auf wie bei echten
+            // Nachtfaltern) - vorher sassen sie starr wie Papierfetzen und flogen ohne Vorzeichen los
+            a.shiver = a.timer < 1.4 ? 1.0f : 0.0f;
             const bool lured = c.view.flashOn && (inBeam(c.view, *c.world, a.pos, 9.0f) || length(c.view.flashPos - a.pos) < 4.0f);
             if (G.darkT > 1.5 || lured || a.timer <= 0.0) {
                 a.state = 1, a.stage = lured ? 1 : (G.darkT > 1.5 ? 5 : 0), a.stateT = 0.0;
@@ -304,9 +307,11 @@ void Presence::thinkMothL2(Agent& a, double dt, const Context& c, std::vector<Ev
             }
             break;
         }
-        case 2: {  // gereizt: schwirrt um den Kopf
+        case 2: {  // gereizt: schwirrt vor dem Gesicht
             a.fly = 1.0f;
-            orbit(eye + vec3{0, 0, 0.05f}, 0.35f + 0.25f * a.radius, 1.8f, 9.0f);
+            // Kritikrunde 3: vor den Augen statt rings um den Kopf (vorher meist ausserhalb des Blickfelds - die Ankuendigung
+            // war nur zu hoeren); der Kreis liegt 0,5 m vor dem Auge, ganz im Blickfeld
+            orbit(eye + c.view.look * 0.5f, 0.2f + 0.2f * a.radius, 1.8f, 9.0f);
             if (female && G.hissed && G.agT > 1.65 && a.cool <= 0.0 && hdist(G.tube, feet) < 3.0f) a.state = 3, a.stateT = 0.0;
             break;
         }

@@ -4625,12 +4625,24 @@ static void testV133Level2Kin(const std::string& dataDir) {
             aimAt(*s, centre);
             s->flashlight().on = false;
             ev.clear();
-            int agit = 0;
+            int agit = 0, takeoffs = 0, warmed = 0;
+            std::map<u16, std::pair<int, float>> prevMoth;  // Kritikrunde 5: Zustand und Zittern im letzten Bild (Kanal shiver)
+            std::vector<game::Presence::NetState> ns;
             step(*s, ev, 10.0, [&] {
                 for (int i = 0; P.agentInfo(Role::Moth, i, mp, st, var); ++i) agit += st >= 2 ? 1 : 0;
+                ns.clear();
+                P.netStates(ns, centre, 64);
+                for (const auto& m : ns) {
+                    if (m.role != (int)Role::Moth) continue;
+                    auto it = prevMoth.find(m.netId);
+                    if (it != prevMoth.end() && it->second.first == 0 && m.state == 1) ++takeoffs, warmed += it->second.second > 0.5f ? 1 : 0;
+                    prevMoth[m.netId] = {m.state, m.shiver};
+                }
                 return false;
             });
             check(agit == 0 && count(ev, PE::Hit, Role::Moth) == 0, "Deathmoths: in Ruhe gelassen bleiben sie friedlich");
+            check(takeoffs >= 1 && warmed == takeoffs,
+                  std::format("Deathmoths: vor dem Auffliegen zittern die Fluegel (Aufwaermen; {} von {} Starts)", warmed, takeoffs));
             // die Lampe lockt sie: sie fliegen auf und kreisen um das Licht
             s->flashlight().on = true;
             int lured = 0;
@@ -4661,17 +4673,24 @@ static void testV133Level2Kin(const std::string& dataDir) {
                 (void)ft;
                 ev.clear();
                 double hissT = -1.0, hitT = -1.0, t = 0.0;
+                int agS = 0, agFront = 0;  // Kritikrunde 4: gereizte Maennchen schwirren vor dem Gesicht (im Blickfeld)
                 step(*s, ev, 12.0, [&] {
                     t += 1.0 / 60.0;
-                    vec3 q;
+                    vec3 q, fq;
                     int s2 = 0, v2 = 0;
+                    bool hasF = false;
                     for (int i = 0; P.agentInfo(Role::Moth, i, q, s2, v2); ++i)
-                        if (v2 == 2) aimAt(*s, q);
+                        if (v2 == 2) aimAt(*s, q), fq = q, hasF = true;
+                    const vec3 e = eyeOf(*s);
+                    for (int i = 0; hasF && length(fq - e) > 0.05f && P.agentInfo(Role::Moth, i, q, s2, v2); ++i)
+                        if (s2 == 2 && v2 != 2) ++agS, agFront += dot(normalize(q - e), normalize(fq - e)) > 0.5f ? 1 : 0;
                     if (hissT < 0.0 && count(ev, PE::Hiss, Role::Moth) > 0) hissT = t;
                     if (hitT < 0.0 && count(ev, PE::Hit, Role::Moth) > 0) hitT = t;
                     return hitT > 0.0;
                 });
                 check(hissT >= 0.0, "Deathmoths: aus der Naehe gereizt - Brummen um den Kopf (Ankuendigung)");
+                check(agS > 0 && agFront * 10 >= agS * 6,
+                      std::format("Deathmoths: gereizt schwirren sie vor dem Gesicht, im Blickfeld ({} von {} Proben)", agFront, agS));
                 check(hitT > 0.0 && hitT - hissT >= 1.0, std::format("Deathmoths: das Weibchen beisst erst nach der Ankuendigung ({:.1f} s)", hitT - hissT));
                 check(!s->stats().dead && s->stats().health > 80.0, std::format("Deathmoths: der Biss ist leicht (Gesundheit {:.0f})", s->stats().health));
                 // zuruecktreten, Lampe aus: sie beruhigen sich
