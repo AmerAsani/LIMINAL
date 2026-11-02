@@ -121,10 +121,77 @@ Gefundene und behobene Fehler:
   - Rudel: hockte wie eine Katze; ein Hound sprang unsichtbar um die Ecke.
   - Automat: Hände wie Zweige, Namen der Seite im Bild.
 
-## Level 3 – Struktur fertig, Abnahme folgt
+## Level 3 – abgenommen (02.11.2026)
 
-Struktur 27.10. 16:22–16:26: drei Ziegel-Gangnetze (Gang/Kammer 60 von 71 → 191 von 207 Räumen), Büro entfernt,
-Paranoia-Gang 1 → 2 m breit, 2,3 → 2,6 m hoch; schwarze Rohre nur an einer Wand enger Gänge. Ausstattung: Agent in Arbeit.
+| Punkt | Stand |
+|---|---|
+| a) Strukturtyp, Raummetrik | Eintrag in `STRUKTURTYP.md` (Mischform „Electrical Station“: Ziegelgänge mit Gittern als Grundstruktur, Sonderräume verstreut): drei Ziegel-Gangnetze (Gang/Kammer 60 von 71 → 191 von 207 Räumen), Büro entfernt, Paranoia-Gang 2 m breit und 2,6 m hoch; Fertigungsstraße, Generatorräume, Kesselräume, Sanktuarium, Räume hinter Gittern nach dem Wiki. Raummetrik grün: 207 Räume, Decke min/Median 2,60/2,90 m, Gänge 2,0 m, Fläche Median 25 m², Sichtachsen Median 23,5 m, P90 52,2 m, 8 große Räume, 0 von 69 Räumen verstellt. Ähnlichkeit S 0,798, Ausreißer 20,9 % (grün) |
+| b) Ausstattung | `PROPS_Level3.md`: 24 Klassen neu in Blender, 38 Modelle (Runden vorher, Test, r1–r5, final; Bögen `docs/screens/props/level3/`, Übersichten `docs/screens/level3/props_uebersicht_*.jpg`). In der Abnahme neu: Ausstattung der Gangnetze (57 Rohrstränge auf 82 %, 24 Verteiler, 15 Schaltkästen mit Panzerrohr, 5 Engelsbilder; siehe d) |
+| c) Wesen | Alle Wesen der Level-3-Seite im Spiel (ENTITY_ABGLEICH, Abschnitt Level 3): Hound-Rudel (lauern einzeln, jagen gemeinsam), Faceling entwickelt und bewaffnet, Wretch mit Waffen und Sprachfetzen, Deathmoth-Schwarm mit Praetorianern, Skin-Stealer im Mantel, Smiler (Stromausfall, Angriff ohne Anlass), großes bewaffnetes Bündel (und das kleine in den Schächten), Death Rats wie Wasserschweine mit Stromfallen, purpurne Wesen in den Wänden, Red Knight, Schattenfigur/Stimmen (Paranoia-Gang), Engel im Sanktuarium (Zuflucht). Ausnahme nach Auftrag: Menschengruppen (M.E.G./Base Gamma, B.N.T.G.). Je KREATUR-Datei Wow-Check und mindestens 5 Kritikrunden für Level 3 (Wretch und Skin-Stealer je 5 und Wow-Check, Purpur 6, Death Rats 6 + Abnahme, Deathmoths 5 + Abnahme, Rudel 5, großes Bündel 5 + Abnahme, Red Knight 5, Faceling 3 + Abnahme; der Smiler hat seine Bildrunden aus V13, sein Verhalten auf Level 3 (ohne Anlass) ist in den Abnahmerunden 3–7 im Bild) |
+| d) Kritikrunden | 7 Ebenen-Runden (`KRITIK_Level3.md`): 1–2 Struktur und Ausstattung; 3–7 Abnahme mit allen Wesen in ihren Räumen (`tools/qa/creatureshots.py`, neue Tabelle für Level 3: 13 Läufe, Licht der Ebene und Lampe; Bögen `docs/screens/level3/wesen_r3_*` … `wesen_r7_*`), Orte der Ebene (`orte_r5.jpg`), Vorher/Nachher `abnahme_vn_*.jpg` |
+| e) Laufweg | `walkway.py level3 --rooms 15 --seed 3`: 201 m durch 27 Räume, 51 Bilder alle 4 m (`docs/screens/level3/wegbilder_r3_*` … `_r7_*`, Karten `wegkarte_r3..r7.png`); vorher r1/r2 201 m durch 27 Räume |
+| f) Prüfungen | Modellprüfung aller 122 Modelle der Ebene (Karte mit Varianten, Wesen in allen Stufen, purpurne Wesen, Leuchtstab): 0 Fehler (vorher 19, siehe Fehler). Halt der Ausstattung (`gameplay_test`): level3 600 Objekte mit Halt-Regel, 0 ohne Halt. Schilder: Notausgangsschilder 0 (Grenze 0), dazu 6 Warnschilder nach dem Wiki (Paranoia-Gang, Abgang nach Level 4). Raummetrik und Ähnlichkeit grün. Tests grün: gameplay 902/0, audio 121/0, coop --quick 209/0, net 72/0, worldgen 29658/0, supply OK. Smoke-Test 02.11. (`docs/metrics/smoke_level3.json`, 24 Stationen des Laufwegs): GPU 5,97 ms (max 15,74 in der Fertigungsstraße: 45 Hallenleuchten mit Schatten, „Licht“ 10–12,6 ms; Gegenprobe mit der Karte vor der Abnahme 15,21 ms), Spiel 0,08 ms, bis 2,15 Mio. Dreiecke, VRAM 1313 MB, RAM 1120 MB (Spitze 1313 MB), 0 Fehler im Protokoll. Grafik-CPU 16,53 ms ist die Wartezeit auf den 60-Hz-Takt (wie Level 1 und 2) |
+| g) Aufwand | Struktur 27.10. 16:22–16:26, Kritikrunde 1 17:47 (Hauptstrang); Kritikrunde 2 02.11. 07:05. Ausstattung (Agent, laut PROPS_Level3) 27.10. etwa 6 h und 01.11. etwa 10 h (bis 19:02 mit Merge und Prüfungen). Wesen (Agenten, Commit-Zeiten): Wretch und Skin-Stealer im Mantel 02.11. 07:38–09:11; purpurne Wesen 09:48–12:48 (Pause durch das Nutzungslimit 12:17); Death Rats und Deathmoths 13:10–14:51; Rudel und großes Bündel 15:40–16:57; Smiler ohne Anlass 17:23; Red Knight 18:08; Wow-Check Skin-Stealer/Wretch 18:19; Zusammenführen und Speicherfehler (B-025…B-028, AddressSanitizer) 19:16–19:17. Abnahme (diese Runde): 02.11. 20:35–21:45 (etwa 1,2 h Wandzeit; Blender-Bauten, Wesenbilder, Laufwege und Tests liefen nebeneinander): Haut des Bündels (Texturebene, zwei Blender-Bauten zu je 8 min, eine Nachbesserung), Motten im Gesicht (Fülllicht, Staub, Plätze), Falle und Faceling (Blender, je unter 1 min), Gangnetze (Karte, Raummetrik), 5 Runden Wesenbilder (13 Läufe je volle Runde) und 5 Laufwege, Orte, Modellprüfung und Reparatur, Smoke-Test mit Gegenprobe, alle Tests |
+
+**Neu gebaute Assets (Level 3):**
+- **Ausstattung** (`tools/blender/models/models_l3.py`, Bögen `docs/screens/props/level3/`):
+  - Ziegelgänge: `pipe_black` (2: DN150/DN100 mit Konsolen, Schellen, Flanschen, Schieber mit Handrad; Bündel), `cable_tray` (4),
+    `sign_warning`, `sludge_pool`, `skull`, `canvas_wall`, `canvas_drape_a`, `canvas_drape_b`;
+  - Gitter `bars_w2`, `bars_w3`; Fenster `window_brick` (3);
+  - Generatorräume: `generator` (2: Dieselaggregat, Umformersatz der 1930er), `switch_cabinet` (3);
+  - Fertigungsstraße: `conveyor` (2), `grate_stair`;
+  - Kesselraum: `boiler` (Flammrohrkessel);
+  - Sanktuarium: `angel_statue`, `column_greek` (2), `greek_torso`, `painting_angel` (2), `painting_angel_scribbled` (2), `ceiling_globe`;
+  - `train_bogie`, `elevator_door`.
+- **Wesen und Erscheinungen** (`tools/blender/creatures/`, Briefings `KREATUR_*.md`):
+  - `ent_clump_l3` (bewaffnet: Knochenspieß, Knochensichel, Rohr) und `ent_clump_l3_bare` (entwaffnet);
+  - `ent_hound_l3` (Brandnarben, Ruß; Rudel);
+  - `ent_wretch_pipe`, `ent_wretch_board`, `ent_wretch_blade` (selbst gebaute Waffen), eigene Haut des Wretch (Texturebene `wretch`);
+  - `ent_skinstealer_coat`, `ent_skinstealer_torn` (Mantel, zerrissen), wahre Gestalt mit neuer Haut (Wow-Check);
+  - `ent_rat_l3` (wie ein Wasserschwein), `ent_rat_trap` (Stromfalle);
+  - `ent_moth_praetorian` (acht Beine, Giftbeine), Mottenskelett mit viertem Beinpaar;
+  - `ent_redknight` (verbeulte Platten, roter Umhang, Zweihänder);
+  - `purple_stealer`, `purple_hound` (purpifizierte Wesen in der Wand, mit Botschaft);
+  - Smiler ohne Anlass (Animation Lider/Lippen), Faceling entwickelt (`ent_faceling_evo`, V13.2).
+- **In der Abnahme neu oder neu gebaut**:
+  - Texturebene `buendel` (`EL_BUNDLE`) und Materialien `FM_ENT_CL_HIDE_A/B` (neu belegt), `FM_ENT_CL_DEAD_A/B`, `FM_ENT_CL_CORE`;
+    `ent_clump_l3` und `ent_clump_l3_bare` neu gebaut;
+  - `ent_rat_trap` neu gebaut (Seil aus drei Adern, zwölf Isolierfetzen);
+  - `ent_faceling_evo` neu gebaut (Bart aus 150 Strähnen; `FM_ENT_FC_SKIN`, `FM_ENT_FC_HAIR`);
+  - Fülllicht und Flügelstaub bei Motten im Gesicht (`app.cpp`, `renderer.cpp`, `particles.hlsl`), Plätze im Gesicht;
+  - Gangnetze: 101 Wandteile (Karte, eigener Zufall 3304);
+  - 24 Wesen-Stufen mit bereinigten Indexlisten (`repair_glb.py`).
+
+**Bilder:**
+- Laufweg `docs/screens/level3/wegbilder_r1..r7_*.jpg`, `wegkarte_r1..r7.png`.
+- Wesen in der Ebene `docs/screens/level3/wesen_r3..r7_*.jpg` (Einzelbilder `build/qa/creatures/level3/r3..r7/`).
+- Vorher/Nachher der Abnahme `docs/screens/level3/abnahme_vn_buendel.jpg`, `_motten_gesicht.jpg`, `_falle.jpg`, `_faceling.jpg`.
+- Orte (Übergänge, Licht) `docs/screens/level3/orte_r5.jpg`; ältere Übersichten `01_ankunft.jpg` … `16_smiler.jpg`.
+- Ausstattung `docs/screens/level3/props_uebersicht_*.jpg`, `docs/screens/props/level3/`.
+- Wesen im Detail `docs/screens/creatures/l3_clump_gross/`, `l3_rudel/`, `l3_ratten/`, `l3_motten/`, `l3_purpur/`, `l3_redknight/`,
+  `l3_skinstealer/`, `l3_wretch/`, `l3_wowcheck/`, `smiler/`.
+
+Gefundene und behobene Fehler:
+- **Struktur und Ausstattung** (Runden 1–2): Gangnetze über lange Strecken unlesbar (Röhren nur alle 5 m, 25 % tot → alle 4 m,
+  20 % tot); Aufzugsöffnung 1 m für ein 1,4-m-Tor (→ 2 m, Tor 1,35); Ausstattung nach PROPS_Level3 (Tücher mit Pixelflecken,
+  Fenster ohne Schutzgitter, Engel mit Flecken, Torso).
+- **Gangnetze kahl** (Runde 3): Netzstücke sind 5 m lang, das Rohrmodell 5,8 m und die Ausstattung nur alle 6–7 Kacheln
+  (→ Rohrstrang auf 82 %, Wandteile nach Abstand längs der Wand).
+- **Großes Bündel puppenhaft glatt** (→ eigene Haut, Runden 3–5; ein Wurmmuster aus dem Gratrauschen in Runde 4 behoben).
+- **Motten im Gesicht nur ein dunkles Bild**: die Lampe in der Hand leuchtet von den Motten weg (→ Fülllicht, Staub); danach
+  füllten die Flügel das ganze Bild (→ Plätze weiter vor, Flügel halb angelegt); der Staub las sich als Schnee (→ kleiner).
+- **Fallendraht kaum sichtbar** (1–2 Pixel; → Seil und Isolierfetzen).
+- **Faceling-Bart als glänzender Klotz** (→ Strähnen, eigene Materialien).
+- **Modellprüfung**: 19 von 122 Modellen der Ebene mit gedrehten oder entarteten Dreiecken (→ `repair_glb.py`, 0 Fehler).
+- **Werkzeug**: kleines Bündel und Smiler kamen am Start nicht (kein Lager in der Nähe; Bereich 0 ohne Stromausfall) –
+  `creatureshots.py` geht erst hin bzw. erzwingt die Welle im Hauptgang; die Nahaufnahme des Bündels stand im Rohr.
+- **Wesen** (Agenten, Einzelheiten in den Briefings):
+  - Speicherfehler beim Zusammenführen (B-025 bis B-028, AddressSanitizer);
+  - Rudel: Narben spärlich, das Rauschen um 0 verteilt statt um 0,5 (Rand verschob sich nur gleichmäßig);
+  - großes Bündel: der lange Arm faltete sich zum Spinnenbein, die Laufhände standen senkrecht in die Luft;
+  - Red Knight im Dunkeln schwarz wie Stoff; Praetorianer mit einer grauen Kugel wie eine Clownsnase;
+  - Mottenschwarm flog auf, griff aber nie an (Sitzzustand ignorierte den aufgescheuchten Schwarm);
+  - purpurne Wesen: Gummipuppe mit Lichtbahnen wie ein Stromschlag, die Wand lavendelgrau statt violett.
 
 ## Level 0 – Struktur angepasst, Abnahme folgt
 

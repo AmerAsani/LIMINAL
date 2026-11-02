@@ -109,3 +109,79 @@ Befunde:
   durchgehende 5-m-Wand eines Netzstücks, die Bögen gehen in die Wand. Je Netzstück höchstens einer (60 %), an einer Wand;
   Wandteile prüfen jetzt den Abstand längs derselben Wand. Ergebnis: 57 Rohrstränge, 24 Verteiler, 15 Schaltkästen,
   5 Bilder; Raummetrik grün (Gänge 2,0 m, 0 von 69 verstellt).
+
+## Runde 5 (alle Wesen `wesen_r5_1.jpg` … `_5.jpg`; Laufweg `wegbilder_r5_*`, 201 m durch 27 Räume; Orte `orte_r5.jpg`)
+
+Nachweis:
+- **Laufweg**: in den Netzen jetzt schwarze Rohrstränge mit Flanschen und roten Handrädern (028, 029, 031, 033, 037,
+  042–046), dazu Verteiler und Schaltkästen; die Netze lesen sich als Elektrizitätswerk, ohne Landmarken (überall
+  dieselben Teile, nur Ziegelfarbe und Lage wechseln).
+- **Großes Bündel**: auch aus 3 m im hellen Gang fleckig (Totenflecken, Schmier, Beulen); nah ohne Wurmmuster.
+- **Kleines Bündel**: ein bleicher Arm hängt aus dem Deckenschacht über dem Lager (clump 1–2).
+- **Faceling**: Stoppeln statt Klotz; die Haut ist matt, aber noch rosa wie eine Puppe.
+- **Motten im Gesicht**: Flügel mit Binden lesbar; der Staub fein. Aber jede Motte füllt mit ihren Flügeln das ganze
+  Bild – Leib und Beine sieht man nie (`abnahme_vn_motten_gesicht.jpg`).
+- **Orte** (`orte_r5.jpg`): Ankunft und Hauptgang, Generatorraum (Aggregate, Schränke), Fertigungsstraße hell und kalt,
+  Sanktuarium warm mit Engel, Kesselraum mit Lache und Schädel unter der Birne, Paranoia-Gang schwarz (mit Lampe ein
+  enger, dunkler Ziegelschlauch), Vorraum mit Aufzugstür – wie in `LOOK_3.md`.
+- Unverändert gut: Rudel, Wretch, Skin-Stealer (die helle Gestalt mit Lampe ist die Entlarvung: die Hand fährt vors
+  Gesicht, die blasse Haut kommt durch – gewollt), Praetorianer, Smiler, Red Knight, purpurne Wesen.
+
+Prüfungen dieser Runde:
+- **Modellprüfung** aller 122 Modelle der Ebene (Karte, Wesen, Erscheinungen, Leuchtstab): 19 mit Befund – gedrehte
+  Dreiecke in den vereinfachten Stufen (großes Bündel, Falle, Red Knight, Mantel), entartete Dreiecke im Mund
+  (Skin-Stealer, Faceling).
+- **Smoke-Test**: GPU im Mittel 5,97 ms, aber in der Fertigungsstraße 12–15,7 ms (45 Hallenleuchten mit 11 m Reichweite
+  und Schatten: „Licht“ 10–12,6 ms). Gegenprobe mit der Karte vor dieser Abnahme: 15,2 ms an derselben Stelle – kein
+  Fehler dieser Runde.
+
+Änderungen:
+- `tools/qa/repair_glb.py` auf die 24 betroffenen Stufen (nur Indexlisten; Bild unverändert): danach 0 Fehler.
+- **Faceling**: Haut fahler und mit mehr Staub (`FM_ENT_FC_SKIN`).
+
+## Runde 6 (`build/qa/creatures/level3/r6`: Faceling, großes Bündel, Falle, Skin-Stealer nach der Reparatur; Vorher/Nachher `abnahme_vn_*.jpg`)
+
+Befunde:
+1. Die reparierten Modelle sehen aus wie vorher (Bündel, Falle, Mantel) – nur die Daten sind stimmig.
+2. **Faceling**: kaum Unterschied. Das Wiki gibt Facelings menschliche Hauttöne; das Puppenhafte kommt aus dem glatten
+   Kopf (Distanzfeld aus Grundformen). Bleibt als Restmangel (siehe unten), die Fehlbildungen (ein Auge, verwachsene
+   Nase, Mund ohne Lippen, Stoppeln) sind lesbar.
+3. **Motten im Gesicht**: siehe Runde 5 – nur Flügel.
+
+Änderungen:
+- **Plätze im Gesicht** (`presence_moth_l3.cpp`): 4–5 cm weiter vor dem Auge und weiter außen (Mund 12 cm, Nase 14 cm,
+  Augen 12 cm vor und 6 cm neben der Mitte, Wangen 10/10 cm); die Flügel halb angelegt und zitternd statt voll schlagend.
+  Alle Plätze bleiben näher als 0,3 m – Schaden und Abwehr unverändert. Test: Fülllicht für mindestens zwei Motten im
+  Gesicht, nach „Lampe aus und rennen“ für keine (`gameplay_test`).
+
+## Runde 7 (Abnahme: alle Wesen `wesen_r7_1.jpg` … `_5.jpg`, Laufweg `wegbilder_r7_*`: 201 m durch 27 Räume, 51 Bilder)
+
+Nachweis über alle Wesen der Ebene (Licht der Ebene und Lampe):
+- **Großes Bündel**: an der Decke über dem Gang ein Knoten aus Muskeln mit Rohr und Knochenspieß; gefallen und ausholend im
+  hellen Gang fleckig (Totenflecken, Schmier, Blut), nah Beulen, Narbennähte, Stoppeln, nasse Stellen – keine Puppe mehr.
+- **Kleines Bündel**: ein bleicher Arm hängt aus dem Deckenschacht über seinem Lager.
+- **Rudel**: lauert flach in der Ecke (kaum zu sehen, gewollt), zwei bleiche Hounds im Gang nach dem Ruf.
+- **Faceling, entwickelt**: zwei greifen mit Steinen an, ein Auge, Mund ohne Lippen, Stoppeln.
+- **Skin-Stealer im Mantel**: schwarze Gestalt mit Kapuze im hellen Zellentrakt; mit Lampe im Gesicht die Entlarvung.
+- **Wretch**: Krustengesicht, Waffe, Angriff mit Schrei und rotem Rand.
+- **Death Rats**: das Wasserschwein im Lampenlicht neben der Falle – Seil mit weißen und roten Fetzen quer durch den Gang.
+- **Schwarm und Praetorianer**: im Gesicht eine Flügelfläche mit Augenfleck und Binden, der pelzige Kopf mit Facettenaugen
+  und gekämmten Fühlern, Leiber im Flug, Staub im Licht (moth 4–5); Praetorianer auf acht Beinen unter dem Tuch.
+- **Smiler**: im Stromausfall Augen und Zähne im dunklen Gang.
+- **Red Knight**: rennt mit rotem Umhang vorbei, haut in die Luft, an der Wand das violette Glimmen.
+- **Purpurne Wesen**: der Skin-Stealer glüht violett im schwarzen Paranoia-Gang, der Hound mit der Schrift im Ziegelgang.
+
+Laufweg wie Runde 5: roter Hauptgang mit Rohren, Verteilern, Kabelleitern und Engelsbild; zwei dunkle Strecken
+(Wiki: sehr dunkle Bereiche); in den Netzen Rohrstränge, Verteiler, Schaltkästen – dieselben Teile überall, die Netze
+bleiben gleichförmig. Alle Prüfungen der Abnahme: siehe `AUFWAND.md`, Abschnitt „Level 3 – abgenommen“.
+
+Bleibt (bewusst oder als Restmangel):
+- Das Rudel lauert so flach und dunkel, dass es aus 6 m kaum zu sehen ist – so will es die Seite (lauern getarnt); das
+  Bellen kündigt die Jagd an.
+- Der Kopf des Entwickelten bleibt glatt (Distanzfeld aus Grundformen); ein Neubau des Kopfes mit modellierten Falten ist
+  ein eigener Auftrag.
+- Das kleine Bündel (in den Schächten, auch Level 1/2) behält seine klebrig-feuchte Haut aus V11 – in Level 1 und 2 so
+  abgenommen; nur das große, bewaffnete Bündel von Level 3 hat die neue Haut. In Level 3 sieht man vom kleinen meist nur
+  einen Arm aus dem Schacht.
+- Die Fertigungsstraße ist der teuerste Ort der Ebene (GPU bis 15,7 ms, 45 Hallenleuchten mit Schatten) – unter der
+  Grenze von 16,7 ms, aber knapp.
