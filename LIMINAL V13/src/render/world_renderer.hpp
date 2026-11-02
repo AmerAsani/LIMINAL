@@ -81,6 +81,10 @@ enum FixedMaterial : u32 {
     // Fleisch, frischer Knochen (KREATUR_Hound.md, KREATUR_Clump.md)
     FM_ENT_HD_OIL, FM_ENT_HD_SCAR, FM_ENT_HD_SOOT, FM_ENT_CL_RAW, FM_ENT_CL_BONE,
     FM_ENT_HD_BURN, FM_ENT_CL_HIDE_A, FM_ENT_CL_HIDE_B,  // Runde 2: verbrannte Haut um die Narben; stumpfe Haut des grossen Buendels
+    // V13.3 Level 3 (KREATUR_RedKnight.md): Red Knight - alte Plattenruestung (gealterter Stahl, geschwaerzte Dellen), Kettengeflecht,
+    // roter Umhang mit Goldsaum, Klinge, Purpurspuren (Glasur, gluehende Adern)
+    FM_ENT_RK_PLATE, FM_ENT_RK_PLATE_DARK, FM_ENT_RK_MAIL, FM_ENT_RK_CAPE, FM_ENT_RK_GOLD, FM_ENT_RK_BLADE, FM_ENT_RK_PURPLE,
+    FM_ENT_RK_PURPLE_GLOW,
     FM_FIG_END,
 };
 static_assert(FM_FIG_END <= kFixedMaterials);

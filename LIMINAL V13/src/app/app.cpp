@@ -328,8 +328,8 @@ void App::scriptStep() {
                 char name[32] = {};
                 std::sscanf(arg.c_str(), "%31s %lf", name, &off);
                 std::string n = name;
-                role = n == "smiler" ? R::Smiler : n == "moth" ? R::Moth : n == "gestalt" ? R::Gestalt : n == "nest" ? R::Nest : n == "clump" ? R::Clump : R::Hound;
-                lift = role == R::Smiler ? 1.7f : (role == R::Gestalt ? 1.6f : (role == R::Nest ? 1.3f : (role == R::Moth ? 0.0f : (role == R::Clump ? 1.6f : 0.6f))));
+                role = n == "smiler" ? R::Smiler : n == "moth" ? R::Moth : n == "gestalt" ? R::Gestalt : n == "nest" ? R::Nest : n == "clump" ? R::Clump : n == "wretch" ? R::Wretch : R::Hound;  // V13.3: wretch (auch Red Knight)
+                lift = role == R::Smiler ? 1.7f : (role == R::Gestalt ? 1.6f : (role == R::Nest ? 1.3f : (role == R::Moth ? 0.0f : (role == R::Clump ? 1.6f : (role == R::Wretch ? 1.2f : 0.6f)))));
             } else {
                 off = std::atof(arg.c_str());
             }
@@ -439,6 +439,19 @@ void App::scriptStep() {
             double val = 0.0;
             if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) < 2 || !session_->presence().jerrySet(key, val))
                 log::warn("Skript: jerry '{}' unbekannt oder kein Jerry", arg);
+        } else if (cmd == "knight" && session_) {  // V13.3 Level 3 (Bilder, Tests): knight <run|quick|runs|next> <wert> - Red Knight
+            char key[32] = {};
+            double val = 0.0;
+            if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) < 2 || !session_->presence().knightSet(key, val))
+                log::warn("Skript: knight '{}' unbekannt", arg);
+        } else if (cmd == "kinset" && session_) {  // V13.3 Level 3 (Bilder, Tests): kinset <smiler|wretch|skinstealer> <feld> <wert>
+            using R = game::Presence::Role;
+            char who[32] = {}, key[32] = {};
+            double val = 0.0;
+            const bool ok = std::sscanf(arg.c_str(), "%31s %31s %lf", who, key, &val) == 3;
+            const std::string w = who;
+            const R r = w == "smiler" ? R::Smiler : w == "skinstealer" ? R::SkinStealer : R::Wretch;
+            if (!ok || !session_->presence().kinSet(r, key, val)) log::warn("Skript: kinset '{}' unbekannt oder kein Wesen", arg);
         } else if (cmd == "goblin" && session_) {  // V13.3 (Bilder): goblin <phase|mob|friendly|quick|rout> <wert> - die Bande steuern
             char key[32] = {};
             double val = 0.0;
@@ -2373,6 +2386,24 @@ void App::renderWorld(double dt, bool clean) {
             L.soft = 0.3f;
             L.shadows = false;
             sp.extraLights.push_back(L);
+        }
+        // V13.3 Level 3 (KREATUR_RedKnight.md): der Riss in der Luft (weiss), das Glimmen der Purpurspuren auf der Ruestung
+        if (playing) {
+            static std::vector<std::pair<vec3, vec3>> knightLights;
+            knightLights.clear();
+            s.presence().knightLights(knightLights, cam.pos);
+            for (const auto& [lp, col] : knightLights) {
+                if (sp.extraLights.size() >= 10) break;
+                gfx::ExtraLight L;
+                L.pos = lp;
+                L.color = col;
+                L.range = col.x > 1.0f ? 9.0f : 2.2f;
+                L.spill = 1.0f;
+                L.size = 0.2f;
+                L.soft = 0.4f;
+                L.shadows = false;
+                sp.extraLights.push_back(L);
+            }
         }
         // V13.3 (KREATUR_L3_Purpur.md): purpifizierte Wesen - violettes Licht vor dem Koerper (atmet, Schwall, Lampe darauf)
         if (playing) {

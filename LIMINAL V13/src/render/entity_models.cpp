@@ -1367,7 +1367,10 @@ bool entityFromGlb(Entity e, FigureModel& out, std::string& info, const std::str
         {"ent_jy_pupil", FM_ENT_JY_PUPIL}, {"ent_jy_tongue", FM_ENT_JY_TONGUE}, {"ent_jy_foot", FM_ENT_JY_FOOT},
         // V13.3 Level 2/3: Rudel-Hounds, grosses Buendel
         {"ent_hd_oil", FM_ENT_HD_OIL}, {"ent_hd_scar", FM_ENT_HD_SCAR}, {"ent_hd_soot", FM_ENT_HD_SOOT}, {"ent_cl_raw", FM_ENT_CL_RAW},
-        {"ent_cl_bone", FM_ENT_CL_BONE}, {"ent_hd_burn", FM_ENT_HD_BURN}, {"ent_cl_hide_a", FM_ENT_CL_HIDE_A}, {"ent_cl_hide_b", FM_ENT_CL_HIDE_B}};
+        {"ent_cl_bone", FM_ENT_CL_BONE}, {"ent_hd_burn", FM_ENT_HD_BURN}, {"ent_cl_hide_a", FM_ENT_CL_HIDE_A}, {"ent_cl_hide_b", FM_ENT_CL_HIDE_B},
+        // V13.3 Level 3: Red Knight
+        {"ent_rk_plate", FM_ENT_RK_PLATE}, {"ent_rk_plate_dark", FM_ENT_RK_PLATE_DARK}, {"ent_rk_mail", FM_ENT_RK_MAIL}, {"ent_rk_cape", FM_ENT_RK_CAPE},
+        {"ent_rk_gold", FM_ENT_RK_GOLD}, {"ent_rk_blade", FM_ENT_RK_BLADE}, {"ent_rk_purple", FM_ENT_RK_PURPLE}, {"ent_rk_purple_glow", FM_ENT_RK_PURPLE_GLOW}};
     const CreatureSkeleton& sk = entitySkeleton(e);
     FigureModel m;
     std::vector<mat4> frames;

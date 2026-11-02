@@ -612,7 +612,8 @@ const std::vector<const char*>& entityVariants(Entity e) {
     static const std::vector<const char*> none, fc{"ent_faceling", "ent_faceling_evo", "ent_faceling_dress", "ent_faceling_b", "ent_faceling_c"}, rat{"ent_rat", "ent_rat_bald", "ent_rat_l3", "ent_rat_trap"},
         ss{"ent_skinstealer", "ent_skinstealer_skin", "ent_skinstealer_coat", "ent_skinstealer_torn"};  // V13.3 Level 3: Mantel, zerrissen
     // V13.3 Level 3: Wretches mit selbst gebauter Waffe - Rohrstueck, Nagelbrett, Blechklinge mit Kabelgriff
-    static const std::vector<const char*> wrv{"ent_wretch", "ent_wretch_pipe", "ent_wretch_board", "ent_wretch_blade"};
+    // V13.3 Level 3 (KREATUR_RedKnight.md): 4 der Red Knight (Entity 71) - Traeger ist die Rolle Wretch (keine eigene Rolle)
+    static const std::vector<const char*> wrv{"ent_wretch", "ent_wretch_pipe", "ent_wretch_board", "ent_wretch_blade", "ent_redknight"};
     if (e == Entity::Wretch) return wrv;
     // V13.3 Wrangler: Maennchen (Laecheln), Weibchen (Zangen), traechtiges Weibchen (Samen am Leib), Jungtiere am Ast
     static const std::vector<const char*> wr{"ent_wrangler", "ent_wrangler_f", "ent_wrangler_fs", "ent_wrangler_brood"};

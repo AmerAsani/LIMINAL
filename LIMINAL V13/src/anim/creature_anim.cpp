@@ -1223,10 +1223,13 @@ struct BipedStyle {
     float breathHz, breath;  // Atem: Frequenz, Hub der Schultern (m)
     float knees;             // Grundbeugung der Knie (Absenkung des Beckens, m)
 };
-const BipedStyle& bipedStyle(Entity e) {
+const BipedStyle& bipedStyle(Entity e, bool knight = false) {
     static const BipedStyle fc{0.03f, 0.22f, 0.05f, 0.05f, 0.11f, 0.30f, 0.22f, 1.25f, 2.4f, 1.0f, 0.07f, 0.16f, 0.0f, 0.0f, 0.25f, 0.005f, 0.01f};
     static const BipedStyle ss{0.08f, 0.42f, 0.12f, 0.12f, 0.08f, 0.09f, 0.10f, 1.0f, 2.6f, 1.08f, 0.06f, 0.2f, 0.0f, 0.08f, 0.14f, 0.009f, 0.015f};
     static const BipedStyle wr{0.40f, 0.62f, 0.55f, 0.1f, 0.16f, 0.14f, 0.45f, 1.0f, 2.2f, 0.82f, 0.035f, 0.15f, 0.7f, 0.35f, 0.45f, 0.007f, 0.06f};
+    // V13.3 Level 3 (KREATUR_RedKnight.md): Red Knight - aufrecht, schwer gepanzert, weit ausgreifend im Lauf, keuchend
+    static const BipedStyle rk{0.05f, 0.30f, 0.06f, 0.0f, 0.16f, 0.34f, 0.30f, 1.0f, 2.2f, 1.05f, 0.07f, 0.17f, 0.0f, 0.0f, 0.7f, 0.014f, 0.025f};
+    if (knight) return rk;
     return e == Entity::SkinStealer ? ss : (e == Entity::Wretch ? wr : fc);
 }
 // Richtung (Gier, Neigung) von a nach b im Rahmen F/L (Neigung + nach oben)
@@ -1241,7 +1244,8 @@ void CreatureAnimator::updateBiped(float dt, const Input& in) {
     using namespace bp;
     const auto& B = sk_->bind;
     auto& J = pose_.j;
-    const BipedStyle& st = bipedStyle(e_);
+    const bool knight = redKnight();  // V13.3 Level 3 (KREATUR_RedKnight.md)
+    const BipedStyle& st = bipedStyle(e_, knight);
     const vec3 F = dirYaw(yaw_), Lw{-F.y, F.x, 0.0f}, U{0, 0, 1};
     const M3 Mb{F, Lw, U};
     auto W = [&](vec3 l) { return pos_ + Mb * l; };
@@ -1257,7 +1261,7 @@ void CreatureAnimator::updateBiped(float dt, const Input& in) {
     spring(talk_, talkV_, in.talk, 6.0f, dt);
     spring(plea_, pleaV_, in.plea, 2.0f, dt);
     spring(idleW_, idleWV_, speed_ > 0.07f ? 0.0f : 1.0f, 2.5f, dt);
-    const bool wretch = e_ == Entity::Wretch;
+    const bool wretch = e_ == Entity::Wretch && !knight;
 
     // Gang: zwei Beine im Wechsel, ab runAt rennen (mit Flugphase)
     if (!run_ && speed_ > st.runAt) run_ = true;
@@ -1534,7 +1538,8 @@ void CreatureAnimator::updateBiped(float dt, const Input& in) {
     pose_.up[bp::B_HEAD] = Mb * (Rh * sk_->bindUp[bp::B_HEAD]);
     pose_.up[bp::B_JAW] = Mb * (Rj * sk_->bindUp[bp::B_JAW]);
     for (int s = 0; s < 2; ++s) pose_.up[(size_t)armB(bp::B_CLAV_L, s)] = Mb * (Rch * sk_->bindUp[(size_t)armB(bp::B_CLAV_L, s)]);
-    if (e_ == Entity::Wretch || e_ == Entity::SkinStealer) bipedKinL3(dt, in);  // V13.3 Level 3
+    if (knight) bipedKnight(dt, in);                                                 // V13.3 Level 3: Red Knight
+    else if (e_ == Entity::Wretch || e_ == Entity::SkinStealer) bipedKinL3(dt, in);  // V13.3 Level 3
 }
 
 // --- V13.2: Death Rat ------------------------------------------------------------------------------------------------

@@ -222,6 +222,7 @@ public:
         const std::vector<Lure>* lures = nullptr;
         int smilerBait = 0;
         double smilerUnprovoked = 0.0;  // V13.3 Level 3: Anteil der Smiler, die ohne Anlass angreifen (KREATUR_Smiler.md)
+        double redKnightEvery = 0.0;    // V13.3 Level 3: mittlerer Abstand der Laeufe des Red Knight (s; 0 = nie)
         // V13.3 Level 2/3 (KREATUR_Hound.md, KREATUR_Clump.md): Hound-Rudel, grosses bewaffnetes Buendel (nullptr: keins)
         const world::KinDef* houndPack = nullptr;
         const world::KinDef* clumpBig = nullptr;
@@ -374,6 +375,20 @@ public:
     bool address(world::World& w, vec3 eye, vec3 look, int by, int phrase);
     bool exposedOf(Role r) const;  // V13.3 (Tests): Skin-Stealer entlarvt (hat verraeterisch geantwortet)
     bool luredOf(Role r) const;    // V13.3 (Tests): Smiler folgt gerade einem Leuchtstab
+    // V13.3 Level 3 (KREATUR_RedKnight.md, presence_knight.cpp): der Red Knight - Variante 4 der Rolle Wretch (keine eigene
+    // Rolle). knightLights: der Riss in der Luft (weiss) und das Glimmen der Purpurspuren; knightInfo (Tests); knightSet
+    // (Tests, Skripte): run <Abstand> (gleich einen Lauf am Spieler vorbei), quick, unseen
+    struct KnightInfo {
+        bool active = false, pursuer = false;
+        int state = -1, runs = 0;
+        vec3 pos;
+        float closest = 1e9f;  // naechster Abstand zum Spieler in diesem Lauf
+        bool slashed = false, rift = false, seen = false;
+    };
+    void knightLights(std::vector<std::pair<vec3, vec3>>& out, vec3 near) const;
+    KnightInfo knightInfo() const;
+    bool knightSet(const std::string& key, double v);
+    static constexpr int kKnightVariant = 4;
     // V13.3 Teil 4: Jerry (presence_jerry.cpp). Bann je Spieler (0..1; beim Gast aus der Puppe): ab 0,45 zieht er den Blick zu
     // seinem Kopf (at), ab 1 ist der Spieler unterworfen. jerryHold: wie stark der Bann die Schritte laehmt (0..1).
     // jerryInfo (Tests): Lage, Zustand, Blick; jerrySet (Tests, Skripte): state, spell <Wert> (eigener Spieler), quick
@@ -541,6 +556,10 @@ private:
     // Skin-Stealer angesprochen (true: diese Runde erledigt)
     bool baitSmiler(Agent& a, double dt, const Context& c, std::vector<Event>& out, float d, bool dark);
     bool unprovokedSmiler(Agent& a, double dt, const Context& c, std::vector<Event>& out, float d, bool dark);  // V13.3 Level 3 (presence_smiler_l3.cpp)
+    // V13.3 Level 3: Red Knight (presence_knight.cpp)
+    void regieKnight(double dt, const Context& c, std::vector<Event>& out);
+    bool spawnKnight(const Context& c, std::vector<Event>& out, bool forced);
+    void thinkKnight(Agent& a, double dt, const Context& c, std::vector<Event>& out);
     bool talkSkinStealer(Agent& a, double dt, const Context& c, std::vector<Event>& out, float d, bool los);
     // V13.3 Level 3 (presence_kin_l3.cpp): Wretch mit Waffe, Skin-Stealer im Mantel; Modellwechsel ohne Neuanlage
     void thinkWretchL3(Agent& a, double dt, const Context& c, std::vector<Event>& out);
@@ -609,6 +628,8 @@ private:
     std::shared_ptr<void> l3Mem_, l3Swarm_;
     // V13.3 Level 2/3: Rudel (Zustand in presence_hound_pack.cpp), grosses Buendel (presence_clump_l3.cpp)
     std::shared_ptr<void> pack_, bigClump_;
+    // V13.3 Level 3 (KREATUR_RedKnight.md): Regie des Red Knight (presence_knight.cpp)
+    std::shared_ptr<void> knight_;
 };
 
 }  // namespace lim::game

@@ -60,6 +60,8 @@ const KinLine* ratMothLine(int cue);                 // V13.3 Level 3: Death Rat
 const KinLine* ratMothLineBySound(const std::string& s);
 const KinLine* packLine(int cue);                    // V13.3 Level 2/3: Hound-Rudel, grosses Buendel (presence_hound_pack.cpp)
 const KinLine* packLineBySound(const std::string& s);
+const KinLine* knightLine(int cue);                  // V13.3 Level 3: Red Knight, Nummern ab 200 (presence_knight.cpp)
+const KinLine* knightLineBySound(const std::string& s);
 const KinLine* kinLineBySound(const std::string& s);  // Gast: nach dem Klangnamen
 bool kinRole(int role);  // Wretch, Skin-Stealer; V13.3 Level 3: Death Rat, Deathmoth; Level 2/3: Hound, Clump (nur sie tragen Klangnummern)
 inline int kinCueOf(float strength, int role) { return strength >= kKinCue && kinRole(role) ? (int)(strength - kKinCue + 0.5f) : -1; }

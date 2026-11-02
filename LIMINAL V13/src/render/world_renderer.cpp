@@ -374,6 +374,17 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     materialData_[FM_ENT_HD_BURN] = GpuMaterial{{0.55f, 0.26f, 0.18f}, 0, ent(EL_SKIN, ML_CRAZE) | kMatFlagSkin, 1.25f, 0, 0.3f};
     materialData_[FM_ENT_CL_HIDE_A] = GpuMaterial{{1.42f, 1.08f, 0.95f}, 0, ent(EL_SKIN, ML_CRAZE) | kMatFlagSkin, 0.85f, 0, 0.3f};
     materialData_[FM_ENT_CL_HIDE_B] = GpuMaterial{{0.98f, 0.70f, 0.58f}, 0, ent(EL_SKIN, ML_CRAZE) | kMatFlagSkin, 0.9f, 0, 0.3f};
+    // V13.3 Level 3 (KREATUR_RedKnight.md): Red Knight - alter Stahl (Gebrauchsspuren, Kratzer: Rauheit aus der Textur, Schmutz
+    // ueber variation), geschwaerzt in Dellen und Fugen; Kettengeflecht stumpf und dunkel; Umhang aus verblichener roter Wolle,
+    // Goldsaum (Faden, matt metallisch); die Klinge heller und glatter; Purpur als Glasur (leicht leuchtend) und als Adern (hell)
+    materialData_[FM_ENT_RK_PLATE] = GpuMaterial{{0.52f, 0.52f, 0.54f}, 0, tri(L_METAL), 0.4f, 0.8f, 0.35f};  // Runde 2: Stahl statt Zahnschmelz (las sich khaki); Runde 4: Schmutz streut (sonst schwarz im Raumlicht)
+    materialData_[FM_ENT_RK_PLATE_DARK] = GpuMaterial{{0.12f, 0.115f, 0.11f}, 0, ent(EL_HORN, ML_CRAZE), 0.7f, 0.85f, 0.4f};
+    materialData_[FM_ENT_RK_MAIL] = GpuMaterial{{0.34f, 0.34f, 0.35f}, 0, tri(L_METAL), 0.7f, 0.5f, 0.3f};  // Runde 4: las sich schwarz wie Stoff
+    materialData_[FM_ENT_RK_CAPE] = GpuMaterial{{0.30f, 0.035f, 0.03f}, 0, tri(L_WOOL), 1.0f, 0, 0.45f};
+    materialData_[FM_ENT_RK_GOLD] = GpuMaterial{{0.62f, 0.45f, 0.16f}, 0, tri(L_WORSTED), 0.55f, 0.7f, 0.35f};
+    materialData_[FM_ENT_RK_BLADE] = GpuMaterial{{0.70f, 0.70f, 0.71f}, 0, tri(L_METAL), 0.24f, 1.0f, 0.2f};
+    materialData_[FM_ENT_RK_PURPLE] = GpuMaterial{{0.40f, 0.10f, 0.62f}, 0.35f, ent(EL_TOOTH, ML_CRAZE), 0.22f, 0.3f, 0.2f};
+    materialData_[FM_ENT_RK_PURPLE_GLOW] = GpuMaterial{{0.62f, 0.25f, 1.0f}, 2.2f, ent(EL_TOOTH, ML_PORES), 0.2f, 0, 0.0f};
     writeMaterials(gpu);
     lights_ = gpu.createStructured(sizeof(GpuLight), 2048, true, false);
     puddles_ = gpu.createStructured(sizeof(vec4), kMaxPuddles * 2, true, false);  // V13.3

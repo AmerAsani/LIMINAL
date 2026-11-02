@@ -6471,6 +6471,102 @@ static void testV133Level3Rest(const std::string& dataDir) {
             check(r.tAnn < 0.0 && r.tHit < 0.0 && r.stageMax <= 1, "Level 1: kein Angriff ohne Anlass (still stehen, hinsehen)");
         }
     }
+
+    // --- Red Knight (KREATUR_RedKnight.md): laeuft ungesehen an, am Wanderer vorbei, haut in die leere Luft, schneidet einen
+    // Riss und ist fort; danach zieht der unsichtbare Verfolger vorbei. Er greift nie an. -----------------------------------
+    std::printf("V13.3: Level 3 - Red Knight\n");
+    check(gContent11->level("level3", world::kLayoutV6)->redKnightEvery > 300.0 && L1->redKnightEvery == 0.0,
+          "Level 3: presence.red_knight_every gesetzt, Level 1 nicht");
+    auto knightRun = [&](double every, int seed) {
+        auto L = std::make_shared<world::LevelDef>(*L1);
+        L->redKnightEvery = every;
+        auto s = std::make_unique<game::GameSession>(*gContent11, prefabs, L, seed, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        auto& pl = s->player();
+        const auto [hx, hy] = hallSpot(s->world());
+        pl.x = hx + 0.5, pl.y = hy + 0.5, pl.z = s->world().tile(hx, hy).floor;
+        s->body().reset();
+        s->preload();
+        for (int i = 0; i < 30; ++i) s->update(1.0 / 60.0, {}, false), s->events().clear();
+        return s;
+    };
+    {
+        auto s = knightRun(900.0, 4242);
+        auto& P = s->presence();
+        P.knightSet("run", 1.0);
+        bool spawned = false, seenAtSpawn = false, heardBefore = false, seenEver = false, hit = false, gone = false;
+        int steps = 0, slashCue = 0, riftCue = 0, unseenCue = 0, flicker = 0, visions = 0, afterGoneFlicker = 0;
+        float closest = 1e9f;
+        const double h0 = s->stats().health, s0 = s->stats().sanity;
+        double t = 0.0;
+        for (int i = 0; i < 60 * 40; ++i, t += 1.0 / 60.0) {
+            const auto info = P.knightInfo();
+            if (info.active) {
+                if (!spawned) seenAtSpawn = P.seenRole(Role::Wretch);
+                spawned = true;
+                closest = std::min(closest, std::hypot(info.pos.x - (float)s->player().x, info.pos.y - (float)s->player().y));
+                look(*s, info.pos, 0.0);  // der Wanderer sieht hin (er soll ihn sehen)
+                seenEver = seenEver || P.seenRole(Role::Wretch);
+            }
+            s->update(1.0 / 60.0, {}, false);
+            for (const auto& e : s->events()) {
+                if (e.type == game::GameEvent::StalkerHit || (e.type == game::GameEvent::Figure && (e.index == (int)PE::Hit || e.index == (int)PE::Attack))) hit = true;
+                if (e.type != game::GameEvent::Figure || e.role != (int)Role::Wretch) continue;
+                const int cue = game::kinCueOf(e.intensity, e.role);
+                if (cue == 200) ++steps, heardBefore = heardBefore || !seenEver;
+                if (cue == 203) ++slashCue;
+                if (cue == 204) ++riftCue;
+                if (cue == 205) ++unseenCue;
+                if (e.index == (int)PE::Vision) ++visions;
+                if (e.index == (int)PE::Flicker) ++flicker, afterGoneFlicker += gone ? 1 : 0;
+                if (e.index == (int)PE::Gone) gone = true;
+            }
+            s->events().clear();
+            if (gone && !P.knightInfo().pursuer && t > 3.0 && afterGoneFlicker > 0) break;
+        }
+        const auto info = P.knightInfo();
+        std::printf("  Red Knight: Schritte %d, naechster Abstand %.1f m, Hieb %d, Riss %d, Verfolger %d Klaenge / %d Flackern / %d Vision, Verstand %.1f -> %.1f, %.1f s\n",
+                    steps, closest, slashCue, riftCue, unseenCue, flicker, visions, s0, s->stats().sanity, t);
+        check(spawned && !seenAtSpawn, "Red Knight: erscheint ausser Sicht");
+        check(steps > 6 && heardBefore, "Red Knight: man hoert ihn (Ruestung, Schritte), bevor man ihn sieht");
+        check(seenEver && closest < 6.5f, std::format("Red Knight: er rennt am Wanderer vorbei ({:.1f} m)", closest));
+        check(slashCue == 1 && info.slashed, "Red Knight: er haut in die leere Luft (einmal, weg vom Wanderer)");
+        check(gone && riftCue == 1 && info.rift && !info.active, "Red Knight: ein Riss in der Luft - fort");
+        check(!hit && s->stats().health >= h0, "Red Knight: kein Angriff, kein Schaden");
+        check(unseenCue >= 2 && afterGoneFlicker > 0, "Red Knight: danach zieht der unsichtbare Verfolger vorbei (Klang, die Leuchten flackern)");
+        check(visions == 1, "Red Knight: der Verfolger zehrt genau einmal am Verstand (Vision, nah am Wanderer)");
+        check(info.runs == 1, "Red Knight: ein Lauf");
+    }
+    // Level 1 (ohne die Einstellung): nie
+    {
+        auto s = knightRun(0.0, 77);
+        auto& P = s->presence();
+        P.knightSet("quick", 1.0);
+        bool any = false;
+        const double s0 = s->stats().sanity;
+        for (int i = 0; i < 60 * 31; ++i) {
+            s->update(1.0 / 60.0, {}, false), s->events().clear();
+            any = any || P.knightInfo().active;
+        }
+        std::printf("  Vergleich ohne Ritter (31 s an derselben Stelle): Verstand %.1f -> %.1f\n", s0, s->stats().sanity);
+        check(!any, "Level 1: kein Red Knight");
+    }
+    // Level 3 von selbst (Zeitraffer): hoechstens zwei Laeufe je Besuch
+    {
+        auto s = knightRun(900.0, 91);
+        auto& P = s->presence();
+        P.knightSet("quick", 1.0);
+        int starts = 0;
+        bool was = false;
+        for (int i = 0; i < 60 * 240; ++i) {
+            s->update(1.0 / 60.0, {}, false), s->events().clear();
+            const bool now = P.knightInfo().active;
+            starts += now && !was ? 1 : 0;
+            was = now;
+        }
+        check(starts >= 1 && starts <= 2, std::format("Level 3: der Red Knight kommt von selbst, hoechstens zweimal ({} Laeufe)", starts));
+    }
 }
 
 int main(int argc, char** argv) {

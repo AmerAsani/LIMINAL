@@ -35,5 +35,6 @@ void addRatL3Sounds(std::vector<SoundDef>& d, int rate);      // V13.3 Level 3 s
 void addPurpleSounds(std::vector<SoundDef>& d, int rate);     // V13.3 synth_purple.cpp: Level 3 - purpifizierte Wesen in der Wand
 void addHoundPackSounds(std::vector<SoundDef>& d, int rate);  // V13.3 Level 2/3 synth_hound_pack.cpp: Hound-Rudel, grosses Buendel
 void addSmilerL3Sounds(std::vector<SoundDef>& d, int rate);   // V13.3 Level 3 synth_smiler_l3.cpp: Smiler greift ohne Anlass an
+void addKnightSounds(std::vector<SoundDef>& d, int rate);     // V13.3 Level 3 synth_knight.cpp: Red Knight, sein Verfolger
 
 }  // namespace lim::audio

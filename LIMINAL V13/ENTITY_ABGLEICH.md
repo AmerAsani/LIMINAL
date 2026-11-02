@@ -37,6 +37,7 @@ Status-Begriffe:
 | Entity 15 (Wretches) | https://backrooms-wiki.wikidot.com/entity-15 | 54 | 07.08.2026 06:38 |
 | Entity 17 (Crawlers) | https://backrooms-wiki.wikidot.com/entity-17 | 40 | 01.06.2025 11:47 (als „veraltet“ markiert) |
 | Entity 24 (Death Rats) | https://backrooms-wiki.wikidot.com/entity-24 | 25 | 01.06.2025 11:46 (als „in Überarbeitung“ markiert) |
+| Entity 71 (The Red Knight) | https://backrooms-wiki.wikidot.com/entity-71 | 44 | 11.07.2026 23:05 (gelesen 02.11.2026) |
 | Entity 99 (The Game Master) | https://backrooms-wiki.wikidot.com/entity-99 | 39 | 11.08.2026 08:28 |
 
 ## Je Ebene
@@ -116,7 +117,8 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 | Schattenfigur hinter den Gittern, Stimmen in Paranoia-Gängen | Unbestätigt. | **umgesetzt** über den Paranoia-Gang der Karte und die Halluzinationen |
 | Engelsstatue im Sanktuarium | Schreckt alle Wesen ab; einziger sicherer Ort. | **umgesetzt** (Sanktuarium mit Engel, bleibt hell). Neu in V13.2: Wesen meiden den Raum (siehe Briefings) |
 | Jerry (Entity 7) | Nur in einem Vorfallbericht (Followers in den Wartungsgängen unter einer Basis). | **umgesetzt (V13.3)** als Wesen von Level 2 (sein Raum, Blick und Bann) – [KREATUR_Jerry.md](KREATUR_Jerry.md); auf Level 3 kein eigener Auftritt (die Seite zeigt ihn dort nicht) |
-| Red Knight (Entity 71), Basen und Gruppen | Nur in Vorfallberichten oder Gruppen. | **bewusst weggelassen** (Erzählung, Menschen) |
+| Red Knight (Entity 71) | Vorfall GB-03: rannte in Panik durch das Atrium von Base Gamma, die Rüstung schwer verbeult, mit Purpurspuren; niemand erinnert sich, wie er kam oder ging; vermutlich wegen einer antimemetischen Kraft. Entity-71-Seite: Ritter in Plattenrüstung, Zweihänder auf der Schulter, roter Umhang mit Goldsaum; rettet Menschen, schneidet einen weißen Riss in die Luft. | **umgesetzt (V13.3)**: selten (~15 min, höchstens zweimal); man hört ihn vor Sicht (Rüstung im Laufschritt, Keuchen im Helm), er rennt in Panik am Spieler vorbei (eigenes Modell: verbeulte Platten mit violett glimmenden Dellen, zerfetzter roter Umhang, Zweihänder), haut in die leere Luft hinter sich, sieht den Spieler kurz an, schneidet außer Sicht einen Riss (weißes Licht) und ist fort; danach zieht unsichtbar der Verfolger vorbei (Leuchten flackern, Druck in den Ohren, einmal −3 Verstand). Greift nie an. Variante der Rolle Wretch (keine eigene Rolle) – [KREATUR_RedKnight.md](KREATUR_RedKnight.md) |
+| Basen und Gruppen (M.E.G., Base Gamma) | Menschen und Siedlungen. | **bewusst weggelassen** (Menschen, keine Wesen; nur über Notizen angedeutet) |
 
 ### Level 5 – „Terror Hotel“
 

@@ -260,6 +260,7 @@ struct LevelDef {
     bool allowHound = true, allowSmiler = true, allowGestalt = true, allowBlackout = true;
     int smilerBait = 0;  // V13.3: presence.smiler_bait - "follow" (0, Smiler folgen einem Leuchtstab) oder "hesitate" (1, stutzen nur)
     double smilerUnprovoked = 0.0;  // V13.3 Level 3: presence.smiler_unprovoked - Anteil der Smiler, die ohne Anlass angreifen
+    double redKnightEvery = 0.0;    // V13.3 Level 3: presence.red_knight_every - mittlerer Abstand der Laeufe des Red Knight (s)
     bool allowClump = false;  // V11: Buendel (nur wo die Karte Lager hat)
     double clumpRate = 1.0;   // V11: Anteil der Gelegenheiten, bei denen es einzieht (Level 1: selten)
     std::array<KinDef, KIN_COUNT> kin;  // V13.2

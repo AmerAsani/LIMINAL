@@ -138,6 +138,7 @@ bool kinRole(int role) {
 }
 
 const KinLine* kinLine(int cue) {
+    if (cue >= 200) return knightLine(cue);           // V13.3 Level 3: Red Knight (presence_knight.cpp)
     if (cue >= KC_L3_END) return packLine(cue);       // V13.3 Level 2/3: Hound-Rudel, grosses Buendel
     if (cue >= KC_RAT_SAY0) return ratMothLine(cue);  // V13.3 Level 3
     if (cue < 0 || cue >= KC_COUNT) return nullptr;
@@ -149,6 +150,7 @@ const KinLine* kinLineBySound(const std::string& s) {
     for (const KinLine& L : lines())
         if (L.sound && s == L.sound) return &L;
     if (const KinLine* L = ratMothLineBySound(s)) return L;  // V13.3 Level 3
+    if (const KinLine* L = knightLineBySound(s)) return L;   // V13.3 Level 3: Red Knight
     return packLineBySound(s);                                // V13.3 Level 2/3
 }
 

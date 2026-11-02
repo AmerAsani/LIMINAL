@@ -1491,7 +1491,7 @@ void Presence::regie(double dt, const Context& c, std::vector<Event>& out) {
             if (!K.on || (k == world::KIN_RAT && ratL3(c))) continue;
             const Role r = (Role)((int)Role::Faceling + k);
             bool alive = false;
-            for (const auto& a : agents_) alive = alive || (a->role == r && !a->showcase);
+            for (const auto& a : agents_) alive = alive || (a->role == r && !a->showcase && a->variant != kKnightVariant);  // V13.3: der Red Knight zaehlt nicht
             if (alive) continue;
             nextKin_[k] -= dt;
             if (nextKin_[k] <= 0.0) nextKin_[k] = spawnKin(r, c, out) ? rng_.uniform(K.every * 0.7, K.every * 1.3) * c.stalkerPause : 8.0;
@@ -1521,6 +1521,7 @@ void Presence::regie(double dt, const Context& c, std::vector<Event>& out) {
     if (c.mode > 0 && !c.suspended) regieOuroboros(dt, c, out);  // V13.3: Ouroboros-Baustelle
     if (c.mode > 0 && !c.suspended) regieGoblin(dt, c, out);     // V13.3: Plague Goblins
     if (c.mode > 0 && !c.suspended) regieJerry(dt, c, out);      // V13.3 Teil 4: Jerry in seinem Raum
+    regieKnight(dt, c, out);                                     // V13.3 Level 3: Red Knight (presence_knight.cpp)
     regieHoundPack(dt, c, out);  // V13.3 Level 2/3: Hound-Rudel (Verletzungen heilen auch ohne Rudel)
     regieClumpL3(dt, c, out);    // V13.3 Level 3: das grosse, bewaffnete Buendel
     if (screamT_ > 0.0) {  // das Licht flackert, bis es vorbei ist
@@ -1563,7 +1564,7 @@ void Presence::animate(Agent& a, double dt, const Context& c, std::vector<Event>
     const bool audible = a.role == Role::Hound || a.role == Role::Smiler || a.role == Role::Clump || a.role == Role::Faceling ||
                          a.role == Role::SkinStealer || a.role == Role::Wretch || a.role == Role::Rat || a.role == Role::Growler ||
                          a.role == Role::Goblin;  // V13.2, V13.3
-    const bool audibleRat = !(a.role == Role::Rat && a.variant >= 2);  // V13.3 Level 3: eigene Schritte (Klangnummer)
+    const bool audibleRat = !(a.role == Role::Rat && a.variant >= 2) && !(a.role == Role::Wretch && a.variant == kKnightVariant);  // V13.3 Level 3: eigene Schritte (Klangnummer)
     if (a.human) {
         anim::Animator::Input in;
         in.pos = a.pos;
@@ -1771,7 +1772,7 @@ void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
         if (seen) {
             a.seenT += dt;
             a.unseenT = 0.0;
-            const bool kinThreat = (a.role == Role::Faceling && a.mode >= 2) || a.role == Role::SkinStealer || (a.role == Role::Wretch && !a.pleads) ||
+            const bool kinThreat = (a.role == Role::Faceling && a.mode >= 2) || a.role == Role::SkinStealer || (a.role == Role::Wretch && !a.pleads && a.variant != kKnightVariant) ||
                                    a.role == Role::Duller || (a.role == Role::Wrangler && a.mode != 3) || a.role == Role::Jerry;  // V13.3
             if (!a.sighted && !a.showcase && (a.role == Role::Smiler || a.role == Role::Hound || (a.role == Role::Clump && a.state >= 2) || kinThreat) &&
                 (a.role == Role::Smiler || a.sight.level > 0.35f)) {

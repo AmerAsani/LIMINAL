@@ -206,6 +206,7 @@ std::optional<LevelDef> LevelDef::fromJson(const Json& jIn, std::string* error, 
         L.allowHound = (*pr)["hound"].asBool(true), L.allowSmiler = (*pr)["smiler"].asBool(true);
         L.smilerBait = (*pr)["smiler_bait"].asString("follow") == "hesitate" ? 1 : 0;  // V13.3 (KREATUR_Smiler.md)
         L.smilerUnprovoked = std::clamp((*pr)["smiler_unprovoked"].asNumber(0.0), 0.0, 1.0);  // V13.3 Level 3 (KREATUR_Smiler.md)
+        L.redKnightEvery = std::max(0.0, (*pr)["red_knight_every"].asNumber(0.0));              // V13.3 Level 3 (KREATUR_RedKnight.md)
         // V11: "clump": true/false oder ein Anteil 0..1 (wie oft es einzieht)
         const Json& cj = (*pr)["clump"];
         L.clumpRate = cj.isNumber() ? std::clamp(cj.asNumber(1.0), 0.0, 1.0) : (cj.asBool(false) ? 1.0 : 0.0);
