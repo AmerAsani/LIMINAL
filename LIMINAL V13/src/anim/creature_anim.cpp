@@ -1054,6 +1054,8 @@ void CreatureAnimator::updateMoth(float dt, const Input& in) {
                                 base + vec3{0.04f, sg * 0.006f, -0.034f}};
         for (int i = 1; i < 4; ++i) J[legJ(l, i)] = W(lerp(lerp(B[legJ(l, i)], tuck[i - 1], fly_), strike[i - 1], reach_));
     }
+    for (int l = 6; l < 8; ++l)  // V13.3 Level 3: viertes Beinpaar (nur der Praetorianer hat dort ein Netz) - starr am Leib
+        for (int i = 0; i < 4; ++i) J[legJ(l, i)] = W(B[legJ(l, i)]);
     // Knochen-oben: alles im Koerperrahmen (sie sitzt auch an Waenden und Decken)
     for (size_t b = 0; b < sk_->bones.size(); ++b) pose_.up[b] = Mb * sk_->bindUp[b];
     pose_.up[mo::B_ROOT] = Fw;
