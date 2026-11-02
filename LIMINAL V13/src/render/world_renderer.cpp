@@ -362,6 +362,13 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     materialData_[FM_ENT_JY_PUPIL] = GpuMaterial{{0.004f, 0.004f, 0.004f}, 0, ent(EL_TOOTH, ML_PORES), 0.03f, 0, 0.0f};
     materialData_[FM_ENT_JY_TONGUE] = GpuMaterial{{0.035f, 0.030f, 0.030f}, 0, ent(EL_SKIN, ML_PORES), 0.25f, 0, 0.3f};
     materialData_[FM_ENT_JY_FOOT] = GpuMaterial{{0.10f, 0.10f, 0.11f}, 0, ent(EL_SKIN, ML_SCALE), 0.6f, 0, 0.2f};
+    // V13.3 Level 2/3 (KREATUR_Hound.md, KREATUR_Clump.md): schwarze Fluessigkeit der Rohre - nass, fast spiegelnd; Brandnarben -
+    // glaenzendes, blass rosa Narbengewebe; Russ - stumpf, fleckig; rohes Fleisch - nass, rot, faserig; frischer Knochen - elfenbein
+    materialData_[FM_ENT_HD_OIL] = GpuMaterial{{0.05f, 0.05f, 0.055f}, 0, ent(EL_SKIN, ML_PORES), 0.16f, 0, 0.1f};
+    materialData_[FM_ENT_HD_SCAR] = GpuMaterial{{1.25f, 0.92f, 0.90f}, 0, ent(EL_HUMAN, ML_CRAZE) | kMatFlagSkin, 0.42f, 0, 0.25f};
+    materialData_[FM_ENT_HD_SOOT] = GpuMaterial{{0.12f, 0.11f, 0.10f}, 0, ent(EL_SKIN, ML_CRAZE), 1.3f, 0, 0.35f};
+    materialData_[FM_ENT_CL_RAW] = GpuMaterial{{1.45f, 0.38f, 0.36f}, 0, ent(EL_NEST, ML_FIBER) | kMatFlagSkin, 0.28f, 0, 0.2f};
+    materialData_[FM_ENT_CL_BONE] = GpuMaterial{{1.0f, 0.93f, 0.82f}, 0, ent(EL_TOOTH, ML_CRAZE), 0.75f, 0, 0.3f};
     writeMaterials(gpu);
     lights_ = gpu.createStructured(sizeof(GpuLight), 2048, true, false);
     puddles_ = gpu.createStructured(sizeof(vec4), kMaxPuddles * 2, true, false);  // V13.3

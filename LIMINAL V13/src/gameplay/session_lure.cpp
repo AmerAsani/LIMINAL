@@ -131,6 +131,12 @@ bool GameSession::speakTarget(vec3* head) const {
 void GameSession::speak() {
     if (speakCool_ > 0.0 || stats_.dead) return;
     speakCool_ = 2.4;
+    if (presence_.houndMute(netSelfId) > 0.0f) {  // V13.3 Level 3: die Kehle zerbissen - nur ein nasses Roecheln, kein Ruf
+        GameEvent ev{GameEvent::SoundAt};
+        ev.sound = "hp_rasp", ev.pos = body_.eye(), ev.intensity = 0.7f;
+        events_.push_back(ev);
+        return;
+    }
     const int phrase = (int)(hash01((u32)(stats_.playTime * 977.0) ^ 0x5A17u) * 4.0f) & 3;
     const vec3 eye = body_.eye(), look = forwardFromAngles((float)player_.angle, (float)player_.pitch);
     GameEvent ev{GameEvent::SoundAt};
@@ -149,6 +155,10 @@ bool GameSession::pawnSpeak(Pawn& p, int phrase) {
     if (!p.alive) return false;
     const vec3 eye = p.eye(), look = forwardFromAngles((float)p.player.angle, (float)p.player.pitch);
     phrase &= 3;
+    if (presence_.houndMute(p.id) > 0.0f) {  // V13.3 Level 3: Kehle zerbissen - kein Ruf, die anderen hoeren nur ein Roecheln
+        netSoundOut.push_back({"hp_rasp", eye, 0.5f, p.id});
+        return false;
+    }
     GameEvent ev{GameEvent::SoundAt};
     ev.sound = std::format("talk_call_{}", phrase), ev.pos = eye + look * 0.25f, ev.intensity = 0.75f;
     events_.push_back(ev);

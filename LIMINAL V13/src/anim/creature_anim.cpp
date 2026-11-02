@@ -149,7 +149,8 @@ void CreatureAnimator::setHidden(bool hidden) {
 }
 
 float CreatureAnimator::height() const {
-    if (e_ == Entity::Hound) return sk_->height - crouch_ * 0.2f;
+    if (e_ == Entity::Hound) return (sk_->height - crouch_ * 0.2f) * scale_;  // V13.3 Level 2/3: Rudel-Hounds je Variante
+    if (bigClump()) return std::max(0.6f, pose_.j[cl::TOP].z - pos_.z + 0.25f * scale_);  // V13.3 Level 3: grosses Buendel
     if (isBiped(e_)) return std::max(0.5f, pose_.j[bp::HEADTOP].z - pos_.z);  // V13.2: gebeugt (Wretch), geduckt
     if (e_ == Entity::Duller) return std::max(0.5f, pose_.j[du::HEADTOP].z - pos_.z);  // V13.3: gebueckt
     if (e_ == Entity::Growler) return std::max(0.3f, pose_.j[gw::HUMP].z - pos_.z + 0.12f * scale_);  // V13.3: aufgerichtet, zusammengesunken
@@ -216,6 +217,7 @@ void CreatureAnimator::update(double dtIn, const Input& in) {
     if (e_ == Entity::Jerry) turn = 2.2f;         // V13.3 Teil 4: tritt auf dem Rohr langsam herum
     if (e_ == Entity::Rat && !extra_.empty() && extra_[0] > 1.5f) turn = extra_[0] > 2.5f ? 1000.0f : 3.5f;  // V13.3 Level 3: schwer; Falle fest
     if (praetorian()) turn = 7.0f;                // V13.3 Level 3: Praetorianer - wendig
+    if (bigClump()) turn = 3.2f;                  // V13.3 Level 3: das grosse Buendel - wendiger als das kleine
     const float yawBefore = yaw_;
     yaw_ += wrapPi(in.yaw - yaw_) * std::min(1.0f, dt * turn);
     speed_ = air ? length(vel_) : std::hypot(vel_.x, vel_.y);
@@ -238,7 +240,10 @@ void CreatureAnimator::update(double dtIn, const Input& in) {
             break;
         }
         case Entity::Gestalt: updateGestalt(dt, in); break;
-        case Entity::Clump: updateClump(dt, in); break;
+        case Entity::Clump:
+            if (bigClump()) updateClumpL3(dt, in);  // V13.3 Level 3: gross, bewaffnet
+            else updateClump(dt, in);
+            break;
         case Entity::Faceling:
         case Entity::SkinStealer:
         case Entity::Wretch: updateBiped(dt, in); break;
@@ -701,7 +706,14 @@ void CreatureAnimator::updateHound(float dt, const Input& in) {
     spring(light_, lightV_, in.light, 4.0f, dt);
     spring(perc_, percV_, in.perceive, 3.0f, dt);
     spring(idleW_, idleWV_, speed_ > 0.07f ? 0.0f : 1.0f, 2.5f, dt);
-    const float crouchE = std::clamp(crouch_ + 0.35f * light_, 0.0f, 1.0f);
+    // V13.3 Level 2/3 (Rudel, KREATUR_Hound.md): bellen (talk - der Kopf stoesst hoch und vor, das Maul reisst auf), lauern
+    // (hang - flach am Boden, der Kopf zwischen den Pfoten), Biss mit Schuetteln (strike - der Kopf reisst hin und her)
+    if (xs_.size() < 6) xs_.assign(6, 0.0f);
+    spring(xs_[0], xs_[1], in.talk, 16.0f, dt);
+    spring(xs_[2], xs_[3], in.hang, 2.2f, dt);
+    spring(xs_[4], xs_[5], in.strike, 10.0f, dt);
+    const float bark = std::clamp(xs_[0], 0.0f, 1.2f), lurk = std::clamp(xs_[2], 0.0f, 1.0f), worry = std::clamp(xs_[4], 0.0f, 1.0f);
+    const float crouchE = std::clamp(crouch_ + 0.35f * light_ + 0.4f * lurk, 0.0f, 1.0f);
     // Gangart: Kreuzgang - ab ~2,2 m/s Galopp mit Flugphase
     if (!run_ && speed_ > 2.2f) run_ = true;
     else if (run_ && speed_ < 1.6f) run_ = false;
@@ -765,9 +777,9 @@ void CreatureAnimator::updateHound(float dt, const Input& in) {
         if (ph0 < duty) limp = 0.04f * std::sin(kPi * ph0 / duty);
     }
     vec3 C = W({B[CHEST].x + flex * 0.5f, 0.0f, 0.0f});
-    C.z = pos_.z + B[CHEST].z - crouchE * 0.2f - (run_ ? 0.03f : 0.0f) + bobC - limp + 0.012f * breath + 0.05f * perc_;
+    C.z = pos_.z + B[CHEST].z - crouchE * 0.2f - (run_ ? 0.03f : 0.0f) + bobC - limp + 0.012f * breath + 0.05f * perc_ - 0.17f * lurk + 0.05f * bark;
     vec3 P = W({B[PELVIS].x - flex * 0.5f, 0.0f, 0.0f});
-    P.z = pos_.z + B[PELVIS].z - crouchE * 0.1f + bobP - 0.03f * reach_ - 0.06f * light_;
+    P.z = pos_.z + B[PELVIS].z - crouchE * 0.1f + bobP - 0.03f * reach_ - 0.06f * light_ - 0.13f * lurk;
     C = C + swayC + trem + lunge;
     P = P + swayP + lunge * 0.4f;
     // ausgemergelt: der Ruecken buckelt
@@ -855,12 +867,14 @@ void CreatureAnimator::updateHound(float dt, const Input& in) {
     hl = hl + (vec3{0.74f, 0.0f, 0.5f} - hl) * crouch_;
     // V13.2: wittern - der Kopf hebt sich und streckt sich vor; Licht - er zieht ihn ein und senkt ihn
     hl = hl + vec3{0.06f, 0.0f, 0.16f} * perc_ + vec3{-0.12f, 0.0f, -0.1f} * light_;
+    hl = hl + vec3{0.08f, 0.0f, -0.24f} * lurk + vec3{0.07f, 0.0f, 0.13f} * bark;  // V13.3: lauern, bellen
     // Schnueffeln in Stoessen (0,75 s an der Luft, 0,75 s Pause)
     spring(sniff_, sniffV_, perc_ > 0.3f && std::fmod(time_, 1.5f) < 0.75f ? 1.0f : 0.0f, 10.0f, dt);
     vec3 headT = W(hl) + Lw * (lean_ * 0.5f);
     headT.z = pos_.z + hl.z;
     headT = headT + swayC + lunge + trem;  // der Kopf folgt dem Rumpf
     headT.z += 0.011f * perc_ * sniff_ * std::sin(time_ * 42.0f);
+    headT = headT + Lw * (0.07f * worry * std::sin(time_ * 19.0f));  // V13.3: festgebissen - er reisst den Kopf hin und her
     if (reach_ > 0.01f) headT = headT + (in.reachAt - headT) * (reach_ * 0.7f);
     {
         vec3 dc = headT - C;
@@ -882,6 +896,8 @@ void CreatureAnimator::updateHound(float dt, const Input& in) {
         want = safeNorm(Mb * vec3{std::cos(sy), std::sin(sy), sp - 0.25f}, restDir);
     }
     if (perc_ > 0.01f) want = safeNorm(want + (safeNorm(in.perceiveAt - headPos_, want) - want) * perc_, restDir);
+    if (bark > 0.01f) want = safeNorm(want + U * (0.9f * bark), restDir);  // V13.3: beim Bellen hoch
+    if (worry > 0.01f) want = safeNorm(want + Lw * (0.8f * worry * std::sin(time_ * 19.0f + 0.6f)), restDir);
     if (light_ > 0.01f) {
         const vec3 toL = safeNorm(vec3{in.lightFrom.x - headPos_.x, in.lightFrom.y - headPos_.y, 0.0f}, F);
         const vec3 away = safeNorm(Lw * (dot(toL, Lw) > 0.0f ? -1.0f : 1.0f) + F * 0.5f - U * 0.7f, restDir);
@@ -912,8 +928,9 @@ void CreatureAnimator::updateHound(float dt, const Input& in) {
     J[JAWH] = xf(relH, B[JAWH]);
     // Kiefer: beim Knurren zittert er halb offen, beim Zuschnappen weit auf
     const vec3 headY = safeNorm(cross(hu, headDir_), Lw);
-    const float open = jaw_ * 0.8f + growl_ * (0.14f + 0.035f * std::sin(time_ * 47.0f) + 0.02f * std::sin(time_ * 31.0f)) +
-                       0.06f * perc_ + 0.25f * reach_;
+    float open = jaw_ * 0.8f + growl_ * (0.14f + 0.035f * std::sin(time_ * 47.0f) + 0.02f * std::sin(time_ * 31.0f)) +
+                 0.06f * perc_ + 0.25f * reach_ + 0.95f * bark;
+    open = open * (1.0f - worry) + 0.16f * worry;  // V13.3: festgebissen - der Kiefer bleibt zu
     J[JAW] = J[JAWH] + rotateAround(xfDir(relH, B[JAW] - B[JAWH]), headY, open);
     // Hals: Bogen von der Brust zum Kopf
     {
@@ -955,6 +972,10 @@ void CreatureAnimator::updateHound(float dt, const Input& in) {
     for (int h = 0; h < kBackHair; ++h) {
         const int bs[2] = {hairBB(h, 0), hairBB(h, 1)};
         chainUps(backParent[h / 2], bs, 2);
+    }
+    if (scale_ != 1.0f) {  // V13.3 Level 2/3: Rudel-Hounds je Variante etwas kleiner oder groesser (um die Wurzel)
+        for (vec3& j : pose_.j) j = pos_ + (j - pos_) * scale_;
+        pose_.s.assign(sk_->bones.size(), scale_);
     }
 }
 

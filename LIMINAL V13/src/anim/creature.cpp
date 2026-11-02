@@ -631,6 +631,11 @@ const std::vector<const char*>& entityVariants(Entity e) {
         "ent_moth_male", "ent_moth", "ent_moth_praetorian"};  // V13.3 Level 3: Schwarm - 3 Maennchen, 4 Weibchen, 5 Praetorianer
     if (e == Entity::Window) return wnv;
     if (e == Entity::Moth) return mov;
+    // V13.3 Level 2/3 (KREATUR_Hound.md, KREATUR_Clump.md): Hound im Rudel - 1 Level 2 (schwarze Fluessigkeit), 2 Level 3 (Brandnarben);
+    // grosses Buendel in Level 3 - 1 bewaffnet (Rohr, Knochenspiess, Knochensichel), 2 entwaffnet (zweiter Knochenspiess)
+    static const std::vector<const char*> hdv{"ent_hound", "ent_hound_l2", "ent_hound_l3"}, clv{"ent_clump", "ent_clump_l3", "ent_clump_l3_bare"};
+    if (e == Entity::Hound) return hdv;
+    if (e == Entity::Clump) return clv;
     return e == Entity::Faceling ? fc : (e == Entity::Rat ? rat : (e == Entity::SkinStealer ? ss : none));
 }
 

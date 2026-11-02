@@ -1102,7 +1102,10 @@ void Presence::think(Agent& a, double dt, const Context& c, std::vector<Event>& 
     }
     switch (a.role) {
         case Role::Smiler: thinkSmiler(a, dt, c, out); break;
-        case Role::Hound: thinkHound(a, dt, c, out); break;
+        case Role::Hound:
+            if (a.variant > 0) thinkPackHound(a, dt, c, out);  // V13.3 Level 2/3: im Rudel (presence_hound_pack.cpp)
+            else thinkHound(a, dt, c, out);
+            break;
         case Role::Moth:
             if (a.variant == 5) thinkPraetorian(a, dt, c, out);  // V13.3 Level 3: Schwarm mit Praetorianern
             else if (a.variant >= 3) thinkMothL3(a, dt, c, out);
@@ -1110,7 +1113,10 @@ void Presence::think(Agent& a, double dt, const Context& c, std::vector<Event>& 
             else thinkMoth(a, dt, c, out);
             break;
         case Role::Gestalt: thinkGestalt(a, dt, c, out); break;
-        case Role::Clump: thinkClump(a, dt, c, out); break;
+        case Role::Clump:
+            if (a.variant > 0) thinkClumpL3(a, dt, c, out);  // V13.3 Level 3: das grosse, bewaffnete Buendel (presence_clump_l3.cpp)
+            else thinkClump(a, dt, c, out);
+            break;
         case Role::Faceling: thinkFaceling(a, dt, c, out); break;  // V13.2
         case Role::SkinStealer: thinkSkinStealer(a, dt, c, out); break;
         case Role::Wretch: thinkWretch(a, dt, c, out); break;
@@ -1514,6 +1520,8 @@ void Presence::regie(double dt, const Context& c, std::vector<Event>& out) {
     if (c.mode > 0 && !c.suspended) regieOuroboros(dt, c, out);  // V13.3: Ouroboros-Baustelle
     if (c.mode > 0 && !c.suspended) regieGoblin(dt, c, out);     // V13.3: Plague Goblins
     if (c.mode > 0 && !c.suspended) regieJerry(dt, c, out);      // V13.3 Teil 4: Jerry in seinem Raum
+    regieHoundPack(dt, c, out);  // V13.3 Level 2/3: Hound-Rudel (Verletzungen heilen auch ohne Rudel)
+    regieClumpL3(dt, c, out);    // V13.3 Level 3: das grosse, bewaffnete Buendel
     if (screamT_ > 0.0) {  // das Licht flackert, bis es vorbei ist
         screamT_ -= dt;
         screamTick_ -= dt;
@@ -1591,6 +1599,8 @@ void Presence::animate(Agent& a, double dt, const Context& c, std::vector<Event>
     if (a.role == Role::Wretch || a.role == Role::SkinStealer) a.cre.setExtra({(float)a.variant});  // V13.3 Level 3: Waffe, Mantel
     if (a.role == Role::Rat && a.variant >= 2) prepRatL3(a, c);  // V13.3 Level 3: grosse Ratte, Falle
     if (a.role == Role::Moth && a.variant >= 3) prepMothL3(a, c);  // V13.3 Level 3: Schwarm, Praetorianer
+    if (a.role == Role::Hound && a.variant > 0) prepPackHound(a);  // V13.3 Level 2/3: Rudel (Groesse, Augen des Lauerers)
+    if (a.role == Role::Clump && a.variant > 0) prepClumpL3(a, c);  // V13.3 Level 3: grosses Buendel (Groesse, Decke, Waffen)
     in.lightFrom = a.showcase && a.light > 0.0f && length(a.lightFrom) < 1e-3f ? c.view.eye : a.lightFrom;
     if (const world::Tile* t = c.world->tileIfLoaded(ifloor(a.pos.x), ifloor(a.pos.y))) in.clearance = t->clearance();
     a.cre.update(dt, in);
@@ -1861,6 +1871,7 @@ void Presence::netApply(const std::vector<NetState>& in, double stamp) {
         if (n.role < 0 || n.role >= kRoleCount) continue;  // V13.3: Rolle unbekannt (Protokoll traegt bis kRoles): nicht zeigen
         const Role role = (Role)n.role;
         if (a && a->role == role && role == Role::SkinStealer && n.variant == 3) swapVariant(*a, 3);  // V13.3 Level 3: Verwandlung
+        if (a && a->role == role && role == Role::Clump && a->variant == 1 && n.variant == 2) swapVariant(*a, 2);  // V13.3 Level 3: entwaffnet
         if (a && (a->role != role || a->variant != n.variant)) {  // Kennung neu vergeben: neu anlegen
             std::erase_if(agents_, [&](const auto& q) { return q.get() == a; });
             a = nullptr;

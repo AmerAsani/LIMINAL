@@ -34,7 +34,18 @@ enum KinCue : int {
     // Beine klicken, Faecheln (Lockstoff), Aufbaeumen (Ankuendigung), Stich, Spucken
     KC_MOTH_SWARM = 67, KC_MOTH_FACE = 68, KC_MOTH_SHAKE = 69,
     KC_PR_CLICK = 70, KC_PR_FAN = 71, KC_PR_REAR = 72, KC_PR_STAB = 73, KC_PR_SPIT = 74,
-    KC_L3_END = 75
+    KC_L3_END = 75,
+    // V13.3 Level 2/3 (KREATUR_Hound.md, Abschnitt "Rudel"): Hound-Rudel - Ruf (ruft die anderen), Antwort aus der Ferne,
+    // schnelles, aufgeregtes Bellen (das Opfer laeuft in die Falle), Klaeffen beim Kreisen, Ankuendigung des Sprungs, Biss und
+    // Schuetteln, eingeschuechtert (Blickkontakt), das Rudel stuermt heran, Atem des Lauerers, die eigene, zerrissene Stimme
+    KC_HP_CALL = 75, KC_HP_ANSWER = 76, KC_HP_FAST = 77, KC_HP_YIP = 78, KC_HP_LUNGE = 79, KC_HP_MAUL = 80, KC_HP_FLINCH = 81,
+    KC_HP_RUSH = 82, KC_HP_LURK = 83, KC_HP_RASP = 84,
+    // V13.3 Level 3 (KREATUR_Clump.md, Abschnitt "Level 3"): grosses Buendel - Haende an der Decke (Staub), Knochen klappern,
+    // Atem durch die Zaehne, Absprung, Ausholen (Knochen schabt), Hieb, Treffer, Fehlschlag, das Rohr bricht, Selbstverstuemmelung,
+    // schwerer Handschlag
+    KC_CL_CEIL = 85, KC_CL_BONES = 86, KC_CL_BREATH = 87, KC_CL_DROP = 88, KC_CL_SCRAPE = 89, KC_CL_SWING = 90, KC_CL_HIT = 91,
+    KC_CL_MISS = 92, KC_CL_SNAP = 93, KC_CL_TEAR = 94, KC_CL_STEP = 95,
+    KC_PACK_END = 96
 };
 
 struct KinLine {
@@ -47,8 +58,10 @@ struct KinLine {
 const KinLine* kinLine(int cue);                     // nullptr: keine Nummer
 const KinLine* ratMothLine(int cue);                 // V13.3 Level 3: Death Rats, Deathmoths (presence_rat_l3.cpp)
 const KinLine* ratMothLineBySound(const std::string& s);
+const KinLine* packLine(int cue);                    // V13.3 Level 2/3: Hound-Rudel, grosses Buendel (presence_hound_pack.cpp)
+const KinLine* packLineBySound(const std::string& s);
 const KinLine* kinLineBySound(const std::string& s);  // Gast: nach dem Klangnamen
-bool kinRole(int role);  // Wretch, Skin-Stealer; V13.3 Level 3: Death Rat, Deathmoth (nur sie tragen Klangnummern)
+bool kinRole(int role);  // Wretch, Skin-Stealer; V13.3 Level 3: Death Rat, Deathmoth; Level 2/3: Hound, Clump (nur sie tragen Klangnummern)
 inline int kinCueOf(float strength, int role) { return strength >= kKinCue && kinRole(role) ? (int)(strength - kKinCue + 0.5f) : -1; }
 
 // Host: Figurereignisse mit Klangnummer aus der Liste fuer die Gaeste nehmen und als Klang mit Namen schicken

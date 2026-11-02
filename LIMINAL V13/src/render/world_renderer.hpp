@@ -77,6 +77,9 @@ enum FixedMaterial : u32 {
     // und Krallen (schwarzes Horn), nackte gelbe Haut, blasse Iris, Pupille, schwarze Zunge, Fuesse
     FM_ENT_JY_FEATHER, FM_ENT_JY_FEATHER_DARK, FM_ENT_JY_SKIN, FM_ENT_JY_QUILL, FM_ENT_JY_BEAK, FM_ENT_JY_YELLOW, FM_ENT_JY_EYE,
     FM_ENT_JY_PUPIL, FM_ENT_JY_TONGUE, FM_ENT_JY_FOOT,
+    // V13.3 Level 2/3: Rudel-Hounds - schwarze Fluessigkeit (Level 2), Brandnarben und Russ (Level 3); grosses Buendel - rohes
+    // Fleisch, frischer Knochen (KREATUR_Hound.md, KREATUR_Clump.md)
+    FM_ENT_HD_OIL, FM_ENT_HD_SCAR, FM_ENT_HD_SOOT, FM_ENT_CL_RAW, FM_ENT_CL_BONE,
     FM_FIG_END,
 };
 static_assert(FM_FIG_END <= kFixedMaterials);

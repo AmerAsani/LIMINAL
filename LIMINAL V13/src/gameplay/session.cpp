@@ -780,8 +780,9 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
     // V13.3: betaeubt (Nguithr'xurh) langsamer und ohne Sprint; durch das Gewirr einer Growler-Leiche waten
     player_.speedMul *= presence_.slowFor(netSelfId, {(float)player_.x, (float)player_.y, (float)player_.z});
     player_.speedMul *= phenomena_.speedMul(0);            // V13.3: Fieber, Ranken (session_phenomena.cpp)
+    player_.speedMul *= presence_.packSlow(netSelfId);     // V13.3 Level 3: ein Hound hat ins Bein gebissen (hinkt)
     PlayerControl c = paused ? PlayerControl{} : control;
-    if (!stats_.canSprint() || presence_.stupor(netSelfId) > 0.5f) c.sprint = false;
+    if (!stats_.canSprint() || presence_.stupor(netSelfId) > 0.5f || presence_.packSlow(netSelfId) < 0.8f) c.sprint = false;
     if (ride_.active) c.forward = c.side = 0.0f, c.sprint = c.jump = false;  // V8: im Aufzug nur umsehen
     if (stats_.dead) c.forward = c.side = 0.0f, c.sprint = c.jump = c.jumpHeld = false;  // V13.2: tot (Koop: zusehen)
     if (phenomena_.frozen(0)) c.forward = c.side = 0.0f, c.sprint = c.jump = c.jumpHeld = false;  // V13.3: ihre Einladung
@@ -1639,6 +1640,8 @@ void GameSession::updatePresence(double dt) {
     c.noise = std::max(noise, landNoise_);
     c.pings = &noisePings_;
     c.lures = &presenceLures_, c.smilerBait = L.smilerBait;  // V13.3: Leuchtkoeder (KREATUR_Smiler.md)
+    c.houndPack = L.houndPack.on ? &L.houndPack : nullptr;  // V13.3 Level 2/3: Hound-Rudel, grosses Buendel
+    c.clumpBig = L.clumpBig.on ? &L.clumpBig : nullptr;
     if (const Json& bo = L.audio["blackout"]; bo.isObject()) {
         c.blackoutEvery0 = bo["every"][0].asNumber(200.0), c.blackoutEvery1 = bo["every"][1].asNumber(340.0);
         c.blackoutLen0 = bo["duration"][0].asNumber(20.0), c.blackoutLen1 = bo["duration"][1].asNumber(32.0);

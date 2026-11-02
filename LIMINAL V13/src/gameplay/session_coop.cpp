@@ -22,7 +22,8 @@ void GameSession::pawnInput(Pawn& p, const PlayerControl& c0, double dt) {
         p.player.speedMul *= phenomena_.speedMul(p.id);
         if (phenomena_.frozen(p.id)) c.forward = c.side = 0.0f, c.sprint = c.jump = c.jumpHeld = false;
     }
-    if (!p.stats.canSprint() || presence_.stupor(p.id) > 0.5f) c.sprint = false;
+    p.player.speedMul *= presence_.packSlow(p.id);  // V13.3 Level 3: Biss ins Bein (hinkt, kein Sprint)
+    if (!p.stats.canSprint() || presence_.stupor(p.id) > 0.5f || presence_.packSlow(p.id) < 0.8f) c.sprint = false;
     if (const world::Room* wr = world_->roomAt(p.player.x, p.player.y)) p.player.waterZ = wr->water;
     else p.player.waterZ = -999.0;
     p.player.update(dt, c, tileSrc());

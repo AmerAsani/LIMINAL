@@ -262,6 +262,9 @@ struct LevelDef {
     bool allowClump = false;  // V11: Buendel (nur wo die Karte Lager hat)
     double clumpRate = 1.0;   // V11: Anteil der Gelegenheiten, bei denen es einzieht (Level 1: selten)
     std::array<KinDef, KIN_COUNT> kin;  // V13.2
+    // V13.3 Level 2/3 (KREATUR_Hound.md, KREATUR_Clump.md): presence.hound_pack (mode l2: Rudel zieht umher; l3: lauern allein,
+    // bellen, jagen gemeinsam, quaelen), presence.clump_l3 (das grosse, bewaffnete Buendel)
+    KinDef houndPack, clumpBig;
     bool flashlight = true;   // V11: Level 6 - die Lampe gibt kein Licht
     bool touchLight = false;  // V11: Level 6 - Waende in Armlaenge zeichnen sich schwach ab
     bool mapped() const { return map != nullptr; }

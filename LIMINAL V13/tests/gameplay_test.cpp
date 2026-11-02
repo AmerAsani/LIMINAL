@@ -4322,7 +4322,7 @@ static void testV133Level3Kin(const std::string& dataDir) {
         check(bad == 0, "Level 3: Klangnummern haben Namen (auch fuer die Gaeste)");
         check(game::kinLine(game::KC_SAY0)->sub && game::kinLine(game::KC_FRAG0)->hint && !game::kinLine(game::KC_DRAG0)->sub,
               "Level 3: Saetze und Fetzen mit Untertitel, der Rat des Wikis beim ersten Mal");
-        check(game::kinCueOf(30.0f, (int)Role::Wretch) < 0 && game::kinCueOf(100.0f + 3.0f, (int)Role::Hound) < 0 &&
+        check(game::kinCueOf(30.0f, (int)Role::Wretch) < 0 && game::kinCueOf(100.0f + 3.0f, (int)Role::Smiler) < 0 &&
                   game::kinCueOf(100.0f + 3.0f, (int)Role::Wretch) == 3,
               "Level 3: nur Wretch und Skin-Stealer tragen Klangnummern (Schaden bleibt Schaden)");
         const auto L3 = content.level("level3", world::kLayoutV6);
@@ -5943,6 +5943,385 @@ static void testV133Level3RatMoth(const std::string& dataDir) {
     }
 }
 
+// V13.3 Level 2/3 (KREATUR_Hound.md, Abschnitt "Rudel"; KREATUR_Clump.md, Abschnitt "Level 3"): Hound-Rudel und das grosse,
+// bewaffnete Buendel
+static void testV133PackBigClump(const std::string& dataDir) {
+    std::printf("V13.3: Level 2/3 - Hound-Rudel (einkreisen, bellen, quaelen), grosses bewaffnetes Buendel (Level 3)\n");
+    const game::Content& content = *gContent11;
+    game::PrefabLibrary prefabs;
+    prefabs.loadDirectory(dataDir + "/prefabs");
+    JobSystem jobs(2);
+    using PE = game::Presence::Event;
+    using Role = game::Presence::Role;
+    auto open = [&](const char* lv, i64 seed) {
+        auto s = std::make_unique<game::GameSession>(content, prefabs, content.level(lv, world::kLayoutV6), seed, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        s->presence().setGrace(3000.0);
+        s->presence().packSet("next", 1e9);
+        s->presence().bigClumpSet("next", 1e9);
+        return s;
+    };
+    auto step = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, double secs, const std::function<bool()>& each = {},
+                    const std::function<game::PlayerControl(int)>& ctl = {}) {
+        for (int i = 0; i < (int)(secs * 60.0); ++i) {
+            if (each && each()) break;
+            s.update(1.0 / 60.0, ctl ? ctl(i) : game::PlayerControl{}, false);
+            ev.insert(ev.end(), s.events().begin(), s.events().end());
+            s.events().clear();
+        }
+    };
+    auto count = [](const std::vector<game::GameEvent>& ev, PE::Type t, Role r, int cue = -1) {
+        return (int)std::count_if(ev.begin(), ev.end(), [&](const game::GameEvent& e) {
+            if (e.type != game::GameEvent::Figure || e.index != (int)t || e.role != (int)r) return false;
+            return game::kinCueOf(e.intensity, e.role) == cue;
+        });
+    };
+    auto first = [](const std::vector<game::GameEvent>& ev, PE::Type t, Role r, int cue = -1) {
+        for (size_t i = 0; i < ev.size(); ++i) {
+            const auto& e = ev[i];
+            if (e.type == game::GameEvent::Figure && e.index == (int)t && e.role == (int)r && game::kinCueOf(e.intensity, e.role) == cue) return (int)i;
+        }
+        return -1;
+    };
+    auto aim = [](game::GameSession& s, vec3 q) {
+        auto& pl = s.player();
+        pl.angle = std::atan2(q.y - pl.y, q.x - pl.x);
+        pl.pitch = std::atan2(q.z - pl.eye(), std::max(0.4, std::hypot(q.x - pl.x, q.y - pl.y)));
+    };
+    auto eyeOf = [](game::GameSession& s) { return vec3{(float)s.player().x, (float)s.player().y, (float)s.player().eye()}; };
+    auto put = [](game::GameSession& s, double x, double y) {
+        auto& pl = s.player();
+        pl.x = x, pl.y = y, pl.z = s.world().tile(ifloor(x), ifloor(y)).floor, pl.vx = pl.vy = 0.0, pl.vz = 0.0, pl.onGround = true;
+        s.body().reset();
+    };
+    // freie Kachel in etwa d m von 'at' mit Sicht auf 'look'
+    auto spotNear = [&](game::GameSession& s, vec3 at, double d, vec3 look, double& ox, double& oy) {
+        world::World& w = s.world();
+        for (int k = 0; k < 72; ++k) {
+            const double a = k * 0.0873;
+            for (double dd = d; dd > d * 0.6; dd -= 0.3) {
+                // Kachelmitte (am Rand haengt der Spieler an der Wand fest), ringsum begehbar
+                const double x = std::floor(at.x + std::cos(a) * dd) + 0.5, y = std::floor(at.y + std::sin(a) * dd) + 0.5;
+                const world::Tile* t = w.tileIfLoaded(ifloor(x), ifloor(y));
+                if (!t || !t->open() || t->clearance() < 2.0f || std::fabs(t->floor - at.z) > 0.3f) continue;
+                int free = 0;
+                for (int k2 = 0; k2 < 4; ++k2) {
+                    const world::Tile* n = w.tileIfLoaded(ifloor(x) + (k2 == 0) - (k2 == 1), ifloor(y) + (k2 == 2) - (k2 == 3));
+                    free += n && n->open() && std::fabs(n->floor - t->floor) < 0.3f;
+                }
+                if (free < 3) continue;
+                if (!game::clearSight(w, vec3{(float)x, (float)y, t->floor + 1.6f}, look)) continue;
+                ox = x, oy = y;
+                return true;
+            }
+        }
+        return false;
+    };
+    auto hounds = [](game::Presence& P, std::vector<vec3>& pos, std::vector<int>& st) {
+        pos.clear(), st.clear();
+        vec3 p;
+        int s = 0, v = 0;
+        for (int i = 0; P.agentInfo(Role::Hound, i, p, s, v); ++i)
+            if (v > 0) pos.push_back(p), st.push_back(s);
+        return (int)pos.size();
+    };
+    // --- Ebenen, Klaenge, Modelle ---------------------------------------------------------------------------------------------
+    {
+        const auto L1 = content.level("level1", world::kLayoutV6), L2 = content.level("level2", world::kLayoutV6);
+        const auto L3 = content.level("level3", world::kLayoutV6), L5 = content.level("level5", world::kLayoutV6);
+        check(L2 && !L2->allowHound && L2->houndPack.on && L2->houndPack.mode == "l2" && L2->houndPack.groupMin >= 3,
+              "Level 2: Hounds nur im Rudel (mindestens drei, zieht umher)");
+        check(L3 && !L3->allowHound && L3->houndPack.on && L3->houndPack.mode == "l3" && L3->clumpBig.on && L3->allowClump,
+              "Level 3: Rudel aus Lauerern, grosses bewaffnetes Buendel neben den kleinen");
+        check(L1 && L1->allowHound && !L1->houndPack.on && !L1->clumpBig.on && L5 && L5->allowHound && !L5->houndPack.on,
+              "Level 1 und 5: der einzelne Hound bleibt, wie er ist (kein Rudel, kein grosses Buendel)");
+        int bad = 0;
+        for (int k = game::KC_L3_END; k < game::KC_PACK_END; ++k) {
+            const game::KinLine* L = game::kinLine(k);
+            bad += !L || !L->sound || game::kinLineBySound(L->sound) != L;
+        }
+        check(bad == 0, "Rudel/Buendel: jede Klangnummer hat einen Namen (auch fuer die Gaeste)");
+        check(game::kinLine(game::KC_HP_CALL)->hint && game::kinLine(game::KC_HP_FAST)->hint && game::kinLine(game::KC_HP_LUNGE)->hint &&
+                  game::kinLine(game::KC_CL_CEIL)->hint && game::kinLine(game::KC_CL_SCRAPE)->hint,
+              "Rudel/Buendel: Ruf, schnelles Bellen, Sprung, Decke und Ausholen mit einmaligem Hinweis (Rat des Wikis)");
+        check(game::kinCueOf(22.0f, (int)Role::Hound) < 0 && game::kinCueOf(30.0f, (int)Role::Clump) < 0 &&
+                  game::kinCueOf(100.0f + game::KC_HP_MAUL, (int)Role::Hound) == game::KC_HP_MAUL,
+              "Rudel/Buendel: Schaden bleibt Schaden, Klangnummern erst ab 100");
+        const auto& hv = anim::entityVariants(anim::Entity::Hound);
+        const auto& cv = anim::entityVariants(anim::Entity::Clump);
+        check(hv.size() == 3 && std::string(hv[1]) == "ent_hound_l2" && std::string(hv[2]) == "ent_hound_l3" && cv.size() == 3 &&
+                  std::string(cv[1]) == "ent_clump_l3" && std::string(cv[2]) == "ent_clump_l3_bare",
+              "Modelle: Rudel-Hound je Ebene, grosses Buendel bewaffnet und entwaffnet");
+    }
+    // --- Level 2: das Rudel zieht umher, gestoert schlagartig schnell, kreist ein ---------------------------------------------
+    {
+        auto s = open("level2", 4);
+        auto& P = s->presence();
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.5);
+        P.packSet("spawn", 26.0);
+        step(*s, ev, 0.5);
+        std::vector<vec3> hp;
+        std::vector<int> hs;
+        const int n = hounds(P, hp, hs);
+        check(n >= 3 && n <= 4 && P.packInfo().active && P.packInfo().l3 == 0, std::format("Level 2: ein Rudel aus {} Hounds (Variante 1)", n));
+        float spread = 0.0f;
+        for (const vec3& p : hp) spread = std::max(spread, hdist2(p, hp[0]));
+        check(n > 0 && spread < 4.0f, std::format("Level 2: das Rudel steht beisammen ({:.1f} m)", spread));
+        // still stehen, Lampe aus, weggedreht: es zieht langsam umher
+        s->flashlight().on = false;
+        if (n) aim(*s, eyeOf(*s) * 2.0f - hp[0]);
+        std::vector<vec3> h0 = hp;
+        float vmax = 0.0f;
+        int alarmed = 0;
+        step(*s, ev, 6.0, [&] {
+            std::vector<vec3> q;
+            hounds(P, q, hs);
+            for (size_t i = 0; i < q.size() && i < h0.size(); ++i) vmax = std::max(vmax, hdist2(q[i], h0[i]) * 60.0f);
+            h0 = q;
+            alarmed = P.packInfo().phase;
+            return alarmed > 0;
+        });
+        check(alarmed == 0 && vmax < 1.8f, std::format("Level 2: ungestoert zieht das Rudel langsam (hoechstens {:.2f} m/s)", vmax));
+        check(count(ev, PE::Growl, Role::Hound, game::KC_HP_YIP) + count(ev, PE::Step, Role::Hound) > 0,
+              "Level 2: man hoert das Rudel, bevor man es sieht (Klaeffen, Pfoten)");
+        // gestoert (die Lampe trifft sie): Ruf, Antworten, schlagartig schnell
+        hounds(P, hp, hs);
+        double ox = 0, oy = 0;
+        const vec3 c0 = hp.empty() ? eyeOf(*s) : hp[0];
+        const bool placed = spotNear(*s, c0, 12.0, c0 + vec3{0, 0, 0.6f}, ox, oy);
+        if (placed) put(*s, ox, oy);
+        s->flashlight().on = true;
+        aim(*s, c0 + vec3{0, 0, 0.5f});
+        const size_t e0 = ev.size();
+        h0 = hp;
+        float vrun = 0.0f;
+        step(*s, ev, 4.0, [&] {
+            std::vector<vec3> q;
+            hounds(P, q, hs);
+            for (size_t i = 0; i < q.size() && i < h0.size(); ++i) vrun = std::max(vrun, hdist2(q[i], h0[i]) * 60.0f);
+            h0 = q;
+            aim(*s, q.empty() ? c0 : q[0] + vec3{0, 0, 0.5f});
+            return false;
+        });
+        std::vector<game::GameEvent> ev2(ev.begin() + (long long)e0, ev.end());
+        auto I = P.packInfo();
+        check(placed && I.phase >= 1 && count(ev2, PE::Bark, Role::Hound, game::KC_HP_CALL) >= 1 && I.answers >= 1,
+              std::format("Level 2: gesehen - einer ruft, {} antworten", I.answers));
+        s->flashlight().on = false;
+        check(vrun > 3.5f, std::format("Level 2: gestoert werden sie schlagartig schnell ({:.1f} m/s)", vrun));
+        // einkreisen und die Marke: es springt immer nur einer, und erst nach der Ankuendigung
+        put(*s, ox, oy);
+        int maxLunging = 0, phase2 = 0;
+        const size_t e1 = ev.size();
+        step(*s, ev, 16.0, [&] {
+            hounds(P, hp, hs);
+            int lunging = 0;
+            for (int st : hs) lunging += st == 3;
+            maxLunging = std::max(maxLunging, lunging);
+            phase2 = std::max(phase2, P.packInfo().phase);
+            // weggedreht vom naechsten Hound (sonst haelt der Blick sie ab)
+            if (!hp.empty()) aim(*s, eyeOf(*s) * 2.0f - hp[0]);
+            return count(std::vector<game::GameEvent>(ev.begin() + (long long)e1, ev.end()), PE::Hit, Role::Hound) > 0;
+        });
+        std::vector<game::GameEvent> ev3(ev.begin() + (long long)e1, ev.end());
+        const int fl = first(ev3, PE::Bark, Role::Hound, game::KC_HP_LUNGE), fh = first(ev3, PE::Hit, Role::Hound);
+        check(phase2 >= 2 && maxLunging == 1, std::format("Level 2: sie kreisen ein, es springt immer nur einer (Phase {}, zugleich {})", phase2, maxLunging));
+        check(fh >= 0 && fl >= 0 && fl < fh, "Level 2: vor jedem Sprung das scharfe Klaeffen (Ankuendigung)");
+        check(fh >= 0 && !s->stats().dead && s->stats().health < 100.0 && s->stats().health > 50.0,
+              std::format("Level 2: ein Biss verletzt schwer, toetet aber nicht ({:.0f} Leben)", s->stats().health));
+        // Blickkontakt bricht den Sprung ab: der naechste, der ausholt, wird angesehen
+        P.packSet("lunge", 1.0);
+        const int ab0 = P.packInfo().aborted, hits0 = count(ev, PE::Hit, Role::Hound);
+        int seenLunge = 0;
+        step(*s, ev, 6.0, [&] {
+            hounds(P, hp, hs);
+            for (size_t i = 0; i < hp.size(); ++i)
+                if (hs[i] == 3) aim(*s, hp[i] + vec3{0, 0, 0.55f}), ++seenLunge;
+            return P.packInfo().aborted > ab0;
+        });
+        check(seenLunge > 0 && P.packInfo().aborted > ab0 && count(ev, PE::Hit, Role::Hound) == hits0 && count(ev, PE::Whine, Role::Hound, game::KC_HP_FLINCH) >= 1,
+              std::format("Level 2: angesehen bricht er den Sprung ab und weicht winselnd zurueck ({} von {} Spruengen abgebrochen)", P.packInfo().aborted, P.packInfo().lunges));
+        // Rennen reizt, Interesse aufgebraucht: das Rudel gibt auf und zieht ab
+        const float i0 = P.packInfo().interest;
+        step(*s, ev, 1.5, {}, [](int) {
+            game::PlayerControl c;
+            c.forward = 1.0f, c.sprint = true;
+            return c;
+        });
+        check(P.packInfo().interest > i0 || P.packInfo().bites > 1, std::format("Level 2: Rennen reizt sie ({:.2f} -> {:.2f})", i0, P.packInfo().interest));
+        P.packSet("interest", 0.0);
+        step(*s, ev, 3.0, [&] { return P.packInfo().gaveUp; });
+        check(P.packInfo().gaveUp && P.packInfo().phase == 3, "Level 2: ohne Interesse gibt das Rudel auf");
+        step(*s, ev, 60.0, [&] { return hounds(P, hp, hs) == 0; });
+        check(hounds(P, hp, hs) == 0 && !s->stats().dead, "Level 2: das Rudel zieht ab und ist fort");
+    }
+    // --- Level 3: lauern allein, bellen, jagen gemeinsam, quaelen ------------------------------------------------------------
+    {
+        auto s = open("level3", 7);
+        auto& P = s->presence();
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.5);
+        P.packSet("spawn", 24.0);
+        step(*s, ev, 0.5);
+        std::vector<vec3> hp;
+        std::vector<int> hs;
+        const int n = hounds(P, hp, hs);
+        float minGap = 99.0f;
+        for (size_t i = 0; i < hp.size(); ++i)
+            for (size_t j = i + 1; j < hp.size(); ++j) minGap = std::min(minGap, hdist2(hp[i], hp[j]));
+        check(n == 3 && P.packInfo().l3 == 3 && minGap > 6.5f, std::format("Level 3: drei Hounds lauern einzeln ({:.1f} m auseinander)", minGap));
+        // der Lauerer: still, flach, ohne leuchtende Augen - bis man ihm nahe kommt
+        step(*s, ev, 3.0);
+        hounds(P, hp, hs);
+        int still = 0;
+        for (int st : hs) still += st == 0;
+        check(still == 3 && P.packInfo().phase == 0, "Level 3: ungestoert lauern sie reglos");
+        // vor den ersten treten (Lampe an, Blick auf ihn): er bellt, die anderen antworten aus ihrer Lage
+        s->flashlight().on = true;
+        double ox = 0, oy = 0;
+        const vec3 c0 = hp[0];
+        const bool placed = spotNear(*s, c0, 6.0, c0 + vec3{0, 0, 0.5f}, ox, oy);
+        if (placed) put(*s, ox, oy);
+        aim(*s, c0 + vec3{0, 0, 0.4f});
+        const size_t e0 = ev.size();
+        step(*s, ev, 4.0, [&] {
+            aim(*s, c0 + vec3{0, 0, 0.4f});
+            return P.packInfo().answers >= 2;
+        });
+        std::vector<game::GameEvent> ev2(ev.begin() + (long long)e0, ev.end());
+        auto I = P.packInfo();
+        int far = 0;
+        for (const auto& e : ev2)
+            if (e.type == game::GameEvent::Figure && e.index == (int)PE::Bark && game::kinCueOf(e.intensity, e.role) == game::KC_HP_ANSWER &&
+                hdist2(e.pos, c0) > 5.0f)
+                ++far;
+        check(placed && I.phase >= 1 && count(ev2, PE::Bark, Role::Hound, game::KC_HP_CALL) >= 1 && I.answers >= 2 && far >= 2,
+              std::format("Level 3: der Lauerer ruft, {} antworten aus anderen Gaengen", I.answers));
+        // das Bellen wird schneller, wenn man auf einen anderen Hound zulaeuft (sobald einer frei zu sehen ist)
+        vec3 other = c0;
+        step(*s, ev, 8.0, [&] {
+            hounds(P, hp, hs);
+            for (size_t i = 0; i < hp.size(); ++i)
+                if (hdist2(hp[i], c0) > 2.0f && hdist2(hp[i], eyeOf(*s)) < 18.0f && hdist2(hp[i], eyeOf(*s)) > 4.0f &&
+                    game::clearSight(s->world(), eyeOf(*s), hp[i] + vec3{0, 0, 0.5f}))
+                    return other = hp[i], true;
+            aim(*s, c0 + vec3{0, 0, 0.4f});
+            return false;
+        });
+        const float slow = P.packInfo().barkEvery;
+        float fastest = slow;
+        step(*s, ev, 2.5, [&] {
+            aim(*s, other + vec3{0, 0, 1.0f});
+            fastest = std::min(fastest, P.packInfo().barkEvery);
+            return false;
+        }, [](int) {
+            game::PlayerControl c;
+            c.forward = 1.0f;
+            return c;
+        });
+        check(fastest < 1.6f && fastest < slow, std::format("Level 3: laeuft man auf einen anderen zu, bellen sie schneller ({:.1f} s -> {:.1f} s)", slow, fastest));
+        // quaelen: Nacken (gelaehmt), Bein (hinkt, kein Sprint), Kehle (kein Ruf) - nie sofort tot
+        P.packSet("quick", 6.0);
+        P.packSet("phase", 2.0);
+        const size_t e1 = ev.size();
+        float stup = 0.0f, slowF = 1.0f, mute = 0.0f;
+        step(*s, ev, 50.0, [&] {
+            hounds(P, hp, hs);
+            if (!hp.empty()) {  // immer weg vom naechsten (sonst haelt der Blick sie ab)
+                vec3 nb = hp[0];
+                for (const vec3& p : hp)
+                    if (hdist2(p, eyeOf(*s)) < hdist2(nb, eyeOf(*s))) nb = p;
+                aim(*s, eyeOf(*s) * 2.0f - nb);
+            }
+            stup = std::max(stup, P.stupor(0));
+            slowF = std::min(slowF, P.packSlow(0));
+            mute = std::max(mute, P.houndMute(0));
+            return P.packInfo().torment >= 3 || s->stats().dead;
+        });
+        std::vector<game::GameEvent> ev3(ev.begin() + (long long)e1, ev.end());
+        const int fl = first(ev3, PE::Bark, Role::Hound, game::KC_HP_LUNGE), fh = first(ev3, PE::Hit, Role::Hound);
+        check(P.packInfo().torment >= 3 && stup > 0.5f && slowF < 0.8f && mute > 0.0f,
+              std::format("Level 3: sie quaelen in Stufen - gelaehmt ({:.2f}), hinkend ({:.2f}), stumm ({:.0f} s)", stup, slowF, mute));
+        check(fh >= 0 && fl >= 0 && fl < fh, "Level 3: jeder Sprung wird angekuendigt");
+        check(!s->stats().dead && s->stats().health > 40.0, std::format("Level 3: nach drei Bissen lebt man noch ({:.0f} Leben)", s->stats().health));
+        // stumm: das Ansprechen bringt nur ein Roecheln (kein Ruf, den andere hoeren)
+        s->events().clear();
+        step(*s, ev, 3.0);
+        s->events().clear();
+        s->speak();
+        bool rasp = false, call = false;
+        for (const auto& e : s->events()) {
+            rasp = rasp || (e.type == game::GameEvent::SoundAt && e.sound == "hp_rasp");
+            call = call || (e.type == game::GameEvent::SoundAt && e.sound.rfind("talk_call", 0) == 0);
+        }
+        check(rasp && !call, "Level 3: mit zerbissener Kehle kein Ruf mehr - nur ein Roecheln");
+        // Koop: die Puppe beim Gast bekommt Rolle und Variante (Modell), das Protokoll bleibt
+        std::vector<game::Presence::NetState> ns;
+        P.netStates(ns, eyeOf(*s), 32);
+        game::Presence P2;
+        P2.netApply(ns, P.netTime());
+        int puppets = 0;
+        for (const auto& m : ns) puppets += m.role == (int)Role::Hound && m.variant == 2;
+        check(puppets >= 1 && P2.variantOf(Role::Hound) == 2, std::format("Koop: {} Rudel-Hounds als Puppen (Variante 2)", puppets));
+    }
+    // --- Level 3: das grosse, bewaffnete Buendel --------------------------------------------------------------------------------
+    {
+        auto s = open("level3", 9);
+        auto& P = s->presence();
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.5);
+        P.bigClumpSet("spawn", 16.0);
+        step(*s, ev, 0.5);
+        auto B = P.bigClumpInfo();
+        check(B.active && B.variant == 1 && B.state == 0, "Grosses Buendel: erscheint bewaffnet (Variante 1) und lauert");
+        step(*s, ev, 4.0);
+        B = P.bigClumpInfo();
+        check(B.ceil > 0.9f && B.state == 0, std::format("Grosses Buendel: haengt an der Decke ({:.2f}), solange es still ist", B.ceil));
+        // Laerm in der Naehe: es jagt an der Decke, laesst sich fallen, holt aus (Knochen schabt) - erst dann der Hieb
+        double ox = 0, oy = 0;
+        const vec3 cp = B.pos;
+        const bool placed = spotNear(*s, cp, 7.0, cp + vec3{0, 0, 1.0f}, ox, oy);
+        if (placed) put(*s, ox, oy);
+        const size_t e0 = ev.size();
+        int maxState = 0;
+        step(*s, ev, 25.0, [&] {
+            maxState = std::max(maxState, P.bigClumpInfo().state);
+            return P.bigClumpInfo().strikes >= 2 || s->stats().dead;
+        }, [](int i) {
+            game::PlayerControl c;
+            c.forward = (i / 60) % 2 ? 1.0f : -1.0f;  // hin und her gehen (Schritte)
+            return c;
+        });
+        std::vector<game::GameEvent> ev2(ev.begin() + (long long)e0, ev.end());
+        B = P.bigClumpInfo();
+        const int fs = first(ev2, PE::Swing, Role::Clump, game::KC_CL_SCRAPE), fh = first(ev2, PE::Hit, Role::Clump);
+        check(placed && B.drops >= 1 && count(ev2, PE::Drop, Role::Clump, game::KC_CL_DROP) >= 1 && count(ev2, PE::Knock, Role::Clump, game::KC_CL_CEIL) >= 1,
+              std::format("Grosses Buendel: hoert die Schritte, jagt an der Decke und laesst sich fallen ({} Mal, bis Zustand {})", B.drops, maxState));
+        check(B.strikes >= 1 && fs >= 0 && (fh < 0 || fs < fh), std::format("Grosses Buendel: vor jedem Hieb das Schaben der Knochen ({} Hiebe)", B.strikes));
+        check(!s->stats().dead && (fh < 0 || s->stats().health > 40.0), std::format("Grosses Buendel: ein Hieb toetet nicht sofort ({:.0f} Leben)", s->stats().health));
+        // leise weg: still stehen, es findet nicht
+        const int st0 = P.bigClumpInfo().strikes;
+        step(*s, ev, 1.0);
+        put(*s, ox, oy);
+        step(*s, ev, 8.0);
+        check(P.bigClumpInfo().strikes <= st0 + 1 && !s->stats().dead, "Grosses Buendel: wer still steht, wird nicht gefunden (es ist blind)");
+        // entwaffnet: es reisst sich den Knochen frei (Modellwechsel), dabei hoert es nichts
+        P.bigClumpSet("disarm", 1.0);
+        const size_t e1 = ev.size();
+        step(*s, ev, 3.2);
+        std::vector<game::GameEvent> ev3(ev.begin() + (long long)e1, ev.end());
+        B = P.bigClumpInfo();
+        check(B.variant == 2 && B.tears >= 1 && count(ev3, PE::Swing, Role::Clump, game::KC_CL_TEAR) == 1,
+              "Grosses Buendel: entwaffnet reisst es sich den Knochen frei (Variante 2)");
+        // lange Stille: zurueck an die Decke und fort
+        P.bigClumpSet("state", 4.0);
+        step(*s, ev, 30.0, [&] { return P.bigClumpInfo().state >= 8; });
+        check(P.bigClumpInfo().state >= 8 || !P.bigClumpInfo().active, "Grosses Buendel: nach langer Stille zieht es sich zurueck");
+    }
+}
+
 int main(int argc, char** argv) {
     if (argc < 2) {
         std::printf("Aufruf: gameplay_test <data-Ordner>\n");
@@ -5993,6 +6372,7 @@ int main(int argc, char** argv) {
     testV133Level3Kin(argv[1]);   // V13.3: Level 3 - Wretch mit Waffe, Skin-Stealer im Mantel
     testV133Purple(argv[1]);      // V13.3: Level 3 - purpifizierte Wesen in der Wand
     testV133Level3RatMoth(argv[1]);  // V13.3: Level 3 - Death Rats mit Fallen, Mottenschwarm mit Praetorianern
+    testV133PackBigClump(argv[1]);   // V13.3: Level 2/3 - Hound-Rudel, grosses bewaffnetes Buendel
     std::printf("%s: %d Pruefungen, %d Fehler\n", gFails ? "FEHLGESCHLAGEN" : "OK", gChecks, gFails);
     return gFails ? 1 : 0;
 }

@@ -33,5 +33,6 @@ void addL2Sounds(std::vector<SoundDef>& d, int rate);         // V13.3 Teil 4 sy
 void addKinL3Sounds(std::vector<SoundDef>& d, int rate);      // V13.3 synth_kin_l3.cpp: Level 3 - Wretch (Waffen, Fetzen), Skin-Stealer (Saetze)
 void addRatL3Sounds(std::vector<SoundDef>& d, int rate);      // V13.3 Level 3 synth_rat_l3.cpp: Death Rats, Fallen, Mottenschwarm, Praetorianer
 void addPurpleSounds(std::vector<SoundDef>& d, int rate);     // V13.3 synth_purple.cpp: Level 3 - purpifizierte Wesen in der Wand
+void addHoundPackSounds(std::vector<SoundDef>& d, int rate);  // V13.3 Level 2/3 synth_hound_pack.cpp: Hound-Rudel, grosses Buendel
 
 }  // namespace lim::audio

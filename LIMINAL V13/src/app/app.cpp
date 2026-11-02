@@ -424,6 +424,16 @@ void App::scriptStep() {
                     break;
                 }
             }
+        } else if (cmd == "pack" && session_) {  // V13.3 Level 2/3 (Bilder, Tests): pack <spawn|phase|quick|interest|bark|lunge> <wert>
+            char key[32] = {};
+            double val = 0.0;
+            if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) < 2 || !session_->presence().packSet(key, val))
+                log::warn("Skript: pack '{}' unbekannt oder kein Rudel", arg);
+        } else if (cmd == "bigclump" && session_) {  // V13.3 Level 3 (Bilder, Tests): bigclump <spawn|state|ceil|disarm|quick> <wert>
+            char key[32] = {};
+            double val = 0.0;
+            if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) < 2 || !session_->presence().bigClumpSet(key, val))
+                log::warn("Skript: bigclump '{}' unbekannt oder kein grosses Buendel", arg);
         } else if (cmd == "jerry" && session_) {  // V13.3 Teil 4 (Bilder, Tests): jerry <quick|state|yaw|spell> <wert>
             char key[32] = {};
             double val = 0.0;

@@ -125,6 +125,9 @@ private:
     float ratL3Height() const;
     void updatePraetorian(float dt, const Input& in);
     bool praetorian() const;
+    // V13.3 Level 3 (KREATUR_Clump.md): das grosse, bewaffnete Buendel (creature_clump_l3.cpp) - extra_[0] Variante 1/2
+    void updateClumpL3(float dt, const Input& in);
+    bool bigClump() const { return e_ == Entity::Clump && !extra_.empty() && extra_[0] > 0.5f; }
     // Gangzyklus fuer n Beine; rest: Ruhepunkte (Welt) dieses Bildes
     void stepLegs(float dt, int n, const float* offs, float duty, float S, const vec3* rest, float standDur, const float* weight);
     vec3 footPos(int i, const float* lift) const;

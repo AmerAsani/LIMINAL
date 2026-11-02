@@ -62,7 +62,10 @@ PREVIEW_RGB = {'ent_skin': (0.55, 0.47, 0.40), 'ent_hair': (0.03, 0.03, 0.03), '
                'ent_wr_membrane': (0.62, 0.60, 0.56), 'ent_wr_membrane_f': (0.80, 0.66, 0.62), 'ent_wr_hide': (0.42, 0.40, 0.38),
                'ent_wr_gut': (0.30, 0.08, 0.10), 'ent_wr_pith': (0.62, 0.64, 0.46), 'ent_wr_bone': (0.80, 0.76, 0.66),
                'ent_wr_slime': (0.55, 0.57, 0.50), 'ent_wr_seed': (0.72, 0.60, 0.36), 'ent_wr_dust': (0.62, 0.60, 0.56),
-               'ent_wr_crack': (0.05, 0.05, 0.05), 'ent_wr_pincer': (0.12, 0.08, 0.06), 'ent_wr_debris': (0.55, 0.53, 0.5)}
+               'ent_wr_crack': (0.05, 0.05, 0.05), 'ent_wr_pincer': (0.12, 0.08, 0.06), 'ent_wr_debris': (0.55, 0.53, 0.5),
+               # V13.3 Level 2/3: Rudel-Hounds (Fluessigkeit, Brandnarben, Russ), grosses Buendel (Knochen, rohes Fleisch)
+               'ent_hd_oil': (0.02, 0.02, 0.02), 'ent_hd_scar': (0.85, 0.62, 0.60), 'ent_hd_soot': (0.07, 0.065, 0.06),
+               'ent_cl_raw': (0.50, 0.08, 0.07), 'ent_cl_bone': (0.86, 0.80, 0.68), 'ent_ob_rust': (0.45, 0.25, 0.12)}
 
 
 def build_group(g, nb):

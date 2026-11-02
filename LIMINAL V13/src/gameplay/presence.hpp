@@ -221,6 +221,9 @@ public:
         // V13.3 (KREATUR_Smiler.md): leuchtende Leuchtstaebe; Smiler folgen dem staerkeren Licht (0) oder stutzen nur (1, Level 3)
         const std::vector<Lure>* lures = nullptr;
         int smilerBait = 0;
+        // V13.3 Level 2/3 (KREATUR_Hound.md, KREATUR_Clump.md): Hound-Rudel, grosses bewaffnetes Buendel (nullptr: keins)
+        const world::KinDef* houndPack = nullptr;
+        const world::KinDef* clumpBig = nullptr;
     };
 
     // V13.2 Koop: Zustand eines Wesens fuer die Momentaufnahme (Host) und die Puppe beim Gast
@@ -383,6 +386,31 @@ public:
     };
     JerryInfo jerryInfo() const;
     bool jerrySet(const std::string& key, double v);
+    // V13.3 Level 2/3 (KREATUR_Hound.md, Abschnitt "Rudel"; presence_hound_pack.cpp): Hound-Rudel aus der Rolle Hound -
+    // Variante 1 (Level 2: zieht langsam umher, gestoert schlagartig schnell, kreist ein) und 2 (Level 3: lauern allein, bellen,
+    // jagen gemeinsam, quaelen). packSet (Tests, Skripte): spawn <abstand>, phase, quick, interest, bark, lunge; packInfo: Zahlen.
+    // houndMute: Kehle verletzt (Sekunden) - kein Ruf; packSlow: Bein verletzt (Tempo-Faktor 0..1)
+    struct PackInfo {
+        bool active = false, encircled = false, gaveUp = false;
+        int hounds = 0, phase = 0, bites = 0, barks = 0, answers = 0, fast = 0, lunges = 0, aborted = 0, l3 = 0, torment = 0;
+        float barkEvery = 0.0f, interest = 0.0f, trap = 0.0f;
+        vec3 caller;
+    };
+    PackInfo packInfo() const;
+    bool packSet(const std::string& key, double v);
+    float houndMute(int target) const;
+    float packSlow(int target) const;
+    // V13.3 Level 3 (KREATUR_Clump.md, Abschnitt "Level 3"; presence_clump_l3.cpp): das grosse, bewaffnete Buendel aus der Rolle
+    // Clump - Variante 1 (Rohr, Knochenspiess, Knochensichel) und 2 (entwaffnet: zweiter Knochenspiess). bigClumpSet (Tests,
+    // Skripte): spawn <abstand>, state, ceil <0|1>, disarm, quick; bigClumpInfo: Zahlen
+    struct BigClumpInfo {
+        bool active = false;
+        int state = 0, variant = 0, strikes = 0, hits = 0, misses = 0, tears = 0, drops = 0, fled = 0;
+        float ceil = 0.0f;
+        vec3 pos;
+    };
+    BigClumpInfo bigClumpInfo() const;
+    bool bigClumpSet(const std::string& key, double v);
 
 private:
     struct Agent;
@@ -516,6 +544,15 @@ private:
     void thinkWretchL3(Agent& a, double dt, const Context& c, std::vector<Event>& out);
     void thinkSkinL3(Agent& a, double dt, const Context& c, std::vector<Event>& out);
     void swapVariant(Agent& a, int v);
+    // V13.3 Level 2/3: Hound-Rudel (presence_hound_pack.cpp), grosses Buendel (presence_clump_l3.cpp)
+    void regieHoundPack(double dt, const Context& c, std::vector<Event>& out);
+    bool spawnHoundPack(const Context& c, std::vector<Event>& out, double dist);
+    void thinkPackHound(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    void prepPackHound(Agent& a);
+    void regieClumpL3(double dt, const Context& c, std::vector<Event>& out);
+    bool spawnClumpL3(const Context& c, std::vector<Event>& out, double dist);
+    void thinkClumpL3(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    void prepClumpL3(Agent& a, const Context& c);
     void updateHive(double dt, const Context& c, std::vector<Event>& out);
     bool walkTo(Agent& a, const NavField& f, double speed, double dt, const Context& c);
     bool hiddenSpawn(const Context& c, int lo, int hi, bool behind, vec3& out, const std::function<bool(vec3)>& ok = {});
@@ -568,6 +605,8 @@ private:
     double jerryTry_ = 0.0, jerryQuick_ = 1.0;
     // V13.3 Level 3: Gedaechtnis der Death Rats (Weg des Spielers, Lampe, Fallen), der Mottenschwarm
     std::shared_ptr<void> l3Mem_, l3Swarm_;
+    // V13.3 Level 2/3: Rudel (Zustand in presence_hound_pack.cpp), grosses Buendel (presence_clump_l3.cpp)
+    std::shared_ptr<void> pack_, bigClump_;
 };
 
 }  // namespace lim::game

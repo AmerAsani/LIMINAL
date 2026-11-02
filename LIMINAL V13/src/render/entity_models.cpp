@@ -1364,7 +1364,10 @@ bool entityFromGlb(Entity e, FigureModel& out, std::string& info, const std::str
         // V13.3 Teil 4: Jerry
         {"ent_jy_feather", FM_ENT_JY_FEATHER}, {"ent_jy_feather_dark", FM_ENT_JY_FEATHER_DARK}, {"ent_jy_skin", FM_ENT_JY_SKIN},
         {"ent_jy_quill", FM_ENT_JY_QUILL}, {"ent_jy_beak", FM_ENT_JY_BEAK}, {"ent_jy_yellow", FM_ENT_JY_YELLOW}, {"ent_jy_eye", FM_ENT_JY_EYE},
-        {"ent_jy_pupil", FM_ENT_JY_PUPIL}, {"ent_jy_tongue", FM_ENT_JY_TONGUE}, {"ent_jy_foot", FM_ENT_JY_FOOT}};
+        {"ent_jy_pupil", FM_ENT_JY_PUPIL}, {"ent_jy_tongue", FM_ENT_JY_TONGUE}, {"ent_jy_foot", FM_ENT_JY_FOOT},
+        // V13.3 Level 2/3: Rudel-Hounds, grosses Buendel
+        {"ent_hd_oil", FM_ENT_HD_OIL}, {"ent_hd_scar", FM_ENT_HD_SCAR}, {"ent_hd_soot", FM_ENT_HD_SOOT}, {"ent_cl_raw", FM_ENT_CL_RAW},
+        {"ent_cl_bone", FM_ENT_CL_BONE}};
     const CreatureSkeleton& sk = entitySkeleton(e);
     FigureModel m;
     std::vector<mat4> frames;
