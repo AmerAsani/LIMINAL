@@ -8,6 +8,7 @@
 #include "anim/figures.hpp"
 #include "core/log.hpp"
 #include "core/rng.hpp"
+#include "gameplay/kin_l3.hpp"  // V13.3 Level 3
 #include "props/prop_library.hpp"
 #include "world/map_def.hpp"
 #include "world/room.hpp"
@@ -1847,6 +1848,7 @@ void GameSession::updatePresence(double dt) {
         }
         events_.push_back(ev);
     }
+    if (netRole == NetRole::Host) kinNetRoute(netFigureOut, netSoundOut);  // V13.3 Level 3: genaue Saetze und Waffenklaenge
 }
 
 // V10: Koerperart anwenden - realistisch: Masse aus dem Koerperbau der Spielerfigur

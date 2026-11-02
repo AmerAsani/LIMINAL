@@ -62,7 +62,7 @@ m.door(h1, buero, 'door', 1)
 vor = m.room(132, 113, 144, 120, 'aufzugsvorraum', 'ziegel_hell', 0.0, 3.2, circuit=C_ROOMS, label='Aufzug')
 m.opening(g2, vor, width=3)
 kab = m.room(145, 114, 149, 119, 'kabine', 'aufzug', 0.0, 2.6, circuit=C_ROOMS)
-dk = m.doors[m.door(vor, kab, 'opening', 1)]
+dk = m.doors[m.door(vor, kab, 'opening', 2)]  # V13.3: 2 m wie in Level 5 (das Aufzugstor ist fuer 1,4 m gebaut, skaliert 1,35)
 kab_door = dk
 
 # Raeume hinter Gittern (unerreichbar): Licht, Tische, Bilder, Fenster
@@ -155,7 +155,7 @@ m.start = (3.6, 73.0, 0.0)
 m.transition('l2_l3', 'seam', '', 3.6, 73.0, 0.0)  # Ankunft aus Level 2 (Tuer hinab)
 m.transition('l3_l5', 'elevator', 'level5', 147.0, 116.5, math.pi, rect=[145, 114, 149, 119])
 x0, y0, x1, y1 = kab_door['rect']
-m.obj('elevator_door', (x0 + x1) / 2, (y0 + y1) / 2, 0.0, 0.0)
+m.obj('elevator_door', (x0 + x1) / 2, (y0 + y1) / 2, 0.0, 0.0, scale=[1, 1.35, 1])
 
 gaenge = [h1, h2, h3, h4, h5, conn] + maze
 paranoia = [p1, p2]

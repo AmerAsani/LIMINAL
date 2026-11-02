@@ -1500,6 +1500,7 @@ void CreatureAnimator::updateBiped(float dt, const Input& in) {
     pose_.up[bp::B_HEAD] = Mb * (Rh * sk_->bindUp[bp::B_HEAD]);
     pose_.up[bp::B_JAW] = Mb * (Rj * sk_->bindUp[bp::B_JAW]);
     for (int s = 0; s < 2; ++s) pose_.up[(size_t)armB(bp::B_CLAV_L, s)] = Mb * (Rch * sk_->bindUp[(size_t)armB(bp::B_CLAV_L, s)]);
+    if (e_ == Entity::Wretch || e_ == Entity::SkinStealer) bipedKinL3(dt, in);  // V13.3 Level 3
 }
 
 // --- V13.2: Death Rat ------------------------------------------------------------------------------------------------

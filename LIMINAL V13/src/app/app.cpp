@@ -10,6 +10,7 @@
 #include <thread>
 
 #include "core/log.hpp"
+#include "gameplay/kin_l3.hpp"  // V13.3 Level 3: Saetze und Waffenklaenge (Wretch, Skin-Stealer)
 #include "platform/image_io.hpp"
 #include "render/world_renderer.hpp"
 #include "world/room.hpp"
@@ -146,6 +147,7 @@ int App::run(const std::vector<std::string>& args) {
         saveGame();
     if (!testRun() && opt_.overrides.size() == 0) settings_.save();
     if (!opt_.script.empty()) log::info("Skript: {}", scriptFailed_ ? "FEHLGESCHLAGEN" : "OK");
+    if (audio_) log::info("Audio beim Beenden: {}", audio_->statsLine());  // V13.3 (AUDIO_BUG.md)
     log::info("Beendet");
     log::shutdown();
     return scriptFailed_ ? 7 : 0;
@@ -420,6 +422,55 @@ void App::scriptStep() {
             log::info("Audio: Leuchten {} Betten {} Stellen {} Brummen x{:.2f} | Raum t60 {:.2f} wet {:.2f} early {:.2f} Masse {:.0f}x{:.0f}x{:.1f} Hoerer {:.1f},{:.1f},{:.1f}",
                       soundscape_.activeLamps(), soundscape_.activeBeds(), soundscape_.activeSpots(), soundscape_.humSurge(), ac.t60, ac.wet,
                       ac.early, ac.roomW, ac.roomD, ac.roomH, ac.lx, ac.ly, ac.lz);
+            if (audio_) log::info("Audio-Status: {}", audio_->statsLine());
+        } else if (cmd == "audiostat") {  // V13.3 (Tests): Geraet, Stimmen, Pegel am Master-Ausgang ins Protokoll
+            if (audio_) log::info("Audio-Status: {}", audio_->statsLine());
+        } else if (cmd == "audiolog") {  // V13.3 (Tests): audiolog <s> - Audio-Status alle s Sekunden (0 aus)
+            audioLogEvery_ = std::max(0.0, std::atof(arg.c_str()));
+            audioLogNext_ = time_ + audioLogEvery_;
+        } else if (cmd == "level" && session_) {  // V13.3 (Tests): level <id> [anker] - Ebenenwechsel wie durch einen Ausgang
+            char id[64] = {}, anchor[64] = {};
+            std::sscanf(arg.c_str(), "%63s %63s", id, anchor);
+            changeLevel(id, anchor);
+            return;  // die neue Sitzung erst ein Bild laufen lassen
+        } else if (cmd == "focus") {  // V13.3 (Tests): focus off|on - Fokusverlust (Alt+Tab) ueber WM_ACTIVATE nachstellen
+            const bool on = arg != "off" && arg != "0";
+            simFocus_ = true;
+            SendMessageW(window_.hwnd(), WM_ACTIVATE, on ? WA_ACTIVE : WA_INACTIVE, 0);
+            log::info("Skript: Fokus {}", on ? "zurueck" : "verloren");
+        } else if (cmd == "minimize" || cmd == "restore") {  // V13.3 (Tests): Fenster minimieren / wiederherstellen
+            ShowWindow(window_.hwnd(), cmd == "minimize" ? SW_MINIMIZE : SW_RESTORE);
+            if (cmd == "restore") SendMessageW(window_.hwnd(), WM_ACTIVATE, WA_ACTIVE, 0);
+        } else if (cmd == "audiofault" && audio_) {  // V13.3 (Tests): audiofault <art> [wert] - Geraete-/Fehlerpfad gezielt ausloesen
+            char kind[32] = {};
+            int param = 0;
+            std::sscanf(arg.c_str(), "%31s %d", kind, &param);
+            using F = audio::Fault;
+            const std::string k = kind;
+            const F f = k == "invalidate" ? F::DeviceInvalidated : k == "default" ? F::DefaultChanged : k == "format" ? F::FormatChanged
+                        : k == "exclusive" ? F::ExclusiveOverride : k == "remove" ? F::DeviceRemoved : k == "stall" ? F::StallEvents
+                        : k == "mute" ? F::MuteOutput : k == "nan" ? F::NanOutput : F::InitFails;
+            if (k != "invalidate" && k != "default" && k != "format" && k != "exclusive" && k != "remove" && k != "stall" && k != "mute" &&
+                k != "nan" && k != "initfail") {
+                log::error("Skript: audiofault - unbekannte Art '{}'", k);
+                scriptFailed_ = true;
+            } else {
+                audio_->injectFault(f, param);
+            }
+        } else if (cmd == "audiorestart" && audio_) {  // V13.3 (Tests): Strom schliessen und neu oeffnen
+            audio_->requestRestart("Skript");
+        } else if (cmd == "audioexpect") {  // V13.3 (Tests): audioexpect <dBFS> - Pegel am Master-Ausgang (letzte Sekunde) mindestens so hoch
+            const double want = std::atof(arg.c_str());
+            const auto st = audio_ ? audio_->stats() : audio::AudioStats{};
+            const double db = st.outRms > 1e-9f ? 20.0 * std::log10(st.outRms) : -180.0;
+            if (!st.deviceOpen || db < want) {
+                scriptFailed_ = true;
+                log::error("Skript: audioexpect {} dBFS - Ausgang {:.1f} dBFS, Geraet {}", want, db, st.deviceOpen ? "offen" : "ZU");
+            } else {
+                log::info("Skript: audioexpect {} dBFS ok ({:.1f} dBFS)", want, db);
+            }
+        } else if (cmd == "resume") {  // V13.3 (Tests): Pausenmenue schliessen (wie "Weiter")
+            if (ui_.mode() == ui::Mode::Pause) ui_.setMode(ui::Mode::Hud);
         } else if (cmd == "perf") {  // V10 (Tests): Zeiten und Dreiecke dieses Bildes ins Protokoll
             const auto& rs = renderer_->stats();
             u64 vramUse = 0, vramBudget = 0;  // V13: belegter Grafikspeicher (DXGI 1.4) und Arbeitsspeicher des Prozesses
@@ -709,7 +760,7 @@ void App::attachSession(game::GameSession& s) {
 
 void App::startTitleWorld() {
     // Hinter dem Hauptmenue dreht sich langsam die Welt (Seed 7 wie in V4)
-    if (audio_) audio_->stopAll();
+    if (audio_) audio_->stopAll(), audio_->resetMix();  // V13.3: keine Daempfung/Pause aus dem Spiel im Menue (B-020)
     ++audioGen_;
     session_.reset();
     session_ = makeSession(7, content_.defaultDifficulty(), "", "");
@@ -724,7 +775,8 @@ void App::startTitleWorld() {
 }
 
 void App::enterPlaying(std::unique_ptr<game::GameSession> s) {
-    if (audio_) audio_->stopAll();
+    if (audio_ && session_) log::info("Audio vor dem Wechsel: {}", audio_->statsLine());  // V13.3 (AUDIO_BUG.md)
+    if (audio_) audio_->stopAll(), audio_->resetMix();
     ++audioGen_;
     session_ = std::move(s);
     state_ = State::Playing;
@@ -959,7 +1011,10 @@ void App::mainLoop() {
         if (opt_.quitAfter > 0 && time_ > opt_.quitAfter) quit_ = true;
 
         input_.beginFrame();
-        if (!window_.pump() || window_.closeRequested()) quit_ = true;
+        if (!window_.pump() || window_.closeRequested()) {
+            if (!quit_) log::info("Fenster geschlossen (WM_CLOSE/WM_QUIT)");  // V13.3: Grund des Beendens im Protokoll
+            quit_ = true;
+        }
         input_.pollGamepad();
         if (!opt_.shot.empty() || !opt_.script.empty()) {
             // Aufnahmen/Tests: keine echten Eingaben, nur die des Skripts
@@ -974,11 +1029,16 @@ void App::mainLoop() {
             settings_.fullscreen = lastWinMode_ == plat::DisplayMode::Borderless;
             if (!testRun() && opt_.overrides.size() == 0) settings_.save();
         }
+        if (audio_) audio_->watchdog();  // V13.3: Geraet verloren, Strom steht, Thread haengt -> Neustart (AUDIO_BUG.md)
         if (window_.minimized()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(30));
             continue;
         }
         frame(dt);
+        if (audioLogEvery_ > 0.0 && time_ >= audioLogNext_ && audio_) {  // V13.3 (Tests)
+            audioLogNext_ = time_ + audioLogEvery_;
+            log::info("Audio-Status: {}", audio_->statsLine());
+        }
         // V6: Grafik-Automatik (Messung, dynamische Aufloesung)
         if (state_ != State::Loading && !testRun()) {
             std::string msg = autoTune_.update(dt, settings_, *renderer_, true, renderer_->gpuTimer().totalMs(),
@@ -1182,7 +1242,7 @@ void App::updatePlaying(double dt) {
     }
     // Fenster verlassen (Alt+Tab, Klick daneben): Spiel pausieren, damit die Sanity nicht im
     // Hintergrund weiter sinkt
-    if (!window_.focused() && ui_.mode() == ui::Mode::Hud && !testRun() && !pilot_)
+    if (!window_.focused() && ui_.mode() == ui::Mode::Hud && (!testRun() || simFocus_) && !pilot_)
         ui_.openPause();
     bool paused = ui_.pausesGame() && !coop();  // V13.2: im Koop laeuft die Welt weiter (Menues bremsen nur die Eingabe)
     // Spieltasten (nur ohne offenes Menue)
@@ -1319,10 +1379,21 @@ void App::handleEvents() {
     // V11: Klaenge mit Ort nehmen den Weg des Schalls (durch Tueren, um Ecken), nicht den durch die Wand
     const auto& pl = session_->player();
     const vec3 ear{(float)pl.x, (float)pl.y, (float)pl.eye()};
+    // V13.3: Hoerer vor den Klaengen dieses Bildes setzen - play3d verwirft Quellen ausser Reichweite, und nach einem
+    // Ebenenwechsel/Wiedereinstieg stand der Hoerer sonst noch an der alten Stelle (falsches Culling im ersten Bild)
+    audio_->setListener(ear, (float)pl.angle);
     auto at = [&](const std::string& name, vec3 pos, float volume, float radius, float pitch = 1.0f) {
         audio::PlayOpts o;
         o.volume = volume, o.pitch = pitch, o.vary = false;
         audio_->play3d(name, soundscape_.spatial(session_->world(), ear, pos, radius), o);
+    };
+    // V13.3 Level 3 (gameplay/kin_l3.hpp): Satz oder Waffenklang; nah genug mit Untertitel, beim ersten Mal der Rat des Wikis
+    auto kinSay = [&](const game::KinLine& L, vec3 pos, float pitch) {
+        at(L.sound, pos, L.volume, L.radius, pitch);
+        if (!L.sub || length(pos - ear) > L.radius * 0.6f) return;
+        ui_.toast(L.sub, L.subSec);
+        static std::set<std::string> hinted;
+        if (L.hint && hinted.insert(L.hint).second) ui_.toast(L.hint, 5.5f);
     };
     for (const auto& e : evs) {
         switch (e.type) {
@@ -1415,7 +1486,13 @@ void App::handleEvents() {
             case game::GameEvent::GhostSeen: audio_->play("hal_whisper", 0.5f); break;
             // V8: eine neue Ebene - erst faellt hinten eine Tuer zu, viel spaeter kennt man ihren Namen
             case game::GameEvent::DistantSlam: at("dist_door", e.pos, 0.85f, 70.0f, 0.88f); break;
-            case game::GameEvent::SoundAt: at(e.sound, e.pos, e.intensity, 18.0f); break;  // V8: Aufzug
+            case game::GameEvent::SoundAt:
+                if (const game::KinLine* L = game::kinLineBySound(e.sound)) {  // V13.3 Level 3 (Gast): Satz mit Untertitel
+                    kinSay(*L, e.pos, 1.0f);
+                    break;
+                }
+                at(e.sound, e.pos, e.intensity, 18.0f);
+                break;  // V8: Aufzug
             case game::GameEvent::TeleportCut: resetHistory_ = true; break;
             // V9: Sicherungen, die Entities (V10), die letzte Fahrt
             case game::GameEvent::FuseTaken:
@@ -1473,6 +1550,10 @@ void App::handleEvents() {
                 ++n;
                 const Role role = (Role)e.role;
                 const float var = hash01(n * 31u + 7u);
+                if (const game::KinLine* L = game::kinLine(game::kinCueOf(e.intensity, e.role))) {  // V13.3 Level 3: Klangnummer
+                    kinSay(*L, e.pos, L->sub ? 1.0f : 0.96f + 0.08f * var);
+                    break;
+                }
                 switch ((PE::Type)e.index) {
                     case PE::Step:  // Hound: flache Handflaechen und Krallen auf dem Boden (ein Klang, Varianten)
                         if (role == Role::Hound) at("hound_step", e.pos, e.intensity * 0.9f, 22.0f, 0.95f + 0.1f * var);

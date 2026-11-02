@@ -101,8 +101,9 @@ struct StyleOverride {
 enum KinIndex : int { KIN_FACELING, KIN_SKINSTEALER, KIN_WRETCH, KIN_RAT, KIN_WINDOW, KIN_DULLER, KIN_ARMS, KIN_WRANGLER, KIN_GROWLER, KIN_NGUITHR, KIN_OUROBOROS, KIN_GOBLIN, KIN_MOTH, KIN_JERRY, KIN_COUNT };  // V13.3: Duller, Arms, Wrangler; KIN_MOTH: Deathmoths ohne Nest (Level 2)
 struct KinDef {
     bool on = false;
-    std::string mode;                // je Wesen (Faceling: peaceful|irritable|armed|lethal; Skin-Stealer: skin|true;
-                                     // Wretch: shambler|sprinter|mixed; Ratte: normal|bald; Fenster: wall)
+    std::string mode;                // je Wesen (Faceling: peaceful|irritable|armed|lethal; Skin-Stealer: skin|true|coat;
+                                     // Wretch: shambler|sprinter|mixed|armed; Ratte: normal|bald; Fenster: wall)
+                                     // (V13.3 Level 3: coat = im Mantel, armed = mit Waffe - presence_kin_l3.cpp)
     int groupMin = 1, groupMax = 1;  // so viele zugleich (je Auftritt)
     double every = 180.0;            // mittlerer Abstand der Auftritte (s)
     double chance = 0.0;             // je Wesen: Skin-Stealer hungrig; Wretch im zweiten Stadium (fleht); Ratte: Schrei-Ereignis

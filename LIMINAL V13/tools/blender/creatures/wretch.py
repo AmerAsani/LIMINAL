@@ -14,14 +14,15 @@ import sdf
 LODS = (24000, 8000, 2600)
 
 
-def build(J, bones):
+def build(J, bones, fist=False):
+    """fist (V13.3, wretch_l3.py): die rechte Hand geschlossen um einen Griff - sonst unveraendert."""
     rng = np.random.default_rng(15)
     B = Hm.Body(J, slim=0.78, muscle=0.6, belly=0.72, chest=0.92, hips=0.85, hand=1.05)
     X, Y, Z = Hm.X, Hm.Y, Hm.Z
     c, r = B.headC, B.headR
     skin = B.head(featureless=False) + B.neck() + B.torso() + B.leg(0) + B.leg(1) + B.foot(0, bare=True) + B.foot(1, bare=True)
     for s in (0, 1):
-        skin += B.arm(s, hand=False) + B.hand(s, curl=0.6, claw=0.15)
+        skin += B.arm(s, hand=False) + B.hand(s, curl=1.15 if fist and s == 1 else 0.6, claw=0.05 if fist and s == 1 else 0.15)
     # ausgezehrt: Rippen, Becken- und Schluesselbeine, Wangen eingefallen, Kniegelenke knotig
     # Rippen: duenne Grate knapp unter der Haut, auf der Brustkorb-Ellipse (sie woelben die Haut nur leicht)
     rx, ry, rz = 0.105 * 0.78 * 0.92, 0.150 * 0.78, 0.175

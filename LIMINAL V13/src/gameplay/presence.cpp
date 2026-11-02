@@ -1575,6 +1575,7 @@ void Presence::animate(Agent& a, double dt, const Context& c, std::vector<Event>
     in.bait = a.bait;
     in.light = a.light, in.perceive = a.perceive, in.perceiveAt = a.perceiveAt;
     in.wave = a.wave, in.talk = a.talk, in.plea = a.plea, in.strike = a.strike;
+    if (a.role == Role::Wretch || a.role == Role::SkinStealer) a.cre.setExtra({(float)a.variant});  // V13.3 Level 3: Waffe, Mantel
     in.lightFrom = a.showcase && a.light > 0.0f && length(a.lightFrom) < 1e-3f ? c.view.eye : a.lightFrom;
     if (const world::Tile* t = c.world->tileIfLoaded(ifloor(a.pos.x), ifloor(a.pos.y))) in.clearance = t->clearance();
     a.cre.update(dt, in);
@@ -1844,6 +1845,7 @@ void Presence::netApply(const std::vector<NetState>& in, double stamp) {
             if (q->puppet && q->netId == n.netId) a = q.get();
         if (n.role < 0 || n.role >= kRoleCount) continue;  // V13.3: Rolle unbekannt (Protokoll traegt bis kRoles): nicht zeigen
         const Role role = (Role)n.role;
+        if (a && a->role == role && role == Role::SkinStealer && n.variant == 3) swapVariant(*a, 3);  // V13.3 Level 3: Verwandlung
         if (a && (a->role != role || a->variant != n.variant)) {  // Kennung neu vergeben: neu anlegen
             std::erase_if(agents_, [&](const auto& q) { return q.get() == a; });
             a = nullptr;
