@@ -85,6 +85,8 @@ enum FixedMaterial : u32 {
     // roter Umhang mit Goldsaum, Klinge, Purpurspuren (Glasur, gluehende Adern)
     FM_ENT_RK_PLATE, FM_ENT_RK_PLATE_DARK, FM_ENT_RK_MAIL, FM_ENT_RK_CAPE, FM_ENT_RK_GOLD, FM_ENT_RK_BLADE, FM_ENT_RK_PURPLE,
     FM_ENT_RK_PURPLE_GLOW,
+    // V13.3 Wow-Check Level 3 (KREATUR_SkinStealer.md, KREATUR_Wretch.md): faulige Stellen des Skin-Stealers; Schorf und Pusteln des Wretch
+    FM_ENT_SS_ROT, FM_ENT_WRE_CRUST, FM_ENT_WRE_PUS,
     FM_FIG_END,
 };
 static_assert(FM_FIG_END <= kFixedMaterials);

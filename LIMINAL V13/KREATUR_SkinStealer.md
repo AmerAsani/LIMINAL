@@ -172,3 +172,21 @@ Bilder: `docs/screens/creatures/l3_skinstealer/`.
 
 ### Tests (`gameplay_test`, „V13.3: Level 3 – Wretch mit Waffe, Skin-Stealer im Mantel“)
 Im Mantel (Variante 2); schließt sich an; bleibt 20 s in der Nähe, hält Abstand, greift nicht an; spricht Sätze; beim Gehen schwingt der Mantel (eigenes Geräusch); angesprochen antwortet er (noch getarnt); zweites Ansprechen: genau derselbe Satz; drittes: Verwandlung beginnt (Ankündigung, noch kein Angriff); Haut und Mantel reißen (Variante 3, Schrei); hungrig tötet er, wer stehen bleibt; die Lampe zu lange im Gesicht entlarvt; satt steht er in wahrer Gestalt, wer ruhig zurückweicht, den lässt er ziehen; hungrig hält er die Tarnung über 85 s und verwandelt sich dann; satt verabschiedet er sich nach über 60 s und geht. Das bisherige Grundverhalten (getarnt, hungrig: folgt, hält inne, tötet; Zurückweichen im Innehalten) wird jetzt in Level 1 geprüft; Ansprechen in Level 1 unverändert (eigene Prüfungen).
+
+### Wow-Check Level 3 – wahre Gestalt aus der Nähe (V13.3, Restpunkte)
+
+**Befund vorher** (`docs/screens/creatures/l3_skinstealer/r5_wahre_gestalt_lauert.jpg`): aus der Nähe glatt wie eine Puppe – gleichmäßig blassgelb, die Saugnoppen nur als feines Muster, keine Fäulnis, keine Adern, nichts Nasses. Die Seite (entity-10, Rev. 61) beschreibt blassgelbe Haut mit Noppen wie Saugnäpfe und eingesunkene weiße Augen; dass die Haut fault, ist **Interpretation** – er trägt tote Menschenhaut und lebt von Fleisch.
+
+**Umsetzung**
+- **Textur** `EL_PALE` (`render/texture_entity.cpp`, `pale`; nur die wahre Gestalt nutzt sie): ein verzweigtes Adernetz in zwei Größen (dunkel blaugrau, leicht erhaben), faulige Flecken (graubraun, eingesunken, mit dunklem, nass olivbraunem Kern und bläulich unterlaufenem Rand), trockene, schuppende Stellen (heller, rau, mit Schuppenrändern), feine Falten; Nässe (Rauheit 0,08–0,95) wechselt fleckweise, in der Fäulnis am nassesten. Material etwas dunkler (0,78), damit die Lampe nicht überstrahlt.
+- **Modell** `skinstealer.py` (auch `skinstealer_torn`): elf eingesunkene Fäulnisstellen (Brust, Rücken, Oberarme, Oberschenkel, Wange) mit eigenem nassem Material `ent_ss_rot` (olivbraun, geädert, glänzend), aus denen Schleim läuft; hervortretende Adern an Hals, Schläfen und Unterarmen; durchsichtiger Schleim (Material der Wrangler-Schleimhaut) in den Mundwinkeln, als Tropfen am Kinn und als nasser Film in den Augenhöhlen.
+
+**Runden** (Bilder `docs/screens/creatures/l3_wowcheck/`)
+
+| Runde | Befund | Änderung |
+|---|---|---|
+| 1 (`r1_skinstealer_gesicht_lampe.jpg`, `r1_skinstealer_ganz_lampe.jpg`) | Jetzt krank statt Puppe – aber die Fäulnis liegt in großen, grünlichen Flächen wie ein Tarnmuster, und die Lampe überstrahlt die blasse Haut. | Kleinere, unregelmäßige Flecken (zwei Rauschgrößen) mit dunklem Kern, grau- statt grünbraun, unterlaufener Rand violettgrau; Material dunkler. |
+| 2 (`r2_skinstealer_gesicht_lampe.jpg`, `r2_skinstealer_ganz_lampe.jpg`) | Die Flecken sind jetzt klein und verteilt – die Kerne aber tintenschwarz wie Spritzer. | Kerne nass olivbraun, seltener; Material 0,78. |
+| 3 (`r3_skinstealer_gesicht_lampe.jpg`, `r3_skinstealer_mittel_lampe.jpg`, `r3_skinstealer_mittel_raum.jpg`, `r3_skinstealer_zerrissen.jpg`) | Aus der Nähe: Adern, faulige Flecken, Schleim in Mund und Augenhöhlen, nasser Glanz auf Stirn und Wangen; aus der Mitte eine fleckige, kranke Gestalt; zerrissen hängt die Menschenhaut über fauligem Fleisch. Abgenommen. | – |
+
+**Wow-Check:** Aus der Nähe ist es keine Puppe mehr – unter der blassen Haut liegen dunkle Adern, faulige Stellen glänzen nass, Schleim zieht Fäden aus den Mundwinkeln und steht in den Augenhöhlen. Ehrlich: deutlich stärker als vorher (`r3_skinstealer_gesicht_lampe.jpg`); im vollen Lampenlicht bleibt die Gestalt hell – das ist die Seite (blassgelb).

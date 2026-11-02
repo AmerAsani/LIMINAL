@@ -235,12 +235,12 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     materialData_[FM_ENT_HAIR_GREY] = GpuMaterial{{2.6f, 2.5f, 2.4f}, 0, ent(EL_HAIR, ML_FIBER), 0.8f, 0, 0.12f};
     materialData_[FM_ENT_CLOTH_PINK] = GpuMaterial{{0.78f, 0.42f, 0.50f}, 0, tri(L_WOOL), 0.95f, 0, 0.35f};    // Kleid (Level 188)
     // Skin-Stealer: blassgelb, Saugnaepfchen als Mikrostruktur (Schuppen), feucht
-    materialData_[FM_ENT_PALESKIN] = GpuMaterial{{1, 1, 1}, 0, ent(EL_PALE, ML_SCALE) | kMatFlagSkin, 0.55f, 0, 0.1f};
+    materialData_[FM_ENT_PALESKIN] = GpuMaterial{{0.78f, 0.76f, 0.7f}, 0, ent(EL_PALE, ML_SCALE) | kMatFlagSkin, 0.55f, 0, 0.25f};  // V13.3 Wow-Check: im Lampenlicht ueberstrahlt
     materialData_[FM_ENT_HUMANSKIN] = GpuMaterial{{1, 1, 1}, 0, ent(EL_HUMAN, ML_PORES) | kMatFlagSkin, 0.6f, 0, 0.15f};
     materialData_[FM_ENT_UMBRA] = GpuMaterial{{0.010f, 0.010f, 0.012f}, 0, tri(L_SKIN), 1.3f, 1.0f, 0.0f};
     materialData_[FM_ENT_RATSKIN] = GpuMaterial{{1.05f, 0.88f, 0.92f}, 0, ent(EL_HUMAN, ML_CRAZE) | kMatFlagSkin, 0.7f, 0, 0.2f};
     // Wretch: rotbraun, trocken und schuppig (Risse)
-    materialData_[FM_ENT_WRETCHSKIN] = GpuMaterial{{1.05f, 0.55f, 0.38f}, 0, ent(EL_SKIN, ML_CRAZE) | kMatFlagSkin, 0.95f, 0, 0.35f};
+    materialData_[FM_ENT_WRETCHSKIN] = GpuMaterial{{0.86f, 0.78f, 0.72f}, 0, ent(EL_WRETCH, ML_CRAZE) | kMatFlagSkin, 1.0f, 0, 0.45f};  // V13.3 Wow-Check: eigene Haut (Schuppen, Wunden, Loecher, Pusteln); Runde 4: im Lampenlicht lachsrosa
     materialData_[FM_ENT_STONE] = GpuMaterial{{0.62f, 0.60f, 0.56f}, 0, ent(EL_HORN, ML_CRAZE), 1.0f, 0, 0.3f};
     materialData_[FM_ENT_RATFUR] = GpuMaterial{{0.16f, 0.15f, 0.15f}, 0, ent(EL_FUR, ML_FIBER), 0.9f, 0, 0.2f};
     // Hoernerspitzen der Death Rat: rot gluehend (Entity 24)
@@ -384,6 +384,11 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     materialData_[FM_ENT_RK_GOLD] = GpuMaterial{{0.62f, 0.45f, 0.16f}, 0, tri(L_WORSTED), 0.55f, 0.7f, 0.35f};
     materialData_[FM_ENT_RK_BLADE] = GpuMaterial{{0.70f, 0.70f, 0.71f}, 0, tri(L_METAL), 0.24f, 1.0f, 0.2f};
     materialData_[FM_ENT_RK_PURPLE] = GpuMaterial{{0.40f, 0.10f, 0.62f}, 0.35f, ent(EL_TOOTH, ML_CRAZE), 0.22f, 0.3f, 0.2f};
+    // V13.3 Wow-Check Level 3: Faeulnis (nass, olivbraun, geadert), Schorf (trocken, rissig, dunkel rotbraun), Pusteln (gelb, prall,
+    // nass glaenzend, leicht durchscheinend)
+    materialData_[FM_ENT_SS_ROT] = GpuMaterial{{0.62f, 0.55f, 0.36f}, 0, ent(EL_NEST, ML_PORES) | kMatFlagSkin, 0.22f, 0, 0.2f};
+    materialData_[FM_ENT_WRE_CRUST] = GpuMaterial{{0.30f, 0.14f, 0.08f}, 0, ent(EL_HORN, ML_CRAZE), 1.3f, 0, 0.35f};
+    materialData_[FM_ENT_WRE_PUS] = GpuMaterial{{0.95f, 0.82f, 0.42f}, 0, ent(EL_TOOTH, ML_PORES) | kMatFlagSkin, 0.18f, 0, 0.15f};
     materialData_[FM_ENT_RK_PURPLE_GLOW] = GpuMaterial{{0.62f, 0.25f, 1.0f}, 2.2f, ent(EL_TOOTH, ML_PORES), 0.2f, 0, 0.0f};
     writeMaterials(gpu);
     lights_ = gpu.createStructured(sizeof(GpuLight), 2048, true, false);

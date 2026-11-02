@@ -33,7 +33,8 @@ class JobSystem;
 namespace lim::gfx {
 
 // V13.2: Ansicht im Fenster (Fensterwesen), Menschenhaut (Faceling, getarnter Skin-Stealer), blasse Noppenhaut (Skin-Stealer)
-enum EntLayer : u8 { EL_SKIN, EL_HAIR, EL_HORN, EL_TOOTH, EL_WING, EL_CHITIN, EL_FUR, EL_NEST, EL_VIEW, EL_HUMAN, EL_PALE, EL_COUNT };
+// V13.3 Wow-Check Level 3 (KREATUR_Wretch.md): eigene Haut des Wretch (vorher die Haut des Hound - im Lampenlicht zu sauber)
+enum EntLayer : u8 { EL_SKIN, EL_HAIR, EL_HORN, EL_TOOTH, EL_WING, EL_CHITIN, EL_FUR, EL_NEST, EL_VIEW, EL_HUMAN, EL_PALE, EL_WRETCH, EL_COUNT };
 enum MicroLayer : u8 { ML_PORES, ML_FIBER, ML_CRAZE, ML_SCALE, ML_COUNT };
 
 struct EntLayerDesc {
@@ -44,7 +45,7 @@ struct EntLayerDesc {
 extern const EntLayerDesc kEntLayers[EL_COUNT];
 extern const EntLayerDesc kMicroLayers[ML_COUNT];
 // Plaetze der Ebenen-Konstanten (gLayer im Shader) hinter den Weltebenen
-constexpr int kEntLayerSlot = 96, kMicroLayerSlot = 107;  // V12: Weltebenen bis 90 (48 aus Bilddateien); V13.2: Mikro ab 107
+constexpr int kEntLayerSlot = 96, kMicroLayerSlot = 108;  // V12: Weltebenen bis 90 (48 aus Bilddateien); V13.2: Mikro ab 107; V13.3: ab 108 (Haut des Wretch)
 constexpr int kLayerSlots = 112;
 
 struct EntityTextures {
