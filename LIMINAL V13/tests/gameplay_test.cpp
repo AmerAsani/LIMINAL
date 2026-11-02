@@ -4823,6 +4823,133 @@ static void testV133Phenomena(const std::string& dataDir) {
     }
 }
 
+// --- V13.3: Level 3 - purpifizierte tote Wesen in der Wand (KREATUR_L3_Purpur.md) --------------------------------------------
+static void testV133Purple(const std::string& dataDir) {
+    std::printf("V13.3: Level 3 - purpifizierte Wesen in der Wand (Licht, Klang, Strahlung, Lampe, Botschaft)\n");
+    const game::Content& content = *gContent11;
+    game::PrefabLibrary prefabs;
+    prefabs.loadDirectory(dataDir + "/prefabs");
+    JobSystem jobs(2);
+    auto open = [&](const char* level, i64 seed) {
+        auto s = std::make_unique<game::GameSession>(content, prefabs, content.level(level, world::kLayoutV6), seed, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        return s;
+    };
+    auto step = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, double secs) {
+        for (int i = 0; i < (int)(secs * 60.0); ++i) {
+            s.update(1.0 / 60.0, game::PlayerControl{}, false);
+            ev.insert(ev.end(), s.events().begin(), s.events().end());
+            s.events().clear();
+        }
+    };
+    // Spieler mit den Fuessen an feet, Blick auf das Ziel
+    auto put = [](game::GameSession& s, vec3 feet, vec3 target) {
+        auto& pl = s.player();
+        pl.x = feet.x, pl.y = feet.y, pl.z = s.world().tile(ifloor(feet.x), ifloor(feet.y)).floor, pl.vx = pl.vy = 0.0;
+        const double eye = pl.z + 1.6;
+        pl.angle = std::atan2(target.y - feet.y, target.x - feet.x);
+        pl.pitch = std::atan2(target.z - eye, std::hypot(target.x - feet.x, target.y - feet.y));
+        s.body().reset();
+        s.preload();
+    };
+    auto sounds = [](const std::vector<game::GameEvent>& ev, const char* name) {
+        return (int)std::count_if(ev.begin(), ev.end(), [&](const game::GameEvent& e) { return e.type == game::GameEvent::SoundAt && e.sound == name; });
+    };
+    auto toast = [](const std::vector<game::GameEvent>& ev, const char* part) {
+        return std::any_of(ev.begin(), ev.end(), [&](const game::GameEvent& e) {
+            return e.type == game::GameEvent::Toast && e.text.find(part) != std::string::npos;
+        });
+    };
+    {
+        auto s0 = open("level0", 3);
+        check(!s0->purple().any(), "Purpur: Level 0 hat keine");
+    }
+    auto s = open("level3", 3);
+    const game::Purpification& P = s->purple();
+    int iSt = -1, iHo = -1;
+    for (size_t i = 0; i < P.sites().size(); ++i) (P.sites()[i].kind == "stealer" ? iSt : iHo) = (int)i;
+    std::printf("  Stellen %zu\n", P.sites().size());
+    check(P.sites().size() == 2 && iSt >= 0 && iHo >= 0, "Purpur: zwei Stellen in Level 3 (Skin-Stealer, Hound) - selten");
+    if (iSt < 0 || iHo < 0) return;
+    const game::Purpification::Site st = P.sites()[(size_t)iSt], ho = P.sites()[(size_t)iHo];
+    // in Ziegelgaengen, Wand dahinter, Gang davor
+    bool placed = true;
+    for (const auto* x : {&st, &ho}) {
+        const vec3 n{std::cos(x->yaw), std::sin(x->yaw), 0.0f};
+        const vec3 front = x->base + n * 0.5f, back = x->base - n * 0.4f;
+        const world::Tile& tf = s->world().tile(ifloor(front.x), ifloor(front.y));
+        const world::Tile& tb = s->world().tile(ifloor(back.x), ifloor(back.y));
+        const std::string type = tf.room && tf.room->type ? tf.room->type->key : "";
+        placed = placed && tf.open() && tb.solid() && (type == "gang" || type == "paranoia");
+        std::printf("  %s bei %.1f/%.1f im Raum %s\n", x->kind.c_str(), x->base.x, x->base.y, type.c_str());
+    }
+    check(placed, "Purpur: beide Stellen an einer Ziegelwand im Gang (dahinter Wand)");
+    const vec3 nS{std::cos(st.yaw), std::sin(st.yaw), 0.0f}, rS{std::sin(st.yaw), -std::cos(st.yaw), 0.0f};
+    // Strahlung: dicht davor stark, ab einigen Metern nichts, hinter der Wand nichts
+    const float eNear = P.exposure(st.base + nS * 0.8f + vec3{0, 0, 1.6f});
+    const float eFar = P.exposure(st.base + nS * 0.8f + rS * 6.0f + vec3{0, 0, 1.6f});
+    const float eBehind = P.exposure(st.base - nS * 0.6f + vec3{0, 0, 1.6f});
+    std::printf("  Strahlung nah %.2f, 6 m %.2f, hinter der Wand %.2f\n", eNear, eFar, eBehind);
+    check(eNear > 0.8f && eFar == 0.0f && eBehind == 0.0f, "Purpur: Strahlung nur dicht vor dem Koerper");
+    // Licht: violett, nur in der Naehe
+    std::vector<game::Purpification::Light> lights, farL;
+    P.lights(lights, st.glow + nS * 2.0f, 24.0f, 1.0);
+    const bool violet = !lights.empty() && lights[0].color.z > lights[0].color.x && lights[0].color.x > lights[0].color.y && lights[0].range > 3.0f;
+    P.lights(farL, st.glow + nS * 0.5f + rS * 40.0f, 24.0f, 1.0);
+    check(violet && farL.empty(), "Purpur: violettes Licht vor dem Koerper, aus 40 m keines");
+    // Lampe: stockt nah, fern nicht
+    float minNear = 1.0f, minFar = 1.0f;
+    for (int i = 0; i < 600; ++i) {
+        minNear = std::min(minNear, P.lampFactor(st.glow + nS * 0.6f, i / 60.0));
+        minFar = std::min(minFar, P.lampFactor(st.glow + nS * 0.6f + rS * 8.0f, i / 60.0));
+    }
+    std::printf("  Lampe nah min %.2f, 8 m min %.2f\n", minNear, minFar);
+    check(minNear < 0.6f && minFar == 1.0f, "Purpur: die Taschenlampe stockt nur nahe der Stelle");
+    // Lampe auf dem Koerper: die Glut schwillt an (Interpretation)
+    {
+        game::Purpification Q = P;
+        std::vector<game::Purpification::Event> qe;
+        const vec3 lp = st.glow + nS * 3.0f;
+        const float before = Q.glowLevel(Q.sites()[(size_t)iSt], 2.0);
+        for (int i = 0; i < 180; ++i) Q.update(1.0 / 60.0, lp, nS * -1.0f, true, true, lp, normalize(st.glow - lp), qe);
+        const float after = Q.glowLevel(Q.sites()[(size_t)iSt], 2.0);
+        std::printf("  Glut ohne Lampe %.2f, nach 3 s im Lichtkegel %.2f\n", before, after);
+        check(after > before * 1.4f, "Purpur: angeleuchtet schwillt die Glut an");
+    }
+    // Sitzung: nah - Knistern, Hinweise, Verstand sinkt; fern - nichts davon
+    std::vector<game::GameEvent> ev;
+    put(*s, st.base + nS * 0.8f, st.glow);
+    s->stats().sanity = 80.0;
+    s->stats().health = 100.0;
+    step(*s, ev, 12.0);
+    const double dropNear = 80.0 - s->stats().sanity;
+    const int crNear = sounds(ev, "purple_crackle");
+    const bool hints = toast(ev, "Violett.") && toast(ev, "Metall auf der Zunge");
+    std::vector<game::GameEvent> ev2;
+    vec3 farFeet = st.base + nS * 1.0f + rS * 30.0f;
+    if (s->world().tile(ifloor(farFeet.x), ifloor(farFeet.y)).solid()) farFeet = st.base + nS * 1.0f - rS * 30.0f;
+    put(*s, farFeet, st.base);
+    s->stats().sanity = 80.0;
+    step(*s, ev2, 12.0);
+    const double dropFar = 80.0 - s->stats().sanity;
+    std::printf("  12 s nah: Verstand -%.2f, Knistern %d; fern: -%.2f, Knistern %d\n", dropNear, crNear, dropFar, sounds(ev2, "purple_crackle"));
+    check(dropNear - dropFar > 2.0, "Purpur: Strahlung zehrt nah am Verstand");
+    check(crNear >= 3 && sounds(ev2, "purple_crackle") == 0, "Purpur: Knistern nah zu hoeren, fern nicht");
+    check(hints, "Purpur: Hinweise beim ersten Anblick und bei der Strahlung");
+    // die Botschaft neben dem Hound lesen
+    const vec3 nH{std::cos(ho.yaw), std::sin(ho.yaw), 0.0f};
+    std::vector<game::GameEvent> ev3;
+    put(*s, ho.text + nH * 1.4f - vec3{0, 0, ho.text.z - ho.base.z}, ho.text);
+    step(*s, ev3, 1.0);
+    check(toast(ev3, "An die Wand gemalt"), "Purpur: die Botschaft neben dem Hound laesst sich lesen");
+    // Klangschleife: eine je Stelle (Brummen)
+    std::vector<game::SoundSource> src;
+    s->collectSounds(src);
+    const int hums = (int)std::count_if(src.begin(), src.end(), [](const game::SoundSource& x) { return x.sound && *x.sound == "purple_hum"; });
+    check(hums == 2, "Purpur: Brummen als Klangquelle an jeder Stelle");
+}
+
 int main(int argc, char** argv) {
     if (argc < 2) {
         std::printf("Aufruf: gameplay_test <data-Ordner>\n");
@@ -4869,6 +4996,7 @@ int main(int argc, char** argv) {
     testV133LureTalk(argv[1]);    // V13.3: Leuchtstab (Smiler), Ansprechen (Skin-Stealer)
     testV133Phenomena(argv[1]);   // V13.3: Erscheinungen in Level 1 (Pilz, Garden, Gemaelde, Tuerspuren)
     testV133Level3Kin(argv[1]);   // V13.3: Level 3 - Wretch mit Waffe, Skin-Stealer im Mantel
+    testV133Purple(argv[1]);      // V13.3: Level 3 - purpifizierte Wesen in der Wand
     std::printf("%s: %d Pruefungen, %d Fehler\n", gFails ? "FEHLGESCHLAGEN" : "OK", gChecks, gFails);
     return gFails ? 1 : 0;
 }
