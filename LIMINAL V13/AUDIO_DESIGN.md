@@ -40,6 +40,7 @@
 | Variation | jedes Ereignis aus mehreren Varianten, nie zweimal dieselbe hintereinander. Dazu zufällig Tonhöhe ±3 %, Pegel ±1,5 dB, leichte Klangfarbe |
 | Tonhöhe | kubische Hermite-Interpolation statt linearer |
 | Stimmen | 96 Stimmen mit Priorität; leise und ferne Stimmen werden zuerst ersetzt |
+| Ausfallsicherheit (V13.3) | gestoppte, unhörbare Schleifen sind sofort frei (vorher belegten sie ihre Stimme für immer, B-017); Mischer mit MMCSS-Priorität; Neuverbinden bei Gerätewechsel, Formatwechsel, Geräteverlust und stummem Treiber; Watchdog mit Stille-Erkennung am Master-Ausgang. Einzelheiten, Messungen und Tests: `AUDIO_BUG.md` |
 
 ## 4. Klangerzeugung (Syntheseset V11)
 

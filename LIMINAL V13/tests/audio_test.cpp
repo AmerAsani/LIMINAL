@@ -12,6 +12,10 @@
 //   - Abstand nach 1/d, Kopfschatten (abgewandtes Ohr dumpfer), Luftdaempfung
 //   - Begrenzer: laute Summen ohne Clipping, leise Klaenge unveraendert (keine Dauersaettigung)
 //   - Hall-Abbruch (Level 37), Ducking der Atmosphaere, Varianten ohne direkte Wiederholung
+// V13.3 (AUDIO_BUG.md):
+//   - gestoppte unhoerbare Schleifen geben ihre Stimme frei (B-017), 200 Ebenenwechsel ohne Stau
+//   - Stille-Erkennung am Master-Ausgang (Alarm bei erwartetem Klang, kein Fehlalarm), NaN-Schutz,
+//     Pause/Daempfung bleiben nicht haengen
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -165,7 +169,7 @@ int main() {
     // --- Richtung: Quelle rechts --------------------------------------------------------------------
     {
         AudioSystem a;
-        a.initOffline(jobs);
+        a.initShared(base);  // V13.3: Klangbank teilen (schneller)
         quietRoom(a);
         int id = a.startLoop("lamp_hum_0", 1.0f, Bus::Effects);
         a.setLoopSend(id, 0.0f);
@@ -185,7 +189,7 @@ int main() {
         check(best >= 10 && best <= 35, "kein plausibler Laufzeitunterschied fuer eine Quelle rechts");
         // Kopfschatten: das abgewandte (linke) Ohr hat relativ weniger Hoehen
         AudioSystem b;
-        b.initOffline(jobs);
+        b.initShared(base);  // V13.3: Klangbank teilen (schneller)
         quietRoom(b);
         int id2 = b.startLoop("rain_glass", 1.0f, Bus::Effects);
         b.setLoopSend(id2, 0.0f);
@@ -202,7 +206,7 @@ int main() {
         const float dist[2] = {2.0f, 8.0f};
         for (int k = 0; k < 2; ++k) {
             AudioSystem a;
-            a.initOffline(jobs);
+            a.initShared(base);  // V13.3: Klangbank teilen (schneller)
             quietRoom(a);
             int id = a.startLoop("rain_glass", 1.0f, Bus::Effects);
             a.setLoopSend(id, 0.0f);
@@ -221,7 +225,7 @@ int main() {
         double level[2], hf[2];
         for (int k = 0; k < 2; ++k) {
             AudioSystem a;
-            a.initOffline(jobs);
+            a.initShared(base);  // V13.3: Klangbank teilen (schneller)
             quietRoom(a);
             int id = a.startLoop("rain_glass", 1.0f, Bus::Effects);
             a.setLoopSend(id, 0.0f);
@@ -240,7 +244,7 @@ int main() {
         double tail[2];
         for (int k = 0; k < 2; ++k) {
             AudioSystem a;
-            a.initOffline(jobs);
+            a.initShared(base);  // V13.3: Klangbank teilen (schneller)
             a.setVolumes(1, 1, 1);
             a.setListener({0, 0, 1.6f}, 0.0f);
             Acoustics ac{k == 0 ? 0.4f : 2.5f, 0.3f, 0.3f, 0.02f};
@@ -261,7 +265,7 @@ int main() {
         double gated[2];
         for (int k = 0; k < 2; ++k) {
             AudioSystem a;
-            a.initOffline(jobs);
+            a.initShared(base);  // V13.3: Klangbank teilen (schneller)
             a.setVolumes(1, 1, 1);
             Acoustics ac{2.5f, 0.3f, 0.3f, 0.02f};
             ac.gate = k == 0 ? 0.0f : 0.25f;
@@ -283,7 +287,7 @@ int main() {
             std::vector<float> o[2];
             for (int k = 0; k < 2; ++k) {
                 AudioSystem a;
-                a.initOffline(jobs);
+                a.initShared(base);  // V13.3: Klangbank teilen (schneller)
                 a.setVolumes(1, 1, 1);
                 Acoustics ac{0.3f, 0.5f, 0.3f, 0.06f};
                 if (k == 1) ac.roomW = 4, ac.roomD = 5, ac.roomH = 2.7f, ac.lx = 1.2f, ac.ly = 2.0f, ac.lz = 1.6f, ac.early = 1.0f;
@@ -302,7 +306,7 @@ int main() {
     // --- Begrenzer: laut ohne Clipping, leise unveraendert -------------------------------------------
     {
         AudioSystem a;
-        a.initOffline(jobs);
+        a.initShared(base);  // V13.3: Klangbank teilen (schneller)
         quietRoom(a);
         for (int k = 0; k < 12; ++k) a.play("hound_bark_0", 1.0f);
         auto out = run(a, rate / 2);
@@ -311,7 +315,7 @@ int main() {
         std::printf("Begrenzer: Spitze bei 12 gleichzeitigen Klaengen %.3f\n", pk);
         check(pk <= 0.95f, "Ausgang uebersteuert (> -0.45 dBFS)");
         AudioSystem q;
-        q.initOffline(jobs);
+        q.initShared(base);  // V13.3: Klangbank teilen (schneller)
         quietRoom(q);
         q.play("step_concrete_0", 0.5f);
         run(q, rate / 4);
@@ -323,7 +327,7 @@ int main() {
         double amb[2];
         for (int k = 0; k < 2; ++k) {
             AudioSystem a;
-            a.initOffline(jobs);
+            a.initShared(base);  // V13.3: Klangbank teilen (schneller)
             quietRoom(a);
             a.startLoop("bed_l1_space", 1.0f, Bus::Ambience);
             run(a, rate / 2);
@@ -342,7 +346,7 @@ int main() {
     // --- Varianten: nie zweimal dieselbe hintereinander ----------------------------------------------
     {
         AudioSystem a;
-        a.initOffline(jobs);
+        a.initShared(base);  // V13.3: Klangbank teilen (schneller)
         quietRoom(a);
         int repeats = 0;
         const Sound* last = nullptr;
@@ -357,6 +361,182 @@ int main() {
         check(repeats == 0, "dieselbe Variante zweimal hintereinander");
         check(seen.size() == 8, "nicht alle Varianten werden benutzt");
         check(a.variants("hound_bark") == 2, "hound_bark: 2 Varianten");
+    }
+
+    // --- V13.3 (AUDIO_BUG.md): Stimmen werden frei, Ebenenwechsel, Stille-Erkennung, NaN, haengende Zustaende ----------
+    auto dbOf = [](double x) { return x > 1e-9 ? 20.0 * std::log10(x) : -180.0; };
+    {
+        // B-017: eine gestoppte Schleife, die gerade nicht zu hoeren ist (ausser Reichweite, Lautstaerke 0), blieb fuer
+        // immer belegt. Nach 96 solchen Schleifen nahm das System keinen Klang mehr an.
+        AudioSystem a;
+        a.initShared(base);
+        quietRoom(a);
+        int startFails = 0;
+        for (int k = 0; k < 500; ++k) {
+            const int id = a.startLoop(k % 2 ? "lamp_hum_1" : "lamp_ind_0", k % 3 ? 0.13f : 0.0f, Bus::Ambience);
+            if (id < 0) {
+                ++startFails;
+                continue;
+            }
+            a.setLoopSpatial(id, {{30.0f, 0.0f, 1.6f}, 9.0f, 0.0f});  // jenseits der Reichweite: unhoerbar
+            run(a, 480);
+            a.stopLoop(id);
+            run(a, 480);
+        }
+        const AudioStats st = a.stats();
+        std::printf("Stimmen nach 500 gestoppten unhoerbaren Schleifen: %d aktiv, %d haengend, %llu abgewiesen, %d Startfehler\n", st.voices,
+                    st.stuck, st.allocFails, startFails);
+        check(st.voices == 0 && st.stuck == 0, "gestoppte unhoerbare Schleifen belegen keine Stimmen mehr (B-017)");
+        check(startFails == 0 && st.allocFails == 0, "Schleifen starten immer (keine erschoepften Stimmen)");
+        a.play("step_concrete_0", 1.0f);
+        auto out = run(a, rate / 10);
+        check(rms(out, 0) > 0.003, "nach 500 Schleifen klingt ein Schritt (Pegel am Master-Ausgang)");
+    }
+    {
+        // Ebenenwechsel-Stresstest (ohne Geraet): je Ebene Klangbetten, Leuchten in und ausser Reichweite, Automaten,
+        // Einzelklaenge, Hoerer laeuft; dann stopAll + resetMix wie App::enterPlaying. 200 Wechsel.
+        AudioSystem a;
+        a.initShared(base);
+        quietRoom(a);
+        a.enableSilenceCheck(true);
+        int worstVoices = 0, notDrained = 0, quiet = 0, peakVoices = 0;
+        double minDb = 0.0;
+        dsp::Rand r{77};
+        for (int lvl = 0; lvl < 200; ++lvl) {
+            std::vector<int> ids;
+            for (const char* bed : {"bed_l0_room", "bed_l1_space"}) {
+                const int id = a.startLoop(bed, 0.0f, Bus::Ambience);
+                a.setLoopSend(id, 0.0f);
+                ids.push_back(id);
+            }
+            for (int k = 0; k < 12; ++k) {
+                const int id = a.startLoop(std::string("lamp_hum_") + std::to_string(k % 4), 0.0f, Bus::Ambience);
+                a.setLoopSpatial(id, {{r.range(-14.0f, 14.0f), r.range(-14.0f, 14.0f), 2.6f}, 9.0f, r.range(0.0f, 1.0f)});
+                ids.push_back(id);
+            }
+            if (lvl % 3 == 0) a.setPaused(true);    // Pausenmenue offen beim Wechsel
+            if (lvl % 5 == 0) a.setMuffle(0.75f);   // Tod (Schreck) vor dem Wechsel
+            for (int step = 0; step < 10; ++step) {
+                for (size_t k = 0; k < ids.size(); ++k) a.setLoopVolume(ids[k], k < 2 ? 0.4f : 0.13f * (float)step / 9.0f);
+                a.setListener({r.range(-3.0f, 3.0f), r.range(-3.0f, 3.0f), 1.6f}, r.range(0.0f, 6.28f));
+                PlayOpts o;
+                o.volume = 0.6f;
+                a.play2d("step_concrete", o);
+                a.playAt("dist_door_0", {r.range(-30.0f, 30.0f), r.range(-30.0f, 30.0f), 1.0f}, 0.8f, 20.0f);
+                run(a, 960);
+                // Leuchten verlassen den Bereich und werden gestoppt (wie Soundscape::updateLamps)
+                if (step == 6)
+                    for (size_t k = 2; k < ids.size(); k += 2) {
+                        a.setLoopSpatial(ids[k], {{40.0f, 40.0f, 2.6f}, 9.0f, 0.0f});
+                        a.stopLoop(ids[k]);
+                    }
+            }
+            a.setPaused(false);
+            a.setMuffle(0.0f);
+            auto out = run(a, rate / 5);
+            const double db = dbOf(rms(out, 0));
+            minDb = std::min(minDb, db);
+            if (db < -45.0) ++quiet;
+            peakVoices = std::max(peakVoices, a.stats().voices);
+            // Wechsel
+            a.stopAll();
+            a.resetMix();
+            run(a, 480 * 8);  // 80 ms: alles ausgeblendet
+            const AudioStats st = a.stats();
+            worstVoices = std::max(worstVoices, st.voices);
+            if (st.voices != 0) ++notDrained;
+        }
+        const AudioStats st = a.stats();
+        std::printf("Ebenenwechsel 200x: nach dem Wechsel hoechstens %d Stimmen aktiv (%d nicht leer), Spitze %d Stimmen, leisester Ebenenpegel %.1f dBFS, "
+                    "%llu abgewiesen, %llu Stille-Alarme, %llu NaN\n",
+                    worstVoices, notDrained, peakVoices, minDb, st.allocFails, st.silenceAlarms, st.nonFinite);
+        check(notDrained == 0, "nach jedem Ebenenwechsel sind alle Stimmen frei");
+        check(quiet == 0, "jede Ebene klingt (Master-Ausgang ueber -45 dBFS)");
+        check(st.allocFails == 0 && st.silenceAlarms == 0 && st.nonFinite == 0, "keine erschoepften Stimmen, kein Fehlalarm, kein NaN");
+        check(st.stuck == 0 && st.reclaimed == 0, "keine Stimme haengt im Ausblenden (Watchdog musste nichts zurueckholen)");
+    }
+    {
+        // Stille-Erkennung: Pegelmessung am Master-Ausgang schlaegt bei erwartetem Klang Alarm (gestellter stummer Zustand),
+        // der Mischer setzt sich zurueck und klingt wieder; kein Alarm bei gewollter Stille (Master 0, nichts spielt, Pause)
+        AudioSystem a;
+        a.initShared(base);
+        quietRoom(a);
+        a.enableSilenceCheck(true);
+        const int id = a.startLoop("bed_l1_space", 0.8f, Bus::Ambience);
+        run(a, rate / 2);
+        a.injectFault(Fault::MuteOutput);
+        auto o1 = run(a, rate * 3 / 4);
+        const AudioStats s1 = a.stats();
+        auto o2 = run(a, rate * 3 / 4);
+        const AudioStats s2 = a.stats();
+        const double tail = rms(o2, 0, (size_t)(rate / 2));
+        std::printf("Stille-Erkennung: stumm %.1f dBFS -> Alarme %llu nach 0,75 s, %llu nach 1,5 s; danach %.1f dBFS\n", dbOf(rms(o1, 0)),
+                    s1.silenceAlarms, s2.silenceAlarms, dbOf(tail));
+        check(s1.silenceAlarms == 0 && s2.silenceAlarms == 1, "Stille bei erwartetem Klang wird nach 1 s erkannt (genau ein Alarm)");
+        check(tail > 0.003, "nach dem Alarm klingt der Master-Ausgang wieder");
+        // keine Fehlalarme
+        a.setVolumes(0.0f, 1.0f, 1.0f);
+        run(a, rate * 2);
+        a.setVolumes(1.0f, 1.0f, 1.0f);
+        a.setPaused(true);
+        run(a, rate * 2);
+        a.setPaused(false);
+        a.stopLoop(id);
+        run(a, rate * 2);
+        check(a.stats().silenceAlarms == 1, "kein Fehlalarm bei Master 0, Pause oder ohne Klang");
+    }
+    {
+        // NaN im DSP-Zustand: vorher blieb der Ausgang fuer immer ungueltig (Hall und Begrenzer tragen den Wert weiter)
+        AudioSystem a;
+        a.initShared(base);
+        quietRoom(a);
+        a.startLoop("bed_l1_space", 0.8f, Bus::Ambience);
+        run(a, rate / 2);
+        a.injectFault(Fault::NanOutput);
+        auto o = run(a, rate / 2);
+        bool finite = true;
+        for (float v : o) finite = finite && std::isfinite(v);
+        const AudioStats st = a.stats();
+        std::printf("NaN im Filterzustand: %llu ungueltige Bloecke, danach %.1f dBFS\n", st.nonFinite, dbOf(rms(o, 0, (size_t)(rate / 4))));
+        check(finite && st.nonFinite == 1, "NaN wird erkannt, der Block stumm geschaltet, der Zustand zurueckgesetzt");
+        check(rms(o, 0, (size_t)(rate / 4)) > 0.003, "nach dem NaN klingt es wieder");
+        // ungueltige Angaben des Spiels werden abgewiesen statt den Mischer zu vergiften
+        const int id = a.startLoop("lamp_hum_0", 1.0f, Bus::Effects);
+        a.setLoopSpatial(id, {{std::nanf(""), 0.0f, 1.6f}, 9.0f, 0.0f});
+        a.setListener({0.0f, std::nanf(""), 1.6f}, 0.0f);
+        a.playAt("dist_door_0", {std::nanf(""), 0.0f, 0.0f}, 1.0f, 20.0f);
+        auto o2 = run(a, rate / 4);
+        bool fin2 = true;
+        for (float v : o2) fin2 = fin2 && std::isfinite(v);
+        check(fin2 && a.stats().nonFinite == 1 && a.stats().badInput == 3, "NaN-Positionen werden abgewiesen (3), Ausgang bleibt gueltig");
+    }
+    {
+        // Pause und Daempfung bleiben nicht haengen: resetMix (neue Sitzung, Hauptmenue) stellt den vollen Pegel her
+        double lvl[2];
+        for (int k = 0; k < 2; ++k) {
+            AudioSystem a;
+            a.initShared(base);
+            quietRoom(a);
+            a.startLoop("bed_l1_space", 0.8f, Bus::Ambience);
+            if (k == 1) a.setPaused(true), a.setMuffle(0.75f);
+            run(a, rate / 2);  // beide Laeufe an derselben Stelle des Klangs messen
+            a.resetMix();
+            run(a, rate / 2);
+            lvl[k] = rms(run(a, rate / 2), 0);
+        }
+        std::printf("Pause + Daempfung, dann resetMix: %.1f dBFS (ohne: %.1f dBFS)\n", dbOf(lvl[1]), dbOf(lvl[0]));
+        check(std::fabs(dbOf(lvl[1]) - dbOf(lvl[0])) < 1.0, "nach resetMix voller Pegel (Pause/Daempfung haengen nicht)");
+    }
+    {
+        // Erwarteter Pegel (Grundlage der Stille-Erkennung) passt zum gemessenen
+        AudioSystem a;
+        a.initShared(base);
+        quietRoom(a);
+        a.startLoop("bed_l1_space", 0.8f, Bus::Ambience);
+        run(a, rate * 2);
+        const AudioStats st = a.stats();
+        std::printf("Pegel: gemessen %.1f dBFS, erwartet %.1f dBFS\n", dbOf(st.outRms), dbOf(st.expectedRms));
+        check(std::fabs(dbOf(st.outRms) - dbOf(st.expectedRms)) < 6.0, "erwarteter und gemessener Pegel liegen nah beieinander");
     }
 
     std::printf("%s: %d Pruefungen, %d Fehler\n", gFails ? "FEHLGESCHLAGEN" : "OK", gChecks, gFails);
