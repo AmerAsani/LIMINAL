@@ -59,7 +59,7 @@ bool Presence::spawnKin(Role r, const Context& c, std::vector<Event>& out) {
     const bool rat = r == Role::Rat;
     // ausser Sicht, 14..30 m Weg (Ratten 8..20 m); erlaubter Raum; Wretch bevorzugt das Dunkel (die Seite: im Schatten)
     vec3 p;
-    bool ok = false;
+    bool ok = rat && ratFoodSpawn(c, p);  // V13.3 Teil 4: Level 2 - nahe an Faessern und Essensresten, ausser Sicht
     const auto allowed = [&](vec3 q) { return roomAllowed(c, q, k); };
     for (int tries = 0; tries < 8 && !ok; ++tries) {
         // erst nah (14..30 m Weg), sonst weiter (Raeume der Art koennen weiter weg liegen - die Gaenge in Level 188)
@@ -504,6 +504,7 @@ void Presence::thinkRat(Agent& a, double dt, const Context& c, std::vector<Event
     const bool scare = d < (c.player->sprinting ? 6.0f : 3.0f) || (a.light > 0.5f && d < 6.0f);
     switch (a.state) {
         case 0: {  // schnueffeln, fressen, huschen
+            if (ratFeed(a, dt, c, out, scare)) break;  // V13.3 Teil 4: trinkt am Fass, frisst Reste (presence_rat_l2.cpp)
             if (a.provoke > 2.5 && d < 1.6f && a.cool <= 0.0) {  // bedraengt: beisst zu
                 a.reach = 1.0f;
                 a.cool = 3.0;
@@ -519,12 +520,18 @@ void Presence::thinkRat(Agent& a, double dt, const Context& c, std::vector<Event
                 // weg vom Spieler
                 const vec3 away = nrmF(flat(a.pos - feet), dirYaw(a.yaw));
                 a.hasGoal = false;
-                for (int t = 0; t < 10 && !a.hasGoal; ++t) {
-                    const vec3 g = a.pos + rotateYaw(away, (float)rng_.uniform(-0.9, 0.9)) * (float)rng_.uniform(4.0, 7.0);
+                // V13.3 Teil 4 (Kritikrunde 3, Level 2): nur Ziele, zu denen der Weg kaum laenger ist als die Luftlinie - vorher
+                // lag das Ziel oft hinter einer Wand, und der Weg dorthin fuehrte durch die Tuer am Spieler vorbei. Zuletzt
+                // eine nahe Ecke seitlich (in einer Kammer ohne zweiten Ausgang drueckt sie sich an die Wand).
+                for (int t = 0; t < 16 && !a.hasGoal; ++t) {
+                    const bool corner = t >= 10;
+                    const vec3 g = a.pos + rotateYaw(away, (float)rng_.uniform(corner ? -1.7 : -0.9, corner ? 1.7 : 0.9)) *
+                                               (float)(corner ? rng_.uniform(1.5, 3.5) : rng_.uniform(4.0, 7.0));
                     const world::Tile* tl = c.world->tileIfLoaded(ifloor(g.x), ifloor(g.y));
-                    if (!figureWalkable(tl, 0.4f)) continue;
+                    if (!figureWalkable(tl, 0.4f) || hdist(g, feet) < d + 0.5f) continue;
                     a.field.build(*c.world, ifloor(g.x), ifloor(g.y), 0.4f);
-                    if (a.field.at(ifloor(a.pos.x), ifloor(a.pos.y)) < 0) continue;
+                    const int fc = a.field.at(ifloor(a.pos.x), ifloor(a.pos.y));
+                    if (fc < 0 || fc > (int)(hdist(g, a.pos) * 16.0f) + 15) continue;
                     a.goal = {g.x, g.y, tl->floor};
                     a.hasGoal = true;
                 }
@@ -558,6 +565,7 @@ void Presence::placeWindows(const Context& c) {
     windowsPlaced_ = true;
     if (!c.kin || !c.kin[world::KIN_WINDOW].on) return;
     const world::KinDef& K = c.kin[world::KIN_WINDOW];
+    if (K.mode == "end") return;  // V13.3 Teil 4: Level 2 - Fenster entstehen an Gangenden (presence_window_l2.cpp)
     const world::Sector* sec = c.world->sectorIfReady(c.player->x, c.player->y);
     if (!sec) {
         windowsPlaced_ = false;  // spaeter noch einmal

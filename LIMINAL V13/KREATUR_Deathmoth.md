@@ -122,3 +122,39 @@ Bilder: `docs/screens/nest/` (vorher `v0_nest_sheet.jpg`; je Runde `nN_nest_shee
 **Bleibt offen:**
 - Die Wucherung im Flur bleibt eine glatte, schwere Masse; eine feinere Schichtung bräuchte mehr Dreiecke, als die Detailstufe 0 (46 000) hergibt.
 - Die Fernansicht (`fern`) zeigt das Nest nicht. Es liegt dort außerhalb des Bildes; die Schrägansicht aus etwa 5 m ersetzt sie.
+
+## V13.3: Level 2 – kleine Motten an den Röhren
+
+Quellen: [Level 2](https://backrooms-wiki.wikidot.com/level-2) Rev. 93 (Abschnitt Entities/Deathmoths) und [Entity 4](https://backrooms-wiki.wikidot.com/entity-4) Rev. 6, beide CC BY-SA 3.0, eigene Worte.
+
+**Was die Seite sagt:** Früher zahlreich um die Leuchtstoffröhren (das Licht lockte sie), im großen Stromausfall weggezogen oder von den Smilern gefressen; heute kleiner als anderswo (Nahrungsmangel, enge Gänge) und meist friedlich – man soll sie aber nicht aus der Nähe reizen. Entity 4: die Männchen sind friedliche Aasfresser mit einer nadelartigen Saugröhre und den besten Fühlern der Art, die Weibchen aggressiv mit Reißkiefern. Fressfeinde auf Level 2: die kleinen Nguithr'xurh über den Maschinen.
+
+**Umsetzung (vorher „bewusst weggelassen“):**
+- **Modell** `tools/blender/creatures/moth_male.py` → `ent_moth_male_l0..l2.glb` (Variante 1 von Entity::Moth, Skelett `ent_moth`, L0 25 984 Dreiecke): statt Mandibeln eine zur Uhrfeder eingerollte Saugröhre, schlanker Leib mit schütterem Haarsaum und Haltezangen, große doppelt gekämmte Fühler, staubiger, dünner Pelz (Hunger). Das Weibchen ist das vorhandene `ent_moth` (Variante 2). Kleiner macht es das Spiel: Männchen Maßstab 0,52 (etwa 23 cm Spannweite), Weibchen 0,66.
+- **Verhalten** (`src/gameplay/presence_moth_l2.cpp`, Kin-Liste `KIN_MOTH`, Level-JSON `presence.moth`: Gruppe 3–6, `every 110`, `chance 0.35` = Anteil der Gruppen mit einem Weibchen, höchstens 2 Gruppen):
+  - Auftritt an einer **brennenden** Leuchtstoffröhre der Karte (`tube_white`, `tube_orange`; tote Gruppen nicht), 8–34 m Weg, ungesehen; Röhren nahe einem Nguithr'xurh-Netz bevorzugt. Kein Nest.
+  - Sitzen an der Decke neben der Röhre; vor dem Auffliegen zittern die Flügel (Aufwärmen). Fliegen um die Röhre, stoßen klickend ans Glas (`moth_tap_0..2`), kehren an ihren Platz zurück.
+  - **Licht lockt:** im Lampenkegel bis 9 m oder Lampe näher als 4 m – sie kreisen 1 m vor der Lampe, tun nichts. Lampe 3 s aus oder weiter als 12 m: zurück. Röhre dunkel (Stromausfall): sie ziehen ab.
+  - **Netz:** ein Männchen treibt manchmal in ein Netz der Nguithr'xurh nahe der Röhre (etwa alle 45 s je Männchen), zappelt, wird ungesehen eingesponnen (`Stridulate` der Spinne).
+  - **Reizen** (Gruppe): Gesicht unter 0,9 m an den Motten (+1,0/s), Lampe aus unter 2,5 m auf sie (+0,8/s), Rennen oder Springen unter 1,5 m (+2,0/s), Abklingen 0,4/s; ab 2,5 gereizt: Auffliegen (`moth_takeoff`), nach 0,25 s Brummen (`moth_buzz` – die Ankündigung), sie schwirren 0,5 m vor dem Gesicht. **Nur das Weibchen beißt**, frühestens 1,4 s nach dem Brummen und nur, solange man unter 3 m an der Röhre bleibt: 3 Punkte (`moth_bite`), dann 3,5–5,5 s Abstand. Zurücktreten (4 m) und Licht senken beruhigt; Männchen-Gruppen beruhigen sich spätestens nach 6 s, mit Weibchen nach 14 s.
+- **Klang:** Flattern als Schleife `moth_flutter` (vorhanden), `moth_tap`, `moth_buzz`, `moth_bite` (`src/audio/synth_l2.cpp`), Auffliegen `moth_takeoff`.
+- **Mehrspieler:** Host rechnet; Puppen mit Variante, Lage, `fly`, `shiver`, `reach`, `light`, `perceive` über die vorhandenen NetState-Kanäle; Ereignisse sind vorhandene Arten (`Knock`, `Hiss`, `Hit`, `TakeOff` mit Rolle Moth). Protokoll unverändert.
+- **Interpretation:** Zahlen der Reizung, der Biss (3 Punkte), dass nur das Weibchen beißt (Entity 4: Männchen friedlich), das Aufwärmzittern.
+
+**Wow-Check:** Unter einer Röhre sitzen handtellergroße, pelzige Motten mit Augenflecken; die Lampe zieht sie heran, und wer zu nah kommt, hat plötzlich flatternde Flügel und Beine vor den Augen, dazu das Brummen. Ehrlich: eklig und unruhig, nicht „ganz okay“.
+
+### Kritikrunden (Level 2)
+
+Bilder: `docs/screens/creatures/l2_motten/`.
+
+| Runde | Befund | Änderung |
+|---|---|---|
+| 1 (`r1_bogen.jpg`) | Die Gruppe saß neben der Röhre an der Decke statt an ihr (Auftritt auf Kacheln mit Lampenmarke, nicht an der Leuchte); aus Spielerhöhe winzige graue Flecken. | Auftritt an den Leuchtstoffröhren der Karte selbst; Modell des Männchens umbenannt (`ent_moth_male` – der Name `ent_moth_l2` kollidierte mit der Detailstufe 2 von `ent_moth`). |
+| 2 (`r2_bogen.jpg`) | Die Motten sitzen an der Röhre; aus der Nähe (`r2_decke_nah.jpg`) Flügelmuster mit Augenflecken, Beine, Fühler; im Flug schlagen die Flügel sichtbar (`r2_flug.jpg`). Die Lampe lockt (`r2_lampe.jpg`). | – (Befund gut; weiter mit dem Reizen) |
+| 3 (`r3_bogen.jpg`) | Gereizt kreisten sie um den Kopf – meist außerhalb des Blickfelds (`r3_gereizt_leer.jpg`): die Ankündigung war nur zu hören, ab und zu huschte ein Flügel durchs Bild. | Sie schwirren 0,5 m vor dem Gesicht (Kreismitte vor dem Auge). |
+| 4 (`r4_bogen.jpg`) | Pelzige Motten mit gemusterten Flügeln und Beinen flattern vor den Augen (`r4_gereizt_c.jpg`) – bedrängend, gut. Restmangel: an der Decke sitzen sie starr wie Papierfetzen und fliegen ohne Vorzeichen los. | Vor dem Auffliegen zittern die Flügel 1,4 s (Kanal `shiver`, wie echte Nachtfalter die Flugmuskeln aufwärmen). |
+| 5 (`r5_bogen.jpg`) | Um die Röhre unruhiges Kommen und Gehen, Flügel angehoben vor dem Start (`r5_roehre_b.jpg`); das Zittern selbst ist auf Standbildern kaum zu sehen und wird im Test über den Kanal geprüft. Abgenommen. | – |
+
+### Tests (`gameplay_test`, „V13.3 Teil 4: Level 2“)
+
+Gruppe an einer brennenden Röhre (Regie), meist Männchen, niemand sieht sie erscheinen, oben an der Decke; in Ruhe gelassen friedlich; jeder Start von der Decke mit Flügelzittern davor; das Licht lockt sie, um das Licht kreisend tun sie nichts; manche Gruppen mit Weibchen; aus der Nähe gereizt: Brummen, gereizte Männchen im Blickfeld vor dem Gesicht, das Weibchen beißt erst nach der Ankündigung, leicht; zurücktreten und Licht senken beruhigt.

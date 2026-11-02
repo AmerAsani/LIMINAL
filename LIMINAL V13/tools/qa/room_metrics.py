@@ -26,7 +26,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from maplib import LEVELS, NAMES, ROOT, Grid  # noqa: E402
 
 FLOOR_SKIP = ('puddle', 'water_surface', 'debris', 'books_fallen', 'paving_strip', 'rail_track', 'track_metro',
-              'platform_edge', 'travelator', 'grate_stair', 'sludge_pool', 'birch_circle', 'skull', 'pillar_label')
+              'platform_edge', 'travelator', 'grate_stair', 'sludge_pool', 'birch_circle', 'skull', 'pillar_label',
+              'skin_shed', 'skin_scratches', 'food_scraps')  # V13.3 L2: flach am Boden (hoechstens 8 cm) bzw. Kratzer an der Wand mit Staub davor
 
 
 def pct(a, q):

@@ -488,6 +488,7 @@ void Ui::drawDead(Host& h) {
                            : role == 1 ? "Was geholfen hätte: ihm nie den Rücken zukehren, nicht rennen. Ansehen, wenn es knurrt, dann langsam weg."
                            : role == 2 ? "Was geholfen hätte: kein Licht auf das Nest. Lampe aus, ruhig an der Wand vorbei."
                            : role == 5 ? "Was geholfen hätte: leise gehen (C), 2,5 m Abstand, nicht rennen. Etwas werfen (Q) lockt es weg."
+                           : role == 18 ? "Was geholfen hätte: dem blauen Vogel nicht in die Augen sehen. Wegsehen, umkehren – und nie näher als zwei Schritte."  // V13.3 Teil 4: Jerry
                                        : "Was geholfen hätte: essen, Mandelwasser, im Licht bleiben.";
         r_->text(x + w * 0.5f, y + hh - 54 * s, 17 * s, hint, rgba8(200, 150, 140), gfx::FontFace::Regular, gfx::Align::Center);
         r_->text(x + w * 0.5f, y + hh - 30 * s, 15 * s, "Inventar und Funde bleiben. Volles Leben, der Stromausfall ist vorbei.",
