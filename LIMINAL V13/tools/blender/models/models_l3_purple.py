@@ -52,24 +52,27 @@ def mats():
         # Haut: matt in der Flaeche, glasig auf Knochen und Wuelsten (die Purpifizierung als Glasur), tief in den Falten
         'skin': material('purpur_haut', (0.33, 0.13, 0.50), look='rubber', rough=0.6, r=0.85),
         'skin_deep': material('purpur_haut_falte', (0.08, 0.02, 0.14), look='rubber', rough=0.8, r=1.1),
-        'skin_sheen': material('purpur_glasur', (0.62, 0.40, 0.86), look='plastic', rough=0.2, r=0.32),
+        # Runde 4: Glasur dunkler und satter - der Glanz kommt aus dem Licht, nicht aus heller Farbe (vorher Flecken wie Spielzeug)
+        'skin_sheen': material('purpur_glasur', (0.44, 0.20, 0.70), look='plastic', rough=0.15, r=0.26),
         'crack': material('purpur_riss', (0.62, 0.24, 1.0), look='glow', glow=0.8),
         'hot': material('purpur_glut', (0.90, 0.66, 1.0), look='glow', glow=2.6),
         'seam': material('purpur_naht', (0.70, 0.36, 1.0), look='glow', glow=1.5),
         'fleshbrick': material('purpur_fleischziegel', (0.42, 0.20, 0.58), look='concrete', tex='concrete_rough', rough=0.9, r=1.15),
         'pore': material('purpur_noppe', (0.58, 0.22, 1.0), look='glow', glow=0.75),
         'sinew': material('purpur_sehne', (0.22, 0.07, 0.30), look='rubber', rough=0.4, r=0.5),
-        'skin_mottle': material('purpur_haut_fleck', (0.24, 0.08, 0.38), look='rubber', rough=0.5, r=0.7),
+        'skin_mottle': material('purpur_haut_fleck', (0.27, 0.09, 0.43), look='rubber', rough=0.5, r=0.7),
         'teeth': material('purpur_zahn', (0.74, 0.64, 0.86), look='ceramic', rough=0.3, r=0.5),
         'nail': material('purpur_nagel', (0.13, 0.05, 0.19), look='plastic', rough=0.3, r=0.35),
         'hair': material('purpur_haar', (0.09, 0.03, 0.14), look='plastic', rough=0.35, r=0.45),
         # die Ziegel um den Koerper: Textur der Wand, violett durchgefaerbt; der Kern glimmt selbst (die Energie im Stein)
-        'brick1': material('purpur_ziegel_kern', (0.50, 0.14, 0.95), look='concrete', tex=WALL_TEX, glow=0.35, rough=0.8, r=0.85),
-        'brick2': material('purpur_ziegel_mitte', (0.60, 0.30, 1.0), look='concrete', tex=WALL_TEX, glow=0.12, rough=0.85, r=0.9),
-        'brick3': material('purpur_ziegel_rand', (0.76, 0.52, 1.0), look='concrete', tex=WALL_TEX, rough=0.9, r=0.95),
+        # Runde 4: satter (Wiki: die Wand direkt um sie ist immer ganz violett) - im hellen Gang war der Rand nur lavendelgrau
+        'brick1': material('purpur_ziegel_kern', (0.46, 0.08, 1.0), look='concrete', tex=WALL_TEX, glow=0.5, rough=0.8, r=0.85),
+        'brick2': material('purpur_ziegel_mitte', (0.52, 0.16, 1.0), look='concrete', tex=WALL_TEX, glow=0.22, rough=0.85, r=0.9),
+        'brick3': material('purpur_ziegel_rand', (0.58, 0.28, 1.0), look='concrete', tex=WALL_TEX, glow=0.06, rough=0.9, r=0.95),
         'burn': material('purpur_brand', (0.12, 0.04, 0.17), look='concrete', tex='concrete_rough', rough=0.95, r=1.2),
         'vein': material('purpur_bahn', (0.60, 0.22, 1.0), look='glow', glow=0.65),
-        'chunk': material('purpur_brocken', (0.46, 0.26, 0.62), look='concrete', tex='concrete_rough', rough=0.9, r=1.1),
+        # Runde 4: herausgedrueckte Brocken sind Ziegel derselben violetten Wand (vorher grau wie fremder Schutt)
+        'chunk': material('purpur_brocken', (0.50, 0.16, 0.92), look='concrete', tex=WALL_TEX, glow=0.1, rough=0.9, r=1.0),
         'chunk_core': material('purpur_schliere', (0.70, 0.34, 1.0), look='glow', glow=0.9),
         'dust': material('purpur_staub', (0.42, 0.30, 0.52), look='concrete', tex='concrete_rough', rough=1.0, r=1.4),
         'paint': material('farbe_kalk', (0.80, 0.76, 0.67), look='paint', rough=0.9, r=1.3),
