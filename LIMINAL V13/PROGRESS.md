@@ -138,3 +138,24 @@ Agenten: alle ausser „Props Level 1 Blender-Modelle“ (vom Nutzer gestoppt, A
   - Audio `a1a310e23cd626c63`;
   - Wesen-Wellen L2/L3/L5+ (Deathmoths, Jerry, Cannibal Cuisine, Windows, Photoshop, Swindlebird, Macchina, Death-Rat-Fallen, purpurne Wesen, Red Knight, Samantha, Ants, Woodlins, Watchers, Entity 18, Ambassadors, Entity 39);
   - Wow-Check der vorhandenen Wesen.
+
+### V13.3 Zwischenstand 7 (02.11.2026)
+- **Ausstattung aller zehn Ebenen gebaut und zusammengeführt:** L0 mit Fundstücken, L1, L2 mit Varianten, L3, L5, 5.3, 188, 903, 37 und 36 (je PROPS_*.md).
+- **Level 1 abgenommen** (AUFWAND.md).
+- **Wesen und Netz:**
+  - alle Level-1-Wesen und Ouroboros-Arbeiter im Spiel; Goblins-Rolle 17;
+  - Multiplayer (Teil 5) fertig, 60-min-Langlauf, ohne Beta-Label;
+  - Träger- und Spät-Beitritt-Fehler behoben.
+- **Tests:** gameplay 647/0, coop 209/0, audio 106/0, net 72/0, worldgen 29658/0, supply OK.
+- **Kritikrunden:** Level 2 bis Runde 3, Level 3 bis Runde 2 (Aufzug 2 m).
+- **Laufend:**
+  - Workflow `wf_25ac8506-59d` (Level-2-Wesen: Fenster, Motten, Ratten, Spuren → Jerry Rolle 18 → Randwesen);
+  - Workflow `wf_35cb0125-472` (Level 3: Wretch, Skin-Stealer → purpurne Wesen);
+  - Audio-Agent `a1a310e23cd626c63` (Teil 6).
+- **Danach:**
+  - Level 3: Death Rats (Fallen) und Deathmoths/Praetorianer, Red Knight (Entity 71) prüfen;
+  - Level 5 und später: Samantha, Ants, Woodlins, Watchers, Entity 18 (Stimme, Gentleman), Ambassadors, Entity 39, Wrangler-Kesselraum (erledigt);
+  - Faceling-Varianten;
+  - Wow-Check der vorhandenen Wesen;
+  - Hound-Rudel und großer Clump.
+- **Offener Befund für Level 903:** Verdeckte Blöcke werfen Schatten (`visualTile`, V6), deshalb bleibt die Wagenseite im Lampenlicht dunkel. Lösung in der Engine oder per Blockschalter prüfen.
