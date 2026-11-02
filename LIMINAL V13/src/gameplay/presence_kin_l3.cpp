@@ -61,7 +61,7 @@ const std::array<KinLine, KC_COUNT>& lines() {
         static const char* const saySnd[KC_SAYS] = {"skin_say_0", "skin_say_1", "skin_say_2", "skin_say_3",
                                                     "skin_say_4", "skin_say_5", "skin_say_6", "skin_say_7"};
         for (int k = 0; k < KC_SAYS; ++k) t[(size_t)(KC_SAY0 + k)] = {saySnd[k], say[k], 0.75f, 18.0f, 3.2f, kHintSkin};
-        const char* ans[KC_ANSWERS] = {"„Yes. Hello. I am friend.“", "„I am human. Like you.“", "„I come from Base Gamma. Is far.“",
+        const char* ans[KC_ANSWERS] = {"„Yes. Hello. I am friend.“", "„I am human. Like you.“", "„I come from camp. Is far.“",
                                        "„Is okay. Everything is okay.“"};
         static const char* const ansSnd[KC_ANSWERS] = {"skin_ans_0", "skin_ans_1", "skin_ans_2", "skin_ans_3"};
         for (int k = 0; k < KC_ANSWERS; ++k) t[(size_t)(KC_ANS0 + k)] = {ansSnd[k], ans[k], 0.8f, 18.0f, 3.0f, kHintSkin};

@@ -398,7 +398,7 @@ const char* const kSkinSay[8] = {
 const char* const kSkinAns[4] = {
     "Y EH1 S . HH EH0 L OW1 . AY1 AE1 M F R EH1 N T .",
     "AY1 AE1 M HH Y UW0 M AE1 N . L AY1 K Y UW1 .",
-    "AY1 K AH1 M F R AO1 M B EY1 S G AE1 M AA1 . IY1 S F AA1 R .",
+    "AY1 K AH1 M F R AO1 M K AE1 M P . IY1 S F AA1 R .",  // ohne Ortsnamen des Wikis (LICENSE_REVIEW)
     "IY1 S OW0 K EY1 . EH1 V R IY0 S IY1 NG IY1 S OW0 K EY1 .",
 };
 const char* const kSkinWait = "V EY1 T ! V EH1 R Y UW1 G OW1 ?";

@@ -169,3 +169,13 @@ Agenten: alle ausser „Props Level 1 Blender-Modelle“ (vom Nutzer gestoppt, A
 - **Schatten verdeckter Blöcke behoben** (`lighting.hlsl`, `traceShadow`): Modelle auf unsichtbaren Blöcken liegen nicht mehr im Schatten ihres eigenen Blocks (Wagenseite 903/37, Treppenblock, Rohre L2). Gegenprobe 198 Ansichten in allen zehn Ebenen, nur gewollte Änderungen (`docs/screens/level903/schatten_*.jpg`).
 - **Tests:** gameplay 647/0, audio 121/0, audio_device 66/0, coop 209/0, net 72/0 und 90/0, worldgen 29658/0, supply OK.
 - **Laufend:** `wf_25ac8506-59d` (Level 2), `wf_35cb0125-472` (Level 3).
+
+### V13.3 Zwischenstand 9 (02.11.2026)
+- **Level-2-Wesen zusammengeführt** (Fenster am Gangende, Deathmoths, Death Rats an Fässern, Skin-Stealer-Spuren, Jerry Rolle 18).
+- **Level-3-Wesen zusammengeführt:** Wretch mit Waffen und Sprachfetzen, Skin-Stealer im Mantel mit einfachem Englisch.
+- **Lizenz:** benannte Einzelfiguren als eigene Gestaltung (E-039, `LICENSE_REVIEW.md`); „Base Gamma“ aus einem Satz entfernt.
+- **Tests:** gameplay 755/0, audio 121/0, coop 209/0, net 72/0, worldgen 29658/0, supply OK.
+- **Laufend:** Workflow `wf_17c86cdf-667`:
+  - Level 2 Randwesen (Cannibal Cuisine, Swindlebird, Photoshop, Macchina);
+  - Level 3: purpurne Wesen → Death Rats (groß, Fallen) und Deathmoths (Praetorianer) → Hound-Rudel und großer Clump → Smiler „ohne Anlass“, Red Knight, Wow-Check (Skin-Stealer wahre Gestalt wirkt glatt wie eine Puppe, Wretch-Gesicht zu sauber).
+- **Danach:** Level-2- und Level-3-Abnahme (Kritikrunden mit Wesen, Laufweg, Smoke, AUFWAND), dann Level 0, 5, 5.3, 188, 903, 37, 36.

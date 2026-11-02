@@ -47,6 +47,8 @@ LIMINAL übernimmt konkrete Inhalte der Wikis: Namen, genaue Beschreibungen, Reg
 ### Weg B – eigenständige LIMINAL-Interpretation
 Die Wikis dienen der **Recherche** von Motiven, Atmosphäre und groben Regeln. Alle Texte, Beschreibungen, Modelle, Animationen, Klänge und Spielregeln sind eigene Arbeit. Nicht übernommen werden wiki-spezifische Ausgestaltungen: keine Zitate, keine Wiki-Bilder, keine Ortsnamen oder Gruppen der Wikis (M.E.G., B.N.T.G., Base Alpha, Beverly Room, Housekeeping …), keine benannten Einzelfiguren (Jerry, Samantha, Entity 18 …), keine Logbücher.
 
+**V13.3 (E-039):** Der Auftrag verlangt alle im Wikidot-Wiki dokumentierten Wesen. Benannte Einzelfiguren (Jerry, Samantha, Entity 18 …) werden deshalb als **eigene Gestaltung** gebaut: Modell, Klang und Verhalten sind eigene Arbeit nach den Motiven der Seite; im Spieltext steht nie der Wiki-Name (z. B. „der blaue Vogel“), keine Zitate; Quelle mit Revision und Lizenz (CC BY-SA 3.0) im jeweiligen Briefing. Orts- und Gruppennamen bleiben ausgeschlossen (geprüft: kein „Base …“, „M.E.G.“, „B.N.T.G.“ in Spieltexten).
+
 **Folgen:**
 - Du behältst alle Rechte an LIMINAL und kannst die Lizenz frei wählen, auch kommerziell und mit Steam-DRM.
 - Die Lore-Treue liegt auf der Ebene der Ideen: Ein Hotel mit Motten in dunklen Zimmern ist erlaubt; der Text, der es beschreibt, ist selbst geschrieben.

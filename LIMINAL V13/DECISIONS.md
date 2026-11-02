@@ -521,3 +521,31 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
   - Man steht danach an anderer Stelle in Level 1: mindestens 30 m entfernt, nie im Garden. Sperrzeit 240 s je Spieler.
   - Im Koop rechnet der Host; der Gast erhält die Lage als Positionskorrektur.
 - **Grund:** Verhalten und Übergang bleiben nah am Wiki, ohne eine Ebene zu erfinden. Das Hinauswerfen ist das einzige, was das Wiki über den Ausgang aus ihrem Spiel sagt.
+
+## E-039 Benannte Einzelfiguren und Level-2-Wesen (V13.3, 02.11.2026)
+
+- **Auftrag:** alle im Wikidot-Wiki dokumentierten Wesen; „bewusst weggelassen“ ist nicht erlaubt. `LICENSE_REVIEW.md` schloss benannte Einzelfiguren aus.
+- **Entscheidung:**
+  - Benannte Einzelfiguren (Jerry, später Samantha, Entity 18) werden als eigene Gestaltung gebaut; im Spieltext nie der Wiki-Name, keine Zitate, Quelle und Lizenz im Briefing (`LICENSE_REVIEW.md` ergänzt). Orts- und Gruppennamen bleiben ausgeschlossen (ein Satz des Skin-Stealers nannte „Base Gamma“ – ersetzt).
+  - Jerry (Entity 7, Rolle 18): Auslöser ist gegenseitiger Blickkontakt (Auslegung), Unterwerfung tödlich wie bei den anderen tödlichen Wesen; Krankheit und Menschenaugen als Körperhorror-Auslegung; Followers nur als Spuren.
+  - Fensterwesen Level 2: bildet ungesehen ein eigenes Stahlfenster in der Stirnwand einer Sackgasse (E-031 aufgelöst).
+  - Deathmoths Level 2 ohne Nest; nur Weibchen beißen (nach Ankündigung), Männchen friedlich.
+  - Death Rats Level 2 trinken an der Spundöffnung der Fässer (Flüssigkeit nicht genannt: Auslegung). Fluchtregel in `thinkRat` für alle Ebenen: kein Fluchtziel mit Weg über dem 1,6-fachen der Luftlinie oder näher am Spieler (Fehlerbehebung).
+  - Skin-Stealer in Level 2 nur als Spuren (laut Seite).
+- **Grund:** Auftrag Teil 4; Belege in `KREATUR_Jerry.md`, `KREATUR_Fensterwesen.md`, `KREATUR_Deathmoth.md`, `KREATUR_DeathRat.md`, `KREATUR_L2_Spuren.md`.
+
+## E-040 Level-3-Wesen sprechen Englisch (V13.3, 02.11.2026)
+
+- **Entscheidung:** Sätze der Skin-Stealer und Fetzen der Wretches sind englisch (die Level-3-Seite nennt einfaches Englisch), mit englischen Untertiteln; die Oberfläche bleibt deutsch. Waffen, Locken, Entlarvung beim dritten Ansprechen und die Zeiten sind Auslegung und in den Briefings markiert.
+- **Grund:** Seite Level 3 (Wikidot, Rev. 18); `KREATUR_Wretch.md`, `KREATUR_SkinStealer.md`.
+
+## E-041 Schatten unsichtbarer Blöcke (V13.3, 02.11.2026)
+
+- **Befund:** Modelle auf unsichtbaren Kollisionsblöcken lagen im Schatten ihres eigenen Blocks (Wagenseite Level 903/37 im Lampenlicht schwarz, Treppenblock, Rohre Level 2).
+- **Entscheidung:** `lighting.hlsl` `traceShadow`: Zellen gleicher Höhe wie die Startzelle verdecken nicht, solange der Strahl noch nicht in einer freien Zelle war; Wände (fest) und andere Blöcke werfen weiter Schatten.
+- **Beleg:** Gegenprobe 198 Ansichten in allen zehn Ebenen, alter gegen neuen Shader – nur Modelle auf unsichtbaren Blöcken heller, kein Licht durch Wände (`docs/screens/level903/schatten_*.jpg`).
+
+## E-042 Audio-Fehler (V13.3 Teil 6, 02.11.2026)
+
+- **Ursache und Behebung:** siehe `AUDIO_BUG.md` (B-017 Stimmen gestoppter, unhörbarer Schleifen nie frei; B-018 Unterläufe; B-019–B-021 Gerätewechsel, Öffnen, Dämpfung). Watchdog mit Stille-Erkennung am Master-Ausgang.
+- **Grenze:** Echtes Umstecken, echter Formatwechsel, Bluetooth und Hören nicht geprüft (ein Gerät, Lautsprecher stumm); simuliert und dokumentiert.
