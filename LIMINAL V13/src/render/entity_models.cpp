@@ -1360,7 +1360,11 @@ bool entityFromGlb(Entity e, FigureModel& out, std::string& info, const std::str
         {"ent_pg_leather", FM_ENT_PG_LEATHER}, {"ent_pg_ornate", FM_ENT_PG_ORNATE}, {"ent_pg_glass", FM_ENT_PG_GLASS}, {"ent_pg_brass", FM_ENT_PG_BRASS},
         {"ent_pg_cloak", FM_ENT_PG_CLOAK}, {"ent_pg_cape", FM_ENT_PG_CAPE}, {"ent_pg_hat", FM_ENT_PG_HAT}, {"ent_pg_silver", FM_ENT_PG_SILVER},
         {"ent_pg_sand", FM_ENT_PG_SAND}, {"ent_pg_void", FM_ENT_PG_VOID}, {"ent_pg_rim", FM_ENT_PG_RIM}, {"ent_pg_loot", FM_ENT_PG_LOOT},
-        {"ent_pg_skin", FM_ENT_PG_SKIN}};
+        {"ent_pg_skin", FM_ENT_PG_SKIN},
+        // V13.3 Teil 4: Jerry
+        {"ent_jy_feather", FM_ENT_JY_FEATHER}, {"ent_jy_feather_dark", FM_ENT_JY_FEATHER_DARK}, {"ent_jy_skin", FM_ENT_JY_SKIN},
+        {"ent_jy_quill", FM_ENT_JY_QUILL}, {"ent_jy_beak", FM_ENT_JY_BEAK}, {"ent_jy_yellow", FM_ENT_JY_YELLOW}, {"ent_jy_eye", FM_ENT_JY_EYE},
+        {"ent_jy_pupil", FM_ENT_JY_PUPIL}, {"ent_jy_tongue", FM_ENT_JY_TONGUE}, {"ent_jy_foot", FM_ENT_JY_FOOT}};
     const CreatureSkeleton& sk = entitySkeleton(e);
     FigureModel m;
     std::vector<mat4> frames;

@@ -23,7 +23,13 @@
                // V13.3: junge Growler (klein, leuchtend, verschmelzen in engen Gaengen; chance: Leichen in den Gaengen),
                // kleine Nguithr'xurh ueber den Maschinen (fressen Insekten und Deathmoths - Menschen selten: chance)
                "growler": { "mode": "young", "group": [2, 3], "every": 210, "chance": 0.5 },
-               "nguithrxurh": { "mode": "small", "group": [2, 3], "every": 160, "chance": 0.25 } },
+               "nguithrxurh": { "mode": "small", "group": [2, 3], "every": 160, "chance": 0.25 },
+               // V13.3 Teil 4 (KREATUR_Fensterwesen.md): Fensterwesen bilden sich ungesehen am Ende von Gaengen (selten, eines zugleich);
+               // kleine Deathmoths an brennenden Roehren, meist Maennchen (chance: Gruppe mit gereiztem Weibchen) (KREATUR_Deathmoth.md)
+               "window": { "mode": "end", "count": 1, "every": 300, "chance": 0.7 },
+               "moth": { "group": [3, 6], "every": 110, "chance": 0.35, "count": 2 },
+               // V13.3 Teil 4 (KREATUR_Jerry.md): Jerry auf dem Rohr in seinem Raum (Spawnpunkt "entity"/"jerry" der Karte)
+               "jerry": { "mode": "room" } },
   "next_level": "level3",
   // V13.3 (KREATUR_Smiler.md): Leuchtstaebe liegen herum, eher in dunklen Raeumen - Koeder fuer Smiler
   "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0, "glowstick": 0.03, "glowstick_dark": 0.12 },
@@ -70,6 +76,13 @@
       "wall": [0.70, 0.67, 0.62], "floor": [0.42, 0.41, 0.39], "ceil": [0.55, 0.53, 0.50],
       "trim": [0.26, 0.25, 0.23], "lamp": [1.00, 0.98, 0.94], "fog": [0.02, 0.02, 0.018],
       "fog_density": 0.04, "ambient": 0.04, "light_style": "authored",
+      "wall_pattern": "concrete", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.1,
+      "wall_tex": "concrete_chalky", "floor_tex": "concrete_floor", "ceil_tex": "concrete_cast" },
+    // V13.3 Teil 4 (KREATUR_Jerry.md): Jerrys Raum - die Followers haben ihn blau gestrichen; Halbdunkel
+    { "key": "jerry", "fixture": "tube", "name": "Blauer Raum",
+      "wall": [0.26, 0.34, 0.62], "floor": [0.36, 0.36, 0.38], "ceil": [0.30, 0.36, 0.55],
+      "trim": [0.14, 0.18, 0.34], "lamp": [0.92, 0.95, 1.00], "fog": [0.012, 0.014, 0.022],
+      "fog_density": 0.05, "ambient": 0.028, "light_style": "authored",
       "wall_pattern": "concrete", "floor_pattern": "slabs", "ceil_pattern": "none", "door_height": 2.1,
       "wall_tex": "concrete_chalky", "floor_tex": "concrete_floor", "ceil_tex": "concrete_cast" },
     { "key": "maschine", "fixture": "tube", "name": "Maschinenraum",

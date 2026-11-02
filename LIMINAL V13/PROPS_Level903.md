@@ -210,11 +210,15 @@ Prüfbögen der Runden (50 cm im Licht, 50 cm von der Seite, 50 cm nur Lampe):
 - Budget (propdump): Level 903 511 429 Dreiecke Ausstattung, Level 37 43 284.
 
 ## Restmängel (ehrlich)
-- **Schatten der unsichtbaren Kollisionsblöcke:** Die Wagenwände der Karte (Level 903 y 6–7, Level 37 y 7–8) sind
-  unsichtbare Blöcke, werfen aber Schatten. Die Außenseite des Wagens zur Bahnsteigseite bekommt deshalb kein direktes
-  Licht der Röhren und keines der Taschenlampe, nur Umgebungslicht. Im Licht der Ebene sieht das stimmig aus, im
-  Lampenlicht bleibt die Wagenseite dunkel. Ebenso liegen Stufen und Ziegelwand der Treppe im Treppenblock (nur
-  Umgebungslicht); die Barrikade steht davor. Lösung nur in Karte oder Engine (Blöcke ohne Schatten).
+- ~~**Schatten der unsichtbaren Kollisionsblöcke**~~ – **behoben (02.11.2026, Engine):** Die Wagenwände der Karte
+  (Level 903 y 6–7, Level 37 y 7–8) und der Treppenblock sind unsichtbare Blöcke; Modellflächen in diesen Blöcken lagen
+  im Schatten ihres eigenen Blocks (Wagenseite im Lampenlicht schwarz). `shaders/lighting.hlsl` (`traceShadow`): Liegt
+  der Startpunkt in einem Block, verdeckt ihn dieser Block nicht selbst (nur Zellen gleicher Höhe wie die Startzelle,
+  bis zur ersten freien Zelle); Wände und andere Blöcke werfen weiter Schatten. Beleg:
+  `docs/screens/level903/schatten_vorher_nachher.jpg` (Wagen, Zug, Treppe; links vorher, rechts nachher) und
+  Gegenprobe über alle zehn Ebenen (198 Ansichten, alter gegen neuen Shader, Ebenenlicht und Lampe):
+  `docs/screens/level903/schatten_gegenprobe.jpg` – Änderungen nur an Modellen auf unsichtbaren Blöcken (Wagenwände und
+  Sitze, Treppenwände, Rohre in Level 2), alle heller, kein Licht durch Wände.
 - **Glas ist deckend:** Hauptscheiben des Wagens offen (heruntergelassen), damit der Innenraum sichtbar ist. Die
   Fenster des ruhenden Zuges sind dunkles Glas ohne Innenraum.
 - **Gleis unter dem Wagen im Wagenmodell:** Die Karte lässt die Gleisstücke 86–116 aus; das Gleis gehört deshalb zum

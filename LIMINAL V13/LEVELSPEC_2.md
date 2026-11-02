@@ -56,4 +56,4 @@
 - **Echte Diagonalen** nicht möglich (Kachelwelt). Siehe Abschnitt 2.
 - **Rohre mit blauem Leuchten (Weg zu 811), farbcodierte Türen zu anderen Leveln:** nicht umgesetzt, nur die Tür nach Level 3 führt weiter.
 - **Leerräume:** Sie sind in der Seite „unendlich“. Im Spiel ist es ein großer, völlig lichtloser Raum ohne Wände im Licht der Lampe (schwarze Flächen, dichter schwarzer Dunst).
-- **Gruppen, Stützpunkte, Jerry:** nicht dargestellt.
+- **Gruppen, Stützpunkte:** nicht dargestellt. **Jerry (V13.3):** sein Raum in einer Kammer der Ziegelgänge – Sitzrohr, Wandbild und Opfertisch der Followers, Fotos und Pfeile davor ([KREATUR_Jerry.md](KREATUR_Jerry.md)).

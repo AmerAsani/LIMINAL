@@ -26,8 +26,10 @@ void addGrowlerSounds(std::vector<SoundDef>& d, int rate);   // V13.3: synth_gro
 void addNguithrSounds(std::vector<SoundDef>& d, int rate);   // V13.3: synth_nguithrxurh.cpp
 void addOuroborosSounds(std::vector<SoundDef>& d, int rate); // V13.3: synth_ouroboros.cpp (Ouroboros-Arbeiter)
 void addGoblinSounds(std::vector<SoundDef>& d, int rate);    // V13.3: synth_goblin.cpp (Plague Goblins, Beil)
+void addJerrySounds(std::vector<SoundDef>& d, int rate);     // V13.3 Teil 4: synth_jerry.cpp (Jerry)
 void addLureSounds(std::vector<SoundDef>& d, int rate);      // V13.3 synth_lure.cpp: Leuchtstab, Ansprechen (Spieler, Skin-Stealer)
 void addPhenomenaSounds(std::vector<SoundDef>& d, int rate);  // V13.3 synth_phenomena.cpp: Pilz, Garden, Spielleiterin, Tuerspuren
+void addL2Sounds(std::vector<SoundDef>& d, int rate);         // V13.3 Teil 4 synth_l2.cpp: Fenster am Gangende, Motten, Ratten (Level 2)
 void addKinL3Sounds(std::vector<SoundDef>& d, int rate);      // V13.3 synth_kin_l3.cpp: Level 3 - Wretch (Waffen, Fetzen), Skin-Stealer (Saetze)
 void addPurpleSounds(std::vector<SoundDef>& d, int rate);     // V13.3 synth_purple.cpp: Level 3 - purpifizierte Wesen in der Wand
 

@@ -73,6 +73,10 @@ enum FixedMaterial : u32 {
     FM_ENT_PG_SKIN,  // Runde 2: das kahle Gesicht unter der Maske (die Maske hat die Federn abgerieben - Auslegung)
     FM_ITEM_HATCHET_WOOD, FM_ITEM_HATCHET_HEAD,
     FM_ITEM_GLOWSTICK, FM_ITEM_GLOWSTICK_LIT, FM_ITEM_GLOWSTICK_DIM, FM_ITEM_GLOWSTICK_CAP,  // V13.3: Leuchtstab (Koeder)
+    // V13.3 Teil 4: Jerry - kobaltblaues Gefieder, schwarzgraue Unterseite der Schwingen, gerupfte Haut, Blutkiele, Schnabel
+    // und Krallen (schwarzes Horn), nackte gelbe Haut, blasse Iris, Pupille, schwarze Zunge, Fuesse
+    FM_ENT_JY_FEATHER, FM_ENT_JY_FEATHER_DARK, FM_ENT_JY_SKIN, FM_ENT_JY_QUILL, FM_ENT_JY_BEAK, FM_ENT_JY_YELLOW, FM_ENT_JY_EYE,
+    FM_ENT_JY_PUPIL, FM_ENT_JY_TONGUE, FM_ENT_JY_FOOT,
     FM_FIG_END,
 };
 static_assert(FM_FIG_END <= kFixedMaterials);

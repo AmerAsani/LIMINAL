@@ -47,7 +47,7 @@ Quelle: [backrooms-wiki.wikidot.com/entity-2](https://backrooms-wiki.wikidot.com
 **Eigene Auslegung:** die Abstände (Flüstern 11 m, Greifen 1,9 m, 0,7 s), drei Fenster, der Arm, der sich streckt; dass der Umriss sich zum Greifen herauslehnt.
 
 **Nicht umgesetzt:**
-- Level 2 (Fensterwesen am Gangende): die Rohrgänge haben keine Fenster; ein eigenes Fenster an Gangenden wäre ein neues Ausstattungsstück.
+- ~~Level 2 (Fensterwesen am Gangende)~~ – umgesetzt in V13.3, siehe Abschnitt „V13.3: Level 2 – das Fenster am Gangende“.
 - „Neugeborene“ und „sterbende“ Fenster (die Seite: entstehen aus Fluchtwunsch, verschieben beim Vergehen Menschen aus der Wirklichkeit) – ohne Spielsystem für Wünsche und Verschiebungen.
 
 ## Gleichgewicht
@@ -75,3 +75,37 @@ Bilder: `docs/screens/fensterwesen/`.
 ## Tests (`gameplay_test`)
 
 Level 188: drei Fensterwesen; auf 4 m Flüstern, nichts weiter; zu nah → der Arm fährt heraus; sofort zurück → entkommen; stehen bleiben → hineingezogen (tödlich).
+
+## V13.3: Level 2 – das Fenster am Gangende
+
+Quellen: [Level 2](https://backrooms-wiki.wikidot.com/level-2) Rev. 93 (Abschnitt Entities/Windows) und [Entity 2](https://backrooms-wiki.wikidot.com/entity-2) Rev. 36, beide CC BY-SA 3.0, eigene Worte.
+
+**Was die Seite sagt:** Auf Level 2 relativ selten, meist am Ende von Gängen; man soll nicht hingehen. Im großen Stromausfall dienten die hellen Fenster als Orientierungsmarken, seit wieder Strom fließt, gelten sie nur noch als Gefahr. Entity 2: ein Fenster bildet sich auf fast jeder Fläche, lieber an Wänden, in der Form, die zur Umgebung passt, und bleibt, wo es entstanden ist; neue Fenster entstehen aus dem Wunsch, zu entkommen.
+
+**Umsetzung (E-031 aufgelöst):** Die Rohrgänge haben keine Fenster – also bildet das Wesen sich selbst eines: ein altes Stahlfenster einer Fabrikhalle, eingemauert in die Betonstirnwand einer Sackgasse.
+- **Modell** `tools/blender/creatures/window_end.py` → `data/models/ent_window_end_l0..l2.glb` (Variante 1 von Entity::Window, Skelett `ent_window`; L0 19 742 Dreiecke): Stahlkasten 11 cm tief, durchgerostet mit Resten von Lack, Nieten an Stirnblech und Sturz, vorspringende Bank mit Staub und toten Motten, Mörtelfuge rings um den Kasten; oben ein Kämpfer mit zwei kleinen Feldern (eines verschmutztes Drahtglas mit Einschlag, eines leer), das große untere Feld ohne Glas, Scherben in den Ecken. Dahinter wie in Level 188 die verschwommene Landschaft und der dunkle Umriss mit den Armen. Öffnung 1,10 m breit, 0,95–2,37 m über dem Boden (Tunnel 2,6 m).
+- **Karte** (`tools/levels/level2.py`, eigener Zufallsgenerator am Ende): 9 Gangenden als Spawnpunkte `entity`/`window` (Stirnwand einer Sackgasse, Blick in den Gang).
+- **Verhalten** (`src/gameplay/presence_window_l2.cpp`, Level-JSON `presence.window`: `mode "end"`, `count 1`, `every 300`, `chance 0.7`):
+  - Entstehen nur ungesehen: kein Punkt der Fensterfläche im Blickfeld eines Spielers mit freier Sicht, 12–45 m Weg; höchstens eines zugleich. Auf der Flucht (ein Jäger in der Nähe) 2,5-mal, mit zerrüttetem Verstand (unter 45) 1,8-mal so oft – **Interpretation** des Fluchtwunschs der Seite.
+  - Ankündigung beim Entstehen: Knacken von Glas und Rahmen, ein Zug Außenluft (`window_form`, 26 m). Danach in der Nähe alle 6–11 s ferner Wind und Vogelstimmen hinter Glas (`window_air_0..2`, 22 m) – man hört es, bevor man es sieht.
+  - Dann wie in Level 188 (`thinkWindow`): Flüstern, Winken, unter 1,9 m fährt der Arm heraus, wer stehen bleibt, wird hineingezogen (tödlich), wer sofort zurücktritt, entkommt.
+  - Vergehen: weiter als 70 m und 12 s ungesehen – fort, nie vor den Augen.
+- **Mehrspieler:** Der Host rechnet; die Puppe beim Gast bekommt Rolle, Variante 1, Lage und die Gesten über die vorhandenen NetState-Kanäle; die Ankündigungen sind vorhandene Ereignisarten (`Burst`, Rolle Window). Protokoll unverändert.
+
+**Wow-Check:** Am Ende eines dunklen Tunnels ein helles Fenster, wo vorher keines war, dahinter Hügel im Tageslicht und ein schwarzer Mensch, der winkt – und das Rauschen von Wind, wo es keinen Wind geben kann. Ehrlich: unheimlich, nicht „ganz okay“.
+
+### Kritikrunden (Level 2, Spielkamera)
+
+Bilder: `docs/screens/creatures/l2_fenster/` (je Runde fern 16 m, mittel 5 m, seitlich, nah mit Lampe, Greifen 1,4 m).
+
+| Runde | Befund | Änderung |
+|---|---|---|
+| 1 (`r1_nah.png`, `r1_greift.png`) | Das Fenster wirkte wie ein dünner Bilderrahmen an der Wand; die Sprünge im Glas liefen kreuz und quer wie Kritzelei. | Kasten tiefer und breiter (11 cm, Stirnblech, Bank); ein Einschlag statt Kritzelei. |
+| 2 (`r2_bogen.jpg`) | Der schwarz lackierte Kasten verschwand im Dunkel; der Einschlag las sich als Stern. | Kasten durchgerostet, Lack nur noch in Platten; Sprünge gezackt und ungleich lang. |
+| 3 (`r3_bogen.jpg`) | Aus der Nähe ist der Rost sichtbar (`r3_greift.jpg`); im Gegenlicht bleibt der Kasten ein Schattenriss – richtig so. Mängel: der Sprung liest sich weiter als Sternsymbol (`r3_nah_lampe.jpg`); der Kopf des Umrisses ist aus 1,4 m kantig (der Umriss bekam zu wenige Dreiecke, der flache Schmutz zu viele). | Einschlag aus der Mitte gerückt, acht Strahlen laufen ungleich bis an den Rahmen, dazwischen unterbrochene Ringe; Dreiecke nach Sichtbarkeit (Umriss ×3, Arme ×2, Schmutz, Lack und Mörtel weniger), L0 18 000. |
+| 4 (`r4_bogen.jpg`) | Der Kopf ist rund. Die neuen Sprünge waren dünner als ein Voxel und zerfielen in Punkte. | Sprünge 2–3 mm breit, Glas feiner gerastert (1,2 mm). |
+| 5 (`r5_bogen.jpg`, `r5_nah_lampe.jpg`) | Der Einschlag liest sich als echter Bruch im Drahtglas; Kasten, Bank und Scherben aus der Nähe glaubhaft, von fern ein heller Fleck am Gangende. Abgenommen. | – |
+
+### Tests (`gameplay_test`, „V13.3 Teil 4: Level 2“)
+
+Gangenden in der Karte; zu Beginn kein Fenster; an einer Stirnwand im Blick entsteht keines; mit dem Rücken zur Wand bildet es sich ungesehen, in der Stirnwand (dahinter Beton), mit Ankündigung; es flüstert, Wind und Vögel hinter Glas, es bleibt; auf 1,5 m fährt der Arm heraus – sofort zurück: entkommen, stehen bleiben: hineingezogen.

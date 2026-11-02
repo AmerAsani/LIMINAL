@@ -776,6 +776,7 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
     // V6: erschoepft etwas langsamer, Sprinten nur mit Ausdauer
     player_.speedMul = stats_.speedMul() * (stats_.exhausted ? 0.9 : 1.0);
     player_.speedMul *= 1.0 - 0.5 * presence_.trance();  // V13.3: der Anblick des Wranglers laehmt
+    player_.speedMul *= 1.0 - 0.55 * presence_.jerryHold(netSelfId);  // V13.3 Teil 4: Jerrys Bann laehmt die Schritte
     // V13.3: betaeubt (Nguithr'xurh) langsamer und ohne Sprint; durch das Gewirr einer Growler-Leiche waten
     player_.speedMul *= presence_.slowFor(netSelfId, {(float)player_.x, (float)player_.y, (float)player_.z});
     player_.speedMul *= phenomena_.speedMul(0);            // V13.3: Fieber, Ranken (session_phenomena.cpp)
@@ -803,6 +804,15 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
         player_.angle += std::remainder(std::atan2(d.y, d.x) - player_.angle, 2.0 * 3.14159265) * k;
         player_.pitch += (std::atan2(d.z, std::max(0.3f, std::hypot(d.x, d.y))) - player_.pitch) * k * 0.7;
         if (netRole != NetRole::Guest) stats_.sanity = std::max(0.0, stats_.sanity - dt * 0.45 * tr);
+    }
+    // V13.3 Teil 4: Jerrys Bann (KREATUR_Jerry.md) - ab 0,45 zieht er den Blick zu seinem Gesicht; wegsehen kostet Kraft
+    if (vec3 at; !paused && !stats_.dead && presence_.jerrySpell(netSelfId, &at) > 0.45f) {
+        const float pull = (presence_.jerrySpell(netSelfId) - 0.45f) / 0.55f;
+        const vec3 d = at - body_.eye();
+        const double k = std::min(1.0, dt * 1.6 * pull * pull);
+        player_.angle += std::remainder(std::atan2(d.y, d.x) - player_.angle, 2.0 * 3.14159265) * k;
+        player_.pitch += (std::atan2(d.z, std::max(0.3f, std::hypot(d.x, d.y))) - player_.pitch) * k * 0.7;
+        if (netRole != NetRole::Guest) stats_.sanity = std::max(0.0, stats_.sanity - dt * 0.6 * pull);
     }
     if (!paused) updateElevators(dt, prevX, prevY);  // V8
     if (!paused) {
@@ -936,6 +946,7 @@ ViewCamera GameSession::camera(bool thirdPerson, double dt) {
         c.pitch += std::sin(t * 43.0f + 0.7f) * shake;
         c.roll = std::sin(t * 29.0f) * shake * 1.6f;
         c.fovMul = 1.0f - 0.22f * (float)std::min(1.0, killT_ / 0.09);
+        if (killRole_ == (int)Presence::Role::Jerry) c.fovMul *= 0.4f + 0.6f * (float)std::exp(-killT_ * 1.5);  // V13.3 Teil 4: der Blick versinkt in seinen Augen
         return c;
     }
     c.yaw = (float)(player_.angle + player_.sway());
@@ -1708,6 +1719,7 @@ void GameSession::updatePresence(double dt) {
                         if (p->stats.health <= 0.0) p->stats.dead = true, p->killRole = (int)e.role;
                         break;
                     case PE::Whisper: p->stats.sanity = std::max(0.0, p->stats.sanity - 0.4 * e.strength); break;
+                    case PE::Spell: p->stats.sanity = std::max(0.0, p->stats.sanity - 2.0); break;  // V13.3 Teil 4: Jerrys Bann
                     case PE::Static:  // V13.3: das Rauschen eines Growlers aus der Naehe
                         p->stats.health = std::max(0.0, p->stats.health - (double)e.strength * hitScale_);
                         p->stats.sanity = std::max(0.0, p->stats.sanity - 0.5);
@@ -1733,7 +1745,9 @@ void GameSession::updatePresence(double dt) {
                                  e.type == PE::Snip || e.type == PE::SacBurst || e.type == PE::Skitter || e.type == PE::Stridulate ||  // V13.3
                                  e.type == PE::Croak || e.type == PE::Steal || e.type == PE::Take || e.type == PE::Hiss ||
                                  e.type == PE::Screech || e.type == PE::Portal || e.type == PE::Perish || e.type == PE::Mimic ||  // V13.3 Plague Goblins
-                                 e.type == PE::Reply || e.type == PE::Shriek;                 // V13.3: Skin-Stealer (Ansprechen)
+                                 e.type == PE::Reply || e.type == PE::Shriek ||                // V13.3: Skin-Stealer (Ansprechen)
+                                 (e.role == Presence::Role::Jerry && (e.type == PE::Speak || e.type == PE::Flap || e.type == PE::Preen ||
+                                                                      e.type == PE::Announce));  // V13.3 Teil 4: Jerry
             if (!audible) continue;
             if (e.type == PE::Flicker)
                 if (const world::Tile* t = world_->tileIfLoaded(ifloor(e.pos.x), ifloor(e.pos.y)); t && t->room) haunt_.flicker(t->room);
@@ -1757,7 +1771,9 @@ void GameSession::updatePresence(double dt) {
                                          e.type == PE::Snip || e.type == PE::SacBurst || e.type == PE::Skitter || e.type == PE::Stridulate ||
                                          e.type == PE::Croak || e.type == PE::Take || e.type == PE::Hiss || e.type == PE::Screech ||
                                          e.type == PE::Portal || e.type == PE::Perish ||  // V13.3 Plague Goblins
-                                         e.type == PE::Reply || e.type == PE::Shriek))
+                                         e.type == PE::Reply || e.type == PE::Shriek ||
+                                         (e.role == Presence::Role::Jerry && (e.type == PE::Speak || e.type == PE::Flap || e.type == PE::Preen ||
+                                                                              e.type == PE::Announce))))  // V13.3 Teil 4: Jerry
             netFigureOut.push_back(e);  // auch die Gaeste hoeren es
         GameEvent ev;
         ev.type = GameEvent::Figure;
@@ -1818,6 +1834,7 @@ void GameSession::updatePresence(double dt) {
                 }
                 break;
             case PE::Whisper: stats_.sanity = std::max(0.0, stats_.sanity - 0.4 * e.strength); break;  // V13.2: es zehrt
+            case PE::Spell: stats_.sanity = std::max(0.0, stats_.sanity - 2.0); break;  // V13.3 Teil 4: Jerrys Bann
             case PE::Static:  // V13.3: das Rauschen eines Growlers aus der Naehe - zehrt am Verstand, grosse schaden dem Kopf
                 stats_.health = std::max(0.0, stats_.health - (double)e.strength * hitScale_);
                 stats_.sanity = std::max(0.0, stats_.sanity - 0.5);

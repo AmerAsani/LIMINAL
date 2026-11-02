@@ -172,6 +172,11 @@ float traceShadow(float3 p, float3 q, int maxSteps)
     float2 tMax = abs(nb - p.xy) * tDelta;
     int mask = (int)gRingParams.x - 1;
     float t0 = 0.0;
+    // V13.3: Liegt der Punkt in einem Block (Modell der Ausstattung auf einem unsichtbaren Block, z. B. die Wagenwand
+    // in Level 903), verdeckt ihn dieser Block nicht selbst - nur Zellen gleicher Hoehe wie die Startzelle; Waende
+    // (fest) und andere Bloecke werfen weiter Schatten, auch direkt dahinter.
+    float h0 = gHeight.Load(int3(cell & mask, 0)).x;
+    bool inside = h0 < 30000.0;
     [loop]
     for (int i = 0; i < maxSteps; ++i)
     {
@@ -180,7 +185,12 @@ float traceShadow(float3 p, float3 q, int maxSteps)
         float za = p.z + dz * t0;
         float zb = p.z + dz * t1;
         if (min(za, zb) < fc.x - 0.012 || max(za, zb) > fc.y + 0.012)
-            return 0.0;
+        {
+            if (!inside || abs(fc.x - h0) > 0.05)
+                return 0.0;
+        }
+        else
+            inside = false;
         if (t1 >= 1.0 || all(cell == endCell))
             return 1.0;
         if (tMax.x < tMax.y) { cell.x += stp.x; t0 = tMax.x; tMax.x += tDelta.x; }

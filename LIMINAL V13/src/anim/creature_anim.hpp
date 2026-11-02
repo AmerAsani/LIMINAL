@@ -117,6 +117,7 @@ private:
     void updateGoblin(float dt, const Input& in);  // V13.3: creature_goblin.cpp (Plague Goblins, Portal)
     float goblinHeight() const;
     vec3 goblinHead() const;
+    void updateJerry(float dt, const Input& in);  // V13.3 Teil 4: creature_jerry.cpp (Jerry auf dem Rohr)
     // Gangzyklus fuer n Beine; rest: Ruhepunkte (Welt) dieses Bildes
     void stepLegs(float dt, int n, const float* offs, float duty, float S, const vec3* rest, float standDur, const float* weight);
     vec3 footPos(int i, const float* lift) const;

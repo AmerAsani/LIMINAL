@@ -52,8 +52,9 @@ public:
     // V13.3: Growler, Nguithr'xurh hinter Duller, Arms, Wrangler (presence_growler.cpp, presence_nguithrxurh.cpp)
     // V13.3: Ouroboros-Arbeiter hinter Nguithr'xurh (presence_ouroboros.cpp)
     // V13.3: Plague Goblins hinter den Ouroboros-Arbeitern (presence_goblin.cpp)
-    enum class Role { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Wrangler, Growler, Nguithr, Ouroboros, Goblin };
-    static constexpr int kRoleCount = 18;  // V13.3: Duller, Arms, Wrangler (KREATUR_Wrangler.md), Growler, Nguithr'xurh, Ouroboros-Arbeiter, Plague Goblins
+    // V13.3 Teil 4: Jerry hinter den Plague Goblins (presence_jerry.cpp)
+    enum class Role { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Wrangler, Growler, Nguithr, Ouroboros, Goblin, Jerry };
+    static constexpr int kRoleCount = 19;  // V13.3: Duller, Arms, Wrangler (KREATUR_Wrangler.md), Growler, Nguithr'xurh, Ouroboros-Arbeiter, Plague Goblins, Jerry
     static const char* roleName(Role r);
 
     struct Event {
@@ -139,6 +140,11 @@ public:
             Lured,       // Smiler wendet sich dem staerkeren Licht eines Leuchtstabs zu (strength 1: folgt, 0: stutzt nur)
             Reply,       // Skin-Stealer antwortet auf das Ansprechen - nachgeahmt, falsch betont (strength: (Satz*3+Art+0,5)/16)
             Shriek,      // Skin-Stealer: die Tarnung faellt, er stuermt los (Rennen, erneutes Ansprechen, zu lange Naehe)
+            // V13.3 Teil 4: Jerry (KREATUR_Jerry.md) - Stimme, Gefieder, Bann
+            Speak,       // er spricht mit ruhiger Menschenstimme (strength 0,35: murmelt vor sich hin, 1: spricht den Spieler an)
+            Flap,        // Fluegel (strength 0,3: schuettelt und streckt sie, 1: breitet sie aus, schlaegt)
+            Preen,       // putzt sich, knabbert, Schnabel knirscht (strength 0: Knirschen, 1: Federn)
+            Spell,       // der Bann waechst bei Blickkontakt (strength: Stufe 0,3 / 0,6) - Klingeln, Fluestern im Kopf
         } type;
         Role role = Role::Smiler;
         vec3 pos;
@@ -291,6 +297,10 @@ public:
     bool showcasePos(vec3& pos, float& yaw) const;  // V13 (Tests): Lage der zuletzt gezeigten Vorfuehrung
     // V13.2 (Tests): Eigenschaft des ersten Wesens dieser Rolle setzen (hungry, pleads, mode, provoke) bzw. lesen (variant)
     bool kinSet(Role r, const std::string& key, double v);
+    // V13.3 Teil 4 (Tests, Skripte): naechster Auftritt eines Fensters am Gangende und einer Mottengruppe in Level 2 (s)
+    void l2Timers(double window, double moth) { nextWindowL2_ = window, nextMothL2_ = moth; }
+    // V13.3 Teil 4 (Tests): das i-te Wesen dieser Rolle (ohne Vorfuehrungen) - Ort, Zustand, Variante; false: keins
+    bool agentInfo(Role r, int i, vec3& pos, int& state, int& variant) const;
     int variantOf(Role r) const;
     vec3 headOf(Role r) const;  // V13.2 (Tests): Kopf des ersten Wesens dieser Rolle
     // V13.3: Growler - Staerke des telepathischen Rauschens beim Spieler dieses Rechners (0..1: Bild und Klang verzerrt),
@@ -349,6 +359,19 @@ public:
     bool address(world::World& w, vec3 eye, vec3 look, int by, int phrase);
     bool exposedOf(Role r) const;  // V13.3 (Tests): Skin-Stealer entlarvt (hat verraeterisch geantwortet)
     bool luredOf(Role r) const;    // V13.3 (Tests): Smiler folgt gerade einem Leuchtstab
+    // V13.3 Teil 4: Jerry (presence_jerry.cpp). Bann je Spieler (0..1; beim Gast aus der Puppe): ab 0,45 zieht er den Blick zu
+    // seinem Kopf (at), ab 1 ist der Spieler unterworfen. jerryHold: wie stark der Bann die Schritte laehmt (0..1).
+    // jerryInfo (Tests): Lage, Zustand, Blick; jerrySet (Tests, Skripte): state, spell <Wert> (eigener Spieler), quick
+    float jerrySpell(int target, vec3* at = nullptr) const;
+    float jerryHold(int target) const;
+    struct JerryInfo {
+        bool active = false;
+        int state = 0, fixOn = -1;
+        vec3 pos, head, gaze;
+        float yaw = 0.0f;
+    };
+    JerryInfo jerryInfo() const;
+    bool jerrySet(const std::string& key, double v);
 
 private:
     struct Agent;
@@ -436,6 +459,23 @@ private:
     bool spawnGoblin(const Context& c, std::vector<Event>& out, bool forced);
     void thinkGoblin(Agent& a, double dt, const Context& c, std::vector<Event>& out);
     void prepGoblin(Agent& a, const Context& c);  // Zustand, Groesse, Leuchten -> Animation (auch Puppen und Vorfuehrungen)
+    // V13.3 Teil 4, Level 2: Fenster am Gangende (presence_window_l2.cpp), kleine Motten an den Roehren
+    // (presence_moth_l2.cpp), Ratten an Faessern und Essensresten (presence_rat_l2.cpp)
+    bool windowL2(const Context& c) const;
+    void regieWindowL2(double dt, const Context& c, std::vector<Event>& out);
+    bool spawnWindowL2(const Context& c, std::vector<Event>& out, bool forced);
+    bool mothL2(const Context& c) const;
+    void regieMothL2(double dt, const Context& c, std::vector<Event>& out);
+    bool spawnMothL2(const Context& c, std::vector<Event>& out, bool forced);
+    void thinkMothL2(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    void prepMothL2(Agent& a);  // Massstab nach Variante (auch Puppen und Vorfuehrungen)
+    bool ratFoodSpawn(const Context& c, vec3& out);
+    bool ratFeed(Agent& a, double dt, const Context& c, std::vector<Event>& out, bool scare);
+    // V13.3 Teil 4: Jerry auf seinem Rohr (presence_jerry.cpp): Auftreten, Denken, Blick und Bann aller Spieler, Kanaele
+    void regieJerry(double dt, const Context& c, std::vector<Event>& out);
+    bool spawnJerry(const Context& c, std::vector<Event>& out, bool forced);
+    void thinkJerry(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    void jerryGaze(double dt, const Context& c, std::vector<Event>& out);
     bool roomAllowed(const Context& c, vec3 p, int kin) const;
     bool wander(Agent& a, double dt, const Context& c, double speed, int kin);
     // V13.3 (presence_lure.cpp): Smiler am Leuchtkoeder (true: das Licht hat ihn, der Rest von thinkSmiler entfaellt);
@@ -490,6 +530,12 @@ private:
     // V13.3: Plague Goblins - die Bande (Zustand in presence_goblin.cpp), naechster Auftritt
     std::shared_ptr<void> goblinCtl_;
     double nextGoblin_ = 50.0;
+    // V13.3 Teil 4, Level 2: naechstes Fenster, naechste Mottengruppe
+    double nextWindowL2_ = 45.0, nextMothL2_ = 8.0;
+    // V13.3 Teil 4: Jerry - Bann je Spieler, erreichte Stufe, naechster Versuch, ihn auf sein Rohr zu setzen
+    std::array<float, 4> spell_{};
+    std::array<int, 4> spellStage_{};
+    double jerryTry_ = 0.0, jerryQuick_ = 1.0;
 };
 
 }  // namespace lim::game

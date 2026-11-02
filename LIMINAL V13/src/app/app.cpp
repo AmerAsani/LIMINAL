@@ -147,6 +147,7 @@ int App::run(const std::vector<std::string>& args) {
         saveGame();
     if (!testRun() && opt_.overrides.size() == 0) settings_.save();
     if (!opt_.script.empty()) log::info("Skript: {}", scriptFailed_ ? "FEHLGESCHLAGEN" : "OK");
+    if (audio_) log::info("Audio beim Beenden: {}", audio_->statsLine());  // V13.3 (AUDIO_BUG.md)
     log::info("Beendet");
     log::shutdown();
     return scriptFailed_ ? 7 : 0;
@@ -244,7 +245,7 @@ void App::scriptStep() {
                         : n == "window" ? R::Window : n == "hound" ? R::Hound : n == "smiler" ? R::Smiler : n == "clump" ? R::Clump
                         : n == "duller" ? R::Duller : n == "arms" ? R::Arms : n == "wrangler" ? R::Wrangler
                         : n == "growler" ? R::Growler : n == "nguithrxurh" ? R::Nguithr : n == "ouroboros" ? R::Ouroboros
-                        : n == "goblin" ? R::Goblin : R::Gestalt;  // V13.3
+                        : n == "goblin" ? R::Goblin : n == "moth" ? R::Moth : n == "jerry" ? R::Jerry : R::Gestalt;  // V13.3; Teil 4: Motten (Level 2), Jerry
             auto& pr = session_->presence();
             if (!pr.has(r)) {
                 log::warn("Skript: near - kein {}", game::Presence::roleName(r));
@@ -252,6 +253,10 @@ void App::scriptStep() {
                 const vec3 at = pr.posOf(r);
                 auto& w = session_->world();
                 float baseZ = r == R::Window ? at.z - 1.9f : at.z, aimZ = r == R::Window ? at.z : at.z + (r == R::Rat ? 0.1f : 1.0f);
+                if (r == R::Moth)  // V13.3 Teil 4: Motten an der Decke - der Boden darunter, Blick auf die Motte
+                    if (const world::Tile* t0 = w.tileIfLoaded(ifloor(at.x), ifloor(at.y))) baseZ = t0->floor, aimZ = at.z;
+                if (r == R::Jerry)  // V13.3 Teil 4: Jerry auf dem Rohr - der Boden darunter, Blick in sein Gesicht
+                    if (const world::Tile* t0 = w.tileIfLoaded(ifloor(at.x), ifloor(at.y))) baseZ = t0->floor, aimZ = at.z + 0.42f;
                 if (r == R::Nguithr)  // V13.3: die Netzkugeln an der Decke - der Boden darunter, Blick auf die Kugeln
                     if (const world::Tile* t0 = w.tileIfLoaded(ifloor(at.x), ifloor(at.y))) baseZ = t0->floor, aimZ = at.z - 0.6f;
                 bool placed = false;
@@ -353,7 +358,8 @@ void App::scriptStep() {
             const int kind = n == "hound" ? 1 : n == "moth" ? 2 : n == "gestalt" ? 3 : n == "nest" ? 4 : n == "clump" ? 5 : n == "faceling" ? 6
                              : n == "skinstealer" ? 7 : n == "wretch" ? 8 : n == "rat" ? 9 : n == "window" ? 10 : n == "player" ? 99
                              : n == "duller" ? 11 : n == "arms" ? 12 : n == "wrangler" ? 13
-                             : n == "growler" ? 14 : n == "nguithrxurh" ? 15 : n == "ouroboros" ? 16 : n == "goblin" ? 17 : 0;  // V13.3
+                             : n == "growler" ? 14 : n == "nguithrxurh" ? 15 : n == "ouroboros" ? 16 : n == "goblin" ? 17
+                             : n == "jerry" ? 18 : 0;  // V13.3; Teil 4: Jerry
             auto& pl = session_->player();
             vec3 at{(float)(pl.x + std::cos(pl.angle) * dist), (float)(pl.y + std::sin(pl.angle) * dist), 0.0f};
             at.z = session_->world().tile(ifloor(at.x), ifloor(at.y)).floor;
@@ -371,6 +377,11 @@ void App::scriptStep() {
             double val = 0.0;
             if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) < 2 || !session_->presence().ouroSet(key, val))
                 log::warn("Skript: ouro '{}' unbekannt oder keine Baustelle", arg);
+        } else if (cmd == "jerry" && session_) {  // V13.3 Teil 4 (Bilder, Tests): jerry <quick|state|yaw|spell> <wert>
+            char key[32] = {};
+            double val = 0.0;
+            if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) < 2 || !session_->presence().jerrySet(key, val))
+                log::warn("Skript: jerry '{}' unbekannt oder kein Jerry", arg);
         } else if (cmd == "goblin" && session_) {  // V13.3 (Bilder): goblin <phase|mob|friendly|quick|rout> <wert> - die Bande steuern
             char key[32] = {};
             double val = 0.0;
@@ -403,6 +414,7 @@ void App::scriptStep() {
                 if (n == "nguithrxurh") r = R::Nguithr;
                 if (n == "ouroboros") r = R::Ouroboros;  // V13.3: die Baustelle im Sektor Ouroboros
                 if (n == "goblin") r = R::Goblin;        // V13.3: eine Bande Plague Goblins (Portal ausser Sicht)
+                if (n == "jerry") r = R::Jerry;          // V13.3 Teil 4: Jerry auf seinem Rohr (Spawnpunkt der Karte)
                 session_->presence().force(r, dist);
             }
         } else if (cmd == "audioinfo") {  // V11 (Tests): Zustand der Klanglandschaft ins Protokoll
@@ -410,6 +422,55 @@ void App::scriptStep() {
             log::info("Audio: Leuchten {} Betten {} Stellen {} Brummen x{:.2f} | Raum t60 {:.2f} wet {:.2f} early {:.2f} Masse {:.0f}x{:.0f}x{:.1f} Hoerer {:.1f},{:.1f},{:.1f}",
                       soundscape_.activeLamps(), soundscape_.activeBeds(), soundscape_.activeSpots(), soundscape_.humSurge(), ac.t60, ac.wet,
                       ac.early, ac.roomW, ac.roomD, ac.roomH, ac.lx, ac.ly, ac.lz);
+            if (audio_) log::info("Audio-Status: {}", audio_->statsLine());
+        } else if (cmd == "audiostat") {  // V13.3 (Tests): Geraet, Stimmen, Pegel am Master-Ausgang ins Protokoll
+            if (audio_) log::info("Audio-Status: {}", audio_->statsLine());
+        } else if (cmd == "audiolog") {  // V13.3 (Tests): audiolog <s> - Audio-Status alle s Sekunden (0 aus)
+            audioLogEvery_ = std::max(0.0, std::atof(arg.c_str()));
+            audioLogNext_ = time_ + audioLogEvery_;
+        } else if (cmd == "level" && session_) {  // V13.3 (Tests): level <id> [anker] - Ebenenwechsel wie durch einen Ausgang
+            char id[64] = {}, anchor[64] = {};
+            std::sscanf(arg.c_str(), "%63s %63s", id, anchor);
+            changeLevel(id, anchor);
+            return;  // die neue Sitzung erst ein Bild laufen lassen
+        } else if (cmd == "focus") {  // V13.3 (Tests): focus off|on - Fokusverlust (Alt+Tab) ueber WM_ACTIVATE nachstellen
+            const bool on = arg != "off" && arg != "0";
+            simFocus_ = true;
+            SendMessageW(window_.hwnd(), WM_ACTIVATE, on ? WA_ACTIVE : WA_INACTIVE, 0);
+            log::info("Skript: Fokus {}", on ? "zurueck" : "verloren");
+        } else if (cmd == "minimize" || cmd == "restore") {  // V13.3 (Tests): Fenster minimieren / wiederherstellen
+            ShowWindow(window_.hwnd(), cmd == "minimize" ? SW_MINIMIZE : SW_RESTORE);
+            if (cmd == "restore") SendMessageW(window_.hwnd(), WM_ACTIVATE, WA_ACTIVE, 0);
+        } else if (cmd == "audiofault" && audio_) {  // V13.3 (Tests): audiofault <art> [wert] - Geraete-/Fehlerpfad gezielt ausloesen
+            char kind[32] = {};
+            int param = 0;
+            std::sscanf(arg.c_str(), "%31s %d", kind, &param);
+            using F = audio::Fault;
+            const std::string k = kind;
+            const F f = k == "invalidate" ? F::DeviceInvalidated : k == "default" ? F::DefaultChanged : k == "format" ? F::FormatChanged
+                        : k == "exclusive" ? F::ExclusiveOverride : k == "remove" ? F::DeviceRemoved : k == "stall" ? F::StallEvents
+                        : k == "mute" ? F::MuteOutput : k == "nan" ? F::NanOutput : F::InitFails;
+            if (k != "invalidate" && k != "default" && k != "format" && k != "exclusive" && k != "remove" && k != "stall" && k != "mute" &&
+                k != "nan" && k != "initfail") {
+                log::error("Skript: audiofault - unbekannte Art '{}'", k);
+                scriptFailed_ = true;
+            } else {
+                audio_->injectFault(f, param);
+            }
+        } else if (cmd == "audiorestart" && audio_) {  // V13.3 (Tests): Strom schliessen und neu oeffnen
+            audio_->requestRestart("Skript");
+        } else if (cmd == "audioexpect") {  // V13.3 (Tests): audioexpect <dBFS> - Pegel am Master-Ausgang (letzte Sekunde) mindestens so hoch
+            const double want = std::atof(arg.c_str());
+            const auto st = audio_ ? audio_->stats() : audio::AudioStats{};
+            const double db = st.outRms > 1e-9f ? 20.0 * std::log10(st.outRms) : -180.0;
+            if (!st.deviceOpen || db < want) {
+                scriptFailed_ = true;
+                log::error("Skript: audioexpect {} dBFS - Ausgang {:.1f} dBFS, Geraet {}", want, db, st.deviceOpen ? "offen" : "ZU");
+            } else {
+                log::info("Skript: audioexpect {} dBFS ok ({:.1f} dBFS)", want, db);
+            }
+        } else if (cmd == "resume") {  // V13.3 (Tests): Pausenmenue schliessen (wie "Weiter")
+            if (ui_.mode() == ui::Mode::Pause) ui_.setMode(ui::Mode::Hud);
         } else if (cmd == "perf") {  // V10 (Tests): Zeiten und Dreiecke dieses Bildes ins Protokoll
             const auto& rs = renderer_->stats();
             u64 vramUse = 0, vramBudget = 0;  // V13: belegter Grafikspeicher (DXGI 1.4) und Arbeitsspeicher des Prozesses
@@ -699,7 +760,7 @@ void App::attachSession(game::GameSession& s) {
 
 void App::startTitleWorld() {
     // Hinter dem Hauptmenue dreht sich langsam die Welt (Seed 7 wie in V4)
-    if (audio_) audio_->stopAll();
+    if (audio_) audio_->stopAll(), audio_->resetMix();  // V13.3: keine Daempfung/Pause aus dem Spiel im Menue (B-020)
     ++audioGen_;
     session_.reset();
     session_ = makeSession(7, content_.defaultDifficulty(), "", "");
@@ -714,7 +775,8 @@ void App::startTitleWorld() {
 }
 
 void App::enterPlaying(std::unique_ptr<game::GameSession> s) {
-    if (audio_) audio_->stopAll();
+    if (audio_ && session_) log::info("Audio vor dem Wechsel: {}", audio_->statsLine());  // V13.3 (AUDIO_BUG.md)
+    if (audio_) audio_->stopAll(), audio_->resetMix();
     ++audioGen_;
     session_ = std::move(s);
     state_ = State::Playing;
@@ -949,7 +1011,10 @@ void App::mainLoop() {
         if (opt_.quitAfter > 0 && time_ > opt_.quitAfter) quit_ = true;
 
         input_.beginFrame();
-        if (!window_.pump() || window_.closeRequested()) quit_ = true;
+        if (!window_.pump() || window_.closeRequested()) {
+            if (!quit_) log::info("Fenster geschlossen (WM_CLOSE/WM_QUIT)");  // V13.3: Grund des Beendens im Protokoll
+            quit_ = true;
+        }
         input_.pollGamepad();
         if (!opt_.shot.empty() || !opt_.script.empty()) {
             // Aufnahmen/Tests: keine echten Eingaben, nur die des Skripts
@@ -964,11 +1029,16 @@ void App::mainLoop() {
             settings_.fullscreen = lastWinMode_ == plat::DisplayMode::Borderless;
             if (!testRun() && opt_.overrides.size() == 0) settings_.save();
         }
+        if (audio_) audio_->watchdog();  // V13.3: Geraet verloren, Strom steht, Thread haengt -> Neustart (AUDIO_BUG.md)
         if (window_.minimized()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(30));
             continue;
         }
         frame(dt);
+        if (audioLogEvery_ > 0.0 && time_ >= audioLogNext_ && audio_) {  // V13.3 (Tests)
+            audioLogNext_ = time_ + audioLogEvery_;
+            log::info("Audio-Status: {}", audio_->statsLine());
+        }
         // V6: Grafik-Automatik (Messung, dynamische Aufloesung)
         if (state_ != State::Loading && !testRun()) {
             std::string msg = autoTune_.update(dt, settings_, *renderer_, true, renderer_->gpuTimer().totalMs(),
@@ -1172,7 +1242,7 @@ void App::updatePlaying(double dt) {
     }
     // Fenster verlassen (Alt+Tab, Klick daneben): Spiel pausieren, damit die Sanity nicht im
     // Hintergrund weiter sinkt
-    if (!window_.focused() && ui_.mode() == ui::Mode::Hud && !testRun() && !pilot_)
+    if (!window_.focused() && ui_.mode() == ui::Mode::Hud && (!testRun() || simFocus_) && !pilot_)
         ui_.openPause();
     bool paused = ui_.pausesGame() && !coop();  // V13.2: im Koop laeuft die Welt weiter (Menues bremsen nur die Eingabe)
     // Spieltasten (nur ohne offenes Menue)
@@ -1309,6 +1379,9 @@ void App::handleEvents() {
     // V11: Klaenge mit Ort nehmen den Weg des Schalls (durch Tueren, um Ecken), nicht den durch die Wand
     const auto& pl = session_->player();
     const vec3 ear{(float)pl.x, (float)pl.y, (float)pl.eye()};
+    // V13.3: Hoerer vor den Klaengen dieses Bildes setzen - play3d verwirft Quellen ausser Reichweite, und nach einem
+    // Ebenenwechsel/Wiedereinstieg stand der Hoerer sonst noch an der alten Stelle (falsches Culling im ersten Bild)
+    audio_->setListener(ear, (float)pl.angle);
     auto at = [&](const std::string& name, vec3 pos, float volume, float radius, float pitch = 1.0f) {
         audio::PlayOpts o;
         o.volume = volume, o.pitch = pitch, o.vary = false;
@@ -1457,6 +1530,8 @@ void App::handleEvents() {
                 } else if (e.role == (int)game::Presence::Role::Nguithr) {  // V13.3: frisst bei lebendigem Leib
                     audio_->play("ngui_feed", 1.0f, 1.0f, audio::Bus::Effects);
                     audio_->play("scare_smiler", 0.6f, 1.25f, audio::Bus::Effects);
+                } else if (e.role == (int)game::Presence::Role::Jerry) {  // V13.3 Teil 4: ganz nah gesprochen, Schwingen, Herzschlag
+                    audio_->play("jerry_subdue", 1.0f, 1.0f, audio::Bus::Effects);
                 } else {
                     audio_->play(e.role == (int)game::Presence::Role::Smiler ? "scare_smiler" : "scare_hound", 1.0f, 1.0f, audio::Bus::Effects);
                 }
@@ -1500,7 +1575,10 @@ void App::handleEvents() {
                         if (role == Role::Goblin) at(std::format("goblin_step_{}", n % 3), e.pos, 0.18f + 0.35f * e.intensity, 12.0f, 0.94f + 0.14f * var);
                         break;
                     // V11 Buendel: Klopfen im Schacht, Herabfallen, Schleifen, Ausholen
-                    case PE::Knock: at(std::format("clump_knock_{}", n % 3), e.pos, 0.9f, 30.0f); break;
+                    case PE::Knock:
+                        if (role == Role::Moth) at(std::format("moth_tap_{}", n % 3), e.pos, 0.5f, 9.0f, 0.9f + 0.2f * var);  // V13.3 Teil 4: ans Glas der Roehre
+                        else at(std::format("clump_knock_{}", n % 3), e.pos, 0.9f, 30.0f);
+                        break;
                     case PE::Drop:
                         if (role == Role::Arms) {  // V13.3: die Krallen schnappen ins Leere
                             at("arms_snap", e.pos, 0.9f, 16.0f, 0.95f + 0.1f * var);
@@ -1529,7 +1607,14 @@ void App::handleEvents() {
                     case PE::Flicker: at("lamp_tick", e.pos, 0.7f, 30.0f, 0.75f + 0.1f * var); break;
                     case PE::Vision: audio_->play("gestalt_sight", 0.4f); break;
                     // V11 (F2): das Laecheln oeffnet sich - Ankuendigung des Zugriffs; beruhigt: es verklingt
-                    case PE::Announce: at("smiler_open", e.pos, 1.0f, 30.0f); break;
+                    case PE::Announce:
+                        if (role == Role::Jerry) {  // V13.3 Teil 4: Jerry breitet die Fluegel aus und kreischt - letzte Warnung
+                            at(std::format("jerry_screech_{}", n % 2), e.pos, 1.0f, 40.0f);
+                            at("jerry_flap_1", e.pos, 0.9f, 24.0f);
+                        } else {
+                            at("smiler_open", e.pos, 1.0f, 30.0f);
+                        }
+                        break;
                     case PE::Calm:
                         if (role == Role::Wrangler) at("wrangler_settle", e.pos, 0.8f, 30.0f);  // V13.3: es hat einen verloren
                         else at("smiler_fade", e.pos, 0.4f, 20.0f);
@@ -1537,7 +1622,8 @@ void App::handleEvents() {
                     case PE::Lost: break;
                     // V13.2: neue Wesen
                     case PE::Hit:
-                        at(std::format("hit_body_{}", n % 2), e.pos, 0.9f, 14.0f, 0.9f + 0.15f * var);
+                        if (role == Role::Moth) at("moth_bite", e.pos, 0.85f, 10.0f, 0.95f + 0.1f * var);  // V13.3 Teil 4: Weibchen beisst
+                        else at(std::format("hit_body_{}", n % 2), e.pos, 0.9f, 14.0f, 0.9f + 0.15f * var);
                         hitFlash_ = std::max(hitFlash_, std::clamp(e.intensity / 40.0f, 0.2f, 0.7f));  // nur eigene Treffer kommen hier an
                         break;
                     case PE::Mimic:
@@ -1559,8 +1645,14 @@ void App::handleEvents() {
                         else at("goblin_stash", e.pos, 0.9f, 8.0f);
                         break;
                     case PE::Take: at("goblin_stash", e.pos, 0.6f, 10.0f, 0.95f + 0.1f * var); break;
-                    case PE::Hiss: at("goblin_hiss", e.pos, 1.0f, 24.0f); break;
-                    case PE::Screech: at(std::format("goblin_screech_{}", n % 2), e.pos, 1.0f, 28.0f, 0.96f + 0.08f * var); break;
+                    case PE::Hiss:
+                        if (role == Role::Moth) at("moth_buzz", e.pos, 0.6f + 0.4f * e.intensity, 12.0f);  // V13.3 Teil 4: gereizte Motten um den Kopf
+                        else at("goblin_hiss", e.pos, 1.0f, 24.0f);
+                        break;
+                    case PE::Screech:
+                        if (role == Role::Jerry) at(std::format("jerry_screech_{}", n % 2), e.pos, e.intensity > 0.7f ? 1.0f : 0.8f, 40.0f, 0.96f + 0.08f * var);  // V13.3 Teil 4
+                        else at(std::format("goblin_screech_{}", n % 2), e.pos, 1.0f, 28.0f, 0.96f + 0.08f * var);
+                        break;
                     case PE::Portal: at(e.intensity > 0.5f ? "goblin_portal_open" : "goblin_portal_close", e.pos, 1.0f, 46.0f); break;
                     case PE::Perish: at("goblin_death", e.pos, 1.0f, 30.0f); break;
                     case PE::Whisper: at(std::format("window_whisper_{}", n % 4), e.pos, 0.35f + 0.5f * e.intensity, 12.0f); break;
@@ -1589,6 +1681,9 @@ void App::handleEvents() {
                     case PE::Burst:
                         if (role == Role::Duller) at("duller_burst", e.pos, 1.0f, 30.0f);
                         else if (role == Role::Wrangler) at(std::format("wrangler_burst_{}{}", e.intensity > 0.75f ? 'm' : 'f', n % 2), e.pos, 1.0f, 40.0f);  // V13.3
+                        // V13.3 Teil 4: Fensterwesen in Level 2 - es bildet sich (Glas, Rahmen, Aussenluft) / ferner Wind und Voegel
+                        else if (role == Role::Window && e.intensity > 0.5f) at("window_form", e.pos, 0.9f, 26.0f);
+                        else if (role == Role::Window) at(std::format("window_air_{}", n % 3), e.pos, 0.55f, 22.0f, 0.96f + 0.08f * var);
                         else at("arms_vent", e.pos, 0.35f, 9.0f);
                         break;
                     case PE::Burn: at("arms_burn", e.pos, 1.0f, 30.0f); break;
@@ -1610,7 +1705,11 @@ void App::handleEvents() {
                     case PE::Lurch: at("growler_surge", e.pos, 1.0f, 34.0f); break;
                     case PE::Merge: at("growler_merge", e.pos, 1.0f, 40.0f); break;
                     case PE::Collapse: at("growler_collapse", e.pos, 0.5f + 0.5f * e.intensity, 30.0f); break;
-                    case PE::Snip: at("ngui_snip", e.pos, 0.45f, 9.0f, 0.95f + 0.1f * var); break;
+                    case PE::Snip:
+                        // V13.3 Teil 4: Death Rat am Fass (0: schleckt) und an Essensresten (1: nagt)
+                        if (role == Role::Rat) at(std::format("rat_{}_{}", e.intensity > 0.5f ? "gnaw" : "lap", n % 3), e.pos, 0.5f, 9.0f, 0.95f + 0.1f * var);
+                        else at("ngui_snip", e.pos, 0.45f, 9.0f, 0.95f + 0.1f * var);
+                        break;
                     case PE::SacBurst:
                         at(std::format("ngui_burst_{}", n % 2), e.pos, 0.75f, 14.0f, 0.95f + 0.1f * var);
                         // Koop (Gast): die Kugel platzt auf mir - die Wirkung rechnet der Host, das Bild hier selbst
@@ -1662,6 +1761,15 @@ void App::handleEvents() {
                         break;
                     }
                     case PE::Shriek: at("skin_shriek", e.pos, 1.0f, 34.0f); break;
+                    // V13.3 Teil 4: Jerry - ruhige Menschenstimme (nah: spricht dich an; leise: murmelt hinter der Tuer),
+                    // Fluegel, Putzen und Knirschen; der Bann setzt ein (im Kopf, ohne Richtung)
+                    case PE::Speak:
+                        if (e.intensity > 0.7f) at(std::format("jerry_talk_{}", n % 6), e.pos, 0.95f, 24.0f, 0.97f + 0.06f * var);
+                        else at(std::format("jerry_mutter_{}", n % 3), e.pos, 0.75f, 22.0f, 0.95f + 0.08f * var);
+                        break;
+                    case PE::Flap: at(e.intensity > 0.7f ? "jerry_flap_1" : "jerry_flap_0", e.pos, 0.8f, 18.0f, 0.95f + 0.1f * var); break;
+                    case PE::Preen: at(e.intensity > 0.5f ? "jerry_preen" : "jerry_grind", e.pos, 0.6f, 9.0f, 0.95f + 0.1f * var); break;
+                    case PE::Spell: audio_->play("jerry_spell_on", 0.55f + 0.4f * std::min(1.0f, e.intensity), 1.0f, audio::Bus::Effects); break;
                     default: break;
                 }
                 break;
@@ -1757,7 +1865,8 @@ void App::updateAudio(double dt) {
         if (!uw && uwId >= 0) audio_->stopLoop(uwId), uwId = -1;
         // V13.3: betaeubt (Nguithr'xurh) klingt alles dumpf
         // V13.3: Fieber und Rinde in den Ohren (Erscheinungen)
-        if (!st.dead) audio_->setMuffle(std::max({uw ? 0.8f : 0.0f, 0.6f * s.presence().stupor(s.netSelfId), s.phenomena().muffle(0)}));
+        if (!st.dead) audio_->setMuffle(std::max({uw ? 0.8f : 0.0f, 0.6f * s.presence().stupor(s.netSelfId), s.phenomena().muffle(0),
+                                                  0.7f * s.presence().jerrySpell(s.netSelfId)}));  // V13.3 Teil 4: Jerrys Bann
     }
     // V13.3: das Rauschen eines Growlers - im Kopf (ohne Richtung), je naeher, desto lauter; die Betaeubung klingt in den Ohren
     {
@@ -1780,6 +1889,18 @@ void App::updateAudio(double dt) {
         }
         if (daze <= 0.03f && dazeId >= 0) audio_->stopLoop(dazeId), dazeId = -1;
         if (dazeId >= 0) audio_->setLoopVolume(dazeId, std::min(1.0f, 0.2f + 0.8f * daze));
+    }
+    // V13.3 Teil 4: Jerrys Bann - Klingeln und Fluestern im Kopf, je staerker, desto lauter; alles andere wird dumpf
+    {
+        static int spellId = -1, genJ = -1;
+        if (genJ != audioGen_) genJ = audioGen_, spellId = -1;
+        const float sp = st.dead || worldPaused ? 0.0f : s.presence().jerrySpell(s.netSelfId);
+        if (sp > 0.05f && spellId < 0) {
+            spellId = audio_->startLoop("jerry_spell", 0.0f, audio::Bus::Effects);
+            audio_->setLoopFadeIn(spellId, 0.6f);
+        }
+        if (sp <= 0.03f && spellId >= 0) audio_->stopLoop(spellId), spellId = -1;
+        if (spellId >= 0) audio_->setLoopVolume(spellId, std::min(1.0f, 0.15f + 0.95f * sp));
     }
     // V9/V10: jagt eine Entity, liegt ein tiefes Brummen an ihrer Stelle; Herzschlag, wenn sie nah ist;
     // der Schwarm flattert; draussen: Wind
@@ -1954,6 +2075,8 @@ void App::renderWorld(double dt, bool clean) {
             cam.yaw += stc * 0.012f * std::sin(t * 13.0f) * std::sin(t * 3.1f) + daze * 0.03f * std::sin(t * 0.43f);
             cam.pitch += daze * 0.025f * std::sin(t * 0.51f + 1.0f);
             cam.fovY *= 1.0f + 0.04f * stc * std::sin(t * 4.0f) + 0.05f * daze;
+            const float jsp = s.presence().jerrySpell(s.netSelfId);  // V13.3 Teil 4: Jerrys Bann - der Blick verengt sich auf ihn
+            cam.fovY *= 1.0f - 0.16f * jsp * jsp - 0.22f * jsp * jsp * jsp;
         }
         if (playing && coop()) {  // V13.2: Namen ueber den Mitspielern (nach allen Kameras; dieselben Matrizen wie das Bild)
             std::vector<ui::Ui::NameTag> tags;
@@ -2022,6 +2145,11 @@ void App::renderWorld(double dt, bool clean) {
                 sp.menuDim = std::max(sp.menuDim, 0.55f * smoothstep(0.15f, 1.0f, daze));
                 sp.desaturate = std::max(sp.desaturate, 0.45f * daze);
                 sp.moodExposure *= 1.0f - 0.35f * daze;
+            }
+            // V13.3 Teil 4: Jerrys Bann - die Farbe weicht, der Rand dunkelt, das Bild wird enger (Kamera)
+            if (const float jsp = s.presence().jerrySpell(s.netSelfId); jsp > 0.0f) {
+                sp.menuDim = std::max(sp.menuDim, 0.6f * smoothstep(0.3f, 1.0f, jsp));
+                sp.desaturate = std::max(sp.desaturate, 0.6f * jsp);
             }
         }
         // V13.3 (KREATUR_L3_Purpur.md): Strahlung der purpifizierten Wesen - Bildrauschen, beim Knistern ein Schub

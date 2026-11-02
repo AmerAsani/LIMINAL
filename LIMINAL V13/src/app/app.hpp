@@ -13,6 +13,7 @@
 #include "coop/coop.hpp"
 #include "coop/netapi.hpp"
 #include "core/jobs.hpp"
+#include "core/log.hpp"
 #include "core/paths.hpp"
 #include "gameplay/autopilot.hpp"
 #include "gameplay/content.hpp"
@@ -76,7 +77,10 @@ public:
     bool loadGame(const game::SaveEntry& e) override;
     void saveGame() override;
     void toTitle() override;
-    void quit() override { quit_ = true; }
+    void quit() override {
+        if (!quit_) log::info("Beenden ueber das Menue");  // V13.3: Grund des Beendens im Protokoll
+        quit_ = true;
+    }
     void playSound(const std::string& name, float volume = 1.0f) override;
     double time() const override { return time_; }
     bool hasSave() const override { return !currentSlotPath_.empty(); }
@@ -203,6 +207,9 @@ private:
     float worldLight_ = 1.0f;
     void propDump(const std::string& path);  // V13.3: Ausstattung, Schilder und Raeume der Ebene als JSON
     bool scriptFailed_ = false;
+    // V13.3 (Audio-Tests, AUDIO_BUG.md): Audiozustand regelmaessig ins Protokoll; Fokusverlust nachstellen
+    double audioLogEvery_ = 0.0, audioLogNext_ = 0.0;
+    bool simFocus_ = false;  // Skript "focus": die Pause bei Fokusverlust auch im Testlauf
 
     // --- V13.2 Koop (Beta, MULTIPLAYER_ARCHITEKTUR.md) ----------------------------------------------
     coop::NetApi netApi_;
