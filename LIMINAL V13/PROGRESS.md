@@ -185,3 +185,10 @@ Agenten: alle ausser „Props Level 1 Blender-Modelle“ (vom Nutzer gestoppt, A
 - **Prüfung vor dem Push:** keine Geheimnisse, Pfade oder Dateien über 20 MB; Lizenztexte ergänzt; Lizenz des Spiels offen (Eigentümer).
 - **Repository-Seite:** Beschreibung und Themen gesetzt; Release v11 mit Paket veröffentlicht, Release v12 als Entwurf (Paket 157 MB über der 10-MB-Grenze des Browser-Werkzeugs, liegt unter `Release\LIMINAL_V12.zip`).
 - Einzelheiten: `GITHUB_UPLOAD.md`, E-043. Weiter mit V13.3 (Level 2 und 3 abnehmen, sobald `wf_17c86cdf-667` fertig ist).
+
+### V13.3 Zwischenstand 11 (02.11.2026) – GitHub-Abschluss
+- **Release v12 veröffentlicht** (18 Teile unter 10 MB mit Anleitung und Prüfsumme; der Weg über `gh` scheiterte an der Passwortabfrage von GitHub, Code abgelaufen). V11 und V12 als Fremder geladen, Prüfsummen gleich, gestartet ohne Fehler.
+- **Pull Request #2 geschlossen** (nicht gemergt, ohne Kommentar); `main` danach unverändert.
+- **Rulesets:** keine angelegt (Settings → Rules → Rulesets gelesen: „You haven't created any rulesets“), keine Branch-Regeln.
+- **Quelltext:** README-Abschnitt „Source code“ mit direkten Links; Bau-Test aus frischem Klon V11 und V12 bestanden (Bau rc 0, Start ohne Fehler, keine Funde).
+- `main` jetzt `4b4f5fc`; Tags v11/v12 unverändert; V13 nicht hochgeladen. Einzelheiten: `GITHUB_UPLOAD.md`.
