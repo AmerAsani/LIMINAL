@@ -76,7 +76,9 @@ void GameSession::updateLibrary(double dt) {
     const Presence::GentInfo gi = presence_.gentInfo();
     lib53_.hush = gi.hush;
     // das geworfene Notizbuch: sobald es aus seinem Bild verschwindet, liegt dort der Fund
-    if (!lib53_.thrown && ((lib53_.prevBook >= 5.0f && gi.book < 5.0f) || (gi.landed && !gi.active))) {
+    // (Gast, der erst waehrend der Ansprache dazukommt: die Ansprache folgt immer dem Wurf)
+    const bool speaking = netRole == NetRole::Guest && gi.active && gi.state == anim::gm::S_SPEAK;
+    if (!lib53_.thrown && ((lib53_.prevBook >= 5.0f && gi.book < 5.0f) || (gi.landed && !gi.active) || speaking)) {
         lib53_.thrown = true;
         libraryNote(lib53_.landing(), lib53_.standYaw() + 2.2f, Library53::kNotebook, Library53::kNotebookId, "prop:gm_notebook", "Notizbuch aufheben");
         log::info("Bibliothek: das Notizbuch liegt bei ({:.1f}, {:.1f})", lib53_.landing().x, lib53_.landing().y);

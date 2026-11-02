@@ -142,9 +142,10 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 
 | Wesen | Wiki (eigene Worte) | Status |
 |---|---|---|
-| Library Mind | Bewusstsein der Bibliothek; nimmt Erinnerungen gegen Wissen, zeigt Wut durch fallende Bücher und einstürzende Regale. | **umgesetzt** als Erscheinung: Bücher fallen, Verstand sinkt langsam (keine Gestalt) |
-| Entity 18 („Gentleman“, Beast of Level 5) | Feind der Bibliothek, erscheint in der Schlussgeschichte. | **bewusst weggelassen** (Erzählung, keine Begegnung auf der Ebene) |
-| Ambassadors (Entity 141), Macchina (Entity 189) | Nur als Wissen in der Bibliothek genannt. | **bewusst weggelassen** (nicht anwesend) |
+| Library Mind | Bewusstsein der Bibliothek; nimmt Erinnerungen gegen Wissen, zeigt Wut durch fallende Bücher und einstürzende Regale. | **umgesetzt** als Erscheinung: Bücher fallen, Verstand sinkt langsam (keine Gestalt); V13.3: Regale knarren, wenn der Hausherr eintritt, Stille während seiner Ansprache, Zorn nach seinem Besuch (Bücher stürzen, Haufen) – [KREATUR_Gentleman.md](KREATUR_Gentleman.md) |
+| Entity 18 („Gentleman“, Beast of Level 5) | Feind der Bibliothek, erscheint in der Schlussgeschichte: tritt durch eine kleine Holztür ein, ein Notizbuch über sein Personal fällt ihm vor die Füße, er wirft es hinter sich, spricht zur Bibliothek, Stille, er geht; Entity 18: sieht alles, zeigt sich, wem er will. | **umgesetzt (V13.3)**: Rolle 20 – Besuch einmal je Ebene durch den alten Gang, Szene nach der Seite (Notizbuch als Fund, Ansprache mit Stille, Zorn der Bibliothek: Bücher stürzen), gemaltes Porzellangesicht mit Rissen und nassen Augen, Arme mit zwei Ellbogen; wer stört: Kopf dreht bis 166°, er kommt, kündigt an, greift (nie tödlich) – [KREATUR_Gentleman.md](KREATUR_Gentleman.md) |
+| Ambassadors (Entity 141) | Nur als Wissen in der Bibliothek genannt; Entity-141-Seite (Rev. 13) nennt Level 5/5.3 nicht. | **umgesetzt (V13.3): als Wissen, laut Seite nicht anwesend** – Lesepult mit Folio (Tafel mit rot glühendem Würfel), Fund „Folio mit roter Tafel“ (Übersetzung der Randnotizen), Diktiergerät mit nachgeahmter Stimme – [KREATUR_Ambassadors.md](KREATUR_Ambassadors.md) |
+| Macchina (Entity 189) | Nur als Wissen in der Bibliothek genannt; seit etwa 1850 verschwunden. | **umgesetzt (V13.3): als Wissen, laut Seite nicht anwesend** – Katalogschrank mit gezogener Schublade, Kohleabrieb, Stück Rohrblech, Fund „Karteikarten mit Zahnrad“ – [KREATUR_Macchina.md](KREATUR_Macchina.md) (Abschnitt Level 5.3) |
 | Menschen und Gruppen | Erzählung. | **Ausnahme (Menschen, keine Wesen)** |
 
 ### Level 188 – „The Courtyard of Windows“
