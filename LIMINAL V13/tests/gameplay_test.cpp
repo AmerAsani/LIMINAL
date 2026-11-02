@@ -5577,6 +5577,372 @@ static void testV133Purple(const std::string& dataDir) {
     check(hums == 2, "Purpur: Brummen als Klangquelle an jeder Stelle");
 }
 
+// V13.3 Level 3 (KREATUR_DeathRat.md, KREATUR_Deathmoth.md): grosse Death Rats mit Stromfallen, Mottenschwarm mit Praetorianern
+static void testV133Level3RatMoth(const std::string& dataDir) {
+    std::printf("V13.3: Level 3 - Death Rats (Wasserschwein, Fallen, Klugheit), Deathmoth-Schwarm mit Praetorianern\n");
+    const game::Content& content = *gContent11;
+    game::PrefabLibrary prefabs;
+    prefabs.loadDirectory(dataDir + "/prefabs");
+    JobSystem jobs(2);
+    using PE = game::Presence::Event;
+    using Role = game::Presence::Role;
+    auto open = [&](i64 seed) {
+        auto s = std::make_unique<game::GameSession>(content, prefabs, content.level("level3", world::kLayoutV6), seed, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        s->presence().setGrace(3000.0);
+        return s;
+    };
+    auto step = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, double secs, const std::function<bool()>& each = {},
+                    const std::function<game::PlayerControl(int)>& ctl = {}) {
+        for (int i = 0; i < (int)(secs * 60.0); ++i) {
+            if (each && each()) break;
+            s.update(1.0 / 60.0, ctl ? ctl(i) : game::PlayerControl{}, false);
+            ev.insert(ev.end(), s.events().begin(), s.events().end());
+            s.events().clear();
+        }
+    };
+    auto count = [](const std::vector<game::GameEvent>& ev, PE::Type t, Role r, int cue = -1, int cue2 = -1) {
+        return (int)std::count_if(ev.begin(), ev.end(), [&](const game::GameEvent& e) {
+            if (e.type != game::GameEvent::Figure || e.index != (int)t || e.role != (int)r) return false;
+            const int k = game::kinCueOf(e.intensity, e.role);
+            return cue < 0 ? k < 0 : (k >= cue && k <= (cue2 < 0 ? cue : cue2));
+        });
+    };
+    // Index des ersten Ereignisses (Art, Rolle, Klangnummer-Bereich; cue < 0: ohne Nummer), -1: keins
+    auto first = [](const std::vector<game::GameEvent>& ev, PE::Type t, Role r, int cue = -1, int cue2 = -1) {
+        for (size_t i = 0; i < ev.size(); ++i) {
+            const auto& e = ev[i];
+            if (e.type != game::GameEvent::Figure || e.index != (int)t || e.role != (int)r) continue;
+            const int k = game::kinCueOf(e.intensity, e.role);
+            if (cue < 0 ? k < 0 : (k >= cue && k <= (cue2 < 0 ? cue : cue2))) return (int)i;
+        }
+        return -1;
+    };
+    auto aim = [](game::GameSession& s, vec3 q) {
+        auto& pl = s.player();
+        pl.angle = std::atan2(q.y - pl.y, q.x - pl.x);
+        pl.pitch = std::atan2(q.z - pl.eye(), std::max(0.4, std::hypot(q.x - pl.x, q.y - pl.y)));
+    };
+    auto eyeOf = [](game::GameSession& s) { return vec3{(float)s.player().x, (float)s.player().y, (float)s.player().eye()}; };
+    auto put = [](game::GameSession& s, double x, double y) {
+        auto& pl = s.player();
+        pl.x = x, pl.y = y, pl.z = s.world().tile(ifloor(x), ifloor(y)).floor, pl.vx = pl.vy = 0.0, pl.vz = 0.0, pl.onGround = true;
+        s.body().reset();
+    };
+    // freie Kachel in d m Entfernung von 'at' mit Sicht auf 'look'
+    auto spotNear = [&](game::GameSession& s, vec3 at, double d, vec3 look, double& ox, double& oy) {
+        world::World& w = s.world();
+        for (int k = 0; k < 72; ++k) {
+            const double a = k * 0.0873 * 1.0;
+            for (double dd = d; dd > d * 0.6; dd -= 0.3) {
+                const double x = at.x + std::cos(a) * dd, y = at.y + std::sin(a) * dd;
+                const world::Tile* t = w.tileIfLoaded(ifloor(x), ifloor(y));
+                if (!t || !t->open() || t->clearance() < 2.0f || std::fabs(t->floor - at.z) > 0.3f) continue;
+                if (!game::clearSight(w, vec3{(float)x, (float)y, t->floor + 1.6f}, look)) continue;
+                ox = x, oy = y;
+                return true;
+            }
+        }
+        return false;
+    };
+    // --- Klaenge und Ebene -------------------------------------------------------------------------------------------------
+    {
+        int bad = 0;
+        for (int k = game::KC_RAT_SAY0; k < game::KC_L3_END; ++k) {
+            const game::KinLine* L = game::kinLine(k);
+            bad += !L || !L->sound || game::kinLineBySound(L->sound) != L;
+        }
+        check(bad == 0, "Death Rats/Motten: jede Klangnummer hat einen Namen (auch fuer die Gaeste)");
+        check(game::kinLine(game::KC_RAT_SAY0)->sub && game::kinLine(game::KC_RAT_SAY0 + 11)->sub && game::kinLine(game::KC_TRAP_CRACKLE)->hint &&
+                  game::kinLine(game::KC_PR_REAR)->hint && !game::kinLine(game::KC_RAT_GRIND)->sub,
+              "Death Rats: das Sprachgeraet mit Untertitel; Falle, Schwarm und Praetorianer mit einmaligem Hinweis");
+        check(game::kinCueOf(14.0f, (int)Role::Rat) < 0 && game::kinCueOf(9.0f, (int)Role::Moth) < 0 &&
+                  game::kinCueOf(100.0f + game::KC_RAT_HISS, (int)Role::Rat) == game::KC_RAT_HISS,
+              "Death Rats/Motten: Schaden bleibt Schaden, Klangnummern erst ab 100");
+        const auto L3 = content.level("level3", world::kLayoutV6);
+        const auto L2 = content.level("level2", world::kLayoutV6);
+        check(L3 && L3->kin[world::KIN_RAT].mode == "l3" && L3->kin[world::KIN_RAT].count >= 2 && L3->kin[world::KIN_RAT].chance == 0.0,
+              "Level 3: Death Rats mit Fallen (mode l3, hoechstens count Fallen, kein Schrei-Ereignis)");
+        check(L3 && L3->kin[world::KIN_MOTH].on && L3->kin[world::KIN_MOTH].mode == "swarm" && L3->kin[world::KIN_MOTH].chance > 0.4,
+              "Level 3: Mottenschwarm mit ueber 40 % Praetorianern (Wikidot Level 3)");
+        check(L2 && L2->kin[world::KIN_RAT].mode == "bald" && L2->kin[world::KIN_MOTH].mode.empty(), "Level 2: Ratten und Motten unveraendert");
+    }
+    // --- Death Rats: Auftritt, Wetzen, Wahrnehmen, Sprechen, Abstand zur Lampe ---------------------------------------------
+    {
+        auto s = open(5);
+        auto& P = s->presence();
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.5);
+        P.l3Set("mem", 0.0);
+        P.force(Role::Rat);
+        step(*s, ev, 1.0, [&] { return P.l3Info().rats > 0; });
+        auto I = P.l3Info();
+        check(I.rats >= 2 && I.rats <= 3 && P.variantOf(Role::Rat) >= 2, std::format("Death Rats: eine Brigade aus {} grossen Ratten (Variante 2)", I.rats));
+        // niemand erscheint im Blick
+        int seen = 0;
+        vec3 rp;
+        int st = 0, var = 0;
+        const vec3 eye = eyeOf(*s);
+        const vec3 look{(float)(std::cos(s->player().angle) * std::cos(s->player().pitch)), (float)(std::sin(s->player().angle) * std::cos(s->player().pitch)),
+                        (float)std::sin(s->player().pitch)};
+        for (int i = 0; P.agentInfo(Role::Rat, i, rp, st, var); ++i)
+            if (var == 2 && dot(normalize(rp + vec3{0, 0, 0.4f} - eye), look) > 0.3f && game::clearSight(s->world(), eye, rp + vec3{0, 0, 0.4f})) ++seen;
+        check(seen == 0, "Death Rats: erscheinen ausser Sicht");
+        // die erste Ratte: Spieler 9 m vor ihr, Lampe an, freie Sicht - sie bemerkt ihn, das Geraet spricht
+        vec3 r0;
+        P.agentInfo(Role::Rat, 0, r0, st, var);
+        for (int i = 0; P.agentInfo(Role::Rat, i, rp, st, var); ++i)
+            if (var == 2) {
+                r0 = rp;
+                break;
+            }
+        step(*s, ev, 4.0);
+        const int grind = count(ev, PE::Mimic, Role::Rat, game::KC_RAT_GRIND);
+        double x = 0, y = 0;
+        bool placed = spotNear(*s, r0, 9.0, r0 + vec3{0, 0, 0.4f}, x, y);
+        check(placed, "Death Rats: Platz mit Sicht auf die Ratte gefunden");
+        if (!placed) return;
+        put(*s, x, y);
+        aim(*s, r0 + vec3{0, 0, 0.4f});
+        s->flashlight().on = true;
+        step(*s, ev, 4.0);  // ev: seit dem Auftritt (der erste Satz faellt, sobald sie ihn bemerken)
+        I = P.l3Info();
+        const int say = count(ev, PE::Mimic, Role::Rat, game::KC_RAT_SAY0, game::KC_RAT_SAY0 + game::KC_RAT_SAYS - 1);
+        check(grind >= 1 || I.ratJob != 0, std::format("Death Rats: wetzen die Zaehne, bevor man sie sieht (Geraeusch vor Sicht: {} x)", grind));
+        check(I.ratJob >= 1 && say >= 1, std::format("Death Rats: bemerken den Spieler (Auftrag {}), das Sprachgeraet spricht ({} Saetze)", I.ratJob, say));
+        // Abstand mit Lampe groesser als ohne (sie warten ausserhalb der Lampe)
+        auto meanDist = [&](double secs) {
+            double sum = 0.0;
+            int n = 0;
+            step(*s, ev, secs, [&] {
+                vec3 p;
+                int st2 = 0, v2 = 0;
+                for (int i = 0; P.agentInfo(Role::Rat, i, p, st2, v2); ++i)
+                    if (v2 == 2) sum += std::hypot(p.x - s->player().x, p.y - s->player().y), ++n;
+                return false;
+            });
+            return n ? sum / n : 0.0;
+        };
+        P.l3Set("clear", 1.0);  // ohne Falle in der Naehe: sie lauern (sonst treiben sie); der Fallenbau wird unten geprueft
+        P.l3Set("build", 0.0);
+        P.l3Set("job", 1.0);
+        step(*s, ev, 6.0);
+        const double dOn = meanDist(8.0);
+        s->flashlight().on = false;
+        P.l3Set("clear", 1.0);
+        step(*s, ev, 6.0);
+        const double dOff = meanDist(8.0);
+        check(dOn > dOff + 1.0 && dOn > 5.5, std::format("Death Rats: warten ausserhalb der Lampe ({:.1f} m mit Lampe, {:.1f} m ohne)", dOn, dOff));
+        I = P.l3Info();
+        check(I.encounters >= 1 && I.trail >= 1, std::format("Death Rats: Gedaechtnis - {} Begegnungen, {} Wegpunkte des Spielers", I.encounters, I.trail));
+        // Drohen vor dem Biss: der Spieler tritt dicht heran - erst Zischen und "STOP.", dann (bleibt er) der Biss
+        bool threat = false, bitAfterWarn = false;
+        for (int tries = 0; tries < 4 && !threat; ++tries) {
+            vec3 rr;
+            for (int i = 0; P.agentInfo(Role::Rat, i, rr, st, var); ++i)
+                if (var == 2) break;
+            if (!spotNear(*s, rr, 1.3, rr + vec3{0, 0, 0.4f}, x, y)) continue;
+            put(*s, x, y);
+            aim(*s, rr + vec3{0, 0, 0.4f});
+            ev.clear();
+            step(*s, ev, 3.0, [&] { return false; }, [&](int) {
+                vec3 q;
+                int s2 = 0, v2 = 0;
+                for (int i = 0; P.agentInfo(Role::Rat, i, q, s2, v2); ++i)
+                    if (v2 == 2) break;
+                return game::PlayerControl{};
+            });
+            const int hiss = first(ev, PE::Mimic, Role::Rat, game::KC_RAT_HISS), hit = first(ev, PE::Hit, Role::Rat);
+            threat = hiss >= 0;
+            bitAfterWarn = hit < 0 || hit > hiss;
+        }
+        check(threat && bitAfterWarn, "Death Rats: drohen (Zischen, aufgerichtet, \"STOP.\") vor jedem Biss");
+    }
+    // --- Falle: sichtbar (Draht quer im Gang, Knistern), Schlag mit Laehmung, darueber springen, versagt manchmal -----------
+    {
+        auto s = open(7);
+        auto& P = s->presence();
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.5);
+        // einen Gang suchen: der Spieler blickt entlang
+        world::World& w = s->world();
+        double gx = 0, gy = 0, ang = 0;
+        bool found = false;
+        for (int r = 2; r < 30 && !found; ++r)
+            for (int k = 0; k < 8 * r && !found; ++k) {
+                const double a = k * 6.2831853 / (8 * r);
+                const double x = s->player().x + std::cos(a) * r, y = s->player().y + std::sin(a) * r;
+                const world::Tile* t = w.tileIfLoaded(ifloor(x), ifloor(y));
+                if (!t || !t->open() || !t->room || !t->room->type || t->room->type->key != "gang") continue;
+                for (int d = 0; d < 4 && !found; ++d) {
+                    const int dx = d == 0 ? 1 : d == 1 ? -1 : 0, dy = d == 2 ? 1 : d == 3 ? -1 : 0;
+                    bool ok = true;
+                    for (int q = 1; q <= 5 && ok; ++q) {
+                        const world::Tile* u = w.tileIfLoaded(ifloor(x) + dx * q, ifloor(y) + dy * q);
+                        ok = u && u->open() && std::fabs(u->floor - t->floor) < 0.1f && u->clearance() > 2.0f;
+                    }
+                    if (ok) gx = ifloor(x) + 0.5, gy = ifloor(y) + 0.5, ang = std::atan2((double)dy, (double)dx), found = true;
+                }
+            }
+        check(found, "Falle: ein gerader Gang gefunden");
+        if (!found) return;
+        int zaps = 0, fizz = 0, healthDrop = 0, stunned = 0, crackles = 0, wireOk = 0;
+        for (int round = 0; round < 6 && zaps == 0; ++round) {
+            P.clear();
+            put(*s, gx, gy);
+            s->player().angle = ang, s->player().pitch = -0.3;
+            P.l3Set("trap", 2.5);
+            ev.clear();
+            step(*s, ev, 5.0);
+            auto I = P.l3Info();
+            if (I.armed < 1) continue;
+            const float span = hdist2(I.trapL, I.trapR), hz = I.trapL.z - s->world().tile(ifloor(I.trapL.x), ifloor(I.trapL.y)).floor;
+            wireOk += span > 0.8f && span < 3.3f && std::fabs(hz - 0.18f) < 0.03f ? 1 : 0;
+            crackles += count(ev, PE::Mimic, Role::Rat, game::KC_TRAP_CRACKLE);
+            // durchgehen: die Fuesse am Boden quer ueber den Draht
+            const vec3 mid = (I.trapL + I.trapR) * 0.5f;
+            const vec3 along{(float)std::cos(ang), (float)std::sin(ang), 0.0f};
+            const double h0 = s->stats().health;
+            ev.clear();
+            for (int k = 0; k <= 40; ++k) {
+                const vec3 p = mid - along * 1.0f + along * (2.0f * k / 40.0f);
+                put(*s, p.x, p.y);
+                step(*s, ev, 1.0 / 60.0);
+            }
+            step(*s, ev, 0.3);
+            zaps += count(ev, PE::Mimic, Role::Rat, game::KC_TRAP_ZAP);
+            fizz += count(ev, PE::Mimic, Role::Rat, game::KC_TRAP_FIZZLE);
+            if (count(ev, PE::Mimic, Role::Rat, game::KC_TRAP_ZAP)) {
+                healthDrop += s->stats().health < h0 - 5.0 ? 1 : 0;
+                stunned += P.stupor(s->netSelfId) > 0.5f ? 1 : 0;
+            }
+        }
+        check(wireOk >= 1, "Falle: blanker Draht quer durch den Gang in 18 cm Hoehe (0,8-3,2 m)");
+        check(crackles >= 1, std::format("Falle: kuendigt sich an - Knistern mit Funken ({} x in 5 s)", crackles));
+        check(zaps >= 1 && healthDrop >= 1 && stunned >= 1, std::format("Falle: wer durchgeht, bekommt den Schlag - Schaden und Laehmung ({} Schlaege, {} versagt)", zaps, fizz));
+        // darueber springen: in der Luft ueber den Draht - kein Schlag, sie merken es sich
+        P.clear();
+        put(*s, gx, gy);
+        s->player().angle = ang, s->player().pitch = -0.3;
+        P.l3Set("trap", 2.5);
+        step(*s, ev, 1.0);
+        auto I = P.l3Info();
+        const int jumped0 = I.jumped;
+        ev.clear();
+        if (I.armed >= 1) {
+            const vec3 mid = (I.trapL + I.trapR) * 0.5f;
+            const vec3 along{(float)std::cos(ang), (float)std::sin(ang), 0.0f};
+            for (int k = 0; k <= 40; ++k) {
+                const vec3 p = mid - along * 1.0f + along * (2.0f * k / 40.0f);
+                put(*s, p.x, p.y);
+                const bool air = std::fabs(k - 20) <= 6;
+                s->player().onGround = !air;
+                s->player().z += air ? 0.45 : 0.0;
+                step(*s, ev, 1.0 / 60.0);
+            }
+        }
+        I = P.l3Info();
+        check(I.armed >= 1 && count(ev, PE::Hit, Role::Rat) == 0 && I.jumped > jumped0, "Falle: wer darueber springt, bleibt heil - die Ratten merken es sich");
+        // Fallenbau: die Brigade baut selbst (Zeitraffer) - eine weitere Falle entsteht ausser Sicht
+        P.clear();
+        put(*s, gx, gy);
+        P.force(Role::Rat);
+        step(*s, ev, 1.0);
+        const int traps0 = P.l3Info().traps;
+        P.l3Set("quick", 12.0);
+        P.l3Set("build", 1.0);
+        P.l3Set("job", 1.0);
+        step(*s, ev, 60.0, [&] { return P.l3Info().traps > traps0; });
+        check(P.l3Info().traps > traps0, std::format("Death Rats: bauen selbst Fallen auf dem Weg des Spielers ({} -> {})", traps0, P.l3Info().traps));
+        // Koop: die Puppen beim Gast tragen Rolle und Variante (Ratte 2, Falle 3)
+        std::vector<game::Presence::NetState> ns;
+        P.netStates(ns, eyeOf(*s), 32);
+        game::Presence G;
+        G.netApply(ns, 0.0);
+        int pv2 = 0, pv3 = 0;
+        vec3 q;
+        int st = 0, var = 0;
+        for (int i = 0; G.agentInfo(Role::Rat, i, q, st, var); ++i) pv2 += var == 2, pv3 += var == 3;
+        check(pv2 >= 1 && pv3 >= 1, std::format("Koop: Puppen der Ratten ({}) und Fallen ({}) beim Gast", pv2, pv3));
+    }
+    // --- Mottenschwarm: Praetorianer, Licht lockt, Angriff aufs Gesicht mit Ankuendigung, Lampe aus und rennen ------------
+    {
+        auto s = open(9);
+        auto& P = s->presence();
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.5);
+        P.force(Role::Moth);
+        step(*s, ev, 1.0, [&] { return P.l3Info().commons > 0; });
+        auto I = P.l3Info();
+        const double share = I.commons + I.praetorians > 0 ? (double)I.praetorians / (I.commons + I.praetorians) : 0.0;
+        check(I.commons >= 3 && I.praetorians >= 2 && share >= 0.38,
+              std::format("Motten: Schwarm aus {} Motten und {} Praetorianern ({:.0f} %)", I.commons, I.praetorians, share * 100.0));
+        // vor die Roehre treten, Lampe auf die Motten: sie fliegen auf
+        vec3 mp;
+        int st = 0, var = 0;
+        for (int i = 0; P.agentInfo(Role::Moth, i, mp, st, var); ++i)
+            if (var == 3 || var == 4) break;
+        double x = 0, y = 0;
+        bool placed = spotNear(*s, vec3{mp.x, mp.y, s->world().tile(ifloor(mp.x), ifloor(mp.y)).floor}, 6.0, mp, x, y);
+        check(placed, "Motten: Platz mit Sicht auf die Roehre");
+        if (!placed) return;
+        put(*s, x, y);
+        aim(*s, mp);
+        s->flashlight().on = true;
+        ev.clear();
+        step(*s, ev, 3.0, [&] { return P.l3Info().roused; });
+        check(P.l3Info().roused && count(ev, PE::TakeOff, Role::Moth) >= 1 && count(ev, PE::Mimic, Role::Moth, game::KC_MOTH_SWARM) >= 1,
+              "Motten: die Lampe lockt - der Schwarm fliegt auf (Brummen)");
+        // stehen bleiben mit Lampe: erst das Brummen vor dem Gesicht (Ankuendigung), dann Motten im Gesicht
+        const double h0 = s->stats().health;
+        int maxFace = 0;
+        step(*s, ev, 14.0, [&] {
+            maxFace = std::max(maxFace, P.l3Info().onFace);
+            return false;
+        }, [&](int) {
+            game::PlayerControl c;
+            return c;
+        });
+        const int warn = first(ev, PE::Hiss, Role::Moth), hit = first(ev, PE::Hit, Role::Moth);
+        check(maxFace >= 2 && warn >= 0 && hit > warn && s->stats().health < h0,
+              std::format("Motten: greifen Mund, Nase, Augen, Ohren an ({} zugleich), angekuendigt (Brummen vor dem ersten Biss)", maxFace));
+        // Lampe aus und rennen: sie lassen los und verlieren ihn
+        s->flashlight().on = false;
+        const vec3 away = normalize(vec3{(float)(s->player().x - mp.x), (float)(s->player().y - mp.y), 0.0f});
+        s->player().angle = std::atan2(away.y, away.x);
+        step(*s, ev, 10.0, {}, [&](int) {
+            game::PlayerControl c;
+            c.forward = 1.0f, c.sprint = true;
+            return c;
+        });
+        step(*s, ev, 4.0);
+        I = P.l3Info();
+        check(I.onFace == 0, "Motten: Lampe aus und rennen - keine Motte mehr im Gesicht");
+        // Praetorianer: aufbaeumen (Klicken, Zischen) vor dem Stich; der Stich laehmt
+        P.clear();
+        P.force(Role::Moth);
+        step(*s, ev, 1.0, [&] { return P.l3Info().praetorians > 0; });
+        vec3 pp;
+        for (int i = 0; P.agentInfo(Role::Moth, i, pp, st, var); ++i)
+            if (var == 5) break;
+        placed = spotNear(*s, pp, 1.8, pp + vec3{0, 0, 0.6f}, x, y);
+        if (placed) {
+            put(*s, x, y);
+            aim(*s, pp + vec3{0, 0, 0.6f});
+            P.l3Set("pstate", 2.0);
+            ev.clear();
+            step(*s, ev, 3.0);
+            const int rear = first(ev, PE::Mimic, Role::Moth, game::KC_PR_REAR), stab = first(ev, PE::Mimic, Role::Moth, game::KC_PR_STAB);
+            const int hitP = first(ev, PE::Hit, Role::Moth);
+            check(rear >= 0 && stab > rear && (hitP < 0 || hitP > rear), "Praetorianer: baeumt sich auf (Ankuendigung) vor dem Stich");
+            check(hitP >= 0 && P.stupor(s->netSelfId) > 0.2f, std::format("Praetorianer: der Giftstich laehmt (Betaeubung {:.2f})", P.stupor(s->netSelfId)));
+        } else {
+            check(false, "Praetorianer: Platz neben ihm gefunden");
+        }
+    }
+}
+
 int main(int argc, char** argv) {
     if (argc < 2) {
         std::printf("Aufruf: gameplay_test <data-Ordner>\n");
@@ -5626,6 +5992,7 @@ int main(int argc, char** argv) {
     testV133Jerry(argv[1]);       // V13.3 Teil 4: Jerry (Level 2)
     testV133Level3Kin(argv[1]);   // V13.3: Level 3 - Wretch mit Waffe, Skin-Stealer im Mantel
     testV133Purple(argv[1]);      // V13.3: Level 3 - purpifizierte Wesen in der Wand
+    testV133Level3RatMoth(argv[1]);  // V13.3: Level 3 - Death Rats mit Fallen, Mottenschwarm mit Praetorianern
     std::printf("%s: %d Pruefungen, %d Fehler\n", gFails ? "FEHLGESCHLAGEN" : "OK", gChecks, gFails);
     return gFails ? 1 : 0;
 }

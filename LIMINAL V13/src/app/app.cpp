@@ -382,6 +382,48 @@ void App::scriptStep() {
             double val = 0.0;
             if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) < 2 || !session_->presence().l3Set(key, val))
                 log::warn("Skript: l3 '{}' unbekannt oder kein Wesen", arg);
+        } else if (cmd == "l3prae" && session_) {  // V13.3 Level 3 (Bilder): l3prae <abstand> - vor den ersten Praetorianer, Blick auf ihn
+            const double dist = std::max(0.8, std::atof(arg.c_str()));
+            auto& pr = session_->presence();
+            vec3 p;
+            int st = 0, var = 0;
+            bool found = false;
+            for (int i = 0; !found && pr.agentInfo(game::Presence::Role::Moth, i, p, st, var); ++i) found = var == 5;
+            auto& pl = session_->player();
+            for (int k = 0; found && k < 36; ++k) {
+                const double a = std::atan2(pl.y - p.y, pl.x - p.x) + (double)((k + 1) / 2) * 0.35 * (k % 2 ? 1.0 : -1.0);
+                const vec3 q{(float)(p.x + std::cos(a) * dist), (float)(p.y + std::sin(a) * dist), 0.0f};
+                const world::Tile* t = session_->world().tileIfLoaded(ifloor(q.x), ifloor(q.y));
+                if (!t || !t->open() || t->clearance() < 2.0f || !game::clearSight(session_->world(), vec3{q.x, q.y, t->floor + 1.6f}, p + vec3{0, 0, 0.7f}))
+                    continue;
+                pl.x = q.x, pl.y = q.y, pl.z = t->floor, pl.vx = pl.vy = 0.0;
+                pl.angle = std::atan2(p.y - q.y, p.x - q.x);
+                pl.pitch = std::atan2(p.z + 0.6 - (t->floor + game::Player::kEye), dist);
+                session_->body().reset();
+                break;
+            }
+            if (!found) log::warn("Skript: l3prae - kein Praetorianer");
+        } else if (cmd == "l3near" && session_) {  // V13.3 Level 3 (Bilder): l3near <abstand> [seite] - vor die naechste scharfe Falle, Blick auf den Draht
+            double dist = 2.5, side = 1.0;
+            std::sscanf(arg.c_str(), "%lf %lf", &dist, &side);
+            const auto I = session_->presence().l3Info();
+            if (I.armed < 1) {
+                log::warn("Skript: l3near - keine scharfe Falle");
+            } else {
+                const vec3 mid = (I.trapL + I.trapR) * 0.5f, ac = normalize(vec3{I.trapR.x - I.trapL.x, I.trapR.y - I.trapL.y, 0.0f});
+                const vec3 axis = vec3{-ac.y, ac.x, 0.0f} * (side < 0.0 ? -1.0f : 1.0f);
+                auto& pl = session_->player();
+                for (double d = dist; d > 0.6; d -= 0.25) {
+                    const vec3 p = mid + axis * (float)d;
+                    const world::Tile* t = session_->world().tileIfLoaded(ifloor(p.x), ifloor(p.y));
+                    if (!t || !t->open() || t->clearance() < 2.0f) continue;
+                    pl.x = p.x, pl.y = p.y, pl.z = t->floor, pl.vx = pl.vy = 0.0;
+                    pl.angle = std::atan2(-axis.y, -axis.x);
+                    pl.pitch = std::atan2(mid.z - (t->floor + game::Player::kEye), d);
+                    session_->body().reset();
+                    break;
+                }
+            }
         } else if (cmd == "jerry" && session_) {  // V13.3 Teil 4 (Bilder, Tests): jerry <quick|state|yaw|spell> <wert>
             char key[32] = {};
             double val = 0.0;

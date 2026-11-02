@@ -119,9 +119,9 @@ void CreatureAnimator::updateRatL3(float dt, const Input& in) {
     const vec3 lunge = F * (0.22f * reach_);
     // Brust: gesessen hoch, lauernd tief, drohend aufgerichtet
     vec3 C = W({B[CHEST].x + flex * 0.05f - rear * 0.12f - sit * 0.1f, 0.0f, 0.0f}) + lunge;
-    C.z = pos_.z + B[CHEST].z + lift + bobC + sit * 0.17f - low * 0.12f + rear * 0.26f - 0.03f * light_;
+    C.z = pos_.z + B[CHEST].z + lift + bobC + sit * 0.17f - low * 0.07f + rear * 0.26f - 0.03f * light_;
     vec3 P = W({B[PELVIS].x - flex * 0.05f + sit * 0.08f + rear * 0.04f, 0.0f, 0.0f}) + lunge * 0.3f;
-    P.z = pos_.z + B[PELVIS].z + lift + bobP - sit * (B[PELVIS].z + lift - 0.17f) - low * 0.07f - rear * 0.05f;
+    P.z = pos_.z + B[PELVIS].z + lift + bobP - sit * (B[PELVIS].z + lift - 0.17f) - low * 0.04f - rear * 0.05f;
     const vec3 ctrl = (P + C) * 0.5f + U * ((0.04f - 0.03f * flex) * (1.0f - sit));
     const vec3 Lr = rotateAround(Lw, F, S.roll);
     J[ROOT] = pos_;

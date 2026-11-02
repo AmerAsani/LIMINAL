@@ -260,7 +260,9 @@ void Presence::thinkMothL3(Agent& a, double dt, const Context& c, std::vector<Ev
             for (const auto& o : agents_)
                 if (o->group == a.group && o->variant >= 3 && o->variant <= 4) ctr += o->pos, ++nn;
             if (nn) ctr = ctr / (float)nn;
-            const bool losing = (!c.view.flashOn && hdist(ctr, eye) > 6.0f) || hdist(S.tube, feet) > 25.0f;
+            int hunting = 0;
+            for (const auto& o : agents_) hunting += (o->group == a.group && o->state >= 2 && o->state <= 4) ? 1 : 0;
+            const bool losing = (!c.view.flashOn && (hdist(ctr, eye) > 6.0f || (S.lampOffT > 3.0 && hunting == 0))) || hdist(S.tube, feet) > 25.0f;
             S.darkT = losing ? S.darkT + dt : 0.0;
             if (S.darkT > 2.5) {
                 S.roused = false, S.prov = 0.0;
@@ -315,11 +317,15 @@ void Presence::thinkMothL3(Agent& a, double dt, const Context& c, std::vector<Ev
             orbit(S.tube - vec3{0, 0, 0.15f}, a.radius, 0.8f, 5.0f);
             a.timer2 -= dt;
             if (a.timer2 <= 0.0) a.state = 6, a.stateT = 0.0;
-            if (S.roused) a.state = 2, a.stateT = 0.0;
+            if (S.roused && S.lampOffT < 1.0) a.state = 2, a.stateT = 0.0;
             break;
         }
         case 2: {  // jagt: zum Licht vor der Lampe (lockt), sonst zum Kopf
             a.fly = 1.0f;
+            if (S.lampOffT > 1.5 && dEye > 1.2f) {  // im Dunkeln verlieren sie ihn (Licht lockt sie - Wikidot Entity 4)
+                a.state = 6, a.stateT = 0.0;
+                break;
+            }
             const vec3 tgt = c.view.flashOn ? c.view.flashPos + c.view.flashDir * 0.55f : eye + fw * 0.4f;
             orbit(tgt, 0.35f + 0.3f * a.radius, c.view.flashOn ? 1.15f : 0.8f, 7.0f);
             // vor dem Gesicht: ankuendigen (das Brummen schwillt) - einmal je 6 s und Spieler
@@ -382,7 +388,7 @@ void Presence::thinkMothL3(Agent& a, double dt, const Context& c, std::vector<Ev
             a.fly = 1.0f;
             a.vel += vec3{(float)rng_.uniform(-6.0, 6.0), (float)rng_.uniform(-6.0, 6.0), (float)rng_.uniform(-3.0, 2.0)} * (float)dt;
             a.vel = a.vel * (1.0f - 0.8f * (float)dt);
-            if (a.stateT > M.knockT) a.state = S.roused ? 2 : 6, a.stateT = 0.0, a.cool = 1.5;
+            if (a.stateT > M.knockT) a.state = S.roused && S.lampOffT < 1.0 ? 2 : 6, a.stateT = 0.0, a.cool = 1.5;
             break;
         }
         case 6: {  // zurueck an den Platz
@@ -393,7 +399,7 @@ void Presence::thinkMothL3(Agent& a, double dt, const Context& c, std::vector<Ev
                 a.state = 0, a.stateT = 0.0, a.pos = a.rest, a.timer = rng_.uniform(10.0, 30.0);
                 return;
             }
-            if (S.roused) a.state = 2, a.stateT = 0.0;
+            if (S.roused && S.lampOffT < 1.0) a.state = 2, a.stateT = 0.0;
             break;
         }
         default: break;

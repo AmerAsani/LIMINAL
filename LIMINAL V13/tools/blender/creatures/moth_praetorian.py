@@ -100,18 +100,18 @@ def build(J, bones):
         return -0.00007 * np.clip(1 - d1 * 1.6, 0, 1)
 
     mand = []
-    for s in (1, -1):  # Saegemandibeln: gekreuzt, Innenkante gezahnt
-        b = H + F * 0.018 - U * 0.009 + L * s * 0.007
-        c1, c2 = b + F * 0.012 - U * 0.002 + L * s * 0.004, H + F * 0.038 - U * 0.012 - L * s * 0.005
-        pts = bez(b, c1, c2, 6)
-        mand += A.chain(lambda k: HEAD, pts, [0.0034, 0.0031, 0.0027, 0.0022, 0.0016, 0.0010, 0.0003], k=0.0008)
-        for t in range(2, 9):
-            q = A.bezier(b, c1, c2, 10)[t]
-            mand.append(A.cone(HEAD, q, q - L * s * 0.0032 + F * 0.0008 - U * 0.0004, 0.0009, 0.0001))
-    gland = [A.ell(HEAD, H + F * 0.02 - U * 0.016, A.unit(F * 0.3 - U), (0.0075, 0.0062, 0.0055), k=0.002)]  # Druese
-    drip = A.chain(lambda k: HEAD, [H + F * 0.022 - U * 0.021, H + F * 0.023 - U * 0.028, H + F * 0.023 - U * 0.034],
-                   [0.0016, 0.0007, 0.0006], k=0.0006)
-    drip.append(A.ell(HEAD, H + F * 0.023 - U * 0.0365, U, (0.0018, 0.0018, 0.0024), k=0.0006))  # Tropfen
+    for s in (1, -1):  # Saegemandibeln: lang, gekreuzt vor dem Mund, Innenkante gezahnt
+        b = H + F * 0.021 - U * 0.011 + L * s * 0.008
+        c1, c2 = b + F * 0.018 - U * 0.006 + L * s * 0.007, H + F * 0.05 - U * 0.024 - L * s * 0.007
+        pts = bez(b, c1, c2, 7)
+        mand += A.chain(lambda k: HEAD, pts, [0.0048, 0.0044, 0.0039, 0.0033, 0.0026, 0.0019, 0.0011, 0.0003], k=0.001)
+        for t in range(2, 10):
+            q = A.bezier(b, c1, c2, 11)[t]
+            mand.append(A.cone(HEAD, q, q - L * s * 0.0045 + F * 0.001 - U * 0.0006, 0.0012, 0.00015))
+    gland = [A.ell(HEAD, H + F * 0.026 - U * 0.026, A.unit(F * 0.3 - U), (0.0058, 0.0048, 0.0042), k=0.002)]  # Druese unter den Mandibeln
+    drip = A.chain(lambda k: HEAD, [H + F * 0.027 - U * 0.03, H + F * 0.028 - U * 0.038, H + F * 0.028 - U * 0.046],
+                   [0.0014, 0.0006, 0.0005], k=0.0005)
+    drip.append(A.ell(HEAD, H + F * 0.028 - U * 0.0485, U, (0.0018, 0.0018, 0.0024), k=0.0005))  # Tropfen
     antennae = []
     for s, (jb, jt, bone) in ((1, (9, 10, 8)), (-1, (11, 12, 9))):
         b, t = P(jb), P(jt)
@@ -202,7 +202,7 @@ def build(J, bones):
         {'name': 'kragen', 'fm': 'ent_fur', 'parts': collar, 'disp': None, 'h': 0.0002, 'cav_scale': 0.0015},
         {'name': 'augen', 'fm': 'ent_motheye', 'parts': eyes, 'disp': eye_disp, 'h': 0.00012, 'cav_scale': 0.0008, 'lod_weight': 1.6},
         {'name': 'mandibeln', 'fm': 'ent_solifuge_dark', 'parts': mand, 'disp': None, 'h': 0.00011, 'cav_scale': 0.0008, 'lod_weight': 1.5},
-        {'name': 'druese', 'fm': 'ent_wr_slime', 'parts': gland + drip, 'disp': None, 'h': 0.00012, 'cav_scale': 0.0008},
+        {'name': 'druese', 'fm': 'ent_ooze', 'parts': gland + drip, 'disp': None, 'h': 0.00012, 'cav_scale': 0.0008},
         {'name': 'pinsel', 'fm': 'ent_fur', 'parts': pencils, 'disp': None, 'h': 0.00014, 'cav_scale': 0.0008},
     ]
     for i, a in enumerate(antennae):

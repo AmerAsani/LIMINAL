@@ -48,6 +48,7 @@ struct RatMem {  // Gedaechtnis der Death Rats (je Ebene)
     int lastSay = -1;
     double quick = 1.0;  // Tests, Bilder: Zeitraffer der Bauzeit
     double reqTrap = -1.0;  // Skript/Test: Falle so weit vor dem Spieler bauen
+    bool noBuild = false;   // Skript/Test: Fallenbau aus (build 0)
 };
 
 struct RatL3 {
@@ -144,38 +145,57 @@ bool Presence::trapSite(const Context& c, vec3& pos, float& yaw, bool cornered) 
     if (!fld().valid()) return false;
     auto* M = static_cast<RatMem*>(l3Mem_.get());
     std::vector<std::pair<i64, i64>> cand;
-    fld().ring(70, 260, cand);
+    fld().ring(60, 340, cand);
     const vec3 eye = c.view.eye;
     const vec3 look = nrmF(flat(c.view.look), {1, 0, 0});
     float best = -1e9f;
-    for (int tries = 0; tries < 90 && !cand.empty(); ++tries) {
+    int why[5] = {};  // Ablehnungen: Raum, Achse, Breite, gesehen, Nachbarfalle
+    for (int tries = 0; tries < 320 && !cand.empty(); ++tries) {
         auto [x, y] = cand[(size_t)rng_.randint(0, (i64)cand.size() - 1)];
         const world::Tile* t = c.world->tileIfLoaded(x, y);
-        if (!figureWalkable(t, 1.9f) || (t->flags & world::TF_STAIR) || !t->room || !t->room->type) continue;
+        if (!figureWalkable(t, 1.9f) || (t->flags & world::TF_STAIR) || !t->room || !t->room->type) {
+            ++why[0];
+            continue;
+        }
         const std::string& rk = t->room->type->key;
-        if (rk != "gang" && rk != "gang_breit" && rk != "paranoia") continue;
+        if (rk != "gang" && rk != "gang_breit" && rk != "paranoia") {
+            ++why[0];
+            continue;
+        }
         // Gangachse: offene Nachbarn in x oder y
         auto open = [&](i64 xx, i64 yy) {
             const world::Tile* n = c.world->tileIfLoaded(xx, yy);
             return n && n->open() && std::fabs(n->floor - t->floor) < 0.2f;
         };
         const bool ax = open(x + 1, y) && open(x - 1, y), ay = open(x, y + 1) && open(x, y - 1);
-        if (ax == ay) continue;  // Kreuzung oder Sackgasse
+        if (ax == ay) {  // Kreuzung oder Sackgasse
+            ++why[1];
+            continue;
+        }
         const vec3 across = ax ? vec3{0, 1, 0} : vec3{1, 0, 0};
         const vec3 mid{(float)x + 0.5f, (float)y + 0.5f, t->floor};
         const float l = toWall(*c.world, mid + vec3{0, 0, kWire}, -across, 3.0f), r = toWall(*c.world, mid + vec3{0, 0, kWire}, across, 3.0f);
-        if (l <= 0.0f || r <= 0.0f || l + r < 0.8f || l + r > 3.2f) continue;
+        if (l <= 0.0f || r <= 0.0f || l + r < 0.8f || l + r > 3.2f) {
+            ++why[2];
+            continue;
+        }
         const vec3 root = mid - across * (l - 0.02f);
         // nicht im Blick (Quelle und Drahtmitte)
         bool seen = false;
         for (const vec3& q : {root + vec3{0, 0, 0.3f}, mid + vec3{0, 0, 0.3f}})
             if (dot(nrmF(q - eye, look), c.view.look) > 0.2f && clearSight(*c.world, eye, q)) seen = true;
-        if (seen) continue;
+        if (seen) {
+            ++why[3];
+            continue;
+        }
         // nicht neben einer anderen Falle
         bool near = false;
         for (const auto& o : agents_)
             if (o->role == Role::Rat && o->variant == 3 && hdist(o->pos, root) < 6.0f) near = true;
-        if (near) continue;
+        if (near) {
+            ++why[4];
+            continue;
+        }
         float score = (float)rng_.uniform(0.0, 1.0);
         score += 2.0f * dot(nrmF(flat(mid - eye), look), look);  // vor ihm
         if (M)
@@ -188,6 +208,9 @@ bool Presence::trapSite(const Context& c, vec3& pos, float& yaw, bool cornered) 
         }
         if (score > best) best = score, pos = root, yaw = std::atan2(across.y, across.x);
     }
+    if (best <= -1e8f)
+        log::info("Praesenz: keine Stelle fuer eine Falle ({} Kacheln; abgelehnt: Raum {}, Achse {}, Breite {}, gesehen {}, Nachbarfalle {})", cand.size(), why[0],
+                  why[1], why[2], why[3], why[4]);
     return best > -1e8f;
 }
 
@@ -248,6 +271,12 @@ bool Presence::spawnRatL3(const Context& c, std::vector<Event>& out, bool forced
             const world::Tile* t = c.world->tileIfLoaded(ifloor(q.x), ifloor(q.y));
             if (!figureWalkable(t, kRatClear) || std::fabs(t->floor - p.z) > 0.3f) continue;
             q.z = t->floor;
+            // auch die anderen ausser Sicht (niemand erscheint im Blick)
+            bool seen = false;
+            const vec3 fl = nrmF(flat(c.view.look), {1, 0, 0});
+            for (float h : {0.25f, 0.6f})
+                if (dot(nrmF(q + vec3{0, 0, h} - c.view.eye, fl), c.view.look) > 0.25f && clearSight(*c.world, c.view.eye, q + vec3{0, 0, h})) seen = true;
+            if (seen) continue;
         }
         auto a = std::make_unique<Agent>();
         a->role = Role::Rat;
@@ -490,12 +519,13 @@ void Presence::thinkRatL3(Agent& a, double dt, const Context& c, std::vector<Eve
             if (sees || hears || d < 6.0f) {
                 R.saw = true;
                 setJob(1);
+                R.sayT = 0.0;  // der erste Satz sofort
                 say(M.encounters > 1 ? (M.encounters > 2 ? 5 : 4) : 0, 9.0);  // "WE SEE YOU." / "YOU CAME BACK." / "WE REMEMBER YOU."
             }
             break;
         }
         case 1: {  // lauert ausserhalb der Lampe
-            a.crouch = 0.6f;
+            a.crouch = 0.45f;
             a.perceive = 1.0f, a.perceiveAt = eye;
             R.holdT -= dt;
             const bool lit = R.beamT > 0.35;
@@ -513,7 +543,7 @@ void Presence::thinkRatL3(Agent& a, double dt, const Context& c, std::vector<Eve
             else if (d < 14.0f) say(rng_.uniform(0.0, 1.0) < 0.5 ? 2 : (M.encounters > 1 ? 5 : 3), 12.0);
             // Auftraege: der Anfuehrer treibt zur Falle, ein anderer baut eine neue
             if (leader && trap && hdist(trap->pos, feet) < 16.0f) setJob(3);
-            else if (!leader && !someoneBuilds && R.t > 6.0) {
+            else if (!leader && !someoneBuilds && R.t > 6.0 && !M.noBuild) {
                 vec3 tp;
                 float ty = 0.0f;
                 if (trapSite(c, tp, ty, M.jumped > 0)) R.site = tp, R.siteYaw = ty, setJob(2), R.buildT = 0.0;
@@ -554,7 +584,7 @@ void Presence::thinkRatL3(Agent& a, double dt, const Context& c, std::vector<Eve
                 break;
             }
             const vec3 away = nrmF(flat(feet - trap->pos), dirYaw(a.yaw));
-            const float side = (float)((a.group * 7 + (int)(a.pos.x * 3.0f)) % 3 - 1) * 0.9f;
+            const float side = (float)((int)(((std::uintptr_t)&a >> 6) % 3) - 1) * 0.9f;  // je Ratte fest: links, Mitte, rechts
             const vec3 goal = feet + away * 3.8f + vec3{-away.y, away.x, 0.0f} * side;
             goTo(goal, d > 6.0f ? 2.0 : 0.9);
             a.crouch = 0.3f;
@@ -689,14 +719,20 @@ bool Presence::l3Set(const std::string& key, double v, const Context* c) {
         if (!rat && a->role == Role::Rat && a->variant == 2 && !a->showcase) rat = a.get();
     if (key == "trap") M.reqTrap = std::max(0.5, v);
     else if (key == "quick") M.quick = std::max(0.1, v);
+    else if (key == "build") M.noBuild = v < 0.5;
     else if (key == "rats") nextKin_[world::KIN_RAT] = v;
     else if (key == "mem" && v <= 0.0) M = RatMem{};
     else if (key == "say" && rat) {
         std::vector<Event> tmp;
         ratSay(*rat, std::clamp((int)v, 0, KC_RAT_SAYS - 1), tmp);
-    } else if (key == "job" && rat) {
-        RatL3& R = extOf<RatL3>(*rat);
-        R.job = (int)v, R.t = 0.0, R.hasHold = false, R.warned = false;
+    } else if (key == "job" && rat) {  // alle Ratten
+        for (auto& a : agents_)
+            if (a->role == Role::Rat && a->variant == 2 && !a->showcase) {
+                RatL3& R = extOf<RatL3>(*a);
+                R.job = (int)v, R.t = 0.0, R.hasHold = false, R.warned = false;
+            }
+    } else if (key == "clear") {  // alle Fallen fort
+        std::erase_if(agents_, [](const auto& a) { return a->role == Role::Rat && a->variant == 3 && !a->showcase; });
     } else if (key == "swarm") {
         swarmRouse(v > 0.5);
     } else if (key == "pstate") {
