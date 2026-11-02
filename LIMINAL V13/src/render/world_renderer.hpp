@@ -16,7 +16,7 @@ struct ExtraLight;  // V7, renderer.hpp
 
 // Die ersten GPU-Materialien sind fest vergeben (Items, Requisiten);
 // Weltmaterialien folgen dahinter.
-constexpr u32 kFixedMaterials = 80;  // V9: 16 -> 32 (Sicherungen ...), V10: 64 (Figuren), V13.2: 80 (neue Wesen)
+constexpr u32 kFixedMaterials = 224;  // V9: 16 -> 32 (Sicherungen ...), V10: 64 (Figuren), V13.2: 80, V13.3: 160 (weitere Wesen), 224 (Fundstuecke aus Blender ab FM_FIG_END, render/item_models.cpp)
 enum FixedMaterial : u32 {
     FM_ITEM_ENERGY = 0, FM_ITEM_ALMOND = 1, FM_BODY = 2, FM_BODY_FACE = 3,
     FM_VEND_BODY = 4, FM_VEND_GLOW = 5, FM_VEND_GLASS = 6,  // V6: Automat
@@ -48,6 +48,31 @@ enum FixedMaterial : u32 {
     FM_ENT_UMBRA,                      // V13.2: Fensterwesen - schwarz und matt, aber fest (ohne den Rauchrand der Gestalt)
     // V13.2: Facelings sind verschieden (Haar, Haut, Kleidung) - weitere Stoffe, dunklere Haut, graues Haar
     FM_ENT_CLOTH_C, FM_ENT_CLOTH_D, FM_ENT_HUMANSKIN_B, FM_ENT_HAIR_GREY,
+    FM_ENT_DULLERSKIN, FM_ENT_ROTSKIN, FM_ENT_SMOKE, FM_ENT_CONCRETE,  // V13.3: Duller (dunkelgrau, trocken), Arms (verwesend), Rauch, Bruchbeton
+    // V13.3: Wrangler - durchscheinende Haut (Maennchen grau, Weibchen blass rosa), raue Kopfhaut, Darm, Faserstraenge, Knochen,
+    // Schleim, Samen, Staub, Risse, Zangen, Schutt
+    FM_ENT_WR_MEMBRANE, FM_ENT_WR_MEMBRANE_F, FM_ENT_WR_HIDE, FM_ENT_WR_GUT, FM_ENT_WR_PITH, FM_ENT_WR_BONE, FM_ENT_WR_SLIME,
+    FM_ENT_WR_SEED, FM_ENT_WR_DUST, FM_ENT_WR_CRACK, FM_ENT_WR_PINCER, FM_ENT_WR_DEBRIS,
+    // V13.3: Growler - Pfeifenreiniger in vier Farben (a, b leuchten bei den Jungen), blanker Draht; Nguithr'xurh - behaarter
+    // Koerper, Seide, Betaeubungsstoff
+    FM_ENT_PIPE_A, FM_ENT_PIPE_B, FM_ENT_PIPE_C, FM_ENT_PIPE_D, FM_ENT_WIRE, FM_ENT_SOLIFUGE, FM_ENT_SILK, FM_ENT_SEDATIVE,
+    FM_ENT_SOLIFUGE_DARK, FM_ENT_SOLIFUGE_HAIR, FM_ENT_SOLIFUGE_JOINT,  // V13.3: Nguithr'xurh Runde 6 - dunkle Scheren und Krallen,
+    FM_ENT_SOLIFUGE_HEAD,                                               // blasse Haare, dunklere Gelenke, roetlicher Vorderkoerper
+    // V13.3: Ouroboros-Arbeiter - Overall (dunkel, staubig, Rauchrand), Leere (Gesicht, Haende), blasse Augenscheiben, Gummi
+    // (Stiefel, Schlaeuche), Werkzeugstahl, rostiger Stahl, Maschinenlack, Holz, Ziegel, Absperrband rot/weiss, Funken,
+    // Warnleuchte, Anhaenger am Guertel, Zementstaub
+    FM_ENT_OB_OVERALL, FM_ENT_OB_VOID, FM_ENT_OB_EYE, FM_ENT_OB_RUBBER, FM_ENT_OB_STEEL, FM_ENT_OB_RUST, FM_ENT_OB_PAINT,
+    FM_ENT_OB_WOOD, FM_ENT_OB_BRICK, FM_ENT_OB_TAPE_R, FM_ENT_OB_TAPE_W, FM_ENT_OB_SPARK, FM_ENT_OB_BEACON, FM_ENT_OB_CARD,
+    FM_ENT_OB_DUST,
+    // V13.3: Plague Goblins - Federfell, Schuppenbeine, Krallen, Schnabel, Saegezaehne, Rachen, spiegelnde gelbe Augen; Masken
+    // (glatt hell, dunkles Leder, Lack der Torwaechterin), Glaslinsen, Messing, Umhang, Cape, Hut, Silberstock, Sand der Sanduhr;
+    // das Portal (Leere, Rand), Beute (Flasche); das Beil (Stiel, Kopf)
+    FM_ENT_PG_FEATHER, FM_ENT_PG_SCALE, FM_ENT_PG_TALON, FM_ENT_PG_BEAK, FM_ENT_PG_TOOTH, FM_ENT_PG_MOUTH, FM_ENT_PG_EYE,
+    FM_ENT_PG_MASK, FM_ENT_PG_LEATHER, FM_ENT_PG_ORNATE, FM_ENT_PG_GLASS, FM_ENT_PG_BRASS, FM_ENT_PG_CLOAK, FM_ENT_PG_CAPE,
+    FM_ENT_PG_HAT, FM_ENT_PG_SILVER, FM_ENT_PG_SAND, FM_ENT_PG_VOID, FM_ENT_PG_RIM, FM_ENT_PG_LOOT,
+    FM_ENT_PG_SKIN,  // Runde 2: das kahle Gesicht unter der Maske (die Maske hat die Federn abgerieben - Auslegung)
+    FM_ITEM_HATCHET_WOOD, FM_ITEM_HATCHET_HEAD,
+    FM_ITEM_GLOWSTICK, FM_ITEM_GLOWSTICK_LIT, FM_ITEM_GLOWSTICK_DIM, FM_ITEM_GLOWSTICK_CAP,  // V13.3: Leuchtstab (Koeder)
     FM_FIG_END,
 };
 static_assert(FM_FIG_END <= kFixedMaterials);
@@ -65,8 +90,14 @@ constexpr u32 kMatFlagSmoke = 1u << 29;
 // V13: Haut - Licht dringt ein (lighting.hlsl: gewickeltes, roetliches Streulicht, Durchleuchten duenner Stellen).
 // Der Mesh-Shader schreibt 1 - Anteil in den Glanzkanal (misc.a); 1 = kein Durchscheinen
 constexpr u32 kMatFlagSkin = 1u << 30;
+// V13.3: Rauchrand der Ouroboros-Arbeiter (nur mit kMatFlagSmoke | kMatFlagSilhouette an triplanaren Figurenmaterialien, Bits
+// 16-23): Rand und Glieder zerfasern, waagrechte Baender flackern kurz aus - ohne Saum, Scheitel und Ausduennen nach aussen
+constexpr u32 kMatOuroSmoke = 0x0Bu << 16;
 // V13: Umriss (Gestalt) - mit kMatFlagSmoke: Rand, Saum und Fasern ausduennen, den Koerper aber dicht lassen
 constexpr u32 kMatFlagSilhouette = 1u << 31;
+// V13.3: durchscheinende Haut (Wrangler) - nur bei Wesen (kMatFlagEntity): Bits 16-23 = Deckkraft (1..255, 0 = deckend). Der
+// Mesh-Shader duennt gerastert aus (schraeg gesehen dichter), das TAA mischt es zu einer milchigen Haut
+constexpr u32 kMatMembraneShift = 16;
 
 struct LightStats {
     u32 total = 0, visible = 0;
@@ -86,7 +117,7 @@ public:
     // maxLights (V6): Obergrenze gleichzeitig gerechneter Leuchten (die naechsten zuerst)
     u32 updateLights(Gpu& gpu, const mat4& view, const Frustum& frustum, vec3 camPos, float maxDist, float time,
                      float intensityScale, bool shadows, u32 maxLights = 2048,
-                     const std::vector<ExtraLight>* extra = nullptr);
+                     const std::vector<ExtraLight>* extra = nullptr, float worldScale = 1.0f);
     // V7: Stromausfall - Leuchten mit diesem Flacker-Seed abdunkeln (-1 keiner)
     void setBlackout(int seed, float amount, vec3 origin = {}, float front = -1.0f) {
         blackoutSeed_ = seed, blackoutAmount_ = amount, blackoutOrigin_ = origin, blackoutFront_ = front;
@@ -95,6 +126,10 @@ public:
     u32 drawChunks(Gpu& gpu, const Frustum& frustum, vec3 camPos);
     // V11: Ausstattung der Chunks (Shader und Ziele sind gesetzt); liefert Dreiecke
     u64 drawProps(Gpu& gpu, const Frustum& frustum, vec3 camPos, float maxDist);
+    // V13.3: die naechsten Pfuetzen (hoechstens kMaxPuddles) hochladen; liefert die Anzahl
+    static constexpr u32 kMaxPuddles = 32;
+    u32 updatePuddles(Gpu& gpu, vec3 camPos, float maxDist);
+    ID3D11ShaderResourceView* puddleSrv() const { return puddles_.srv.get(); }
 
     ID3D11ShaderResourceView* materialSrv() const { return materials_.srv.get(); }
     ID3D11ShaderResourceView* lightSrv() const { return lights_.srv.get(); }
@@ -114,6 +149,7 @@ private:
         u32 propIndexCount = 0;
         Aabb propBounds;
         std::vector<world::ChunkLight> lights;
+        std::vector<world::PuddleDecal> puddles;  // V13.3
     };
     void writeMaterials(Gpu& gpu);
     // Ring-Bereich auf "unbekannt" (massiv, dunkel) setzen; Rechteck in Ringkoordinaten
@@ -127,6 +163,7 @@ private:
     size_t syncedWorldMaterials_ = 0;
     Buffer materials_;
     Buffer lights_;
+    Buffer puddles_;  // V13.3: je Pfuetze 2 x float4
     std::vector<GpuLight> lightData_;
     Texture height_, ambient_;
     int ringSize_ = 256;

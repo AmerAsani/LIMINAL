@@ -35,7 +35,9 @@ Status-Begriffe:
 | Entity 9 (Facelings) | https://backrooms-wiki.wikidot.com/entity-9 | 39 | 02.07.2025 01:55 |
 | Entity 10 (Skin-Stealers) | https://backrooms-wiki.wikidot.com/entity-10 | 61 | 09.03.2025 00:58 |
 | Entity 15 (Wretches) | https://backrooms-wiki.wikidot.com/entity-15 | 54 | 07.08.2026 06:38 |
+| Entity 17 (Crawlers) | https://backrooms-wiki.wikidot.com/entity-17 | 40 | 01.06.2025 11:47 (als „veraltet“ markiert) |
 | Entity 24 (Death Rats) | https://backrooms-wiki.wikidot.com/entity-24 | 25 | 01.06.2025 11:46 (als „in Überarbeitung“ markiert) |
+| Entity 99 (The Game Master) | https://backrooms-wiki.wikidot.com/entity-99 | 39 | 11.08.2026 08:28 |
 
 ## Je Ebene
 
@@ -56,20 +58,24 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 
 | Wesen | Wiki (eigene Worte) | Status |
 |---|---|---|
-| Smiler (Entity 3) | Gesichter im Dunkeln, angezogen von Licht und Lärm; Licht ausmachen oder als Köder werfen. | **teilweise**: Licht hält ihn, Licht aus mit Abstand verliert er das Interesse, Rennen löst den Angriff aus. Fehlte: Lärm als Auslöser – **in V13.2 ergänzt** (siehe unten). Werfen einer Lichtquelle: fehlt (das Spiel hat keine werfbare Lichtquelle). |
+| Smiler (Entity 3) | Gesichter im Dunkeln, angezogen von Licht und Lärm; Licht ausmachen oder als Köder werfen. | **umgesetzt (V13.3)**: Licht hält ihn, Licht aus mit Abstand verliert er das Interesse, Rennen und Lärm lösen den Angriff aus (V13.2). Neu: Leuchtstab als werfbarer Köder (Fundstück, F knicken und werfen) – der Smiler geht zum stärkeren Licht und lässt vom Spieler ab, solange er leuchtet; Lärm oder Nähe holen ihn zurück (`KREATUR_Smiler.md`, Abschnitt V13.3). Eine geworfene Taschenlampe: nicht umgesetzt (Begründung dort). |
 | Hound (Entity 8) | Menschenähnlich auf allen vieren; durch Blick und Lärm einschüchtern. | **umgesetzt** |
 | Clump (Entity 5) | Verschmolzene Glieder, blind, jagt nach Gehör; still bleiben. | **umgesetzt** |
-| Skin-Stealer (Entity 10) | Weiße Menschengestalten, die Haut tragen; ansprechen entlarvt sie; ruhig zurückweichen. | **neu (V13.2), teilweise**: getarnt in Menschenhaut, satt oder hungrig, ruhiges Zurückweichen hilft (`KREATUR_SkinStealer.md`). „Ansprechen entlarvt sie“ fehlt: der Spieler hat keine Stimme. |
+| Skin-Stealer (Entity 10) | Weiße Menschengestalten, die Haut tragen; ansprechen entlarvt sie; ruhig zurückweichen. | **umgesetzt (V13.3)**: getarnt in Menschenhaut, satt oder hungrig (V13.2). Neu: Ansprechen (E auf eine menschenähnliche Gestalt) – er antwortet verzögert, nachgeahmt und falsch betont (synthetisch); ruhiges Zurückweichen danach überlebt, Rennen, erneutes Ansprechen oder zu lange Nähe lösen den Angriff aus (`KREATUR_SkinStealer.md`, Abschnitt V13.3). |
 | Wretch (Entity 15) | Aggressive, untote Menschengestalten. | **neu (V13.2)**: träge und schnelle Wretches (`KREATUR_Wretch.md`) |
-| Duller (Entity 6) | Menschengestalten, die durch Wände greifen; bei Schaben in der Wand Abstand von Wänden halten. | **fehlt**: Priorität 6 (nur diese Ebene) |
-| Arms (französischer Zweig, entite-15-fr) | Eine Gliedmaße durch Lüftungen und Risse bei Stromausfall; Licht darauf richten. | **fehlt**: Priorität 9. Die Seite gehört zum französischen Zweig; das Bündel hängt im Spiel schon einen Arm als Köder aus dem Schacht. |
-| Crawler (Entity 17) | Ein krankmachender Pilz. | **bewusst weggelassen**: Pilz ohne Gestalt und Verhalten auf der Ebenenseite; als Gefahr nur über Krankheit, die das Spiel nicht kennt |
-| Growler (Entity 130) | Wesen aus Kabeln; ein schwerer Gegenstand auf dem Kopf verwirrt sie. | **fehlt**: Priorität 8 |
-| Nguithr'xurh (Entity 16) | Insektenartig an der Decke, bei kugelförmigen Netzen. | **fehlt**: Priorität 7 |
-| Wrangler (Entity 75) | Riesig, schlangenartig, gräbt sich durch Wände, hypnotisiert; leise gehen, wenn die Wände beben. | **fehlt**: Priorität 10 (Großwesen, braucht zerstörbare Wände) |
-| Staphylococcus liminalis (Entity 19), Plague Goblins (Entity 25) | Krankheitserreger. | **bewusst weggelassen**: keine Gestalt; das Spiel hat kein Krankheitssystem |
-| Narrenfigur im Gemälde (Entity 99) | Ein Bild, das als Ausgang zu Level 389 dient. | **bewusst weggelassen**: Ausgang zu einer Ebene, die das Spiel nicht enthält |
-| Gruppen (M.E.G., B.N.T.G., Ariane Circle u. a.), schattenhafte Arbeiter im Overall | Menschliche Gruppen; Arbeiter aus einem Ouroboros-Sektor. | **bewusst weggelassen**: Menschen, keine Wesen; nur über Notizen angedeutet |
+| Duller (Entity 6) | Menschengestalten, die durch Wände greifen; bei Schaben in der Wand Abstand von Wänden halten. | **umgesetzt (V13.3)**: Hinterhalt durch die Wand mit Schaben und Wölbung, flieht gesehen lautlos, meidet Mandelwasser – [KREATUR_Duller.md](KREATUR_Duller.md) |
+| Arms (französischer Zweig, entite-15-fr) | Eine Gliedmaße durch Lüftungen und Risse bei Stromausfall; Licht darauf richten. | **umgesetzt (V13.3)**: aus Deckenlüftungen und Rissen nur im Dunkeln, von Lärm angelockt, Schaben im Schacht, Licht verbrennt es – [KREATUR_Arms.md](KREATUR_Arms.md) |
+| Crawler (Entity 17) | Ein krankmachender Pilz. | **umgesetzt (V13.3)**: weißer Befall an feuchten Stellen (Wand, Pfütze, Kadaver, Lager eines Infizierten mit Schleifspur), Ansteckung durch Waten im Befall oder offenes Mandelwasser, Stadien nach Wiki-Zeitleiste bis zum Tod, Flecken und Belag auf der eigenen Hand, Mandelwasser heilt früh (Interpretation) – [KREATUR_Crawler.md](KREATUR_Crawler.md) |
+| Growler (Entity 130) | Wesen aus Kabeln; ein schwerer Gegenstand auf dem Kopf verwirrt sie. | **umgesetzt (V13.3)**: ausgewachsen, blind (Echoortung), telepathisches Rauschen, tödlicher Stoß nach Ankündigung; ein geworfener Gegenstand verwirrt ihn – [KREATUR_Growler.md](KREATUR_Growler.md) |
+| Nguithr'xurh (Entity 16) | Insektenartig an der Decke, bei kugelförmigen Netzen. | **umgesetzt (V13.3)**: Kolonien an Gangdecken, Netzkugeln mit Betäubungsstoff, groß und hungrig – [KREATUR_Nguithrxurh.md](KREATUR_Nguithrxurh.md) |
+| Wrangler (Entity 75) | Riesig, schlangenartig, gräbt sich durch Wände, hypnotisiert; leise gehen, wenn die Wände beben. | **umgesetzt (V13.3)**: Beben, Durchzug durch Wand, Boden oder Decke, Sog des Anblicks, wer laut ist, wird geschnappt; selten Jungtiere – [KREATUR_Wrangler.md](KREATUR_Wrangler.md) |
+| Staphylococcus liminalis (Entity 19) | Bakterieninfektion; Hygiene schützt (Fußnote). | **bewusst weggelassen**: Erreger ohne Körper; das Spiel hat kein Krankheitssystem |
+| Plague Goblins (Entity 25) | Kleine Wesen, mit Messer oder Axt zu verscheuchen (Fußnote; die Wesensseite: katzengroße Vogel-Katzen in Pestarztmaske und Umhang, Banden von 9–27, bestehlen Alleinreisende). | **umgesetzt (V13.3)**: Bande mit Portal der Torwächterin, Späher, Henchmen; Diebstahl von hinten mit Ankündigung, Geschwächte werden bedrängt (nie bis zum Tod), Handel gegen Mandelwasser, Flucht vor Hounds; das Beil als Fund in Level 1 verscheucht und trifft – [KREATUR_PlagueGoblins.md](KREATUR_PlagueGoblins.md) |
+| Narrenfigur im Gemälde (Entity 99) | Ein Bild, das als Ausgang zu Level 389 dient. | **umgesetzt (V13.3)**: Gemälde am Boden vor den Hallentüren verschwinden unbeobachtet; ihr Bild mit Bildschirmgesicht (wechselt ungesehen), roten Kugeln und Fäden lädt ein und wirft „aus dem Spiel“ – anderswo in Level 1 (Interpretation, Level 389 fehlt) – [KREATUR_GameMaster.md](KREATUR_GameMaster.md) |
+| Garden-Sektor (Verwandlung) | Wer etwa eine Stunde bleibt, wird zur Pflanze. | **umgesetzt (V13.3)**: Garden-Uhr, Zeichen, Ranken und Rinde auf der Hand, Blätter am Rand der Sicht, Tod durch Verwandlung, Erholung draußen; Gestalten aus Rinde – [KREATUR_L1_Erscheinungen.md](KREATUR_L1_Erscheinungen.md) |
+| Dunkles, stilles Wesen an der Schlafraumtür (Erzählung) | Klatschende Schritte, Krallenspuren, zähe Flüssigkeit. | **umgesetzt (V13.3)**: Krallenrillen und schwarze Läufer neben einer Zimmertür, Abdrücke an der Schwelle, selten Schritte, Krallen und Atem hinter der Tür – [KREATUR_L1_Erscheinungen.md](KREATUR_L1_Erscheinungen.md) |
+| Gruppen (M.E.G., B.N.T.G., Ariane Circle u. a.) | Menschliche Gruppen. | **bewusst weggelassen**: Menschen, keine Wesen; nur über Notizen angedeutet |
+| Schattenhafte Arbeiter im Overall (Sektor Ouroboros; backrooms-remodeling-co) | Reparieren seit Jahrzehnten ohne Fortschritt, beachten Lebende nicht, verletzen mit ihren Maschinen; meiden. | **umgesetzt (V13.3)**: Baustelle nur im Sektor Ouroboros – eine Mauer, gebaut und wieder eingerissen, ein Gerüst, das umkippt; sie sehen nie zum Spieler und schieben ihn beiseite; Gefahr nur durch Maschinen im Absperrband, jede angekündigt – [KREATUR_OuroborosArbeiter.md](KREATUR_OuroborosArbeiter.md) |
 
 ### Level 2 – „Pipe Dreams“
 
@@ -84,12 +90,12 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 | Faceling (Entity 9) | Intelligent, in Gruppen, lassen einen in Ruhe, wenn man sie nicht reizt. | **neu (V13.2)**: Gruppen, reizbar (Lampe im Gesicht, Bedrängen, Anrempeln), dann leichte Schläge; die Gruppe macht mit (`KREATUR_Faceling.md`) |
 | Skin-Stealer (Entity 10) | Haben die Ebene nach dem Stromausfall verlassen. | **bewusst weggelassen** (laut Seite nicht mehr da) |
 | Wretch (Entity 15) | Auf fast jeder Ebene; griffen 2014 die Survivors an. | **neu (V13.2)**: gemischt träge und schnell, 30 % im zweiten Stadium (flehen, greifen nicht an) |
-| Nguithr'xurh (Entity 16) | Jagen Insekten und Motten, selten Menschen. | **fehlt**: Priorität 7 |
+| Nguithr'xurh (Entity 16) | Jagen Insekten und Motten, selten Menschen. | **umgesetzt (V13.3)**: klein, über den Maschinen, eingesponnene Deathmoths im Netz; nur selten hungrig – [KREATUR_Nguithrxurh.md](KREATUR_Nguithrxurh.md) |
 | Death Rat (Entity 24) | Fast harmlos, fressen Flüssigkeiten aus Fässern und Essen. | **neu (V13.2), teilweise**: haarlose Ratten (Entity 24), stieben davon, beißen bedrängt (`KREATUR_DeathRat.md`); das Fressen aus Fässern fehlt |
 | Cannibal Cuisine (Entity 36) | Unbewegliche, leuchtende Wesen an Sackgassen; Wegmarken im Stromausfall, nicht gefährlich. | **fehlt**: Priorität 11 |
-| Wrangler (Entity 75) | Graben sich durch den Boden und überfallen aus den Gängen. | **fehlt**: Priorität 10 |
+| Wrangler (Entity 75) | Graben sich durch den Boden und überfallen aus den Gängen. | **umgesetzt (V13.3)**: vor allem Männchen, quer durch die Gänge, Kopf bricht aus Wand oder Boden; keine Jungtiere – [KREATUR_Wrangler.md](KREATUR_Wrangler.md) |
 | Photoshop (Entity 104) | Keine Art; selten, vor allem in PC-Räumen. | **bewusst weggelassen**: Die Seite beschreibt weder Gestalt noch Verhalten auf dieser Ebene. |
-| Growler (Entity 130) | Klein; verschmelzen in engen Gängen, bis sie stecken bleiben. | **fehlt**: Priorität 8 |
+| Growler (Entity 130) | Klein; verschmelzen in engen Gängen, bis sie stecken bleiben. | **umgesetzt (V13.3)**: junge Growler (leuchtend bunt), verschmelzen, bleiben stecken und verhungern; Leichen in den Gängen – [KREATUR_Growler.md](KREATUR_Growler.md) |
 | Swindlebird (Entity 192) | Eine einzelne, unbestätigte Sichtung. | **bewusst weggelassen** (unbestätigt) |
 | Macchina (Entity 189) | Seit etwa 1850 nicht mehr gesehen. | **bewusst weggelassen** (ausgestorben) |
 | Gruppen (Followers of Jerry, Survivors, B.N.T.G. …) | Menschen. | **bewusst weggelassen** (Menschen) |
@@ -103,7 +109,7 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 | Wretch (Entity 15) | Selten, behalten den Körper, rennen und tragen Waffen, sprechen in Bruchstücken. | **neu (V13.2), teilweise**: schnelle Wretches (rennen in Stößen); Waffen und Sprache fehlen (kein Modell, keine Stimme) |
 | Deathmoths (Entity 4) | Gefährliche Schwärme, die Mund, Nase, Ohren und Augen angreifen; Praetorianer überwiegen. | **bewusst weggelassen**: Die Motten sind auf Level 5 (Stock); eine zweite Mottenebene direkt davor würde die Begegnung entwerten. Der Praetorian (fast 1 m groß) ist nicht umgesetzt. |
 | Skin-Stealer (Entity 10) | Tarnen sich als Menschen, sprechen einfaches Englisch, halten die Tarnung tagelang. | **neu (V13.2), teilweise**: getarnt; sprechen Silben nach (keine verständlichen Worte) |
-| Smiler (Entity 3) | Verbergen Augen und Zähne hinter Lidern und Lippen; greifen ohne Anlass an. | **teilweise**: Umgesetzt mit Stromausfall; das Verbergen ist als langsames Öffnen der Augen angedeutet; „ohne Anlass“ ist nicht umgesetzt (Spielbarkeit: der Angriff kündigt sich an). |
+| Smiler (Entity 3) | Verbergen Augen und Zähne hinter Lidern und Lippen; greifen ohne Anlass an. | **teilweise**: Umgesetzt mit Stromausfall; das Verbergen ist als langsames Öffnen der Augen angedeutet; „ohne Anlass“ ist nicht umgesetzt (Spielbarkeit: der Angriff kündigt sich an). V13.3: ein geworfener Leuchtstab lässt ihn hier nur kurz stutzen (Seite: der Trick wirkt dort kaum; `smiler_bait: hesitate`). |
 | Clump (Entity 5) | Viel größer, geschickt, mit Waffen aus eigenen Knochen. | **teilweise**: Bündel umgesetzt, die große, bewaffnete Form nicht |
 | Death Rat (Entity 24) | Wie Wasserschweine mit geschärften Zähnen, bauen Fallen, menschlich klug. | **neu (V13.2), teilweise**: Ratten in Hausrattengröße; Fallen, menschliche Klugheit und die Größe „wie Wasserschweine“ bewusst weggelassen (Begründung im Briefing) |
 | „Purpurne“ tote Wesen in den Wänden | Unklare Erscheinung mit violetter Energie. | **fehlt**: Priorität 12 (Dekoration) |
@@ -120,8 +126,9 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 | Hound (Entity 8) | Kommt vor, ohne Verhalten. | **umgesetzt** (selten) |
 | Skin-Stealer (Entity 10) | Kommt vor, ohne Verhalten. | **neu (V13.2)**: wahre Gestalt (Verhalten nach der Entity-Seite) |
 | Death Rat (Entity 24) | Kommt vor, ohne Verhalten. | **neu (V13.2)**: Ratten mit dem Schrei-Ereignis (Entity 24: Kreischen, das Licht flackert); dass sie männliche Motten fressen, ist nur dieses Ereignis außer Sicht (das Spiel hat nur Weibchen) |
-| Woodlins (Entity 45), Watchers (Entity 38), Ants (Entity 89), Growlers (Entity 130), Nguithr'xurh (Entity 16) | Nur genannt, ohne Verhalten auf der Ebenenseite. | **fehlt**: Priorität 13. Ohne Verhalten auf der Ebene wäre jedes Verhalten erfunden; die Entity-Seiten sind noch nicht ausgewertet. |
-| Wrangler (Entity 75) | Eine einzelne Meldung aus dem Kesselraum. | **bewusst weggelassen** (Einzelmeldung) |
+| Woodlins (Entity 45), Watchers (Entity 38), Ants (Entity 89) | Nur genannt, ohne Verhalten auf der Ebenenseite. | **fehlt**: Priorität 13. Ohne Verhalten auf der Ebene wäre jedes Verhalten erfunden; die Entity-Seiten sind noch nicht ausgewertet. |
+| Growlers (Entity 130), Nguithr'xurh (Entity 16) | Nur genannt, ohne Verhalten auf der Ebenenseite. | **umgesetzt (V13.3)** nach den Entity-Seiten: selten ein ausgewachsener Growler, mittelgroße Nguithr'xurh – [KREATUR_Growler.md](KREATUR_Growler.md), [KREATUR_Nguithrxurh.md](KREATUR_Nguithrxurh.md) |
+| Wrangler (Entity 75) | Eine einzelne Meldung aus dem Kesselraum. | **umgesetzt (V13.3)**: selten (~900 s), nur im Kesselgang/Kesselraum – [KREATUR_Wrangler.md](KREATUR_Wrangler.md) |
 | Samantha (Entity 26) | Wandert manchmal durch die Haupthalle; wer sich nähert, soll gutes Fleisch mitbringen. | **fehlt**: Priorität 14. Ein einzelnes, benanntes Wesen mit Handel (Fleisch) – das Spiel hat keinen Tauschhandel. |
 | Entity 18 (Stimme, die in ihr Büro bittet) | Erzählstimme der Seite. | **bewusst weggelassen** (Erzählung) |
 | Unsichtbare Anwesenheit, Flüstern aus den Kesseln, Partygeräusche | Unbestätigt. | **umgesetzt** als Halluzinationen und Klang der Ebene |
@@ -167,7 +174,7 @@ Die Seite nennt **keine Wesen** (Wertung 0/5); nur Reisende, Gruppen und eine Du
 
 | Wesen | Entity-Seite (eigene Worte) | Spiel | Abweichung und Maßnahme |
 |---|---|---|---|
-| Smiler | Leuchtende Augen und breites Lächeln, Körper unsichtbar; folgt Lichtträgern; greift an, wenn man in Panik rennt **oder laut ist**. Blick halten, langsam zurück, Licht aus, Lichtquelle werfen. | Blick hält ihn; Lampe an hält sein Interesse; Rennen löst nach 1,5 s Ankündigung den Zugriff aus. | Lärm fehlte als Auslöser → **V13.2: harte Landung und Aufprall geworfener Dinge in seiner Nähe wirken wie Rennen.** Werfen einer Lichtquelle: fehlt (keine werfbare Lampe). |
+| Smiler | Leuchtende Augen und breites Lächeln, Körper unsichtbar; folgt Lichtträgern; greift an, wenn man in Panik rennt **oder laut ist**. Blick halten, langsam zurück, Licht aus, Lichtquelle werfen. | Blick hält ihn; Lampe an hält sein Interesse; Rennen löst nach 1,5 s Ankündigung den Zugriff aus. | Lärm fehlte als Auslöser → **V13.2: harte Landung und Aufprall geworfener Dinge in seiner Nähe wirken wie Rennen.** Werfen einer Lichtquelle: **V13.3: Leuchtstab als Köder** (`KREATUR_Smiler.md`). |
 | Hound | Auf allen vieren, langes schwarzes Haar über einem großen Maul, dürr; wird feindselig, sobald er einen Menschen sieht; Blickkontakt schüchtert kurz ein; Knurren heißt: er ist nah. | Genau so umgesetzt (Knurren, geduckt pirschen, Blick schüchtert ein, Rücken oder Rennen → Angriff). | keine |
 | Clump | Bündel menschlicher Glieder, klebrige Haut, Augen und Ohren im Klumpen, Maul in der Mitte; greift mit dem längsten Glied ab etwa 2,4 m; ignoriert manche Vorbeigehende; still bleiben. | Hört nur; holt unter 2,5 m mit dem langen Arm aus. | keine. Das Lager im Deckenschacht ist **eigene Ergänzung** (die Seite: klettert Wände, nutzt Lüftungen). |
 | Deathmoth | Männchen friedlich, Weibchen in Schwärmen gefährlich; Licht lockt; je näher am Stock, desto feindseliger. | Schwarm fliegt bei Licht oder Nähe auf, umkreist die Lampe, einzelne stechen. | keine; die Kasten (Praetorian, Empress) fehlen bewusst (Level 5 zeigt gewöhnliche Motten). |
@@ -184,11 +191,11 @@ Bewertet nach Zahl der Ebenen, Dichte der Beschreibung auf den Ebenenseiten und 
 | 3 | Skin-Stealer (Entity 10) | 1, 3, 5, 188 | **neu (V13.2)**: wahre Gestalt und getarnt |
 | 4 | Wretch (Entity 15) | 1, 2, 3 | **neu (V13.2)**: träge, schnell, flehend |
 | 5 | Death Rat (Entity 24) | 2, 3, 5 | **neu (V13.2)**: mit Fell, haarlos, Schrei-Ereignis |
-| 6 | Duller (Entity 6) | 1 | offen |
-| 7 | Nguithr'xurh (Entity 16) | 1, 2, (5) | offen |
-| 8 | Growler (Entity 130) | 1, 2, (5) | offen |
-| 9 | Arms (entite-15-fr) | 1 | offen |
-| 10 | Wrangler (Entity 75) | 1, 2 | offen |
+| 6 | Duller (Entity 6) | 1 | **umgesetzt (V13.3)**: [KREATUR_Duller.md](KREATUR_Duller.md) |
+| 7 | Nguithr'xurh (Entity 16) | 1, 2, 5 | **umgesetzt (V13.3)**: [KREATUR_Nguithrxurh.md](KREATUR_Nguithrxurh.md) |
+| 8 | Growler (Entity 130) | 1, 2, 5 | **umgesetzt (V13.3)**: [KREATUR_Growler.md](KREATUR_Growler.md) |
+| 9 | Arms (entite-15-fr) | 1 | **umgesetzt (V13.3)**: [KREATUR_Arms.md](KREATUR_Arms.md) |
+| 10 | Wrangler (Entity 75) | 1, 2, 5 (Kesselraum) | umgesetzt (V13.3) – [KREATUR_Wrangler.md](KREATUR_Wrangler.md) |
 | 11–14 | Cannibal Cuisine, purpurne Wesen, Woodlins/Watchers/Ants, Samantha | je eine | offen |
 
 Ab Rang 6 sind die Wesen in dieser Runde nicht gebaut. Der Grund ist der Aufwand je Wesen: Briefing, Blender-Modell, Rig, Animationen, Verhalten, Klang, Gleichgewicht, mindestens drei Kritikrunden sowie Server-KI und Tests im Mehrspieler. Die Reihenfolge steht hier, damit die nächste Runde dort weitermacht. Der jeweilige Stand ist in `REPORT_V13_2.md` vermerkt.

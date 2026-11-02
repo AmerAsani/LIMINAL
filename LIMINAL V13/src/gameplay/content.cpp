@@ -183,6 +183,17 @@ const DifficultyDef& Content::difficulty(const std::string& key) const {
     return difficulties_.front();
 }
 
+bool Content::addLevelFile(const std::string& path, std::string& id, std::string& error) {
+    auto def = world::LevelDef::loadFile(path, &error, world::kLayoutV6);
+    auto legacy = def ? world::LevelDef::loadFile(path, &error, world::kLayoutLegacy) : std::nullopt;
+    if (!def || !legacy) return false;
+    id = def->id;
+    log::info("Level aus Datei: {} ({})", id, path);
+    levels_.push_back({path, std::make_shared<const world::LevelDef>(std::move(*def)),
+                       std::make_shared<const world::LevelDef>(std::move(*legacy))});
+    return true;
+}
+
 std::shared_ptr<const world::LevelDef> Content::level(const std::string& id, int layout) const {
     if (world_ && (id == world_->id || layout >= world::kLayoutWorld)) return world_;  // V8
     const LevelInfo* info = &levels_.front();

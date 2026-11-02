@@ -12,6 +12,7 @@ Draufsicht (x nach rechts, y nach unten):
 """
 import math
 import os
+import random
 import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
@@ -159,6 +160,49 @@ m.obj('camp_c32', C32.x0 + 12.0, C32.cy + 4.0, 0.0, 0.2, tag='music')  # Wiki: S
 C33 = m.R(GATES['c33'])
 m.transition('l36_ende', 'end', '', C33.x1 - 1.0, C33.cy, 0.0, rect=[C33.x1 - 2, int(C33.cy) - 1, C33.x1, int(C33.cy) + 2])
 
+# --- V13.3: weitere Bereiche laut Wikidot (Section 1/2): Sicherheitskontrolle ausser Betrieb, Fundbuero an der
+# Gepaeckausgabe, Lounge zwischen den Gaengen, der "Meeting Place" (Sitzreihen, ungewoehnliche Tapete)
+SEC = m.room(42, 42, 58, 58, 'sicherheit', 'sicherheit', 0.0, 4.5, circuit=C_ALL, label='Sicherheitskontrolle')
+m.opening(CI, SEC, width=6)
+m.opening(SEC, N1, width=4)
+LF = m.room(6, 86, 20, 91, 'fundbuero', 'fundbuero', 0.0, 4.0, circuit=C_ALL, label='Fundbuero')
+m.door(BC, LF, 'door', 2)
+LO = m.room(102, 42, 132, 64, 'lounge', 'lounge', 0.0, 4.0, circuit=C_ALL, label='Lounge')
+m.door(K, LO, 'door', 2)
+m.door(RB, LO, 'door', 2)
+MP = m.room(34, 18, 58, 38, 'treffpunkt', 'treffpunkt', 0.0, 4.0, circuit=C_ALL, label='Meeting Place')
+m.opening(RL, MP, width=4)
+for r_ in (SEC, LF, LO, MP):
+    R_ = m.R(r_)
+    for x_ in range(R_.x0 + 2, R_.x1 - 1, 5):
+        for y_ in range(R_.y0 + 2, R_.y1 - 1, 5):
+            m.light(r_, x_ + 0.5, y_ + 0.5, 0, 0.8 if r_ != LO else 0.6, 6.0, z=R_.floor + R_.height - 0.05, panel=True,
+                    color=COLD if r_ in (SEC, LF) else WARM)
+# Sicherheitskontrolle: drei Spuren mit Durchleuchtungsband und Torsonde, Wannenstapel, Absperrbaender; alles aus
+R_ = m.R(SEC)
+for k_ in range(3):
+    y_ = R_.y0 + 3.5 + k_ * 4.5
+    m.obj('xray_scanner', R_.x0 + 5.0, y_, R_.floor, 0.0)
+    m.block(SEC, R_.x0 + 3, int(y_) - 1, R_.x0 + 8, int(y_) + 1, 1.2, hidden=True)
+    m.obj('security_gate', R_.x0 + 10.5, y_ + 1.6, R_.floor, 0.0)
+    m.obj('tray_stack', R_.x0 + 2.0, y_ + 1.2, R_.floor, rng.random() * 0.5)
+# Fundbuero: Regale mit liegengebliebenem Gepaeck (Wiki: meist leer bis auf zurueckgelassenes Gepaeck), Theke
+R_ = m.R(LF)
+m.obj('checkin_counter', R_.cx, R_.y0 + 0.6, R_.floor, math.pi / 2)
+for x_ in range(R_.x0 + 1, R_.x1 - 1, 3):
+    m.obj('luggage_pile', x_ + 0.6, R_.y1 - 1.0, R_.floor, rng.random() * 6.28)
+# Lounge: Sitzgruppen, Tische
+R_ = m.R(LO)
+for x_ in range(R_.x0 + 4, R_.x1 - 3, 7):
+    for y_ in range(R_.y0 + 4, R_.y1 - 3, 7):
+        m.obj('lounge_chair', x_, y_, R_.floor, 0.4)
+        m.obj('lounge_chair', x_ + 1.8, y_ + 0.4, R_.floor, 3.5)
+        m.obj('lounge_table', x_ + 0.9, y_ + 0.2, R_.floor, 0.0)
+# Meeting Place: Sitzreihen
+R_ = m.R(MP)
+for y_ in range(R_.y0 + 4, R_.y1 - 2, 4):
+    m.obj('seats_row', R_.cx, y_, R_.floor, 0.0)
+
 # --- Funde, Notizen, Sicherungspunkte -------------------------------------------------------------------------------------------
 rng.shuffle(surfaces)
 for (x, y, z) in surfaces[:6]:
@@ -177,4 +221,20 @@ safe_point('gepaeck', BC, 'Gepaeckausgabe', 30.0, 66.5)
 safe_point('checkin', CI, 'Check-in', 70.0, 66.5)
 safe_point('rundgang', RT, 'Rundgang', 100.5, 13.5)
 safe_point('gates', G, 'Gates C', GR.cx, 64.5)
+
+# V13.3 (PROPS_Level36.md): Varianten der haeufigen Klassen. Eigener Zufall nach allen Platzierungen - die Anordnung
+# bleibt gleich. Durchleuchtungsband: Variante nach der Lage seines Kollisionsblocks (Mitte auf halber oder ganzer
+# Kachel), damit das Modell den Block genau deckt.
+VARIANTS = {'checkin_counter': 3, 'seats_row': 3, 'luggage_pile': 3, 'lounge_chair': 2}
+vr = random.Random(3636)
+for o in m.objects:
+    if o['model'] in VARIANTS:
+        v_ = vr.randrange(VARIANTS[o['model']])
+    elif o['model'] == 'xray_scanner':
+        v_ = 1 if abs(o['pos'][1] - round(o['pos'][1])) < 0.01 else 0
+    else:
+        continue
+    o.pop('variant', None)
+    if v_:
+        o['variant'] = v_
 m.save()

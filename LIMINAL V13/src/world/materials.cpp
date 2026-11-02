@@ -40,9 +40,10 @@ static double quant(double v) { return pyRound(clamp(v, 0.0, 1.0) * 48.0) / 48.0
 MaterialBank::MaterialBank() { items_.resize(kCapacity); }
 
 u16 MaterialBank::get(std::array<double, 3> rgb, PlanePattern plane, WallPattern wall, bool emissive,
-                      std::vector<Band> bands, double seamDark, Surface surface, std::array<u8, 3> layer) {
+                      std::vector<Band> bands, double seamDark, Surface surface, std::array<u8, 3> layer,
+                      std::array<float, 2> pbr) {
     rgb = {quant(rgb[0]), quant(rgb[1]), quant(rgb[2])};
-    Key key{rgb, (u8)plane, (u8)wall, emissive, bands, seamDark, (u8)surface, layer};
+    Key key{rgb, (u8)plane, (u8)wall, emissive, bands, seamDark, (u8)surface, layer, pbr};
     std::lock_guard lock(mutex_);
     auto it = index_.find(key);
     if (it != index_.end()) return it->second;
@@ -77,6 +78,7 @@ u16 MaterialBank::get(std::array<double, 3> rgb, PlanePattern plane, WallPattern
     m->bands = std::move(bands);
     m->seamDark = seamDark;
     m->layer = layer;
+    m->roughMul = pbr[0], m->metalAdd = pbr[1];
     items_[id] = std::move(m);
     index_.emplace(std::move(key), (u16)id);
     count_.store(id + 1, std::memory_order_release);

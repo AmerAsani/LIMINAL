@@ -393,6 +393,8 @@ void Renderer::onChunkLoaded(const world::ChunkData& cd) { world_.addChunk(gpu_,
 void Renderer::onChunkUnloaded(const world::ChunkData& cd) { world_.removeChunk(gpu_, cd); }
 void Renderer::clearWorld() {
     world_.clear(gpu_);
+    propMeshes_.clear();  // V13.3: Materialien der neuen Welt haben andere Nummern
+    ++propGen_;
     historyValid_ = false;
 }
 void Renderer::syncMaterials(const world::MaterialBank& bank) { world_.syncMaterials(gpu_, bank); }
@@ -481,6 +483,8 @@ void Renderer::gbufferPass(const Frustum& frustum, vec3 camPos, const std::vecto
                                           entAlbedo_.srv.get(),  entNormal_.srv.get(), entOrm_.srv.get(),
                                           entMicro_.srv.get()};  // V10: Wesen
     ctx->PSSetShaderResources(0, 10, srvs);
+    ID3D11ShaderResourceView* pud = world_.puddleSrv();  // V13.3: Pfuetzen (t11)
+    ctx->PSSetShaderResources(11, 1, &pud);
     gpu_.bindCommonSamplers();
 
     ctx->IASetInputLayout(shaders_.worldLayout.get());
@@ -521,6 +525,7 @@ void Renderer::gbufferPass(const Frustum& frustum, vec3 camPos, const std::vecto
             oc.attached = d.attached ? 1.0f : (d.dynamic ? 1.0f / 3.0f : 0.0f);
             oc.boneOffset = m.skinned ? ((u32)d.bones * 3u | (d.dualQuat ? 0x80000000u : 0u)) : 0u;
             oc.clip = d.clip;
+            oc.fx = d.fx;  // V13.3
             gpu_.update(objectCb_, &oc, sizeof(oc));
             UINT stride = m.skinned ? (UINT)sizeof(SkinVertex) : (UINT)sizeof(MeshVertex), offset = 0;
             ctx->IASetVertexBuffers(0, 1, m.vb.buf.addr(), &stride, &offset);
@@ -580,12 +585,12 @@ void Renderer::renderScene(const CameraState& cam, const SceneParams& p, const s
     // Nebel leuchtet etwas: er traegt das Licht der Raeume
     const float fb = settings_.fogBrightness;
     f.fogColor = {fogLin.x * fb, fogLin.y * fb, fogLin.z * fb, p.fogDensity};
-    f.fogParams = {p.viewDistance, 0.72f, settings_.ambientStrength, 1.0f};
+    f.fogParams = {p.viewDistance, 0.72f, settings_.ambientStrength * std::max(p.worldLightScale, 0.0f), 1.0f};
     f.proj = {proj.at(0, 0), proj.at(1, 1), nearZ, 0};
     f.ringParams = {(float)world_.ringSize(), 1.0f / (float)world_.ringSize(), (float)(frame_ % 1024), nearZ};
     f.post = {p.redEdge, p.redPulse, p.menuDim, p.desaturate};
-    f.post2 = {settings_.exposureBias + std::log2(std::clamp(p.moodExposure, 0.1f, 4.0f)), settings_.filmGrain, settings_.vignette,
-               settings_.displayMode == 0 ? settings_.chromatic : 0.0f};
+    f.post2 = {settings_.exposureBias + std::log2(std::clamp(p.moodExposure, 0.1f, 4.0f)), settings_.filmGrain + p.grainBoost, settings_.vignette,
+               settings_.displayMode == 0 ? settings_.chromatic + p.chromaBoost : 0.0f};
     f.post3 = {(float)settings_.displayMode, (float)ow, (float)oh,
                settings_.bloom ? settings_.bloomStrength : 0.0f};
     // z: V6 Nachschaerfen (Post), 0 = aus
@@ -596,6 +601,7 @@ void Renderer::renderScene(const CameraState& cam, const SceneParams& p, const s
                bo ? (float)(p.blackoutSeed + 1) + std::clamp(p.blackoutAmount, 0.0f, 1.0f) * 0.9f : 0.0f};
     f.wave = {p.blackoutOrigin.x, p.blackoutOrigin.y, bo ? p.blackoutFront : -1.0f, p.noNearFade ? 1.0f : 0.0f};
     world_.setBlackout(bo ? p.blackoutSeed : -1, p.blackoutAmount, p.blackoutOrigin, p.blackoutFront);
+    f.extra = {(float)world_.updatePuddles(gpu_, cam.pos, 40.0f), p.fungus, p.garden, p.jester};  // V13.3: Pfuetzen, Level-1-Erscheinungen
     // V10: Knochen und Schattenkapseln der Figuren
     if (p.bones && !p.bones->empty())
         gpu_.update(bones_, p.bones->data(), (u32)(std::min<size_t>(p.bones->size(), kBoneRows) * sizeof(vec4)));
@@ -612,7 +618,8 @@ void Renderer::renderScene(const CameraState& cam, const SceneParams& p, const s
     static const float kLightDist[4] = {0.6f, 0.8f, 1.0f, 1.0f};
     const int lq = std::clamp(settings_.lightQuality, 0, 3);
     u32 nLights = world_.updateLights(gpu_, view, frustum, cam.pos, p.viewDistance * kLightDist[lq], f.cameraPos.w,
-                                      settings_.lightIntensity, settings_.shadows > 0, kMaxLights[lq], &p.extraLights);
+                                      settings_.lightIntensity, settings_.shadows > 0, kMaxLights[lq], &p.extraLights,
+                                      p.worldLightScale);
     f.lightParams = {(float)nLights, settings_.lightIntensity, (float)settings_.shadows, settings_.ssao ? 1.0f : 0.0f};
     stats_.lights = nLights;
     gpu_.update(frameCb_, &f, sizeof(f));
@@ -707,7 +714,7 @@ void Renderer::renderScene(const CameraState& cam, const SceneParams& p, const s
         static const int kCount[4] = {0, 450, 900, 1600};  // V6: Menge je Stufe
         const int count = kCount[particles];
         PassConstants pc{};
-        pc.p0 = {(float)count, 6.5f, 0.10f, 0.0f};
+        pc.p0 = {(float)count, 6.5f, 0.10f * (1.0f + 2.5f * p.dustBoost), p.dustFall};  // V13.3: Beben - Staub rieselt
         pc.p1 = {(float)std::min<u32>(nLights, 24u), 0, 0, 0};
         gpu_.update(passCb_, &pc, sizeof(pc));
         ctx->VSSetConstantBuffers(0, 4, cbs);
@@ -726,14 +733,14 @@ void Renderer::renderScene(const CameraState& cam, const SceneParams& p, const s
     // Spiegelungen auf glatten Flaechen
     Texture* litTex = &hdr_;
     if (settings_.ssr && settings_.displayMode == 0) {
-        ID3D11ShaderResourceView* s[5] = {hdr_.srv.get(), depth_.srv.get(), gNormal_.srv.get(), gMisc_.srv.get(),
-                                          gAlbedo_.srv.get()};
-        ctx->CSSetShaderResources(0, 5, s);
+        ID3D11ShaderResourceView* s[8] = {hdr_.srv.get(), depth_.srv.get(), gNormal_.srv.get(), gMisc_.srv.get(),
+                                          gAlbedo_.srv.get(), world_.heightSrv(), world_.ambientSrv(), world_.lightSrv()};  // V13.3
+        ctx->CSSetShaderResources(0, 8, s);
         ctx->CSSetUnorderedAccessViews(0, 1, hdrSsr_.uav.addr(), nullptr);
         ctx->CSSetShader(shaders_.ssrCS.get(), nullptr, 0);
         ctx->Dispatch(gx8, gy8, 1);
         ctx->CSSetUnorderedAccessViews(0, 1, nullUav, nullptr);
-        ctx->CSSetShaderResources(0, 5, nullSrv);
+        ctx->CSSetShaderResources(0, 8, nullSrv);
         litTex = &hdrSsr_;
     }
     mark("SSR");

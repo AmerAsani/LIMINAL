@@ -120,23 +120,58 @@ target_link_options(LiminalGame PRIVATE -municode)
 add_dependencies(LiminalGame lim_shaders lim_data)
 
 # ------------------------------------------------------------------------------------
-# V13.2: Mehrspieler-Transport (MULTIPLAYER_ARCHITEKTUR.md, Abschnitte 4-6): ENet 1.3.18 (MIT, third_party/enet,
-# unveraendert), Verschluesselung ueber die Windows-Kryptografie (CNG). Alles liegt in liminal_net.dll; das Spiel laedt
-# sie erst beim Hosten oder Beitreten. LiminalGame.exe bindet keine Netzwerkbibliothek (tools/check_no_network.py).
+# V13.3: Mehrspieler-Transport (MULTIPLAYER_ARCHITEKTUR.md, Abschnitte 4-7; Wahl: MULTIPLAYER_RECHERCHE.md, E-033).
+# WebRTC-Datenkanaele ueber libdatachannel 0.24.6 (MPL-2.0): ICE/STUN/TURN mit libjuice 1.7.4 (MPL-2.0), DTLS mit
+# Mbed TLS 3.6.7 LTS (Apache-2.0), SCTP mit usrsctp (BSD-3), Protokoll plog (MIT); Lobby-Nachrichten mit nlohmann/json
+# 3.12.0 (MIT). Alle Quellen unveraendert in third_party (LICENSES.md, Abschnitt 7). Alles Netz liegt in
+# liminal_net.dll (und im eigenstaendigen Lobby-Server); das Spiel laedt die DLL erst beim Hosten oder Beitreten.
+# LiminalGame.exe bindet keine Netzwerkbibliothek (tools/check_no_network.py).
 # ------------------------------------------------------------------------------------
-file(GLOB LIM_ENET_SRC "${CMAKE_SOURCE_DIR}/third_party/enet/*.c")
-add_library(lim_enet STATIC ${LIM_ENET_SRC})
-target_include_directories(lim_enet PUBLIC "${CMAKE_SOURCE_DIR}/third_party/enet/include")
-target_compile_options(lim_enet PRIVATE -w -O2)
-target_link_libraries(lim_enet PUBLIC ws2_32 winmm)
-add_library(lim_netsec STATIC src/netdll/secure.cpp)
-target_link_libraries(lim_netsec PUBLIC lim_options bcrypt)
+file(GLOB LIM_MBEDTLS_SRC "${CMAKE_SOURCE_DIR}/third_party/mbedtls/library/*.c")
+add_library(lim_mbedtls STATIC ${LIM_MBEDTLS_SRC})
+target_include_directories(lim_mbedtls
+    PUBLIC "${CMAKE_SOURCE_DIR}/third_party/mbedtls/include" "${CMAKE_SOURCE_DIR}/src/netdll/config"
+    PRIVATE "${CMAKE_SOURCE_DIR}/third_party/mbedtls/library")
+target_compile_definitions(lim_mbedtls PUBLIC "MBEDTLS_USER_CONFIG_FILE=\"liminal_mbedtls_config.h\"")
+target_compile_options(lim_mbedtls PRIVATE -w -O2)
+target_link_libraries(lim_mbedtls PUBLIC bcrypt)
+add_library(MbedTLS::MbedTLS ALIAS lim_mbedtls)  # libdatachannel sucht dieses Ziel (find_package wird uebersprungen)
+
+set(USE_MBEDTLS ON CACHE BOOL "" FORCE)
+set(NO_MEDIA ON CACHE BOOL "" FORCE)
+set(NO_EXAMPLES ON CACHE BOOL "" FORCE)
+set(NO_TESTS ON CACHE BOOL "" FORCE)
+set(NO_WEBSOCKET OFF CACHE BOOL "" FORCE)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(CMAKE_SKIP_INSTALL_RULES ON)  # nichts wird installiert; libdatachannel exportiert sonst Ziele
+add_subdirectory(third_party/libdatachannel EXCLUDE_FROM_ALL)
+foreach(_t datachannel-static juice-static usrsctp)
+    if(TARGET ${_t})
+        target_compile_options(${_t} PRIVATE -w)
+    endif()
+endforeach()
+# libdatachannel nutzt std::transform ohne <algorithm> (mit libstdc++ kommt es indirekt mit, mit libc++ nicht):
+# der Kopf wird beim Bau vorangestellt, die Quellen bleiben unveraendert
+target_compile_options(datachannel-static PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include algorithm>")
+add_library(lim_json INTERFACE)
+target_include_directories(lim_json INTERFACE "${CMAKE_SOURCE_DIR}/third_party/nlohmann_json/single_include")
+
+# eigener Netzcode: Beitrittscode, Lobby-Nachrichten, Lobby-Server, Host-Zertifikat (src/netdll)
+add_library(lim_netcore STATIC src/netdll/joincode.cpp src/netdll/lobby_proto.cpp src/netdll/lobby_server.cpp src/netdll/hostcert.cpp
+    src/netdll/lobby_client.cpp)
+# winhttp: WebSocket zur Lobby mit TLS-Pruefung durch Windows (lobby_client.hpp); crypt32: Zertifikat der Lobby
+target_link_libraries(lim_netcore PUBLIC lim_options datachannel-static juice-static lim_mbedtls lim_json winhttp crypt32)
+# die DLL des Spiels (nur ln_*-Funktionen werden exportiert)
 add_library(liminal_net SHARED src/netdll/transport.cpp)
-target_link_libraries(liminal_net PRIVATE lim_netsec lim_enet lim_options)
+target_link_libraries(liminal_net PRIVATE lim_netcore)
 set_target_properties(liminal_net PROPERTIES PREFIX "" RUNTIME_OUTPUT_DIRECTORY "${LIM_BIN_DIR}")
 # dieselbe Transportschicht statisch fuer Tests und Bots (ohne DLL-Laden)
 add_library(lim_nettransport STATIC src/netdll/transport.cpp)
-target_link_libraries(lim_nettransport PUBLIC lim_netsec lim_enet lim_options)
+target_link_libraries(lim_nettransport PUBLIC lim_netcore)
+# Lobby- und Relay-Server zum Selbstbetreiben (MULTIPLAYER_SETUP.md)
+add_executable(liminal_lobby tools/lobby/lobby_main.cpp)
+target_link_libraries(liminal_lobby PRIVATE lim_netcore)
+set_target_properties(liminal_lobby PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${LIM_BIN_DIR}")
 
 # ------------------------------------------------------------------------------------
 # Starter (Voraussetzungen pruefen, dann das Spiel starten)
@@ -179,15 +214,19 @@ set_target_properties(sound_export PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_
 # V13: Mehrspielerprotokoll - Regeln, Gegentests, Fuzzing, Rate und Zeitlimits (MULTIPLAYER_TESTS.md)
 add_executable(net_protocol_test tests/net_protocol_test.cpp)
 target_link_libraries(net_protocol_test PRIVATE lim_net)
-# V13.2: Transport des Mehrspielers ueber echtes UDP (Kryptografie-Testvektoren, Handshake, Angriffe)
+set_target_properties(net_protocol_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
+# V13.3: Transport (WebRTC, Lobby, Codes, Angriffe auf Lobby und DLL; MULTIPLAYER_TESTS.md)
 add_executable(net_transport_test tests/net_transport_test.cpp)
-target_link_libraries(net_transport_test PRIVATE lim_nettransport)
+target_link_libraries(net_transport_test PRIVATE lim_nettransport ws2_32)
 set_target_properties(net_transport_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
-# V13.2: Koop mit echten Sitzungen (Bots, Netzstoerer, Angriffe, Fuzzing, Reise, Langlauf)
+# V13.3: Fuzzing der eigenen Parser der Verbindungsschicht (auch unter Sanitizern, MULTIPLAYER_TESTS.md 7.4)
+add_executable(lobby_proto_fuzz tests/lobby_proto_fuzz.cpp)
+target_link_libraries(lobby_proto_fuzz PRIVATE lim_netcore)
+set_target_properties(lobby_proto_fuzz PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
+# V13.2/V13.3: Koop mit echten Sitzungen (Bots ueber Lobby und Netzstoerer, NAT/Relay, Angriffe, Fuzzing, Reise, Langlauf)
 add_executable(coop_test tests/coop_test.cpp tests/support/netapi_static.cpp)
 target_link_libraries(coop_test PRIVATE lim_coop lim_net lim_nettransport lim_gameplay ws2_32 psapi)
 set_target_properties(coop_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
-set_target_properties(net_protocol_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
 
 # V6: raeumliche Struktur (Raumdichte, Raumgroessen, Sichtachsen) alter gegen neuer Aufbau
 add_executable(layout_stats tests/layout_stats.cpp)

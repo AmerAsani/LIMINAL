@@ -397,3 +397,127 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
 - **Death Rat:** Hausratte mit langem Körper (Modell 32 cm Rumpf und Kopf), schwarzes Fell, braune Hörner mit rot glühenden Spitzen; haarlos in Level 2 (Entity 24). Meist harmlos; „Reaktion unbekannt“ (Wiki) → **eigene Auslegung:** sie stieben davon, bedrängt beißt eine (6 Health). Das „Screaming Event“ (Ratten fallen über andere Wesen her, das Licht flackert, bis es vorbei ist) als Ereignis außer Sicht in Level 5. Die Fallen und die menschliche Klugheit der Level-3-Ratten (Ebenenseite) sind **nicht umgesetzt** (eigenes Fallensystem nötig).
 - **Fensterwesen:** in drei dunklen Fenstern (ohne Jalousie) im Erdgeschoss des Hofs von Level 188; einmal je Ebene gesetzt, bleiben dort (Wiki: bleiben, bis sie vergehen). Lockt mit Flüstern (Wiki: tröstend) und Handzeichen; unter 1,9 m vor der Öffnung fährt ein Arm heraus (Wiki: 1–2 m), nach 0,7 s zieht er hinein (tödlich) – wer sofort zurücktritt, entkommt. **Level 2** (Ebenenseite: Fensterwesen am Gangende) ist **nicht umgesetzt**: die Rohrgänge haben keine Fenster; ein eigenes Fenster an Gangenden wäre ein neues Ausstattungsstück (Rang 2 bleibt dafür offen).
 - **Regie:** je Wesen eine Gruppe zur Zeit, außer Sicht, 14–30 m Weg (weiter, wenn die erlaubten Räume weiter liegen), erster Auftritt nach 25–150 s; Abstand je Ebene (`every`) mal Schwierigkeit (`stalker_pause`). Schaden der Schläge mal `stalker_hit / 35`.
+
+## E-032 Arm der Lampenhand: Kette, Handgelenk, gedrehte Faust, Ärmel (V13.3, 27.10.2026)
+- **Befund:** siehe `HAND_ANALYSE.md`, Abschnitt „V13.3: Arm“. Der Ärmel war die Körperform plus 2,2 cm rundum (Unterarm 11–12 cm dick); mit dem Daumen genau oben verlangte das Handmodell einen Ellbogen 16 cm über der Schulter.
+- **Entscheidung:**
+  - Unterarm 27 cm (`figures.cpp`), Oberarm bleibt 29,9 cm.
+  - Handgelenk im Handmodell 30° statt 14° gestreckt (übliche Stellung im Kraftgriff). Finger, Nägel und Lampe bleiben punktgleich.
+  - Im Ego-Bild ist die Faust 43° um die Lampenachse gedreht (Daumen nach außen, leicht von unten gehalten), Griff 18 cm unter und 13 cm links vom Auge. Der Ellbogen hängt dann auf statt über Schulterhöhe, der Unterarm steigt zur Hand. Die Haltung von außen (E-028) bleibt.
+  - Ärmel als eigener Schlauch entlang der Armkette mit dem Querschnitt einer Jacke, Raffung, Bündchen mit gerundeter Kante und dunkler Öffnung, Falten in der Armbeuge und Stau über dem Bündchen, Ober-/Unterarm-Gewichte an der Ebene des Ellbogens (±4,5 cm). Stufe 0 der Jacke feiner vernetzt (6,5 mm, 40 % der Dreiecke).
+- **Abwägung:**
+  - Mit Daumen oben gibt es keine Haltung, in der der Ellbogen tiefer liegt und die Faust im Bild bleibt (gerechnet: Ellbogen 20 cm unter der Schulter → Faust rund 50° unter dem Blick, das Bild reicht 31°).
+  - Mehr Ellenabknickung (über 33°) wäre am Rand der Beweglichkeit.
+  - Die Lampe nicht genau in Blickrichtung zu halten, hätte Licht und Wesen-Reaktionen verändert.
+  - Die Drehung um die Lampenachse ändert nur die Lage der ganzen Faust, nicht den Griff. Rollen um 90° und mehr (Handfläche nach oben) wurde verworfen.
+- **Verworfen:**
+  - eine 2 cm tiefe Öffnung im Bündchen (Wand 3–4 mm, im Netz zerfranst);
+  - Beugefalten mit 3,4 mm Tiefe (zu viele umgeklappte Dreiecke bei 160° Beugung, Test B-001);
+  - eine Mischzone am Ellbogen von ±3 cm (48 umgeklappte Dreiecke von außen, Grenze 46).
+
+## E-033 Koop: Verbindung ohne Router-Einstellungen über WebRTC-Datenkanäle (27.10.2026)
+- **Auftrag:** Jeder Spieler soll ohne Portfreigabe beitreten können. Keine eigene Kryptografie, kein eigenes Transportprotokoll, wenn es Bewährtes gibt. Recherche: `MULTIPLAYER_RECHERCHE.md`.
+- **Gewählt:**
+  - libdatachannel 0.24.6 (WebRTC-Datenkanäle) mit libjuice 1.7.4 (ICE, STUN, TURN), Mbed TLS 3.6.7 LTS (DTLS 1.2) und usrsctp (SCTP);
+  - dazu ein kleiner eigener Lobby-Server (Beitrittscodes, Signalisierung) mit dem STUN/TURN-Server aus libjuice.
+  - Alles Netz bleibt in `liminal_net.dll` und im Lobby-Programm.
+- **Warum:**
+  - NAT-Durchdringung mit automatischem Relay-Rückfall.
+  - Verschlüsselung (DTLS mit Vorwärtsgeheimnis) und Echtheit der Gegenstelle (Zertifikats-Fingerabdruck) macht die Bibliothek.
+  - Ohne Konto und ohne Kosten nutzbar; Relay und Lobby lassen sich selbst betreiben.
+  - Baut mit llvm-mingw. Zuerst mit einem kleinen Probeprogramm geprüft (direkt, nur Relay, WebSocket); heute deckt das `tests/net_transport_test.cpp` ab.
+- **Verworfen:**
+  - Steam Networking Sockets und EOS: Konto, SDK nur mit Konto; Spieler bräuchten Steam bzw. ein Epic-Produkt. Die DLL-Schnittstelle lässt Steam später als zweiten Weg zu.
+  - GameNetworkingSockets (Open Source): ohne eigene Zertifizierungsstelle keine Authentisierung; dazu Protobuf mit Abseil und bekannte Linkprobleme mit LLVM.
+  - netcode/yojimbo: keine NAT-Durchdringung; Connect-Tokens brauchen ein eigenes Backend.
+  - Photon und PlayFab Party: Konto, laufende Kosten, aller Verkehr bei einem Dritten.
+  - ENet mit eigenem Handshake und AES (V13.2): eigene Kryptografie, keine NAT-Durchdringung. **ENet, der Handshake und die AES-Schicht sind entfernt.**
+- **Eigener Code bleibt klein:**
+  - die Lobby: Räume, Codes, Weiterreichen der Beschreibungen, Raten, Sperren – keine Kryptografie;
+  - eine Rahmung in der DLL: Hallo mit Version und Geheimteil des Codes, Ping für die Verbindungsqualität, Nutzdaten;
+  - Spielprotokoll, Autorität und Prüfung wie bisher.
+- **Bausteine statt eigener Kryptografie:**
+  - Der Beitrittscode besteht aus Raumnummer und Geheimteil. Die Lobby sieht nur die Raumnummer. Das Geheimteil prüft der Host erst im DTLS-Kanal (Passwortprüfung über einen authentisierten Kanal).
+  - Die lange Form des Codes enthält zusätzlich 60 Bit des Zertifikats-Fingerabdrucks des Hosts (Pinning). Der Gast prüft ihn, bevor er etwas sendet.
+  - Mit dem langen Code kann weder eine kompromittierte Lobby noch ein Angreifer im lokalen Netz den Host vortäuschen. Mit dem kurzen Code vertraut der Gast der Lobby (Restrisiko, `MULTIPLAYER_BEDROHUNGSMODELL.md`, Abschnitt 9.5). Im Modus „Direkt“ ist der lange Code Pflicht.
+- **Einstellungen am Bau von Mbed TLS** (`src/netdll/config/liminal_mbedtls_config.h`): DTLS-SRTP an (ohne baut libdatachannel nicht), Threads an (PSA-Zustand), Sockets aus.
+- **Quellen unverändert:** Fehlende Includes in libdatachannel (`std::transform` ohne `<algorithm>`) werden beim Bau über `-include algorithm` ergänzt, nicht im Quelltext.
+- **Nachträge während der Umsetzung (27.10.2026):**
+  - **Verbindung zur Lobby über WinHTTP statt über den WebSocket-Client von libdatachannel.**
+    - Dieser schaltet unter Windows die TLS-Prüfung ab („not supported on Windows“). Belegt im Test: Ein fremdes Zertifikat wurde angenommen.
+    - WinHTTP prüft mit Schannel gegen die Stammzertifikate von Windows; zusätzlich ist Pinning möglich (`lobby_cert`).
+    - `liminal_net.dll` importiert dafür `winhttp.dll`; `tools/check_no_network.py` erlaubt das nur für die DLL.
+  - **Gegenmaßnahme zu `VERIFY_OPTIONAL`** (libdatachannel mit Mbed TLS): Die DLL verlangt einen von DTLS geprüften Fingerabdruck, der zur Beschreibung passt.
+  - **Unzuverlässiger Kanal mit Lebensdauer 150 ms statt „0 Wiederholungen“:**
+    - SCTP staut sonst veraltete Momentaufnahmen hinter seiner Staukontrolle. Gemessen im schlechten Netz (128 kbit/s): 6,6 s Laufzeit und 19 m Abweichung.
+    - Mit Lebensdauer verfällt Altes; die Laufzeit bleibt bei 0,35 s.
+  - **Laufzeit für die Anzeige aus SCTP;** der eigene Ping enthält die Wartezeit bis zum nächsten Bild. Der Ping zählt nur den Verlust.
+  - **SCTP für Echtzeit:** Wiederholung höchstens nach 2 s, 12 Versuche (statt 10 s und 5).
+    - Anlass: Im ersten 60-min-Langlauf über das gestörte Relay trennte die Stille-Erkennung nach 37 min einen Gast; SCTP hatte über 10 s nichts gesendet.
+    - Ergebnis des Langlaufs danach: `MULTIPLAYER_TESTS.md`, Abschnitt 7.8.
+  - **Stand beim Beitritt:** Der Host schickt nach dem Willkommen alle aufgenommenen und abgelegten Dinge der Ebene; der Gast merkt sich gemeldete Funde, die er noch nicht geladen hat.
+    - Anlass: Im zweiten Langlauf wich der geteilte Stand eines Gastes dauerhaft ab (Fund in einem beim Gast nicht geladenen Sektor), und ein später Gast sah schon aufgenommene Funde.
+    - Verworfen: die ganze Welt im Willkommen übertragen (größer, und die Welt entsteht ohnehin aus dem Seed).
+  - **Absagen mit 1 s Nachlauf,** sonst kam die Absage beim Gast nicht an (er meldete „kein Weg“ statt „falscher Code“).
+  - **Wer wegen ungültiger Nachrichten getrennt wird, behält keinen Platz** (vorher 120 s belegt).
+  - **Obergrenze `kRoles` = 40** im Spielprotokoll (Format gleich). Unbekannte Rollen zeigt der Gast nicht an.
+- **Freigabe:** Das Beta-Etikett ist entfernt, weil die Bedingungen des Auftrags erfüllt sind (`MULTIPLAYER_ENTSCHEIDUNG.md`, V13.3). Der Modus ist damit nicht „vollkommen sicher“; Restrisiken: `MULTIPLAYER_BEDROHUNGSMODELL.md`, Abschnitt 9.5.
+
+## E-034 Abnahme-Reihenfolge mit vorgezogener Asset-Arbeit (V13.3, 27.10.2026)
+
+- **Auftrag:** Die Ebenen werden in der Reihenfolge 1, 2, 3, 0, 5, 5.3, 188, 903, 37, 36 abgenommen (Schranken a–g).
+- **Entscheidung:**
+  - Die Abnahmen (Kritikrunden der Ebene, Laufweg, Prüfungen, Aufwand) laufen streng in dieser Reihenfolge im Hauptstrang.
+  - Ausstattung und Wesen späterer Ebenen dürfen vorher in eigenen Zweigen entstehen (höchstens drei Agenten gleichzeitig).
+  - Eine Ebene gilt erst als abgenommen, wenn ihre eigenen Runden mit den zusammengeführten Assets gelaufen sind.
+- **Grund:** Blender-Modelle und Wesen brauchen Stunden je Klasse. Nacheinander ließe sich das nicht schaffen. Die Reihenfolge bestimmt, was zuerst fertig und geprüft ist, nicht was zuerst begonnen wird.
+
+## E-035 Raummetrik: Grenzen je Ebene und Messkorrektur (V13.3, 27.10.2026)
+
+- **Grenzen:** Die Grenzen stehen in `tools/qa/metric_limits.json` und sind je Ebene aus dem Wiki-Strukturtyp abgeleitet (`STRUKTURTYP.md`).
+  - Labyrinthe mit Gängen (Level 2, 3) haben kürzere Sichtachsen als Hallen.
+  - Level 5 nimmt Kesselgänge und Aufzugskabinen von der Gangbreite aus (Wiki: eng). Level 188 erlaubt kein Notausgangsschild.
+- **Korrektur (27.10.):** `maplib.Grid` zählte sichtbare Blöcke als begehbar und durchsichtig, also auch freistehende Wandscheiben.
+  - Neu: Begehbarkeit sperren verdeckte Blöcke, Gruben und sichtbare Blöcke ab 1,5 m. Niedrigere Blöcke sind Podeste, z. B. der Bahnsteig in Level 903.
+  - Sicht auf Augenhöhe sperren Wände, Stützen und Blöcke ab 1,5 m.
+  - Nach der Korrektur verletzte nur Level 1 eine Grenze (Sichtachse P90 79,7 m < 85 m). Die Aquila-Wandscheiben wurden von 12–18 m auf 6 m gekürzt.
+- **Grund:** Eine Grenze, die eine falsche Messung besteht, beweist nichts. Die Messung wurde korrigiert, nicht die Grenze gelockert.
+
+## E-036 Laufweg-Schranke e) bei Ebenen mit wenigen Räumen (V13.3, 01.11.2026)
+
+- **Auftrag:** Laufweg mit mindestens 200 m und mindestens 15 Räumen, alle paar Meter ein Bild.
+- **Grenze:** Zwei Ebenen haben laut Wiki und Karte weniger als 15 Räume:
+  - Level 188 „The Courtyard of Windows“ (Wikidot Rev. 69): ein Atrium mit Gängen am Rand. Im Spiel sind es 7 Räume: Hof, weißer Gang, drei Zellen, Treppenhaus, Treppenabsatz.
+  - Level 903 „The Metro“ (Rev. 60): ein einziger, endlos gleicher Bahnsteig, 1 Raum (`STRUKTURTYP.md`).
+- **Entscheidung:** Die Strecke von mindestens 200 m wird eingehalten. Der Weg besucht alle erreichbaren Räume, mehrfach und aus anderen Richtungen.
+  - `walkway.py` verlangt nicht mehr Räume, als erreichbar sind.
+  - Vorher lief der Planer bei Level 188 bis zur Schutzgrenze im Kreis: 6,8 km, 1 696 Bilder.
+  - Level 903 läuft den Bahnsteig auf zwei Spuren hin und zurück.
+  - Mehr Räume hinzuzufügen, nur um die Zahl zu erreichen, widerspräche dem Wiki-Strukturtyp. Teil 2 des Auftrags verbietet selbst ergänzte Zonen.
+- **Beleg:** Raumzahlen aus `data/maps/level188.json` und `level903.json`, ausgegeben von `tools/qa/room_metrics.py` (Spalte „Raeume“).
+
+## E-037 Zeilenenden (V13.3, 01.11.2026)
+
+- **Befund:** 37 Quelldateien wurden im Lauf von V13 von CRLF auf LF umgestellt, `level2.py` umgekehrt.
+  - Ursache: `sed -i` in Git Bash entfernt das CR; Python-Textschreiben unter Windows setzt es.
+  - Die Umstellungen kamen im Hauptstrang und in Agenten-Zweigen vor.
+  - `gameplay_test.cpp` kollidierte deshalb beim Zusammenführen des Wranglers als ganze Datei.
+- **Entscheidung:**
+  - Während Agenten-Zweige offen sind, wird nicht massenhaft umgestellt; das gäbe Konflikte in jedem Zweig. Jede Datei behält ihr heutiges Zeilenende.
+  - Gemischte Dateien (DECISIONS.md, PROGRESS.md) sind wieder einheitlich CRLF.
+  - Ab jetzt werden Dateien nur noch binär bearbeitet (Python `rb`/`wb`, Zeilenende der Datei beibehalten) oder mit dem Edit-Werkzeug. Nie mit `sed -i`.
+- **Wirkung auf das Spiel:** keine; Compiler, Python und JSON-Leser nehmen beide Formen.
+
+## E-038 Entity 99 „The Game Master“ in Level 1 (V13.3, 01.11.2026)
+
+- **Wiki:**
+  - Level 1 (Wikidot Rev. 83): Gemälde liegen kurz vor den Türen zu den Hallen auf dem Boden und verschwinden unbeobachtet. Eines mit einer Narrenfigur führt beim Hindurchgehen nach Level 389.
+  - entity-99 (Rev. 39): Marionetten-Narr mit Glasbildschirm-Gesicht. Sie lockt Wanderer in Spiele, betrügt selbst und verliert schlecht. „Wer betrügt, fliegt raus.“
+- **Grenze:** Level 389 gibt es im Spiel nicht. Eine eigene Ebene nur für diesen Übergang wäre eine selbst ergänzte Zone (Teil 2).
+- **Entscheidung (Interpretation, gekennzeichnet in KREATUR_GameMaster.md):**
+  - Zwölf Plätze vor den Hallentüren, je Lauf vier Gemälde. Unbeobachtet verschwinden sie nach etwa 7 s und tauchen vor einer anderen Tür wieder auf.
+  - Ihr Gemälde hat ein echtes Glasbildschirm-Gesicht, das den Ausdruck nur unbeobachtet wechselt. Dazu rote Kugeln und rote Fäden, die nach oben steigen.
+  - Wer es betritt, erstarrt. Ihr Gesicht füllt das Bild, sie lädt mit eigenen Sätzen ein, ohne Spiele aus ihrem Katalog und ohne Inhalte anderer Spiele. Dann wirft sie einen „wegen Betrugs“ hinaus.
+  - Man steht danach an anderer Stelle in Level 1: mindestens 30 m entfernt, nie im Garden. Sperrzeit 240 s je Spieler.
+  - Im Koop rechnet der Host; der Gast erhält die Lage als Positionskorrektur.
+- **Grund:** Verhalten und Übergang bleiben nah am Wiki, ohne eine Ebene zu erfinden. Das Hinauswerfen ist das einzige, was das Wiki über den Ausgang aus ihrem Spiel sagt.

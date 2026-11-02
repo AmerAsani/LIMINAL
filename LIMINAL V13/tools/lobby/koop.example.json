@@ -1,0 +1,7 @@
+{
+  "lobby": "wss://lobby.example.org:27515",
+  "lobby_cert": "",
+  "ice_servers": [],
+  "relay_only": false,
+  "direct_port": 27500
+}

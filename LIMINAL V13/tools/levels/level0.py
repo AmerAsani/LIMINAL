@@ -41,6 +41,11 @@ m = Map('level0', 176, 134, seed=1001)
 rng = m.rng
 
 
+def var_at(x, y, n):
+    """V13.3: Modellvariante aus der Lage (PROPS_Level0.md) - nicht aus rng, damit die Karte sonst gleich bleibt."""
+    return int(abs(math.sin(x * 12.9898 + y * 78.233)) * 43758.5453) % n
+
+
 def yellow_type(w, h, r):
     if min(w, h) <= 3 and max(w, h) >= 8:
         return 'flur'
@@ -54,7 +59,7 @@ def segmented(x0, y0, x1, y1, zone='vorzimmer', floor=0.0, extra=0.55):
     bis zur Decke (die Rasterdecke laeuft durch), oft zwei je Wand - Raeume fliessen ineinander, statt als
     geschlossene Zimmer mit einer Tuer aneinanderzuhaengen."""
     rooms = partition_rooms(m, x0, y0, x1, y1, zone, yellow_type, min_leaf=4, max_leaf=14, height=(2.7, 3.1),
-                            stop_chance=0.25, loop_chance=0.9, width=(2, 4), floor=floor)
+                            stop_chance=0.25, loop_chance=0.9, width=(3, 5), floor=floor)  # V13.3: breitere Durchbrueche, tiefere Blicke
     have = {(d['a'], d['b']) for d in m.doors} | {(d['b'], d['a']) for d in m.doors}
     for a in rooms:
         for b in rooms:
@@ -86,7 +91,7 @@ while fy < 124:
     fw = rng.choice((2, 3))
     fx = lanes[lane]
     seg = m.room(fx, fy, fx + fw, fy1, 'flur', 'vorzimmer', 0.0, rng.choice((2.7, 2.8, 2.9)),
-                 label='Der lange Flur' if not flur_segs else '')
+                 label='')  # V13.3: keine Benennung (Labyrinth ohne Wahrzeichen)
     if flur_segs:
         m.opening(flur_segs[-1], seg, width=2)
     flur_segs.append(seg)
@@ -108,7 +113,7 @@ link_regions(m, westB, flur_segs, 6, width=(2, 2))
 manila = min((r for r in westB if 12 <= m.R(r).w * m.R(r).h <= 40), key=lambda r: abs(m.R(r).cy - 40))
 M_ = m.R(manila)
 M_.type, M_.zone = 'manila', 'manila'
-M_.kw['label'] = 'Vergilbtes Zimmer'  # im Spiel ohne den Wiki-Namen (Weg B)
+M_.kw['label'] = ''  # V13.3: Manila-Raum (Wiki) ohne hervorgehobenen Namen
 
 # --- Nord: das Lochfeld (Gruben im Raster, kein Boden), ringsum Labyrinth ---------------------------------
 loch = m.room(66, 10, 95, 32, 'lochfeld', 'loecher', 0.0, 3.0, label='Lochfeld')
@@ -166,7 +171,7 @@ sued = segmented(59, 91, 104, 132, floor=0.85)
 # V12 (Wikidot Rev. 50): Boeden dort teils abgesenkt und oft knoecheltief mit Fluessigkeit gefuellt - 25 cm tiefer,
 # Wasser 12 cm hoch (Stufen an den Durchbruechen setzt die Engine)
 dunkel = partition_rooms(m, 105, 2, 142, 44, 'dunkel', lambda w, h, r: 'dunkelraum', min_leaf=4, max_leaf=12,
-                         height=(2.6, 2.9), loop_chance=0.4, floor=-0.25, water=-0.13)
+                         height=(2.7, 3.0), loop_chance=0.4, floor=-0.25, water=-0.13)  # V13.3: Decke >= 2,7 m
 
 # --- Ost --------------------------------------------------------------------------------------------------
 ost = segmented(105, 45, 142, 110)
@@ -216,11 +221,11 @@ for r in yellow:
     if not faces or rng.random() > 0.5:
         continue
     fx, fy, fyaw = rng.choice(faces)
-    m.obj('outlet', fx, fy, R.floor + 0.32, fyaw, tag='deco')
+    m.obj('outlet', fx, fy, R.floor + 0.32, fyaw, tag='deco', variant=var_at(fx, fy, 3))
     if R.height >= 2.85 and rng.random() < 0.35:
         vx, vy, vyaw = rng.choice(faces)
         if math.hypot(vx - fx, vy - fy) > 2.0:
-            m.obj('vent_grille', vx, vy, R.floor + R.height - 0.45, vyaw, tag='deco')
+            m.obj('vent_grille', vx, vy, R.floor + R.height - 0.45, vyaw, tag='deco', variant=var_at(vx, vy, 2))
 for r in dunkel:
     R = m.R(r)
     for k in range(1 + int(R.w * R.h / 40)):
@@ -284,6 +289,9 @@ G = 0.6
 FLUO = (1.0, 0.99, 0.90)
 
 
+VARIANTS = {'troffer': 3, 'troffer_off': 2, 'troffer_red': 2}
+
+
 def troffers(r, along=None, step_a=(4, 6), step_c=(4, 5), inten=0.62, radius=4.2, model='troffer', color=FLUO,
              dead=0.11):
     R = m.R(r)
@@ -311,9 +319,9 @@ def troffers(r, along=None, step_a=(4, 6), step_c=(4, 5), inten=0.62, radius=4.2
             if m.blocked(x, y) or m.blocked(x - 0.6, y) or m.blocked(x + 0.6, y):
                 continue
             if rng.random() < dead:
-                m.obj('troffer_off', x, y, top, yaw, tag='deco')
+                m.obj('troffer_off', x, y, top, yaw, tag='deco', variant=var_at(x, y, VARIANTS['troffer_off']))
                 continue
-            m.obj(model, x, y, top, yaw, tag='light')
+            m.obj(model, x, y, top, yaw, tag='light', variant=var_at(x, y, VARIANTS.get(model, 1)))
             m.light(r, x, y, 0, inten, radius, z=top - 0.03, panel=False, color=color)
             n += 1
     return n
@@ -330,7 +338,7 @@ def diffusers(r, count):
                 continue
             if any(o['model'].startswith('troffer') and math.hypot(o['pos'][0] - x, o['pos'][1] - y) < 1.0 for o in m.objects[-40:]):
                 continue
-            m.obj('ceiling_diffuser', x, y, top, 0.0, tag='deco')
+            m.obj('ceiling_diffuser', x, y, top, 0.0, tag='deco', variant=var_at(x, y, 3))
             break
 
 

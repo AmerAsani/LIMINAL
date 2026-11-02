@@ -685,6 +685,24 @@ static void testWorld(const game::Content& content, const std::string& dataDir) 
 }
 
 // --- V9 ------------------------------------------------------------------------------------------
+// V13.3: freie Stelle mitten in einer Aquila-Halle nahe (38, 26) - die Karte aendert sich (Kisten, Rohre), feste Koordinaten nicht
+static std::pair<int, int> hallSpot(world::World& w) {
+    for (int r = 0; r < 12; ++r)
+        for (int dy = -r; dy <= r; ++dy)
+            for (int dx = -r; dx <= r; ++dx) {
+                if (std::max(std::abs(dx), std::abs(dy)) != r) continue;
+                const int x = 38 + dx, y = 26 + dy;
+                bool ok = true;
+                for (int ey = -1; ey <= 1 && ok; ++ey)
+                    for (int ex = -1; ex <= 1 && ok; ++ex) {
+                        const world::Tile& t = w.tile(x + ex, y + ey);
+                        ok = t.open() && t.room && t.room->type && t.room->type->key == "halle" && t.floor < 0.05f;
+                    }
+                if (ok) return {x, y};
+            }
+    return {38, 26};
+}
+
 static void testV9(const game::Content& content, const std::string& dataDir) {
     std::printf("V9: Sicherungen, der Andere, der Weg hinaus\n");
     auto W = content.world();
@@ -857,12 +875,14 @@ static void testV9(const game::Content& content, const std::string& dataDir) {
         world::World& ww = s->world();
         {
             auto& pl = s->player();
-            pl.x = 38.5, pl.y = 26.5, pl.z = ww.tile(38, 26).floor;
+            const auto [hx, hy] = hallSpot(ww);
+            pl.x = hx + 0.5, pl.y = hy + 0.5, pl.z = ww.tile(hx, hy).floor;
             s->body().reset();
         }
         s->preload();
         run(*s, 0.5);
-        const world::Tile& deckT = ww.tile(38, 26);
+        const auto [hx2, hy2] = hallSpot(ww);
+        const world::Tile& deckT = ww.tile(hx2, hy2);
         const bool placed = deckT.open() && deckT.room && deckT.room->type && deckT.room->type->key == "halle";
         check(placed, "mitten in der Halle Aquila (Level 1)");
         std::vector<game::GameEvent> ev;
@@ -908,7 +928,8 @@ static void testV9(const game::Content& content, const std::string& dataDir) {
         {  // V11: Wiedereinstieg, dann zurueck in die Halle
             s->respawnAtCheckpoint();
             auto& pl = s->player();
-            pl.x = 38.5, pl.y = 26.5, pl.z = ww.tile(38, 26).floor;
+            const auto [hx, hy] = hallSpot(ww);
+            pl.x = hx + 0.5, pl.y = hy + 0.5, pl.z = ww.tile(hx, hy).floor;
             s->body().reset();
             s->preload();
             run(*s, 0.3);
@@ -947,12 +968,14 @@ static void testV9(const game::Content& content, const std::string& dataDir) {
         world::World& ww = s->world();
         {
             auto& pl = s->player();
-            pl.x = 38.5, pl.y = 26.5, pl.z = ww.tile(38, 26).floor;
+            const auto [hx, hy] = hallSpot(ww);
+            pl.x = hx + 0.5, pl.y = hy + 0.5, pl.z = ww.tile(hx, hy).floor;
             s->body().reset();
         }
         s->preload();
         run(*s, 0.5);
-        const world::Tile& deckT = ww.tile(38, 26);
+        const auto [hx2, hy2] = hallSpot(ww);
+        const world::Tile& deckT = ww.tile(hx2, hy2);
         const bool placed = deckT.open() && deckT.room && deckT.room->type && deckT.room->type->key == "halle";
         // vor das Laecheln stellen: 6 m entfernt, freie Sicht, dahinter 14 m freier Boden zum Wegrennen
         auto standNear = [&]() {
@@ -1016,7 +1039,8 @@ static void testV9(const game::Content& content, const std::string& dataDir) {
                     }
             check(n == 3 && solid == n, std::format("Regal, Kisten und Saeule mit Kollision ({} von {})", solid, n));
             auto& pl = s->player();
-            pl.x = 38.5, pl.y = 26.5, pl.z = ww.tile(38, 26).floor;
+            const auto [hx, hy] = hallSpot(ww);
+            pl.x = hx + 0.5, pl.y = hy + 0.5, pl.z = ww.tile(hx, hy).floor;
             s->body().reset();
             s->preload();
         }
@@ -1110,7 +1134,8 @@ static void testV9(const game::Content& content, const std::string& dataDir) {
         {  // V11: Wiedereinstieg, dann zurueck in die Halle
             s->respawnAtCheckpoint();
             auto& pl = s->player();
-            pl.x = 38.5, pl.y = 26.5, pl.z = ww.tile(38, 26).floor;
+            const auto [hx, hy] = hallSpot(ww);
+            pl.x = hx + 0.5, pl.y = hy + 0.5, pl.z = ww.tile(hx, hy).floor;
             s->body().reset();
             s->preload();
             run(*s, 0.3);
@@ -1698,6 +1723,22 @@ static Mount mountOf(const std::string& m) {
                                   "paving_strip", "birch_circle", "table_188", "pillar_188",  // V12 Level 188
                                   "metro_car_903", "metro_car_37", "track_metro", "platform_edge", "stairs_barricaded",  // V12 Level 903
                                   "carousel_36", "luggage_pile", "checkin_counter", "bta_booth", "travelator", "travelator_stopped", "seats_row", "gate_counter", "camp_c32"};  // V12 Level 36
+    // V13.3: Level-1-Sektoren, Rohrverlauf, Level-2-Werkstatt, Level-36-Bereiche
+    static const char* wall2[] = {"formwork", "ivy_wall", "neon_tube", "neon_sign", "panel_vermilion", "pipe_wall",
+                                  "fungus_wall", "claw_marks"};  // V13.3 L1-Erscheinungen
+    static const char* ceil2[] = {"vines_ceiling", "cable_hang", "arcade_gothic"};
+    static const char* floor2[] = {"scaffold", "wall_unfinished", "cement_bags", "rebar_bundle", "work_light", "cement_mixer", "wheelbarrow",
+                                   "sawhorse", "site_barrier", "tarp_pile", "moss_patch", "fern_cluster", "roots_floor", "shrub_concrete",
+                                   "sapling", "overgrown_crate", "cabinet_vermilion", "table_vermilion", "bench_vermilion", "screen_vermilion",
+                                   "macchina_parts", "macchina_tools", "xray_scanner", "security_gate", "tray_stack", "lounge_chair",
+                                   "lounge_table",
+                                   "fungus_floor", "fungus_camp", "goo_trail", "plant_wanderer"};  // V13.3 L1-Erscheinungen
+    for (const char* w : wall2)
+        if (m == w) return Mount::Wall;
+    for (const char* c : ceil2)
+        if (m == c) return Mount::Ceiling;
+    for (const char* f : floor2)
+        if (m == f) return Mount::Floor;
     for (const char* w : wall)
         if (m == w) return Mount::Wall;
     for (const char* c : ceil)
@@ -2375,13 +2416,39 @@ static void testV13Kin(const std::string& dataDir) {
         std::vector<game::GameEvent> ev;
         step(*s, ev, 0.3);
         auto& P = s->presence();
-        check(spawn(*s, ev, Role::Faceling), "Level 2: Facelings erscheinen (Gruppe)");
-        check(placeNear(*s, Role::Faceling, 2.6), "Level 2: mit Sicht vor einem Faceling");
+        // V13.3: steht der Faceling mit dem Gesicht zur Wand (enger Tunnel), kann niemand vor ihn treten - dann eine andere
+        // Gruppe rufen (sonst haengt die Pruefung vom zufaelligen Ort in der Karte ab)
+        bool appeared = false, placed = false;
+        for (int attempt = 0; attempt < 6 && !placed; ++attempt) {
+            if (attempt > 0) {
+                P.clear();
+                step(*s, ev, 1.0);
+            }
+            if (!spawn(*s, ev, Role::Faceling)) continue;
+            appeared = true;
+            if (!placeNear(*s, Role::Faceling, 2.6)) continue;
+            const vec3 fp = P.posOf(Role::Faceling);
+            const float fy = P.yawOf(Role::Faceling);
+            const float tx = (float)s->player().x - fp.x, ty = (float)s->player().y - fp.y;
+            const float tl = std::hypot(tx, ty);
+            placed = tl > 0.01f && (std::cos(fy) * tx + std::sin(fy) * ty) / tl > 0.6f;
+        }
+        check(appeared, "Level 2: Facelings erscheinen (Gruppe)");
+        check(placed, "Level 2: mit Sicht vor einem Faceling");
         step(*s, ev, 2.0, [&] { aim(*s, P.headOf(Role::Faceling)); return false; });
         check(P.stateOf(Role::Faceling) == 0, "Level 2: ohne Reiz lassen sie einen in Ruhe");
         s->flashlight().on = true;
         int angryAt = -1, frame = 0;
         step(*s, ev, 6.0, [&] {
+            // V13.3: geht er umher und wendet sich ab, tritt der Spieler wieder vor ihn - geprueft wird die Lampe im
+            // Gesicht, nicht ob der Faceling zufaellig stehen bleibt (haengt sonst von der Karte ab)
+            if (frame % 60 == 30) {
+                const vec3 fp = P.posOf(Role::Faceling);
+                const float fy = P.yawOf(Role::Faceling);
+                const float tx = (float)s->player().x - fp.x, ty = (float)s->player().y - fp.y;
+                const float tl = std::hypot(tx, ty);
+                if (tl > 0.01f && (std::cos(fy) * tx + std::sin(fy) * ty) / tl < 0.5f) placeNear(*s, Role::Faceling, 2.6);
+            }
             aim(*s, P.headOf(Role::Faceling));
             if (angryAt < 0 && P.stateOf(Role::Faceling) == 2) angryAt = frame;
             ++frame;
@@ -2391,7 +2458,10 @@ static void testV13Kin(const std::string& dataDir) {
         check(count(ev, PE::Hum, Role::Faceling, 0.9f) > 0, "Level 2: aufgebracht laut (Vokale, stossweise)");
         const double h0 = s->stats().health;
         step(*s, ev, 4.0, [&] { aim(*s, P.headOf(Role::Faceling)); return false; });
-        check(s->stats().health < h0 && s->stats().health > h0 - 50.0, std::format("Level 2: er schlaegt zu - leicht ({:.0f} -> {:.0f})", h0, s->stats().health));
+        // V13.3: leicht = jeder einzelne Schlag (die Summe haengt davon ab, wie viele der Gruppe mitmachen)
+        check(s->stats().health < h0 && count(ev, PE::Hit, Role::Faceling) > 0 && count(ev, PE::Hit, Role::Faceling, 20.5f) == 0,
+              std::format("Level 2: er schlaegt zu - leicht ({:.0f} -> {:.0f}, {} Schlaege, keiner ueber 20)", h0, s->stats().health,
+                          count(ev, PE::Hit, Role::Faceling)));
         check(!s->stats().dead, "Level 2: nicht toedlich");
         // weggehen: er beruhigt sich
         s->flashlight().on = false;
@@ -2661,6 +2731,1712 @@ static void testV13Kin(const std::string& dataDir) {
     }
 }
 
+// V13.3: Duller (Entity 6) und Arms (Entite 15-FR) in Level 1 (KREATUR_Duller.md, KREATUR_Arms.md)
+static void testV133DullerArms(const std::string& dataDir) {
+    const game::Content& content = *gContent11;
+    game::PrefabLibrary prefabs;
+    prefabs.loadDirectory(dataDir + "/prefabs");
+    JobSystem jobs(2);
+    using PE = game::Presence::Event;
+    using Role = game::Presence::Role;
+    auto open = [&](i64 seed) {
+        auto s = std::make_unique<game::GameSession>(content, prefabs, content.level("level1", world::kLayoutV6), seed, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        return s;
+    };
+    auto step = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, double secs, const std::function<bool()>& each = {}) {
+        for (int i = 0; i < (int)(secs * 60.0); ++i) {
+            if (each && each()) break;
+            s.update(1.0 / 60.0, {}, false);
+            ev.insert(ev.end(), s.events().begin(), s.events().end());
+            s.events().clear();
+        }
+    };
+    auto count = [](const std::vector<game::GameEvent>& ev, PE::Type t, Role r) {
+        return (int)std::count_if(ev.begin(), ev.end(), [&](const game::GameEvent& e) { return e.type == game::GameEvent::Figure && e.index == (int)t && e.role == (int)r; });
+    };
+    auto put = [&](game::GameSession& s, double x, double y, double yaw) {
+        auto& pl = s.player();
+        pl.x = x, pl.y = y, pl.z = s.world().tile(ifloor(x), ifloor(y)).floor, pl.angle = yaw, pl.pitch = 0.0, pl.vx = pl.vy = 0.0;
+        s.body().reset();
+        s.preload();
+    };
+    auto aim = [](game::GameSession& s, vec3 q) {
+        auto& pl = s.player();
+        pl.angle = std::atan2(q.y - pl.y, q.x - pl.x);
+        pl.pitch = std::atan2(q.z - pl.eye(), std::max(0.4, std::hypot(q.x - pl.x, q.y - pl.y)));
+    };
+    // Gang (2 Kacheln breit) mit einem Krankenzimmer hinter der Suedwand: der Spieler dicht an der Wand
+    const double gx = 7.5, gy = 110.45;
+    // --- Duller: schabt in der Wand (Ankuendigung); wer weggeht, entkommt; wer bleibt, wird durch die Wand gepackt ---------
+    {
+        auto s = open(21);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        P.setGrace(3000.0);
+        put(*s, gx, gy, 0.0);
+        step(*s, ev, 0.3);
+        P.force(Role::Duller);
+        step(*s, ev, 0.2);
+        check(P.has(Role::Duller) && P.stateOf(Role::Duller) == 2, "Level 1: ein Duller steht hinter der Wand und schabt");
+        const vec3 eye{(float)s->player().x, (float)s->player().y, (float)s->player().eye()};
+        check(P.has(Role::Duller) && !game::clearSight(s->world(), eye, P.posOf(Role::Duller) + vec3{0, 0, 1.4f}), "Level 1: er ist hinter der Wand (nicht zu sehen)");
+        step(*s, ev, 1.6);
+        check(count(ev, PE::Scrape, Role::Duller) >= 2 && !s->stats().dead, "Level 1: zuerst Schaben in der Wand (Ankuendigung), kein Zugriff");
+        // weggehen (den Gang entlang): er bricht nicht durch oder greift ins Leere
+        put(*s, gx + 4.5, gy + 0.6, 0.0);
+        step(*s, ev, 5.0);
+        check(!s->stats().dead, "Level 1: wer von der Wand weggeht, entkommt");
+        // stehen bleiben: Durchbruch und Zugriff
+        P.clear();
+        put(*s, gx, gy, 0.0);
+        step(*s, ev, 0.2);
+        P.force(Role::Duller);
+        ev.clear();
+        step(*s, ev, 6.0, [&] { return s->stats().dead; });
+        check(count(ev, PE::Burst, Role::Duller) > 0, "Level 1: die Wand bricht auf");
+        check(s->stats().dead && s->killRole() == (int)Role::Duller, "Level 1: wer an der Wand bleibt, wird durch die Wand gepackt (toedlich)");
+    }
+    // --- Duller: gesehen flieht er lautlos; Mandelwasser in der Hand haelt den Arm fern; lauernd sucht er die Wand ----------
+    {
+        auto s = open(23);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        P.setGrace(3000.0);
+        put(*s, gx, gy, 0.0);
+        step(*s, ev, 0.3);
+        P.force(Role::Duller);
+        step(*s, ev, 0.2);
+        if (P.has(Role::Duller)) {
+            // in seinen Raum, mit Blick auf ihn
+            const vec3 d = P.posOf(Role::Duller);
+            bool placed = false;
+            for (int k = 0; k < 16 && !placed; ++k) {
+                const double a = k * 0.3927, x = d.x + std::cos(a) * 2.4, y = d.y + std::sin(a) * 2.4;
+                const world::Tile* t = s->world().tileIfLoaded(ifloor(x), ifloor(y));
+                if (!t || !t->open() || !game::clearSight(s->world(), vec3{(float)x, (float)y, t->floor + 1.6f}, d + vec3{0, 0, 1.4f})) continue;
+                put(*s, x, y, 0.0);
+                aim(*s, d + vec3{0, 0, 1.4f});
+                placed = true;
+            }
+            check(placed, "Level 1: im Raum hinter der Wand, mit Blick auf den Duller");
+            ev.clear();
+            bool fled = false;
+            step(*s, ev, 2.5, [&] {
+                if (P.has(Role::Duller)) aim(*s, P.posOf(Role::Duller) + vec3{0, 0, 1.4f});
+                fled = fled || P.stateOf(Role::Duller) == 6 || P.stateOf(Role::Duller) == 7;
+                return false;
+            });
+            check(fled, "Level 1: gesehen flieht er");
+            check(count(ev, PE::Step, Role::Duller) == 0 && !s->stats().dead, "Level 1: lautlos, ohne anzugreifen");
+        }
+        // Mandelwasser in der Hand
+        P.clear();
+        s->inventory().add("almond");
+        for (int i = 0; i < game::Inventory::kHotbar; ++i)
+            if (s->inventory().slots[(size_t)i] && s->inventory().slots[(size_t)i]->kind == "almond") s->inventory().selected = i;
+        put(*s, gx, gy, 0.0);
+        step(*s, ev, 0.2);
+        P.force(Role::Duller);
+        ev.clear();
+        step(*s, ev, 6.0, [&] { return s->stats().dead; });
+        check(!s->stats().dead && count(ev, PE::Burst, Role::Duller) == 0, "Level 1: Mandelwasser in der Hand - er bricht nicht durch (er meidet es)");
+        // der Hinterhalt: lauernd sucht er sich die Wand, hinter der er den Spieler hat
+        P.clear();
+        s->inventory().selected = (s->inventory().selected + 1) % game::Inventory::kHotbar;
+        put(*s, gx, gy, 0.0);
+        step(*s, ev, 0.2);
+        P.force(Role::Duller);
+        step(*s, ev, 0.1);
+        P.kinSet(Role::Duller, "state", 0.0);
+        bool again = false;
+        step(*s, ev, 6.0, [&] { return again = P.stateOf(Role::Duller) == 2; });
+        check(again, "Level 1: lauernd sucht er die Wand, hinter der der Spieler steht");
+    }
+    // --- Arms: nur im Dunkeln; heraus, ausholen (Ankuendigung), Zugriff --------------------------------------------------
+    {
+        auto s = open(22);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        P.setGrace(3000.0);
+        put(*s, gx, gy + 0.3, 0.0);
+        s->flashlight().on = false;
+        step(*s, ev, 60.0);
+        check(!P.has(Role::Arms), "Level 1: im Licht kommen keine Arms");
+        P.forceBlackout();
+        step(*s, ev, 4.0);
+        P.force(Role::Arms);
+        step(*s, ev, 0.3);
+        check(P.has(Role::Arms), "Level 1: Arms in einer Lueftung oder einem Riss ueber dem Gang");
+        if (P.has(Role::Arms)) {
+            const vec3 O = P.posOf(Role::Arms);
+            check(O.z > s->player().z + 2.0, std::format("Level 1: die Oeffnung ist in der Decke ({:.2f} m)", O.z - s->player().z));
+            // unter die Oeffnung (still): es kommt heraus, holt aus und packt zu
+            put(*s, O.x + 0.6, O.y, 0.0);
+            ev.clear();
+            int windupAt = -1, frame = 0;
+            step(*s, ev, 6.0, [&] {
+                if (windupAt < 0 && count(ev, PE::Windup, Role::Arms) > 0) windupAt = frame;
+                ++frame;
+                return s->stats().dead;
+            });
+            check(windupAt >= 0, "Level 1: vor dem Zugriff spreizt es die Krallen (Ankuendigung)");
+            check(s->stats().dead && s->killRole() == (int)Role::Arms, "Level 1: wer darunter steht, wird in den Schacht gezogen (toedlich)");
+        }
+    }
+    {  // Licht: die Lampe auf dem Arm - Schrei, Rueckzug, kein Zugriff
+        auto s = open(24);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        P.setGrace(3000.0);
+        put(*s, gx, gy + 0.3, 0.0);
+        P.forceBlackout();
+        step(*s, ev, 4.0);
+        P.force(Role::Arms);
+        step(*s, ev, 0.3);
+        if (P.has(Role::Arms)) {
+            const vec3 O = P.posOf(Role::Arms);
+            put(*s, O.x + 2.2, O.y, 3.14159);
+            s->flashlight().on = true;
+            ev.clear();
+            step(*s, ev, 5.0, [&] {
+                if (P.has(Role::Arms)) aim(*s, P.headOf(Role::Arms));
+                return s->stats().dead;
+            });
+            check(count(ev, PE::Burn, Role::Arms) > 0, "Level 1: im Lichtkegel verbrennt es (Schrei)");
+            check(!s->stats().dead && (P.stateOf(Role::Arms) == 5 || P.stateOf(Role::Arms) == 7), "Level 1: es zieht sich zurueck und greift nicht zu");
+        }
+    }
+}
+
+// V13.3: Wrangler (KREATUR_Wrangler.md) - Beben als Ankuendigung, Durchzug, wer still ist, ueberlebt; wer laut ist, wird nach
+// einer zweiten Ankuendigung aus dem Gang geschnappt; Weibchen greifen nicht an; der Anblick zieht den Blick an; Jungtiere (Level 1)
+static void testV133Wrangler(const std::string& dataDir) {
+    const game::Content& content = *gContent11;
+    game::PrefabLibrary prefabs;
+    prefabs.loadDirectory(dataDir + "/prefabs");
+    JobSystem jobs(2);
+    using PE = game::Presence::Event;
+    using Role = game::Presence::Role;
+    auto open = [&](const char* level, i64 seed) {
+        auto s = std::make_unique<game::GameSession>(content, prefabs, content.level(level, world::kLayoutV6), seed, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        return s;
+    };
+    // ctl(i): Eingabe im Bild i (laut: hin und her sprinten)
+    auto step = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, double secs, const std::function<bool()>& each = {},
+                    const std::function<game::PlayerControl(int)>& ctl = {}) {
+        for (int i = 0; i < (int)(secs * 60.0); ++i) {
+            if (each && each()) break;
+            s.update(1.0 / 60.0, ctl ? ctl(i) : game::PlayerControl{}, false);
+            ev.insert(ev.end(), s.events().begin(), s.events().end());
+            s.events().clear();
+        }
+    };
+    auto count = [](const std::vector<game::GameEvent>& ev, PE::Type t) {
+        return (int)std::count_if(ev.begin(), ev.end(), [&](const game::GameEvent& e) {
+            return e.type == game::GameEvent::Figure && e.index == (int)t && e.role == (int)Role::Wrangler;
+        });
+    };
+    auto sprint = [](int i) {
+        game::PlayerControl c;
+        c.forward = (i / 70) % 2 ? -1.0f : 1.0f;
+        c.sprint = true;
+        return c;
+    };
+    auto aim = [](game::GameSession& s, vec3 q) {
+        auto& pl = s.player();
+        pl.angle = std::atan2(q.y - pl.y, q.x - pl.x);
+        pl.pitch = std::atan2(q.z - pl.eye(), std::max(0.4, std::hypot(q.x - pl.x, q.y - pl.y)));
+    };
+    auto spawn = [&](game::GameSession& s, std::vector<game::GameEvent>& ev) {
+        s.presence().force(Role::Wrangler);
+        step(s, ev, 3.0, [&] { return s.presence().stateOf(Role::Wrangler) >= 0; });
+        return s.presence().stateOf(Role::Wrangler) == 0;
+    };
+    // --- Level 2, still: es bebt (Kamera, Licht), bricht durch, zieht vorbei und versinkt - kein Angriff ---------------------
+    {
+        auto s = open("level2", 31);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        P.setGrace(3000.0);
+        check(spawn(*s, ev), "Wrangler (Level 2): erscheint und bebt zuerst (Zustand 0)");
+        float qMax = 0.0f;
+        bool breached = false, gone = false;
+        step(*s, ev, 45.0, [&] {
+            qMax = std::max(qMax, P.quake());
+            breached = breached || P.stateOf(Role::Wrangler) == 1;
+            gone = breached && P.stateOf(Role::Wrangler) < 0;
+            return gone;
+        });
+        check(count(ev, PE::Tremor) > 0 && qMax > 0.12f, std::format("Wrangler: Ankuendigung - Rumpeln ({}) und Beben am Spieler ({:.2f})", count(ev, PE::Tremor), qMax));
+        check(count(ev, PE::Flicker) > 0, "Wrangler: beim Beben flackert das Licht");
+        check(breached && count(ev, PE::Breach) > 0, "Wrangler: der Leib bricht durch");
+        check(count(ev, PE::Sink) > 0 && gone, "Wrangler: er versinkt und zieht ab");
+        check(!s->stats().dead && count(ev, PE::Sense) == 0, "Wrangler: wer still steht, ueberlebt (nicht gespuert)");
+    }
+    // --- Level 2, laut: wer beim Beben rennt, den spuert es (zweite Ankuendigung), dann schnappt der Kopf zu (toedlich) ------
+    {
+        auto s = open("level2", 32);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        P.setGrace(3000.0);
+        check(spawn(*s, ev), "Wrangler (laut): erscheint");
+        int senseAt = -1, deadAt = -1, frame = 0;
+        step(*s, ev, 30.0, [&] {
+            if (senseAt < 0 && count(ev, PE::Sense) > 0) senseAt = frame;
+            if (deadAt < 0 && s->stats().dead) deadAt = frame;
+            ++frame;
+            return s->stats().dead;
+        }, sprint);
+        check(senseAt >= 0, "Wrangler: Rennen spuert es (Knacken, Einatmen an der Durchbruchstelle)");
+        check(s->stats().dead && s->killRole() == (int)Role::Wrangler && count(ev, PE::Burst) > 0, "Wrangler: wer laut bleibt, wird aus dem Gang geschnappt");
+        check(senseAt >= 0 && deadAt - senseAt >= 90, std::format("Wrangler: zwischen Ankuendigung und Zugriff mindestens 1,5 s ({:.1f} s)", (deadAt - senseAt) / 60.0));
+    }
+    // --- Level 2: gespuert, dann still - es verliert einen ------------------------------------------------------------
+    {
+        auto s = open("level2", 33);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        P.setGrace(3000.0);
+        check(spawn(*s, ev), "Wrangler (still nach der Warnung): erscheint");
+        step(*s, ev, 20.0, [&] { return count(ev, PE::Sense) > 0; }, sprint);
+        const bool sensed = count(ev, PE::Sense) > 0;
+        step(*s, ev, 8.0, [&] { return s->stats().dead; });
+        check(sensed && !s->stats().dead && count(ev, PE::Calm) > 0, "Wrangler: wer nach der Warnung still steht, den verliert es");
+    }
+    // --- Weibchen: greift nicht an, zieht sich zurueck, wenn man es ansieht ---------------------------------------------
+    {
+        auto s = open("level2", 34);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        P.setGrace(3000.0);
+        check(spawn(*s, ev), "Wrangler (Weibchen): erscheint");
+        P.kinSet(Role::Wrangler, "variant", 1.0);
+        check(P.variantOf(Role::Wrangler) == 1, "Wrangler: Variante Weibchen (Zangen)");
+        bool sank = false;
+        step(*s, ev, 30.0, [&] {
+            if (P.stateOf(Role::Wrangler) == 1) aim(*s, P.posOf(Role::Wrangler) + vec3{0, 0, 1.0f});
+            sank = sank || P.stateOf(Role::Wrangler) == 4;
+            return sank || s->stats().dead;
+        }, sprint);
+        check(!s->stats().dead && count(ev, PE::Sense) == 0, "Wrangler: das Weibchen greift nicht an (auch wer rennt)");
+        check(sank, "Wrangler: bemerkt, zieht sich das Weibchen zurueck");
+    }
+    // --- der Sog: wer den Leib ansieht, dessen Blick wird gezogen und der wird langsamer ---------------------------------
+    {
+        auto s = open("level2", 35);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        P.setGrace(3000.0);
+        check(spawn(*s, ev), "Wrangler (Sog): erscheint");
+        step(*s, ev, 12.0, [&] { return P.stateOf(Role::Wrangler) == 1; });
+        step(*s, ev, 1.5);
+        vec3 at;
+        float tr = 0.0f;
+        step(*s, ev, 5.0, [&] {
+            aim(*s, P.posOf(Role::Wrangler) + vec3{0, 0, 1.0f});
+            tr = std::max(tr, P.trance(&at));
+            return false;
+        });
+        check(tr > 0.3f, std::format("Wrangler: der Anblick bannt ({:.2f})", tr));
+        if (tr > 0.3f) {
+            auto& pl = s->player();
+            const double want = std::atan2(at.y - pl.y, at.x - pl.x);
+            pl.angle = want + 0.35;
+            step(*s, ev, 0.8);
+            const double d1 = std::fabs(std::remainder(pl.angle - want, 6.2831853));
+            check(d1 < 0.33, std::format("Wrangler: der Blick wird zum Leib gezogen ({:.2f} -> {:.2f} rad)", 0.35, d1));
+        }
+    }
+    // --- Level 1: Jungtiere an einer Wand; wer sie anfasst, ruft die Mutter -----------------------------------------------
+    {
+        auto s = open("level1", 36);
+        std::vector<game::GameEvent> ev;
+        auto& P = s->presence();
+        P.setGrace(3000.0);
+        step(*s, ev, 6.0, [&] { return P.variantOf(Role::Wrangler) == 3; });
+        check(P.variantOf(Role::Wrangler) == 3, "Wrangler (Level 1): Jungtiere an einer Wand (einmal je Ebene)");
+        if (P.variantOf(Role::Wrangler) == 3) {
+            const vec3 w = P.posOf(Role::Wrangler);
+            const float yw = P.yawOf(Role::Wrangler);
+            auto& pl = s->player();
+            pl.x = w.x + std::cos(yw) * 0.6, pl.y = w.y + std::sin(yw) * 0.6, pl.z = s->world().tile(ifloor(pl.x), ifloor(pl.y)).floor;
+            pl.vx = pl.vy = 0.0;
+            s->body().reset();
+            s->preload();
+            aim(*s, w);
+            step(*s, ev, 8.0, [&] { return s->stats().dead; });
+            check(count(ev, PE::Squeak) > 0, "Wrangler: die Jungen fiepen (Warnung)");
+            check(count(ev, PE::Sense) > 0, "Wrangler: beruehrt - die Mutter kommt (Ankuendigung)");
+            check(s->stats().dead && s->killRole() == (int)Role::Wrangler, "Wrangler: wer bei den Jungen bleibt, den holt die Mutter");
+        }
+    }
+    // --- Level 5: die Einzelmeldung aus dem Kesselraum - nur dort ---------------------------------------------------------
+    {
+        auto s = open("level5", 37);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        P.setGrace(3000.0);
+        P.force(Role::Wrangler);
+        step(*s, ev, 1.0);
+        check(P.stateOf(Role::Wrangler) < 0, "Wrangler (Level 5): ausserhalb des Kesselraums keiner");
+        auto& pl = s->player();
+        pl.x = 124.5, pl.y = 31.5, pl.z = s->world().tile(124, 31).floor, pl.vx = pl.vy = 0.0;
+        s->body().reset();
+        s->preload();
+        step(*s, ev, 0.5);
+        check(spawn(*s, ev), "Wrangler (Level 5): im Kesselgang zieht einer durch");
+        const vec3 w = P.posOf(Role::Wrangler);
+        const world::Tile& t = s->world().tile(ifloor(w.x), ifloor(w.y));
+        check(t.room && t.room->type && (t.room->type->key == "kesselgang" || t.room->type->key == "kesselraum"), "Wrangler (Level 5): nur im Kesselgang/Kesselraum");
+    }
+}
+
+// V13.3: Growler (Entity 130) und Nguithr'xurh (Entity 16) - KREATUR_Growler.md, KREATUR_Nguithrxurh.md
+static void testV133GrowlerNguithr(const std::string& dataDir) {
+    const game::Content& content = *gContent11;
+    game::PrefabLibrary prefabs;
+    prefabs.loadDirectory(dataDir + "/prefabs");
+    JobSystem jobs(2);
+    using PE = game::Presence::Event;
+    using Role = game::Presence::Role;
+    auto open = [&](const char* level, i64 seed) {
+        auto s = std::make_unique<game::GameSession>(content, prefabs, content.level(level, world::kLayoutV6), seed, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        s->presence().setGrace(3000.0);  // keine anderen Wesen dazwischen
+        return s;
+    };
+    auto step = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, double secs, const std::function<bool()>& each = {},
+                    game::PlayerControl ctl = {}) {
+        for (int i = 0; i < (int)(secs * 60.0); ++i) {
+            if (each && each()) break;
+            s.update(1.0 / 60.0, ctl, false);
+            ev.insert(ev.end(), s.events().begin(), s.events().end());
+            s.events().clear();
+        }
+    };
+    auto count = [](const std::vector<game::GameEvent>& ev, PE::Type t, Role r, float minI = -1.0f) {
+        return (int)std::count_if(ev.begin(), ev.end(), [&](const game::GameEvent& e) {
+            return e.type == game::GameEvent::Figure && e.index == (int)t && e.role == (int)r && e.intensity >= minI;
+        });
+    };
+    auto aim = [](game::GameSession& s, vec3 q) {
+        auto& pl = s.player();
+        pl.angle = std::atan2(q.y - pl.y, q.x - pl.x);
+        pl.pitch = std::atan2(q.z - pl.eye(), std::max(0.4, std::hypot(q.x - pl.x, q.y - pl.y)));
+    };
+    // auf freiem Boden dist m vom Punkt, freie Sicht vom Auge zu 'look'
+    auto standAt = [&](game::GameSession& s, vec3 at, vec3 look, double dist) {
+        world::World& w = s.world();
+        for (int k = 0; k < 36; ++k) {
+            const double a = k * 0.1745;
+            const double x = at.x + std::cos(a) * dist, y = at.y + std::sin(a) * dist;
+            const world::Tile* t = w.tileIfLoaded(ifloor(x), ifloor(y));
+            if (!t || !t->open() || t->clearance() < 2.0f || std::fabs(t->floor - at.z) > 0.4f) continue;
+            if (!game::clearSight(w, vec3{(float)x, (float)y, t->floor + (float)game::Player::kEye}, look)) continue;
+            auto& pl = s.player();
+            pl.x = x, pl.y = y, pl.z = t->floor, pl.vx = pl.vy = 0.0;
+            s.body().reset();
+            aim(s, look);
+            return true;
+        }
+        return false;
+    };
+    auto spawn = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, Role r) {
+        s.presence().force(r);
+        step(s, ev, 3.0, [&] { return s.presence().has(r); });
+        return s.presence().has(r);
+    };
+    // --- Growler (Level 1): blind, ortet Bewegung mit Klicks, Rauschen, toedlicher Stoss nach Ankuendigung ---------------
+    {
+        auto s = open("level1", 21);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        check(spawn(*s, ev, Role::Growler), "Growler: erscheint in Level 1");
+        const float sc = P.growlerScale(0);
+        check(sc > 0.85f && sc < 1.2f, std::format("Growler: ausgewachsen in Level 1 (Massstab {:.2f})", sc));
+        const vec3 at = P.posOf(Role::Growler), head = P.headOf(Role::Growler);
+        check(standAt(*s, at, head, 9.0), "Growler: mit Sicht in 9 m");
+        s->flashlight().on = true;  // blind - das Licht stoert ihn nicht
+        int hunted = 0;
+        step(*s, ev, 4.0, [&] {
+            aim(*s, P.headOf(Role::Growler));
+            hunted += P.stateOf(Role::Growler) >= 2 && P.stateOf(Role::Growler) <= 4 ? 1 : 0;
+            return false;
+        });
+        check(hunted == 0, "Growler: wer still steht, den findet er auf 9 m nicht - auch nicht im Lampenlicht (blind)");
+        check(count(ev, PE::Click, Role::Growler) > 0, "Growler: er klickt (Echoortung)");
+        check(P.staticLevel() > 0.15f, std::format("Growler: das Rauschen ist schon auf Abstand da ({:.2f})", P.staticLevel()));
+        // bewegt man sich, ortet er einen, jagt, holt aus (Ankuendigung) und stoesst zu
+        game::PlayerControl walk;
+        walk.forward = 0.5f;
+        double lurchT = -1.0, deadT = -1.0, t = 0.0;
+        step(*s, ev, 25.0, [&] {
+            t += 1.0 / 60.0;
+            if (P.has(Role::Growler)) aim(*s, P.headOf(Role::Growler));
+            if (lurchT < 0.0 && count(ev, PE::Lurch, Role::Growler) > 0) lurchT = t;
+            if (s->stats().dead && deadT < 0.0) deadT = t;
+            return s->stats().dead;
+        }, walk);
+        check(s->stats().dead && s->killRole() == (int)Role::Growler, "Growler: wer sich bewegt, wird geortet - der Stoss ist toedlich");
+        check(lurchT > 0.0 && deadT - lurchT >= 1.0, std::format("Growler: er holt vorher aus ({:.1f} s vor dem Stoss)", deadT - lurchT));
+        // ein geworfener Gegenstand am Kopf verwirrt ihn (Level-1-Seite)
+        s->respawnAtCheckpoint();
+        P.clear();
+        step(*s, ev, 0.3);
+        if (spawn(*s, ev, Role::Growler) && standAt(*s, P.posOf(Role::Growler), P.headOf(Role::Growler), 1.5)) {
+            const double h0 = s->stats().health;
+            step(*s, ev, 0.05);  // der Koerper folgt dem versetzten Spieler (die Hand wirft vom Auge aus)
+            s->dropStack("battery", 1);
+            bool confused = false;
+            step(*s, ev, 1.5, [&] {
+                confused = confused || P.stateOf(Role::Growler) == 6;
+                return confused;
+            });
+            check(confused, "Growler: ein geworfener Gegenstand trifft ihn - er ist verwirrt");
+            // waehrend er taumelt: weg (rennen)
+            game::PlayerControl run;
+            run.forward = 1.0f, run.sprint = true;
+            if (P.has(Role::Growler)) aim(*s, P.posOf(Role::Growler));
+            s->player().angle += 3.14159;
+            step(*s, ev, 4.0, {}, run);
+            step(*s, ev, 6.0);
+            check(!s->stats().dead && s->stats().health > h0 - 30.0, "Growler: verwirrt - man entkommt");
+        }
+    }
+    // --- Junge Growler (Level 2): klein, zu mehreren, verschmelzen, grosse schaden mit dem Rauschen ----------------------
+    {
+        auto s = open("level2", 22);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        check(spawn(*s, ev, Role::Growler), "Junge Growler: erscheinen in Level 2");
+        const int n0 = P.count(Role::Growler);
+        check(n0 >= 2 && P.growlerScale(0) < 0.65f, std::format("Junge Growler: klein ({:.2f}) und zu mehreren ({})", P.growlerScale(0), n0));
+        P.placeAgent(Role::Growler, 1, P.posOf(Role::Growler) + vec3{0.6f, 0.0f, 0.0f});
+        step(*s, ev, 5.0);
+        check(count(ev, PE::Merge, Role::Growler) > 0, "Junge Growler: treffen sich zwei, verschmelzen sie");
+        float big = 0.0f;
+        for (int i = 0; i < P.count(Role::Growler); ++i) big = std::max(big, P.growlerScale(i));
+        check(P.count(Role::Growler) < n0 && big > 0.6f, std::format("Junge Growler: einer weniger, der andere waechst ({:.2f})", big));
+        // ein grosser, nah: das Rauschen schadet dem Kopf
+        P.gnSet(Role::Growler, "scale", 1.4);
+        if (standAt(*s, P.posOf(Role::Growler), P.headOf(Role::Growler), 2.2)) {
+            const double h0 = s->stats().health;
+            ev.clear();
+            step(*s, ev, 1.2);
+            check(count(ev, PE::Static, Role::Growler, 0.1f) > 0 && s->stats().health < h0, "Growler: gross und nah schadet das Rauschen");
+        }
+        // Leiche im Gang: man watet langsam durch das Gewirr
+        P.gnSet(Role::Growler, "state", 12);
+        const vec3 c = P.posOf(Role::Growler);
+        check(P.slowFor(0, c) < 0.6f, "Growler-Leiche: durch das Gewirr nur langsam");
+    }
+    // --- Nguithr'xurh (Level 1): Netzkugeln an der Decke; wer darunter steht, wird betaeubt und gefressen -----------------
+    {
+        auto s = open("level1", 23);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        check(spawn(*s, ev, Role::Nguithr), "Nguithr'xurh: eine Kolonie erscheint in Level 1");
+        const vec3 web = P.webOf(0);
+        check(web.z > 2.0f && P.count(Role::Nguithr) >= 4, std::format("Nguithr'xurh: Netz an der Decke ({:.1f} m), Spinnen dabei ({})", web.z,
+                                                                       P.count(Role::Nguithr) - 1));
+        // genau darunter stehen
+        auto under = [&] {
+            const world::Tile* t = s->world().tileIfLoaded(ifloor(web.x), ifloor(web.y));
+            auto& pl = s->player();
+            pl.x = web.x + 0.03, pl.y = web.y + 0.02, pl.z = t ? t->floor : pl.z, pl.vx = pl.vy = 0.0;
+            s->body().reset();
+        };
+        under();
+        ev.clear();
+        step(*s, ev, 2.6);
+        check(count(ev, PE::Snip, Role::Nguithr) == 1 && count(ev, PE::SacBurst, Role::Nguithr, 0.1f) == 1,
+              "Nguithr'xurh: eine Kugel wird abgeschnitten und platzt ueber einem");
+        const float st1 = P.stupor(0);
+        check(st1 > 0.2f && st1 < 0.5f, std::format("Nguithr'xurh: erste Dosis - man fuehlt sich seltsam ({:.2f})", st1));
+        // bleiben: alle Kugeln fallen, die Spinnen kommen, sie fressen
+        bool came = false;
+        step(*s, ev, 40.0, [&] {
+            int st = -1;
+            for (int i = 0; i < 4; ++i)
+                if (P.spiderOf(i, &st).z != 0.0f && (st == 1 || st == 2 || st == 4)) came = true;
+            return s->stats().dead;
+        });
+        check(count(ev, PE::Snip, Role::Nguithr) >= 4, "Nguithr'xurh: wer bleibt, ueber dem fallen alle Kugeln");
+        check(came, "Nguithr'xurh: die Spinnen seilen sich ab und kommen");
+        check(s->stats().dead && s->killRole() == (int)Role::Nguithr, "Nguithr'xurh: benommen gefressen (toedlich)");
+        // Ausweg: nach der ersten Kugel weggehen
+        s->respawnAtCheckpoint();
+        P.clear();
+        P.gnSet(Role::Nguithr, "stupor", 0.0);
+        step(*s, ev, 0.3);
+        if (spawn(*s, ev, Role::Nguithr)) {
+            const vec3 w2 = P.webOf(0);
+            const world::Tile* t = s->world().tileIfLoaded(ifloor(w2.x), ifloor(w2.y));
+            auto& pl = s->player();
+            pl.x = w2.x + 0.03, pl.y = w2.y + 0.02, pl.z = t ? t->floor : pl.z;
+            s->body().reset();
+            ev.clear();
+            step(*s, ev, 3.5, [&] { return count(ev, PE::SacBurst, Role::Nguithr) > 0; });
+            check(standAt(*s, vec3{w2.x, w2.y, t ? t->floor : 0.0f}, w2 - vec3{0, 0, 0.5f}, 5.0), "Nguithr'xurh: ein Platz 5 m weg");
+            const int snips = count(ev, PE::Snip, Role::Nguithr);
+            step(*s, ev, 25.0);
+            check(count(ev, PE::Snip, Role::Nguithr) == snips && !s->stats().dead && P.stupor(0) < 0.15f,
+                  std::format("Nguithr'xurh: wer weggeht, ist sicher - die Betaeubung klingt ab ({:.2f})", P.stupor(0)));
+            // Licht: angeleuchtet erstarrt eine Spinne, dann zirpt sie und huscht ins Dunkel
+            int st = -1;
+            const vec3 sp = P.spiderOf(0, &st);
+            if (standAt(*s, vec3{sp.x, sp.y, t ? t->floor : 0.0f}, sp - vec3{0, 0, 0.05f}, 2.0)) {
+                s->flashlight().on = true;
+                ev.clear();
+                bool fled = false;
+                step(*s, ev, 4.0, [&] {
+                    aim(*s, sp - vec3{0, 0, 0.05f});
+                    int st2 = -1;
+                    P.spiderOf(0, &st2);
+                    fled = fled || st2 == 3;
+                    return false;
+                });
+                check(count(ev, PE::Stridulate, Role::Nguithr, 0.9f) > 0 && fled, "Nguithr'xurh: im Lampenlicht zirpt sie und huscht weg");
+            }
+        }
+        // Betaeubt: langsamer
+        P.gnSet(Role::Nguithr, "stupor", 0.85);
+        check(P.slowFor(0, {}) < 0.5f, "Nguithr'xurh: betaeubt geht man langsam");
+    }
+    // --- Nguithr'xurh (Level 2): klein, satt - Menschen jagen sie selten -------------------------------------------------
+    {
+        auto s = open("level2", 24);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        if (check(spawn(*s, ev, Role::Nguithr), "Nguithr'xurh: Kolonie in Level 2"), P.has(Role::Nguithr)) {
+            P.gnSet(Role::Nguithr, "hungry", 0.0);
+            const vec3 w = P.webOf(0);
+            check(P.variantOf(Role::Nguithr) == 2, "Nguithr'xurh: in Level 2 mit eingesponnenen Deathmoths");
+            const world::Tile* t = s->world().tileIfLoaded(ifloor(w.x), ifloor(w.y));
+            auto& pl = s->player();
+            pl.x = w.x, pl.y = w.y, pl.z = t ? t->floor : pl.z;
+            s->body().reset();
+            ev.clear();
+            step(*s, ev, 5.0);
+            check(count(ev, PE::Snip, Role::Nguithr) == 0, "Nguithr'xurh: satt lassen sie Menschen in Ruhe");
+        }
+    }
+}
+
+// V13.3: Ouroboros-Arbeiter (KREATUR_OuroborosArbeiter.md) - nur im Sektor Ouroboros (Level 1); sie beachten den Spieler nicht
+// (Blick bei der Arbeit, kein Ausweichen - Schub); Gefahr nur durch ihre Maschinen, jede angekuendigt; kein Schaden ausserhalb
+// der abgesperrten Flaechen
+static void testV133Ouroboros(const std::string& dataDir) {
+    const game::Content& content = *gContent11;
+    game::PrefabLibrary prefabs;
+    prefabs.loadDirectory(dataDir + "/prefabs");
+    JobSystem jobs(2);
+    using PE = game::Presence::Event;
+    using Role = game::Presence::Role;
+    auto open = [&](const char* level, i64 seed) {
+        auto s = std::make_unique<game::GameSession>(content, prefabs, content.level(level, world::kLayoutV6), seed, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        s->presence().setGrace(3000.0);
+        // V13.3: Gemaelde der Spielleiterin vor den Hallentueren werfen den Spieler sonst weit weg (Arbeiter ruhen dann)
+        s->phenomena().config().paintings = false;
+        return s;
+    };
+    auto step = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, double secs, const std::function<bool()>& each = {}) {
+        for (int i = 0; i < (int)(secs * 60.0); ++i) {
+            if (each && each()) break;
+            s.update(1.0 / 60.0, {}, false);
+            ev.insert(ev.end(), s.events().begin(), s.events().end());
+            s.events().clear();
+        }
+    };
+    auto count = [](const std::vector<game::GameEvent>& ev, PE::Type t, float minI = -1.0f) {
+        return (int)std::count_if(ev.begin(), ev.end(), [&](const game::GameEvent& e) {
+            return e.type == game::GameEvent::Figure && e.index == (int)t && e.role == (int)Role::Ouroboros && e.intensity >= minI;
+        });
+    };
+    auto put = [](game::GameSession& s, vec3 p, vec3 look) {
+        auto& pl = s.player();
+        pl.x = p.x, pl.y = p.y, pl.z = p.z, pl.vx = pl.vy = 0.0;
+        pl.angle = std::atan2(look.y - p.y, look.x - p.x);
+        pl.pitch = std::atan2(look.z - pl.eye(), std::max(0.4, (double)std::hypot(look.x - p.x, look.y - p.y)));
+        s.body().reset();
+    };
+    auto loc = [](vec3 c, float yaw, float x, float y) {
+        const vec3 F{std::cos(yaw), std::sin(yaw), 0.0f}, L{-F.y, F.x, 0.0f};
+        return c + F * x + L * y;
+    };
+    // --- Level 1: die Baustelle entsteht nur im Sektor Ouroboros, ausser Sicht ------------------------------------------
+    auto s = open("level1", 31);
+    std::vector<game::GameEvent> ev;
+    auto& P = s->presence();
+    // im Garden neben dem Sektor, Blick vom Sektor weg (Osten)
+    put(*s, {200.5f, 112.5f, 0.0f}, {230.0f, 112.5f, 1.6f});
+    step(*s, ev, 8.0, [&] { return P.ouroInfo().placed; });
+    auto info = P.ouroInfo();
+    check(info.placed, "Ouroboros: die Baustelle entsteht, wenn der Sektor geladen ist (ausser Sicht)");
+    if (!info.placed) return;
+    const world::Tile* wt = s->world().tileIfLoaded(ifloor(info.wall.x), ifloor(info.wall.y));
+    const world::Tile* tt = s->world().tileIfLoaded(ifloor(info.tower.x), ifloor(info.tower.y));
+    check(wt && wt->room && wt->room->type && wt->room->type->key == "ouroboros" && tt && tt->room && tt->room->type && tt->room->type->key == "ouroboros",
+          "Ouroboros: Mauer und Geruest stehen im Sektor Ouroboros");
+    int inRoom = 0, workers = 0;
+    for (int j = 0; j < 5; ++j) {
+        if (!info.has[(size_t)j]) continue;
+        ++workers;
+        // gegen das Rechteck des Sektors (die Kachel unter einem fernen Arbeiter muss nicht geladen sein)
+        const vec3 wp = info.pos[(size_t)j];
+        inRoom += wt && wt->room && wp.x >= (float)wt->room->x0 && wp.x <= (float)wt->room->x1 && wp.y >= (float)wt->room->y0 && wp.y <= (float)wt->room->y1 ? 1 : 0;
+    }
+    check(workers == 5 && inRoom == 5, std::format("Ouroboros: fuenf Arbeiter, alle im Sektor ({} von {})", inRoom, workers));
+    check(P.count(Role::Ouroboros) == 7, std::format("Ouroboros: Arbeiter, Mauer und Geruest ({} Wesen)", P.count(Role::Ouroboros)));
+    // --- sie arbeiten weiter, wenn man daneben steht und sie anleuchtet; der Blick bleibt bei der Arbeit -------------------
+    step(*s, ev, 12.0);  // an die Arbeit
+    info = P.ouroInfo();
+    const int laid0 = info.laid;
+    const vec3 hammerer = info.pos[1];
+    const vec3 F1{std::cos(info.wallYaw), std::sin(info.wallYaw), 0.0f}, L1{-F1.y, F1.x, 0.0f};
+    put(*s, hammerer + F1 * 0.4f + L1 * 1.3f, info.head[1]);  // seitlich neben dem Klopfer, sieht ihn an
+    s->flashlight().on = true;
+    ev.clear();
+    int looked = 0, atWork = 0, samples = 0;
+    const float hp0 = (float)s->stats().health;
+    step(*s, ev, 10.0, [&] {
+        const auto in = P.ouroInfo();
+        if (in.has[1] && in.task[1] == anim::ob::K_HAMMER) {
+            const vec3 eye{(float)s->player().x, (float)s->player().y, (float)s->player().eye()};
+            const vec3 toEye = normalize(eye - in.head[1]);
+            ++samples;
+            looked += dot(in.face[1], toEye) > 0.8f ? 1 : 0;
+            // zur Mauer: waagrecht zur Mauerflaeche hin, und der Blick trifft sie innerhalb ihrer Laenge
+            const vec3 fh = normalize(vec3{in.face[1].x, in.face[1].y, 0.0f});
+            const float side = dot(in.head[1] - in.wall, F1) >= 0.0f ? 1.0f : -1.0f;
+            const float toward = -side * dot(fh, F1);
+            const float dist = std::fabs(dot(in.head[1] - in.wall, F1));
+            const float along = dot(in.head[1] - in.wall, L1) + (toward > 0.05f ? dot(fh, L1) * dist / toward : 1e9f);
+            atWork += toward > 0.7f && std::fabs(along) < anim::ob::kWallL * 0.5f + 0.3f ? 1 : 0;
+        }
+        return false;
+    });
+    info = P.ouroInfo();
+    check(samples > 60 && looked == 0, std::format("Ouroboros: der Klopfer sieht nie zum Spieler (Lampe an, 1,3 m daneben; {} von {} Bildern)", looked, samples));
+    check(samples > 60 && atWork > samples * 9 / 10, std::format("Ouroboros: sein Blick bleibt bei der Mauer ({} von {})", atWork, samples));
+    check(count(ev, PE::Work, 0.0f) > 3, "Ouroboros: er haemmert weiter (Werkzeuggeraeusche)");
+    check(info.laid > laid0 || info.wallPhase != 0, std::format("Ouroboros: die Mauer waechst weiter ({} -> {} Steine)", laid0, info.laid));
+    check(count(ev, PE::Hit) == 0 && std::fabs(s->stats().health - hp0) < 0.01, "Ouroboros: kein Schaden durch die Arbeiter selbst");
+    // --- sie weichen nicht aus: der Traeger geht durch den Spieler hindurch und schiebt ihn beiseite --------------------------
+    s->flashlight().on = false;
+    bool shoved = false;
+    double moved = 0.0;
+    for (int tries = 0; tries < 30 && !shoved; ++tries) {
+        step(*s, ev, 0.5);
+        info = P.ouroInfo();
+        if (!info.has[4] || info.speed[4] < 0.4f) continue;
+        // genau vor ihn auf seinen Weg (0,5 m)
+        std::vector<game::GameEvent> e2;
+        const vec3 a0 = info.pos[4];
+        step(*s, e2, 0.1);
+        const vec3 a1 = P.ouroInfo().pos[4];
+        const vec3 dir = length(a1 - a0) > 1e-3f ? normalize(vec3{a1.x - a0.x, a1.y - a0.y, 0.0f}) : vec3{1, 0, 0};
+        const vec3 at = a1 + dir * 0.45f;
+        const world::Tile* t = s->world().tileIfLoaded(ifloor(at.x), ifloor(at.y));
+        if (!t || !t->open()) continue;
+        put(*s, {at.x, at.y, t->floor}, at + dir * 3.0f + vec3{0, 0, 1.6f});
+        const double x0 = s->player().x, y0 = s->player().y;
+        e2.clear();
+        step(*s, e2, 1.5);
+        moved = std::hypot(s->player().x - x0, s->player().y - y0);
+        shoved = count(e2, PE::Shove) > 0;
+        ev.insert(ev.end(), e2.begin(), e2.end());
+    }
+    check(shoved && moved > 0.15, std::format("Ouroboros: der Traeger weicht nicht aus - er schiebt den Spieler beiseite ({:.2f} m)", moved));
+    check(count(ev, PE::Hit) == 0, "Ouroboros: der Schub tut nicht weh");
+    // --- Geruest: knirscht 2,8 s, dann kippt es; Schaden nur im abgesperrten Streifen ---------------------------------------
+    {
+        info = P.ouroInfo();
+        const vec3 inStrip = loc(info.tower, info.towerYaw, 2.2f, 0.0f), outside = loc(info.tower, info.towerYaw, 2.2f, 1.75f);
+        P.ouroSet("tower", 0);
+        step(*s, ev, 0.2);
+        // erst daneben (ausserhalb des Absperrbands): kein Schaden
+        put(*s, outside, info.tower + vec3{0, 0, 1.5f});
+        ev.clear();
+        const float h0 = (float)s->stats().health;
+        P.ouroSet("tower", 1);
+        double creakT = -1.0, crashT = -1.0, t = 0.0;
+        step(*s, ev, 8.0, [&] {
+            t += 1.0 / 60.0;
+            if (creakT < 0.0 && count(ev, PE::Creak) > 0) creakT = t;
+            if (crashT < 0.0 && count(ev, PE::Crash, 0.75f) > 0) crashT = t;
+            return crashT > 0.0 && t > crashT + 0.3;
+        });
+        check(creakT >= 0.0 && crashT > 0.0 && crashT - creakT >= 2.5,
+              std::format("Ouroboros: das Geruest kuendigt sich an - es knirscht {:.1f} s, bevor es aufschlaegt", crashT - creakT));
+        check(count(ev, PE::Warn, 0.75f) > 0, "Ouroboros: die Warnleuchte des Geruests piept");
+        check(count(ev, PE::Hit) == 0 && std::fabs(s->stats().health - h0) < 0.01, "Ouroboros: neben dem Absperrband trifft es nicht");
+        // jetzt im Streifen, in den es faellt
+        P.ouroSet("tower", 0);
+        step(*s, ev, 0.3);
+        put(*s, inStrip, info.tower + vec3{0, 0, 1.5f});
+        ev.clear();
+        const float h1 = (float)s->stats().health;
+        P.ouroSet("tower", 1);
+        t = 0.0, crashT = -1.0;
+        double hitT = -1.0;
+        step(*s, ev, 8.0, [&] {
+            t += 1.0 / 60.0;
+            if (crashT < 0.0 && count(ev, PE::Crash, 0.75f) > 0) crashT = t;
+            if (hitT < 0.0 && count(ev, PE::Hit) > 0) hitT = t;
+            return crashT > 0.0 && t > crashT + 0.3;
+        });
+        check(hitT > 0.0 && std::fabs(hitT - crashT) < 0.05 && s->stats().health < h1 - 5.0,
+              std::format("Ouroboros: wer im Fallstreifen steht, wird beim Aufschlag getroffen ({:.0f} -> {:.0f})", h1, s->stats().health));
+        check(hitT > 2.5, std::format("Ouroboros: der Treffer kommt erst nach der Ankuendigung ({:.1f} s)", hitT));
+    }
+    // --- Schweissen: Funkenflug nur am Brenner im Band, erst nach dem Zuenden; ausserhalb des Bands nichts ------------------------
+    {
+        s->stats().health = 100.0;
+        P.ouroSet("tower", 0);
+        step(*s, ev, 0.3);
+        info = P.ouroInfo();
+        const vec3 spark = loc(info.tower, info.towerYaw, -0.6f, 0.3f), beside = loc(info.tower, info.towerYaw, -0.6f, 2.0f);
+        put(*s, beside, info.tower + vec3{0, 0, 1.0f});
+        ev.clear();
+        P.ouroSet("weld", 1);
+        step(*s, ev, 8.0);
+        check(count(ev, PE::Weld, 0.75f) > 0 && count(ev, PE::Hit) == 0 && s->stats().health > 99.9,
+              "Ouroboros: Funken treffen neben dem Band nicht (Lichtbogen brennt)");
+        put(*s, spark, info.tower + vec3{0, 0, 1.0f});
+        ev.clear();
+        P.ouroSet("weld", 1);
+        double t = 0.0, igniteT = -1.0, hitT = -1.0;
+        step(*s, ev, 3.0, [&] {
+            t += 1.0 / 60.0;
+            if (igniteT < 0.0 && count(ev, PE::Weld) - count(ev, PE::Weld, 0.5f) > 0) igniteT = t;
+            if (hitT < 0.0 && count(ev, PE::Hit) > 0) hitT = t;
+            return false;
+        });
+        check(igniteT >= 0.0 && hitT > 0.0 && hitT - igniteT >= 0.9,
+              std::format("Ouroboros: am Brenner verbrennen Funken - erst nach dem Zuenden ({:.1f} s)", hitT - igniteT));
+        check(s->stats().health < 99.9 && s->stats().health > 80.0, std::format("Ouroboros: Funken brennen wenig ({:.0f})", s->stats().health));
+    }
+    // --- Mauer: Warnklang, einreissen, Presslufthammer - Schaden nur innerhalb des Absperrbands, erst wenn er laeuft -----------
+    {
+        s->stats().health = 100.0;
+        info = P.ouroInfo();
+        const vec3 outside = loc(info.wall, info.wallYaw, 2.2f, 0.0f), inside = loc(info.wall, info.wallYaw, 1.25f, 1.9f);
+        put(*s, outside, info.wall + vec3{0, 0, 1.0f});
+        ev.clear();
+        P.ouroSet("wall", 2);
+        double warnT = -1.0, compT = -1.0, jackT = -1.0, t = 0.0;
+        step(*s, ev, 40.0, [&] {
+            t += 1.0 / 60.0;
+            if (warnT < 0.0 && count(ev, PE::Warn) > 0) warnT = t;
+            if (compT < 0.0 && count(ev, PE::Warn, 0.4f) - count(ev, PE::Warn, 0.75f) > 0) compT = t;
+            if (jackT < 0.0 && count(ev, PE::Jackhammer) > 0) jackT = t;
+            return P.ouroInfo().wallPhase == 5;
+        });
+        check(count(ev, PE::Crash) > 0 && count(ev, PE::Work, 0.7f) > 0, "Ouroboros: die oberen Lagen werden eingerissen (Brechstange, Aufschlag)");
+        check(compT >= 0.0 && jackT > 0.0 && jackT - compT >= 1.5, std::format("Ouroboros: der Kompressor laeuft {:.1f} s an, bevor der Presslufthammer schlaegt", jackT - compT));
+        check(count(ev, PE::Hit) == 0 && s->stats().health > 99.9, "Ouroboros: ausserhalb des Absperrbands kein Schaden (Einreissen, Presslufthammer)");
+        // innen: erst wenn der Hammer laeuft
+        P.ouroSet("wall", 4);
+        put(*s, inside, info.wall + vec3{0, 0, 1.0f});
+        ev.clear();
+        t = 0.0, jackT = -1.0;
+        double hitT = -1.0;
+        step(*s, ev, 6.0, [&] {
+            t += 1.0 / 60.0;
+            if (jackT < 0.0 && count(ev, PE::Jackhammer) > 0) jackT = t;
+            if (hitT < 0.0 && count(ev, PE::Hit) > 0) hitT = t;
+            return false;
+        });
+        check(hitT > 0.0 && jackT > 0.0 && hitT >= jackT - 0.02 && hitT > 1.5,
+              std::format("Ouroboros: im abgesperrten Feld trifft der Presslufthammer - erst nach dem Anlaufen ({:.1f} s)", hitT));
+        check(s->stats().health < 99.0, std::format("Ouroboros: Splitter verletzen ({:.0f})", s->stats().health));
+    }
+    // --- Level 2 kennt keine Ouroboros-Arbeiter; auch erzwungen nicht (kein Sektor) --------------------------------------------
+    {
+        auto s2 = open("level2", 5);
+        std::vector<game::GameEvent> e2;
+        step(*s2, e2, 3.0);
+        s2->presence().force(Role::Ouroboros);
+        step(*s2, e2, 1.0);
+        check(!s2->presence().has(Role::Ouroboros) && !s2->presence().ouroInfo().placed, "Ouroboros: in Level 2 keine Arbeiter (nur Sektor Ouroboros)");
+    }
+}
+
+// V13.3: Plague Goblins (KREATUR_PlagueGoblins.md) - Bande mit Portal in Level 1: ausser Sicht, Kasten, Diebstahl von hinten mit
+// Ankuendigung, Abschuetteln, Beil (verscheucht / trifft - die Bande flieht und kommt nicht wieder), Bedraengen eines Geschwaechten
+// mit Ankuendigung und Grenze, Handel, Flucht vor dem Hound, Koop-Zustand
+static void testV133PlagueGoblins(const std::string& dataDir) {
+    std::printf("V13.3: Plague Goblins\n");
+    const game::Content& content = *gContent11;
+    game::PrefabLibrary prefabs;
+    prefabs.loadDirectory(dataDir + "/prefabs");
+    JobSystem jobs(2);
+    using PE = game::Presence::Event;
+    using Role = game::Presence::Role;
+    namespace gb = anim::gb;
+    auto open = [&](const char* level, i64 seed) {
+        auto s = std::make_unique<game::GameSession>(content, prefabs, content.level(level, world::kLayoutV6), seed, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        s->presence().setGrace(3000.0);
+        return s;
+    };
+    auto step = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, double secs, const std::function<bool()>& each = {}) {
+        for (int i = 0; i < (int)(secs * 60.0); ++i) {
+            if (each && each()) break;
+            s.update(1.0 / 60.0, {}, false);
+            ev.insert(ev.end(), s.events().begin(), s.events().end());
+            s.events().clear();
+        }
+    };
+    auto count = [](const std::vector<game::GameEvent>& ev, PE::Type t, float minI = -1.0f) {
+        return (int)std::count_if(ev.begin(), ev.end(), [&](const game::GameEvent& e) {
+            return e.type == game::GameEvent::Figure && e.index == (int)t && e.role == (int)Role::Goblin && e.intensity >= minI;
+        });
+    };
+    auto face = [](game::GameSession& s, vec3 at) {
+        auto& pl = s.player();
+        pl.vx = pl.vy = 0.0;
+        pl.angle = std::atan2(at.y - pl.y, at.x - pl.x);
+        pl.pitch = 0.0;
+        s.body().reset();
+    };
+    auto feetOf = [](game::GameSession& s) { return vec3{(float)s.player().x, (float)s.player().y, (float)s.player().z}; };
+    // eine Bande erzwingen und warten, bis alle aus dem Portal sind
+    auto gang = [&](game::GameSession& s, std::vector<game::GameEvent>& ev) {
+        auto& P = s.presence();
+        step(s, ev, 2.0);
+        P.force(Role::Goblin);
+        step(s, ev, 0.2);
+        bool out = false;
+        step(s, ev, 9.0, [&] {
+            const auto in = P.goblinInfo();
+            out = in.active && std::none_of(in.state.begin(), in.state.end(), [&](int st) { return st == gb::S_INSIDE || st == gb::S_EMERGE; });
+            return out;
+        });
+        return out;
+    };
+
+    // --- Daten: Level 1 kennt sie, Level 2 nicht; das Beil liegt in den Funden von Level 1 -----------------------------
+    {
+        const auto L1 = content.level("level1", world::kLayoutV6), L2 = content.level("level2", world::kLayoutV6);
+        check(L1 && L1->kin[world::KIN_GOBLIN].on && L1->kin[world::KIN_GOBLIN].groupMin >= 9, "Plague Goblins: Level 1 kennt sie (Banden ab 9, die Seite: 9-27)");
+        check(L2 && !L2->kin[world::KIN_GOBLIN].on, "Plague Goblins: Level 2 kennt sie nicht");
+        const game::ItemDef* hd = content.item("hatchet");
+        check(hd && hd->maxStack == 1 && hd->model == "hatchet", "Beil: Gegenstand vorhanden (einzeln, eigenes Modell)");
+        int withHatchet = 0;
+        for (u64 seed = 1; seed <= 16; ++seed) withHatchet += countSupplies("level1", seed).kinds.count("hatchet") ? 1 : 0;
+        check(withHatchet >= 8 && withHatchet <= 16, std::format("Beil: in den Funden von Level 1 ({} von 16 Laeufen)", withHatchet));
+    }
+
+    // --- Auftritt: Portal ausser Sicht, Kasten, Klang vor Sicht ------------------------------------------------------------
+    auto s = open("level1", 31);
+    std::vector<game::GameEvent> ev;
+    auto& P = s->presence();
+    step(*s, ev, 2.0);
+    P.force(Role::Goblin);
+    step(*s, ev, 0.1);
+    auto info = P.goblinInfo();
+    check(info.active && info.bodies >= 9 && info.bodies <= 12, std::format("Plague Goblins: eine Bande erscheint ({} Koerper)", info.bodies));
+    if (!info.active) return;
+    {
+        const vec3 eye = s->body().eye();
+        const vec3 to = info.portal + vec3{0, 0, 0.7f} - eye;
+        const vec3 look = forwardFromAngles((float)s->player().angle, (float)s->player().pitch);
+        const bool inView = dot(normalize(to), look) > 0.3f && game::clearSight(s->world(), eye, info.portal + vec3{0, 0, 0.7f});
+        check(!inView && length(to) > 12.0f, std::format("Plague Goblins: das Portal oeffnet sich ausser Sicht ({:.0f} m)", length(to)));
+        int gate = 0, scouts = 0;
+        for (int v : info.variant) gate += v == 2 ? 1 : 0, scouts += v == 1 ? 1 : 0;
+        check(gate == 1 && scouts == 2, std::format("Plague Goblins: eine Torwaechterin, zwei Spaeher (die Seite: drei Kasten; {} / {})", gate, scouts));
+        check(count(ev, PE::Portal, 0.9f) == 1 && count(ev, PE::Croak) >= 1, "Plague Goblins: Klang vor Sicht (Portal, Kraechzen)");
+    }
+    bool out = false;
+    step(*s, ev, 9.0, [&] {
+        const auto in = P.goblinInfo();
+        out = std::none_of(in.state.begin(), in.state.end(), [&](int st) { return st == gb::S_INSIDE || st == gb::S_EMERGE; });
+        return out;
+    });
+    check(out && P.goblinInfo().portalOpen, "Plague Goblins: alle springen einzeln aus dem offenen Portal");
+    // Koop: der Zustand geht mit Rolle, Kaste und Zustand ueber das Netz
+    {
+        std::vector<game::Presence::NetState> ns;
+        P.netStates(ns, feetOf(*s), 40);
+        int gob = 0, gateN = 0, portalN = 0;
+        for (const auto& n : ns) {
+            if (n.role != (int)Role::Goblin) continue;
+            ++gob;
+            gateN += n.variant == 2 ? 1 : 0;
+            portalN += n.variant == 3 ? 1 : 0;
+        }
+        check(gob == info.bodies + 1 && gateN == 1 && portalN == 1, std::format("Plague Goblins: Netzzustand (Rolle {}, {} Eintraege)", (int)Role::Goblin, gob));
+    }
+
+    // --- Diebstahl: von hinten, angekuendigt; vorn nie -------------------------------------------------------------------
+    s->inventory().add("almond");
+    s->inventory().add("almond");
+    s->inventory().add("battery");
+    s->flashlight().on = true;
+    face(*s, P.goblinInfo().portal);  // man sieht zur Bande
+    P.goblinSet("phase", 2);
+    ev.clear();
+    step(*s, ev, 12.0, [&] {
+        face(*s, P.goblinInfo().portal);
+        return false;
+    });
+    check(count(ev, PE::Steal) == 0, "Plague Goblins: wer zur Bande sieht, wird nicht bestohlen (sie erstarren, wenn man sie ansieht)");
+    // jetzt mit dem Ruecken zur Bande
+    const vec3 away = feetOf(*s) * 2.0f - P.goblinInfo().portal;
+    double t = 0.0, warnT = -1.0, tookT = -1.0;
+    const int almond0 = s->inventory().count("almond") + s->inventory().count("battery");
+    ev.clear();
+    step(*s, ev, 60.0, [&] {
+        face(*s, away);
+        t += 1.0 / 60.0;
+        if (warnT < 0.0 && count(ev, PE::Steal, -1.0f) > 0) warnT = t;
+        if (tookT < 0.0 && count(ev, PE::Steal, 0.9f) > 0) tookT = t;
+        return tookT > 0.0 && t > tookT + 0.5;
+    });
+    const int almond1 = s->inventory().count("almond") + s->inventory().count("battery");
+    check(warnT > 0.0 && tookT > 0.0 && tookT - warnT >= 1.0,
+          std::format("Plague Goblins: von hinten - es zerrt am Rucksack ({:.1f} s), dann ist etwas fort ({:.1f} s)", warnT, tookT));
+    check(almond1 == almond0 - 1, std::format("Plague Goblins: genau ein Stueck gestohlen ({} -> {})", almond0, almond1));
+    check(count(ev, PE::Hit) == 0, "Plague Goblins: der Diebstahl tut nicht weh");
+
+    // --- Beil: ein Schwung ohne Treffer verscheucht; ein Treffer toetet einen, die Bande flieht und kommt nicht wieder ----------
+    {
+        s->inventory().add("hatchet");
+        int slot = -1;
+        for (int i = 0; i < game::Inventory::kHotbar; ++i)
+            if (s->inventory().slots[(size_t)i] && s->inventory().slots[(size_t)i]->kind == "hatchet") slot = i;
+        check(slot >= 0, "Beil: liegt in der Schnellleiste");
+        if (slot >= 0) {
+            s->selectSlot(slot);
+            // einen Goblin 3,5 m vor den Spieler stellen (verscheuchen), dann einen 1,1 m davor (Treffer)
+            const vec3 f = feetOf(*s);
+            const vec3 look = vec3{std::cos((float)s->player().angle), std::sin((float)s->player().angle), 0.0f};
+            info = P.goblinInfo();
+            int far = -1, near = -1;
+            for (int j = 0; j < (int)info.state.size(); ++j)
+                if (info.state[(size_t)j] != gb::S_DEAD && info.state[(size_t)j] != gb::S_RUMMAGE && info.state[(size_t)j] != gb::S_ENTER) {
+                    if (far < 0) far = j;
+                    else if (near < 0) near = j;
+                }
+            if (far >= 0 && near >= 0) {
+                P.placeAgent(Role::Goblin, far + 1, f + look * 3.5f);
+                step(*s, ev, 0.05);
+                ev.clear();
+                s->useSlot(slot);
+                step(*s, ev, 0.2);
+                info = P.goblinInfo();
+                check(info.dead == 0 && info.state[(size_t)far] == gb::S_SCURRY, "Beil: ein Schwung verscheucht, wer davor steht (kein Treffer auf 3,5 m)");
+                check(count(ev, PE::Croak, 0.9f) > 0, "Beil: der Verscheuchte kreischt");
+                check(s->inventory().count("hatchet") == 1, "Beil: wird nicht verbraucht");
+                step(*s, ev, 1.0);
+                P.placeAgent(Role::Goblin, near + 1, f + look * 1.1f);
+                step(*s, ev, 0.05);
+                ev.clear();
+                s->useSlot(slot);
+                step(*s, ev, 0.3);
+                info = P.goblinInfo();
+                check(info.dead == 1 && info.routed && info.phase == 4, std::format("Beil: ein Treffer aus der Naehe toetet einen Goblin, die Bande flieht ({} tot)", info.dead));
+                check(count(ev, PE::Perish) == 1, "Beil: Todesschrei");
+                ev.clear();
+                step(*s, ev, 30.0, [&] { return !P.goblinInfo().active; });
+                check(!P.goblinInfo().active && count(ev, PE::Portal) >= 0, "Plague Goblins: nach dem Treffer zieht die Bande durch das Portal ab");
+                step(*s, ev, 1.0);
+                const auto reg = P.goblinInfo();
+                step(*s, ev, 120.0);
+                check(!P.goblinInfo().active && P.goblinInfo().routed && reg.routed, "Plague Goblins: sie kommen in dieser Ebene nicht wieder (die Seite)");
+            }
+        }
+    }
+
+    // --- Bedraengen: ein Geschwaechter - Masken hoch und Fauchen (Ankuendigung), Bisse, aber nicht bis zum Tod -------------------
+    {
+        auto s2 = open("level1", 7);
+        std::vector<game::GameEvent> e2;
+        const bool ok = gang(*s2, e2);
+        check(ok, "Plague Goblins: Bande (zweiter Lauf) ist da");
+        if (ok) {
+            auto& P2 = s2->presence();
+            s2->stats().health = 38.0;
+            s2->inventory().add("almond");
+            P2.goblinSet("phase", 2);
+            P2.goblinSet("mob", 1);
+            double tt = 0.0, hissT = -1.0, hitT = -1.0, screechT = -1.0;
+            bool masks = false;
+            e2.clear();
+            step(*s2, e2, 16.0, [&] {
+                tt += 1.0 / 60.0;
+                if (hissT < 0.0 && count(e2, PE::Hiss) > 0) hissT = tt;
+                if (screechT < 0.0 && count(e2, PE::Screech) > 0) screechT = tt;
+                if (hitT < 0.0 && count(e2, PE::Hit) > 0) hitT = tt;
+                const auto in = P2.goblinInfo();
+                for (float m : in.mask) masks = masks || m > 0.5f;
+                return false;
+            });
+            check(hissT >= 0.0 && masks, std::format("Plague Goblins: Geschwaechte werden bedraengt - Masken hoch, Fauchen ({:.1f} s)", hissT));
+            check(hitT < 0.0 || (hitT - hissT >= 1.3 && screechT >= 0.0 && screechT <= hitT),
+                  std::format("Plague Goblins: der erste Biss kommt nach der Ankuendigung und einem Kreischen ({:.1f} / {:.1f} s)", hitT - hissT, screechT));
+            check(count(e2, PE::Hit) >= 1, std::format("Plague Goblins: sie beissen zu ({} Bisse)", count(e2, PE::Hit)));
+            check(s2->stats().health > 5.0 && !s2->stats().dead, std::format("Plague Goblins: nicht bis zum Tod (Gesundheit {:.0f})", s2->stats().health));
+            check(P2.goblinInfo().phase == 4 || !P2.goblinInfo().active, "Plague Goblins: danach ziehen sie ab");
+        }
+    }
+
+    // --- Handel: hingelegtes Mandelwasser - sie nehmen es, die Torwaechterin legt ein Geschenk hin --------------------------------
+    {
+        auto s3 = open("level1", 12);
+        std::vector<game::GameEvent> e3;
+        const bool ok = gang(*s3, e3);
+        if (ok) {
+            auto& P3 = s3->presence();
+            // der Spieler geht zur Bande (8 m vor das Portal) und legt Mandelwasser hin
+            const vec3 pt = P3.goblinInfo().portal;
+            vec3 f = feetOf(*s3);
+            const vec3 dir = normalize(vec3{pt.x - f.x, pt.y - f.y, 0.0f});
+            P3.goblinSet("phase", 1);
+            face(*s3, pt);
+            s3->inventory().add("almond");
+            int slot = -1;
+            for (int i = 0; i < game::Inventory::kHotbar; ++i)
+                if (s3->inventory().slots[(size_t)i] && s3->inventory().slots[(size_t)i]->kind == "almond") slot = i;
+            (void)dir;
+            // nahe genug heran: auf dem Wegefeld zur Bande (Teleport an eine freie Kachel 6-8 m vor dem Portal)
+            bool placed = false;
+            for (float r = 6.0f; r <= 9.0f && !placed; r += 0.5f)
+                for (int a = 0; a < 16 && !placed; ++a) {
+                    const vec3 q = pt + vec3{std::cos(a * 0.3927f), std::sin(a * 0.3927f), 0.0f} * r;
+                    const world::Tile* tq = s3->world().tileIfLoaded(ifloor(q.x), ifloor(q.y));
+                    if (!game::figureWalkable(tq, 1.9f) || !game::clearSight(s3->world(), q + vec3{0, 0, 1.0f}, pt + vec3{0, 0, 0.5f})) continue;
+                    auto& pl = s3->player();
+                    pl.x = q.x, pl.y = q.y, pl.z = tq->floor;
+                    placed = true;
+                }
+            face(*s3, pt);
+            step(*s3, e3, 0.3);
+            if (slot >= 0) s3->dropSlot(slot, false);
+            e3.clear();
+            step(*s3, e3, 40.0, [&] { return P3.goblinInfo().gifts > 0; });
+            const auto in = P3.goblinInfo();
+            check(placed && count(e3, PE::Take) >= 1 && in.friendly, std::format("Plague Goblins: hingelegtes Mandelwasser wird genommen - Handel ({})", in.friendly ? "ja" : "nein"));
+            check(in.gifts == 1, "Plague Goblins: die Torwaechterin legt ein Geschenk hin (Batterie)");
+            check(count(e3, PE::Hit) == 0 && count(e3, PE::Steal) == 0, "Plague Goblins: im Handel kein Diebstahl, kein Angriff");
+        } else {
+            check(false, "Plague Goblins: Bande (Handel) ist da");
+        }
+    }
+
+    // --- Hound: Furcht - die Bande flieht ---------------------------------------------------------------------------------
+    {
+        auto s4 = open("level1", 21);
+        std::vector<game::GameEvent> e4;
+        if (gang(*s4, e4)) {
+            auto& P4 = s4->presence();
+            P4.force(Role::Hound, 18.0);
+            step(*s4, e4, 1.0);
+            check(!P4.has(Role::Hound) || P4.goblinInfo().phase == 4 || !P4.goblinInfo().active,
+                  std::format("Plague Goblins: ein Hound in der Naehe - die Bande flieht (Phase {})", P4.goblinInfo().phase));
+        }
+    }
+}
+
+// --- V13.3: Leuchtstab (Smiler-Koeder) und Ansprechen (Skin-Stealer) - KREATUR_Smiler.md, KREATUR_SkinStealer.md --------
+static void testV133LureTalk(const std::string& dataDir) {
+    std::printf("V13.3: Leuchtstab und Ansprechen (Level 1)\n");
+    const game::Content& content = *gContent11;
+    game::PrefabLibrary prefabs;
+    prefabs.loadDirectory(dataDir + "/prefabs");
+    JobSystem jobs(2);
+    using PE = game::Presence::Event;
+    using Role = game::Presence::Role;
+    auto open = [&](const char* level, i64 seed) {
+        auto s = std::make_unique<game::GameSession>(content, prefabs, content.level(level, world::kLayoutV6), seed, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        return s;
+    };
+    auto step = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, double secs, const std::function<bool()>& each = {},
+                    const std::function<game::PlayerControl(int)>& ctl = {}) {
+        for (int i = 0; i < (int)(secs * 60.0); ++i) {
+            if (each && each()) break;
+            s.update(1.0 / 60.0, ctl ? ctl(i) : game::PlayerControl{}, false);
+            ev.insert(ev.end(), s.events().begin(), s.events().end());
+            s.events().clear();
+        }
+    };
+    auto count = [](const std::vector<game::GameEvent>& ev, PE::Type t, Role r) {
+        return (int)std::count_if(ev.begin(), ev.end(), [&](const game::GameEvent& e) {
+            return e.type == game::GameEvent::Figure && e.index == (int)t && e.role == (int)r;
+        });
+    };
+    auto aim = [](game::GameSession& s, vec3 q) {
+        auto& pl = s.player();
+        pl.angle = std::atan2(q.y - pl.y, q.x - pl.x);
+        pl.pitch = std::atan2(q.z - pl.eye(), std::max(0.4, std::hypot(q.x - pl.x, q.y - pl.y)));
+    };
+    auto has = [](const std::vector<game::GameEvent>& ev, game::GameEvent::Type t) {
+        return std::any_of(ev.begin(), ev.end(), [&](const game::GameEvent& e) { return e.type == t; });
+    };
+    auto slotOf = [](game::GameSession& s, const char* kind) {
+        for (int i = 0; i < game::Inventory::kSize; ++i)
+            if (s.inventory().slots[(size_t)i] && s.inventory().slots[(size_t)i]->kind == kind) return i;
+        return -1;
+    };
+
+    // --- Fundstueck: Leuchtstaebe liegen auf den Ebenen mit Smilern, eher in dunklen Raeumen; Level 0 keine --------------
+    for (const char* id : {"level1", "level2", "level3", "level0"}) {
+        auto lvl = content.level(id, world::kLayoutV6);
+        if (!lvl || !lvl->map) continue;
+        world::World w(lvl, 4242, 0.28, 0.80, jobs, 3);
+        int n = 0, bad = 0;
+        const int S = std::max(1, lvl->sectorSize);
+        for (int sy = 0; sy * S < (int)lvl->map->h; ++sy)
+            for (int sx = 0; sx * S < (int)lvl->map->w; ++sx) {
+                w.tile(sx * S + S / 2, sy * S + S / 2);
+                std::vector<game::FindSpot> all;
+                for (const auto& r : w.sector(sx, sy).rooms)
+                    if (r->prepared()) game::roomFinds(*r, *lvl, all);
+                for (const auto& f : all) {
+                    if (f.kind != game::FindSpot::Glowstick) continue;
+                    ++n;
+                    const world::Tile& t = w.tile(f.tx, f.ty);
+                    if (!t.open() || std::fabs(t.floor - f.pos.z) > 0.01f) ++bad;
+                }
+            }
+        std::printf("  %s: %d Leuchtstaebe (Fundstuecke)\n", id, n);
+        if (std::string(id) == "level0") check(n == 0, "Level 0: keine Leuchtstaebe (dort gibt es keine Smiler)");
+        else check(n >= 2 && n <= 9 && bad == 0, std::format("{}: zwei bis neun Leuchtstaebe auf freiem Boden ({}, {} falsch)", id, n, bad));
+    }
+
+    // --- Smiler: ein geworfener Leuchtstab zieht ihn ab (Level 1, Halle Aquila, im Stromausfall) ----------------------------
+    {
+        auto s = open("level1", 4242);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.2);
+        auto& P = s->presence();
+        world::World& ww = s->world();
+        {
+            auto& pl = s->player();
+            const auto [hx, hy] = hallSpot(ww);
+            pl.x = hx + 0.5, pl.y = hy + 0.5, pl.z = ww.tile(hx, hy).floor;
+            s->body().reset();
+        }
+        s->preload();
+        step(*s, ev, 0.5);
+        P.force(Role::Smiler);
+        step(*s, ev, 16.0, [&] { return P.has(Role::Smiler); });
+        check(P.has(Role::Smiler), "Leuchtstab: der Smiler erscheint im Dunkeln");
+        step(*s, ev, 4.0, [&] { return !P.has(Role::Smiler) || P.stateOf(Role::Smiler) >= 1; }, {});
+        // die Lampe ist an (er folgt ihrem Licht) - dann den Stab quer wegwerfen, in den freien Teil der Halle
+        s->flashlight().on = true;
+        s->inventory().add("glowstick");
+        const int slot = slotOf(*s, "glowstick");
+        const vec3 sp = P.posOf(Role::Smiler);
+        auto& pl = s->player();
+        const double toS = std::atan2(sp.y - pl.y, sp.x - pl.x);
+        double best = toS + 1.2, bestFree = 0.0;
+        for (double off : {1.2, -1.2, 0.8, -0.8, 1.6, -1.6}) {  // die Richtung mit dem meisten freien Boden
+            double free = 0.0;
+            for (double r = 1.0; r < 10.0; r += 0.5) {
+                const world::Tile* t = ww.tileIfLoaded(ifloor(pl.x + std::cos(toS + off) * r), ifloor(pl.y + std::sin(toS + off) * r));
+                if (!t || !t->open() || std::fabs(t->floor - pl.z) > 0.1) break;
+                free = r;
+            }
+            if (free > bestFree) bestFree = free, best = toS + off;
+        }
+        pl.angle = best, pl.pitch = 0.12;
+        const size_t lures0 = s->lures().lures().size();
+        s->useSlot(slot);
+        check(slotOf(*s, "glowstick") < 0 && s->glowThrowPending(), "Leuchtstab: F knickt ihn (aus dem Inventar, Wurfgeste)");
+        step(*s, ev, 0.7);
+        check(s->lures().lures().size() == lures0 + 1, "Leuchtstab: beim Loslassen fliegt er");
+        const vec3 start = s->lures().lures().empty() ? vec3{} : s->lures().lures().back().pos;
+        bool airborne = false;
+        step(*s, ev, 3.0, [&] {
+            const auto& L = s->lures().lures().back();
+            airborne = airborne || L.pos.z > start.z + 0.05f;
+            return L.resting;
+        });
+        const auto& L = s->lures().lures().back();
+        const world::Tile& lt = ww.tile(ifloor(L.pos.x), ifloor(L.pos.y));
+        const float flew = std::hypot(L.pos.x - start.x, L.pos.y - start.y);
+        std::printf("  Leuchtstab: %.1f m weit, liegt %.3f m ueber dem Boden, Leuchtkraft %.2f\n", flew, L.pos.z - lt.floor, s->lures().glowOf(L));
+        check(airborne && L.resting && flew > 2.5f && flew < 16.0f, std::format("Leuchtstab: Wurfbogen, liegt nach {:.1f} m still", flew));
+        check(std::fabs(L.pos.z - lt.floor - game::LureSystem::kRadius) < 0.01f && std::fabs(std::remainder(L.pitch, 3.14159265f)) < 0.02f,
+              "Leuchtstab: liegt flach auf dem Boden");
+        check(s->lures().glowOf(L) > 0.8f, "Leuchtstab: leuchtet hell");
+        std::vector<game::GameSession::GlowLight> gl;
+        s->glowLights(gl, 40.0f);
+        check(!gl.empty(), "Leuchtstab: eigenes Licht");
+        // wegsehen (sonst wuerde er ohne Koeder kommen und zugreifen) - er geht zum Licht, nicht zum Spieler
+        float dLure0 = 1e9f, dLure = 1e9f, dPlayerMin = 1e9f;
+        bool luredSeen = false;
+        if (P.has(Role::Smiler)) dLure0 = std::hypot(P.posOf(Role::Smiler).x - L.pos.x, P.posOf(Role::Smiler).y - L.pos.y);
+        step(*s, ev, 9.0, [&] {
+            if (!P.has(Role::Smiler)) return true;
+            luredSeen = luredSeen || P.luredOf(Role::Smiler);
+            const vec3 q = P.posOf(Role::Smiler);
+            pl.angle = std::atan2(q.y - pl.y, q.x - pl.x) + 3.14159;  // abgewandt
+            pl.pitch = 0.0;
+            dLure = std::hypot(q.x - L.pos.x, q.y - L.pos.y);
+            dPlayerMin = std::min(dPlayerMin, (float)std::hypot(q.x - pl.x, q.y - pl.y));
+            return s->stats().dead;
+        });
+        std::printf("  Smiler: zum Stab %.1f -> %.1f m, dem Spieler hoechstens %.1f m nah\n", dLure0, dLure, dPlayerMin);
+        check(count(ev, PE::Lured, Role::Smiler) >= 1 && luredSeen, "Leuchtstab: der Smiler wendet sich dem staerkeren Licht zu");
+        check(dLure < 1.6f || dLure < dLure0 - 3.0f, std::format("Leuchtstab: er geht zum Licht ({:.1f} -> {:.1f} m)", dLure0, dLure));
+        check(!s->stats().dead && !has(ev, game::GameEvent::StalkerHit), "Leuchtstab: solange er leuchtet, laesst er vom Spieler ab");
+        // Laerm ganz nah (Wiki, Level 1: nach einer Sichtung zieht ihn auch Laerm an): wer neben ihm rennt, holt ihn zurueck
+        if (P.has(Role::Smiler) && P.luredOf(Role::Smiler)) {
+            const vec3 q = P.posOf(Role::Smiler);
+            bool backed = false;
+            for (int k = 0; k < 16 && !backed; ++k) {  // ein freier Platz 3,5 m neben ihm
+                const double a = k * 0.3927, x = q.x + std::cos(a) * 3.5, y = q.y + std::sin(a) * 3.5;
+                const world::Tile* t = ww.tileIfLoaded(ifloor(x), ifloor(y));
+                if (t && t->open() && std::fabs(t->floor - pl.z) < 0.2) pl.x = x, pl.y = y, pl.vx = pl.vy = 0.0, s->body().reset(), backed = true;
+            }
+            bool released = false;
+            step(*s, ev, 1.5, [&] {
+                released = released || (P.has(Role::Smiler) && !P.luredOf(Role::Smiler));
+                return released;
+            }, [](int i) {
+                game::PlayerControl c;
+                c.forward = (i / 20) % 2 ? -1.0f : 1.0f;
+                c.sprint = true;
+                return c;
+            });
+            check(!backed || released, "Leuchtstab: wer neben ihm rennt, holt ihn vom Licht zurueck");
+        }
+    }
+    // --- Level 3 (Seite level-3): dort stutzt der Smiler nur und bleibt beim Wanderer. Geprueft in der Halle von Level 1
+    // mit der Einstellung von Level 3 (dort braucht der Smiler einen Stromausfall an einem passenden Ort) ---------------
+    {
+        check(content.level("level3", world::kLayoutV6)->smilerBait == 1 && content.level("level1", world::kLayoutV6)->smilerBait == 0,
+              "Level 3: smiler_bait = hesitate (Level 1: follow)");
+        auto L3 = std::make_shared<world::LevelDef>(*content.level("level1", world::kLayoutV6));
+        L3->smilerBait = 1;
+        auto s = std::make_unique<game::GameSession>(content, prefabs, L3, 4242, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.2);
+        auto& P = s->presence();
+        {
+            auto& pl = s->player();
+            const auto [hx, hy] = hallSpot(s->world());
+            pl.x = hx + 0.5, pl.y = hy + 0.5, pl.z = s->world().tile(hx, hy).floor;
+            s->body().reset();
+        }
+        s->preload();
+        step(*s, ev, 0.5);
+        P.force(Role::Smiler);
+        step(*s, ev, 20.0, [&] { return P.has(Role::Smiler) && P.stateOf(Role::Smiler) >= 1; });
+        if (P.has(Role::Smiler)) {
+            auto& pl = s->player();
+            const vec3 sp = P.posOf(Role::Smiler);
+            pl.angle = std::atan2(sp.y - pl.y, sp.x - pl.x), pl.pitch = 0.05;  // zu ihm hin werfen
+            s->inventory().add("glowstick");
+            s->useSlot(slotOf(*s, "glowstick"));
+            bool lured = false, released = false;
+            step(*s, ev, 6.0, [&] {
+                if (!P.has(Role::Smiler)) return true;
+                const vec3 q = P.posOf(Role::Smiler);
+                pl.angle = std::atan2(q.y - pl.y, q.x - pl.x), pl.pitch = 0.0;  // ansehen: er bleibt stehen
+                lured = lured || P.luredOf(Role::Smiler);
+                released = released || (lured && !P.luredOf(Role::Smiler));
+                return released;
+            });
+            const bool hesitated = std::any_of(ev.begin(), ev.end(), [&](const game::GameEvent& e) {
+                return e.type == game::GameEvent::Figure && e.index == (int)PE::Lured && e.role == (int)Role::Smiler && e.intensity < 0.5f;
+            });
+            check(hesitated && lured && released, "Level 3: der Smiler stutzt am Licht und wendet sich wieder dem Wanderer zu");
+        } else {
+            std::printf("  Level 3: kein Smiler erschienen (Pruefung des Stutzens uebersprungen)\n");
+        }
+    }
+
+    // --- Skin-Stealer: Ansprechen entlarvt, ruhiges Zurueckweichen ueberlebt, Rennen loest den Angriff aus ----------------
+    auto placeNear = [&](game::GameSession& s, double dist, double back) {
+        auto& P = s.presence();
+        if (!P.has(Role::SkinStealer)) return false;
+        const vec3 at = P.posOf(Role::SkinStealer), head = P.headOf(Role::SkinStealer);
+        world::World& w = s.world();
+        for (int k = 0; k < 36; ++k) {
+            const float yaw0 = P.yawOf(Role::SkinStealer) + (float)((k + 1) / 2) * 0.27f * (k % 2 ? 1.0f : -1.0f);
+            const double x = at.x + std::cos(yaw0) * dist, y = at.y + std::sin(yaw0) * dist;
+            const world::Tile* t = w.tileIfLoaded(ifloor(x), ifloor(y));
+            if (!t || !t->open() || t->clearance() < 2.0f || std::fabs(t->floor - at.z) > 0.3f) continue;
+            if (!game::clearSight(w, vec3{(float)x, (float)y, t->floor + (float)game::Player::kEye}, head)) continue;
+            bool room = true;
+            for (double bb = 0.5; bb <= back && room; bb += 0.5) {
+                const world::Tile* tb = w.tileIfLoaded(ifloor(x + std::cos(yaw0) * bb), ifloor(y + std::sin(yaw0) * bb));
+                room = tb && tb->open() && std::fabs(tb->floor - t->floor) < 0.3f && tb->clearance() > 2.0f;
+            }
+            if (!room) continue;
+            auto& pl = s.player();
+            pl.x = x, pl.y = y, pl.z = t->floor, pl.vx = pl.vy = 0.0;
+            s.body().reset();
+            aim(s, head);
+            return true;
+        }
+        return false;
+    };
+    // erscheinen, satt (wandert, harmlos), der Spieler 3,5 m vor ihm mit Platz dahinter; dann ansprechen
+    auto meet = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, bool hungry) {
+        auto& P = s.presence();
+        P.setGrace(3000.0);
+        P.force(Role::SkinStealer);
+        step(s, ev, 3.0, [&] { return P.has(Role::SkinStealer); });
+        if (!P.has(Role::SkinStealer)) return false;
+        P.kinSet(Role::SkinStealer, "hungry", hungry ? 1.0 : 0.0);
+        bool placed = false;
+        for (int tries = 0; tries < 8 && !placed; ++tries) {
+            placed = placeNear(s, 3.5, 9.0);
+            if (!placed) step(s, ev, 2.0);
+        }
+        return placed;
+    };
+    for (int variant = 0; variant < 3; ++variant) {  // 0 ruhig zurueck, 1 rennen, 2 erneut ansprechen
+        auto s = open("level1", 21 + variant);
+        std::vector<game::GameEvent> ev;
+        step(*s, ev, 0.3);
+        auto& P = s->presence();
+        if (!meet(*s, ev, variant == 1)) {
+            check(false, "Ansprechen: ein Skin-Stealer erscheint, der Spieler steht vor ihm");
+            continue;
+        }
+        step(*s, ev, 0.2, [&] { aim(*s, P.headOf(Role::SkinStealer)); return false; });
+        if (variant == 0) {
+            check(s->speakTarget() && s->targetPrompt() == "Ansprechen", "Ansprechen: Hinweis im HUD, wenn man ihn ansieht");
+            check(P.variantOf(Role::SkinStealer) == 1, "Ansprechen: Level 1 - getarnt in Menschenhaut");
+        }
+        aim(*s, P.headOf(Role::SkinStealer));
+        s->update(1.0 / 60.0, {}, false);  // Ziel unter dem Fadenkreuz bestimmen
+        s->events().clear();
+        s->interact();
+        int calls = 0;
+        for (const auto& e : s->events()) calls += e.type == game::GameEvent::SoundAt && e.sound.rfind("talk_call_", 0) == 0;
+        step(*s, ev, 3.0, [&] {
+            if (P.has(Role::SkinStealer)) aim(*s, P.headOf(Role::SkinStealer));
+            return P.exposedOf(Role::SkinStealer) && count(ev, PE::Reply, Role::SkinStealer) > 0;
+        });
+        if (variant == 0) {
+            check(calls == 1, "Ansprechen: der Spieler ruft (synthetischer Satz)");
+            check(count(ev, PE::Reply, Role::SkinStealer) == 1 && P.exposedOf(Role::SkinStealer) && P.stateOf(Role::SkinStealer) == 6,
+                  "Ansprechen: er antwortet verraeterisch - entlarvt");
+            check(!s->stats().dead, "Ansprechen: die Antwort allein ist kein Angriff");
+            // ruhig zurueckweichen: rueckwaerts gehen, den Blick auf ihm
+            step(*s, ev, 14.0, [&] {
+                if (!P.has(Role::SkinStealer)) return true;
+                aim(*s, P.headOf(Role::SkinStealer));
+                return s->stats().dead || P.stateOf(Role::SkinStealer) != 6;
+            }, [](int) {
+                game::PlayerControl c;
+                c.forward = -1.0f;
+                return c;
+            });
+            const int st = P.has(Role::SkinStealer) ? P.stateOf(Role::SkinStealer) : 9;
+            step(*s, ev, 6.0, [&] { return s->stats().dead; });  // und noch eine Weile stehen bleiben (mit Abstand)
+            check(!s->stats().dead && count(ev, PE::Shriek, Role::SkinStealer) == 0 && (st == 0 || st == 4 || st == 9),
+                  std::format("Ansprechen: wer danach ruhig zurueckweicht, den laesst er ziehen (Zustand {})", st));
+        } else if (variant == 1) {
+            check(P.exposedOf(Role::SkinStealer), "Rennen: entlarvt (hungrig)");
+            // umdrehen und rennen
+            step(*s, ev, 8.0, [&] {
+                if (!P.has(Role::SkinStealer)) return true;
+                const vec3 q = P.posOf(Role::SkinStealer);
+                auto& pl = s->player();
+                pl.angle = std::atan2(pl.y - q.y, pl.x - q.x), pl.pitch = 0.0;
+                return s->stats().dead;
+            }, [](int) {
+                game::PlayerControl c;
+                c.forward = 1.0f;
+                c.sprint = true;
+                return c;
+            });
+            check(count(ev, PE::Shriek, Role::SkinStealer) >= 1, "Rennen: nach der Entlarvung loest Rennen den Angriff aus (Schrei)");
+            check(s->stats().dead && s->killRole() == (int)Role::SkinStealer, "Rennen: er holt ihn ein und toetet");
+        } else {
+            step(*s, ev, 2.5, [&] { aim(*s, P.headOf(Role::SkinStealer)); return false; });  // (Pause zwischen zwei Saetzen)
+            s->interact();  // noch einmal ansprechen, obwohl klar ist, dass er kein Mensch ist
+            step(*s, ev, 0.3);
+            check(count(ev, PE::Shriek, Role::SkinStealer) >= 1 && P.stateOf(Role::SkinStealer) == 2,
+                  "Ansprechen: erneutes Ansprechen nach der Entlarvung loest den Angriff aus");
+        }
+    }
+}
+
+// --- V13.3: Erscheinungen ohne Figur in Level 1 - Crawler-Pilz, Garden, Gemaelde der Spielleiterin, Tuerspuren ----------
+// (gameplay/phenomena.hpp; KREATUR_Crawler.md, KREATUR_GameMaster.md, KREATUR_L1_Erscheinungen.md)
+static void testV133Phenomena(const std::string& dataDir) {
+    std::printf("V13.3: Erscheinungen in Level 1 (Pilz, Garden, Gemaelde, Tuerspuren)\n");
+    const game::Content& content = *gContent11;
+    game::PrefabLibrary prefabs;
+    prefabs.loadDirectory(dataDir + "/prefabs");
+    JobSystem jobs(2);
+    auto open = [&](const char* level, i64 seed) {
+        auto s = std::make_unique<game::GameSession>(content, prefabs, content.level(level, world::kLayoutV6), seed, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        return s;
+    };
+    auto step = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, double secs, const std::function<bool()>& each = {}) {
+        for (int i = 0; i < (int)(secs * 60.0); ++i) {
+            if (each && each()) break;
+            s.update(1.0 / 60.0, game::PlayerControl{}, false);
+            ev.insert(ev.end(), s.events().begin(), s.events().end());
+            s.events().clear();
+        }
+    };
+    auto put = [](game::GameSession& s, double x, double y) {
+        auto& pl = s.player();
+        pl.x = x, pl.y = y, pl.z = s.world().tile(ifloor(x), ifloor(y)).floor, pl.vx = pl.vy = 0.0;
+        s.body().reset();
+        s.preload();
+    };
+    auto sounds = [](const std::vector<game::GameEvent>& ev, const char* name) {
+        return (int)std::count_if(ev.begin(), ev.end(), [&](const game::GameEvent& e) { return e.type == game::GameEvent::SoundAt && e.sound == name; });
+    };
+    auto toast = [](const std::vector<game::GameEvent>& ev, const char* part) {
+        return std::any_of(ev.begin(), ev.end(), [&](const game::GameEvent& e) {
+            return (e.type == game::GameEvent::Toast || e.type == game::GameEvent::Consume) && e.text.find(part) != std::string::npos;
+        });
+    };
+    auto slotOf = [](game::GameSession& s, const char* kind) {
+        for (int i = 0; i < game::Inventory::kSize; ++i)
+            if (s.inventory().slots[(size_t)i] && s.inventory().slots[(size_t)i]->kind == kind) return i;
+        return -1;
+    };
+
+    // --- Karte: Orte aus den Spawnpunkten "trace"; Level 0 kennt keine Erscheinungen --------------------------------------
+    {
+        auto s0 = open("level0", 3);
+        check(!s0->phenomena().any(), "Erscheinungen: Level 0 hat keine");
+    }
+    auto s = open("level1", 3);
+    game::Phenomena& P = s->phenomena();
+    std::printf("  Pilz %zu, Flaschen %zu, Lager %zu, Gemaeldeplaetze %zu, Gemaelde %zu, Hinauswurf %zu, Tueren %zu\n", P.fungusZones().size(),
+                P.bottleSpots().size(), P.noteSpots().size(), P.paintingSpots().size(), P.paintings().size(), P.expelSpots().size(),
+                P.clawDoors().size());
+    const int jesters = (int)std::count_if(P.paintings().begin(), P.paintings().end(), [](const auto& p) { return p.jester; });
+    check(P.any() && P.config().fungus && P.config().garden && P.config().paintings && P.config().claws, "Erscheinungen: Level 1 hat alle vier");
+    check(P.fungusZones().size() >= 4 && P.bottleSpots().size() >= 2 && P.noteSpots().size() >= 1, "Pilz: befallene Stellen, offene Flaschen, ein Lager");
+    check(P.paintingSpots().size() >= 8 && P.paintings().size() == 4 && jesters == 1, "Gemaelde: vier vor den Hallentueren, eines davon die Spielleiterin");
+    check(P.expelSpots().size() >= 6 && P.clawDoors().size() == 1, "Hinauswurf-Orte und eine Zimmertuer mit Spuren");
+    bool onFloor = true;
+    for (const auto& sp : P.paintingSpots()) {
+        const world::Tile& t = s->world().tile(ifloor(sp.pos.x), ifloor(sp.pos.y));
+        onFloor = onFloor && t.open() && t.room && std::fabs(t.floor - sp.pos.z) < 0.05f;
+    }
+    check(onFloor, "Gemaelde: jeder Platz auf freiem Boden");
+
+    // --- Ansteckung durch Kontakt: in der befallenen Pfuetze stehen -----------------------------------------------------------
+    {
+        std::vector<game::GameEvent> ev;
+        const auto& z = P.fungusZones()[0];
+        put(*s, z.pos.x, z.pos.y);
+        step(*s, ev, 2.0);
+        check(P.ailment(0).infectT < 0.0 && toast(ev, "Weißer Flaum"), "Ansteckung: erst ein Hinweis, noch gesund (2 s im Befall)");
+        step(*s, ev, 7.0);
+        check(P.ailment(0).infectT >= 0.0 && P.ailment(0).stage == 1, "Ansteckung: wer im Befall stehen bleibt, steckt sich an (Stadium 1)");
+        // weg vom Befall: das Stadium bleibt, der Pilz waechst weiter
+        const auto& e = P.expelSpots()[0];
+        put(*s, e.pos.x, e.pos.y);
+        P.ailment(0).infectT = 178.0;
+        step(*s, ev, 3.0);
+        check(P.ailment(0).stage == 2 && P.skinFx(0).x > 0.2f && P.fungusFx(0) > 0.1f, "Stadium 2 nach 3 min: Flecken auf der Haut (Viewmodel), Bild");
+        // Mandelwasser heilt die fruehen Stadien (Interpretation)
+        s->inventory().add("almond");
+        s->useSlot(slotOf(*s, "almond"));
+        step(*s, ev, 0.2);
+        check(P.ailment(0).infectT < 0.0 && P.skinFx(0).x == 0.0f, "Mandelwasser: heilt Stadium 2");
+        // im Fieber (Stadium 3) haelt es nur auf
+        P.infect(0);
+        P.ailment(0).infectT = 245.0;
+        step(*s, ev, 0.5);
+        s->inventory().add("almond");
+        s->useSlot(slotOf(*s, "almond"));
+        const double t0 = P.ailment(0).infectT;
+        step(*s, ev, 5.0);
+        check(P.ailment(0).stage == 3 && P.ailment(0).hold > 0.0 && std::fabs(P.ailment(0).infectT - t0) < 0.01,
+              "Mandelwasser: im Fieber haelt es den Pilz nur an (Stadium 3 bleibt)");
+        const double v0 = s->player().speedMul;
+        check(v0 < 0.97 && P.sanityDrain(0) > 0.0, "Stadium 3: langsamer, der Verstand schwindet");
+        // Stadium 5: der Pilz hat den Koerper - eigener Todesgrund
+        P.ailment(0).hold = 0.0;
+        P.ailment(0).infectT = 719.0;
+        step(*s, ev, 2.0);
+        check(s->stats().dead && s->deathCause() == "pilz" && s->killRole() == -2, "Pilz: nach 12 Minuten stirbt man (Ursache pilz)");
+        s->respawnAtCheckpoint();
+        check(!s->stats().dead && P.ailment(0).infectT < 0.0, "Wiedereinstieg: ohne Pilz");
+        // offenes Mandelwasser steckt sofort an
+        s->inventory().add("almond_open");
+        const double san = s->stats().sanity;
+        s->useSlot(slotOf(*s, "almond_open"));
+        step(*s, ev, 0.2);
+        check(P.ailment(0).infectT >= 0.0 && s->stats().sanity > san, "Offenes Mandelwasser: gibt Verstand, steckt aber an");
+        s->respawnAtCheckpoint();
+    }
+
+    // --- Garden-Uhr: Zeichen, Ranken, Verwandlung, Tod; draussen geht sie zurueck ---------------------------------------------
+    {
+        std::vector<game::GameEvent> ev;
+        double gx = -1, gy = -1;
+        for (const auto& r : s->world().level().map->rooms) {
+            if (r.type != "garden") continue;
+            for (i64 y = r.y0 + 3; y < r.y1 - 3 && gx < 0; ++y)
+                for (i64 x = r.x0 + 3; x < r.x1 - 3 && gx < 0; ++x) {
+                    const world::Tile& t = s->world().tile(x, y);
+                    const world::Tile& t2 = s->world().tile(x + 1, y);
+                    if (t.open() && t2.open() && t.room && t.room->type && t.room->type->key == "garden") gx = x + 0.5, gy = y + 0.5;
+                }
+            break;
+        }
+        check(gx > 0, "Garden: ein freier Platz im Sektor");
+        put(*s, gx, gy);
+        step(*s, ev, 1.0);
+        check(P.ailment(0).inGarden && P.ailment(0).garden > 0.9, "Garden-Uhr: zaehlt die Zeit im Sektor");
+        P.ailment(0).garden = 179.5;
+        step(*s, ev, 1.0);
+        check(P.ailment(0).gstage == 1 && toast(ev, "Erde unter den Fingernägeln"), "Garden: erste Zeichen nach 3 min");
+        P.ailment(0).garden = 359.5;
+        step(*s, ev, 1.0);
+        check(P.ailment(0).gstage == 2 && P.skinFx(0).y > 0.2f && s->player().speedMul < 0.95, "Garden: Ranken am Arm, langsamer");
+        P.ailment(0).garden = 750.0;
+        step(*s, ev, 1.0);
+        check(P.ailment(0).gstage == 3 && P.gardenFx(0) > 0.6f && s->player().speedMul < 0.75, "Garden: die Verwandlung beginnt (Rinde, gruener Rand)");
+        // wer geht, erholt sich langsam
+        const auto& e = P.expelSpots()[1];
+        put(*s, e.pos.x, e.pos.y);
+        const double g0 = P.ailment(0).garden;
+        step(*s, ev, 10.0);
+        check(!P.ailment(0).inGarden && P.ailment(0).garden < g0 - 2.5 && P.ailment(0).garden > g0 - 4.5, "Garden: draussen geht die Uhr langsam zurueck");
+        put(*s, gx, gy);
+        P.ailment(0).garden = 899.0;
+        step(*s, ev, 2.0);
+        check(s->stats().dead && s->deathCause() == "garten" && s->killRole() == -3, "Garden: nach 15 min stirbt man durch die Verwandlung (Ursache garten)");
+        s->respawnAtCheckpoint();
+    }
+
+    // --- Gemaelde: bleibt, solange es jemand sieht; verschwindet ungesehen und liegt vor einer anderen Tuer ------------------
+    {
+        size_t k = 0;
+        while (k < P.paintings().size() && P.paintings()[k].jester) ++k;
+        game::Phenomena::Painting& p = P.paintings()[k];
+        put(*s, p.pos.x, p.pos.y);
+        // ein Betrachter 4 m davor, Blick darauf (freie Sicht suchen)
+        game::Viewer v;
+        bool found = false;
+        for (int a = 0; a < 16 && !found; ++a) {
+            const float ang = (float)a * 0.3927f;
+            v.eye = p.pos + vec3{std::cos(ang) * 3.0f, std::sin(ang) * 3.0f, 1.6f};
+            const world::Tile& t = s->world().tile(ifloor(v.eye.x), ifloor(v.eye.y));
+            found = t.open() && game::clearSight(s->world(), v.eye, p.pos + vec3{0, 0, 0.05f});
+        }
+        v.look = normalize(p.pos - v.eye);
+        check(found, "Gemaelde: ein Platz mit freier Sicht darauf");
+        const int spot0 = p.spot;
+        std::vector<game::Phenomena::Event> pe;
+        game::Phenomena::PlayerIn self;
+        self.feet = v.eye - vec3{0, 0, 1.6f};
+        for (int i = 0; i < 600; ++i) P.updateWorld(0.1, {v}, self, true, s->world(), pe);
+        check(p.spot == spot0 && p.unseen == 0.0, "Gemaelde: angesehen verschwindet es nicht (60 s)");
+        // wegsehen (und weggehen): es verschwindet und liegt an einer anderen Tuer, die keiner sieht
+        game::Viewer away = v;
+        away.look = -v.look;
+        away.eye = v.eye - v.look * 9.0f;
+        P.takeMoves();
+        double t = 0.0;
+        while (p.spot == spot0 && t < 180.0) P.updateWorld(0.1, {away}, self, true, s->world(), pe), t += 0.1;
+        const std::vector<int> moved = P.takeMoves();
+        check(p.spot != spot0 && length(p.pos - away.eye) > 8.0f && t > 7.0, std::format("Gemaelde: ungesehen verschwindet es nach {:.0f} s und liegt woanders", t));
+        check(std::find(moved.begin(), moved.end(), (int)k) != moved.end(), "Gemaelde: der Weg geht an die Gaeste (Koop)");
+        // Koop: der Gast setzt aus dem Weltereignis dieselbe Tuer, dasselbe Bild und denselben Winkel
+        game::Phenomena G;
+        G.setup(s->world().level(), (u64)3);
+        const float yawOff = std::remainder(p.yaw - P.paintingSpots()[(size_t)p.spot].yaw, 6.2831853f);
+        const vec3 pos = p.pos + vec3{0, 0, (float)p.variant * 10.0f + std::clamp(yawOff + 0.5f, 0.0f, 1.0f)};
+        check(G.netMove(game::Phenomena::paintingHash((int)k), pos) && G.paintings()[k].spot == p.spot && G.paintings()[k].variant == p.variant &&
+                  std::fabs(G.paintings()[k].yaw - p.yaw) < 0.01f && G.paintings()[k].model == p.model,
+              "Gemaelde (Koop): der Gast legt es an dieselbe Tuer");
+    }
+
+    // --- Narren-Gemaelde: wer hindurchgeht, wird eingeladen und hinausgeworfen ----------------------------------------------
+    {
+        std::vector<game::GameEvent> ev;
+        const auto it = std::find_if(P.paintings().begin(), P.paintings().end(), [](const auto& p) { return p.jester; });
+        const vec3 jp = it->pos;
+        P.ailment(0).jesterCool = 0.0;
+        put(*s, jp.x, jp.y);
+        step(*s, ev, 0.6);
+        check(P.frozen(0) && P.jesterFx(0) > 0.5f, "Spielleiterin: auf dem Bild - ihr Gesicht fuellt die Sicht, man steht still");
+        step(*s, ev, 7.0);
+        const vec3 now{(float)s->player().x, (float)s->player().y, (float)s->player().z};
+        const bool cut = std::any_of(ev.begin(), ev.end(), [](const game::GameEvent& e) { return e.type == game::GameEvent::TeleportCut; });
+        check(!P.frozen(0) && length(now - jp) > 20.0f && cut && toast(ev, "Geschummelt"), "Spielleiterin: \"geschummelt\" - hinausgeworfen, woanders in Level 1");
+        const world::Tile& t = s->world().tile(ifloor(now.x), ifloor(now.y));
+        check(t.open() && t.room && !(t.room->type && t.room->type->key == "garden"), "Hinauswurf: auf freiem Boden, nicht im Garden");
+        check(sounds(ev, "jester_giggle") >= 1 && sounds(ev, "jester_squeak") >= 1, "Spielleiterin: Kichern und Quietschen");
+        // gleich wieder hinauf: sie laedt so bald nicht noch einmal ein
+        const auto it2 = std::find_if(P.paintings().begin(), P.paintings().end(), [](const auto& p) { return p.jester; });
+        check(length(it2->pos - jp) > 0.5f, "Spielleiterin: danach liegt ihr Bild an einer anderen Tuer");
+        put(*s, it2->pos.x, it2->pos.y);
+        step(*s, ev, 0.5);
+        check(!P.frozen(0), "Spielleiterin: nach dem Hinauswurf eine Weile keine Einladung");
+    }
+
+    // --- Spuren an der Zimmertuer: klatschende Schritte, Krallen, Atem - nur von draussen -----------------------------------
+    {
+        std::vector<game::GameEvent> ev;
+        auto& cd = P.clawDoors()[0];
+        const vec3 out = cd.spot.pos - vec3{std::cos(cd.spot.yaw), std::sin(cd.spot.yaw), 0.0f} * 2.2f;
+        put(*s, out.x, out.y);
+        cd.cool = 0.05;
+        step(*s, ev, 6.0);
+        check(sounds(ev, "slap_step") == 5 && sounds(ev, "claw_scrape") == 2 && sounds(ev, "wet_breath") == 1,
+              "Tuerspuren: fuenf klatschende Schritte, Krallen am Blech, Atem");
+        ev.clear();
+        const vec3 in = cd.spot.pos + vec3{std::cos(cd.spot.yaw), std::sin(cd.spot.yaw), 0.0f} * 1.6f;
+        put(*s, in.x, in.y);
+        cd.cool = 0.05;
+        step(*s, ev, 6.0);
+        check(sounds(ev, "slap_step") == 0, "Tuerspuren: im Zimmer selbst ist es still");
+    }
+
+    // --- Lager eines Infizierten: der Zettel warnt (einmal) -----------------------------------------------------------------
+    {
+        std::vector<game::GameEvent> ev;
+        const auto& n = P.noteSpots()[0];
+        const vec3 q = n.pos + vec3{std::cos(n.yaw), std::sin(n.yaw), 0.0f} * 0.8f;
+        put(*s, q.x, q.y);
+        step(*s, ev, 0.5);
+        check(toast(ev, "offenen Flasche"), "Lager: der Zettel des Infizierten warnt vor offenen Flaschen");
+    }
+}
+
 int main(int argc, char** argv) {
     if (argc < 2) {
         std::printf("Aufruf: gameplay_test <data-Ordner>\n");
@@ -2699,6 +4475,13 @@ int main(int argc, char** argv) {
     testV11SoundField();        // V11: Schallausbreitung
     testV12Glb(argv[1]);        // V12: Modelle aus Blender
     testB001Sleeve(argv[1]);    // V13.2: Kapuzenjacke am gebeugten Ellbogen
+    testV133DullerArms(argv[1]);  // V13.3: Duller und Arms (Level 1)
+    testV133Wrangler(argv[1]);    // V13.3: Wrangler (Level 1, 2)
+    testV133GrowlerNguithr(argv[1]);  // V13.3: Growler, Nguithr'xurh
+    testV133Ouroboros(argv[1]);       // V13.3: Ouroboros-Arbeiter
+    testV133PlagueGoblins(argv[1]);   // V13.3: Plague Goblins, Beil
+    testV133LureTalk(argv[1]);    // V13.3: Leuchtstab (Smiler), Ansprechen (Skin-Stealer)
+    testV133Phenomena(argv[1]);   // V13.3: Erscheinungen in Level 1 (Pilz, Garden, Gemaelde, Tuerspuren)
     std::printf("%s: %d Pruefungen, %d Fehler\n", gFails ? "FEHLGESCHLAGEN" : "OK", gChecks, gFails);
     return gFails ? 1 : 0;
 }

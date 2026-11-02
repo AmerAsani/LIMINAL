@@ -42,6 +42,7 @@ bool App::parseArgs(const std::vector<std::string>& a) {
         else if (k == "--name") opt_.name = next();
         else if (k == "--difficulty") opt_.difficulty = next();
         else if (k == "--level") opt_.level = next();
+        else if (k == "--level-file") opt_.levelFile = next();  // V13.3
         else if (k == "--demo") opt_.demo = true;
         else if (k == "--benchmark") opt_.benchmark = std::atoi(next().c_str());
         else if (k == "--shot") opt_.shot = next();
@@ -240,14 +241,19 @@ void App::scriptStep() {
             using R = game::Presence::Role;
             const std::string n = name;
             const R r = n == "faceling" ? R::Faceling : n == "skinstealer" ? R::SkinStealer : n == "wretch" ? R::Wretch : n == "rat" ? R::Rat
-                        : n == "window" ? R::Window : n == "hound" ? R::Hound : n == "smiler" ? R::Smiler : n == "clump" ? R::Clump : R::Gestalt;
+                        : n == "window" ? R::Window : n == "hound" ? R::Hound : n == "smiler" ? R::Smiler : n == "clump" ? R::Clump
+                        : n == "duller" ? R::Duller : n == "arms" ? R::Arms : n == "wrangler" ? R::Wrangler
+                        : n == "growler" ? R::Growler : n == "nguithrxurh" ? R::Nguithr : n == "ouroboros" ? R::Ouroboros
+                        : n == "goblin" ? R::Goblin : R::Gestalt;  // V13.3
             auto& pr = session_->presence();
             if (!pr.has(r)) {
                 log::warn("Skript: near - kein {}", game::Presence::roleName(r));
             } else {
                 const vec3 at = pr.posOf(r);
                 auto& w = session_->world();
-                const float baseZ = r == R::Window ? at.z - 1.9f : at.z, aimZ = r == R::Window ? at.z : at.z + (r == R::Rat ? 0.1f : 1.0f);
+                float baseZ = r == R::Window ? at.z - 1.9f : at.z, aimZ = r == R::Window ? at.z : at.z + (r == R::Rat ? 0.1f : 1.0f);
+                if (r == R::Nguithr)  // V13.3: die Netzkugeln an der Decke - der Boden darunter, Blick auf die Kugeln
+                    if (const world::Tile* t0 = w.tileIfLoaded(ifloor(at.x), ifloor(at.y))) baseZ = t0->floor, aimZ = at.z - 0.6f;
                 bool placed = false;
                 // erst die gewuenschte Seite, dann reihum weitere Winkel (freie Sicht vom Auge zum Wesen)
                 for (int k = 0; k < 13 && !placed; ++k) {
@@ -345,7 +351,9 @@ void App::scriptStep() {
             // Entities nach Namen (anim::Entity); player: der Mensch
             // V13.2: neue Wesen; player = 99 (Mensch)
             const int kind = n == "hound" ? 1 : n == "moth" ? 2 : n == "gestalt" ? 3 : n == "nest" ? 4 : n == "clump" ? 5 : n == "faceling" ? 6
-                             : n == "skinstealer" ? 7 : n == "wretch" ? 8 : n == "rat" ? 9 : n == "window" ? 10 : n == "player" ? 99 : 0;
+                             : n == "skinstealer" ? 7 : n == "wretch" ? 8 : n == "rat" ? 9 : n == "window" ? 10 : n == "player" ? 99
+                             : n == "duller" ? 11 : n == "arms" ? 12 : n == "wrangler" ? 13
+                             : n == "growler" ? 14 : n == "nguithrxurh" ? 15 : n == "ouroboros" ? 16 : n == "goblin" ? 17 : 0;  // V13.3
             auto& pl = session_->player();
             vec3 at{(float)(pl.x + std::cos(pl.angle) * dist), (float)(pl.y + std::sin(pl.angle) * dist), 0.0f};
             at.z = session_->world().tile(ifloor(at.x), ifloor(at.y)).floor;
@@ -358,6 +366,16 @@ void App::scriptStep() {
             float val = 0.0f;
             if (std::sscanf(arg.c_str(), "%31s %f", key, &val) < 2 || !session_->presence().showcaseSet(key, val))
                 log::warn("Skript: figstate '{}' unbekannt oder keine Vorfuehrung", arg);
+        } else if (cmd == "ouro" && session_) {  // V13.3 (Bilder): ouro <wall|tower|fill|quick|weld|kill> <wert> - Ouroboros-Baustelle steuern
+            char key[32] = {};
+            double val = 0.0;
+            if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) < 2 || !session_->presence().ouroSet(key, val))
+                log::warn("Skript: ouro '{}' unbekannt oder keine Baustelle", arg);
+        } else if (cmd == "goblin" && session_) {  // V13.3 (Bilder): goblin <phase|mob|friendly|quick|rout> <wert> - die Bande steuern
+            char key[32] = {};
+            double val = 0.0;
+            if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) < 2 || !session_->presence().goblinSet(key, val))
+                log::warn("Skript: goblin '{}' unbekannt oder keine Bande", arg);
         } else if (cmd == "figclear" && session_) {  // V13 (Tests): Vorfuehrungen entfernen
             session_->presence().clearShowcase();
         } else if (cmd == "presence" && session_) {  // V10: Entity erscheinen lassen: presence <smiler|hound|moth|gestalt|blackout> [abstand]
@@ -378,6 +396,13 @@ void App::scriptStep() {
                 if (n == "wretch") r = R::Wretch;
                 if (n == "rat") r = R::Rat;
                 if (n == "window") r = R::Window;
+                if (n == "duller") r = R::Duller;  // V13.3
+                if (n == "arms") r = R::Arms;
+                if (n == "wrangler") r = R::Wrangler;  // V13.3
+                if (n == "growler") r = R::Growler;  // V13.3
+                if (n == "nguithrxurh") r = R::Nguithr;
+                if (n == "ouroboros") r = R::Ouroboros;  // V13.3: die Baustelle im Sektor Ouroboros
+                if (n == "goblin") r = R::Goblin;        // V13.3: eine Bande Plague Goblins (Portal ausser Sicht)
                 session_->presence().force(r, dist);
             }
         } else if (cmd == "audioinfo") {  // V11 (Tests): Zustand der Klanglandschaft ins Protokoll
@@ -446,46 +471,93 @@ void App::scriptStep() {
                       (u64)pmc.PeakWorkingSetSize >> 20, renderer_->gpuTimer().summary());
         } else if (cmd == "give" && session_) {  // V9: Item ins Inventar (Tests)
             session_->inventory().add(arg);
+        } else if (cmd == "phen" && session_) {  // V13.3 (Tests, Bilder): Erscheinungen - phen infect <s> | garden <s> | claws |
+            // look <set> <i> <abstand> [winkel grad] [hoehe]: vor eine Stelle stellen und hinsehen (set: paint, jester, fungus,
+            // note, claws, bottle, expel); jester: auf das Bild der Spielleiterin treten (session_phenomena.cpp)
+            game::Phenomena& P = session_->phenomena();
+            char what[32] = {}, set[32] = {};
+            double a = 0, d = 2.5, ang = 0, eh = 1.6;
+            int i = 0;
+            std::sscanf(arg.c_str(), "%31s", what);
+            const std::string w = what;
+            if (w == "infect" && std::sscanf(arg.c_str(), "%*s %lf", &a) == 1) P.infect(0), P.ailment(0).infectT = a;
+            else if (w == "garden" && std::sscanf(arg.c_str(), "%*s %lf", &a) == 1) P.ailment(0).garden = a;
+            else if (w == "claws") for (auto& cd : P.clawDoors()) cd.cool = 0.01;
+            else if (w == "jester" || (w == "look" && std::sscanf(arg.c_str(), "%*s %31s %d %lf %lf %lf", set, &i, &d, &ang, &eh) >= 2)) {
+                const std::string s = w == "jester" ? "jester" : set;
+                vec3 at;
+                float yaw = 0.0f;
+                bool ok = true;
+                if (s == "paint" && i < (int)P.paintings().size()) at = P.paintings()[(size_t)i].pos, yaw = P.paintings()[(size_t)i].yaw;
+                else if (s == "jester") {
+                    ok = false;
+                    for (const auto& pt : P.paintings())
+                        if (pt.jester) at = pt.pos, yaw = pt.yaw, ok = true;
+                } else if (s == "fungus" && i < (int)P.fungusZones().size()) at = P.fungusZones()[(size_t)i].pos, yaw = P.fungusZones()[(size_t)i].yaw;
+                else if (s == "note" && i < (int)P.noteSpots().size()) at = P.noteSpots()[(size_t)i].pos, yaw = P.noteSpots()[(size_t)i].yaw;
+                else if (s == "bottle" && i < (int)P.bottleSpots().size()) at = P.bottleSpots()[(size_t)i].pos, yaw = P.bottleSpots()[(size_t)i].yaw;
+                else if (s == "expel" && i < (int)P.expelSpots().size()) at = P.expelSpots()[(size_t)i].pos, yaw = P.expelSpots()[(size_t)i].yaw;
+                else if (s == "claws" && i < (int)P.clawDoors().size()) at = P.clawDoors()[(size_t)i].spot.pos, yaw = P.clawDoors()[(size_t)i].spot.yaw;
+                else ok = false;
+                if (!ok) {
+                    log::error("Skript: phen {} - keine solche Stelle", arg);
+                    scriptFailed_ = true;
+                } else {
+                    auto& pl = session_->player();
+                    const double t = yaw + ang * 0.0174533;
+                    const double px = w == "jester" ? at.x : at.x + std::cos(t) * d, py = w == "jester" ? at.y : at.y + std::sin(t) * d;
+                    pl.x = px, pl.y = py, pl.z = session_->world().tile(ifloor(px), ifloor(py)).floor;
+                    if (w != "jester") {
+                        pl.angle = std::atan2(at.y - py, at.x - px);
+                        pl.pitch = -std::atan2(eh - 0.3, std::max(0.3, d));
+                    }
+                    session_->body().reset();
+                    resetHistory_ = true;
+                    log::info("Skript: phen {} -> ({:.2f}, {:.2f}) Ziel ({:.2f}, {:.2f})", arg, px, py, at.x, at.y);
+                }
+            }
         } else if (cmd == "health" && session_) {  // V9: Health setzen (Tests)
             session_->stats().health = std::clamp(std::atof(arg.c_str()), 1.0, 100.0);
         } else if (cmd == "sanity" && session_) {  // V7: Sanity setzen (Tests)
             session_->stats().sanity = std::clamp(std::atof(arg.c_str()), 0.0, 100.0);
-        } else if (cmd == "coophost" && session_) {  // V13.2 (Tests): coophost <Port> <Datei> - diese Sitzung hosten, Schluessel in die Datei
-            char file[260] = {};
+        } else if (cmd == "coophost" && session_) {
+            // V13.2/V13.3 (Tests): coophost <Port> <Datei> [lobby] - diese Sitzung hosten (direkt auf Port oder ueber die
+            // Lobby aus koop.json); der lange Beitrittscode kommt in die Datei, sobald er da ist
+            char file[260] = {}, mode[16] = {};
             int port = 27500;
-            std::sscanf(arg.c_str(), "%d %259s", &port, file);
+            std::sscanf(arg.c_str(), "%d %259s %15s", &port, file, mode);
             std::string err;
             if (!loadNet(err)) {
                 log::error("Skript: {}", err);
                 scriptFailed_ = true;
                 continue;
             }
+            coop::NetSettings ns = netSettings(std::string(mode) == "lobby", false);
+            ns.directPort = (u16)port;
             coopHost_ = std::make_unique<coop::CoopHost>(netApi_, "Host", coopBuild());
-            if (!coopHost_->start((u16)port, 4, err)) {
+            if (!coopHost_->start(ns, 4, err)) {
                 log::error("Skript: {}", err);
                 coopHost_.reset();
                 scriptFailed_ = true;
                 continue;
             }
             coopHost_->attach(*session_, "", difficultyIndex(session_->difficulty));
-            if (FILE* f = std::fopen(file, "wb")) {
-                std::fprintf(f, "%s", coopHost_->key().text().c_str());
-                std::fclose(f);
-            }
-            log::info("Skript: Koop-Host auf Port {}", coopHost_->port());
-        } else if (cmd == "coopjoin") {  // V13.2 (Tests): coopjoin <Adresse> <Port> <Datei mit Schluessel>
-            char addr[128] = {}, file[260] = {};
+            coopKeyFile_ = file;
+            log::info("Skript: Koop-Host gestartet ({})", ns.useLobby ? "Lobby" : std::format("direkt, Port {}", coopHost_->port()));
+        } else if (cmd == "coopjoin") {
+            // V13.2/V13.3 (Tests): coopjoin <Adresse> <Port> <Datei mit Code> [lobby] - direkt zu Adresse:Port oder ueber die Lobby
+            char addr[128] = {}, file[260] = {}, mode[16] = {};
             int port = 27500;
-            std::sscanf(arg.c_str(), "%127s %d %259s", addr, &port, file);
-            std::string key;
+            std::sscanf(arg.c_str(), "%127s %d %259s %15s", addr, &port, file, mode);
+            std::string code;
             if (FILE* f = std::fopen(file, "rb")) {
                 char buf[64] = {};
                 std::fread(buf, 1, sizeof(buf) - 1, f);
                 std::fclose(f);
-                key = buf;
+                code = buf;
             }
             std::string err;
-            if (!joinCoop("Gast", addr, port, key, err)) {
+            if (!joinCoop("Gast", code, std::string(mode) == "lobby", std::format("{}:{}", addr, port), false, err)) {
                 log::error("Skript: {}", err);
                 scriptFailed_ = true;
             }
@@ -498,11 +570,67 @@ void App::scriptStep() {
             if (arg == "off") figCam_.on = false;
             else if (std::sscanf(arg.c_str(), "%f %f %f %f %f", &az, &el, &d, &h, &ahead) >= 3) figCam_ = {true, az, el, d, h, ahead};
             resetHistory_ = true;
+        } else if (cmd == "grace" && session_) {  // V13.3 (Bilder): grace <s> - so lange kein Auftritt der Regie (presence erzwingt weiter)
+            session_->presence().setGrace(std::atof(arg.c_str()));
+        } else if (cmd == "lurecam" && session_) {  // V13.3 (Bilder): lurecam <az> <el> <abstand> [hoehe] - freie Kamera auf den neuesten Leuchtstab
+            float az = 0, el = 20, d = 2.0f, h = 0.0f;
+            std::sscanf(arg.c_str(), "%f %f %f %f", &az, &el, &d, &h);
+            const auto& ls = session_->lures().lures();
+            if (ls.empty()) {
+                log::warn("Skript: lurecam - kein Leuchtstab");
+            } else {
+                const vec3 t = ls.back().pos + vec3{0, 0, h};
+                float a = az * 0.0174533f;
+                const float e = el * 0.0174533f;
+                if (az >= 900.0f && session_->presence().has(game::Presence::Role::Smiler)) {  // 1000 +/- Grad: vom Smiler aus hinter dem Stab
+                    const vec3 sp = session_->presence().posOf(game::Presence::Role::Smiler);
+                    a = std::atan2(t.y - sp.y, t.x - sp.x) + (az - 1000.0f) * 0.0174533f;
+                }
+                const vec3 c = t + vec3{std::cos(a) * std::cos(e), std::sin(a) * std::cos(e), std::sin(e)} * d, dv = t - c;
+                freeCam_ = {true, c, std::atan2(dv.y, dv.x) * 57.29578f, std::atan2(dv.z, std::max(std::hypot(dv.x, dv.y), 1e-4f)) * 57.29578f, 0.0f};
+                log::info("Skript: lurecam auf ({:.2f}, {:.2f}, {:.2f})", t.x, t.y, t.z);
+                resetHistory_ = true;
+            }
         } else if (cmd == "vmcam") {  // V13 (Tests): vmcam <az> <el> <abstand> | vmcam off - Kamera um die Hand
             float az = 0, el = 0, d = 0.5f;
             if (arg == "off") vmCam_.on = false;
             else if (std::sscanf(arg.c_str(), "%f %f %f", &az, &el, &d) >= 2) vmCam_ = {true, az, el, d};
             resetHistory_ = true;
+        } else if (cmd == "cam" || cmd == "camat") {  // V13.3 (Tests): cam x y z blick neigung [fov] | camat x y z zx zy zz [fov] | cam off
+            float v[7] = {0, 0, 0, 0, 0, 0, 0};
+            const int n = std::sscanf(arg.c_str(), "%f %f %f %f %f %f %f", &v[0], &v[1], &v[2], &v[3], &v[4], &v[5], &v[6]);
+            if (arg == "off") {
+                freeCam_.on = false;
+            } else if (cmd == "cam" && n >= 5) {
+                freeCam_ = {true, {v[0], v[1], v[2]}, v[3], v[4], n >= 6 ? v[5] : 0.0f};
+            } else if (cmd == "camat" && n >= 6) {
+                const vec3 d = vec3{v[3], v[4], v[5]} - vec3{v[0], v[1], v[2]};
+                const float h = std::sqrt(d.x * d.x + d.y * d.y);
+                freeCam_ = {true, {v[0], v[1], v[2]}, std::atan2(d.y, d.x) * 57.29578f, std::atan2(d.z, std::max(h, 1e-4f)) * 57.29578f,
+                            n >= 7 ? v[6] : 0.0f};
+            } else {
+                log::error("Skript: {} braucht Zahlen ({})", cmd, arg);
+                scriptFailed_ = true;
+            }
+            resetHistory_ = true;
+        } else if (cmd == "testlight") {  // V13.3 (Tests): testlight x y z zx zy zz [staerke] [kegel] | testlight off
+            float v[8] = {0, 0, 0, 1, 0, 0, 1, 28};
+            const int n = std::sscanf(arg.c_str(), "%f %f %f %f %f %f %f %f", &v[0], &v[1], &v[2], &v[3], &v[4], &v[5], &v[6], &v[7]);
+            if (arg == "off") testLight_.on = false;
+            else if (n >= 6) testLight_ = {true, {v[0], v[1], v[2]}, normalize(vec3{v[3] - v[0], v[4] - v[1], v[5] - v[2]}), v[6], v[7]};
+            else if (arg.rfind("eye", 0) == 0 && session_) {  // V13.3 (Bilder): testlight eye [staerke] [kegel] - ueber dem Kopf in Blickrichtung
+                float pw = 0.6f, cone = 40.0f;
+                std::sscanf(arg.c_str() + 3, "%f %f", &pw, &cone);
+                const auto& pl = session_->player();
+                const vec3 f = forwardFromAngles((float)pl.angle, (float)pl.pitch);
+                testLight_ = {true, session_->body().eye() + vec3{0, 0, 0.25f} + f * 0.3f, f, pw, cone};  // vor dem Kopf (kein Schatten des eigenen Kopfes)
+            }
+            resetHistory_ = true;
+        } else if (cmd == "worldlight") {  // V13.3 (Tests): Leuchten der Welt skalieren (0 = dunkel)
+            worldLight_ = (float)std::atof(arg.c_str());
+            resetHistory_ = true;
+        } else if (cmd == "propdump" && session_) {  // V13.3 (Tests): Ausstattung, Schilder und Raeume als JSON
+            propDump(arg);
         } else if (cmd == "quit") {
             quit_ = true;
             return;
@@ -523,6 +651,17 @@ bool App::init(std::string& err) {
     }
     settings_.fromJson(opt_.overrides);
     if (testRun()) opt_.noMouse = true;  // reproduzierbare Aufnahmen und Tests
+    // V13.3: --script @datei - Befehle aus einer Datei (lange Bilderfolgen; Zeilenenden gelten wie ';')
+    if (opt_.script.size() > 1 && opt_.script[0] == '@') {
+        if (auto bytes = paths::readFile(opt_.script.substr(1))) {
+            opt_.script.assign(bytes->begin(), bytes->end());
+            for (char& ch : opt_.script)
+                if (ch == '\n' || ch == '\r') ch = ';';
+        } else {
+            err = "Skriptdatei fehlt: " + opt_.script.substr(1);
+            return false;
+        }
+    }
     for (size_t a = 0, b; a <= opt_.script.size() && !opt_.script.empty(); a = b + 1) {
         b = opt_.script.find(';', a);
         if (b == std::string::npos) b = opt_.script.size();
@@ -531,6 +670,11 @@ bool App::init(std::string& err) {
     if (opt_.fast) settings_.render.renderScale = 0.5f;
     if (opt_.mode >= 0) settings_.render.displayMode = opt_.mode;
     if (!content_.load(paths::dataDir(), err)) return false;
+    if (!opt_.levelFile.empty()) {  // V13.3 (Kontaktboegen): Testszene aus einer Datei
+        std::string id;
+        if (!content_.addLevelFile(opt_.levelFile, id, err)) return false;
+        opt_.level = id;
+    }
     prefabs_.loadDirectory(paths::join(paths::dataDir(), "prefabs"));
     input_.loadBindings(paths::join(paths::dataDir(), "input.json"));
     jobs_ = std::make_unique<JobSystem>();
@@ -1242,7 +1386,7 @@ void App::handleEvents() {
                 break;
             case game::GameEvent::InventoryFull: ui_.toast(e.text, e.duration); break;
             case game::GameEvent::Consume:
-                ui_.toast(e.text, e.duration);
+                if (!e.text.empty()) ui_.toast(e.text, e.duration);  // V13.3: das Beil schwingt ohne Meldung
                 if (!e.sound.empty()) audio_->play(e.sound, 0.9f);
                 break;
             case game::GameEvent::Footstep: {
@@ -1348,6 +1492,18 @@ void App::handleEvents() {
                 if (e.role == (int)game::Presence::Role::Clump) {  // V11: Buendel - nasser Griff, Knacken, Brüllen tiefer
                     audio_->play("clump_grab", 1.0f, 1.0f, audio::Bus::Effects);
                     audio_->play("scare_hound", 0.85f, 0.78f, audio::Bus::Effects);
+                } else if (e.role == (int)game::Presence::Role::Duller) {  // V13.3: Griff durch die Wand, Beton bricht, Schleifen
+                    audio_->play("duller_grab", 1.0f, 1.0f, audio::Bus::Effects);
+                } else if (e.role == (int)game::Presence::Role::Arms) {  // V13.3: Krallen, dann Schlaege im Schacht, die sich entfernen
+                    audio_->play("arms_take", 1.0f, 1.0f, audio::Bus::Effects);
+                } else if (e.role == (int)game::Presence::Role::Wrangler) {  // V13.3: aus dem Gang geschnappt
+                    audio_->play("wrangler_snatch", 1.0f, 1.0f, audio::Bus::Effects);
+                } else if (e.role == (int)game::Presence::Role::Growler) {  // V13.3: Drahtspitzen, Rauschen
+                    audio_->play("growler_impale", 1.0f, 1.0f, audio::Bus::Effects);
+                    audio_->play("scare_hound", 0.7f, 0.66f, audio::Bus::Effects);
+                } else if (e.role == (int)game::Presence::Role::Nguithr) {  // V13.3: frisst bei lebendigem Leib
+                    audio_->play("ngui_feed", 1.0f, 1.0f, audio::Bus::Effects);
+                    audio_->play("scare_smiler", 0.6f, 1.25f, audio::Bus::Effects);
                 } else {
                     audio_->play(e.role == (int)game::Presence::Role::Smiler ? "scare_smiler" : "scare_hound", 1.0f, 1.0f, audio::Bus::Effects);
                 }
@@ -1378,15 +1534,26 @@ void App::handleEvents() {
                         if (role == Role::SkinStealer) at("hound_step", e.pos, 0.55f + 0.3f * e.intensity, 22.0f, 0.62f + 0.06f * var);
                         if (role == Role::Wretch) at(stepSound(e.surface), e.pos, 0.3f + 0.4f * e.intensity, 18.0f, e.intensity < 0.5f ? 0.7f : 0.9f + 0.1f * var);
                         if (role == Role::Rat) at("hound_step", e.pos, 0.08f, 6.0f, 2.2f + 0.3f * var);
+                        if (role == Role::Duller) at("duller_step", e.pos, 0.3f + 0.3f * e.intensity, 14.0f, 0.95f + 0.1f * var);  // V13.3
+                        // V13.3: Growler - dumpfer, weicher Aufschlag, Draht kratzt, das Gewirr raschelt nach
+                        if (role == Role::Growler) at(std::format("growler_drag_{}", n % 3), e.pos, 0.35f + 0.5f * e.intensity, 22.0f, 0.88f + 0.16f * var);
+                        // V13.3: Ouroboros-Arbeiter - schwere Gummistiefel
+                        if (role == Role::Ouroboros) at(std::format("ouro_step_{}", n % 3), e.pos, 0.3f + 0.35f * e.intensity, 18.0f, 0.92f + 0.12f * var);
+                        // V13.3: Plague Goblins - Krallen tickern auf dem Boden, der Umhang streift nach
+                        if (role == Role::Goblin) at(std::format("goblin_step_{}", n % 3), e.pos, 0.18f + 0.35f * e.intensity, 12.0f, 0.94f + 0.14f * var);
                         break;
                     // V11 Buendel: Klopfen im Schacht, Herabfallen, Schleifen, Ausholen
                     case PE::Knock: at(std::format("clump_knock_{}", n % 3), e.pos, 0.9f, 30.0f); break;
                     case PE::Drop:
+                        if (role == Role::Arms) {  // V13.3: die Krallen schnappen ins Leere
+                            at("arms_snap", e.pos, 0.9f, 16.0f, 0.95f + 0.1f * var);
+                            break;
+                        }
                         at(std::format("clump_slap_{}", n % 5), e.pos, 1.0f, 26.0f, 0.8f);
                         at(std::format("clump_crack_{}", n % 3), e.pos, 0.8f, 22.0f);
                         break;
                     case PE::Drag: at(std::format("clump_drag_{}", n % 2), e.pos, 0.55f, 18.0f, 0.9f + 0.2f * var); break;
-                    case PE::Windup: at("clump_reach", e.pos, 1.0f, 20.0f); break;
+                    case PE::Windup: at(role == Role::Arms ? "arms_hiss" : "clump_reach", e.pos, role == Role::Arms ? 0.8f : 1.0f, 20.0f); break;
                     case PE::Breath: at("hound_pant", e.pos + vec3{0, 0, 0.5f}, 0.75f, 12.0f); break;
                     case PE::Growl: at("hound_growl", e.pos + vec3{0, 0, 0.5f}, 0.45f + 0.5f * e.intensity, 22.0f); break;
                     case PE::Whine: at("hound_whine", e.pos + vec3{0, 0, 0.5f}, 0.6f, 26.0f); break;
@@ -1406,14 +1573,39 @@ void App::handleEvents() {
                     case PE::Vision: audio_->play("gestalt_sight", 0.4f); break;
                     // V11 (F2): das Laecheln oeffnet sich - Ankuendigung des Zugriffs; beruhigt: es verklingt
                     case PE::Announce: at("smiler_open", e.pos, 1.0f, 30.0f); break;
-                    case PE::Calm: at("smiler_fade", e.pos, 0.4f, 20.0f); break;
+                    case PE::Calm:
+                        if (role == Role::Wrangler) at("wrangler_settle", e.pos, 0.8f, 30.0f);  // V13.3: es hat einen verloren
+                        else at("smiler_fade", e.pos, 0.4f, 20.0f);
+                        break;
                     case PE::Lost: break;
                     // V13.2: neue Wesen
                     case PE::Hit:
                         at(std::format("hit_body_{}", n % 2), e.pos, 0.9f, 14.0f, 0.9f + 0.15f * var);
                         hitFlash_ = std::max(hitFlash_, std::clamp(e.intensity / 40.0f, 0.2f, 0.7f));  // nur eigene Treffer kommen hier an
                         break;
-                    case PE::Mimic: at(std::format("skin_mimic_{}", n % 6), e.pos, 0.55f + 0.3f * e.intensity, 26.0f, 0.97f + 0.06f * var); break;
+                    case PE::Mimic:
+                        if (role == Role::Goblin) {  // V13.3: die Torwaechterin versucht ein Wort (heiser, gekraechzt)
+                            at(std::format("goblin_mimic_{}", n % 2), e.pos, 0.85f, 18.0f, 0.97f + 0.06f * var);
+                            break;
+                        }
+                        at(std::format("skin_mimic_{}", n % 6), e.pos, 0.55f + 0.3f * e.intensity, 26.0f, 0.97f + 0.06f * var);
+                        break;
+                    // V13.3: Plague Goblins - Kraechzen/Schnattern, Rucksack, Aufheben, Drohen, Sprung, Portal, Tod
+                    case PE::Croak:
+                        if (e.intensity < 0.25f) at(std::format("goblin_chatter_{}", n % 3), e.pos, 0.5f, 16.0f, 0.93f + 0.14f * var);
+                        else if (e.intensity < 0.75f) at(std::format("goblin_croak_{}", n % 3), e.pos, 0.8f, 26.0f, 0.94f + 0.12f * var);
+                        else at(std::format("goblin_squawk_{}", n % 2), e.pos, 1.0f, 42.0f, 0.96f + 0.08f * var);
+                        break;
+                    case PE::Steal:
+                        if (e.intensity < 0.25f) at("goblin_rummage", e.pos, 0.95f, 6.0f);
+                        else if (e.intensity < 0.75f) at(std::format("goblin_chatter_{}", n % 3), e.pos, 0.8f, 12.0f, 1.1f);
+                        else at("goblin_stash", e.pos, 0.9f, 8.0f);
+                        break;
+                    case PE::Take: at("goblin_stash", e.pos, 0.6f, 10.0f, 0.95f + 0.1f * var); break;
+                    case PE::Hiss: at("goblin_hiss", e.pos, 1.0f, 24.0f); break;
+                    case PE::Screech: at(std::format("goblin_screech_{}", n % 2), e.pos, 1.0f, 28.0f, 0.96f + 0.08f * var); break;
+                    case PE::Portal: at(e.intensity > 0.5f ? "goblin_portal_open" : "goblin_portal_close", e.pos, 1.0f, 46.0f); break;
+                    case PE::Perish: at("goblin_death", e.pos, 1.0f, 30.0f); break;
                     case PE::Whisper: at(std::format("window_whisper_{}", n % 4), e.pos, 0.35f + 0.5f * e.intensity, 12.0f); break;
                     case PE::Plead: at(std::format("wretch_plead_{}", n % 3), e.pos, 0.7f, 20.0f, 0.95f + 0.1f * var); break;
                     case PE::Gurgle:
@@ -1424,10 +1616,95 @@ void App::handleEvents() {
                         if (e.intensity > 0.75f) at(std::format("faceling_outburst_{}", n % 2), e.pos, 0.8f, 24.0f, 0.95f + 0.1f * var);
                         else at(std::format("faceling_hum_{}", n % 4), e.pos, 0.4f + 0.4f * e.intensity, 14.0f, 0.95f + 0.1f * var);
                         break;
-                    case PE::Squeak: at(std::format("rat_squeak_{}", n % 4), e.pos, 0.25f + 0.5f * e.intensity, 12.0f, 0.95f + 0.1f * var); break;
+                    case PE::Squeak:
+                        if (role == Role::Wrangler) at(std::format("wrangler_young_{}", n % 4), e.pos, 0.3f + 0.6f * e.intensity, 12.0f, 0.95f + 0.1f * var);  // V13.3
+                        else at(std::format("rat_squeak_{}", n % 4), e.pos, 0.25f + 0.5f * e.intensity, 12.0f, 0.95f + 0.1f * var);
+                        break;
                     case PE::Scream: at("rat_scream", e.pos, 1.0f, 40.0f); break;
                     case PE::Swing: at("stone_swing", e.pos, 0.8f, 12.0f, 0.95f + 0.1f * var); break;
                     case PE::Pull: at("window_pull", e.pos, 0.9f, 14.0f); break;
+                    // V13.3: Duller (Schaben in der Wand, Putz, Durchbruch), Arms (Schaben im Schacht, Lueftung, Schrei im Licht)
+                    case PE::Scrape:
+                        if (role == Role::Duller) at(std::format("duller_scrape_{}", n % 4), e.pos, 0.35f + 0.55f * e.intensity, 12.0f, 0.95f + 0.1f * var);
+                        else at(std::format("arms_scrape_{}", n % 4), e.pos, 0.3f + 0.35f * e.intensity, 14.0f, 0.95f + 0.1f * var);
+                        break;
+                    case PE::Bulge: at(std::format("duller_bulge_{}", n % 2), e.pos, 0.6f + 0.4f * e.intensity, 14.0f); break;
+                    case PE::Burst:
+                        if (role == Role::Duller) at("duller_burst", e.pos, 1.0f, 30.0f);
+                        else if (role == Role::Wrangler) at(std::format("wrangler_burst_{}{}", e.intensity > 0.75f ? 'm' : 'f', n % 2), e.pos, 1.0f, 40.0f);  // V13.3
+                        else at("arms_vent", e.pos, 0.35f, 9.0f);
+                        break;
+                    case PE::Burn: at("arms_burn", e.pos, 1.0f, 30.0f); break;
+                    case PE::Retract: at(role == Role::Duller ? "duller_retract" : "arms_retract", e.pos, 0.7f * e.intensity + 0.2f, 16.0f); break;
+                    // V13.3: Wrangler - Stoesse in der Tiefe, Durchbruch, Gleiten und Stoehnen, Ankuendigung, Versinken
+                    case PE::Tremor: at(std::format("wrangler_tremor_{}", n % 3), e.pos, 0.45f + 0.55f * e.intensity, 60.0f, 0.92f + 0.12f * var); break;
+                    case PE::Breach: at(std::format("wrangler_breach_{}", n % 2), e.pos, 1.0f, 50.0f); break;
+                    case PE::Slither:
+                        if (e.intensity > 0.75f) at(std::format("wrangler_groan_{}", n % 3), e.pos, 0.9f, 60.0f, 0.95f + 0.08f * var);
+                        else at(std::format("wrangler_squelch_{}", n % 4), e.pos, 0.6f, 22.0f, 0.9f + 0.2f * var);
+                        break;
+                    case PE::Sense:
+                        at(std::format("wrangler_sense_{}", n % 2), e.pos, 1.0f, 30.0f);
+                        if (e.intensity < 0.75f) at(std::format("wrangler_clack_{}", n % 3), e.pos, 0.8f, 20.0f);
+                        break;
+                    case PE::Sink: at(std::format("wrangler_sink_{}", n % 2), e.pos, 0.9f, 50.0f); break;
+                    // V13.3: Growler, Nguithr'xurh
+                    case PE::Click: at(std::format("growler_click_{}", n % 4), e.pos, 0.45f + 0.4f * e.intensity, 26.0f, 1.15f - 0.3f * e.intensity + 0.05f * var); break;
+                    case PE::Lurch: at("growler_surge", e.pos, 1.0f, 34.0f); break;
+                    case PE::Merge: at("growler_merge", e.pos, 1.0f, 40.0f); break;
+                    case PE::Collapse: at("growler_collapse", e.pos, 0.5f + 0.5f * e.intensity, 30.0f); break;
+                    case PE::Snip: at("ngui_snip", e.pos, 0.45f, 9.0f, 0.95f + 0.1f * var); break;
+                    case PE::SacBurst:
+                        at(std::format("ngui_burst_{}", n % 2), e.pos, 0.75f, 14.0f, 0.95f + 0.1f * var);
+                        // Koop (Gast): die Kugel platzt auf mir - die Wirkung rechnet der Host, das Bild hier selbst
+                        if (coopClient_ && session_) {
+                            const auto& pl = session_->player();
+                            if (std::hypot(pl.x - e.pos.x, pl.y - e.pos.y) < 1.25 && std::fabs(pl.z - e.pos.z) < 0.7)
+                                session_->presence().addDose(session_->netSelfId, 0.3f);
+                        }
+                        break;
+                    case PE::Skitter: at(std::format("ngui_skitter_{}", n % 3), e.pos, 0.2f + 0.6f * e.intensity, 9.0f, 0.9f + 0.2f * var); break;
+                    case PE::Stridulate:
+                        if (e.intensity > 0.6f) at("ngui_chitter_1", e.pos, 0.85f, 14.0f, 0.95f + 0.1f * var);
+                        else at("ngui_chitter_0", e.pos, 0.35f + 0.4f * e.intensity, 11.0f, 0.9f + 0.2f * var);
+                        break;
+                    // V13.3: Ouroboros-Arbeiter - Werkzeug, Maschinen, Warnklang, Geruest, Stimmen, Schub, Vergehen
+                    case PE::Work:
+                        if (e.intensity < 0.12f) at(std::format("ouro_tap_{}", n % 3), e.pos, 0.7f, 28.0f, 0.95f + 0.1f * var);
+                        else if (e.intensity < 0.37f) at(std::format("ouro_trowel_{}", n % 2), e.pos, 0.5f, 14.0f, 0.95f + 0.1f * var);
+                        else if (e.intensity < 0.62f) at(std::format("ouro_set_{}", n % 2), e.pos, 0.6f, 18.0f, 0.95f + 0.1f * var);
+                        else if (e.intensity < 0.87f) at("ouro_pry", e.pos, 0.8f, 26.0f);
+                        else at(std::format("ouro_break_{}", n % 2), e.pos, 0.9f, 34.0f);
+                        break;
+                    case PE::Weld:
+                        if (e.intensity < 0.5f) at("ouro_ignite", e.pos, 0.7f, 20.0f);
+                        else at(std::format("ouro_weld_{}", n % 2), e.pos, 0.55f, 20.0f, 0.97f + 0.06f * var);
+                        break;
+                    case PE::Jackhammer: at(std::format("ouro_jack_{}", n % 2), e.pos, 1.0f, 46.0f, 0.98f + 0.04f * var); break;
+                    case PE::Warn: at(std::format("ouro_warn_{}", e.intensity < 0.25f ? 0 : (e.intensity < 0.75f ? 1 : 2)), e.pos, 0.9f, 40.0f); break;
+                    case PE::Creak: at(std::format("ouro_creak_{}", n % 2), e.pos, 1.0f, 36.0f); break;
+                    case PE::Crash: at(e.intensity > 0.75f ? "ouro_crash_0" : "ouro_crash_1", e.pos, 1.0f, e.intensity > 0.75f ? 55.0f : 40.0f); break;
+                    case PE::Murmur:
+                        if (e.intensity > 0.75f) at(std::format("ouro_murmur_{}", n % 6), e.pos, 0.85f, 7.0f, 0.95f + 0.1f * var);
+                        else at(std::format("ouro_murmur_{}", n % 6), e.pos, 0.5f, 18.0f, 0.92f + 0.16f * var);
+                        break;
+                    case PE::Shove: at("ouro_shove", e.pos, 0.9f, 6.0f); break;
+                    case PE::Dissolve: at("ouro_dissolve", e.pos, 0.8f, 26.0f); break;
+                    // V13.3: Smiler am Leuchtkoeder, Skin-Stealer antwortet / stuermt los (KREATUR_Smiler.md, KREATUR_SkinStealer.md)
+                    case PE::Lured:
+                        at("smiler_lured", e.pos, 0.75f, 24.0f);
+                        ui_.toast(session_->world().level().smilerBait == 1 ? "Der Smiler stutzt nur – hier lässt er sich kaum ablenken."
+                                                                             : "Der Smiler wendet sich dem Licht zu – jetzt ruhig weg.",
+                                  3.2f);
+                        break;
+                    case PE::Reply: {  // Gast: ohne Angabe (intensity 1) - irgendeine der Antworten
+                        const int k = e.intensity < 0.99f ? (int)(e.intensity * 16.0f) : (int)(n % 12);
+                        at(std::format("skin_reply_{}", std::clamp(k, 0, 11)), e.pos, 0.85f, 24.0f);
+                        static bool replyHint = false;  // einmal je Spielstart: der Rat des Wikis (Level 1)
+                        if (!replyHint) replyHint = true, ui_.toast("Das ist kein Mensch. Ruhig zurückweichen – nicht rennen, nicht noch einmal ansprechen.", 4.5f);
+                        break;
+                    }
+                    case PE::Shriek: at("skin_shriek", e.pos, 1.0f, 34.0f); break;
                     default: break;
                 }
                 break;
@@ -1521,7 +1798,31 @@ void App::updateAudio(double dt) {
         const bool uw = s.underwater() && !st.dead;
         if (uw && uwId < 0) uwId = audio_->startLoop("underwater", 0.5f, audio::Bus::Effects);
         if (!uw && uwId >= 0) audio_->stopLoop(uwId), uwId = -1;
-        if (!st.dead) audio_->setMuffle(uw ? 0.8f : 0.0f);
+        // V13.3: betaeubt (Nguithr'xurh) klingt alles dumpf
+        // V13.3: Fieber und Rinde in den Ohren (Erscheinungen)
+        if (!st.dead) audio_->setMuffle(std::max({uw ? 0.8f : 0.0f, 0.6f * s.presence().stupor(s.netSelfId), s.phenomena().muffle(0)}));
+    }
+    // V13.3: das Rauschen eines Growlers - im Kopf (ohne Richtung), je naeher, desto lauter; die Betaeubung klingt in den Ohren
+    {
+        static int statId = -1, dazeId = -1, gen13 = -1;
+        if (gen13 != audioGen_) gen13 = audioGen_, statId = dazeId = -1;
+        const float stc = st.dead || worldPaused ? 0.0f : s.presence().staticLevel();
+        if (stc > 0.02f && statId < 0) {
+            statId = audio_->startLoop("growler_static", 0.0f, audio::Bus::Creatures);
+            audio_->setLoopFadeIn(statId, 0.8f);
+        }
+        if (stc <= 0.01f && statId >= 0) audio_->stopLoop(statId), statId = -1;
+        if (statId >= 0) {
+            audio_->setLoopVolume(statId, std::min(1.0f, 0.12f + 0.95f * stc));
+            audio_->setLoopPitch(statId, 0.9f + 0.2f * stc);
+        }
+        const float daze = st.dead ? 0.0f : s.presence().stupor(s.netSelfId);
+        if (daze > 0.05f && dazeId < 0) {
+            dazeId = audio_->startLoop("ngui_daze", 0.0f, audio::Bus::Effects);
+            audio_->setLoopFadeIn(dazeId, 2.0f);
+        }
+        if (daze <= 0.03f && dazeId >= 0) audio_->stopLoop(dazeId), dazeId = -1;
+        if (dazeId >= 0) audio_->setLoopVolume(dazeId, std::min(1.0f, 0.2f + 0.8f * daze));
     }
     // V9/V10: jagt eine Entity, liegt ein tiefes Brummen an ihrer Stelle; Herzschlag, wenn sie nah ist;
     // der Schwarm flattert; draussen: Wind
@@ -1583,6 +1884,7 @@ void App::updateAudio(double dt) {
         soundscape_.setBedDuck(outside || st.dead ? 1.0f
                                                   : std::max({std::clamp(s.blackout().amount * 0.7f, 0.0f, 0.7f), prox * 0.5f, hushAmt * 0.75f}));
     }
+    app::wranglerLoops(*audio_, soundscape_, s, ear, audioGen_, st.dead);  // V13.3: Rumpeln, Leib, Sog (app/wrangler_audio.cpp)
     // V6: Keuchen nach dem Sprinten. V11: einzelne Atemzuege (Ein- und Ausatmen), je atemloser desto
     // schneller und lauter
     float puff = (float)st.breathless();
@@ -1682,6 +1984,20 @@ void App::renderWorld(double dt, bool clean) {
             cam.pitch = (float)p.pitch;
             cam.fovY = fovY();
         }
+        if (freeCam_.on) {  // V13.3 (Tests): freie Kamera
+            cam.pos = freeCam_.pos;
+            cam.yaw = freeCam_.yaw * 0.0174533f;
+            cam.pitch = freeCam_.pitch * 0.0174533f;
+            cam.roll = 0.0f;
+            if (freeCam_.fov > 1.0f) cam.fovY = freeCam_.fov * 0.0174533f;
+        }
+        if (playing && !freeCam_.on && !figCam_.on && !vmCam_.on) {  // V13.3: das Bild schwankt (Rauschen), traege (Betaeubung)
+            const float stc = s.presence().staticLevel(), daze = s.presence().stupor(s.netSelfId), t = (float)time_;
+            cam.roll += stc * (0.05f * std::sin(t * 2.3f) + 0.025f * std::sin(t * 7.9f)) + daze * 0.07f * std::sin(t * 0.6f);
+            cam.yaw += stc * 0.012f * std::sin(t * 13.0f) * std::sin(t * 3.1f) + daze * 0.03f * std::sin(t * 0.43f);
+            cam.pitch += daze * 0.025f * std::sin(t * 0.51f + 1.0f);
+            cam.fovY *= 1.0f + 0.04f * stc * std::sin(t * 4.0f) + 0.05f * daze;
+        }
         if (playing && coop()) {  // V13.2: Namen ueber den Mitspielern (nach allen Kameras; dieselben Matrizen wie das Bild)
             std::vector<ui::Ui::NameTag> tags;
             const float aspect = (float)window_.width() / (float)std::max(1, window_.height());
@@ -1715,6 +2031,11 @@ void App::renderWorld(double dt, bool clean) {
         dim += ((menu ? 1.0f : 0.0f) - dim) * (float)std::min(1.0, dt * 8.0);
         sp.menuDim = state_ == State::Title ? 0.7f : dim * 0.85f;
         sp.desaturate = (float)std::clamp((25.0 - st.sanity) / 25.0, 0.0, 1.0) * 0.45f;
+        if (state_ == State::Playing) {  // V13.3: Pilz, Garden, Einladung der Spielleiterin (session_phenomena.cpp)
+            sp.fungus = s.phenomena().fungusFx(0);
+            sp.garden = s.phenomena().gardenFx(0);
+            sp.jester = s.phenomena().jesterFx(0);
+        }
         // V9/V10: eine nahe, jagende Entity entzieht dem Bild die Farbe; ein Angriff faerbt den Rand rot
         if (playing) {
             sp.desaturate = std::min(0.85f, sp.desaturate + s.presence().threatProximity() * 0.4f);
@@ -1730,6 +2051,22 @@ void App::renderWorld(double dt, bool clean) {
         sp.moodExposure = mood;
         const float glow = playing ? s.escapeGlow() : 0.0f;  // V9: die Kabine wird immer heller
         if (glow > 0.0f) sp.moodExposure = mood * (1.0f + 2.2f * glow * glow), sp.desaturate = std::max(sp.desaturate, 0.5f * glow);
+        // V13.3: Rauschen eines Growlers - Bildrauschen wie zwischen zwei Sendern, Farbsaeume, die Farbe weicht; Betaeubung
+        // (Nguithr'xurh) - dunkler, weichgezeichnet, entsaettigt
+        if (playing) {
+            const float stc = s.presence().staticLevel(), daze = s.presence().stupor(s.netSelfId);
+            if (stc > 0.0f) {
+                const float flick = 0.7f + 0.3f * std::sin((float)time_ * 37.0f) * std::sin((float)time_ * 11.0f);
+                sp.grainBoost = 9.0f * stc * stc * flick;
+                sp.chromaBoost = 5.0f * stc;
+                sp.desaturate = std::max(sp.desaturate, 0.55f * stc);
+            }
+            if (daze > 0.0f) {
+                sp.menuDim = std::max(sp.menuDim, 0.55f * smoothstep(0.15f, 1.0f, daze));
+                sp.desaturate = std::max(sp.desaturate, 0.45f * daze);
+                sp.moodExposure *= 1.0f - 0.35f * daze;
+            }
+        }
         // V11: Schreck - weisser Blitz in den ersten Bildern, roter Rand, danach fast schwarz
         if (playing && scareT_ >= 0.0) {
             const float pop = std::exp(-(float)scareT_ * 11.0f);
@@ -1755,6 +2092,8 @@ void App::renderWorld(double dt, bool clean) {
         for (auto& v : visible_) {
             if (*v.meshId == -2) {
                 *v.meshId = renderer_->meshId(*v.model);
+                if (*v.meshId < 0 && v.model->rfind("prop:", 0) == 0)  // V13.3: bewegliche Ausstattung (Gemaelde)
+                    *v.meshId = renderer_->propMesh(v.model->substr(5), s.world().bank());
                 // V13: Nachweis, welches Netz fuer ein Wesen gezeichnet wird (einmal je Name; Quelle steht beim Hochladen)
                 if (v.model->rfind("ent_", 0) == 0) {
                     static std::set<std::string> logged;
@@ -1770,6 +2109,7 @@ void App::renderWorld(double dt, bool clean) {
                 md.material = v.material == game::kShadowLook ? (int)gfx::FM_ENT_SHADOW : v.material;  // V10
                 md.clip = v.clip;  // V13
                 md.dualQuat = v.dualQuat;  // V13.2
+                md.fx = v.fx;              // V13.3: Pilz, Ranken (KREATUR_Crawler.md)
                 draws_.push_back(md);
             }
         }
@@ -1815,6 +2155,21 @@ void App::renderWorld(double dt, bool clean) {
                 L.shadows = ++others <= 2;
                 sp.extraLights.push_back(L);
             }
+            // V13.3: Leuchtstaebe (geworfen, in der Hand) - gruenes Licht nach allen Seiten, die zwei naechsten mit Schatten
+            std::vector<game::GameSession::GlowLight> glows;
+            s.glowLights(glows, 30.0f);
+            for (size_t gi = 0; gi < glows.size() && gi < 4 && sp.extraLights.size() < 9; ++gi) {
+                gfx::ExtraLight L;
+                L.pos = glows[gi].pos;
+                L.dir = {0.0f, 0.0f, 1.0f};
+                L.color = vec3{0.34f, 1.0f, 0.22f} * (0.8f * glows[gi].power);
+                L.range = 2.5f + 4.5f * glows[gi].power;
+                L.spill = 1.0f;
+                L.size = 0.06f;
+                L.soft = 0.12f;
+                L.shadows = gi < 2;
+                sp.extraLights.push_back(L);
+            }
         }
         // V8: Kabinenlicht der Aufzuege in der Naehe (offen oder man steht drin)
         elevLights_.clear();
@@ -1851,6 +2206,22 @@ void App::renderWorld(double dt, bool clean) {
             L.shadows = false;
             sp.extraLights.push_back(L);
         }
+        // V13.3: Ouroboros-Baustelle - Lichtbogen beim Schweissen (kalt, flackernd), Warnleuchten (bernstein, blinkend)
+        ouroLights_.clear();
+        if (playing) s.presence().ouroLights(ouroLights_, cam.pos);
+        for (const auto& [lp, col] : ouroLights_) {
+            if (sp.extraLights.size() >= 10) break;
+            gfx::ExtraLight L;
+            L.pos = lp;
+            L.dir = {0.0f, 0.0f, -1.0f};
+            L.color = col;
+            L.range = 7.0f;
+            L.spill = 1.0f;
+            L.size = 0.05f;
+            L.soft = 0.3f;
+            L.shadows = false;
+            sp.extraLights.push_back(L);
+        }
         // V11: Level 6 - Tasten: was in Armlaenge ist, zeichnet sich ganz schwach ab (kein Schatten, kein Glanz)
         if (playing && s.world().level().touchLight) {
             gfx::ExtraLight L;
@@ -1864,11 +2235,29 @@ void App::renderWorld(double dt, bool clean) {
             L.shadows = false;
             sp.extraLights.push_back(L);
         }
+        // V13.3 (Tests): Testlampe (wie die Taschenlampe, frei gestellt) und Leuchten der Welt
+        if (testLight_.on) {
+            gfx::ExtraLight L;
+            L.pos = testLight_.pos;
+            L.dir = testLight_.dir;
+            L.color = vec3{1.0f, 0.93f, 0.8f} * (3.6f * testLight_.power);
+            L.range = 24.0f;
+            L.spot = true;
+            L.cosOuter = std::cos(testLight_.cone * 0.0174533f);
+            L.cosInner = std::cos(testLight_.cone * 0.0174533f * 0.46f);
+            L.soft = 0.3f;
+            L.size = 0.012f;
+            sp.extraLights.insert(sp.extraLights.begin(), L);
+        }
+        sp.worldLightScale = worldLight_;
         // V7: Stromausfall (Halluzination)
         sp.blackoutSeed = s.blackout().seed;
         sp.blackoutAmount = s.blackout().amount;
         sp.blackoutOrigin = s.blackout().origin;  // V11: Welle
         sp.blackoutFront = s.blackout().front;
+        // V13.3: Beben (Wrangler) - Staub rieselt
+        dustFall_ += (float)dt * (0.9f * s.presence().quake());
+        sp.dustFall = dustFall_, sp.dustBoost = s.presence().quake();
         // V7: Notausgaenge - das gruene Schild faerbt Wand und Boden davor
         exitSigns_.clear();
         s.exitSigns(exitSigns_, 40.0f);
@@ -1885,8 +2274,75 @@ void App::renderWorld(double dt, bool clean) {
             L.shadows = false;
             sp.extraLights.push_back(L);
         }
-        if (clean) sp.menuDim = sp.redEdge = sp.desaturate = 0.0f;
+        if (clean) sp.menuDim = sp.redEdge = sp.desaturate = sp.fungus = sp.garden = sp.jester = 0.0f;
         renderer_->renderScene(cam, sp, draws_);
+    }
+}
+
+// V13.3 (Kontaktboegen, Objektpruefung, Schilderzaehlung): alles, was die Ebene an Ausstattung zeigt, je Stueck mit Lage,
+// Boden und Decke der Kachel, Abstand zur Wand hinter dem Ursprung und Hoehe des Modells; dazu Notausgaenge und Raeume.
+// Nur feste Karten (die ganze Karte liegt in Sektor 0,0).
+void App::propDump(const std::string& path) {
+    auto& s = *session_;
+    auto& w = s.world();
+    const world::Sector& sec = w.sector(0, 0);
+    std::string out = std::format("{{\"level\":\"{}\",\"props\":[", w.level().id);
+    int n = 0;
+    for (const auto& pr : sec.props) {
+        std::string name;
+        int variant = 0;
+        if (!pr.model || !props::modelName(pr.model, name, variant)) name = "?";
+        const world::Tile& t = w.tile(ifloor(pr.x), ifloor(pr.y));
+        // Wand hinter dem Ursprung (gegen die Blickrichtung des Modells) und rundum
+        auto solidAt = [&](double x, double y) { return w.tile(ifloor(x), ifloor(y)).solid(); };
+        double back = 9.0, around = 9.0;
+        for (double d = 0.0; d <= 3.0; d += 0.02)
+            if (solidAt(pr.x - std::cos(pr.yaw) * d, pr.y - std::sin(pr.yaw) * d)) {
+                back = d;
+                break;
+            }
+        for (int a = 0; a < 16; ++a)
+            for (double d = 0.0; d <= std::min(around, 3.0); d += 0.02)
+                if (solidAt(pr.x + std::cos(a * 0.3927) * d, pr.y + std::sin(a * 0.3927) * d)) {
+                    around = std::min(around, d);
+                    break;
+                }
+        const Aabb b = pr.model ? pr.model->bounds : Aabb{};
+        std::string room = t.room ? std::format("\"{}\",\"{}\",[{},{},{},{}]", t.room->type ? t.room->type->key : "",
+                                                w.level().zones[(size_t)std::max(0, t.room->zone)].key, t.room->x0, t.room->y0,
+                                                t.room->x1, t.room->y1)
+                                  : std::string("\"\",\"\",[]");
+        out += std::format("{}\n{{\"name\":\"{}\",\"v\":{},\"p\":[{:.3f},{:.3f},{:.3f}],\"yaw\":{:.4f},\"s\":[{:.3f},{:.3f},{:.3f}],"
+                           "\"floor\":{:.3f},\"ceil\":{:.3f},\"solid\":{},\"back\":{:.2f},\"around\":{:.2f},"
+                           "\"lo\":[{:.3f},{:.3f},{:.3f}],\"hi\":[{:.3f},{:.3f},{:.3f}],\"tris\":{},\"room\":[{}]}}",
+                           n++ ? "," : "", name, variant, pr.x, pr.y, pr.z, pr.yaw, pr.sx, pr.sy, pr.sz, t.floor, t.ceil,
+                           t.solid() ? 1 : 0, back, around, b.lo.x, b.lo.y, b.lo.z, b.hi.x, b.hi.y, b.hi.z,
+                           [&] {
+                               size_t k = 0;
+                               if (pr.model)
+                                   for (const auto& part : pr.model->parts) k += part.mesh.i.size() / 3;
+                               return k;
+                           }(),
+                           room);
+    }
+    out += "],\n\"exits\":[";
+    n = 0;
+    s.registry().each<game::ExitDoor, game::Transform>([&](ecs::Entity, game::ExitDoor&, game::Transform& t) {
+        out += std::format("{}[{:.2f},{:.2f},{:.2f},{:.3f}]", n++ ? "," : "", t.pos.x, t.pos.y, t.pos.z, t.yaw);
+    });
+    out += "],\n\"rooms\":[";
+    n = 0;
+    for (const auto& r : sec.rooms)
+        out += std::format("{}\n[{},{},{},{},{:.2f},{:.2f},\"{}\",{}]", n++ ? "," : "", r->x0, r->y0, r->x1, r->y1, r->floor,
+                           r->height, r->type ? r->type->key : "", r->isCorridor ? 1 : 0);
+    out += "]}\n";
+    if (FILE* f = _wfopen(paths::widen(path).c_str(), L"wb")) {
+        std::fwrite(out.data(), 1, out.size(), f);
+        std::fclose(f);
+        log::info("Ausstattung: {} Stueck nach {}", sec.props.size(), path);
+    } else {
+        log::error("propdump: kann {} nicht schreiben", path);
+        scriptFailed_ = true;
     }
 }
 
@@ -1993,7 +2449,7 @@ void App::runBenchmark() {
     paths::writeFileAtomic(paths::join(paths::localDataDir(), "benchmark_v13.txt"), res + "\n", false);
 }
 
-// --- V13.2 Koop (Beta) -----------------------------------------------------------------------------
+// --- V13.2/V13.3 Koop -------------------------------------------------------------------------------
 bool App::loadNet(std::string& error) {
     if (netApi_.ok()) return true;
     return coop::loadNetLibrary(netApi_, error);
@@ -2021,7 +2477,50 @@ bool App::hasCoopSave() {
     return false;
 }
 
-bool App::hostCoop(const std::string& name0, const std::string& difficulty, int port, bool resume, std::string& error) {
+// koop.json: zuerst neben dem Spiel (vom Herausgeber), dann im Nutzerordner (eigene Lobby); MULTIPLAYER_SETUP.md
+coop::NetSettings App::netSettings(bool useLobby, bool relayOnly) {
+    coop::NetSettings ns;
+    for (const std::string& dir : {paths::exeDir(), paths::localDataDir()}) {
+        const std::string file = paths::join(dir, "koop.json");
+        const auto text = paths::readFile(file);
+        if (!text) continue;
+        std::string perr;
+        const auto j = Json::parse(*text, &perr);
+        if (!j || !j->isObject()) {
+            log::warn("koop.json ({}) nicht lesbar: {}", file, perr);
+            continue;
+        }
+        if ((*j)["lobby"].isString()) ns.lobby = (*j)["lobby"].asString();
+        // festgelegtes Zertifikat der Lobby: Fingerabdruck oder PEM-Datei neben koop.json
+        if (const std::string c = (*j)["lobby_cert"].asString(std::string()); !c.empty()) {
+            if (c.find(':') != std::string::npos && c.size() == 95) ns.lobbyCert = c;
+            else if (const auto pem = paths::readFile(paths::join(dir, c))) ns.lobbyCert = *pem;
+            else log::warn("koop.json: Zertifikat {} nicht lesbar", c);
+        }
+        if ((*j)["ice_servers"].isArray()) {
+            ns.ice.clear();
+            for (const Json& e : (*j)["ice_servers"].items())
+                if (e.isString()) ns.ice += (ns.ice.empty() ? "" : " ") + e.asString();
+        }
+        if ((*j)["direct_port"].isNumber()) ns.directPort = (u16)std::clamp<long long>((*j)["direct_port"].asInt(27500), 1024, 65535);
+        if ((*j)["relay_only"].isBool()) ns.relayOnly = (*j)["relay_only"].asBool(false);
+    }
+    ns.useLobby = useLobby;
+    ns.relayOnly = ns.relayOnly || relayOnly;
+    if (const char* b = std::getenv("LIMINAL_COOP_BIND")) ns.bind = b;  // nur Tests (zwei Spiele auf einem Rechner)
+    return ns;
+}
+
+std::string App::coopLobbyName() {
+    const coop::NetSettings ns = netSettings(true, false);
+    std::string h = ns.lobby;
+    if (const size_t p = h.find("://"); p != std::string::npos) h = h.substr(p + 3);
+    return h.substr(0, h.find('/'));
+}
+
+void App::copyText(const std::string& text) { input::Input::setClipboardText(text); }
+
+bool App::hostCoop(const std::string& name0, const std::string& difficulty, bool useLobby, bool relayOnly, bool resume, std::string& error) {
     std::string name;
     for (char c : name0)
         if (std::isalnum((unsigned char)c) || c == ' ' || c == '_' || c == '-') name += c;
@@ -2029,7 +2528,7 @@ bool App::hostCoop(const std::string& name0, const std::string& difficulty, int 
     if (name.empty()) name = "Host";
     if (!loadNet(error)) return false;
     auto host = std::make_unique<coop::CoopHost>(netApi_, name, coopBuild());
-    if (!host->start((u16)port, 4, error)) return false;
+    if (!host->start(netSettings(useLobby, relayOnly), 4, error)) return false;
     if (resume) {
         game::SaveEntry best;
         bool found = false;
@@ -2050,28 +2549,31 @@ bool App::hostCoop(const std::string& name0, const std::string& difficulty, int 
     coopHost_ = std::move(host);
     coopSave_ = true;
     coopHost_->attach(*session_, "", difficultyIndex(session_->difficulty));
-    ui_.toast(std::format("Koop (Beta) offen auf Port {} · Schlüssel {} · Pausenmenü → Mitspieler", coopHost_->port(), coopHost_->key().text()), 8.0);
-    log::info("Koop: Host gestartet (Port {})", coopHost_->port());
+    ui_.toast(useLobby ? std::string("Koop offen · der Beitrittscode steht gleich im Pausenmenü unter »Mitspieler«")
+                       : std::format("Koop offen (direkt, Port {}) · Code im Pausenmenü unter »Mitspieler«", coopHost_->port()),
+              8.0);
+    log::info("Koop: Host gestartet ({})", useLobby ? "Lobby" : "direkt");
     return true;
 }
 
-bool App::joinCoop(const std::string& name, const std::string& address, int port, const std::string& key, std::string& error) {
-    coop::JoinKey k;
-    if (!coop::JoinKey::parse(key, k)) {
-        error = "Schlüssel: 26 Zeichen (A–Z und 2–7), Bindestriche egal.";
+bool App::joinCoop(const std::string& name, const std::string& code, bool useLobby, const std::string& address, bool relayOnly, std::string& error) {
+    size_t symbols = 0;
+    for (char ch : code) symbols += std::isalnum((unsigned char)ch) ? 1 : 0;
+    if (symbols != 12 && symbols != 24) {
+        error = "Beitrittscode: 12 Zeichen (über die Lobby) oder 24 Zeichen (lang, für direkt); Bindestriche egal.";
         return false;
     }
-    if (address.empty()) {
+    if (!useLobby && address.empty()) {
         error = "Adresse des Hosts fehlt.";
         return false;
     }
     if (!loadNet(error)) return false;
     auto c = std::make_unique<coop::CoopClient>(netApi_, coopBuild());
-    if (!c->connect(address, (u16)port, k, name, error)) return false;
+    if (!c->connect(netSettings(useLobby, relayOnly), address, code, name, error)) return false;
     coopClient_ = std::move(c);
     coopName_ = name;
     coopJoinT_ = 0.0;
-    ui_.coopMessage(std::format("Verbinde mit {}:{} …", address, port));
+    ui_.coopMessage(coopClient_->progress());
     // im Spiel (Skript): sofort weiter warten; im Titel uebernimmt updateTitle
     return true;
 }
@@ -2097,10 +2599,14 @@ void App::coopJoinPump(double dt) {
         coopSave_ = false;
         currentSlotPath_.clear();
         ui_.coopMessage("");
-        ui_.toast(std::format("Koop (Beta): beigetreten als Spieler {}", coopClient_->selfId()), 4.0);
+        const LnStats st = coopClient_->netStats();
+        ui_.toast(std::format("Koop: beigetreten als Spieler {} ({})", coopClient_->selfId(),
+                              st.path == LN_PATH_RELAY ? "über das Relay" : st.path == LN_PATH_NAT ? "direkt durch NAT" : "direkt"),
+                  4.0);
         return;
     }
-    if (coopClient_->state() == coop::CoopClient::State::Closed || coopJoinT_ > 15.0) {
+    if (coopClient_->state() != coop::CoopClient::State::Closed) ui_.coopMessage(coopClient_->progress());
+    if (coopClient_->state() == coop::CoopClient::State::Closed || coopJoinT_ > 45.0) {
         const std::string why = coopClient_->state() == coop::CoopClient::State::Closed ? coopClient_->closeReason() : "Host antwortet nicht";
         ui_.coopMessage("Beitritt fehlgeschlagen: " + (why.empty() ? std::string("getrennt") : why));
         coopClient_->stop();
@@ -2109,7 +2615,22 @@ void App::coopJoinPump(double dt) {
 }
 
 void App::coopBefore(double dt) {
-    if (coopHost_) coopHost_->beforeUpdate(dt);
+    if (coopHost_) {
+        coopHost_->beforeUpdate(dt);
+        if (!coopKeyFile_.empty() && !coopHost_->code(true).empty()) {  // Skript (Tests): Code in die Datei
+            if (FILE* f = std::fopen(coopKeyFile_.c_str(), "wb")) {
+                std::fprintf(f, "%s", coopHost_->code(true).c_str());
+                std::fclose(f);
+            }
+            coopKeyFile_.clear();
+        }
+        std::string why;
+        if (coopHost_->takeFailure(why)) {  // Raum liess sich nicht oeffnen: zurueck ins Einzelspiel, Meldung
+            ui_.toast("Koop nicht gestartet: " + why, 8.0);
+            log::warn("Koop: Raum nicht offen ({})", why);
+            leaveCoop(why);
+        }
+    }
     if (coopClient_ && coopClient_->state() != coop::CoopClient::State::Playing) {  // Beitritt aus dem Spiel heraus (Skript)
         coopJoinPump(dt);
         if (!coopClient_ && state_ == State::Playing) ui_.toast("Beitritt fehlgeschlagen.", 3.0);
@@ -2187,9 +2708,11 @@ ui::Host::CoopView App::coopView() {
     v.host = coopHost_ != nullptr;
     std::vector<coop::PlayerInfo> ps;
     if (coopHost_) {
-        v.key = coopHost_->key().text();
+        v.code = coopHost_->code(false);
+        v.codeLong = coopHost_->code(true);
+        v.direct = coopHost_->direct();
+        v.lobbyStatus = coopHost_->lobbyStatus();
         v.port = coopHost_->port();
-        v.address = "IP dieses Rechners (ipconfig)";
         v.status = coopHost_->status();
         ps = coopHost_->players();
         v.dead = coopHost_->selfDead();
@@ -2203,7 +2726,12 @@ ui::Host::CoopView App::coopView() {
         for (const auto& p : ps)
             if (p.id == coopClient_->spectate()) v.spectating = p.name;
     }
-    for (const auto& p : ps) v.players.push_back({p.id, p.name, p.alive, p.ready, p.connected, p.self, p.rttMs});
+    if (coopClient_ && !ps.empty()) {  // Gast: die eigene Verbindung zum Host
+        const LnStats st = coopClient_->netStats();
+        for (auto& p : ps)
+            if (p.id == 0) p.rttMs = (int)st.rttMs, p.path = st.path, p.lossPct = (int)std::lround(st.loss * 100.0f);
+    }
+    for (const auto& p : ps) v.players.push_back({p.id, p.name, p.alive, p.ready, p.connected, p.self, p.rttMs, p.path, p.lossPct});
     return v;
 }
 

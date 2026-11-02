@@ -52,7 +52,13 @@ struct Options {
     //   wait N | key Name | text Zeichen | expect Modus[/Seite] | shot Datei.png | quit
     // Exitcode 7, wenn ein "expect" fehlschlaegt.
     std::string script;
+    std::string levelFile;  // V13.3 (Kontaktboegen): zusaetzliches Level aus einer Datei laden und starten
 };
+
+namespace app {
+// V13.3: Dauerklaenge des Wranglers - Rumpeln, Leib, Sog (app/wrangler_audio.cpp)
+void wranglerLoops(audio::AudioSystem& au, Soundscape& ss, game::GameSession& s, vec3 ear, int gen, bool dead);
+}  // namespace app
 
 class App final : public ui::Host {
 public:
@@ -86,8 +92,10 @@ public:
     // V13.2 Koop (Beta)
     CoopView coopView() override;
     bool hasCoopSave() override;
-    bool hostCoop(const std::string& name, const std::string& difficulty, int port, bool resume, std::string& error) override;
-    bool joinCoop(const std::string& name, const std::string& address, int port, const std::string& key, std::string& error) override;
+    bool hostCoop(const std::string& name, const std::string& difficulty, bool useLobby, bool relayOnly, bool resume, std::string& error) override;
+    bool joinCoop(const std::string& name, const std::string& code, bool useLobby, const std::string& address, bool relayOnly, std::string& error) override;
+    std::string coopLobbyName() override;
+    void copyText(const std::string& text) override;
     void kickCoop(int id, bool ban) override;
 
 private:
@@ -144,6 +152,7 @@ private:
     std::vector<vec4> boneRows_;                 // V10: Knochenmatrizen der Figuren
     std::vector<game::ShadowCaster> casters_;    // V10: Schattenkapseln
     app::Soundscape soundscape_;  // V6: Leuchten, Raumakustik, ferne Klaenge
+    float dustFall_ = 0.0f;       // V13.3: Beben (Wrangler) - gefallener Staub (m)
     app::AutoTune autoTune_;      // V6: Grafik passt sich der Hardware an
     int appliedWinW_ = 0, appliedWinH_ = 0;
     // V7: Notausgang - Abblenden, dann die naechste Ebene
@@ -153,6 +162,7 @@ private:
     std::vector<vec3> elevLights_;                  // V8: Kabinenlichter
     // V9: Sicherungskaesten (oranges Flackern), Abspann nach der letzten Fahrt, Zugriff des Anderen
     std::vector<game::GameSession::FuseLight> fuseLights_;
+    std::vector<std::pair<vec3, vec3>> ouroLights_;  // V13.3: Lichtbogen und Warnleuchten der Ouroboros-Baustelle
     double endingTimer_ = 0.0;
     float hitFlash_ = 0.0f;
     // V11: Schreck beim toedlichen Zugriff, danach der Todesschirm
@@ -182,6 +192,20 @@ private:
         float az = 0, el = 0, dist = 2.0f, h = 0.6f, ahead = 0.0f;
     } figCam_;
     bool egoPose_ = false;  // V13.2 (Tests): Ego-Lampenhaltung auch von aussen zeigen
+    // V13.3 (Kontaktboegen, Wegbilder): freie Kamera (Position, Blick in Grad, Bildwinkel), Testlampe (Spot wie die
+    // Taschenlampe, frei gestellt), Leuchten der Welt skalieren (0 = dunkel)
+    struct FreeCam {
+        bool on = false;
+        vec3 pos{};
+        float yaw = 0, pitch = 0, fov = 0;  // Grad; fov 0 = wie im Spiel
+    } freeCam_;
+    struct TestLight {
+        bool on = false;
+        vec3 pos{}, dir{1, 0, 0};
+        float power = 1.0f, cone = 28.0f;
+    } testLight_;
+    float worldLight_ = 1.0f;
+    void propDump(const std::string& path);  // V13.3: Ausstattung, Schilder und Raeume der Ebene als JSON
     bool scriptFailed_ = false;
     // V13.3 (Audio-Tests, AUDIO_BUG.md): Audiozustand regelmaessig ins Protokoll; Fokusverlust nachstellen
     double audioLogEvery_ = 0.0, audioLogNext_ = 0.0;
@@ -203,7 +227,8 @@ private:
     bool coopWasDead_ = false;
     std::string coopName_;
     bool coopSave_ = false;  // dieser Lauf ist ein Koop-Stand (Host)
-    std::string coopKeyFile_;  // Skript (Tests): Schluessel des Hosts in diese Datei
+    std::string coopKeyFile_;  // Skript (Tests): Beitrittscode des Hosts in diese Datei
+    coop::NetSettings netSettings(bool useLobby, bool relayOnly);  // koop.json (Programmordner, dann Nutzerordner) + Menue
 };
 
 }  // namespace lim

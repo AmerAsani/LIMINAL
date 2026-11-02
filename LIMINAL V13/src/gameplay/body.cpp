@@ -14,6 +14,8 @@ constexpr double kPiD = 3.141592653589793;
 
 // Strichstaerke des Strichmaennchens (Radius). Die Proportionen stehen in BodyProportions (V10).
 constexpr float kLine = 0.02f;
+// V13.3: Drehung der Faust um die Lampenachse im Ego-Bild (rad, Daumen nach aussen)
+constexpr float kLampRoll = 0.75f;
 
 // V12/V13: Hand im Griff (data/models/vm_hand_l.glb) im Rahmen der Lampe (x Achse zum Glas, y rechts, z oben;
 // Ursprung Griffmitte). V13: die Werte (Handgelenk, Unterarm, Handrichtung, Handflaeche) kommen zur Laufzeit aus dem
@@ -266,8 +268,10 @@ void Body::update(double dt, const Player& p) {
         vec3 hf = F * cp + U * spc, hu = U * cp - F * spc;
         float sway = (float)std::sin(p.bobPhase * 2.0) * 0.012f * gait;
         // V12: mit der Hand aus Blender sitzt die Griffmitte hoeher (die ganze Faust soll im Bild sein)
-        const float drop = pr_.gripOut > 0.0f ? 0.17f : 0.25f;
-        vec3 target = eye_ + hf * 0.40f - hu * (drop + sway) - R * (0.15f + 0.01f * (float)std::cos(p.bobPhase)) + U * (bob * 0.3f);
+        // V13.3: 1 cm tiefer und 2 cm naeher zur Mitte - mit der gedrehten Faust (kLampRoll) haengt der Ellbogen dann
+        // unter der Schulter statt 16 cm darueber
+        const float drop = pr_.gripOut > 0.0f ? 0.18f : 0.25f, inward = pr_.gripOut > 0.0f ? 0.13f : 0.15f;
+        vec3 target = eye_ + hf * 0.40f - hu * (drop + sway) - R * (inward + 0.01f * (float)std::cos(p.bobPhase)) + U * (bob * 0.3f);
         // V13.2 (B-001): von aussen vor der Brust, etwas links der Mitte - der Unterarm liegt fast waagerecht
         if (outside_) target = eye_ + hf * 0.36f - hu * (0.40f + sway) - R * (0.08f + 0.01f * (float)std::cos(p.bobPhase)) + U * (bob * 0.3f);
         // V11: dicht vor einer Wand zieht die Hand die Lampe zurueck und senkt sie; reicht der Platz fuer die
@@ -299,8 +303,17 @@ void Body::update(double dt, const Player& p) {
             auto ortho = [](vec3 v, vec3 ax) { return v - ax * dot(v, ax); };
             // Die Hand gleitet entlang der Lampenachse (8 cm zurueck bis 4,5 cm vor), bis der Unterarm des Modells zu
             // einem Ellbogen fuehrt, den der Oberarm erreicht - sonst stuende der Aermel schief zum Handgelenk.
-            // Rollen um die Achse hilft nicht: die Schulter liegt fast auf ihr.
-            const vec3 up = normalize(ortho(hu, aim)), side = cross(up, aim);
+            // V13.3: Im Ego-Bild ist die Faust um die Lampenachse gedreht (Daumen 43 Grad nach aussen, Handflaeche schraeg
+            // nach oben zur Mitte - leicht supiniert wie beim Halten von unten). Mit dem Daumen genau oben fuehrte der
+            // Unterarm des Handmodells (Elle 33 Grad, Streckung) von oben aussen zur Hand: Ellbogen 16 cm ueber der
+            // Schulter, Oberarm 33 Grad nach oben, der Aermel quer dicht vor der Kamera. Jetzt haengt der Ellbogen auf
+            // Schulterhoehe darunter, der Unterarm steigt leicht zur Hand (HAND_ANALYSE.md, V13.3)
+            vec3 up = normalize(ortho(hu, aim)), side = cross(up, aim);
+            if (!outside_) {
+                const float c = std::cos(kLampRoll), s = std::sin(kLampRoll);
+                up = up * c - side * s;  // Daumen nach aussen (links)
+                side = cross(up, aim);
+            }
             {
                 const vec3 wr0 = target + aim * vmWrist_.x + side * vmWrist_.y + up * vmWrist_.z;
                 const vec3 fw = aim * vmForearm_.x + side * vmForearm_.y + up * vmForearm_.z;
@@ -378,11 +391,44 @@ void Body::update(double dt, const Player& p) {
             if (t > 0.2f) target = eye_ + hf * 0.42f - hu * 0.24f + R * 0.17f;
             showHeld_ = t > 0.18f && t < dur - 0.06f;
             if (t >= dur) gesture_ = Gesture::None;
+        } else if (gesture_ == Gesture::Swing) {
+            // V13.3: Beil - ueber die rechte Schulter ausholen (0,2 s), Hieb nach vorn unten (0,13 s), zuruecknehmen
+            const float dur = 0.72f;
+            w = t < 0.12f ? smoothT(t / 0.12f) : (t > 0.52f ? smoothT((dur - t) / (dur - 0.52f)) : 1.0f);
+            const float up = smoothT(t / 0.2f), chop = smoothT((t - 0.2f) / 0.13f);
+            const vec3 low = eye_ + hf * 0.36f - hu * 0.26f + R * 0.2f;
+            const vec3 raised = eye_ + hf * 0.1f + hu * 0.08f + R * 0.27f;
+            const vec3 struck = eye_ + hf * 0.6f - hu * 0.34f + R * 0.05f;
+            target = lerp(lerp(low, raised, up), struck, chop);
+            showHeld_ = true;
+            if (t >= dur) gesture_ = Gesture::None;
         } else if (gesture_ == Gesture::Toss) {
             // Ablegen: kurzer Wurf aus dem Handgelenk - Hand schnellt nach vorn und sinkt zurueck
             const float dur = 0.45f;
             w = t < 0.1f ? smoothT(t / 0.1f) : smoothT((dur - t) / (dur - 0.1f));
             target = eye_ + hf * (0.28f + 0.22f * smoothT(t / 0.16f)) - hu * (0.24f - 0.08f * smoothT(t / 0.16f)) + R * 0.15f;
+            if (t >= dur) gesture_ = Gesture::None;
+        } else if (gesture_ == Gesture::Throw) {
+            // V13.3 Leuchtstab: vor der Brust knicken und schuetteln, ueber die Schulter ausholen, nach vorn schleudern
+            // (Loslassen bei 0,62 s - GameSession wirft dann), zuruecksinken
+            const float dur = 0.95f;
+            const vec3 front = eye_ + hf * 0.40f - hu * 0.20f + R * 0.10f;
+            const vec3 back = eye_ - hf * 0.06f + hu * 0.05f + R * 0.30f;
+            const vec3 release = eye_ + hf * 0.58f + hu * 0.02f + R * 0.14f;
+            if (t < 0.38f) {
+                w = smoothT(t / 0.18f);
+                target = front + hu * (t > 0.16f ? std::sin((t - 0.16f) * 46.0f) * 0.025f : 0.0f);
+            } else if (t < 0.55f) {
+                w = 1.0f;
+                target = lerp(front, back, smoothT((t - 0.38f) / 0.17f));
+            } else if (t < 0.66f) {
+                w = 1.0f;
+                target = lerp(back, release, smoothT((t - 0.55f) / 0.11f));
+            } else {
+                w = smoothT((dur - t) / (dur - 0.66f));
+                target = release;
+            }
+            showHeld_ = t > 0.04f && t < 0.62f;
             if (t >= dur) gesture_ = Gesture::None;
         } else {
             const float dur = 1.05f;
@@ -398,7 +444,16 @@ void Body::update(double dt, const Player& p) {
             vec3 pole = normalize(pose_.elbow[1] - pose_.shoulder[1]) * 0.3f - U + R * 0.6f;
             solveArm(1, goal, pole);
         }
-        if (showHeld_) {
+        if (showHeld_ && gesture_ == Gesture::Swing) {
+            // V13.3: das Beil liegt im Modell laengs x (Stiel), Schneide nach +y - es dreht um die Rechts-Achse: zurueckgelegt,
+            // dann schlaegt der Kopf nach vorn unten; die Schneide zeigt immer in die Schlagrichtung
+            const float th = 0.55f + (-1.25f) * smoothT(t / 0.2f) + 2.45f * smoothT((t - 0.2f) / 0.13f) - 0.6f * smoothT((t - 0.4f) / 0.3f);
+            const vec3 x = normalize(hu * std::cos(th) + hf * std::sin(th));
+            const vec3 y = normalize(hf * std::cos(th) - hu * std::sin(th));
+            const vec3 z = cross(x, y);
+            heldRot_ = columns(x * heldScale_, y * heldScale_, z * heldScale_, vec3(0, 0, 0));
+            heldPos_ = pose_.hand[1] - z * 0.0146f * heldScale_;
+        } else if (showHeld_) {
             vec3 x = R, z = normalize(hu * 0.85f + hf * 0.15f), y = cross(z, x);
             if (gesture_ == Gesture::Use && t > 0.25f) {  // zum Mund kippen
                 float tilt = 0.55f * smoothT((t - 0.25f) / 0.2f);

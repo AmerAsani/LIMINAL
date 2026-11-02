@@ -119,6 +119,21 @@ void roomFinds(const world::Room& r, const world::LevelDef& L, std::vector<FindS
         s.id = "find:" + base;
         if (floorSpot(0x7B02, s)) out.push_back(s);
     }
+    // V13.3: Leuchtstab (KREATUR_Smiler.md) - liegen gelassen von Wanderern vor einem, eher in dunklen Raeumen; nicht auf
+    // der Kachel einer Batterie
+    if (hfloat(r.seed, 0x7E01) < (dark ? f.glowstickDark : f.glowstick)) {
+        FindSpot s;
+        s.kind = FindSpot::Glowstick;
+        s.id = "glow:" + base;
+        for (u64 salt = 0x7E02; salt < 0x7E06; ++salt) {
+            if (!floorSpot(salt, s)) break;
+            const bool taken = std::any_of(out.begin(), out.end(), [&](const FindSpot& o) { return o.tx == s.tx && o.ty == s.ty; });
+            if (!taken) {
+                out.push_back(s);
+                break;
+            }
+        }
+    }
 
     // V9: Sicherungskasten - tief im Inneren einer Schicht (nicht an den Nahtstellen), in einer freien Wand
     if (L.world() && L.fuses.chance > 0.0 && strata >= 0.0 && !r.isCorridor && r.height >= 2.4) {

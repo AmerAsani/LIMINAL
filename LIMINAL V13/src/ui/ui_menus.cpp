@@ -534,7 +534,7 @@ void Ui::drawTitle(Host& h) {
     static const std::pair<const char*, const char*> subs[] = {
         {"main", "unendliche Innenräume"}, {"new", "Neues Spiel"}, {"load", "Spiel fortsetzen"}, {"mouse", "Maus & Steuerung"},
         {"graphics", "Grafik & Anzeige"}, {"audio", "Audio"}, {"help", "Hilfe"}, {"settings", "Einstellungen"},
-        {"coop", "Koop (Beta)"}};
+        {"coop", "Koop"}};
     std::string sub;
     for (auto& [p, t] : subs)
         if (page_ == p) sub = t;
@@ -594,7 +594,7 @@ void Ui::titleMain(Host& h, float x, float y, float w) {
                  confirmDelete_ = false;
              }
          }, ""},
-        {"Koop (Beta)", nullptr, nullptr, [this] {  // V13.2
+        {"Koop", nullptr, nullptr, [this] {  // V13.2, V13.3 ohne Beta
              page_ = "coop";
              coopSel_ = 0;
              coopMsg_.clear();
@@ -787,7 +787,7 @@ void Ui::drawPause(Host& h) {
     static const std::pair<const char*, const char*> subs[] = {{"main", ""}, {"mouse", "Maus & Steuerung"},
                                                                {"graphics", "Grafik & Anzeige"}, {"audio", "Audio"},
                                                                {"help", "Hilfe"}, {"journal", "Notizbuch"},
-                                                               {"coop", "Mitspieler (Koop, Beta)"}};
+                                                               {"coop", "Mitspieler (Koop)"}};
     std::string sub;
     for (auto& [p, t] : subs)
         if (page_ == p) sub = t;
@@ -830,7 +830,7 @@ void Ui::pauseMain(Host& h) {
              "Alle Steuerungen und Funktionen des Spiels im Überblick."},
             h.coopView().active
                 ? Item{"Mitspieler (Koop)", nullptr, nullptr, [this] { pageStack_.push_back(page_), page_ = "coop", lists_[10] = {}; },
-                       h.coopView().host ? "Adresse, Port und Schlüssel zum Beitreten; Spieler entfernen oder sperren. Gespeichert wird nur beim Host, in einem eigenen Koop-Stand."
+                       h.coopView().host ? "Beitrittscode (Strg+C kopiert); Ping und Weg der Spieler; entfernen oder sperren. Gespeichert wird nur beim Host, in einem eigenen Koop-Stand."
                                          : "Wer mitspielt. Speichern kann nur der Host."}
                 : Item{"Spiel speichern", nullptr, nullptr, [&h] { h.saveGame(); },
                        "Speichert den aktuellen Spielstand. Er erscheint im Hauptmenü unter »Spiel fortsetzen«."},

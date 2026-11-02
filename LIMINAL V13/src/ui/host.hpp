@@ -43,26 +43,31 @@ public:
     // V11: Wiedereinstieg am letzten Sicherungspunkt (feste Karten)
     virtual bool canRespawn() const { return false; }
     virtual void respawn() {}
-    // V13.2 Koop (Beta): Zustand fuer Menue und Anzeige; hosten (neuer Lauf) und beitreten; Spieler entfernen/sperren
+    // V13.2/V13.3 Koop: Zustand fuer Menue und Anzeige; hosten (neuer Lauf) und beitreten; Spieler entfernen/sperren
     struct CoopPlayer {
         int id = 0;
         std::string name;
         bool alive = true, ready = false, connected = true, self = false;
-        int rttMs = 0;
+        int rttMs = 0, path = 0, lossPct = 0;  // path: 1 direkt, 2 ueber NAT, 3 ueber Relay
     };
     struct CoopView {
-        bool active = false, host = false, dead = false;
-        std::string key, address, status, spectating;
+        bool active = false, host = false, dead = false, direct = false;
+        std::string code, codeLong, lobbyStatus, status, spectating;
         int port = 0, respawnIn = 0;
         std::vector<CoopPlayer> players;
     };
+    // Lobby aus koop.json (leer: keine eingetragen) - fuer die Hinweise im Menue
+    virtual std::string coopLobbyName() { return ""; }
+    virtual void copyText(const std::string&) {}
     virtual CoopView coopView() { return {}; }
     virtual bool hasCoopSave() { return false; }  // gibt es einen Koop-Stand zum Fortsetzen?
-    virtual bool hostCoop(const std::string&, const std::string&, int, bool, std::string& error) {
+    // hostCoop(Name, Schwierigkeit, ueber die Lobby, nur Relay, Koop-Stand fortsetzen, Fehler)
+    virtual bool hostCoop(const std::string&, const std::string&, bool, bool, bool, std::string& error) {
         error = "nicht verfuegbar";
         return false;
     }
-    virtual bool joinCoop(const std::string&, const std::string&, int, const std::string&, std::string& error) {
+    // joinCoop(Name, Code, ueber die Lobby, Adresse (direkt), nur Relay, Fehler)
+    virtual bool joinCoop(const std::string&, const std::string&, bool, const std::string&, bool, std::string& error) {
         error = "nicht verfuegbar";
         return false;
     }
