@@ -70,7 +70,7 @@ Tür“), ein Tagebuchrest („Fotos“).
 | Blickkontakt | sein Kopf zeigt auf dich (28°) **und** du siehst ihm ins Gesicht (20°) **und** er ist zu sehen (Licht oder Lampe) |
 | Bann | wächst 0,25/s, aus der Nähe bis 0,5/s (unter 2 m); nach der Warnung halb so schnell; klingt ab mit 0,3/s (er sieht dich, du ihn nicht) bzw. 0,55/s (außer Sicht) |
 | Stufen | 0,3 Klingeln und Flüstern im Kopf (Verstand −2) · 0,45 der Blick wird zu ihm gezogen, Schritte bis 55 % langsamer, Bild eng und farblos, alles dumpf · 0,55 zweites Klingeln · 0,75 Warnung: Flügel auf, Kreischen · 1,0 Unterwerfung (tödlich) |
-| Zeit bis zur Unterwerfung | bei festem Blick aus 3,2 m etwa 3,5 s ab dem Betreten (gemessen im Test, siehe unten); Warnung knapp 1 s vorher |
+| Zeit bis zur Unterwerfung | bei festem Blick aus 3,2 m mit Lampe 2,9 s ab dem Betreten der Tür, die Warnung 1,1 s vorher (gemessen im Test, siehe unten) |
 | Sprung | wer bis auf 1,6 m herankommt: Kreischen und Flügel, nach 0,55 s Sprung ins Gesicht (tödlich), wenn man noch näher als 2,0 m ist |
 | Stimme | murmelt alle 6–12 s (hörbar bis 26 m Weg – man hört ihn vor der Tür); fixiert er dich, spricht er alle 2,2–3,6 s |
 | Schaden | nur die beiden tödlichen Zugriffe; der Bann zehrt am Verstand |
@@ -106,7 +106,7 @@ Gast. Stimme, Flügel und Putzen hören alle Gäste; Klingeln und Warnung nur da
 ## Gleichgewicht
 
 Der Raum liegt abseits des Hauptwegs, aber nahe der Tür nach Level 3; die Wegweiser zeigen hinein. Wer neugierig hineinsieht, hat bei
-festem Blick gut drei Sekunden, bei kurzem Hinsehen keinen Schaden; das Klingeln kommt nach etwa einer Sekunde Blickkontakt. Ohne Lampe
+festem Blick knapp drei Sekunden (die letzte davon nach der Warnung), bei kurzem Hinsehen keinen Schaden; das Klingeln kommt nach etwa einer Sekunde Blickkontakt. Ohne Lampe
 im Halbdunkel ist er nur ein Umriss – sicherer, aber man sieht ihn kaum. Der Opfertisch liegt so, dass man ihm nicht zu nahe kommen muss.
 
 ## Wow-Check
@@ -152,13 +152,28 @@ die Iris gelb wie ein Vogelauge. *Änderung:* Lider geöffnet, Iris blass graugr
 dunkler Pupille im blauen Vogelkopf; das Drohen mit dunklen Schwingen. *Schlecht:* Im Raum aus 3,4 m ohne Lampe nur ein Umriss.
 *Änderung:* Röhre im Raum 0,45 statt 0,3 (bleibt Halbdunkel).
 
-**Runde 7 (Abnahme im Raum)** – `r7_a_tuer.jpg`, `r7_b_dunkel.jpg`, `r7_c_lampe.jpg`. Die blaue Tür ist von weitem ein Zeichen; ohne Lampe
+**Runde 7 (Abnahme im Raum)** – `r7_a_tuer.jpg`, `r7_b_dunkel.jpg`, `r7_c_lampe.jpg`, `r7_e_profil.jpg` (schräg, mit dem Opfertisch und den brennenden Kerzen). Die blaue Tür ist von weitem ein Zeichen; ohne Lampe
 sitzt der Vogel als blauer Umriss vor seinem Götzenbild, mit Lampe liest man die gerupfte Brust. Bleibt: von vorn sind die seitlichen
 Augen kaum zu sehen – er dreht den Kopf, um mit einem Auge zu blicken (Animation).
 
 ## Tests (`gameplay_test`, `testV133Jerry`)
 
-TESTS_PLATZ
+Gemessen im Lauf vom 02.11.2026 (`gameplay_test`: **716 Prüfungen, 0 Fehler**):
+
+- Karte: genau ein Platz für ihn, in einer blau gestrichenen Kammer (Zone `jerry`) mit einer Tür; Sitzrohr am Platz, Wandbild und
+  Opfertisch im Raum, 2 Wegweiser davor; Level 2 kennt ihn (`presence.jerry`).
+- Auftreten: am Start nicht da; vor der Tür (außer Sicht des Rohrs) sitzt er nach kurzer Zeit auf dem Rohr, 1,52 m über dem Boden.
+- Geräusch vor Sicht: vor der Tür in 40 s mehrere gemurmelte Sätze, kein Ansprechen; kein Bann außer Sicht.
+- Blickkontakt aus 3,2 m (Lampe auf ihn, Blick fest): **bemerkt nach 0,03 s, Warnung nach 1,77 s, unterworfen nach 2,87 s**,
+  Lähmung bis 1,0; er spricht ihn an, zwei Stufen Klingeln, Todesursache gemerkt (Rolle 18); nach dem Wiedereinstieg sitzt er wieder auf
+  dem Rohr, kein Bann.
+- Wegsehen: Bann 0,55, dann umgedreht – nach 4 s 0,00, kein Zugriff.
+- Nähe (1,1 m, Rücken zu ihm): Kreischen nach 0,03 s, Sprung ins Gesicht nach 0,58 s (tödlich); wer nach dem Kreischen auf 3,6 m
+  zurückweicht, überlebt.
+- Koop: im Netzzustand des Hosts mit Rolle 18; die Puppe beim Gast liefert den Bann nur für ihr Ziel.
+
+Weitere Tests grün: `audio_test` 106/0, `coop_test --quick` 209/0, `net_protocol_test` 72/0, `worldgen_test` 29658/0,
+`supply_balance_test` ohne Fehler; `room_metrics --check level2` OK.
 
 ## Restmängel
 
@@ -169,6 +184,8 @@ TESTS_PLATZ
 - Aus über 3 m ist er vor allem Umriss und Gefieder – die Menschenaugen wirken erst nah oder im Profil.
 - Beim weiten Spreizen dehnen sich die Wurzeln der Schwingen (Skinning an geteilten Gelenken).
 - Die Followers erscheinen nicht (Menschen); die Avatar-Hypothese ist nur als „nicht immer da“ umgesetzt.
+- `coop_test --quick` brach in einem von vier Läufen im NAT-Relay-Szenario ab (0xC0000005), während parallel `gameplay_test` lief;
+  allein dreimal grün (209/0). Ein Zusammenhang mit Jerry ist nicht belegt (das Szenario nutzt seinen Raum nicht) – beobachten.
 
 ## Wünsche an die Karte
 

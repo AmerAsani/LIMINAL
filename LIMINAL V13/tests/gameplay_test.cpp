@@ -4973,6 +4973,8 @@ static void testV133Jerry(const std::string& dataDir) {
             if (s->stats().dead) tDead = t;
             return s->stats().dead;
         });
+        std::printf("  Jerry (3,2 m, fester Blick, Lampe): bemerkt nach %.2f s, Warnung nach %.2f s, unterworfen nach %.2f s, Laehmung bis %.2f\n", tNotice,
+                    tWarn, tDead, hold);
         check(tNotice >= 0.0 && tNotice < 0.7, std::format("Jerry: bemerkt den Spieler in der Tuer ({:.2f} s)", tNotice));
         check(count(ev, PE::Speak, Role::Jerry, 0.9f) >= 1, "Jerry: spricht ihn mit ruhiger Stimme an");
         check(count(ev, PE::Spell, Role::Jerry) >= 2, "Jerry: der Bann kuendigt sich an (Klingeln, Fluestern - zwei Stufen)");
@@ -5010,6 +5012,7 @@ static void testV133Jerry(const std::string& dataDir) {
             low = std::min(low, P.jerrySpell(s->netSelfId));
             return false;
         });
+        std::printf("  Jerry (Wegsehen bei Bann %.2f): nach 4 s %.2f\n", peak, low);
         check(peak >= 0.55f && low < 0.05f && !s->stats().dead && count(ev, PE::Attack, Role::Jerry) == 0,
               std::format("Jerry: wer wegsieht, entkommt - der Bann klingt ab ({:.2f} -> {:.2f})", peak, low));
     }
@@ -5030,6 +5033,7 @@ static void testV133Jerry(const std::string& dataDir) {
             if (s->stats().dead) tDead = t;
             return s->stats().dead;
         });
+        std::printf("  Jerry (1,1 m, Ruecken zu ihm): Kreischen nach %.2f s, Sprung ins Gesicht nach %.2f s\n", tScreech, tDead);
         check(warned && tDead > tScreech + 0.45, std::format("Jerry: zu nah - er kuendigt den Sprung an (Kreischen, Fluegel) und springt ({:.2f} / {:.2f} s)", tScreech, tDead));
         check(s->killRole() == (int)Role::Jerry, "Jerry: der Sprung ins Gesicht ist toedlich");
         // zurueckweichen rettet
