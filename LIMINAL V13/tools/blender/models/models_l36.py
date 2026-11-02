@@ -494,7 +494,7 @@ def _m():
         # Stoff, Holz, Papier
         'seat': mat('sitz_stoff_blau', (0.13, 0.22, 0.42), look='fabric', rough=0.9, r=1.35),
         'seat_worn': mat('sitz_stoff_blau_abgewetzt', (0.20, 0.27, 0.42), look='fabric', rough=0.9, r=1.4),
-        'wood': mat('holz_hell', (0.62, 0.48, 0.32), look='wood', tex='wood_birch', rough=0.5, r=0.85),
+        'wood': mat('holz_hell', (0.56, 0.45, 0.33), look='wood', tex='wood_birch', rough=0.6, r=1.8),
         'fabric_r': mat('stoff_rot', (0.50, 0.12, 0.10), look='fabric', rough=0.9, r=1.35),
         'fabric_g': mat('stoff_gruen', (0.18, 0.32, 0.22), look='fabric', rough=0.9, r=1.35),
         'fabric_b': mat('stoff_blau', (0.14, 0.20, 0.40), look='fabric', rough=0.9, r=1.35),
