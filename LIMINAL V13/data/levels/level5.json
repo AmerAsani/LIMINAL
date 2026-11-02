@@ -20,7 +20,14 @@
                "wrangler": { "mode": "male", "every": 900, "rooms": ["kesselgang", "kesselraum"] },
                // V13.3: die Seite nennt beide nur - selten: ein ausgewachsener Growler, mittlere Nguithr'xurh
                "growler": { "mode": "adult", "group": [1, 1], "every": 450 },
-               "nguithrxurh": { "mode": "medium", "group": [2, 3], "every": 260, "chance": 0.7 } },
+               "nguithrxurh": { "mode": "medium", "group": [2, 3], "every": 260, "chance": 0.7 },
+               // V13.3 Teil 4 (KREATUR_Samantha.md): die Katze wandert manchmal durch die Haupthalle (Gaenge) - hoechstens dreimal je Besuch
+               "samantha": { "every": 300, "chance": 0.75, "count": 3, "rooms": ["flur"] } },
+  // V13.3 Teil 4 (gameplay/hotel_l5.hpp): Wesen ohne Rolle - Kolonien (Entity 89) in dunklen Zimmerecken, Woodlins in den Moebeln
+  // der Gaenge, Watchers in Tueroeffnungen, der Gastgeber (Entity 18) mit seinem Buero, Fleisch fuer die Katze
+  "apparitions": { "hotel": { "ants": true, "woodlins": true, "watchers": true, "host": true, "meat": true,
+                              "colony_chance": 0.35, "woodlin_group": 3, "woodlin_every": 150, "watcher_count": 3,
+                              "host_after": 260, "host_sanity": 70, "fearless": 180 } },
   "next_level": "level5_3",
   "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0 },
 

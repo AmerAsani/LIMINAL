@@ -27,6 +27,7 @@ void addNguithrSounds(std::vector<SoundDef>& d, int rate);   // V13.3: synth_ngu
 void addOuroborosSounds(std::vector<SoundDef>& d, int rate); // V13.3: synth_ouroboros.cpp (Ouroboros-Arbeiter)
 void addGoblinSounds(std::vector<SoundDef>& d, int rate);    // V13.3: synth_goblin.cpp (Plague Goblins, Beil)
 void addJerrySounds(std::vector<SoundDef>& d, int rate);     // V13.3 Teil 4: synth_jerry.cpp (Jerry)
+void addHotelSounds(std::vector<SoundDef>& d, int rate);     // V13.3 Teil 4 Level 5: synth_hotel.cpp (Wesen des Hotels)
 void addLureSounds(std::vector<SoundDef>& d, int rate);      // V13.3 synth_lure.cpp: Leuchtstab, Ansprechen (Spieler, Skin-Stealer)
 void addPhenomenaSounds(std::vector<SoundDef>& d, int rate);  // V13.3 synth_phenomena.cpp: Pilz, Garden, Spielleiterin, Tuerspuren
 void addL2Sounds(std::vector<SoundDef>& d, int rate);         // V13.3 Teil 4 synth_l2.cpp: Fenster am Gangende, Motten, Ratten (Level 2)

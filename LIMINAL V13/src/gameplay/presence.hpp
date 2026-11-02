@@ -53,8 +53,9 @@ public:
     // V13.3: Ouroboros-Arbeiter hinter Nguithr'xurh (presence_ouroboros.cpp)
     // V13.3: Plague Goblins hinter den Ouroboros-Arbeitern (presence_goblin.cpp)
     // V13.3 Teil 4: Jerry hinter den Plague Goblins (presence_jerry.cpp)
-    enum class Role { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Wrangler, Growler, Nguithr, Ouroboros, Goblin, Jerry };
-    static constexpr int kRoleCount = 19;  // V13.3: Duller, Arms, Wrangler (KREATUR_Wrangler.md), Growler, Nguithr'xurh, Ouroboros-Arbeiter, Plague Goblins, Jerry
+    // V13.3 Teil 4 Level 5: Samantha hinter Jerry (presence_samantha.cpp)
+    enum class Role { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Wrangler, Growler, Nguithr, Ouroboros, Goblin, Jerry, Samantha };
+    static constexpr int kRoleCount = 20;  // V13.3: Duller, Arms, Wrangler (KREATUR_Wrangler.md), Growler, Nguithr'xurh, Ouroboros-Arbeiter, Plague Goblins, Jerry
     static const char* roleName(Role r);
 
     struct Event {
@@ -145,6 +146,8 @@ public:
             Flap,        // Fluegel (strength 0,3: schuettelt und streckt sie, 1: breitet sie aus, schlaegt)
             Preen,       // putzt sich, knabbert, Schnabel knirscht (strength 0: Knirschen, 1: Federn)
             Spell,       // der Bann waechst bei Blickkontakt (strength: Stufe 0,3 / 0,6) - Klingeln, Fluestern im Kopf
+            // V13.3 Teil 4 Level 5: Samantha (KREATUR_Samantha.md) - Laute und Saetze als Klangnummer (Mimic, kKinCue + Nummer,
+            // gameplay/hotel_l5.hpp), Fleisch nehmen als Steal (item: welches), Biss und Kratzer als Hit
         } type;
         Role role = Role::Smiler;
         vec3 pos;
@@ -427,6 +430,16 @@ public:
     };
     BigClumpInfo bigClumpInfo() const;
     bool bigClumpSet(const std::string& key, double v);
+    // V13.3 Teil 4 Level 5 (KREATUR_Samantha.md; presence_samantha.cpp): Samantha - die Katze in der Haupthalle. samInfo (Tests):
+    // Lage, Zustand, Tausch, Angriffe; samSet (Tests, Skripte): state, quick, pose (Haltung fuer Bilder: 0 sitzt .. 5 Angriff), hold
+    struct SamInfo {
+        bool active = false;
+        int state = -1, trades = 0, attacks = 0, hits = 0, warnings = 0, target = -1;
+        float quality = -1.0f;  // Guete des letzten Fleischs (1 gut, 0,3 minderwertig)
+        vec3 pos, head;
+    };
+    SamInfo samInfo() const;
+    bool samSet(const std::string& key, double v);
 
 private:
     struct Agent;
@@ -574,6 +587,10 @@ private:
     bool spawnClumpL3(const Context& c, std::vector<Event>& out, double dist);
     void thinkClumpL3(Agent& a, double dt, const Context& c, std::vector<Event>& out);
     void prepClumpL3(Agent& a, const Context& c);
+    // V13.3 Teil 4 Level 5: Samantha (presence_samantha.cpp)
+    void regieSamantha(double dt, const Context& c, std::vector<Event>& out);
+    bool spawnSamantha(const Context& c, std::vector<Event>& out, bool forced);
+    void thinkSamantha(Agent& a, double dt, const Context& c, std::vector<Event>& out);
     void updateHive(double dt, const Context& c, std::vector<Event>& out);
     bool walkTo(Agent& a, const NavField& f, double speed, double dt, const Context& c);
     bool hiddenSpawn(const Context& c, int lo, int hi, bool behind, vec3& out, const std::function<bool(vec3)>& ok = {});
@@ -631,6 +648,10 @@ private:
     std::shared_ptr<void> pack_, bigClump_;
     // V13.3 Level 3 (KREATUR_RedKnight.md): Regie des Red Knight (presence_knight.cpp)
     std::shared_ptr<void> knight_;
+    // V13.3 Teil 4 Level 5: Samantha - naechster Versuch, Auftritte, Zeitraffer, Zaehler (Tests)
+    double samTry_ = 0.0, samQuick_ = 1.0;
+    int samVisits_ = 0;
+    std::shared_ptr<void> samStats_;
 };
 
 }  // namespace lim::game

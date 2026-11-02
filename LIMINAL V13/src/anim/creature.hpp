@@ -42,6 +42,8 @@
 //   Jerry (E. 7)        ein blauer Papagei wie der Hyazinth-Ara (1 m mit Schwanz) auf einem rostigen Rohr; Wendezehen um
 //                       das Rohr, Fluegel mit Hand- und Armschwingen, Schnabel mit beweglichem Oberschnabel, Zunge,
 //                       Pupillen (verengen sich), Halsgefieder (straeubt sich) (jy).
+//   Samantha (E. 26)    kleine schwarz-weisse Katze mit gruenen Augen; Kiefer, der sich viel zu weit oeffnet, Saegezaehne,
+//                       Zunge (spricht), Ohren, langer Schwanz; sitzt, geht, buckelt, springt ins Gesicht (sa).
 //
 // Wie beim Menschen (anim/skeleton) werden Gelenkpositionen animiert; jeder Knochen ist ein starrer
 // Rahmen vom Start- zum Endgelenk, gedreht nach einem Hinweisvektor ("oben"). Skinning-Matrix =
@@ -56,7 +58,7 @@
 
 namespace lim::anim {
 
-enum class Entity : std::uint8_t { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Wrangler, Growler, Nguithr, Ouroboros, Goblin, Jerry, Count };
+enum class Entity : std::uint8_t { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Wrangler, Growler, Nguithr, Ouroboros, Goblin, Jerry, Samantha, Count };
 constexpr int kEntityCount = (int)Entity::Count;
 
 struct CBone {
@@ -639,5 +641,32 @@ inline int legB(int s, int i) { return B_LEG0 + s * 11 + i; }
 enum State : int { S_REST = 0, S_NOTICE = 1, S_FIX = 2, S_WARN = 3, S_LUNGE = 4, S_TURN = 5, S_SUBDUE = 10 };
 CreatureSkeleton makeSkeleton();  // creature_jerry.cpp
 }  // namespace jy
+
+// V13.3 Teil 4: Samantha (Wikidot entity-26 Rev. 22, level-5 Rev. 184; KREATUR_Samantha.md) - eine kleine Hauskatze (fast ein
+// Kaetzchen), schwarz-weiss, gruene Augen, kraeftiger Kiefer mit gezackten Zaehnen. Wurzel am Boden unter der Rumpfmitte; Ruhe:
+// stehend. Kiefer mit Gelenk weit hinten (oeffnet bis ~80 Grad), Zunge in zwei Gliedern, Ohren, vier Beine zu je drei Knochen
+// (Pfote mit Krallen am Ende), Schwanz in fuenf Gliedern.
+namespace sa {
+constexpr int kTail = 6;  // Gelenke des Schwanzes (5 Knochen)
+enum J : std::uint8_t {
+    ROOT, PELVIS, SPINE, CHEST, NECK, HEAD, NOSE, JAWP, JAWT, TONGA, TONGB, EARB_L, EAR_L, EARB_R, EAR_R,
+    LEG0,                     // + Bein * 4 + i (0 vorn links, 1 vorn rechts, 2 hinten links, 3 hinten rechts): oben, Ellbogen/Knie,
+                              // Handgelenk/Ferse, Pfotenspitze
+    TAIL0 = LEG0 + 16,        // + i
+    JCOUNT = TAIL0 + kTail
+};
+enum B : std::uint8_t {
+    B_ROOT, B_PELVIS, B_SPINE, B_CHEST, B_NECK, B_HEAD, B_JAW, B_TONGUE, B_EAR_L, B_EAR_R,
+    B_LEG0,                   // + Bein * 3 + i
+    B_TAIL0 = B_LEG0 + 12,    // + i
+    BCOUNT = B_TAIL0 + kTail - 1
+};
+inline int legJ(int l, int i) { return LEG0 + l * 4 + i; }
+inline int legB(int l, int i) { return B_LEG0 + l * 3 + i; }
+// Zustaende (Presence, Animation): 0 sitzt (putzt sich, murmelt), 1 geht umher, 2 bemerkt und spricht an, 3 frisst (Tausch),
+// 4 Warnung (Buckel, Fauchen), 5 Sprung und Angriff (am Gesicht), 6 Rueckzug (geht fort), 7 fort (unsichtbar)
+enum State : int { S_SIT = 0, S_WALK = 1, S_ASK = 2, S_EAT = 3, S_WARN = 4, S_ATTACK = 5, S_LEAVE = 6, S_GONE = 7 };
+CreatureSkeleton makeSkeleton();  // creature_samantha.cpp
+}  // namespace sa
 
 }  // namespace lim::anim

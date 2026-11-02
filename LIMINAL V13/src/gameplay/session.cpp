@@ -45,6 +45,7 @@ GameSession::GameSession(const Content& content, const PrefabLibrary& prefabs,
     phenomena_.setup(world_->level(), (u64)seed);  // V13.3: Erscheinungen ohne Figur (session_phenomena.cpp)
     appar_.setup(world_->level(), (u64)seed);  // V13.3 Teil 4: Randwesen von Level 2 (session_apparitions.cpp)
     purple_.setup(world_->level(), (u64)seed);     // V13.3: purpifizierte Wesen in der Wand (session_purple.cpp)
+    hotel_.setup(world_->level(), (u64)seed);      // V13.3 Teil 4 Level 5: Wesen des Hotels (session_hotel.cpp)
     // V7: Laufbuch (V8: in der Welt beginnt jeder Lauf in der ersten Ebene)
     runLog_.levels.push_back(world_->level().world() ? world_->level().regions.front().id : levelId);
 }
@@ -214,6 +215,7 @@ void GameSession::onChunk(const world::ChunkData& cd, bool loaded) {
         spawnFinds(cd);  // V7: Notizen, Batterien, Notausgaenge
         spawnTraces(cd);  // V13.3: offenes Mandelwasser (session_phenomena.cpp)
         spawnApparitions(cd);  // V13.3 Teil 4: Automaten, Blechtafel der Macchina (session_apparitions.cpp)
+        spawnHotel(cd);        // V13.3 Teil 4 Level 5: Fleisch (session_hotel.cpp)
         // V6: abgelegte Items dieses Chunks wieder hinlegen
         for (auto& d : dropped_)
             if (!reg_.alive(d.entity) && world::chunkOf(ifloor(d.pos.x), ifloor(d.pos.y)) == cd.key) spawnDropped(d, {}, true);
@@ -781,6 +783,7 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
     player_.speedMul = stats_.speedMul() * (stats_.exhausted ? 0.9 : 1.0);
     player_.speedMul *= 1.0 - 0.5 * presence_.trance();  // V13.3: der Anblick des Wranglers laehmt
     player_.speedMul *= 1.0 - 0.55 * presence_.jerryHold(netSelfId);  // V13.3 Teil 4: Jerrys Bann laehmt die Schritte
+    player_.speedMul *= hotelSlow(0);  // V13.3 Teil 4 Level 5: Biss eines Woodlins in den Knoechel
     // V13.3: betaeubt (Nguithr'xurh) langsamer und ohne Sprint; durch das Gewirr einer Growler-Leiche waten
     player_.speedMul *= presence_.slowFor(netSelfId, {(float)player_.x, (float)player_.y, (float)player_.z});
     player_.speedMul *= phenomena_.speedMul(0);            // V13.3: Fieber, Ranken (session_phenomena.cpp)
@@ -809,6 +812,13 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
         player_.angle += std::remainder(std::atan2(d.y, d.x) - player_.angle, 2.0 * 3.14159265) * k;
         player_.pitch += (std::atan2(d.z, std::max(0.3f, std::hypot(d.x, d.y))) - player_.pitch) * k * 0.7;
         if (netRole != NetRole::Guest) stats_.sanity = std::max(0.0, stats_.sanity - dt * 0.45 * tr);
+    }
+    // V13.3 Teil 4 Level 5 (KREATUR_Samantha.md): springt die Katze ins Gesicht, reisst es den Blick zu ihr (Kratzen, Beissen)
+    if (const auto si = presence_.samInfo(); !paused && !stats_.dead && si.state == anim::sa::S_ATTACK && si.target == netSelfId) {
+        const vec3 d = si.head - body_.eye();
+        const double k = std::min(1.0, dt * 7.0);
+        player_.angle += std::remainder(std::atan2(d.y, d.x) - player_.angle, 2.0 * 3.14159265) * k;
+        player_.pitch += (std::atan2(d.z, std::max(0.15f, std::hypot(d.x, d.y))) - player_.pitch) * k;
     }
     // V13.3 Teil 4: Jerrys Bann (KREATUR_Jerry.md) - ab 0,45 zieht er den Blick zu seinem Gesicht; wegsehen kostet Kraft
     if (vec3 at; !paused && !stats_.dead && presence_.jerrySpell(netSelfId, &at) > 0.45f) {
@@ -915,6 +925,7 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
         updatePhenomena(dt);  // V13.3: Pilz, Garden, Gemaelde, Tuerspuren (nach den Wesen: others_ ist gefuellt)
         updateApparitions(dt);  // V13.3 Teil 4: Randwesen von Level 2
         updatePurple(dt);     // V13.3: purpifizierte Wesen in der Wand (session_purple.cpp)
+        updateHotel(dt);      // V13.3 Teil 4 Level 5: Kolonien, Woodlins, Watchers, Gastgeber (session_hotel.cpp)
     }
     if (killCam_ && !paused) killT_ += dt;  // V11
     target_ = ecs::kNull;
@@ -1097,6 +1108,7 @@ void GameSession::findTarget() {
 }
 
 std::string GameSession::targetPrompt() const {
+    if (target_ == ecs::kNull && hotel_.antsOn(0) > 0 && !stats_.dead) return "Abzupfen";  // V13.3 Teil 4 Level 5 (KREATUR_Ants.md)
     if (target_ == ecs::kNull) return speakTarget() ? "Ansprechen" : "";  // V13.3 (KREATUR_SkinStealer.md)
     auto& reg = const_cast<ecs::Registry&>(reg_);
     auto* pk = reg.get<Pickup>(target_);
@@ -1120,6 +1132,7 @@ std::string GameSession::targetPrompt() const {
 
 void GameSession::interact() {
     if (target_ == ecs::kNull) {
+        if (hotelPick()) return;     // V13.3 Teil 4 Level 5: Tierchen am Koerper - abzupfen (session_hotel.cpp)
         if (speakTarget()) speak();  // V13.3: niemand zum Aufnehmen im Blick, aber eine Gestalt - ansprechen
         return;
     }
@@ -1404,6 +1417,7 @@ void GameSession::collectMeshes(std::vector<VisibleMesh>& out) {
     lures_.collect(out, eye);  // V13.3: Leuchtstaebe
     phenomena_.collect(out, eye);  // V13.3: Gemaelde am Boden (KREATUR_GameMaster.md)
     appar_.collect(out, eye);  // V13.3 Teil 4: Automaten, Swindlebird, Photoshop
+    hotel_.collect(out, eye);  // V13.3 Teil 4 Level 5: Kolonien, Woodlins, Watchers, Gastgeber
     haunt_.collect(out);  // V7: "Der Andere"
     presence_.collect(out, palette_, eye, figureDetail);  // V10: die Figuren
     for (Pawn* p : pawns)  // V13.2 Koop: die Mitspieler (Spielermodell, Lampe von aussen)
@@ -1726,6 +1740,7 @@ void GameSession::updatePresence(double dt) {
     using PE = Presence::Event;
     for (const PE& e : presenceEvents_) {
         goblinWorld(e);  // V13.3: Plague Goblins - Diebstahl, Aufheben, Verlorenes, Geschenk
+        samanthaWorld(e);  // V13.3 Teil 4 Level 5: Samantha - Fleisch nehmen, fressen, Lesung (session_hotel.cpp)
         if (netRole == NetRole::Host && e.target != netSelfId) {  // V13.2 Koop: betrifft einen Gast
             netFigureOut.push_back(e);
             Pawn* p = nullptr;

@@ -87,6 +87,9 @@ enum FixedMaterial : u32 {
     FM_ENT_RK_PURPLE_GLOW,
     // V13.3 Wow-Check Level 3 (KREATUR_SkinStealer.md, KREATUR_Wretch.md): faulige Stellen des Skin-Stealers; Schorf und Pusteln des Wretch
     FM_ENT_SS_ROT, FM_ENT_WRE_CRUST, FM_ENT_WRE_PUS,
+    // V13.3 Teil 4 Level 5 (KREATUR_Samantha.md): schwarzes und weisses Katzenfell, gruene Augen mit Tapetum (leuchten im
+    // Lampenlicht), Nase und Ballen, Schnurrhaare, Zahnfleisch und Gaumen (nass)
+    FM_ENT_SM_FUR, FM_ENT_SM_FURW, FM_ENT_SM_EYE, FM_ENT_SM_NOSE, FM_ENT_SM_WHISKER, FM_ENT_SM_GUM,
     FM_FIG_END,
 };
 static_assert(FM_FIG_END <= kFixedMaterials);

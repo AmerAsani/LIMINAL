@@ -390,6 +390,15 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     materialData_[FM_ENT_WRE_CRUST] = GpuMaterial{{0.30f, 0.14f, 0.08f}, 0, ent(EL_HORN, ML_CRAZE), 1.3f, 0, 0.35f};
     materialData_[FM_ENT_WRE_PUS] = GpuMaterial{{0.95f, 0.82f, 0.42f}, 0, ent(EL_TOOTH, ML_PORES) | kMatFlagSkin, 0.18f, 0, 0.15f};
     materialData_[FM_ENT_RK_PURPLE_GLOW] = GpuMaterial{{0.62f, 0.25f, 1.0f}, 2.2f, ent(EL_TOOTH, ML_PORES), 0.2f, 0, 0.0f};
+    // V13.3 Teil 4 Level 5 (KREATUR_Samantha.md): kurzes, dichtes Katzenfell - schwarz mit seidigem Schimmer (leicht braun im
+    // Licht), weiss leicht cremig; gruene Augen mit Tapetum (glaenzend nass, leichtes Eigenleuchten - Augenleuchten im
+    // Lampenlicht, Auslegung: das Wiki nennt gruene Augen); rosa-graue Nase und Ballen; weisse Schnurrhaare; Zahnfleisch nass
+    materialData_[FM_ENT_SM_FUR] = GpuMaterial{{0.035f, 0.032f, 0.032f}, 0, ent(EL_FUR, ML_FIBER), 0.55f, 0, 0.15f};
+    materialData_[FM_ENT_SM_FURW] = GpuMaterial{{0.86f, 0.84f, 0.79f}, 0, ent(EL_FUR, ML_FIBER), 0.75f, 0, 0.15f};
+    materialData_[FM_ENT_SM_EYE] = GpuMaterial{{0.30f, 0.62f, 0.18f}, 0.55f, ent(EL_TOOTH, ML_PORES), 0.04f, 0, 0.0f};
+    materialData_[FM_ENT_SM_NOSE] = GpuMaterial{{0.62f, 0.40f, 0.42f}, 0, ent(EL_HUMAN, ML_PORES) | kMatFlagSkin, 0.35f, 0, 0.2f};
+    materialData_[FM_ENT_SM_WHISKER] = GpuMaterial{{0.92f, 0.91f, 0.88f}, 0, ent(EL_HAIR, ML_FIBER), 0.4f, 0, 0.05f};
+    materialData_[FM_ENT_SM_GUM] = GpuMaterial{{0.55f, 0.16f, 0.18f}, 0, ent(EL_SKIN, ML_PORES) | kMatFlagSkin, 0.16f, 0, 0.1f};
     writeMaterials(gpu);
     lights_ = gpu.createStructured(sizeof(GpuLight), 2048, true, false);
     puddles_ = gpu.createStructured(sizeof(vec4), kMaxPuddles * 2, true, false);  // V13.3

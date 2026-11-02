@@ -25,5 +25,8 @@ struct VisibleMesh {
     vec4 fx{0, 0, 0, 0};    // V13.3: Zeichen auf der Haut (x Pilz, y Ranken; 0..1) - nur Haut der Figuren (KREATUR_Crawler.md)
 };
 constexpr int kShadowLook = 1000;  // die Anwendung setzt dafuer das Schattenmaterial
+constexpr int kUmbraLook = 1001;   // V13.3 Teil 4 Level 5: schwarz und stumpf, schluckt das Licht (Kolonie, KREATUR_Ants.md)
+constexpr int kRotSkinLook = 1002;  // V13.3 Teil 4 Level 5: graugruene, wachsige Haut der Wesen (Watchers, KREATUR_Watchers.md)
+constexpr int kDarkSkinLook = 1003; // V13.3 Teil 4 Level 5: dunkelgraue, trockene Haut (Leib der Watchers)
 
 }  // namespace lim::game

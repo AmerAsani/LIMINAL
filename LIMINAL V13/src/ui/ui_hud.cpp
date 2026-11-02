@@ -177,6 +177,28 @@ void Ui::drawHud(Host& h, double dt) {
     float look = 1.0f;
     if (!h.settings().thirdPerson && h.settings().showBody)
         look = 1.0f - 0.7f * smoothstep(0.8f, 1.2f, -(float)ses->player().pitch);
+    // V13.3 Teil 4 Level 5 (KREATUR_Ants.md): die Tierchen am Koerper - schwarze, flauschige Kugeln kriechen vom unteren Rand
+    // ins Bild (je mehr dran sind, desto hoeher und dichter); jede ein Kreis mit weichem Rand, Licht schluckend
+    if (const float cr = ses->hotel().antsCrawl(0); cr > 0.0f && !st.dead) {
+        static double crawlT = 0.0;
+        crawlT += dt;
+        const float t = (float)crawlT;
+        auto hh = [](unsigned i) {
+            i ^= i >> 16, i *= 0x7feb352du, i ^= i >> 15, i *= 0x846ca68bu, i ^= i >> 16;
+            return (float)(i & 0xFFFFFF) / 16777216.0f;
+        };
+        const int n = 14 + (int)(cr * 80.0f);  // Runde 2: kaum zu sehen - mehr, groesser, dunkler
+        for (int i = 0; i < n; ++i) {
+            const float a = hh((unsigned)i * 3u + 1u), b = hh((unsigned)i * 3u + 2u), c = hh((unsigned)i * 3u + 3u);
+            const float side = a < 0.5f ? a * 0.3f : 0.7f + (a - 0.5f) * 0.6f;  // eher an den Raendern
+            const float rise = std::fmod(b + t * (0.015f + 0.03f * c), 1.0f) * (0.22f + 0.4f * cr);
+            const float x = W_ * (side + 0.012f * std::sin(t * (2.0f + 3.0f * c) + (float)i));
+            const float y = H_ * (1.02f - rise);
+            const float sz = (22.0f + 48.0f * c) * s;
+            r_->rect(x - sz * 0.5f, y - sz * 0.5f, sz, sz, vec4{0.006f, 0.006f, 0.008f, 0.7f}, sz * 0.5f);
+            r_->rect(x - sz * 0.38f, y - sz * 0.38f, sz * 0.76f, sz * 0.76f, vec4{0.0f, 0.0f, 0.0f, 0.9f}, sz * 0.38f);
+        }
+    }
     r_->setAlpha(look);
     drawHotbar(h, *ses);
     r_->setAlpha(1.0f);

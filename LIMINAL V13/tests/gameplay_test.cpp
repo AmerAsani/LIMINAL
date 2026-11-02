@@ -1730,6 +1730,7 @@ static Mount mountOf(const std::string& m) {
                                   "skin_hung", "skin_scratches",  // V13.3 L2: Spuren der Skin-Stealer
                                   "jerry_mural", "jerry_poster",  // V13.3 Teil 4 L2: Jerrys Raum, Wegweiser der Followers
                                   "macchina_tapestry",  // V13.3 Teil 4 L2: Wandtuch der Macchina
+                                  "e18_portrait",  // V13.3 Teil 4 L5: Bildnis im Buero des Gastgebers
 
                                   "purple_stealer", "purple_hound"};  // V13.3 L3: purpifizierte Wesen (KREATUR_L3_Purpur.md)
     static const char* ceil2[] = {"vines_ceiling", "cable_hang", "arcade_gothic"};
@@ -1741,7 +1742,8 @@ static Mount mountOf(const std::string& m) {
                                    "fungus_floor", "fungus_camp", "goo_trail", "plant_wanderer",  // V13.3 L1-Erscheinungen
                                    "skin_shed", "skin_lair", "food_scraps",  // V13.3 L2: Spuren der Skin-Stealer, Futter der Ratten
                                    "jerry_perch", "jerry_shrine",  // V13.3 Teil 4 L2: Jerrys Sitzrohr, Opfertisch der Followers
-                                   "macchina_suit", "macchina_cradle", "macchina_spear"};  // V13.3 Teil 4 L2: Reste der Macchina
+                                   "macchina_suit", "macchina_cradle", "macchina_spear",  // V13.3 Teil 4 L2: Reste der Macchina
+                                   "e18_desk", "e18_wingchair"};  // V13.3 Teil 4 L5: Buero des Gastgebers
     for (const char* w : wall2)
         if (m == w) return Mount::Wall;
     for (const char* c : ceil2)

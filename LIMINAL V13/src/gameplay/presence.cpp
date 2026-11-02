@@ -35,6 +35,7 @@ const char* Presence::roleName(Role r) {
         case Role::Ouroboros: return "Ouroboros-Arbeiter";  // V13.3
         case Role::Goblin: return "Plague Goblin";  // V13.3
         case Role::Jerry: return "Jerry";           // V13.3 Teil 4
+        case Role::Samantha: return "Samantha";     // V13.3 Teil 4 Level 5
     }
     return "?";
 }
@@ -52,6 +53,7 @@ void Presence::clear() {
     ouroPlaced_ = false, ouroSite_.reset();         // V13.3: Ouroboros-Baustelle der neuen Ebene
     goblinCtl_.reset(), nextGoblin_ = 50.0;          // V13.3: Plague Goblins - neue Ebene, neue Bande (auch nach einer Flucht)
     spell_.fill(0.0f), spellStage_.fill(0), jerryTry_ = 0.0;  // V13.3 Teil 4: Jerry
+    samTry_ = 0.0, samVisits_ = 0;                            // V13.3 Teil 4 Level 5: Samantha
 }
 
 void Presence::setGrace(double s) {
@@ -1135,6 +1137,7 @@ void Presence::think(Agent& a, double dt, const Context& c, std::vector<Event>& 
         case Role::Ouroboros: thinkOuroboros(a, dt, c, out); break;  // V13.3
         case Role::Goblin: thinkGoblin(a, dt, c, out); break;  // V13.3
         case Role::Jerry: thinkJerry(a, dt, c, out); break;    // V13.3 Teil 4
+        case Role::Samantha: thinkSamantha(a, dt, c, out); break;  // V13.3 Teil 4 Level 5
         default: break;
     }
 }
@@ -1388,6 +1391,8 @@ void Presence::regie(double dt, const Context& c, std::vector<Event>& out) {
                 if (!spawnOuroboros(c, out, true)) log::info("Praesenz: erzwungene Ouroboros-Baustelle nicht moeglich (kein Sektor Ouroboros geladen)");
             } else if (r == Role::Goblin) {  // V13.3: eine Bande Plague Goblins (Portal ausser Sicht)
                 if (!spawnGoblin(c, out, true)) log::info("Praesenz: erzwungene Plague Goblins nicht moeglich (kein Platz fuer das Portal)");
+            } else if (r == Role::Samantha) {  // V13.3 Teil 4 Level 5: die Katze im Gang, ausser Sicht
+                if (!spawnSamantha(c, out, true)) log::info("Praesenz: erzwungene Samantha nicht moeglich (kein Gang ausser Sicht)");
             } else if (r == Role::Jerry) {  // V13.3 Teil 4: Jerry auf seinem Rohr (Spawnpunkt der Karte)
                 if (!spawnJerry(c, out, true)) log::info("Praesenz: erzwungener Jerry nicht moeglich (kein Rohr in der Karte)");
             } else if (r >= Role::Faceling) {  // V13.2: wie die Ebene sie kennt; kennt sie es nicht, die Grundart
@@ -1521,6 +1526,7 @@ void Presence::regie(double dt, const Context& c, std::vector<Event>& out) {
     if (c.mode > 0 && !c.suspended) regieOuroboros(dt, c, out);  // V13.3: Ouroboros-Baustelle
     if (c.mode > 0 && !c.suspended) regieGoblin(dt, c, out);     // V13.3: Plague Goblins
     if (c.mode > 0 && !c.suspended) regieJerry(dt, c, out);      // V13.3 Teil 4: Jerry in seinem Raum
+    if (c.mode > 0 && !c.suspended) regieSamantha(dt, c, out);   // V13.3 Teil 4 Level 5: die Katze in der Haupthalle
     regieKnight(dt, c, out);                                     // V13.3 Level 3: Red Knight (presence_knight.cpp)
     regieHoundPack(dt, c, out);  // V13.3 Level 2/3: Hound-Rudel (Verletzungen heilen auch ohne Rudel)
     regieClumpL3(dt, c, out);    // V13.3 Level 3: das grosse, bewaffnete Buendel

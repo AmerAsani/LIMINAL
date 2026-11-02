@@ -29,6 +29,7 @@
 #include "gameplay/phenomena.hpp"
 #include "gameplay/apparitions_l2.hpp"
 #include "gameplay/purpification.hpp"
+#include "gameplay/hotel_l5.hpp"
 #include "gameplay/player.hpp"
 #include "gameplay/prefabs.hpp"
 #include "gameplay/stats.hpp"
@@ -228,6 +229,12 @@ public:
     // V13.3 (session_purple.cpp): purpifizierte tote Wesen in den Ziegelwaenden von Level 3 (KREATUR_L3_Purpur.md)
     const Purpification& purple() const { return purple_; }
     Purpification& purple() { return purple_; }
+    // V13.3 Teil 4 Level 5 (session_hotel.cpp): Wesen des Hotels ohne Rolle (Kolonien, Woodlins, Watchers, Gastgeber, Fleisch)
+    const HotelL5& hotel() const { return hotel_; }
+    HotelL5& hotel() { return hotel_; }
+    bool scriptHotel(const std::string& name, double dist, double side, int nr);
+    float hotelSlow(int id) const;  // Biss eines Woodlins: Tempo-Faktor (1 frei)
+    bool hotelForce(const std::string& what, int nr);  // Skript/Test: colony <nr>, host <phase>, watcher <nr>, woodlins
 
     // Darstellung
     const world::Room* currentRoom() const { return room_; }
@@ -307,7 +314,8 @@ public:
     // abgelegte Dinge (Kennzahl, Art, Ort) - er bekommt sie als Ereignisse Picked/Dropped nach dem Willkommen
     void netWorldState(std::vector<u32>& pickedOut, std::vector<NetWorldEvent>& dropsOut) const;
     void netPowerCut(vec3 pos, float seconds);
-    void netApparition(u32 code, vec3 pos);  // V13.3 Teil 4: Randwesen von Level 2 (session_apparitions.cpp)
+    void netApparition(u32 code, vec3 pos);
+    void netHotel(u32 code, vec3 pos);  // V13.3 Teil 4 Level 5 (session_hotel.cpp)  // V13.3 Teil 4: Randwesen von Level 2 (session_apparitions.cpp)
     void netFlicker(vec3 pos);
     std::vector<Presence::NetState> netCreatures;          // letzte Momentaufnahme der Wesen
     double netCreatureStamp = -1.0;
@@ -522,6 +530,18 @@ private:
     std::vector<Purpification::Event> purpleEvents_;
     void updatePurple(double dt);
     void collectPurpleSounds(std::vector<SoundSource>& out);
+    // V13.3 Teil 4 Level 5 (session_hotel.cpp): Wesen des Hotels; Samantha in der Welt (Fleisch, Lesung)
+    HotelL5 hotel_;
+    std::vector<HotelL5::Event> hotelEvents_;
+    std::array<float, HotelL5::kPlayers> hotelSlow_{};
+    ecs::Entity hotelHand_ = ecs::kNull;
+    void updateHotel(double dt);
+    void applyHotel(std::vector<HotelL5::Event>& evs);
+    void spawnHotel(const world::ChunkData& cd);
+    bool hotelPick();
+    bool hotelInteractPawn(Pawn& p, u32 hash, std::string& msg);
+    bool useHotel(const ApparitionUse& au, Pawn* p, std::string& msg);
+    void samanthaWorld(const Presence::Event& e);
     std::vector<mat4> palette_;
     FigureRig playerRig_;
     int bodyStyle_ = -1;  // angewendete Koerperart (0 Strichmaennchen, 1 realistisch)

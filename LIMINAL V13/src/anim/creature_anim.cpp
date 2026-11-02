@@ -70,7 +70,7 @@ void CreatureAnimator::init(Entity e, vec3 pos, float yaw, unsigned seed) {
     if (rng_ == 0) rng_ = 1;
     pose_ = bindPose(*sk_);
     creatureFrames(*sk_, pose_, bindFrames_);
-    legs_ = e == Entity::Hound || e == Entity::Rat ? 4 : (isBiped(e) || e == Entity::Duller ? 2 : 0);
+    legs_ = e == Entity::Hound || e == Entity::Rat || e == Entity::Samantha ? 4 : (isBiped(e) || e == Entity::Duller ? 2 : 0);  // V13.3 Teil 4 Level 5: Samantha
     int chains = 0;
     switch (e) {
         case Entity::Smiler: chains = sm::kWisps; break;
@@ -118,6 +118,15 @@ void CreatureAnimator::snap(vec3 pos, float yaw) {
         for (int i = 0; i < legs_; ++i) {
             Leg& l = leg_[i];
             l.plant = l.from = l.to = restAt(e_ == Entity::Rat ? rt::legJ(i, 2) : bp::leg(bp::ANKLE_L, i));
+            l.plant.z = l.from.z = l.to.z = pos.z;
+            l.swing = false;
+            l.t = 0.0f;
+        }
+    }
+    if (e_ == Entity::Samantha) {  // V13.3 Teil 4 Level 5: Pfoten der Ruhepose (Handgelenke ueber dem Boden)
+        for (int i = 0; i < 4; ++i) {
+            Leg& l = leg_[i];
+            l.plant = l.from = l.to = restAt(sa::legJ(i, 2));
             l.plant.z = l.from.z = l.to.z = pos.z;
             l.swing = false;
             l.t = 0.0f;
@@ -182,6 +191,7 @@ vec3 CreatureAnimator::headPos() const {
         case Entity::Ouroboros: return ouroHead();  // V13.3
         case Entity::Goblin: return goblinHead();   // V13.3
         case Entity::Jerry: return headPos_;        // V13.3 Teil 4: zwischen den Augen (Blickkontakt, Schreck)
+        case Entity::Samantha: return headPos_;     // V13.3 Teil 4 Level 5: zwischen den Augen
         default: return pose_.j[ns::TOP];
     }
 }
@@ -215,6 +225,7 @@ void CreatureAnimator::update(double dtIn, const Input& in) {
     if (e_ == Entity::Ouroboros) turn = 1000.0f;  // V13.3: eigene Feder je Variante (Mauer und Geruest stehen fest)
     if (e_ == Entity::Goblin) turn = 1000.0f;     // V13.3: eigene Feder (ruckartige Vogelwendungen)
     if (e_ == Entity::Jerry) turn = 2.2f;         // V13.3 Teil 4: tritt auf dem Rohr langsam herum
+    if (e_ == Entity::Samantha) turn = 7.0f;      // V13.3 Teil 4 Level 5: die Katze wendet flink
     if (e_ == Entity::Rat && !extra_.empty() && extra_[0] > 1.5f) turn = extra_[0] > 2.5f ? 1000.0f : 3.5f;  // V13.3 Level 3: schwer; Falle fest
     if (praetorian()) turn = 7.0f;                // V13.3 Level 3: Praetorianer - wendig
     if (bigClump()) turn = 3.2f;                  // V13.3 Level 3: das grosse Buendel - wendiger als das kleine
@@ -260,6 +271,7 @@ void CreatureAnimator::update(double dtIn, const Input& in) {
         case Entity::Ouroboros: updateOuroboros(dt, in); break;  // V13.3
         case Entity::Goblin: updateGoblin(dt, in); break;  // V13.3
         case Entity::Jerry: updateJerry(dt, in); break;    // V13.3 Teil 4
+        case Entity::Samantha: updateSamantha(dt, in); break;  // V13.3 Teil 4 Level 5
         default: updateNest(dt, in); break;
     }
     last_ = in;
