@@ -343,6 +343,19 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     materialData_[FM_ENT_PG_LOOT] = GpuMaterial{{0.82f, 0.84f, 0.80f}, 0, ent(EL_TOOTH, ML_PORES), 0.25f, 0, 0.2f};
     // Runde 2: kahle, runzlige, grau-rosa Haut (Gesicht unter der Maske, Innenseite der Ohren) - laesst Licht ein
     materialData_[FM_ENT_PG_SKIN] = GpuMaterial{{0.56f, 0.40f, 0.38f}, 0, ent(EL_SKIN, ML_PORES) | kMatFlagSkin, 0.45f, 0, 0.35f};
+    // V13.3 Teil 4: Jerry (KREATUR_Jerry.md) - Hyazinth-Ara: tiefes Kobaltblau mit seidigem Glanz, Unterseite der Schwingen
+    // schwarzgrau; gerupfte Haut grau-rosa (laesst Licht ein), Blutkiele wachsig blaugrau; Schnabel und Krallen schwarzes
+    // Horn mit Glanz; nackte Haut am Auge und Schnabel kraeftig gelb; blasse, nasse Iris (zu menschlich - Auslegung)
+    materialData_[FM_ENT_JY_FEATHER] = GpuMaterial{{0.030f, 0.055f, 0.26f}, 0, ent(EL_FUR, ML_FIBER), 0.5f, 0, 0.25f};
+    materialData_[FM_ENT_JY_FEATHER_DARK] = GpuMaterial{{0.020f, 0.022f, 0.030f}, 0, ent(EL_FUR, ML_FIBER), 0.6f, 0, 0.2f};
+    materialData_[FM_ENT_JY_SKIN] = GpuMaterial{{0.42f, 0.30f, 0.30f}, 0, ent(EL_SKIN, ML_PORES) | kMatFlagSkin, 0.5f, 0, 0.35f};
+    materialData_[FM_ENT_JY_QUILL] = GpuMaterial{{0.22f, 0.26f, 0.36f}, 0, ent(EL_HORN, ML_CRAZE), 0.3f, 0, 0.2f};
+    materialData_[FM_ENT_JY_BEAK] = GpuMaterial{{0.025f, 0.025f, 0.028f}, 0, ent(EL_HORN, ML_CRAZE), 0.28f, 0, 0.1f};
+    materialData_[FM_ENT_JY_YELLOW] = GpuMaterial{{0.85f, 0.58f, 0.05f}, 0, ent(EL_SKIN, ML_PORES), 0.4f, 0, 0.2f};
+    materialData_[FM_ENT_JY_EYE] = GpuMaterial{{0.55f, 0.40f, 0.16f}, 0.15f, ent(EL_TOOTH, ML_PORES), 0.04f, 0, 0.0f};
+    materialData_[FM_ENT_JY_PUPIL] = GpuMaterial{{0.004f, 0.004f, 0.004f}, 0, ent(EL_TOOTH, ML_PORES), 0.03f, 0, 0.0f};
+    materialData_[FM_ENT_JY_TONGUE] = GpuMaterial{{0.035f, 0.030f, 0.030f}, 0, ent(EL_SKIN, ML_PORES), 0.25f, 0, 0.3f};
+    materialData_[FM_ENT_JY_FOOT] = GpuMaterial{{0.10f, 0.10f, 0.11f}, 0, ent(EL_SKIN, ML_SCALE), 0.6f, 0, 0.2f};
     writeMaterials(gpu);
     lights_ = gpu.createStructured(sizeof(GpuLight), 2048, true, false);
     puddles_ = gpu.createStructured(sizeof(vec4), kMaxPuddles * 2, true, false);  // V13.3

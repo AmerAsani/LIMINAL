@@ -243,7 +243,7 @@ void App::scriptStep() {
                         : n == "window" ? R::Window : n == "hound" ? R::Hound : n == "smiler" ? R::Smiler : n == "clump" ? R::Clump
                         : n == "duller" ? R::Duller : n == "arms" ? R::Arms : n == "wrangler" ? R::Wrangler
                         : n == "growler" ? R::Growler : n == "nguithrxurh" ? R::Nguithr : n == "ouroboros" ? R::Ouroboros
-                        : n == "goblin" ? R::Goblin : n == "moth" ? R::Moth : R::Gestalt;  // V13.3; Teil 4: Motten (Level 2)
+                        : n == "goblin" ? R::Goblin : n == "moth" ? R::Moth : n == "jerry" ? R::Jerry : R::Gestalt;  // V13.3; Teil 4: Motten (Level 2), Jerry
             auto& pr = session_->presence();
             if (!pr.has(r)) {
                 log::warn("Skript: near - kein {}", game::Presence::roleName(r));
@@ -253,6 +253,8 @@ void App::scriptStep() {
                 float baseZ = r == R::Window ? at.z - 1.9f : at.z, aimZ = r == R::Window ? at.z : at.z + (r == R::Rat ? 0.1f : 1.0f);
                 if (r == R::Moth)  // V13.3 Teil 4: Motten an der Decke - der Boden darunter, Blick auf die Motte
                     if (const world::Tile* t0 = w.tileIfLoaded(ifloor(at.x), ifloor(at.y))) baseZ = t0->floor, aimZ = at.z;
+                if (r == R::Jerry)  // V13.3 Teil 4: Jerry auf dem Rohr - der Boden darunter, Blick in sein Gesicht
+                    if (const world::Tile* t0 = w.tileIfLoaded(ifloor(at.x), ifloor(at.y))) baseZ = t0->floor, aimZ = at.z + 0.42f;
                 if (r == R::Nguithr)  // V13.3: die Netzkugeln an der Decke - der Boden darunter, Blick auf die Kugeln
                     if (const world::Tile* t0 = w.tileIfLoaded(ifloor(at.x), ifloor(at.y))) baseZ = t0->floor, aimZ = at.z - 0.6f;
                 bool placed = false;
@@ -354,7 +356,8 @@ void App::scriptStep() {
             const int kind = n == "hound" ? 1 : n == "moth" ? 2 : n == "gestalt" ? 3 : n == "nest" ? 4 : n == "clump" ? 5 : n == "faceling" ? 6
                              : n == "skinstealer" ? 7 : n == "wretch" ? 8 : n == "rat" ? 9 : n == "window" ? 10 : n == "player" ? 99
                              : n == "duller" ? 11 : n == "arms" ? 12 : n == "wrangler" ? 13
-                             : n == "growler" ? 14 : n == "nguithrxurh" ? 15 : n == "ouroboros" ? 16 : n == "goblin" ? 17 : 0;  // V13.3
+                             : n == "growler" ? 14 : n == "nguithrxurh" ? 15 : n == "ouroboros" ? 16 : n == "goblin" ? 17
+                             : n == "jerry" ? 18 : 0;  // V13.3; Teil 4: Jerry
             auto& pl = session_->player();
             vec3 at{(float)(pl.x + std::cos(pl.angle) * dist), (float)(pl.y + std::sin(pl.angle) * dist), 0.0f};
             at.z = session_->world().tile(ifloor(at.x), ifloor(at.y)).floor;
@@ -404,6 +407,7 @@ void App::scriptStep() {
                 if (n == "nguithrxurh") r = R::Nguithr;
                 if (n == "ouroboros") r = R::Ouroboros;  // V13.3: die Baustelle im Sektor Ouroboros
                 if (n == "goblin") r = R::Goblin;        // V13.3: eine Bande Plague Goblins (Portal ausser Sicht)
+                if (n == "jerry") r = R::Jerry;          // V13.3 Teil 4: Jerry auf seinem Rohr (Spawnpunkt der Karte)
                 session_->presence().force(r, dist);
             }
         } else if (cmd == "audioinfo") {  // V11 (Tests): Zustand der Klanglandschaft ins Protokoll
@@ -1444,6 +1448,8 @@ void App::handleEvents() {
                 } else if (e.role == (int)game::Presence::Role::Nguithr) {  // V13.3: frisst bei lebendigem Leib
                     audio_->play("ngui_feed", 1.0f, 1.0f, audio::Bus::Effects);
                     audio_->play("scare_smiler", 0.6f, 1.25f, audio::Bus::Effects);
+                } else if (e.role == (int)game::Presence::Role::Jerry) {  // V13.3 Teil 4: ganz nah gesprochen, Schwingen, Herzschlag
+                    audio_->play("jerry_subdue", 1.0f, 1.0f, audio::Bus::Effects);
                 } else {
                     audio_->play(e.role == (int)game::Presence::Role::Smiler ? "scare_smiler" : "scare_hound", 1.0f, 1.0f, audio::Bus::Effects);
                 }
@@ -1515,7 +1521,14 @@ void App::handleEvents() {
                     case PE::Flicker: at("lamp_tick", e.pos, 0.7f, 30.0f, 0.75f + 0.1f * var); break;
                     case PE::Vision: audio_->play("gestalt_sight", 0.4f); break;
                     // V11 (F2): das Laecheln oeffnet sich - Ankuendigung des Zugriffs; beruhigt: es verklingt
-                    case PE::Announce: at("smiler_open", e.pos, 1.0f, 30.0f); break;
+                    case PE::Announce:
+                        if (role == Role::Jerry) {  // V13.3 Teil 4: Jerry breitet die Fluegel aus und kreischt - letzte Warnung
+                            at(std::format("jerry_screech_{}", n % 2), e.pos, 1.0f, 40.0f);
+                            at("jerry_flap_1", e.pos, 0.9f, 24.0f);
+                        } else {
+                            at("smiler_open", e.pos, 1.0f, 30.0f);
+                        }
+                        break;
                     case PE::Calm:
                         if (role == Role::Wrangler) at("wrangler_settle", e.pos, 0.8f, 30.0f);  // V13.3: es hat einen verloren
                         else at("smiler_fade", e.pos, 0.4f, 20.0f);
@@ -1550,7 +1563,10 @@ void App::handleEvents() {
                         if (role == Role::Moth) at("moth_buzz", e.pos, 0.6f + 0.4f * e.intensity, 12.0f);  // V13.3 Teil 4: gereizte Motten um den Kopf
                         else at("goblin_hiss", e.pos, 1.0f, 24.0f);
                         break;
-                    case PE::Screech: at(std::format("goblin_screech_{}", n % 2), e.pos, 1.0f, 28.0f, 0.96f + 0.08f * var); break;
+                    case PE::Screech:
+                        if (role == Role::Jerry) at(std::format("jerry_screech_{}", n % 2), e.pos, e.intensity > 0.7f ? 1.0f : 0.8f, 40.0f, 0.96f + 0.08f * var);  // V13.3 Teil 4
+                        else at(std::format("goblin_screech_{}", n % 2), e.pos, 1.0f, 28.0f, 0.96f + 0.08f * var);
+                        break;
                     case PE::Portal: at(e.intensity > 0.5f ? "goblin_portal_open" : "goblin_portal_close", e.pos, 1.0f, 46.0f); break;
                     case PE::Perish: at("goblin_death", e.pos, 1.0f, 30.0f); break;
                     case PE::Whisper: at(std::format("window_whisper_{}", n % 4), e.pos, 0.35f + 0.5f * e.intensity, 12.0f); break;
@@ -1659,6 +1675,15 @@ void App::handleEvents() {
                         break;
                     }
                     case PE::Shriek: at("skin_shriek", e.pos, 1.0f, 34.0f); break;
+                    // V13.3 Teil 4: Jerry - ruhige Menschenstimme (nah: spricht dich an; leise: murmelt hinter der Tuer),
+                    // Fluegel, Putzen und Knirschen; der Bann setzt ein (im Kopf, ohne Richtung)
+                    case PE::Speak:
+                        if (e.intensity > 0.7f) at(std::format("jerry_talk_{}", n % 6), e.pos, 0.95f, 24.0f, 0.97f + 0.06f * var);
+                        else at(std::format("jerry_mutter_{}", n % 3), e.pos, 0.75f, 22.0f, 0.95f + 0.08f * var);
+                        break;
+                    case PE::Flap: at(e.intensity > 0.7f ? "jerry_flap_1" : "jerry_flap_0", e.pos, 0.8f, 18.0f, 0.95f + 0.1f * var); break;
+                    case PE::Preen: at(e.intensity > 0.5f ? "jerry_preen" : "jerry_grind", e.pos, 0.6f, 9.0f, 0.95f + 0.1f * var); break;
+                    case PE::Spell: audio_->play("jerry_spell_on", 0.55f + 0.4f * std::min(1.0f, e.intensity), 1.0f, audio::Bus::Effects); break;
                     default: break;
                 }
                 break;
@@ -1754,7 +1779,8 @@ void App::updateAudio(double dt) {
         if (!uw && uwId >= 0) audio_->stopLoop(uwId), uwId = -1;
         // V13.3: betaeubt (Nguithr'xurh) klingt alles dumpf
         // V13.3: Fieber und Rinde in den Ohren (Erscheinungen)
-        if (!st.dead) audio_->setMuffle(std::max({uw ? 0.8f : 0.0f, 0.6f * s.presence().stupor(s.netSelfId), s.phenomena().muffle(0)}));
+        if (!st.dead) audio_->setMuffle(std::max({uw ? 0.8f : 0.0f, 0.6f * s.presence().stupor(s.netSelfId), s.phenomena().muffle(0),
+                                                  0.7f * s.presence().jerrySpell(s.netSelfId)}));  // V13.3 Teil 4: Jerrys Bann
     }
     // V13.3: das Rauschen eines Growlers - im Kopf (ohne Richtung), je naeher, desto lauter; die Betaeubung klingt in den Ohren
     {
@@ -1777,6 +1803,18 @@ void App::updateAudio(double dt) {
         }
         if (daze <= 0.03f && dazeId >= 0) audio_->stopLoop(dazeId), dazeId = -1;
         if (dazeId >= 0) audio_->setLoopVolume(dazeId, std::min(1.0f, 0.2f + 0.8f * daze));
+    }
+    // V13.3 Teil 4: Jerrys Bann - Klingeln und Fluestern im Kopf, je staerker, desto lauter; alles andere wird dumpf
+    {
+        static int spellId = -1, genJ = -1;
+        if (genJ != audioGen_) genJ = audioGen_, spellId = -1;
+        const float sp = st.dead || worldPaused ? 0.0f : s.presence().jerrySpell(s.netSelfId);
+        if (sp > 0.05f && spellId < 0) {
+            spellId = audio_->startLoop("jerry_spell", 0.0f, audio::Bus::Effects);
+            audio_->setLoopFadeIn(spellId, 0.6f);
+        }
+        if (sp <= 0.03f && spellId >= 0) audio_->stopLoop(spellId), spellId = -1;
+        if (spellId >= 0) audio_->setLoopVolume(spellId, std::min(1.0f, 0.15f + 0.95f * sp));
     }
     // V9/V10: jagt eine Entity, liegt ein tiefes Brummen an ihrer Stelle; Herzschlag, wenn sie nah ist;
     // der Schwarm flattert; draussen: Wind
@@ -1951,6 +1989,8 @@ void App::renderWorld(double dt, bool clean) {
             cam.yaw += stc * 0.012f * std::sin(t * 13.0f) * std::sin(t * 3.1f) + daze * 0.03f * std::sin(t * 0.43f);
             cam.pitch += daze * 0.025f * std::sin(t * 0.51f + 1.0f);
             cam.fovY *= 1.0f + 0.04f * stc * std::sin(t * 4.0f) + 0.05f * daze;
+            const float jsp = s.presence().jerrySpell(s.netSelfId);  // V13.3 Teil 4: Jerrys Bann - der Blick verengt sich auf ihn
+            cam.fovY *= 1.0f - 0.16f * jsp * jsp;
         }
         if (playing && coop()) {  // V13.2: Namen ueber den Mitspielern (nach allen Kameras; dieselben Matrizen wie das Bild)
             std::vector<ui::Ui::NameTag> tags;
@@ -2019,6 +2059,11 @@ void App::renderWorld(double dt, bool clean) {
                 sp.menuDim = std::max(sp.menuDim, 0.55f * smoothstep(0.15f, 1.0f, daze));
                 sp.desaturate = std::max(sp.desaturate, 0.45f * daze);
                 sp.moodExposure *= 1.0f - 0.35f * daze;
+            }
+            // V13.3 Teil 4: Jerrys Bann - die Farbe weicht, der Rand dunkelt, das Bild wird enger (Kamera)
+            if (const float jsp = s.presence().jerrySpell(s.netSelfId); jsp > 0.0f) {
+                sp.menuDim = std::max(sp.menuDim, 0.6f * smoothstep(0.3f, 1.0f, jsp));
+                sp.desaturate = std::max(sp.desaturate, 0.6f * jsp);
             }
         }
         // V11: Schreck - weisser Blitz in den ersten Bildern, roter Rand, danach fast schwarz

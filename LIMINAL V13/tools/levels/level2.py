@@ -716,5 +716,110 @@ for o in list(m.objects):
     m.obj('food_scraps', fx, fy, bz, math.atan2(away[1], away[0]) + t4r.uniform(-0.4, 0.4), variant=t4r.randrange(2), tag='deco')
     food += 1
 print('Essensreste an Faessern:', food)
+
+# --- V13.3 Teil 4 (KREATUR_Jerry.md; Wikidot Level 2: Jerry ist an seinen Raum in der Basis der Followers gebunden; Entity 7:
+# in Level 2 auf einem rostigen Rohr, die Followers bemalen alles blau, kleben Bilder von ihm an die Waende und locken mit
+# Wegweisern). Eine Kammer mit nur einer Tuer weit vom Start: das Sitzrohr vor der Rueckwand (Spawnpunkt "entity"/"jerry"),
+# dahinter das Wandbild, an der Seite der Opfertisch; blau gestrichen (Zone "jerry"), Licht gedimmt. Davor im Gang Fotos
+# und Pfeile zur Tuer. Eigener Zufallsgenerator, nach allen anderen Platzierungen.
+t5 = _random.Random(4404)
+
+
+def t5_doors(r):
+    return [d for d in m.doors if r in (d['a'], d['b'])]
+
+
+def t5_dcenter(d):
+    x0, y0, x1, y1 = d['rect']
+    return (x0 + x1) / 2, (y0 + y1) / 2
+
+
+jerry_room = None
+cand = [r for r in C.values() if m.R(r).type in ('kammer', 'lagerraum') and r != lair_room and r not in mac_cells
+        and min(m.R(r).w, m.R(r).h) >= 5 and len(t5_doors(r)) == 1
+        and math.hypot(m.R(r).cx - m.start[0], m.R(r).cy - m.start[1]) > 70
+        and all(math.hypot(m.R(r).cx - x, m.R(r).cy - y) > 25 for _, x, y in traces)]
+t5.shuffle(cand)
+for r in cand:
+    R = m.R(r)
+    d = t5_doors(r)[0]
+    dx, dy = t5_dcenter(d)
+    # Rueckwand: der Tuer gegenueber; Sitzplatz 0,65 m davor, Blick zur Tuer
+    if abs(dx - R.cx) / R.w > abs(dy - R.cy) / R.h:
+        bx = R.x1 if dx < R.cx else R.x0
+        px, py, pyaw = bx + (-0.65 if bx == R.x1 else 0.65), R.cy, (math.pi if bx == R.x1 else 0.0)
+    else:
+        by = R.y1 if dy < R.cy else R.y0
+        px, py, pyaw = R.cx, by + (-0.65 if by == R.y1 else 0.65), (-math.pi / 2 if by == R.y1 else math.pi / 2)
+    if not (t4_free(px, py, 0.8) and t4_free(px - math.cos(pyaw) * 0.04 + math.sin(pyaw) * 0.5, py - math.sin(pyaw) * 0.04 - math.cos(pyaw) * 0.5, 0.25)):
+        continue
+    faces = m.wall_faces(r, margin=1)
+    back = [f for f in faces if abs(math.cos(f[2]) - math.cos(pyaw)) < 0.01 and abs(math.sin(f[2]) - math.sin(pyaw)) < 0.01]
+    side = [f for f in faces if abs(math.cos(f[2]) * math.cos(pyaw) + math.sin(f[2]) * math.sin(pyaw)) < 0.01]
+    if not back or len(side) < 2:
+        continue
+    mural = min(back, key=lambda f: math.hypot(f[0] - px, f[1] - py))
+    # Opfertisch: an einer Seitenwand, 1-2 m von der Rueckwand; frei
+    shrine = None
+    t5.shuffle(side)
+    for f in side:
+        dback = abs((f[0] - px) * math.cos(pyaw) + (f[1] - py) * math.sin(pyaw))
+        sx, sy = f[0] + math.cos(f[2]) * 0.3, f[1] + math.sin(f[2]) * 0.3
+        if 0.6 < dback < 2.2 and t4_free(sx, sy, 0.55) and m.in_door(math.floor(sx), math.floor(sy)) is None:
+            shrine = (sx, sy, f[2], f)
+            break
+    if shrine is None:
+        continue
+    jerry_room = r
+    m.obj('jerry_perch', px, py, R.floor, pyaw, tag='deco')
+    m.spawn('entity', px, py, R.floor, pyaw, role='jerry', tags=['jerry'])
+    m.obj('jerry_mural', mural[0], mural[1], R.floor, mural[2], tag='deco')
+    m.obj('jerry_shrine', shrine[0], shrine[1], R.floor, shrine[2], tag='deco')
+    inner = [f for f in side if f is not shrine[3] and math.hypot(f[0] - shrine[3][0], f[1] - shrine[3][1]) > 1.5
+             and m.in_door(math.floor(f[0] + math.cos(f[2]) * 0.4), math.floor(f[1] + math.sin(f[2]) * 0.4)) is None]
+    if inner:
+        f = t5.choice(inner)
+        m.obj('jerry_poster', f[0], f[1], R.floor, f[2], tag='deco')
+    R.zone = 'jerry'  # blau gestrichen (Level-JSON, Zone "jerry")
+    for l_ in R.lights:
+        l_[3] = 0.24  # Halbdunkel: die Roehre glimmt nur
+    R.kw['flicker'] = 1
+    break
+# Wegweiser der Followers: in den Gaengen vor der Tuer Fotos und Pfeile, die zur Tuer zeigen (Modell: +y zeigt zum Ziel)
+markers = []
+if jerry_room is not None:
+    d0 = t5_doors(jerry_room)[0]
+    frontier = [((d0['b'] if d0['a'] == jerry_room else d0['a']), t5_dcenter(d0))]
+    seen = {jerry_room}
+    for depth in range(3):
+        nxt = []
+        for (r, goal) in frontier:
+            if r in seen:
+                continue
+            seen.add(r)
+            R = m.R(r)
+            fs = []
+            for f in m.wall_faces(r, margin=1):
+                ly = (-math.sin(f[2]), math.cos(f[2]))  # +y des Wandmodells in der Welt
+                to = (goal[0] - f[0], goal[1] - f[1])
+                dist = math.hypot(*to)
+                if dist < 1.5 or dist > 7.0 or (to[0] * ly[0] + to[1] * ly[1]) / dist < 0.7:
+                    continue
+                if not t4_free(f[0] + math.cos(f[2]) * 0.3, f[1] + math.sin(f[2]) * 0.3, 0.6) or any(math.hypot(f[0] - x, f[1] - y) < 4.0 for x, y in markers):
+                    continue
+                fs.append(f)
+            if fs:
+                f = t5.choice(fs)
+                m.obj('jerry_poster', f[0], f[1], R.floor, f[2], variant=0 if depth == 0 else 1, tag='deco')
+                markers.append((f[0], f[1]))
+            for d in t5_doors(r):
+                o_ = d['b'] if d['a'] == r else d['a']
+                if o_ not in seen:
+                    nxt.append((o_, t5_dcenter(d)))
+        frontier = nxt
+    print('Jerrys Raum:', m.R(jerry_room).label if hasattr(m.R(jerry_room), 'label') else jerry_room,
+          f'({m.R(jerry_room).cx:.0f}, {m.R(jerry_room).cy:.0f}), Wegweiser {len(markers)}')
+else:
+    print('Jerrys Raum: keine passende Kammer')
 m.save()
 print('Knicke mit Schraege:', chamfers)

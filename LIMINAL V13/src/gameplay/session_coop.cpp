@@ -17,6 +17,7 @@ void GameSession::pawnInput(Pawn& p, const PlayerControl& c0, double dt) {
     PlayerControl c = c0;
     p.player.speedMul = p.stats.speedMul() * (p.stats.exhausted ? 0.9 : 1.0);
     p.player.speedMul *= presence_.slowFor(p.id, {(float)p.player.x, (float)p.player.y, (float)p.player.z});  // V13.3
+    p.player.speedMul *= 1.0 - 0.55 * presence_.jerryHold(p.id);  // V13.3 Teil 4: Jerrys Bann laehmt auch den Gast
     if (p.id > 0 && p.id < Phenomena::kPlayers) {  // V13.3: Fieber, Ranken, ihre Einladung (session_phenomena.cpp)
         p.player.speedMul *= phenomena_.speedMul(p.id);
         if (phenomena_.frozen(p.id)) c.forward = c.side = 0.0f, c.sprint = c.jump = c.jumpHeld = false;

@@ -23,6 +23,7 @@ std::unordered_map<std::string, Sound> synthesizeAll(JobSystem& jobs, int rate) 
     addNguithrSounds(defs, rate);
     addOuroborosSounds(defs, rate);  // V13.3
     addGoblinSounds(defs, rate);     // V13.3: Plague Goblins
+    addJerrySounds(defs, rate);      // V13.3 Teil 4: Jerry
     addLureSounds(defs, rate);      // V13.3: Leuchtstab, Ansprechen
     addPhenomenaSounds(defs, rate);  // V13.3: Erscheinungen von Level 1
     addL2Sounds(defs, rate);         // V13.3 Teil 4: Level 2 (Fenster, Motten, Ratten)

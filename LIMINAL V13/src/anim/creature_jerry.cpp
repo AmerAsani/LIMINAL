@@ -114,9 +114,10 @@ CreatureSkeleton jy::makeSkeleton() {
     J(TONGB, {0.118f, 0, 0.398f});
     for (int sd = 0; sd < 2; ++sd) {
         const float g = sd ? -1.0f : 1.0f;
-        const vec3 e{0.068f, 0.03f * g, 0.448f};
-        J(sd ? EYE_R : EYE_L, e);
-        J(sd ? PUP_R : PUP_L, e + nrm(vec3{0.45f, 0.89f * g, 0.05f}, Y) * 0.006f);
+        // Auge: Gelenk auf der Hornhaut (Mitte der Pupille) - der Pupillenknochen verengt sich um diesen Punkt (Massstab)
+        const vec3 e{0.068f, 0.03f * g, 0.448f}, ed = nrm(vec3{0.45f, 0.89f * g, 0.05f}, Y);
+        J(sd ? EYE_R : EYE_L, e + ed * 0.0085f);
+        J(sd ? PUP_R : PUP_L, e + ed * 0.0125f);
     }
     J(RUFF, {-0.01f, 0, 0.395f});
     for (int sd = 0; sd < 2; ++sd) {

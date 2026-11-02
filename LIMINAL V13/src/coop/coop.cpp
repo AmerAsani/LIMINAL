@@ -597,7 +597,8 @@ void CoopHost::flushWorld() {
         if (e.type == PE::Step) continue;  // Schritte erzeugen die Puppen beim Gast selbst
         const bool world = e.type == PE::Growl || e.type == PE::Bark || e.type == PE::Whine || e.type == PE::TakeOff || e.type == PE::Knock ||
                            e.type == PE::Drop || e.type == PE::Drag || e.type == PE::Breath || e.type == PE::Rustle ||
-                           e.type == PE::Reply || e.type == PE::Shriek;  // V13.3: Skin-Stealer antwortet / stuermt los
+                           e.type == PE::Reply || e.type == PE::Shriek ||  // V13.3: Skin-Stealer antwortet / stuermt los
+                           (e.role == Presence::Role::Jerry && (e.type == PE::Speak || e.type == PE::Flap || e.type == PE::Preen));  // V13.3 Teil 4
         if (e.type == PE::Flicker) {
             eventAll(nc::EventKind::Flicker, 0, 0, e.pos, "");
             continue;
