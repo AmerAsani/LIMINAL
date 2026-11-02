@@ -103,6 +103,7 @@ private:
     void updateNest(float dt, const Input& in);  // V13.2: atmet, Haut schwingt, Gelege zuckt
     void updateClump(float dt, const Input& in);  // V11
     void updateBiped(float dt, const Input& in);   // V13.2: Faceling, Skin-Stealer, Wretch
+    void bipedKinL3(float dt, const Input& in);    // V13.3 Level 3: Waffe des Wretch, Mantel des Skin-Stealers (creature_kin_l3.cpp)
     void updateRat(float dt, const Input& in);     // V13.2: Death Rat
     void updateWindow(float dt, const Input& in);  // V13.2: Fensterwesen
     void updateDuller(float dt, const Input& in);  // V13.3: Duller (anim/creature_duller.cpp)

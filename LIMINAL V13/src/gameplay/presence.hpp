@@ -442,6 +442,10 @@ private:
     // Skin-Stealer angesprochen (true: diese Runde erledigt)
     bool baitSmiler(Agent& a, double dt, const Context& c, std::vector<Event>& out, float d, bool dark);
     bool talkSkinStealer(Agent& a, double dt, const Context& c, std::vector<Event>& out, float d, bool los);
+    // V13.3 Level 3 (presence_kin_l3.cpp): Wretch mit Waffe, Skin-Stealer im Mantel; Modellwechsel ohne Neuanlage
+    void thinkWretchL3(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    void thinkSkinL3(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    void swapVariant(Agent& a, int v);
     void updateHive(double dt, const Context& c, std::vector<Event>& out);
     bool walkTo(Agent& a, const NavField& f, double speed, double dt, const Context& c);
     bool hiddenSpawn(const Context& c, int lo, int hi, bool behind, vec3& out, const std::function<bool(vec3)>& ok = {});

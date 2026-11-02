@@ -16,8 +16,8 @@
   // V13.3 (Seite level-3, KREATUR_Smiler.md): geworfenes Licht lenkt die Smiler hier kaum ab - sie stutzen nur
   "presence": { "hound": true, "smiler": true, "gestalt": false, "blackout": true, "clump": 0.4, "smiler_bait": "hesitate",
                "faceling": { "mode": "armed", "group": [1, 3], "every": 200 },
-               "skinstealer": { "mode": "skin", "group": [1, 1], "every": 280, "chance": 0.3 },
-               "wretch": { "mode": "sprinter", "group": [1, 1], "every": 300 },
+               "skinstealer": { "mode": "coat", "group": [1, 1], "every": 280, "chance": 0.3 },
+               "wretch": { "mode": "armed", "group": [1, 1], "every": 480 },
                "rat": { "group": [2, 3], "every": 180 } },
   "next_level": "level5",
   // V13.3 (KREATUR_Smiler.md): Leuchtstaebe liegen herum (hier seltener - die Smiler stutzen nur, smiler_bait)

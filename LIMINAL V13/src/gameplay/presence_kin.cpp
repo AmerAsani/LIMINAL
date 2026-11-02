@@ -95,13 +95,14 @@ bool Presence::spawnKin(Role r, const Context& c, std::vector<Event>& out) {
                 a->variant = a->mode == 2 ? 1 : (a->mode == 3 ? 2 : (int)std::array<int, 3>{0, 3, 4}[(size_t)rng_.randint(0, 2)]);
                 break;
             case Role::SkinStealer:
-                a->mode = K.mode == "skin" ? 1 : 0;
-                a->variant = a->mode;
+                a->mode = K.mode == "skin" || K.mode == "coat" ? 1 : 0;
+                a->variant = K.mode == "coat" ? 2 : a->mode;  // V13.3 Level 3: im Mantel (presence_kin_l3.cpp)
                 a->hungry = rng_.uniform(0.0, 1.0) < K.chance;
                 break;
             case Role::Wretch:
-                a->mode = K.mode == "sprinter" ? 1 : K.mode == "mixed" ? (int)rng_.randint(0, 1) : 0;
+                a->mode = K.mode == "sprinter" || K.mode == "armed" ? 1 : K.mode == "mixed" ? (int)rng_.randint(0, 1) : 0;
                 a->pleads = rng_.uniform(0.0, 1.0) < K.chance;
+                if (K.mode == "armed") a->variant = (int)rng_.randint(1, 3), a->pleads = false;  // V13.3 Level 3: Rohr, Brett, Klinge
                 break;
             case Role::Rat: a->variant = K.mode == "bald" ? 1 : 0; break;
             default: break;
@@ -273,6 +274,7 @@ void Presence::thinkSkinStealer(Agent& a, double dt, const Context& c, std::vect
         killPose(a, dt, c);
         return;
     }
+    if (a.variant >= 2) return thinkSkinL3(a, dt, c, out);  // V13.3 Level 3: im Mantel (presence_kin_l3.cpp)
     const vec3 eye = c.view.eye;
     const float d = hdist(a.pos, eye);
     const vec3 head = a.cre.headPos();
@@ -388,6 +390,7 @@ void Presence::thinkSkinStealer(Agent& a, double dt, const Context& c, std::vect
 // Luft. Schlaege mit uebermenschlicher Kraft (Schaden, nicht sofort toedlich). Im zweiten Stadium (pleads) fleht er
 // um Wasser, Essen, Hilfe und greift nicht an.
 void Presence::thinkWretch(Agent& a, double dt, const Context& c, std::vector<Event>& out) {
+    if (a.variant > 0) return thinkWretchL3(a, dt, c, out);  // V13.3 Level 3: mit Waffe (presence_kin_l3.cpp)
     const vec3 eye = c.view.eye;
     const float d = hdist(a.pos, eye);
     const vec3 head = a.cre.headPos();
