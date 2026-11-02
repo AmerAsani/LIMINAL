@@ -39,6 +39,9 @@
 //   Plague Goblins (E. 25) katzengrosse Vogel-Katzen-Wesen in Umhang und Pestarztmaske; laufen halb aufrecht, rennen auf allen
 //                       vieren; unter der Maske ein Kraehenschnabel voller Saegezaehne; im selben Skelett der Stock der
 //                       Torwaechterin, die Beute in der Klaue und das Portal der Bande (gb).
+//   Jerry (E. 7)        ein blauer Papagei wie der Hyazinth-Ara (1 m mit Schwanz) auf einem rostigen Rohr; Wendezehen um
+//                       das Rohr, Fluegel mit Hand- und Armschwingen, Schnabel mit beweglichem Oberschnabel, Zunge,
+//                       Pupillen (verengen sich), Halsgefieder (straeubt sich) (jy).
 //
 // Wie beim Menschen (anim/skeleton) werden Gelenkpositionen animiert; jeder Knochen ist ein starrer
 // Rahmen vom Start- zum Endgelenk, gedreht nach einem Hinweisvektor ("oben"). Skinning-Matrix =
@@ -53,7 +56,7 @@
 
 namespace lim::anim {
 
-enum class Entity : std::uint8_t { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Wrangler, Growler, Nguithr, Ouroboros, Goblin, Count };
+enum class Entity : std::uint8_t { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Wrangler, Growler, Nguithr, Ouroboros, Goblin, Jerry, Count };
 constexpr int kEntityCount = (int)Entity::Count;
 
 struct CBone {
@@ -596,5 +599,42 @@ enum State : int { S_IDLE = 0, S_WALK = 1, S_SCURRY = 2, S_PEEK = 3, S_RUMMAGE =
                    S_EMERGE = 8, S_DEAD = 11, S_ENTER = 12, S_TRADE = 13, S_INSIDE = 14 };
 CreatureSkeleton makeSkeleton();  // creature_goblin.cpp
 }  // namespace gb
+
+// V13.3 Teil 4: Jerry (Wikidot entity-7 Rev. 14, level-2 Rev. 93; KREATUR_Jerry.md) - ein blauer Ara (wie der Hyazinth-Ara:
+// 1 m vom Scheitel bis zur Schwanzspitze), aufrecht auf einem rostigen Rohr. Wurzel: Mitte zwischen den Fuessen oben auf dem
+// Rohr (Rohr 6 cm stark, Achse quer, 3 cm unter der Wurzel). Zehen paarig: zwei vorn, zwei hinten um das Rohr. Fluegel: Oberarm,
+// Unterarm, Hand, vier Handschwingen (an der Handspitze), drei Armschwingen (am Ellbogen) - Ruhepose angelegt, die Schwingen in
+// Lagen. Kopf: beweglicher Oberschnabel (Haken), Unterschnabel, Zunge; Pupillen als eigene Knochen (Massstab: verengen sich);
+// Halskrause als Knochen (Massstab: straeubt sich). Langer Schwanz haengt hinter dem Rohr herab.
+namespace jy {
+constexpr int kPrim = 4, kSec = 3, kToes = 4;
+constexpr float kPerchZ = 1.52f;   // Oberkante des Sitzrohrs ueber dem Boden (Modell jerry_perch)
+enum J : std::uint8_t {
+    ROOT, PELVIS, SPINE, CHEST, NECK0, NECK1, HEAD, CROWN, BEAKP, BEAKT, JAWP, JAWT, TONGA, TONGB,
+    EYE_L, PUP_L, EYE_R, PUP_R, RUFF,
+    WING0,                         // + Seite * 11 + i: 0 Schulter, 1 Ellbogen, 2 Handgelenk, 3 Handspitze, 4.. Handschwingen
+                                   // (Spitzen), 4 + kPrim.. Armschwingen (Spitzen)
+    LEG0 = WING0 + 22,             // + Seite * 12 + i: 0 Huefte, 1 Knie, 2 Ferse, 3 Fuss, 4 + t * 2 Zehenmitte, 5 + t * 2 Zehenspitze
+                                   // (t: 0 aussen vorn, 1 innen vorn, 2 innen hinten, 3 aussen hinten)
+    TAIL0 = LEG0 + 24, TAIL1, TAIL2,  // Schwanz: Ansatz, Mitte, Spitze
+    JCOUNT
+};
+enum B : std::uint8_t {
+    B_ROOT, B_PELVIS, B_SPINE, B_CHEST, B_NECK0, B_NECK1, B_HEAD, B_BEAK, B_JAW, B_TONGUE, B_PUP_L, B_PUP_R, B_RUFF,
+    B_WING0,                       // + Seite * 10 + i: 0 Oberarm, 1 Unterarm, 2 Hand, 3.. Handschwingen, 3 + kPrim.. Armschwingen
+    B_LEG0 = B_WING0 + 20,         // + Seite * 11 + i: 0 Oberschenkel, 1 Unterschenkel, 2 Lauf, 3 + t * 2, 4 + t * 2 Zehenglieder
+    B_TAIL0 = B_LEG0 + 22,         // + i (2)
+    BCOUNT = B_TAIL0 + 2
+};
+static_assert(BCOUNT <= 64, "Gewichtsmasken fassen 64 Knochen");
+inline int wingJ(int s, int i) { return WING0 + s * 11 + i; }
+inline int wingB(int s, int i) { return B_WING0 + s * 10 + i; }
+inline int legJ(int s, int i) { return LEG0 + s * 12 + i; }
+inline int legB(int s, int i) { return B_LEG0 + s * 11 + i; }
+// Zustaende (Presence, Animation): 0 Ruhe (putzt sich, murmelt), 1 bemerkt, 2 fixiert (spricht, Halskrause), 3 Warnung
+// (Fluegel auf, Kreischen), 4 Sprung (Angriff), 5 abgewandt (Rueckzug), 10 Unterwerfung (Zugriff)
+enum State : int { S_REST = 0, S_NOTICE = 1, S_FIX = 2, S_WARN = 3, S_LUNGE = 4, S_TURN = 5, S_SUBDUE = 10 };
+CreatureSkeleton makeSkeleton();  // creature_jerry.cpp
+}  // namespace jy
 
 }  // namespace lim::anim

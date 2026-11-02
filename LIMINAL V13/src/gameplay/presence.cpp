@@ -34,6 +34,7 @@ const char* Presence::roleName(Role r) {
         case Role::Nguithr: return "Nguithr'xurh";
         case Role::Ouroboros: return "Ouroboros-Arbeiter";  // V13.3
         case Role::Goblin: return "Plague Goblin";  // V13.3
+        case Role::Jerry: return "Jerry";           // V13.3 Teil 4
     }
     return "?";
 }
@@ -50,6 +51,7 @@ void Presence::clear() {
     broodPlaced_ = false, quake_ = trance_ = 0.0f;  // V13.3: Wrangler
     ouroPlaced_ = false, ouroSite_.reset();         // V13.3: Ouroboros-Baustelle der neuen Ebene
     goblinCtl_.reset(), nextGoblin_ = 50.0;          // V13.3: Plague Goblins - neue Ebene, neue Bande (auch nach einer Flucht)
+    spell_.fill(0.0f), spellStage_.fill(0), jerryTry_ = 0.0;  // V13.3 Teil 4: Jerry
 }
 
 void Presence::setGrace(double s) {
@@ -1119,6 +1121,7 @@ void Presence::think(Agent& a, double dt, const Context& c, std::vector<Event>& 
         case Role::Nguithr: thinkNguithr(a, dt, c, out); break;
         case Role::Ouroboros: thinkOuroboros(a, dt, c, out); break;  // V13.3
         case Role::Goblin: thinkGoblin(a, dt, c, out); break;  // V13.3
+        case Role::Jerry: thinkJerry(a, dt, c, out); break;    // V13.3 Teil 4
         default: break;
     }
 }
@@ -1368,6 +1371,8 @@ void Presence::regie(double dt, const Context& c, std::vector<Event>& out) {
                 if (!spawnOuroboros(c, out, true)) log::info("Praesenz: erzwungene Ouroboros-Baustelle nicht moeglich (kein Sektor Ouroboros geladen)");
             } else if (r == Role::Goblin) {  // V13.3: eine Bande Plague Goblins (Portal ausser Sicht)
                 if (!spawnGoblin(c, out, true)) log::info("Praesenz: erzwungene Plague Goblins nicht moeglich (kein Platz fuer das Portal)");
+            } else if (r == Role::Jerry) {  // V13.3 Teil 4: Jerry auf seinem Rohr (Spawnpunkt der Karte)
+                if (!spawnJerry(c, out, true)) log::info("Praesenz: erzwungener Jerry nicht moeglich (kein Rohr in der Karte)");
             } else if (r >= Role::Faceling) {  // V13.2: wie die Ebene sie kennt; kennt sie es nicht, die Grundart
                 static std::array<world::KinDef, world::KIN_COUNT> base;
                 Context x = c;
@@ -1496,6 +1501,7 @@ void Presence::regie(double dt, const Context& c, std::vector<Event>& out) {
     if (c.mode > 0 && !c.suspended) regieGrowler(dt, c, out), regieNguithr(dt, c, out);  // V13.3
     if (c.mode > 0 && !c.suspended) regieOuroboros(dt, c, out);  // V13.3: Ouroboros-Baustelle
     if (c.mode > 0 && !c.suspended) regieGoblin(dt, c, out);     // V13.3: Plague Goblins
+    if (c.mode > 0 && !c.suspended) regieJerry(dt, c, out);      // V13.3 Teil 4: Jerry in seinem Raum
     if (screamT_ > 0.0) {  // das Licht flackert, bis es vorbei ist
         screamT_ -= dt;
         screamTick_ -= dt;
@@ -1739,7 +1745,7 @@ void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
             a.seenT += dt;
             a.unseenT = 0.0;
             const bool kinThreat = (a.role == Role::Faceling && a.mode >= 2) || a.role == Role::SkinStealer || (a.role == Role::Wretch && !a.pleads) ||
-                                   a.role == Role::Duller || (a.role == Role::Wrangler && a.mode != 3);  // V13.3
+                                   a.role == Role::Duller || (a.role == Role::Wrangler && a.mode != 3) || a.role == Role::Jerry;  // V13.3
             if (!a.sighted && !a.showcase && (a.role == Role::Smiler || a.role == Role::Hound || (a.role == Role::Clump && a.state >= 2) || kinThreat) &&
                 (a.role == Role::Smiler || a.sight.level > 0.35f)) {
                 a.sighted = true;
@@ -1784,6 +1790,7 @@ void Presence::update(double dt, const Context& c, std::vector<Event>& out) {
         }
     }
     wranglerFeel(dt, c);  // V13.3: Beben und Sog am eigenen Spieler
+    jerryGaze(dt, c, out);  // V13.3 Teil 4: Jerrys Blick - Bann aller Spieler
 }
 
 // --- V13.2: neue Wesen (ENTITY_ABGLEICH.md; Verhalten je Wesen: KREATUR_<Name>.md) -----------------------------------

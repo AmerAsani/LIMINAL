@@ -568,7 +568,7 @@ const CreatureSkeleton& entitySkeleton(Entity e) {
                                                                    makeClump(), makeBiped(Entity::Faceling), makeBiped(Entity::SkinStealer),
                                                                    makeBiped(Entity::Wretch), makeRat(), makeWindow(), du::skeleton(),
                                                                    ar::skeleton(), wg::makeWrangler(), makeGrowlerSkeleton(), makeNguithrSkeleton(),
-                                                                   ob::makeSkeleton(), gb::makeSkeleton()};  // V13.3
+                                                                   ob::makeSkeleton(), gb::makeSkeleton(), jy::makeSkeleton()};  // V13.3
     return all[(size_t)std::min((int)e, kEntityCount - 1)];
 }
 
@@ -592,6 +592,7 @@ const char* entityModel(Entity e) {
         case Entity::Nguithr: return "ent_nguithrxurh";
         case Entity::Ouroboros: return "ent_ouroboros";  // V13.3
         case Entity::Goblin: return "ent_goblin";        // V13.3
+        case Entity::Jerry: return "ent_jerry";          // V13.3 Teil 4
         default: return "ent_smiler";
     }
 }
@@ -639,6 +640,7 @@ const char* entityName(Entity e) {
         case Entity::Nguithr: return "Nguithr'xurh";
         case Entity::Ouroboros: return "Ouroboros-Arbeiter";  // V13.3
         case Entity::Goblin: return "Plague Goblin";  // V13.3
+        case Entity::Jerry: return "Jerry";           // V13.3 Teil 4
         default: return "?";
     }
 }

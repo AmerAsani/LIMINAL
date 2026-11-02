@@ -52,8 +52,9 @@ public:
     // V13.3: Growler, Nguithr'xurh hinter Duller, Arms, Wrangler (presence_growler.cpp, presence_nguithrxurh.cpp)
     // V13.3: Ouroboros-Arbeiter hinter Nguithr'xurh (presence_ouroboros.cpp)
     // V13.3: Plague Goblins hinter den Ouroboros-Arbeitern (presence_goblin.cpp)
-    enum class Role { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Wrangler, Growler, Nguithr, Ouroboros, Goblin };
-    static constexpr int kRoleCount = 18;  // V13.3: Duller, Arms, Wrangler (KREATUR_Wrangler.md), Growler, Nguithr'xurh, Ouroboros-Arbeiter, Plague Goblins
+    // V13.3 Teil 4: Jerry hinter den Plague Goblins (presence_jerry.cpp)
+    enum class Role { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Wrangler, Growler, Nguithr, Ouroboros, Goblin, Jerry };
+    static constexpr int kRoleCount = 19;  // V13.3: Duller, Arms, Wrangler (KREATUR_Wrangler.md), Growler, Nguithr'xurh, Ouroboros-Arbeiter, Plague Goblins, Jerry
     static const char* roleName(Role r);
 
     struct Event {
@@ -139,6 +140,11 @@ public:
             Lured,       // Smiler wendet sich dem staerkeren Licht eines Leuchtstabs zu (strength 1: folgt, 0: stutzt nur)
             Reply,       // Skin-Stealer antwortet auf das Ansprechen - nachgeahmt, falsch betont (strength: (Satz*3+Art+0,5)/16)
             Shriek,      // Skin-Stealer: die Tarnung faellt, er stuermt los (Rennen, erneutes Ansprechen, zu lange Naehe)
+            // V13.3 Teil 4: Jerry (KREATUR_Jerry.md) - Stimme, Gefieder, Bann
+            Speak,       // er spricht mit ruhiger Menschenstimme (strength 0,35: murmelt vor sich hin, 1: spricht den Spieler an)
+            Flap,        // Fluegel (strength 0,3: schuettelt und streckt sie, 1: breitet sie aus, schlaegt)
+            Preen,       // putzt sich, knabbert, Schnabel knirscht (strength 0: Knirschen, 1: Federn)
+            Spell,       // der Bann waechst bei Blickkontakt (strength: Stufe 0,3 / 0,6) - Klingeln, Fluestern im Kopf
         } type;
         Role role = Role::Smiler;
         vec3 pos;
@@ -353,6 +359,19 @@ public:
     bool address(world::World& w, vec3 eye, vec3 look, int by, int phrase);
     bool exposedOf(Role r) const;  // V13.3 (Tests): Skin-Stealer entlarvt (hat verraeterisch geantwortet)
     bool luredOf(Role r) const;    // V13.3 (Tests): Smiler folgt gerade einem Leuchtstab
+    // V13.3 Teil 4: Jerry (presence_jerry.cpp). Bann je Spieler (0..1; beim Gast aus der Puppe): ab 0,45 zieht er den Blick zu
+    // seinem Kopf (at), ab 1 ist der Spieler unterworfen. jerryHold: wie stark der Bann die Schritte laehmt (0..1).
+    // jerryInfo (Tests): Lage, Zustand, Blick; jerrySet (Tests, Skripte): state, spell <Wert> (eigener Spieler), quick
+    float jerrySpell(int target, vec3* at = nullptr) const;
+    float jerryHold(int target) const;
+    struct JerryInfo {
+        bool active = false;
+        int state = 0, fixOn = -1;
+        vec3 pos, head, gaze;
+        float yaw = 0.0f;
+    };
+    JerryInfo jerryInfo() const;
+    bool jerrySet(const std::string& key, double v);
 
 private:
     struct Agent;
@@ -452,6 +471,11 @@ private:
     void prepMothL2(Agent& a);  // Massstab nach Variante (auch Puppen und Vorfuehrungen)
     bool ratFoodSpawn(const Context& c, vec3& out);
     bool ratFeed(Agent& a, double dt, const Context& c, std::vector<Event>& out, bool scare);
+    // V13.3 Teil 4: Jerry auf seinem Rohr (presence_jerry.cpp): Auftreten, Denken, Blick und Bann aller Spieler, Kanaele
+    void regieJerry(double dt, const Context& c, std::vector<Event>& out);
+    bool spawnJerry(const Context& c, std::vector<Event>& out, bool forced);
+    void thinkJerry(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    void jerryGaze(double dt, const Context& c, std::vector<Event>& out);
     bool roomAllowed(const Context& c, vec3 p, int kin) const;
     bool wander(Agent& a, double dt, const Context& c, double speed, int kin);
     // V13.3 (presence_lure.cpp): Smiler am Leuchtkoeder (true: das Licht hat ihn, der Rest von thinkSmiler entfaellt);
@@ -504,6 +528,10 @@ private:
     double nextGoblin_ = 50.0;
     // V13.3 Teil 4, Level 2: naechstes Fenster, naechste Mottengruppe
     double nextWindowL2_ = 45.0, nextMothL2_ = 8.0;
+    // V13.3 Teil 4: Jerry - Bann je Spieler, erreichte Stufe, naechster Versuch, ihn auf sein Rohr zu setzen
+    std::array<float, 4> spell_{};
+    std::array<int, 4> spellStage_{};
+    double jerryTry_ = 0.0, jerryQuick_ = 1.0;
 };
 
 }  // namespace lim::game

@@ -178,6 +178,7 @@ vec3 CreatureAnimator::headPos() const {
         case Entity::Nguithr: return pose_.j[ng::EYES];
         case Entity::Ouroboros: return ouroHead();  // V13.3
         case Entity::Goblin: return goblinHead();   // V13.3
+        case Entity::Jerry: return headPos_;        // V13.3 Teil 4: zwischen den Augen (Blickkontakt, Schreck)
         default: return pose_.j[ns::TOP];
     }
 }
@@ -210,6 +211,7 @@ void CreatureAnimator::update(double dtIn, const Input& in) {
     if (e_ == Entity::Nguithr) turn = 1000.0f;   // V13.3: die Lage kommt aus up/fwd (eigene Feder)
     if (e_ == Entity::Ouroboros) turn = 1000.0f;  // V13.3: eigene Feder je Variante (Mauer und Geruest stehen fest)
     if (e_ == Entity::Goblin) turn = 1000.0f;     // V13.3: eigene Feder (ruckartige Vogelwendungen)
+    if (e_ == Entity::Jerry) turn = 2.2f;         // V13.3 Teil 4: tritt auf dem Rohr langsam herum
     const float yawBefore = yaw_;
     yaw_ += wrapPi(in.yaw - yaw_) * std::min(1.0f, dt * turn);
     speed_ = air ? length(vel_) : std::hypot(vel_.x, vel_.y);
@@ -241,6 +243,7 @@ void CreatureAnimator::update(double dtIn, const Input& in) {
         case Entity::Nguithr: updateNguithr(dt, in); break;
         case Entity::Ouroboros: updateOuroboros(dt, in); break;  // V13.3
         case Entity::Goblin: updateGoblin(dt, in); break;  // V13.3
+        case Entity::Jerry: updateJerry(dt, in); break;    // V13.3 Teil 4
         default: updateNest(dt, in); break;
     }
     last_ = in;
