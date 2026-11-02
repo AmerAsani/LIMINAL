@@ -28,12 +28,12 @@
 
 | Version | Download |
 |---|---|
-| **V12 (latest)** | [Releases](https://github.com/AmerAsani/LIMINAL/releases) – `LIMINAL_V12.zip` |
-| V11 | [Release v11](https://github.com/AmerAsani/LIMINAL/releases/tag/v11) |
+| **V12 (latest)** | [Release v12](https://github.com/AmerAsani/LIMINAL/releases/tag/v12) – `LIMINAL_V12.zip` (157 MB) in 18 parts; how to join them and the checksum are in the release |
+| V11 | [Release v11](https://github.com/AmerAsani/LIMINAL/releases/tag/v11) – `LIMINAL_V11.zip` |
 | V10 … V5 | [`downloads/`](downloads/) (`LIMINAL_V10.zip` … `LIMINAL_V5.zip`) |
 | V1–V4 (Python / terminal) | source folders `LIMINAL V1` … `LIMINAL V4` |
 
-Unzip and double-click `LIMINAL.exe`. The executables are **not code-signed**: Windows SmartScreen may show "Windows protected your PC" – click **More info → Run anyway**. Smart App Control (Windows 11) can block unsigned programs while it is on. The full source is here; you can build it yourself instead.
+Unzip and double-click `LIMINAL.exe` (for V12, join the parts first as described in the release). The executables are **not code-signed**: Windows SmartScreen may show "Windows protected your PC" – click **More info → Run anyway**. Smart App Control (Windows 11) can block unsigned programs while it is on. The full source is here; you can build it yourself instead.
 
 ## Controls
 
