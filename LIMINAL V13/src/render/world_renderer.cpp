@@ -421,7 +421,8 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     // Abnahme Level 5.3: der Frack hatte keine Nadelstreifen (der Aermel im Buero von Level 5 hat sie) - Kreidestreifen im Shader
     static_assert(L_COUNT < 0xF1u, "kMatPinstripe darf keine Ebene sein");
     // und im Lampenlicht war er grau wie Kunststoff (Glanz des Kammgarns) - stumpfer (Rauheit 1,0 -> 1,6)
-    materialData_[FM_ENT_GM_SUIT] = GpuMaterial{{0.05f, 0.05f, 0.056f}, 0, (tri(L_WORSTED) & ~(0xFFu << 16)) | kMatPinstripe, 1.6f, 0, 0.3f};  // Runde 2: glaenzte wie Satin
+    // (Abnahme Runde 3: mit Lampe noch hellgrau - Grund 0,05 -> 0,04)
+    materialData_[FM_ENT_GM_SUIT] = GpuMaterial{{0.04f, 0.04f, 0.045f}, 0, (tri(L_WORSTED) & ~(0xFFu << 16)) | kMatPinstripe, 1.6f, 0, 0.3f};  // Runde 2: glaenzte wie Satin
     // Abnahme Level 5.3: die Revers aus schwarzer Seide (glatt, mit Glanz) - sie fassen die Weste ein, der Frack liest sich als Frack
     materialData_[FM_ENT_GM_SILK] = GpuMaterial{{0.03f, 0.03f, 0.034f}, 0, tri(L_COTTON), 0.32f, 0, 0.05f};
     // Abnahme Level 5.3: im Kerzenlicht leuchtend rot (der Blick fiel zuerst auf den Bauch) - tiefer ochsenblutrot

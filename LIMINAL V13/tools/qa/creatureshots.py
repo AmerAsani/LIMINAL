@@ -299,9 +299,15 @@ LEVEL5_3 = {
         'pos 67.45 47.4 -1.69 -0.5; wait 60; shot {out}/lore_3.png; key T; wait 90; shot {out}/lore_4.png; key T; wait 30; '
         'pos 64.4 44.4 -1.2 -0.12; wait 60; shot {out}/lore_5.png; quit'),
     'loreread': ('Wissen: Folio lesen (Diktiergeraet), Karteikarten lesen',
-        W0 + 'pos 65.0 42.3 -1.5708 -0.45; wait 60; key E; wait 60; shot {out}/loreread_1.png; wait 240; shot {out}/loreread_2.png; '
+        W0 + 'pos 65.0 42.3 -1.45 -0.45; wait 60; key E; wait 60; shot {out}/loreread_1.png; wait 240; shot {out}/loreread_2.png; '
         'key E; wait 30; pos 67.4 46.6 -1.69 -0.7; wait 60; key E; wait 60; shot {out}/loreread_3.png; quit',
         '--level level5_3 --seed 3', True),
+    # Abnahme Runde 4: Bereiche und Uebergaenge abseits des Laufwegs (Sicherungspunkte der Karte): vor der Leere mit dem weissen
+    # Gitter, Ostfluegel zur Tuer nach Level 5, alte Gaenge (+6 m), Treppe, Obergeschoss, Kronleuchter und Wappen der Halle
+    'zones': ('Bereiche und Uebergaenge (Leere, Ausgang, alte Gaenge, Treppe, Obergeschoss, Kronleuchter)',
+        W0 + _view('zones_1', 14.0, 81.0, 3.1416, 0.0, lamp=True) + _view('zones_2', 123.5, 80.5, 0.0) +
+        _view('zones_3', 103.5, 23.5, 1.5708, 0.0, lamp=True) + _view('zones_4', 90.5, 23.5, 0.0) +
+        _view('zones_5', 64.0, 43.5, 1.5708) + _view('zones_6', 64.0, 80.0, 1.5708, 0.55) + 'quit'),
 }
 
 

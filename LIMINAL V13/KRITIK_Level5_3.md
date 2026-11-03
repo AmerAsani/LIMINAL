@@ -70,3 +70,38 @@ Befunde:
   Texturkoordinate ungespiegelt – bei allen Wesen kommt die Kante invertiert an (fast überall 1: um ein Viertel heller,
   etwas glatter, echte Kanten dunkler). Alle Wesen sind mit diesem Stand abgestimmt; die Bemalung rechnet es ein
   (`build.py`). Vorschlag für DECISIONS.
+
+## Runde 3 (`wesen_r3_1.jpg` … `_4.jpg`: der Hausherr nach den Änderungen, Besuch und Störung im Spiel; Laufweg unverändert)
+
+Neu gebaut: `ent_gentleman_l0..l2` (Bemalung, Seidenrevers, Weste, Nägel), Shader, Materialien; Läufe `gentleman`,
+`gentpose`, `gentnotice`, `gentflow`, `gentdisturb`, `loreread`.
+
+Befunde:
+1. **Nadelstreifen** (gentleman 3–6): da und senkrecht, auch an Hose und Ärmeln, sie haften beim Gehen am Stoff – aber zu
+   hell und zu breit: aus 1,5 m ein Schlafanzug, mit Lampe ein hellgrauer Anzug mit weißen Streifen (gentleman 6,
+   gentnotice 2).
+2. **Gesicht** (gentleman 5, gentnotice 4/5, gentdisturb 3–5): jetzt ein bemaltes Puppengesicht – zwei runde Rouge-Flecken,
+   Schatten in den Augenhöhlen und unter den Wangenknochen, helle Nase; im Griff von unten unheimlich. Das grobe Rissnetz
+   lässt die Fläche noch wie Pappmaché wirken.
+3. **Revers**: als glänzende Seidenstreifen neben der Weste zu sehen; oben stand nur die Spitze als schwarzer Punkt aus dem
+   Frack – zwei Knöpfe auf der Brust.
+4. **Weste**: dunkler und flacher, mit Goldknöpfen und Uhrkette eine Weste – unten noch ein Oval.
+5. **Hand** (gentnotice 4/5): wachsbleich statt rosig; die Hornnägel sind im Lampenlicht schwarze Fingerhüte über den Kuppen.
+6. **Besuch** aus 6 m (gentflow 3–13): Silhouette in der Tür des Gangs (14 s), Seufzer und Selbstgespräch mit Untertitel,
+   Verbeugung, Lesen, Wurf, Ansprache, Stille, Abgang, Zorn mit Untertitel; das Notizbuch liegt 4,8 m hinter seinem Platz
+   („Notizbuch aufheben“, gentflow 13); die vier Haufen lesen sich als Kaskade entlang der Regalfront (gentflow 14/15) – gut.
+7. **Störung** (gentdisturb 1–9): Kopf über die Schulter („Ein Gast. Hier unten.“), Arm entfaltet sich („Erlauben Sie.“,
+   Rat „Abstand!“), Griff („Vergessen Sie, was Sie hier gelesen haben.“), Revers („Wie Sie wünschen …“), Abgang, Zorn –
+   vollständig, ohne Tod (Protokoll: bemerkt bei 2,8 m, Ankündigung 2,1 m, Griff 0,9 m; Anzeige danach Leben 97 – heilt
+   nach –, Verstand 63).
+8. **Folio**: wieder nicht gelesen – der Blick lag zwischen den Seiten, das Blatt liegt rechts (Werkzeug).
+9. **Lesepult** (Befund 7 aus Runde 2): Entscheidung – das eine Pult bleibt als Ort des Wissens (E-047); `LOOK_5.3.md` nennt
+   die Ausnahme (kein Lesetisch, kein zweites Pult).
+
+Änderungen:
+- Nadelstreifen 1,1 mm (statt 1,3), Kreide 0,15 (statt 0,23), Anteil 0,8; Frack-Grund 0,05 → 0,04.
+- Gesicht: grobes Rissnetz noch einmal flacher (0,25/0,35 → 0,18/0,22 mm).
+- Revers ohne die Spitze, oben weiter vorn und länger (bis an den Kragen).
+- Weste vorn flach mit geradem Saum und zwei Spitzen (Kasten statt Ellipsoid), Knöpfe und Kette darauf.
+- Nägel kleiner, auf dem Fingerrücken, die Kuppe frei; aus vergilbtem Elfenbein wie das Gesicht (ohne Bemalung).
+- Werkzeug: Folio mit Blick auf das Blatt.

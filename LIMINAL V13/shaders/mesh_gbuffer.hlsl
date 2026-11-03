@@ -284,7 +284,7 @@ void skinMarks(inout GBufferOut g, float3 bp)
 }
 
 // V13.3 Abnahme Level 5.3 (KREATUR_Gentleman.md): Nadelstreifen auf dem Frack (world_renderer.hpp kMatPinstripe). Kreidestreifen,
-// 1,3 mm breit alle 12,5 mm, senkrecht in der Ruhepose: vorn, hinten und ueber die Schultern quer zu y, an den Seiten quer zu x.
+// 1,1 mm breit alle 12,5 mm, senkrecht in der Ruhepose: vorn, hinten und ueber die Schultern quer zu y, an den Seiten quer zu x.
 // Die Abdeckung wird ueber die Breite des Pixels gemittelt (Integral der Streifenfolge) - aus der Ferne ein etwas hellerer
 // Stoff statt Flimmern; die Streifen folgen leicht dem Fall des Stoffs und sind gewebt (nicht ganz gleichmaessig hell).
 float stripeCover(float u, float duty)
@@ -298,14 +298,14 @@ float stripeCover(float u, float duty)
 
 void pinstripes(inout GBufferOut g, float3 bp, float3 bn)
 {
-    const float period = 0.0125, duty = 0.105;
+    const float period = 0.0125, duty = 0.085;  // Runde 3: 1,3 mm und Kreide 0,23 lasen sich wie ein Schlafanzug
     float3 w = pow(abs(normalize(bn)), 6.0);
     w /= (w.x + w.y + w.z);
     const float sway = 0.0011 * sin(bp.z * 23.0 + bp.x * 9.0);  // der Stoff faellt nicht ganz gerade
     const float c = stripeCover((bp.y + sway) / period, duty) * (w.x + w.z) + stripeCover((bp.x + sway) / period, duty) * w.y;
     const float weave = 0.8 + 0.4 * vnoise3(bp * float3(380.0, 380.0, 90.0));
-    const float3 chalk = float3(0.23, 0.23, 0.245) * weave;
-    g.albedo.rgb = lerp(g.albedo.rgb, chalk, c * 0.9);
+    const float3 chalk = float3(0.15, 0.15, 0.16) * weave;
+    g.albedo.rgb = lerp(g.albedo.rgb, chalk, c * 0.8);
 }
 
 // V10: die Wesen. Triplanar in der Ruhepose (v laeuft an den Seiten nach oben - Fasern und
