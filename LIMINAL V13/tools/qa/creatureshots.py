@@ -182,7 +182,8 @@ LEVEL0 = {
     'zones': ('Zonen von Level 0',
         W0 + _view('zones_1', 81.5, 60, 1.571) + _view('zones_2', 62, 85.5, 0.0) + _view('zones_3', 80.5, 21, 3.142) +
         _view('zones_4', 116, 31.5, 0.524, lamp=True) + _view('zones_5', 128, 121.5, 1.92) + _view('zones_6', 37, 40.5, 4.712) +
-        _view('zones_7', 154, 64, 0.0) + _view('zones_8', 63.4, 85.5, 0.0, -0.45) + 'quit'),
+        _view('zones_7', 154, 64, 0.0) + _view('zones_8', 63.4, 85.5, 0.0, -0.45) +
+        _view('zones_9', 169.5, 64, 0.0, 0.0, lamp=True) + 'quit'),  # Naht: die flackernde Wand nach Level 1
 }
 
 

@@ -193,10 +193,68 @@ Gefundene und behobene Fehler:
   - Mottenschwarm flog auf, griff aber nie an (Sitzzustand ignorierte den aufgescheuchten Schwarm);
   - purpurne Wesen: Gummipuppe mit Lichtbahnen wie ein Stromschlag, die Wand lavendelgrau statt violett.
 
-## Level 0 – Struktur angepasst, Abnahme folgt
+## Level 0 – abgenommen (03.11.2026)
 
-Decken ≥ 2,7 m, breitere Durchbrüche (Sichtachsen 22,0 → 25,5 m), keine hervorgehobenen Raumnamen; Ähnlichkeit S 0,89.
-Laufweg vorher: 202 m durch 25 Räume (`docs/screens/level0/wegbilder_vorher_*.jpg`).
+| Punkt | Stand |
+|---|---|
+| a) Strukturtyp, Raummetrik | Eintrag in `STRUKTURTYP.md` (Labyrinth „The Lobby“): Vorzimmer als Grundstruktur (65 %), dazu nur Raumtypen der Seite (Bögen, Säulenfeld, Löcher, Dunkelzone, rote Räume, Manila-Raum) und die Naht nach Level 1; Schilder 0. Strukturrunde 27.10.: Decken ≥ 2,7 m (Dunkelzone), breitere Durchbrüche (Sichtachsen Median 22,0 → 25,5 m), keine hervorgehobenen Raumnamen. In der Abnahme: Sicherungspunkte ohne Leuchte, „Flur“ statt „Der lange Flur“, Bogen-Durchgänge mit Teppich (siehe Fehler). Raummetrik grün: 315 Räume, Decke min/Median 2,70/2,90 m, Gänge 2,0 m, Fläche Median 30 m², Sichtachsen Median 25,5 m, P90 46,5 m, 4 große Räume, 0 Stützen unter 1 m zur Wand, 0 verstellt. Ähnlichkeit S 0,891, Ausreißer 14,2 % (120 Fenster; Grenzen in `metric_limits.json`) |
+| b) Ausstattung | `PROPS_Level0.md`: 7 Klassen neu in Blender (`models_l0.py`: Rasterleuchte in 3 Fassungen, tote Rasterleuchte 2, rote Rasterleuchte 2, Luftauslass 3, Lüftungsgitter 2, Steckdose 3, Bogen `arch3` mit `arch2`/`arch4`), Tapete neu als Kachel aus 53-cm-Bahnen (`tools/textures/wallpaper_l0.py`, 2 Runden), 11 Fundstücke und Interaktionsobjekte neu (`models_items.py`). 5 Kritikrunden und Schlussrunde mit Kontaktbögen (vorher, r1–r5, final; `docs/screens/props/level0/`, `docs/screens/level0/props_uebersicht_*.jpg`, `docs/screens/props/items/`). In der Abnahme: Leuchtstab und Beil im Prüfstand (`itemsheet.py`), Beilkopf mit Metallanteil 0,6, die 7 Sicherheitsleuchten entfallen. Karte jetzt 1050 Objekte (vorher 1057) |
+| c) Wesen | Die Seite nennt keine bestätigten Wesen (ENTITY_ABGLEICH, Abschnitt Level 0). Im Spiel: **Gestalt** (dunkle Figur am Gangende, ändert sich nie, solange man hinsieht, greift nie an; `KREATUR_Gestalt.md`, 5 Kritikrunden), **Halluzinationen** (Gestalt im Dunkeln nach einem Ausfall, Stromausfall des Raums, Phantomschritte, Flüstern, Kratzen, ferne Stimmen). Ausnahme nach Auftrag: andere Wanderer (Menschen) nur über ihre Notizen. In der Abnahme in vier Runden (2–5) im Spiel geprüft, mit Licht der Ebene und Lampe |
+| d) Kritikrunden | 5 Ebenen-Runden (`KRITIK_Level0.md`): 1 Struktur (27.10.), 2–5 Abnahme mit Laufweg, allen Erscheinungen und Fundstücken. Werkzeug `tools/qa/creatureshots.py` um Level 0 erweitert (Gestalt, Halluzinationen, Fundstücke in der Hand, Notizen am Fundort, 9 Zonen-Ansichten); Bögen `docs/screens/level0/wesen_r2_*` … `wesen_r5_*`. Dazu die Runden der Ausstattung (r1–r5, final), der Tapete (2) und der Gestalt (5) |
+| e) Laufweg | `walkway.py level0 --rooms 15 --seed 3`: 205 m durch 24 Räume, 52 Bilder alle 4 m (`docs/screens/level0/wegbilder_r2_*` … `_r5_*`, Karten `wegkarte_r2..r5.png`); vorher 202 m/25 Räume (`wegbilder_vorher_*`), Runde 1 212 m/25 Räume (mit `--rooms 25`) |
+| f) Prüfungen | Modellprüfung aller 33 Modelle der Ebene (7 Kartenklassen in 16 Fassungen, Gestalt l0–l2, 11 Fundstücke, Lampe und Hand im Ego-Bild): 0 Fehler (vor der Abnahme 34 mit der Sicherheitsleuchte, ebenfalls 0). Wasserfläche, Pfützen, Leuchtstab und Beil sind Netze aus Code. Halt der Ausstattung (`gameplay_test`): level0 1050 Objekte mit Halt-Regel, 0 ohne Halt. Schilder 0 (Grenze 0), Sicherheitsleuchten mit Piktogramm 0 (neu gezählt, vorher 7). Raummetrik und Ähnlichkeit grün. Tests grün: gameplay 981/0, audio 121/0, coop --quick 209/0, net 72/0, worldgen 29658/0, supply OK (ein Lauf von coop meldete im Lauf mit simuliertem schlechtem Netz 6,4 m Ortsabweichung nach dem Anhalten, die Wiederholung 209/0; dieselbe Abweichung steht schon in `PROPS_Level0.md`, Netzcode). Smoke-Test 03.11. (`docs/metrics/smoke_level0.json`, 24 Stationen des Laufwegs): GPU 3,14 ms (max 3,80; am 27.10. 4,64/8,39), Spiel 0,06 ms, bis 0,53 Mio. Dreiecke, VRAM 982 MB, RAM 1134 MB (Spitze 1490 MB), 0 Fehler im Protokoll. Grafik-CPU 16,61 ms ist die Wartezeit auf den 60-Hz-Takt (wie Level 1 und 2). Klang: 450 s Spielzeit ohne „Klang fehlt“ |
+| g) Aufwand | Gestalt (V13, mit Clump, Motte und Nest) 26.10. 07:52–11:01. `LEVEL0_STANDARD.md` 27.10. bis 06:07 (gemeinsame Vorarbeit). Ausstattung 27.10. 10:40–11:30 und 01.11. 13:00–20:00 (laut `PROPS_Level0.md` etwa 7,5 h: Bestand, Builder, Zusammenführung, Fundstücke in Blender, Prüfstand, Tapete, Runden). Struktur 27.10. bis 16:27, Kritikrunde 1 17:51 (Hauptstrang). Abnahme (Runden 2–5) 03.11. 08:10–09:25 (etwa 1,3 h): etwa 0,4 h Werkzeug (Level 0 in `creatureshots.py`, Leuchtstab und Beil in `itemsheet.py`, Leuchten in `signs.py`), 0,6 h Bilder, Prüfstände und Fehlersuche (Ausfall, Spiegelung, Bogen, Beil), 0,3 h Prüfungen, Messungen, Tests und Dokumente |
+
+**Neu gebaute Assets (Level 0):**
+- **Ausstattung** (`tools/blender/models/models_l0.py`, Bögen `docs/screens/props/level0/`):
+  - Rasterleuchte `troffer` (3: Röhrenbänder, sterbende Röhre, Wasserfleck), `troffer_off` (2, eine mit gesprungener
+    Scheibe), `troffer_red` (2);
+  - Luftauslass `ceiling_diffuser` (3, Staubhof), Lüftungsgitter `vent_grille` (2), Steckdose `outlet` (3,
+    Griffschmutz);
+  - Bogen `arch3` mit Laibung und Kämpferprofil (`arch2`/`arch4` mitgebaut).
+- **Tapete** `wallpaper_threshold`: Kachel 2,12 m aus vier Bahnen (`tools/textures/wallpaper_l0.py`, CC0-Grundlage).
+- **Fundstücke** (`models_items.py`): `item_energy`, `item_almond`, `item_battery`, `item_note`, `item_fuse`,
+  `item_fusebox`, `item_fusebox_empty`, `item_vending`, `item_exit_door`, `item_elev_frame`, `item_elev_door`.
+- **Gestalt** `ent_gestalt_l0..l2` (V13, `tools/blender/creatures/gestalt.py`, Material `ent_silhouette`).
+- **In der Abnahme:**
+  - keine neuen Modelle;
+  - geändert: Beil (Metallanteil des Kopfs, Schwung und Griff im Ego-Bild), Tür-Art `room_a`/`room_b` für die
+    Bogen-Durchgänge, Leuchtflächen im Stromausfall und die Ersatzspiegelung der Decke (Shader).
+
+**Bilder:**
+- Laufweg `docs/screens/level0/wegbilder_vorher_*.jpg`, `wegbilder_r1..r5_*.jpg`, `wegkarte_*.png`.
+- Erscheinungen, Fundstücke in der Hand, Zonen und Notizen `docs/screens/level0/wesen_r2..r5_*.jpg` (Einzelbilder
+  `build/qa/creatures/level0/r2..r5/`).
+- Fundstücke am Boden `docs/screens/props/items/l0_r2/`, `l0_r3/`, `l0_r5/` (Leuchtstab, Beil, Notiz). Beil-Schwung
+  vorher und nachher: `docs/screens/props/items/l0_beil/swing_vorher.jpg`, `swing_nachher2.jpg`, `swing_griff.jpg`.
+- Ausstattung `docs/screens/props/level0/` (vorher, r1–r5, final, Tapete, Bögen im Spiel),
+  `docs/screens/level0/props_uebersicht_*.jpg`.
+- Feste Ansichten von V12 `docs/screens/level0/01…15`, Gestalt `docs/screens/creatures/gestalt/`.
+
+Gefundene und behobene Fehler:
+- **Struktur** (27.10.):
+  - Decken unter 2,7 m in der Dunkelzone.
+  - Sichtachsen Median 22,0 m (→ breitere Durchbrüche, 25,5 m).
+  - Hervorgehobene Raumnamen „Der lange Flur“ und „Vergilbtes Zimmer“.
+- **Ausstattung** (PROPS_Level0):
+  - Die Tapete wirkte auf 3–4 m glatt wie gestrichen (→ Bahnen); die erste Fassung war zu stark (Holzpaneele).
+  - Der Griffschmutz war heller als die feuchte Wand.
+  - Der Bogen stand im Studio mit einem Spalt über dem Sturz.
+  - Teile von Notausgang und Aufzug fehlten (zu wenige feste Materialien, 160 → 224).
+  - Die Schrift der Batterie war gespiegelt.
+- **Abnahme**:
+  - 7 grüne Sicherheitsleuchten mit Notausgang-Piktogramm an der Decke: das Notausgangsschild, das der Auftrag
+    bemängelt. `signs.py` zählte sie nicht (→ entfallen; werden jetzt ausgewiesen).
+  - Der Sicherungspunkt hieß noch „Der lange Flur“ (→ „Flur“).
+  - In den Bogen-Durchgängen lag eine helle Türschwelle statt Teppich (→ Tür-Art `room_a`/`room_b`, `generator.cpp`).
+  - Im Stromausfall blieben die Leuchtflächen weiß (→ erlöschen quadratisch, `gbuffer.hlsli`).
+  - Helle Lichtschlieren auf dem Wasser der Dunkelzone: Die Ersatzspiegelung ging bis 45 m durch Wände (→ Strahl
+    Zelle für Zelle, `ssr.hlsl`).
+  - Beil: Beim Ausholen füllte eine riesige Hand die Bildecke; beim Hieb war nur der Nacken des Kopfs zu sehen; der
+    Kopf war im Lampenlicht schwarz; der Stiel stand neben der offenen Hand (→ `body.cpp`, `world_renderer.cpp`).
+- **Werkzeug**:
+  - Der Rand der Gestalt war gesprenkelt, weil das Bild direkt nach dem Versetzen entstand (TAA, → 40 Bilder warten).
+  - Die Gestalt der Halluzination steht regelgerecht hinter dem Spieler und wurde nicht aufgenommen (→ `face gestalt`).
 
 ## Level 5, 5.3, 188, 903, 37, 36
 

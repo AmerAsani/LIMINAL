@@ -144,3 +144,51 @@ Befunde:
   hält die Hand das Stielende.
 - **Sicherungspunkt** heißt „Flur“ (`level0.py`; die Kennung `flur` bleibt, damit Spielstände gültig bleiben).
 - **Tests nach Runde 3:** gameplay 981/0, audio 121/0, coop --quick 209/0, net 72/0, worldgen 29658/0, supply OK.
+
+## Runde 5 (Abnahme: alle Erscheinungen `wesen_r5_1.jpg` … `_3.jpg`, Laufweg `wegbilder_r5_*`: 205 m durch 24 Räume, 52 Bilder)
+
+Gleiche Strecke wie in den Runden 2–4, alle Erscheinungen und Fundstücke, dazu neu die Naht bis an die flackernde Wand
+nach Level 1 (`zones_9`, mit Lampe `zones_9_lampe`). Fundstücke am Boden `docs/screens/props/items/l0_r5/`.
+
+- **Laufweg:** Gegenüber Runde 4 höchstens 1,6 von 255 mittlere Abweichung (flackernde Leuchten). Die Vorzimmer tragen den
+  Standard aus Runde 1 weiter:
+  - Gelb mit Fußleiste und Tapetenbahnen, feuchter Teppich, Rasterdecke mit toten Feldern;
+  - Unterzüge, Steckdosen, Lüftungsgitter;
+  - Sichtachsen über mehrere Räume, kein Wahrzeichen und kein Schild.
+- **Gestalt:** aus 19 m „da steht jemand“, aus 7 und 3 m ein Mensch ohne Gesicht mit weichem Rand. Mit Lampe kaum heller,
+  die Beine lösen sich in Fasern auf. Wie das Briefing, unverändert seit Runde 3.
+- **Halluzinationen:**
+  - Gestalt im Dunkeln: Umriss in der hellen Öffnung am Ende des dunklen Säulenfelds.
+  - Raum ohne Licht: Leuchten dunkelgrau, der Nachbargang bleibt hell.
+  - Klang (Runde 4): alle Klänge vorhanden.
+- **Fundstücke:**
+  - Leuchtstab: knicken und werfen; grünes Licht am Boden und an der Decke darüber.
+  - Beil (`hand_5`, `_6`, `l0_beil/swing_griff.jpg`): Der Stiel liegt in der Faust, beim Ausholen Kopf und Stiel in
+    normaler Größe. Am Boden ist der Kopf auch im Lampenlicht grauer Stahl.
+  - Notizen: drei Fundorte am Sockel, aus 1,3 m lesbar, mit und ohne Lampe.
+- **Zonen:**
+  - Säulenfeld, Bögen mit Teppich im Durchgang, Lochfeld mit sauber geschnittenen Gruben;
+  - Dunkelzone schwarz, mit Lampe nasser Beton ohne Schlieren;
+  - roter Raum, vergilbtes Zimmer;
+  - Naht: Die Tapete geht in Beton über, am Ende steht die Betonkammer mit der flackernden Wand nach Level 1.
+    Weder grüne Leuchte noch Schild.
+- **Prüfungen:**
+  - Raummetrik grün (Decke min/Median 2,70/2,90 m, Sicht Median 25,5 m, P90 46,5 m);
+  - Ähnlichkeit S 0,891, Ausreißer 14,2 %;
+  - Schilder 0, Sicherheitsleuchten mit Piktogramm 0;
+  - Modellprüfung 33 Modelle der Ebene 0 Fehler, Halt der Ausstattung 1050 Objekte 0 ohne Halt;
+  - Smoke-Test grün (GPU 3,14 ms, max 3,80 ms; `docs/metrics/smoke_level0.json`);
+  - Tests: gameplay 981/0, audio 121/0, coop --quick 209/0, net 72/0, worldgen 29658/0, supply OK. Ein erster
+    coop-Lauf hatte 1 Fehler im Lauf mit schlechtem Netz (6,4 m Ortsabweichung), die Wiederholung lief ohne Fehler.
+
+Keine weiteren Änderungen. Level 0 ist abgenommen (Eintrag in `AUFWAND.md`).
+
+Restpunkte (bewusst nicht geändert):
+- **Rest-Licht am Boden:** Der geworfene Leuchtstab färbt die Decke bis etwa 4 m weit grün. Das ist physikalisch
+  plausibel (Licht von unten trifft die Decke steil) und gehört zum Köder-Entwurf von Level 1 (`KREATUR_Smiler.md`).
+- **Finger beim Hieb:** Die Hand des Beils schließt sich nicht ganz um den Stiel (Fingerkrümmung 0,85 wie bei allen
+  gehaltenen Dingen). Die Faust der Lampenhand ist ein eigenes Modell. Eine zweite Faust für die rechte Hand wäre ein
+  neues Asset. Der Schwung dauert 0,72 s.
+- **Streiflicht im Prüfstand:** Der ungeknickte Leuchtstab (`l0_r5/glowstick.jpg`, Zeile 3) und der Teppich zeigen unter
+  der Prüflampe (8° Erhebung, 1 m) Schattenstreifen. Am Teppich treten sie mit der Spielerlampe aus Augenhöhe nicht auf
+  (`notes_2`, `_4`, `_6`). Den ungeknickten Stab unter der Spielerlampe zeigt kein Bild: Er liegt nur in Level 1–3.
