@@ -234,16 +234,17 @@ LEVEL5 = {
     # das Nest entsteht an der Tuer eines dunklen Zimmers (Regie ruhig gestellt: an dieser Tuer erzwingen, 54/68 am Hauptgang)
     'nest': ('Nest und Weibchen (Entity 4)',
         W0 + 'pos 54.5 64.8 1.5708 0; wait 30; hiveat 54 68; wait 60; shot {out}/nest_1.png; ' + _lamp('nest', 2) +
-        'pos 54.5 66.6 1.5708 0.15; key T; wait 120; shot {out}/nest_3.png; wait 240; shot {out}/nest_4.png; quit'),
+        'pos 54.5 66.6 1.5708 0.15; key T; wait 120; shot {out}/nest_3.png; pos 54.5 67.6 1.5708 0.1; wait 150; '
+        'shot {out}/nest_4.png; wait 120; shot {out}/nest_5.png; quit'),  # in der Tuer: die Weibchen fliegen auf
     'hound': ('Hound (Entity 8)',
         W0 + 'pos 70 66 0 0; wait 30; presence hound 9; wait 150; near hound 4; wait 20; shot {out}/hound_1.png; ' +
-        _lamp('hound', 2) + 'quit'),
+        'near hound 6; key T; wait 45; shot {out}/hound_2.png; quit'),  # mit Lampe greift er an: das Bild vorher
     'skinstealer': ('Skin-Stealer, wahre Gestalt (Entity 10)',
         W0 + 'presence skinstealer 6; wait 240; near skinstealer 3.2; wait 2; shot {out}/skinstealer_1.png; ' +
         _lamp('skinstealer', 2) + 'near skinstealer 1.8; wait 2; shot {out}/skinstealer_3.png; quit'),
     'rat': ('Death Rats (Entity 24)',
         W0 + 'presence rat; wait 150; near rat 2.8; wait 10; shot {out}/rat_1.png; ' + _lamp('rat', 2) +
-        'near rat 1.5; key T; wait 90; shot {out}/rat_3.png; quit'),
+        'key T; near rat 1.3; wait 20; shot {out}/rat_3.png; quit'),
     'growler': ('Growler, ausgewachsen (Entity 130)',
         W0 + 'presence growler; wait 150; near growler 3.5; wait 20; shot {out}/growler_1.png; ' + _lamp('growler', 2) + 'quit'),
     'nguithrxurh': ("Nguithr'xurh (Entity 16)",

@@ -77,8 +77,9 @@ def _mats():
         'hair': mat('watcher_haar', (0.02, 0.02, 0.02), 'water', r=0.4),
         'void': mat('watcher_schlund', (0.03, 0.01, 0.01), 'plastic', r=0.4),
         # Gastgeber: Nadelstreifen-Anzug (dunkles Anthrazit), Hemdmanschette, Manschettenknopf, wachsbleiche Hand
-        'suit': mat('gastgeber_anzug', (0.06, 0.06, 0.07), 'fabric', r=1.0),
-        'stripe': mat('gastgeber_nadelstreifen', (0.30, 0.30, 0.32), 'fabric', r=1.0),
+        # Abnahme Level 5, Runde 3: mit den Falten glaenzte der Stoff grau wie ein Schlauch (Rauheit 0,45) - stumpfer Wollstoff
+        'suit': mat('gastgeber_anzug', (0.06, 0.06, 0.07), 'fabric', r=2.2),
+        'stripe': mat('gastgeber_nadelstreifen', (0.30, 0.30, 0.32), 'fabric', r=2.2),
         'shirt': mat('gastgeber_manschette', (0.88, 0.86, 0.80), 'fabric', r=0.9),
         'gold': mat('gastgeber_gold', (0.85, 0.66, 0.30), 'metal', r=0.4, m=1.0),
         'hand': mat('gastgeber_haut', (0.72, 0.63, 0.57), 'plastic', r=0.65),
@@ -89,7 +90,7 @@ def _mats():
         # Abnahme Level 5, Runde 2: aus mehr als 3 m waren die Augen nicht zu sehen - groesser, das Weiss leuchtet nass aus dem
         # dunklen Firnis, ein wunder, roter Rand trennt es von der Leinwand
         'lid_raw': mat('bildnis_lid_wund', (0.50, 0.08, 0.07), 'plastic', r=0.2),
-        'suit_seam': mat('gastgeber_naht', (0.035, 0.035, 0.04), 'fabric', r=1.1),
+        'suit_seam': mat('gastgeber_naht', (0.035, 0.035, 0.04), 'fabric', r=2.2),
         'button': mat('gastgeber_hornknopf', (0.10, 0.07, 0.05), 'plastic', r=0.35),
         'paint_hair': mat('buero_gemalt_haar', (0.06, 0.045, 0.035), 'paint', r=0.5),
         'gouge': mat('buero_kratzer', (0.22, 0.07, 0.05), 'paint', r=0.7),
@@ -221,21 +222,28 @@ def build_wl_body():
         if s > 0:  # Messingnagel im Scheitel der einen Haelfte (wie ein Moebelbeschlag)
             lathe(K(M['brass'], 30), [(0.0, 0.0), (0.008, 0.0), (0.006, 0.006), (0.0, 0.008)], 10,
                   Matrix.Translation((-0.01, 0.026, 0.372)) @ _rot_to((0, 0.3, 1)))
-        tilt = Matrix.Translation(piv) @ Matrix.Rotation(-s * 0.32, 4, 'X') @ Matrix.Translation(-piv)
+        tilt = Matrix.Translation(piv) @ Matrix.Rotation(-s * 0.42, 4, 'X') @ Matrix.Translation(-piv)  # Runde 3: weiter (0,32)
         K.finish(Matrix.Translation((0, 0, 0.3)) @ Matrix.Diagonal((1.4, 1.4, 1.4, 1.0)) @ Matrix.Translation((0, 0, -0.3)) @ tilt)
     # Fleisch im Spalt: quillt nach vorn und oben aus dem V, nass, mit Saft und dunklen Adern
     K = Kit()
-    ellipsoid(K(M['flesh'], 40), V((0.006, 0.0, 0.318)), V((0, 0, 1)), 0.055, 0.02, 12, 8)
-    for k in range(6):
-        p = V((rng.uniform(0.012, 0.03), rng.uniform(-0.012, 0.012), rng.uniform(0.29, 0.37)))
+    # Runde 3: aus 3,5 m nur ein rosa Tupfen auf dem Kopf - mehr Fleisch, das oben aus dem V quillt (ueber den Scheitel), und
+    # Gewebefaeden, die zwischen den Haelften gespannt sind
+    ellipsoid(K(M['flesh'], 40), V((0.008, 0.0, 0.33)), V((0, 0, 1)), 0.07, 0.026, 12, 8)
+    for k in range(9):
+        p = V((rng.uniform(0.0, 0.032), rng.uniform(-0.016, 0.016), rng.uniform(0.29, 0.405)))
         ellipsoid(K(M['flesh_l'] if k % 2 else M['flesh'], 40), p, V((1, rng.uniform(-0.3, 0.3), rng.uniform(-0.3, 0.3))),
-                  rng.uniform(0.011, 0.016), rng.uniform(0.008, 0.012), 8, 5)
+                  rng.uniform(0.013, 0.019), rng.uniform(0.01, 0.014), 8, 5)
+    for k in range(6):  # Gewebefaeden quer durch den Spalt, durchhaengend
+        z = rng.uniform(0.33, 0.39)
+        x = rng.uniform(-0.01, 0.03)
+        w = 0.03 + (z - 0.33) * 0.6
+        sweep(K(M['flesh_l'], 40), [V((x, -w, z)), V((x + 0.006, 0.0, z - rng.uniform(0.008, 0.02))), V((x, w, z))], [0.0018, 0.0012, 0.0018], 5)
     for k in range(5):  # Adern
         p0 = V((0.03, rng.uniform(-0.01, 0.01), rng.uniform(0.29, 0.36)))
         sweep(K(M['vein_w'], 40), [p0, p0 + V((0.004, rng.uniform(-0.01, 0.01), rng.uniform(-0.03, 0.03)))], [0.0014, 0.0008], 4)
-    for k in range(6):  # Saft laeuft ueber das Gesicht und den Hals
-        p = V((rng.uniform(0.03, 0.04), rng.uniform(-0.012, 0.012), rng.uniform(0.29, 0.33)))
-        sweep(K(M['sap'], 40), [p, p + V((0.006, rng.uniform(-0.004, 0.004), -rng.uniform(0.025, 0.06)))], [0.0024, 0.0012], 5)
+    for k in range(9):  # Saft laeuft ueber das Gesicht und den Hals
+        p = V((rng.uniform(0.03, 0.045), rng.uniform(-0.02, 0.02), rng.uniform(0.29, 0.34)))
+        sweep(K(M['sap'], 40), [p, p + V((0.006, rng.uniform(-0.004, 0.004), -rng.uniform(0.04, 0.09)))], [0.0028, 0.0014], 5)
     K.finish(Matrix.Translation((0, 0, 0.3)) @ Matrix.Diagonal((1.4, 1.4, 1.4, 1.0)) @ Matrix.Translation((0, 0, -0.3)))
     # der Spalt laeuft ueber Hals und Brust in den Bauch der Spindel: Fleisch zwischen rohen Kanten, Saft
     K = Kit()
@@ -245,9 +253,9 @@ def build_wl_body():
     sweep(K(M['flesh'], 40), path, [0.006, 0.0075, 0.009, 0.007, 0.008, 0.0065, 0.003], 7)
     for s in (1, -1):
         sweep(K(M['raw'], 30), [p + V((0.002, s * 0.0075, 0)) for p in path], [0.0024, 0.0028, 0.003, 0.0026, 0.003, 0.0026, 0.0012], 5)
-    for k in range(4):
-        p = path[1 + k] + V((0.004, rng.uniform(-0.004, 0.004), 0))
-        sweep(K(M['sap'], 40), [p, p + V((0.003, 0, -rng.uniform(0.015, 0.04)))], [0.002, 0.0009], 5)
+    for k in range(6):  # Saft ueber Brust und Bauch, bis zur Taille
+        p = path[min(6, 1 + k)] + V((0.004, rng.uniform(-0.006, 0.006), 0))
+        sweep(K(M['sap'], 40), [p, p + V((0.004, rng.uniform(-0.003, 0.003), -rng.uniform(0.03, 0.07)))], [0.0026, 0.0011], 5)
     K.finish()
 
 
@@ -296,6 +304,7 @@ def build_wl_leg_b():
 # jetzt als Distanzfeld (wie die Wesen mit Skelett): eingefallene Wangen, tiefe Hoehlen, Falten und Poren in der Haut.
 WA_EYES = [(0.085, 0.0, 0.36), (0.098, 0.008, 0.30), (0.104, -0.006, 0.235), (0.1, 0.01, 0.17), (0.088, -0.004, 0.11)]
 WA_EYE_S = [0.7, 1.0, 1.25, 0.85, 0.6]
+WA_WIDE = 1.3  # Abnahme Level 5, Runde 3: Kopf und Gesichtsteile in der Breite (y)
 
 
 def _sdf():
@@ -374,8 +383,10 @@ def build_wa_head():
         parts.append(A.ell(0, (0.075, sd * 0.056, 0.222), X, (0.022, 0.016, 0.018), k=0.01))  # Wangenknochen, spitz
     for (x, y, z), s in zip(WA_EYES, WA_EYE_S):
         parts.append(A.ell(0, (x + 0.01, y, z), X, (0.032 * s, 0.022 * s, 0.019 * s), op='sub', k=0.006))
-    parts.append(A.ell(0, (0.112, 0, 0.055), (0, 1, 0), (0.05, 0.03, 0.007), op='sub', k=0.004))  # Mund, breit, lippenlos
-    _sdf_obj('kopf', parts, 0.0021, _skin_disp(), M['skin'], 12000)
+    parts.append(A.ell(0, (0.112, 0, 0.055), (0, 1, 0), (0.062, 0.035, 0.012), op='sub', k=0.004))  # Mund, breit, lippenlos, offen
+    ob = _sdf_obj('kopf', parts, 0.0021, _skin_disp(), M['skin'], 12000)
+    # Abnahme Level 5, Runde 3: schmal wie eine Floete oder eine Fernbedienung - 1,3-fach breiter (ein Gesicht, kein Stab)
+    ob.data.transform(Matrix.Diagonal((1.0, WA_WIDE, 1.0, 1.0)))
 
 
 def build_wa_face():
@@ -388,12 +399,12 @@ def build_wa_face():
         c = V((x - 0.006, y, z))
         lathe(K(M['rim'], 30), [(0.019 * s, -0.004), (0.022 * s, 0.0), (0.02 * s, 0.006)], 16, Matrix.Translation(c) @ _rot_to((1, 0, 0)))
         ellipsoid(K(M['void'], 30), c - V((0.008, 0, 0)), V((1, 0, 0)), 0.008 * s, 0.019 * s, 10, 5)
-    ellipsoid(K(M['void'], 30), V((0.085, 0, 0.055)), V((0, 1, 0)), 0.045, 0.004, 10, 4)  # Rachen hinter den Zaehnen
-    for k in range(14):  # Zaehne, gelb, schief, zu viele
-        y = -0.042 + 0.084 * k / 13
+    ellipsoid(K(M['void'], 30), V((0.088, 0, 0.055)), V((0, 1, 0)), 0.055, 0.009, 10, 4)  # Rachen hinter den Zaehnen (Runde 3: offen)
+    for k in range(18):  # Zaehne, gelb, schief, zu viele (Runde 3: breiter Mund, laenger)
+        y = -0.052 + 0.104 * k / 17
         for up_ in (1, -1):
-            p = V((0.094 - 0.012 * (y / 0.042) ** 2, y, 0.055 + up_ * 0.0045))
-            sweep(K(M['nail'], 30), [p, p + V((rng.uniform(0.0, 0.003), rng.uniform(-0.002, 0.002), -up_ * rng.uniform(0.006, 0.011)))], [0.0035, 0.0012], 4)
+            p = V((0.098 - 0.014 * (y / 0.052) ** 2, y, 0.055 + up_ * 0.0095))
+            sweep(K(M['nail'], 30), [p, p + V((rng.uniform(0.0, 0.004), rng.uniform(-0.002, 0.002), -up_ * rng.uniform(0.008, 0.015)))], [0.0038, 0.0012], 4)
     for i in range(18):  # duenne, nasse Straehnen vom Scheitel
         a = rng.uniform(0.6, TAU - 0.6)
         p0 = V((0.05 * math.cos(a) - 0.02, 0.05 * math.sin(a), 0.42))
@@ -407,7 +418,18 @@ def build_wa_face():
         p2 = p1 + V((rng.uniform(-0.01, 0.03), sd * rng.uniform(0.0, 0.015), -rng.uniform(0.12, 0.22)))
         p3 = p2 + V((rng.uniform(-0.01, 0.02), sd * 0.004, -rng.uniform(0.05, 0.12)))
         sweep(K(M['hair'], 30), [p0, p1, p2, p3], [0.0042, 0.0034, 0.0022, 0.0006], 5)
-    K.finish()
+    # Runde 3: ein Vorhang aus nassem, schwarzem Haar rahmt das Gesicht (Seiten und Hinterkopf, bis unter das Kinn) - so liest
+    # sich auch der schief gelegte Kopf an der Laibung als Kopf
+    for i in range(48):
+        a = math.radians(rng.uniform(70, 290))  # nicht vor dem Gesicht (+x)
+        r0 = 0.072
+        p0 = V((r0 * math.cos(a) - 0.01, r0 * math.sin(a) * 0.95, rng.uniform(0.38, 0.43)))
+        out = V((math.cos(a) * 0.9, math.sin(a), 0.0))
+        p1 = p0 + out * 0.025 + V((0, 0, -0.1))
+        p2 = p1 + out * rng.uniform(0.005, 0.02) + V((rng.uniform(-0.01, 0.01), 0, -rng.uniform(0.15, 0.22)))
+        p3 = p2 + V((rng.uniform(-0.01, 0.015), out.y * 0.01, -rng.uniform(0.08, 0.2)))
+        sweep(K(M['hair'], 30), [p0, p1, p2, p3], [0.0058, 0.005, 0.0035, 0.0008], 5)
+    K.finish(Matrix.Diagonal((1.0, WA_WIDE, 1.0, 1.0)))
 
 
 def build_wa_eye():

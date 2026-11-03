@@ -72,3 +72,40 @@ Befunde:
   laufen über den Rand.
 - **Werkzeug**: Nest an der Tür eines dunklen Zimmers am Hauptgang erzwungen (`hiveat 54 68`), Hound aus dem Hauptgang,
   Ratten zusätzlich nah mit Lampe, Wrangler im Kesselraum mit Lampe.
+
+## Runde 3 (`wesen_r3_1.jpg` … `_4.jpg`: die geänderten Wesen und die neuen Läufe; Laufweg unverändert)
+
+Läufe: Samantha (Gang, ohne Fleisch), Woodlins, Watcher, Gastgeber (Bildnis, Büro, Ablauf), Nest, Hound, Death Rats,
+Wrangler. Dazu eine Seitenansicht des Arms im Büro (Probe aus 1,6–2 m, Lampe an und aus).
+
+Befunde:
+1. **Samantha**: das aufgerissene Maul zeigt jetzt nach vorn – rotes Zahnfleisch, Gaumen, Zunge (samantha 4–5, samflow 3:
+   der Sprung mit offenem Rachen vor dem Gesicht). Schlecht: die Zähne lesen sich als wenige lange, bleiche Blätter (wie
+   Bananenscheiben) statt als Säge; das Weiß ist im Kerzenlicht immer noch mittelgrau, erst mit Lampe hell.
+2. **Woodlins**: aus 1,6 m mit Lampe ein rosa Fleischbausch auf dem gespaltenen Kopf – besser, aber aus 3,5 m nur ein rosa
+   Tupfen auf einer dunklen Puppe. Der Spalt muss weiter klaffen, das Fleisch mehr quellen.
+3. **Watcher**: der Kopf kommt weiter vor und liegt schief, liest sich aber weiter als schmaler, langer Gegenstand mit einer
+   Reihe Knöpfe (Fernbedienung, Flöte): zu schmal für ein Gesicht, der Mund ist im Schrägblick nicht zu sehen, die dünnen
+   Strähnen verschwinden im Dunkel.
+4. **Gastgeber**: von der Tür jetzt ein Zickzack (Ellbogen hoch über der Lehne, zweiter auf dem Tisch, Unterarm zur Hand) –
+   man zählt die Glieder; das Bildnis im Büro zeigt einen gemalten Kopf mit abgekratztem Gesicht (keine Vase mehr); die
+   Augen der Bildnisse leuchten aus 2,2 und 3,6 m als zwei helle, nasse Punkte (host 1–2, hostflow 1); das Büro ist dunkel,
+   die grüne Lampe führt (host 3). Schlecht: der Ärmel glänzt mittelgrau wie ein Schlauch – mit den vielen Falten fängt die
+   glatte Wolle (Rauheit 0,45) überall Glanzlichter.
+5. **Nest**: an der Tür des dunklen Zimmers, im Lampenlicht Schichten, Harz, Säulen, Wucherung über der Tür – stark. Die
+   Weibchen kamen nicht heraus (2 m vor der Tür, Lampe 6 s).
+6. **Hound** im Hauptgang: bleich, abgemagert, kommt auf einen zu – gut; mit Lampe greift er sofort an (rotes Bild).
+   **Death Rats**: eine Ratte in der Ecke des Kesselvorraums, klein; nah mit Lampe stand der Spieler plötzlich in der
+   Aufzugshalle (die Ratte war fortgelaufen). **Wrangler** im Kesselraum: nur der Raum (er steckt bis zum Ausbruch im
+   Boden – wie in Level 2 gewollt).
+
+Änderungen:
+- **Samantha**: Zähne als Säge – 14 je Reihe, kurz, dreieckig, dicht (statt 9 langer), innere Reihe jeder zweite; Weiß 1,85.
+- **Woodlins**: Hälften 0,42 rad auseinander (vorher 0,32), Fleisch quillt über den Scheitel (größer, neun Wülste),
+  sechs Gewebefäden durchhängend quer durch den Spalt, Saft in neun langen Bahnen über Gesicht und Hals, sechs über Brust und
+  Bauch.
+- **Watcher**: Kopf und Gesichtsteile 1,3-fach breiter (`WA_WIDE`), Mund weiter und offen (Rachen, 18 längere Zähne), ein
+  Vorhang aus 48 nassen, schwarzen Strähnen um Seiten und Hinterkopf bis unter das Kinn.
+- **Gastgeber**: Stoff stumpf (Rauheit 1,0 statt 0,45).
+- **Werkzeug**: Hound mit Lampe aus 6 m (das Bild vor dem Angriff), Ratten nah mit Lampe gleich nach dem Auftritt, Nest:
+  zweiter Schritt in die Tür.

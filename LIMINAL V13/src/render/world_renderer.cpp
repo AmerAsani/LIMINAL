@@ -408,7 +408,7 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     materialData_[FM_ENT_SM_FUR] = GpuMaterial{{0.035f, 0.032f, 0.032f}, 0, ent(EL_FUR, ML_FIBER), 0.55f, 0, 0.15f};
     // Abnahme Level 5, Runde 2: im Kerzenlicht grau-braun wie eine Maus (die Fellebene dunkelt um etwa die Haelfte) - heller, ein
     // Hauch kuehler, damit es unter warmem Licht weiss bleibt (vgl. FM_ENT_SILK)
-    materialData_[FM_ENT_SM_FURW] = GpuMaterial{{1.55f, 1.55f, 1.6f}, 0, ent(EL_FUR, ML_FIBER), 0.8f, 0, 0.08f};
+    materialData_[FM_ENT_SM_FURW] = GpuMaterial{{1.85f, 1.85f, 1.92f}, 0, ent(EL_FUR, ML_FIBER), 0.8f, 0, 0.08f};  // Runde 3: im Kerzenlicht noch grau (1,55)
     materialData_[FM_ENT_SM_EYE] = GpuMaterial{{0.30f, 0.62f, 0.18f}, 0.55f, ent(EL_TOOTH, ML_PORES), 0.04f, 0, 0.0f};
     materialData_[FM_ENT_SM_NOSE] = GpuMaterial{{0.62f, 0.40f, 0.42f}, 0, ent(EL_HUMAN, ML_PORES) | kMatFlagSkin, 0.35f, 0, 0.2f};
     materialData_[FM_ENT_SM_WHISKER] = GpuMaterial{{0.92f, 0.91f, 0.88f}, 0, ent(EL_HAIR, ML_FIBER), 0.4f, 0, 0.05f};
