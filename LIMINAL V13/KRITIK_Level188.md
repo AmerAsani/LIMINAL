@@ -115,3 +115,31 @@ Befunde:
   und trockene Polster, die in den Rasen auslaufen; das Wurzelgeflecht liegt darüber und taucht zwischen den Polstern ab.
 - **Kasten**: Samt 6 mm mit kleiner Fase (Modellprüfung 0 Fehler).
 - **Werkzeug**: echter Auftritt von Faceling und Skin-Stealer mit `near` in ihrer Zelle.
+
+## Runde 5 (alle Wesen `wesen_r5_1.jpg` … `_6.jpg`, Laufweg `wegbilder_r5_*`: 207 m durch 7 Räume, 52 Bilder)
+
+Befunde:
+1. **Laufweg**: wie Runde 3, an der Decke des Gangs (014, 035) jetzt ein grüner Kasten neben der Röhre – kein Kreuz. Hof,
+   Gang, Zellen, Treppenhaus, Absatz nach LOOK_188; keine neuen Mängel.
+2. **Auftritt im Halbdunkel** (auftritt 1–5): Tür, dann gehen die Röhren aller Gänge auf einmal aus (kein Sägezahn mehr an der
+   Wandkante, das Treppenhaus ist mit dunkel), im Dunkel schiebt sich der Leib aus der Zelle (auftritt 3), mit Lampe Ohr und
+   Faust (auftritt 4), nach 7 s stottert das Licht zurück (auftritt 5). In den Posen-Bildern (horcher 1–4) steht er im dunklen
+   Gang – die erste Begegnung hat jetzt Halbdunkel, Klang vor Sicht und eine Lichtreaktion.
+3. **Kreidehaut** (horcher 9–10, nah mit Lampe): kalkweiß mit feinen, dunklen Rissen, rote Spalten nur stellenweise – liest sich
+   als gesprungene, trockene Haut, nicht mehr als Marmor und nicht mehr als Porzellannetz. Von weitem (horcher 7) kreideweiß
+   wie die Gänge, das rosige Ohr setzt sich ab. Abgenommen.
+4. **Wurzelpistole** (pistole 4): der Fleck ist jetzt aus Polstern, sein Rand läuft in den Rasen aus – nah gut. Schlecht: das
+   tote Moos ist mit der grünen Moostextur nur ein dunkles Oliv; aus 4 und 7 m (pistole 11, 12) trennt es sich kaum vom Schatten
+   im Rasen. **Kasten** (pistole 10, 13): offener Kasten, abgenommen. **Pistole im Riss** (pistole 8): blasse Wurzeln in den
+   Rissen des weißen Bodens, gut.
+5. **Faceling im rosa Kleid** (dress 5–8): der echte Auftritt in ihrer Zelle – sie sieht einen, kommt, das leere Gesicht füllt
+   das Bild (dress 7, roter Rand), dann der tödliche Zugriff (dress 8). Werkzeug: `near` stellte die Kamera in der Zelle an die
+   Wand (Kopf abgeschnitten, dress 5–6), ebenso beim Skin-Stealer im Gang (skinstealer 4–6).
+6. **Unverändert gut**: Fensterwesen (window 3), Gestalt (gestalt 1), Stromausfall (blackout 2), Faceling-Vorführung (dress 3),
+   Skin-Stealer-Vorführung (skinstealer 3), Sicherungspunkt (`zones_9`).
+
+Änderungen:
+- **Moosfleck**: totes Moos ohne Textur als helles, stumpfes Strohbraun (linear 0,21/0,145/0,06; heller als der Rasen und eine
+  andere Farbe), trockenes Moos bleibt mit Textur.
+- **Werkzeug**: `near <wesen> <abstand> <seite> 1` sucht erst den größten Abstand über alle Winkel (im 3 m breiten Gang und in
+  der Zelle stand die Kamera sonst an der Wand); `face faceling|skinstealer` zielt auf den Kopf (1,5 m).

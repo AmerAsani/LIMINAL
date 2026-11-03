@@ -238,7 +238,8 @@ void App::scriptStep() {
             // vor dem ersten Wesen dieser Art und sieht es an (seite: Winkel um das Wesen, 0 = vor ihm); frei begehbare Kachel
             char name[32] = {};
             double dist = 3.0, side = 0.0;
-            std::sscanf(arg.c_str(), "%31s %lf %lf", name, &dist, &side);
+            int wide = 0;  // V13.3 Abnahme Level 188: 1 = erst der groesste Abstand ueber alle Winkel (im 3 m breiten Gang stand die Kamera sonst an der Wand)
+            std::sscanf(arg.c_str(), "%31s %lf %lf %d", name, &dist, &side, &wide);
             using R = game::Presence::Role;
             const std::string n = name;
             const R r = n == "faceling" ? R::Faceling : n == "skinstealer" ? R::SkinStealer : n == "wretch" ? R::Wretch : n == "rat" ? R::Rat
@@ -264,9 +265,11 @@ void App::scriptStep() {
                     if (const world::Tile* t0 = w.tileIfLoaded(ifloor(at.x), ifloor(at.y))) baseZ = t0->floor, aimZ = at.z - 0.6f;
                 bool placed = false;
                 // erst die gewuenschte Seite, dann reihum weitere Winkel (freie Sicht vom Auge zum Wesen)
-                for (int k = 0; k < 13 && !placed; ++k) {
+                for (int kk = 0; kk < (wide ? 13 * 64 : 13) && !placed; ++kk) {
+                    const int k = wide ? kk % 13 : kk;
                     const float yaw0 = pr.yawOf(r) + (float)side + (k == 0 ? 0.0f : (float)((k + 1) / 2) * 0.48f * (k % 2 ? 1.0f : -1.0f));
-                    for (double dd = dist; dd > 0.6 && !placed; dd -= 0.25) {
+                    const double d0 = wide ? dist - 0.25 * (kk / 13) : dist;
+                    for (double dd = d0; dd > 0.6 && !placed && (!wide || dd > d0 - 0.01); dd -= 0.25) {
                         const double x = at.x + std::cos(yaw0) * dd, y = at.y + std::sin(yaw0) * dd;
                         const world::Tile* t = w.tileIfLoaded(ifloor(x), ifloor(y));
                         if (!t || !t->open() || std::fabs(t->floor - baseZ) > 0.6f) continue;
@@ -334,8 +337,8 @@ void App::scriptStep() {
                 role = n == "smiler" ? R::Smiler : n == "moth" ? R::Moth : n == "gestalt" ? R::Gestalt : n == "nest" ? R::Nest : n == "clump" ? R::Clump : n == "wretch" ? R::Wretch : R::Hound;  // V13.3: wretch (auch Red Knight)
                 lift = role == R::Smiler ? 1.7f : (role == R::Gestalt ? 1.6f : (role == R::Nest ? 1.3f : (role == R::Moth ? 0.0f : (role == R::Clump ? 1.6f : (role == R::Wretch ? 1.2f : 0.6f)))));
                 // V13.3 Abnahme Level 188 (Bilder): die Wesen der Gaenge im Lauf verfolgen
-                if (n == "faceling") role = R::Faceling, lift = 1.3f;
-                if (n == "skinstealer") role = R::SkinStealer, lift = 1.3f;
+                if (n == "faceling") role = R::Faceling, lift = 1.5f;
+                if (n == "skinstealer") role = R::SkinStealer, lift = 1.5f;
                 if (n == "listener") role = R::Listener, lift = 1.0f;
             } else {
                 off = std::atof(arg.c_str());

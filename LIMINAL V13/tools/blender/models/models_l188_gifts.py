@@ -57,7 +57,9 @@ def _mats():
         'husk_dry': mat('e39_huelsen_trocken', (0.18, 0.06, 0.04), 'paint', r=1.3),
         'moss': mat('e39_moos', (0.78, 0.84, 0.72), 'fabric', 'moss', r=1.3),  # Runde 2: wie der Boden des Hofs (Zone hof), sonst schwarz
         'moss_dry': mat('e39_moos_trocken', (0.95, 0.86, 0.62), 'fabric', 'moss', r=1.5),
-        'moss_dead': mat('e39_moos_tot', (0.98, 0.66, 0.36), 'fabric', 'moss', r=1.7),  # Abnahme 188: ausgezehrt, braun
+        # Abnahme 188 Runde 5: mit der Moostextur nur ein dunkles Oliv (die Textur ist gruen) - aus 4-7 m kaum vom Rasen zu
+        # trennen; jetzt ohne Textur ein helles, stumpfes Strohbraun (heller als der Rasen, andere Farbe)
+        'moss_dead': mat('e39_moos_tot', (0.21, 0.145, 0.06), 'concrete', r=1.8),
         'velvet': mat('e39_kasten_samt', (0.20, 0.035, 0.04), 'fabric', r=1.6),  # Abnahme 188: Mulde dunkel (Blut im Samt)
         'soil': mat('e39_erde', (0.26, 0.19, 0.12), 'concrete', r=1.8),  # Runde 1: auf dem Moos ein schwarzes Loch
         'concrete': mat('beton_weiss', (0.93, 0.93, 0.92), 'concrete', 'concrete_white', r=1.2),

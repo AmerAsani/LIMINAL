@@ -333,12 +333,12 @@ def _l188():
         'dress': ('Faceling im rosa Kleid (Entity 9)',
             G0 + 'figure faceling 3.4; figstate variant 2; wait 60; shot {out}/dress_1.png; key T; wait 90; shot {out}/dress_2.png; '
             'key T; wait 20; figcam 12 4 1.3 1.5; wait 5; shot {out}/dress_3.png; figcam -40 4 2.8 1.0; wait 5; shot {out}/dress_4.png; '
-            'figclear; cam off; wait 10; presence faceling 14; wait 120; near faceling 4.5; wait 2; shot {out}/dress_5.png; wait 50; '
+            'figclear; cam off; wait 10; presence faceling 14; wait 120; near faceling 4.5 0 1; face faceling; wait 2; shot {out}/dress_5.png; wait 50; '
             'shot {out}/dress_6.png; wait 50; shot {out}/dress_7.png; wait 40; shot {out}/dress_8.png; quit'),  # Runde 4: in ihrer Zelle
         'skinstealer': ('Skin-Stealer, wahre Gestalt (Entity 10)',
             G0 + 'figure skinstealer 3.4; wait 60; shot {out}/skinstealer_1.png; ' + _lamp('skinstealer', 2) +
             'figcam 20 6 1.6 1.45; wait 5; shot {out}/skinstealer_3.png; figclear; cam off; wait 10; presence skinstealer 10; wait 200; '
-            'near skinstealer 4.5; wait 2; shot {out}/skinstealer_4.png; key T; wait 60; shot {out}/skinstealer_5.png; wait 60; '
+            'near skinstealer 4.5 0 1; face skinstealer; wait 2; shot {out}/skinstealer_4.png; key T; wait 60; shot {out}/skinstealer_5.png; wait 60; '
             'shot {out}/skinstealer_6.png; quit'),
         'horcher': J['horcher'],
         'auftritt': J['auftritt'],
