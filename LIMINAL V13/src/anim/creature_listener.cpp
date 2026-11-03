@@ -366,9 +366,9 @@ void CreatureAnimator::updateListener(float dt, const Input& in) {
     }
 
     autoUps();
-    pose_.up[B_PELVIS] = tf.x, pose_.up[B_SPINE] = tf.x, pose_.up[B_CHEST] = tf.x;
-    pose_.up[B_NECK0] = nf.z, pose_.up[B_NECK1] = nf2.z;
-    pose_.up[B_HEAD] = hf.x, pose_.up[B_HELIX] = hf.x, pose_.up[B_LOBE] = hf.x, pose_.up[B_CANAL] = hf.z;
+    pose_.up[hr::B_PELVIS] = tf.x, pose_.up[hr::B_SPINE] = tf.x, pose_.up[hr::B_CHEST] = tf.x;  // hr:: - anim::B_* (Mensch) gleichnamig
+    pose_.up[hr::B_NECK0] = nf.z, pose_.up[hr::B_NECK1] = nf2.z;
+    pose_.up[hr::B_HEAD] = hf.x, pose_.up[hr::B_HELIX] = hf.x, pose_.up[hr::B_LOBE] = hf.x, pose_.up[hr::B_CANAL] = hf.z;
 }
 
 }  // namespace lim::anim
