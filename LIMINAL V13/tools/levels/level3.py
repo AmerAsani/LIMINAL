@@ -453,7 +453,7 @@ def safe_point(cid, r, label, at=None):
         p = wall_spot(r, 1.0)
         x, y = p[0], p[1]
     m.checkpoint(cid, x, y, 0.0, label)
-    m.obj('safety_light', x, y, R.floor + R.height, 0.0, tag='emergency')
+    m.obj('safety_light', x, y, R.floor + R.height, 0.0, variant=1, tag='emergency')  # V13.3: ohne Notausgang-Piktogramm (STRUKTURTYP, signs.py)
 
 
 safe_point('abgang', abgang, 'Abgang aus Level 2')

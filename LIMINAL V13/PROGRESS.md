@@ -207,3 +207,10 @@ Agenten: alle ausser „Props Level 1 Blender-Modelle“ (vom Nutzer gestoppt, A
 - **Tests:** gameplay 981/0, coop 209/0, audio 121/0, net 72/0, worldgen 29658/0, supply OK.
 - Der Agent für Level 188 wurde am 02.11. um 23:11 unterbrochen; sein Stand ist als WIP `1272b9f` gesichert und wird fortgesetzt.
 - **Weiter:** Abnahme Level 0, danach 5 und 5.3; parallel die Wesen von Level 188 (Fortsetzung) und die Prüfung der Wesen von 903/37/36.
+
+### V13.3 Zwischenstand 14 (03.11.2026)
+- **Abgenommen:** Level 1, 2, 3, 0, 5, 5.3 (E-046, E-048).
+- **Wesen Level 188** zusammengeführt (Horcher Rolle 21, Entity 39) – E-049; `ENTITY_ABGLEICH.md` ohne „fehlt/offen/teilweise/bewusst weggelassen“ außer Menschen und Erregern (Legende enthält die Begriffe weiter als Erklärung).
+- **E-050:** Sicherheitsleuchten ohne Piktogramm in schilderfreien Ebenen; `signs.py` mit Auffrischung und strengerer Prüfung.
+- **Tests:** gameplay 1019/0 (auch unter AddressSanitizer), coop 209/0, audio 121/0, net 72/0, worldgen 29658/0, supply OK, Schilder OK, Raummetrik OK.
+- **Weiter:** Abnahme Level 188, 903, 37, 36; dann Schluss (60-min-Koop-Langlauf, alle Tests, Einfrier-Prüfung V12/V10, README mit V13-Bildern, Upload V13, `REPORT_V13_3.md`, `SELBSTKONTROLLE.md`).

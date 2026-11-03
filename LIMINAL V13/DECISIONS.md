@@ -595,3 +595,22 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
 - **Ambassadors und Macchina in 5.3:** als Wissen der Bibliothek (Bücher, Tafeln, Notizbuch), laut Seite nicht anwesend.
 - **B-029:** feste Materialien auf 288 erhöht, Platzprüfung für Fundstücke beim Bauen.
 - **Beleg:** `KREATUR_Samantha.md`, `KREATUR_Ants.md`, `KREATUR_Woodlins.md`, `KREATUR_Watchers.md`, `KREATUR_Gentleman.md`, `ENTITY_ABGLEICH.md`.
+
+## E-048 Abnahme Level 0, 5 und 5.3 (V13.3, 03.11.2026)
+
+- **Level 0** (5 Runden): Sicherungspunkte ohne Leuchte (die grüne Leuchte trug das Notausgang-Piktogramm; LOOK_0 „keine Schilder“), Speichern und „Sicherer Ort“ bleiben; Tür-Art `style: room_a|room_b` für Bögen mit Raumboden; Darstellung auf allen Ebenen: Leuchtflächen erlöschen im Stromausfall, die Ersatzspiegelung prüft den Strahl gegen Wände (DDA), Beil liegt in der Faust.
+- **Level 5** (5 Runden, Laufweg 687 m): Büro des Gastgebers mit gedimmtem Deckenlicht (Bankerlampe führt), Gastgeber-Arm, Watcher-Pose, Samanthas Kopf beim Aufreißen; 5 Modelle mit `repair_glb.py` bereinigt.
+- **Level 5.3** (Runden mit Bildern): Nadelstreifen des Hausherrn im Mesh-Shader (`kMatPinstripe`), bemalte Wesen-Gesichter über ein Materialbit (`kMatFlagEntPaint`), ein Lesepult als begründete Ausnahme zu LOOK_5.3 (Ort des Wissens); neuer Test „Funde vom Platz des Lesers erreichbar“.
+- **Beleg:** `KRITIK_Level0.md`, `KRITIK_Level5.md`, `KRITIK_Level5_3.md`, `AUFWAND.md`.
+
+## E-049 Wesen von Level 188 (V13.3, 03.11.2026)
+
+- **Horcher** (Rolle 21) für „andere bösartige menschenähnliche Wesen“ (Seite: nur genannt) als gekennzeichnete Auslegung nach den Logs: klopft hinter verschlossenen Türen, tritt hinter dem heraus, der antwortet; Stille schützt (Isolationsprotokoll der Seite); blind, hört, 1,3 s Ankündigung, Licht aufs Ohr lässt ihn innehalten; nur in den Gängen. Das ungesehene „Es“ aus Log 6 ist darin aufgegangen.
+- **Entity 39** („Gaben“ am Moosweg): Weltobjekt ohne Rolle (pflanzlich, bewegt sich nicht). Amor Incrementum: Menschengruppe (Ausnahme), nur Spuren.
+- **Beleg:** `KREATUR_Horcher.md`, `KREATUR_Wurzelpistole.md`, `ENTITY_ABGLEICH.md`.
+
+## E-050 Sicherheitsleuchten ohne Piktogramm in schilderfreien Ebenen (V13.3, 03.11.2026)
+
+- **Befund:** Die grüne Leuchte der Sicherungspunkte trägt beidseitig das Notausgang-Piktogramm und liest sich wie ein Notausgangsschild; Level 2, 3, 188, 903 und 37 sind laut `STRUKTURTYP.md` schilderfrei (8, 5, 1, 1, 1 Leuchten). `signs.py` las dazu einen veralteten Ausstattungs-Auszug.
+- **Entscheidung:** Variante `safety_light@1` ohne Piktogramm (Blender, `models_l1_code.py`); das grüne Licht bleibt das Zeichen für den sicheren Ort (Gameplay unverändert). `signs.py` erneuert veraltete Auszüge selbst und bricht ab, wenn eine schilderfreie Ebene eine Leuchte mit Piktogramm trägt. Level 0 bleibt ohne Leuchte (E-048), Level 1 und 36 behalten das Piktogramm (Schilder dort erlaubt).
+- **Beleg:** `python tools/qa/signs.py --check` – alle schilderfreien Ebenen 0 Leuchten mit Piktogramm.

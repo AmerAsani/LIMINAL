@@ -102,7 +102,7 @@ for (x, y) in ((96.0, 4.35), (103.5, 5.65), (98.0, 5.65)):
     m.spawn('item', x, y, PLAT + 0.45, 0.0, tags=['surface', 'seat'])
 m.spawn('note', 104.5, 4.35, PLAT + 0.45, 0.0, tags=['surface', 'seat'])
 m.checkpoint('steig', CX, 11.0, 0.0, 'Mittelsteig am Wagen')
-m.obj('safety_light', CX, 11.0, HALL_H, 0.0, tag='emergency')
+m.obj('safety_light', CX, 11.0, HALL_H, 0.0, variant=1, tag='emergency')  # V13.3: ohne Notausgang-Piktogramm (STRUKTURTYP, signs.py)
 
 # V13.3: Varianten der haeufig gesetzten Klassen (PROPS_Level903.md). Eigener Zufall nach allen Platzierungen - die
 # Anordnung bleibt gleich. Bahnsteigkante: gepflegt/abgetreten/ausgebessert; Roehren: neu/gealtert/eine tot; Gleis und

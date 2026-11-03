@@ -675,8 +675,18 @@ def build_highbay():
 
 
 def build_safety_light():
+    _safety_light(True)
+
+
+def build_safety_light__v1():
+    """V13.3: dieselbe Notleuchte ohne Notausgang-Piktogramm - Sicherungspunkte in Ebenen ohne Notausgangsschilder
+    (STRUKTURTYP, signs.py); das gruene Licht bleibt das Zeichen fuer den sicheren Ort."""
+    _safety_light(False)
+
+
+def _safety_light(picto):
     """Notleuchte (Deckenaufbau, eigene Batterie): Gehaeuse, gruener Diffusor nach unten und seitlich, Endstuecke,
-    Ladeanzeige, Pruefknopf, Piktogramm, Schrauben, Typschild."""
+    Ladeanzeige, Pruefknopf, Piktogramm (nur picto), Schrauben, Typschild."""
     rng = random.Random(5)
     K = Kit()
     C = mats()
@@ -699,7 +709,7 @@ def build_safety_light():
     # Ladeanzeige und Pruefknopf an der Laengsseite (-y), Piktogramm auf beiden Laengsseiten
     K.lathe(led, [(0.0032, 0.0), (0.003, 0.002), (0.0, 0.0035)], 6, frame((0.12, -0.0752, -0.040), (0, -1, 0)), smooth=True)
     K.lathe(red, [(0.0055, 0.0), (0.005, 0.0040), (0.0, 0.0045)], 8, frame((0.145, -0.0752, -0.040), (0, -1, 0)), smooth=True)
-    for s in (-1, 1):
+    for s in ((-1, 1) if picto else ()):
         K.cell(pict, (-0.07, 0.0753 * s, -0.042), (-0.034 * s, 0, 0), (0, 0, 0.022), 38)
     K.cell(C['paper'], (0.1905, 0.0, -0.045), (0, 0.03, 0), (0, 0, 0.015), 59)
     for k in range(3):

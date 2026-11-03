@@ -68,7 +68,7 @@
 - **Fensterwesen:**
   - Kein eigenes Modell. Dargestellt durch dunkle Umrisse in erleuchteten Fenstern und durch die Gestalt aus Level 0: Sie erscheint im Hof, bleibt stehen, solange man sie ansieht, und ist fort, wenn man wegsieht.
   - Sie tötet nicht (Wiki: feindlich). Siehe `DECISIONS.md` E-008 und E-014.
-- **Facelings, Skin-Stealer:** nicht dargestellt (keine Modelle).
+- **Facelings, Skin-Stealer:** seit V13.2 dargestellt (Faceling im rosa Kleid und wahre Gestalt des Skin-Stealers, nur in den Gängen); V13.3 dazu der Horcher und Entity 39 (`ENTITY_ABGLEICH.md`).
 - **Verschwindendes Eingangsfenster:** nicht umgesetzt. Sonst gäbe es keinen Weg zurück; Level 1.5 gehört nicht zur Auswahl.
 - **Veränderung bei Wegsehen:** Der Raum verändert sich nicht (feste Karte).
 - **Gegenstände als Gift:** Sie lassen sich nicht berühren. Die Wirkung steckt im allgemeinen Verlust an Verstand.

@@ -526,7 +526,7 @@ def safe_point(cid, r, label):
         p = wall_spot(r, 0.8)
         x, y = p[0], p[1]
     m.checkpoint(cid, x, y, 0.0, label)
-    m.obj('safety_light', x, y, R.floor + R.height, 0.0, tag='emergency')
+    m.obj('safety_light', x, y, R.floor + R.height, 0.0, variant=1, tag='emergency')  # V13.3: ohne Notausgang-Piktogramm (STRUKTURTYP, signs.py)
 
 
 roam = [s_['pos'] for s_ in m.spawns if s_['kind'] == 'entity' and s_.get('role') in ('hound', 'clump')]

@@ -159,6 +159,7 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 | Schattenhafte Umrisse | Gleichen den Fensterwesen, an Ecken und am Rand des Blicks; nicht direkt ansehen. | **umgesetzt** als Gestalt |
 | Andere bösartige menschenähnliche Wesen | Nicht beschrieben (nur genannt, Abschnitt Corridors); Log 2: rhythmisches Hämmern; Log 4: ein Schatten tritt hinter einem aus einer Tür. | **umgesetzt (V13.3)** als gekennzeichnete Auslegung „Horcher“ (Rolle 21): klopft hinter verschlossenen Türen, lauscht, tritt hinter dem, der antwortet, aus einer Zellentür; blind, hört; Ankündigung vor dem Schlag; Licht auf dem Ohr – [KREATUR_Horcher.md](KREATUR_Horcher.md) |
 | Entity 39 („Gaben“) | Das Wort „gifts“ verlinkt auf Entity 39: pflanzliche Wesen in Gestalt von Schusswaffen, Wurzeln greifen Hand und Arm, trinken Blut, Schuss keimt, ohne Metall schwach. | **umgesetzt (V13.3)**: Wurzelpistole als Weltobjekt im Moos und im Riss des Gangs – wittert, greift, trinkt, entlädt sich von selbst (Lärm), keimt, welkt – [KREATUR_Wurzelpistole.md](KREATUR_Wurzelpistole.md) |
+| „Es“ (Log 6, ungesehen, unbenannt) | Ein Expeditionsmitglied flüstert über etwas Ungesehenes in den Gängen; keine Gestalt, kein Verhalten. | **umgesetzt (V13.3)** als Auslegung im Horcher: hörbar, aber ungesehen hinter verschlossenen Türen (Klopfen, Flüstern) – [KREATUR_Horcher.md](KREATUR_Horcher.md) |
 | Amor Incrementum (Kult) | Menschengruppe; erhielt die Moosproben, schickte Gaben, Priesterin; keine Mitglieder auf der Ebene, keine eigene Seite (404). | **Ausnahme (Menschen, keine Wesen)**; Spuren umgesetzt (V13.3): Probenstiche, leerer Kasten der Gabe, Probenzettel – [KREATUR_Wurzelpistole.md](KREATUR_Wurzelpistole.md) |
 
 ### Level 903 – „The Metro“
@@ -194,7 +195,7 @@ Bewertet nach Zahl der Ebenen, Dichte der Beschreibung auf den Ebenenseiten und 
 | Rang | Wesen | Ebenen im Spiel | Entscheidung |
 |---|---|---|---|
 | 1 | Faceling (Entity 9) | 2, 3, 188, 903 | **neu (V13.2)**: vier Verhaltensweisen je Ebene, fünf Varianten |
-| 2 | Fensterwesen (Entity 2) | 2, 188 | **neu (V13.2)** in Level 188; Level 2 offen |
+| 2 | Fensterwesen (Entity 2) | 2, 188 | **neu (V13.2)** in Level 188; **umgesetzt (V13.3)** in Level 2 (Fenster am Gangende, E-039) |
 | 3 | Skin-Stealer (Entity 10) | 1, 3, 5, 188 | **neu (V13.2)**: wahre Gestalt und getarnt |
 | 4 | Wretch (Entity 15) | 1, 2, 3 | **neu (V13.2)**: träge, schnell, flehend |
 | 5 | Death Rat (Entity 24) | 2, 3, 5 | **neu (V13.2)**: mit Fell, haarlos, Schrei-Ereignis |

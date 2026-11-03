@@ -101,7 +101,7 @@ for r in halls:  # Saeulenhallen: zwei weiche Lichter von unten
 # --- Notiz, Sicherungspunkte ------------------------------------------------------------------------------------------------
 m.spawn('note', 18.5, 8.5, 0.55, 0.0, tags=['surface', 'step'])
 m.checkpoint('tunnel', 14.5, 9.5, 0.0, 'Am Wagen')
-m.obj('safety_light', 14.5, 9.5, TR.floor + TR.height, 0.0, tag='emergency')
+m.obj('safety_light', 14.5, 9.5, TR.floor + TR.height, 0.0, variant=1, tag='emergency')  # V13.3: ohne Notausgang-Piktogramm (STRUKTURTYP, signs.py)
 for k, r in enumerate(sorted([h for h in halls if h in lit_rooms], key=lambda r: m.R(r).cx)[:2]):
     R = m.R(r)
     x, y = R.x0 + 0.5, R.y0 + 0.5

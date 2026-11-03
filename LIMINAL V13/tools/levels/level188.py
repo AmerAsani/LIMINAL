@@ -213,7 +213,7 @@ for (x, y, z, yaw) in sills[5:7]:
 def safe_point(cid, r, label, x, y):
     R_ = m.R(r)
     m.checkpoint(cid, x, y, 0.0, label)
-    m.obj('safety_light', x, y, R_.floor + R_.height, 0.0, tag='emergency')
+    m.obj('safety_light', x, y, R_.floor + R_.height, 0.0, variant=1, tag='emergency')  # V13.3: ohne Notausgang-Piktogramm (STRUKTURTYP, signs.py)
 
 
 m.checkpoint('fenster', 14.5, 33.5, 0.0, 'Am Eingangsfenster')

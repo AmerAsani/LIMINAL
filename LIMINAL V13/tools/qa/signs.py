@@ -11,6 +11,7 @@ Quelle: build/qa/props_<level>.json (tools/qa/propdump.py) und die Karte.
 import json
 import math
 import os
+import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -24,7 +25,11 @@ PICTO = ('safety_light',)
 
 def count(level):
     g = Grid(level)
-    with open(os.path.join(ROOT, 'build', 'qa', f'props_{level}.json'), encoding='utf-8') as fh:
+    pp = os.path.join(ROOT, 'build', 'qa', f'props_{level}.json')
+    if not os.path.exists(pp) or os.path.getmtime(pp) < os.path.getmtime(os.path.join(ROOT, 'data', 'maps', f'{level}.json')):
+        # V13.3: Abzug aelter als die Karte - neu erzeugen (wie room_metrics; sonst zaehlt die Pruefung alte Ausstattung)
+        subprocess.run([sys.executable, os.path.join(ROOT, 'tools', 'qa', 'propdump.py'), level], check=False)
+    with open(pp, encoding='utf-8') as fh:
         d = json.load(fh)
     signs = [p for p in d['props'] if p['name'] in EXIT]
     doors = [dd['rect'] for dd in g.m['doors']]
@@ -37,7 +42,7 @@ def count(level):
         high = z - p['floor'] >= 1.8 or p['back'] > 0.5
         if not (near_door or near_exit) or not high:
             bad.append({'p': [round(x, 2), round(y, 2), round(z, 2)], 'tuer': near_door, 'hoch': high})
-    picto = [p for p in d['props'] if p['name'] in PICTO]
+    picto = [p for p in d['props'] if p['name'] in PICTO and p.get('v', 0) == 0]  # Variante 1: ohne Piktogramm
     return {'level': level, 'exit_signs': len(signs), 'exit_doors': len(d['exits']), 'misplaced': bad, 'picto': len(picto)}
 
 
@@ -52,12 +57,15 @@ def main():
         cap = limits.get(lv, {}).get('signs_max', 0)
         line = f"{NAMES[lv]:10} Notausgangsschilder {c['exit_signs']:3d} (Grenze {cap}), Notausgangstueren {c['exit_doors']}, falsch platziert {len(c['misplaced'])}, Sicherheitsleuchten mit Piktogramm {c['picto']}"
         print(line)
-        if do_check and (c['exit_signs'] > cap or c['misplaced']):
+        picto_bad = cap == 0 and c['picto'] > 0  # V13.3: schilderfreie Ebene - Leuchte mit Piktogramm zaehlt als Schild
+        if do_check and (c['exit_signs'] > cap or c['misplaced'] or picto_bad):
             fails += 1
             for b in c['misplaced'][:5]:
                 print('   FEHLER: Schild ohne Tuer/Ausgang oder zu tief bei', b['p'])
             if c['exit_signs'] > cap:
                 print(f"   FEHLER: {c['exit_signs']} Schilder ueber der Grenze {cap}")
+            if picto_bad:
+                print(f"   FEHLER: {c['picto']} Sicherheitsleuchten mit Notausgang-Piktogramm in einer Ebene ohne Schilder (Variante 1 nutzen)")
     if do_check:
         print('Schilder:', 'OK' if not fails else f'{fails} Ebenen mit Fehlern')
     return 1 if fails else 0
