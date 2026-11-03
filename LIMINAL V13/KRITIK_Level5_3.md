@@ -140,3 +140,29 @@ Befunde:
   geändert). Neue Prüfung im `gameplay_test`: beide Funde vom Platz des Lesers aus erreichbar – schlug mit der alten Karte
   fehl („Folio lesen“, 1,13 m), mit der neuen grün.
 - `gm_notebook.glb`: 38 entartete Dreiecke (28,8 %) → `repair_glb.py`.
+
+## Runde 5 (Abnahme: alle Wesen `wesen_r5_1.jpg` … `_5.jpg`, 8 Läufe; Laufweg `wegbilder_r5_*`: 202 m durch 20 Räume, 51 Bilder)
+
+Alle Läufe der Tabelle (`gentleman`, `gentpose`, `gentnotice`, `gentflow`, `gentdisturb`, `lore`, `loreread`, `zones`) und
+der Laufweg neu, nach dem Neubau des Hausherrn, der neuen Karte und dem bereinigten Notizbuch.
+
+Befunde:
+1. **Laufweg** (wegbilder_r5_1/_2, `wegkarte_r5.png`): wie in Runde 2 – Eingangsgang, alte Tür im Halbdunkel, große Halle,
+   Gänge mit Kandelabern, alte Gänge dunkler; der Bücherhaufen des Library Mind in der Halle. Licht nur aus Kerzen, keine
+   Schilder, keine elektrischen Leuchten. Der geänderte Block des Pults liegt abseits des Wegs.
+2. **Hausherr** (gentleman 1–6): aus 8 m ein schmaler schwarzer Herr mit roter Weste neben dem Regal; aus 3,6 m ein
+   Nadelstreifenfrack mit Seidenbesatz an der Öffnung, Weste mit Goldknöpfen und Uhrkette, weiße Hemdbrust; nah das
+   bemalte Porzellangesicht – runde Rouge-Flecken, Schatten in den Augenhöhlen, zu dünne Brauen, rote Lippen, Risse im
+   Firnis, nasse Augen. Mit Lampe wird der Frack grau mit feinen Streifen. Von hinten (gentnotice 1/2) kein Rot mehr im
+   Rücken, der Kopf über die Schulter zeigt das Gesicht.
+3. **Griff** (gentnotice 4/5, gentdisturb 3/4): die Hand wachsbleich, die Nägel klein auf dem Fingerrücken; darüber das
+   Gesicht mit klaffendem Riss – der Schreck sitzt. Die Finger wirken aus 38 cm wulstig (Restpunkt).
+4. **Besuch und Störung** (gentflow 1–15, gentdisturb 1–9): wie in Runde 3 vollständig – Silhouette in der Tür, Szene,
+   Ansprache mit Stille, Abgang, Zorn als Kaskade, Notizbuch als Fund; Wahrnehmen, Ankündigung mit Rat, Griff, Revers.
+5. **Wissen der Bibliothek** (lore 1–5, loreread 1–3): das Folio lässt sich jetzt lesen („Folio mit roter Tafel“: die
+   übersetzten Randnotizen), die Karteikarten wie bisher. Lesepult und Katalogschrank im Licht der Ebene und mit Lampe gut.
+6. **Bereiche** (zones 1–6): wie in Runde 4.
+
+Keine weiteren Änderungen. Restpunkte (begründet): der Firnis des Gesichts ist aus 1,5 m körnig; die Seidenrevers sind nur
+unten an der Öffnung zu sehen; im Griff wirken die Finger wulstig; das eine Lesepult ist eine begründete Ausnahme zu
+LOOK_5.3 (Runde 3); die invertierte Kante aller Wesen (Runde 2) bleibt ein Vorschlag für eine eigene Abstimmung.

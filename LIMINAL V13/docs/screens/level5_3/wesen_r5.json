@@ -1,0 +1,92 @@
+{
+ "shots": [
+  "gentleman_1.png",
+  "gentleman_2.png",
+  "gentleman_3.png",
+  "gentleman_4.png",
+  "gentleman_5.png",
+  "gentleman_6.png",
+  "gentpose_1.png",
+  "gentpose_2.png",
+  "gentpose_3.png",
+  "gentpose_4.png",
+  "gentpose_5.png",
+  "gentnotice_1.png",
+  "gentnotice_2.png",
+  "gentnotice_3.png",
+  "gentnotice_4.png",
+  "gentnotice_5.png",
+  "gentflow_1.png",
+  "gentflow_2.png",
+  "gentflow_3.png",
+  "gentflow_4.png",
+  "gentflow_5.png",
+  "gentflow_6.png",
+  "gentflow_7.png",
+  "gentflow_8.png",
+  "gentflow_9.png",
+  "gentflow_10.png",
+  "gentflow_11.png",
+  "gentflow_12.png",
+  "gentflow_13.png",
+  "gentflow_14.png",
+  "gentflow_15.png",
+  "gentdisturb_1.png",
+  "gentdisturb_2.png",
+  "gentdisturb_3.png",
+  "gentdisturb_4.png",
+  "gentdisturb_5.png",
+  "gentdisturb_6.png",
+  "gentdisturb_7.png",
+  "gentdisturb_8.png",
+  "gentdisturb_9.png",
+  "lore_1.png",
+  "lore_2.png",
+  "lore_3.png",
+  "lore_4.png",
+  "lore_5.png",
+  "loreread_1.png",
+  "loreread_2.png",
+  "loreread_3.png",
+  "zones_1_lampe.png",
+  "zones_3_lampe.png",
+  "zones_1.png",
+  "zones_2.png",
+  "zones_3.png",
+  "zones_4.png",
+  "zones_5.png",
+  "zones_6.png"
+ ],
+ "gentleman": {
+  "exit": 0,
+  "warn": []
+ },
+ "gentpose": {
+  "exit": 0,
+  "warn": []
+ },
+ "gentnotice": {
+  "exit": 0,
+  "warn": []
+ },
+ "gentflow": {
+  "exit": 0,
+  "warn": []
+ },
+ "gentdisturb": {
+  "exit": 0,
+  "warn": []
+ },
+ "lore": {
+  "exit": 0,
+  "warn": []
+ },
+ "loreread": {
+  "exit": 0,
+  "warn": []
+ },
+ "zones": {
+  "exit": 0,
+  "warn": []
+ }
+}

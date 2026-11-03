@@ -325,7 +325,70 @@ Gefundene und behobene Fehler:
 - Der Watcher ist erst ab etwa 4 m als Gesicht zu lesen (aus der Ferne ein heller Fleck an der Laibung).
 - Der Wrangler zeigt in der Vorführung ohne Ausbruch nur den glatten, blassen Rücken (Ausbruch in `KREATUR_Wrangler.md`).
 
-## Level 5.3, 188, 903, 37, 36
+## Level 5.3 – abgenommen (03.11.2026)
+
+| Punkt | Stand |
+|---|---|
+| a) Strukturtyp, Raummetrik | Eintrag in `STRUKTURTYP.md` (Eigener Ort „Promethei Bibliotheca“): Eingangsgang aus Level 5, große Halle mit drei Geschossen Regalen, Gänge und alte Gänge (+6 m), Obergeschoss, Treppe, Leere hinter dem Gitter, Ausgang zurück nach Level 5. Raummetrik grün: 207 Räume, Decke min/Median 3,00/7,40 m, Gänge min/Median 3,0/3,0 m, Fläche Median 310 m², Sichtachsen Median 28,2 m, P90 63,8 m, 3 große Räume, 0 Stützen unter 1 m, 0 von 173 verstellt. Ähnlichkeit S 0,812, Ausreißer 3,4 % (59 Fenster). In der Abnahme: unsichtbarer Block des Lesepults 1,25 → 1,15 m (`level5_3.py`, am Ende; Karte neu erzeugt, Vergleich: nur diese Zahl) |
+| b) Ausstattung | `PROPS_Level5_3.md`: alle 16 Klassen neu in Blender (`models_l53.py`; Regale der Gänge 2 × 3 Varianten, Regalwand 3 Geschosse mit Galerien, Kandelaber, eiserner Kronleuchter, Tuffsäule, alte Tür, Inschrift, Renaissance-Gemälde 2 × 2, Wappen an der Decke, abgelöste Tapete, herabgefallene Bücher 3), Runden vorher, r1–r5, final (`docs/screens/props/level5_3/`, Übersichten `docs/screens/level5_3/props_uebersicht_*.jpg`). Im Laufweg geprüft (Runden 2 und 5): Damast und Täfelung im Eingangsgang, Regale in drei Geschossen, Tuffsäulen, Kandelaber, Holztreppe, Wappen, Gemälde mit Inschrift, Kandelaber alle 6 m in den Gängen, Marmor an den Kreuzungen; neu in der Abnahme die Bereiche abseits des Wegs (Leere mit Gitter, Ausgang, alte Gänge, Treppe, Obergeschoss, Kronleuchter) |
+| c) Wesen | Alle Wesen der Level-5.3-Seite im Spiel (ENTITY_ABGLEICH, Abschnitt Level 5.3): der Hausherr (Entity 18, Rolle 20: Besuch durch den alten Gang, Szene mit Notizbuch, Ansprache, Stille, Abgang; Störung mit Wahrnehmen, Ankündigung, Griff, nie tödlich), Library Mind (fallende Bücher, Bücherhaufen in der Halle, Regale knarren, Stille, Zorn nach dem Besuch), Wissen der Bibliothek über die Ambassadors (Entity 141: Folio mit roter Tafel am Lesepult, Diktiergerät) und Macchina (Entity 189: Katalogschrank mit Karteikarten) – laut Seite nicht anwesend. Je Briefing Wow-Check und Kritikrunden; in der Abnahme 4 weitere Runden für den Hausherrn (Abschnitt „Abnahme Level 5.3“ in `KREATUR_Gentleman.md`) |
+| d) Kritikrunden | 5 Ebenen-Runden (`KRITIK_Level5_3.md`): 1 Struktur (01.11.), 2–5 Abnahme mit Laufweg und den Wesen-Läufen in ihren Räumen (neu: Tabelle für Level 5.3 in `tools/qa/creatureshots.py` – Hausherr fern/mittel/nah mit Licht der Ebene und Lampe, Haltungen der Szene, Wahrnehmen von hinten, Ankündigung, Griff aus der Spielersicht, der Besuch und die Störung, wie sie im Spiel ablaufen, mit Untertiteln; Folio und Karteikarten mit und ohne Lampe, Lesen; ab Runde 4 Bereiche und Übergänge). Bögen `docs/screens/level5_3/wesen_r2_*` … `wesen_r5_*`. Dazu die Runden der Ausstattung (vorher, r1–r5, final) und des Hausherrn (Runden 0–5 im Briefing) |
+| e) Laufweg | `walkway.py level5_3 --rooms 15 --seed 3`: 202 m durch 20 Räume, 51 Bilder alle 4 m (`docs/screens/level5_3/wegbilder_r2_*`, `_r5_*`, Karten `wegkarte_r2.png`, `wegkarte_r5.png`); 15 Räume sind schon nach etwa 120 m erreicht, der Weg geht bis 200 m weiter. E-036 greift nicht (173 Räume, alle erreichbar). Runde 1: 202 m durch 20 Räume, 51 Bilder |
+| f) Prüfungen | Modellprüfung aller 42 Modelle der Ebene (28 Klassen der Karte mit Varianten, Weltobjekte Lesepult, Katalogschrank, Zettel, Karteikarten, Notizbuch, Bücherhaufen, Hausherr in allen Stufen): 0 Fehler (vorher 3: `gm_notebook` mit 28,8 % entarteten Dreiecken, `ent_gentleman_l1/l2` mit gedrehtem Umlaufsinn nach dem Vereinfachen → `repair_glb.py`). Halt der Ausstattung (`gameplay_test`): level5_3 1482 Objekte mit Halt-Regel, 0 ohne Halt. Schilder: Notausgangsschilder 0 (Grenze 0), Notausgangstüren 0, falsch platziert 0. Raummetrik und Ähnlichkeit grün. Tests grün: gameplay 983/0 (neu: Funde vom Platz des Lesers erreichbar), audio 121/0, coop --quick 209/0, net 72/0, worldgen 29658/0, supply OK. Smoke-Test 03.11. (`docs/metrics/smoke_level5_3.json`, 24 Stationen des Laufwegs): GPU 6,34 ms (max 10,73), Spiel 0,06 ms, bis 2,65 Mio. Dreiecke, VRAM 1119 MB, RAM 1207 MB (Spitze 1439 MB), 0 Fehler im Protokoll. Grafik-CPU 16,61 ms ist die Wartezeit auf den 60-Hz-Takt (wie Level 1, 2 und 5) |
+| g) Aufwand | Struktur und Kritikrunde 1: 01.11. bis 01:21 (Hauptstrang, mit 188, 903, 37, 36). Ausstattung 27.10. etwa 2 h und 01.11. etwa 10 h für 5.3 und 188 zusammen (laut `PROPS_Level5_3.md`; Commits 01.11. 19:36 und 20:45). Wesen (Agent, Commit-Zeiten): Hausherr und Wissen der Bibliothek 02.11. bis 22:45 (Grundbau 22:03, Kritikrunden 0–5, Briefings); Zusammenführen 03.11. 08:10. Abnahme (Runden 2–5) 03.11. 10:10–11:05 (Uhr des Rechners; Commits Runde 2 10:31, Runde 3 10:39, Runde 4 10:46): etwa ein Fünftel Werkzeug (Level-5.3-Tabelle in `creatureshots.py` mit Ablauf und Störung, Bereiche, Prüfliste der Modelle), gut die Hälfte Neubau und Bilder (Nadelstreifen im Shader, Bemalung des Gesichts mit neuem Kanal in `build.py`, Revers in drei Anläufen, Weste in zwei, Nägel in drei, drei Neubauten des Hausherrn in Blender), der Rest der Spielfehler am Lesepult mit Test, Prüfungen, Messungen und Dokumente |
+
+**Neu gebaute Assets (Level 5.3):**
+- **Ausstattung** (`tools/blender/models/models_l53.py`, Bögen `docs/screens/props/level5_3/`):
+  - Regale der Gänge `bookcase_aisle`, `bookcase_aisle_b` (je 3), Stirnseite `bookcase_end`;
+  - Regalwand `library_wall` (3), `library_wall_lamp`, `library_wall_upper` mit Galerien, Geländer und Handlauf;
+  - Kandelaber `candelabrum` (2), eiserner Kronleuchter `chandelier_iron`, Tuffsäule `column_tuff`;
+  - alte Tür `door_old_open`, Inschrift `inscription_bibliotheca`, Gemälde `painting_renaissance_a/b` (je 2);
+  - Wappen `ceiling_arms` (2), abgelöste Tapete `wallpaper_peel`, herabgefallene Bücher `books_fallen` (3).
+- **Wesen und Wissen** (Teil 4, `tools/blender/creatures/gentleman.py`, `models_l53_wissen.py`):
+  - der Hausherr `ent_gentleman_l0..l2` (Skelett `gm`, 35 Gelenke), Notizbuch `gm_notebook`;
+  - Lesepult `lore_lectern` mit Folio, Katalogschrank `lore_catalog`, Zettel `lore_slip`, Karteikarten `lore_cards`.
+- **In der Abnahme neu oder neu gebaut**:
+  - `ent_gentleman_l0..l2`: bemaltes Gesicht (Rouge, Umbra, Bleiweiß; flacheres Rissnetz), Seidenrevers, flachere Weste,
+    Hemdbrust, Nägel aus Elfenbein; Materialien `FM_ENT_GM_SILK` (neu), Frack mit Nadelstreifen (`kMatPinstripe`), Weste,
+    Hand; Shader `pinstripes` und Bemalung (`kMatFlagEntPaint`) in `mesh_gbuffer.hlsl`; Kanal `paint` in `build.py`;
+  - Zorn der Bibliothek als Kaskade aus vier Haufen (`session_library.cpp`);
+  - `gm_notebook` mit bereinigter Indexliste (`repair_glb.py`).
+
+**Bilder:**
+- Laufweg `docs/screens/level5_3/wegbilder_r1_*`, `_r2_*`, `_r5_*`, `wegkarte_r1.png`, `wegkarte_r2.png`, `wegkarte_r5.png`.
+- Wesen und Wissen in der Ebene `docs/screens/level5_3/wesen_r2_*` … `wesen_r5_*` (Einzelbilder `build/qa/creatures/level5_3/r2..r5/`).
+- Ausstattung `docs/screens/level5_3/props_uebersicht_*.jpg`, `docs/screens/props/level5_3/`; Zonen `docs/screens/level5_3/01_*` … `18_*`.
+- Hausherr im Detail `docs/screens/creatures/gentleman/` (Runden 0–5).
+
+Gefundene und behobene Fehler:
+- **Spielfehler Lesepult**: das Folio der roten Lichter ließ sich von keinem Platz aus lesen – der unsichtbare Block des
+  Pults (1,25 m) lag über der Sichtlinie, die `findTarget` bis 1,2 m über dem Boden prüft (→ 1,15 m; neue Prüfung im
+  `gameplay_test`, die mit der alten Karte fehlschlug).
+- **Hausherr**:
+  - Frack ohne Nadelstreifen (→ Shader, an der Haut haftend, gefiltert); dann zu hell wie ein Schlafanzug (→ feiner, dunkler).
+  - Im Lampenlicht grau wie Kunststoff (Rauheit 1,0 → 1,6, Grund 0,05 → 0,04).
+  - Gesicht ohne gemalte Schatten und Wangenrot (→ Bemalung je Punkt); grobes Rissnetz wie zerknittertes Papier (→ flacher).
+  - Revers unsichtbar, der Frack ein schwarzer Sack mit rotem Ballon (→ Seidenrevers; Spitze als Knopf → ohne Spitze; runde
+    Kuppe als Zunge → flaches Band).
+  - Weste als leuchtender Ballon (→ flacher, dunkler); als Kasten ein Ranzen, der durch den Rücken schien (→ verworfen).
+  - Hand im Griff rosig wie Knetmasse (→ wachsbleich); Nägel als weiße Kappen, schwarze Fingerhüte, Pflaster (→ klein, dünn,
+    Elfenbein).
+- **Zorn der Bibliothek**: zwei kleine Haufen lasen sich als liegengelassene Bücher (→ Kaskade aus vier Haufen).
+- **Modellprüfung**: `gm_notebook` (28,8 % entartete Dreiecke), `ent_gentleman_l1/l2` (Umlaufsinn) → `repair_glb.py`.
+- **Werkzeug**: der Spieler stand beim Erscheinen am Start im Gang und verbrauchte die Störung (→ erst fort); aus 12 m war
+  die Szene zu klein (→ 6 m, beide Plätze über 3 m von seinem Weg); das Folio aus dem falschen Winkel; Taste „Escape“
+  unbekannt.
+- **Gefunden, nicht in dieser Abnahme behoben**: der glTF-Export schreibt v als 1 − v, das Spiel liest die zweite
+  Texturkoordinate der Wesen ungespiegelt – die Kante (Wölbung) kommt bei allen Wesen invertiert an. Alle Wesen sind mit
+  diesem Stand abgestimmt; die Bemalung rechnet es ein. Vorschlag für eine eigene Entscheidung.
+
+**Restpunkte** (begründet, Einzelheiten in `KRITIK_Level5_3.md` Runde 5 und `KREATUR_Gentleman.md`):
+- Der Firnis des gemalten Gesichts ist aus 1,5 m körnig wie Pappmaché; das Bemalte trägt das Bild.
+- Die Seidenrevers sind nur unten an der Öffnung zu sehen.
+- Im Griff wirken die Finger aus 38 cm wulstig.
+- Das eine Lesepult ist eine begründete Ausnahme zu `LOOK_5.3.md` (Ort des Wissens, E-047).
+
+## Level 188, 903, 37, 36
 
 Strukturprüfungen grün (Level 5 mit begründeten Ausnahmen, Level 188 Schild entfernt, Level 36 vier Wiki-Bereiche ergänzt).
 Ausstattung: Agenten in Arbeit. Einträge folgen mit der Abnahme.
