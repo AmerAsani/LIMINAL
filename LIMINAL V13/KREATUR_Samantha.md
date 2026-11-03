@@ -140,8 +140,21 @@ Kin und Räume, Fleisch als Fund, Untertitel ohne Wiki-Namen; erscheint ungesehe
 ausführliche Lesung, kein Angriff, Fressgeräusch), Abgang; Tausch Dosenfleisch (vage Lesung); ohne Fleisch Warnung vor dem Biss
 (> 1,5 s), Schaden, nie tödlich; Zurückweichen in der Warnung rettet; Rolle 19 im Netzzustand und als Puppe beim Gast.
 
+## Abnahme Level 5 (03.11.2026, `KRITIK_Level5.md` Runden 2–5)
+
+Bilder: `docs/screens/level5/wesen_r2_*` … `wesen_r5_*` (Einzelbilder `build/qa/creatures/level5/rN/samantha_*`, `samflow_*`,
+`samtrade_*`).
+- **Runde 2**: Weiß im Kerzenlicht grau-braun wie eine Maus; offen zeigt das Maul nach unten (man sieht das Kinn). *Änderung:*
+  `FM_ENT_SM_FURW` heller und kühler, Zahnfleisch satter; der Kopf hebt sich beim Aufreißen um gut ein Drittel des
+  Kieferwinkels (`creature_samantha.cpp`) – die Öffnung zeigt nach vorn.
+- **Runde 3–4**: Rachen rot und offen, aber die Zahnreihen lesen sich als bleiche Blätter neben der Schnauze. *Änderung:*
+  dünnere, dann nach innen geneigte Zähne; Weiß 1,85.
+- **Runde 5**: Ursache gefunden – die Seitenreihen reichten 6 cm nach hinten und lagen außen an den Wangen; mit gehobenem Kopf
+  sah man sie der Länge nach. *Änderung:* Reihen in der Mundhöhle (3,6 cm, hinten kleiner, nach innen), vorn je Kiefer sieben
+  spitze Schneidezähne – von vorn ein gezackter Ring um den roten Rachen (`r5`, samantha 4–5, samflow 3). Abgenommen.
+
 ## Restmängel
 
-- Das weiße Fell liest sich im warmen Kerzenlicht grau-bräunlich; das offene Maul ist im Lampenlicht von vorn eher dunkel als rot.
+- Das Weiß ist im Kerzenlicht hellgrau, erst im Lampenlicht weiß (warmes, schwaches Licht; heller wirkte es wie Seide).
 - Die Karte zeigt den Ausgang nach der Lesung nur dem Host bzw. Einzelspieler; der Gast bekommt den Satz (die Karte ist je Rechner).
 - Aus Augenhöhe ist sie klein im Bild (wie es die Seite will); der Schrecken liegt in Stimme und Sprung, nicht in der Silhouette.

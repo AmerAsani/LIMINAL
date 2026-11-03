@@ -1,6 +1,8 @@
 # Kritikrunden Level 5 (Abnahmeschranke d)
 
-Laufweg `python tools/qa/walkway.py level5 --round rN --rooms 18 --seed 3`, Bögen `docs/screens/level5/wegbilder_rN_*.jpg`.
+Laufweg `python tools/qa/walkway.py level5 --round rN --rooms 18 --seed 3` (ab Runde 2 `--rooms 15`), Bögen
+`docs/screens/level5/wegbilder_rN_*.jpg`; Wesen ab Runde 2 `python tools/qa/creatureshots.py level5 --round rN`, Bögen
+`docs/screens/level5/wesen_rN_*.jpg`.
 Grundlage: `LEVELSPEC_5.md` (Wikidot Level 5).
 
 ## Runde 1 (Struktur, Ausstattung V13.2)
@@ -137,3 +139,32 @@ Befunde:
   Kiefer (die Augensäule bleibt frei).
 - Modellprüfung der Ebene: `ent_nest_l1/l2` (Bestand) und die neu gebauten `ent_samantha_l0..l2` mit `repair_glb.py`
   bereinigt (Umlaufsinn nach dem Vereinfachen).
+
+## Runde 5 (Abnahme: alle Wesen `wesen_r5_1.jpg` … `_5.jpg`, Laufweg `wegbilder_r5_*`: 687 m durch 15 Räume, 172 Bilder)
+
+Zwischenprobe (Samantha, Watcher nach Runde 4): die Zähne lasen sich immer noch als zwei lange Blätter. Ursache: die
+Seitenreihen reichten 6 cm nach hinten und lagen außen an den Wangen – mit gehobenem Kopf sieht man sie der Länge nach,
+gleich wie dünn die Zähne sind. *Änderung:* Reihen in die Mundhöhle (3,6 cm, nach hinten kleiner, nach innen geneigt), vorn je
+Kiefer sieben spitze Schneidezähne zwischen den Fängen. Danach die ganze Tabelle und der Laufweg.
+
+Befunde:
+1. **Samantha**: offen ein roter Rachen mit gezacktem Zahnring (samantha 4–5), beim Fauchen und Sprung im Gang
+   (samflow 3) das Sägemaul vor dem Gesicht; Weiß hellgrau im Kerzenlicht, weiß mit Lampe; Tausch und Lesung mit Untertitel
+   (samtrade 1–4). Abgenommen.
+2. **Woodlins**: der aufgeplatzte, rosa Kopf liest sich aus 3,5 und 7 m (woodlin 1, 5), nah Fleisch, Fäden, Saft (woodlin 3–4);
+   nach dem Wegsehen ist es fort (woodlin 6, ins Möbel gehuscht). Abgenommen.
+3. **Watcher**: schief um die Türkante ein langes, graues Gesicht mit nassem Haar, fünf Augen in wunden Wülsten und breitem
+   Grinsen (watcher 5–6); aus 7 m ein heller Fleck mit dunklen Punkten an der Laibung (watcher 1) – das Gefühl, beobachtet zu
+   werden, ohne dass man ihn erkennt. Hieb mit dem langen Arm (watcher 6). Abgenommen.
+4. **Gastgeber**: Bildnis-Augen aus 2,2 und 3,6 m (host 1–2, hostflow 1), das dunkle Büro mit grüner Lampe und dem Arm im
+   Zickzack über der Lehne (host 3, hostflow 2), Hand zum Handschlag (hostflow 3), Handel (hostflow 4). Nah von vorn ist der
+   Unterarm verkürzt (er kommt auf einen zu) – gewollt. Abgenommen.
+5. **Übrige Wesen**: Kolonie (schwarz im Dunkeln, mit Lampe Flaumkugeln, an den Beinen), Motten-Männchen an der Birne, Nest
+   an der Tür mit Weibchen im Stock (nest 5: Stiche), Hound im Gang, Skin-Stealer in der Tür, Death Rat im Lampenkegel,
+   Growler, Nguithr'xurh in der Aufzugskabine, Wrangler im Kesselgang – alle im Spiel und in ihrem Raum.
+6. **Laufweg** wie Runde 2 (Bilder gleich bis auf Rauschen: mittlere Abweichung 0,19 Graustufen, höchstens 0,6) – das Büro
+   liegt nicht am Weg; Raummetrik, Ähnlichkeit, Schilder grün.
+
+Restpunkte (in `AUFWAND.md`): das Weiß der Katze ist im Kerzenlicht hellgrau; die Hand des Gastgebers wirkt nah wie eine
+Gliederpuppe; der Watcher ist erst ab etwa 4 m als Gesicht zu lesen; der Wrangler zeigt in der Vorführung ohne Ausbruch nur den
+glatten, blassen Rücken (Ausbruch in `KREATUR_Wrangler.md`).

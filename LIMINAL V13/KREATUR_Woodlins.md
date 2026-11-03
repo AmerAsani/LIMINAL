@@ -93,8 +93,18 @@ erzwungene sieht den Spieler an (Bilder); im Spiel dreht es sich ungesehen zu ih
 Orte in der Karte; Gruppe in den Möbeln; im Blick und hell 4 s reglos; mit dem Rücken zu ihnen kommen sie näher, vor dem Biss knarrt
 Holz (≥ 0,6 s vorher); Biss leicht, nie tödlich; der Biss bremst.
 
+## Abnahme Level 5 (03.11.2026, `KRITIK_Level5.md` Runden 2–5)
+
+Bilder: `docs/screens/level5/wesen_r2_*` … `wesen_r5_*` (Einzelbilder `build/qa/creatures/level5/rN/woodlin_*`).
+- **Runde 2**: aus 3–7 m ein heiles, dunkles Holzpüppchen neben dem Regal (Marionette); der dünne Riss erst ab 1,5 m mit Lampe.
+  *Änderung* (`wl_body`): der Kopf ist gespalten wie ein Scheit – zwei Hälften klaffen nach oben (V), dazwischen quillt rosiges,
+  nasses Fleisch mit Adern und Saft, rohes Holz und Splitter an den Bruchkanten; der Spalt läuft über Hals und Brust in den Bauch.
+- **Runde 3**: aus 3,5 m nur ein rosa Tupfen. *Änderung:* Hälften 0,42 rad auseinander, Fleisch quillt über den Scheitel, Gewebefäden
+  quer durch den Spalt, Saft in langen Bahnen bis zur Taille.
+- **Runde 4–5**: aus 3,5 m ein dunkles Holzwesen mit aufgeplatztem, rosa Kopf; nah Fleisch, Fäden und Saft. Abgenommen.
+
 ## Restmängel
 
-- Die Gestalt liest sich aus der Ferne als Holzmarionette; ein drastischerer Kopf (Fratze mit aufgerissenem Holz bis in die Brust,
-  mehr Fleisch) wäre der nächste Schritt.
+- Die Glieder bleiben gedrechselte Stuhlbeine mit Kugelgelenken (gewollt: Wesen aus Möbelholz); aus der Ferne trägt der
+  aufgeplatzte Kopf den Schrecken, nicht die Silhouette.
 - Ohne eigene Seite ist alles Auslegung; sobald das Wiki eine Woodlins-Seite bekommt, muss das Verhalten danach geprüft werden.

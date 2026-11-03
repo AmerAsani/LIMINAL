@@ -256,7 +256,76 @@ Gefundene und behobene Fehler:
   - Der Rand der Gestalt war gesprenkelt, weil das Bild direkt nach dem Versetzen entstand (TAA, → 40 Bilder warten).
   - Die Gestalt der Halluzination steht regelgerecht hinter dem Spieler und wurde nicht aufgenommen (→ `face gestalt`).
 
-## Level 5, 5.3, 188, 903, 37, 36
+## Level 5 – abgenommen (03.11.2026)
+
+| Punkt | Stand |
+|---|---|
+| a) Strukturtyp, Raummetrik | Eintrag in `STRUKTURTYP.md` (Eigener Ort „Terror Hotel“): Main Hall mit langen Fluren und Zimmern, Beverly Room, Boiler Room (Kesselgang, Kesselräume), Aufzugshalle, Gang zu 5.3, Metro-Halt; begründete Ausnahmen für Kesselgänge (2 m, Wiki: beengt) und Aufzugskabinen (2,8 m). Raummetrik grün: 75 Räume, Decke min/Median 3,00/3,00 m, Gänge min/Median 3,0/3,5 m, Fläche Median 36 m², Sichtachsen Median 21,0 m, P90 98,0 m (die endlosen Hauptflure), 6 große Räume, 0 Stützen unter 1 m, 0 von 7 verstellt. Ähnlichkeit S 0,879, Ausreißer 13,1 % (61 Fenster). In der Abnahme: Deckenlicht des Büros auf ein Fünftel (`level5.py`, am Ende, ohne Zufall; sonst gleiche Karte, geprüft) |
+| b) Ausstattung | `PROPS_Level5.md`: 21 Klassen neu in Blender (`models_l5.py`; Türen 6 Bauarten × 4 Fassungen mit 24 Nummern ohne Muster, Leuchter 3, Bildnisse 3, Bücherregal 4, Kessel mit Manometer, Wasserstandsglas, Dampfdom), 58 Modelle; Runden vorher, r1–r5, final (`docs/screens/props/level5/`, Übersichten `docs/screens/level5/props_uebersicht_*.jpg`). Im Laufweg geprüft (Runden 2 und 5): Damast, Täfelung, Kerzenleuchter alle 4 m, Stuck, Sofas, Sessel, Regale, Bildnisse, Kronleuchter, Mahjong-Tisch, Kessel und Öfen; kein Schmutz in den Hotelbereichen (die hellen Stellen der Sessel sind abgesessener Samt, `PROPS_Level5.md`) |
+| c) Wesen | Alle Wesen der Level-5-Seite im Spiel (ENTITY_ABGLEICH, Abschnitt Level 5): Deathmoths (Weibchen im Stock, Männchen an den Birnen der Kesselgänge), Nest an Türen dunkler Zimmer, Hound, Skin-Stealer (wahre Gestalt), Death Rats, Growler (ausgewachsen), Nguithr'xurh, Wrangler (Kesselraum), Samantha (Rolle 19, Fleischhandel), Kolonien (Entity 89), Woodlins, Watchers, Gastgeber (Entity 18: Stimme, Bildnisse, Büro, Hand, Handel). Ausnahme nach Auftrag: Menschengruppen (Housekeeping, Homely Hotel, The Originals, Lost Hall Society). Je KREATUR-Datei Wow-Check und mindestens 5 Kritikrunden; in der Abnahme 4 weitere Runden für Samantha, Woodlins, Watchers und Gastgeber (Abschnitt „Abnahme Level 5“ in den Briefings) |
+| d) Kritikrunden | 5 Ebenen-Runden (`KRITIK_Level5.md`): 1 Struktur (27.10.), 2–5 Abnahme mit Laufweg und allen 16 Wesen-Läufen in ihren Räumen (neu: Tabelle für Level 5 in `tools/qa/creatureshots.py` – Samantha im Gang, ohne und mit Fleisch; Kolonie, Woodlins, Watcher, Gastgeber mit Bildnis, Büro und Ablauf; Motten-Männchen, Nest mit Weibchen, Hound, Skin-Stealer, Death Rats, Growler, Nguithr'xurh, Wrangler; Licht der Ebene und Lampe, mit Anzeige für Untertitel). Bögen `docs/screens/level5/wesen_r2_*` … `wesen_r5_*`. Dazu die Runden der Ausstattung (r1–r5, final) und der Wesen (je 5 in den Briefings) |
+| e) Laufweg | `walkway.py level5 --rooms 15 --seed 3`: 687 m durch 15 Räume, 172 Bilder alle 4 m (`docs/screens/level5/wegbilder_r2_*`, `_r5_*`, Karten `wegkarte_r2.png`, `wegkarte_r5.png`). Die Zimmer gehen einzeln von sehr langen Fluren ab – darum ist der Weg für 15 Räume dreimal so lang wie verlangt; E-036 greift nicht (80 Räume, alle erreichbar). Runde 1: 1 002 m durch 18 Räume, 251 Bilder |
+| f) Prüfungen | Modellprüfung aller 125 Modelle der Ebene (Karte mit Varianten, Weltobjekte des Hotels, Fleisch, Büro, Wesen in allen Stufen: Samantha, Motte und Männchen, Nest, Hound, Skin-Stealer, Ratte, Growler, Nguithr'xurh mit Netzen, Wrangler): 0 Fehler (vorher 5: `ent_nest_l1/l2` und die neu gebauten `ent_samantha_l0..l2` mit gedrehtem Umlaufsinn, → `repair_glb.py`). Halt der Ausstattung (`gameplay_test`): level5 2256 Objekte mit Halt-Regel, 0 ohne Halt. Schilder: Notausgangsschilder 0 (Grenze 0), Notausgangstüren 0, falsch platziert 0. Raummetrik und Ähnlichkeit grün. Tests grün: gameplay 981/0, audio 121/0, coop --quick 209/0, net 72/0, worldgen 29658/0, supply OK. Smoke-Test 03.11. (`docs/metrics/smoke_level5.json`, 24 Stationen des Laufwegs): GPU 4,44 ms (max 5,26), Spiel 0,17 ms, bis 1,46 Mio. Dreiecke, VRAM 1023 MB, RAM 1124 MB (Spitze 1466 MB), 0 Fehler im Protokoll. Grafik-CPU 16,46 ms ist die Wartezeit auf den 60-Hz-Takt (wie Level 1 und 2) |
+| g) Aufwand | Struktur 27.10. bis 17:51 (Kritikrunde 1 mit Level 0, Hauptstrang). Ausstattung 27.10. etwa 1,5 h und 01.11. etwa 8 h (laut `PROPS_Level5.md`; Commits 01.11. 19:40–20:26). Wesen (Agent, Commit-Zeiten): Samantha und die Wesen des Hotels ohne Rolle 02.11. bis 20:37, Kritikrunden 1–5, Briefings, Männchen der Deathmoths bis 20:55; Zusammenführen 03.11. 08:10. Growler, Nguithr'xurh, Wrangler, Skin-Stealer, Death Rats aus ihren eigenen Läufen (V13.2/V13.3, Briefings). Abnahme (Runden 2–5) 03.11. 09:16–10:10 (Uhr des Rechners; Runde 2 09:39, Runde 3 09:45, Runde 4 09:53): etwa ein Viertel Werkzeug (Level-5-Tabelle in `creatureshots.py`, Nest erzwingen, Prüfliste der Modelle), die Hälfte Neubau und Bilder (Ärmel, Woodlin-Kopf, Watcher-Kopf, Samanthas Maul in vier Anläufen, Bildnis und Augen), der Rest Prüfungen, Messungen, Tests und Dokumente |
+
+**Neu gebaute Assets (Level 5):**
+- **Ausstattung** (`tools/blender/models/models_l5.py`, Bögen `docs/screens/props/level5/`):
+  - Sessel, Sofa (Chesterfield), Kleiderschrank, Bücherregal (4), Teetisch, Doppelbett;
+  - Zimmertüren `hotel_door_a–f` (6 × 4 Fassungen mit Messingnummern), Silberschild „The Beverly Room“;
+  - Täfelung, Stuckgesims, Kerzenwandleuchter (3), Bildnisse (3), helles Fenster nach Level 188;
+  - Kronleuchter (2), grüne Hängelaterne (Sicherungspunkte), Aufzug mit Kupfergitter;
+  - Mahjong-Tisch, Grammophon; Flammrohrkessel, Ziegelofen, Metro-Wagen.
+- **Wesen und Erscheinungen** (Teil 4):
+  - Samantha `ent_samantha_l0..l2` (Skelett `sa`, 37 Gelenke);
+  - Kolonie `ant_ball` (4); Woodlin `wl_body`, `wl_jaw`, `wl_leg_a`, `wl_leg_b`;
+  - Watcher `wa_head`, `wa_face`, `wa_eye`, `wa_hand` (2), `wa_body`, `wa_arm_a`, `wa_arm_b`, `wa_claw`;
+  - Gastgeber `e18_arm_a/b/c`, `e18_hand`, `e18_eye`, Büro `e18_desk`, `e18_wingchair`, `e18_portrait`;
+  - Fleisch `meat_steak`, `meat_tin`.
+- **In der Abnahme neu oder neu gebaut**:
+  - `e18_arm_a/b/c` als Stoffärmel (Falten, Naht, Nadelstreifen auf der Fläche, Hornknöpfe, Manschette; 0,7 m, im Zickzack);
+  - `e18_eye` (12,5 mm, wunder Rand, nasses Weiß), `e18_portrait` (gemalter Kopf, nur das Gesicht abgekratzt, Nagelkratzer);
+  - `wl_body` (gespaltener Kopf, Fleisch, Gewebefäden, Saft bis in den Bauch);
+  - `wa_head` (Lidwülste, Unterbiss, 1,3-fach breiter, offener Mund), `wa_face` (Rachen, 18 Zähne, Haar über Scheitel, Haarvorhang);
+  - `ent_samantha_l0..l2` (Zähne in der Mundhöhle, Schneidezähne vorn, kürzere Fänge); Material `FM_ENT_SM_FURW` und `FM_ENT_SM_GUM`;
+  - `ent_nest_l1/l2` mit bereinigten Indexlisten (`repair_glb.py`).
+
+**Bilder:**
+- Laufweg `docs/screens/level5/wegbilder_r1_*`, `_r2_*`, `_r5_*`, `wegkarte_r2.png`, `wegkarte_r5.png`.
+- Wesen in der Ebene `docs/screens/level5/wesen_r2_*` … `wesen_r5_*` (Einzelbilder `build/qa/creatures/level5/r2..r5/`).
+- Ausstattung `docs/screens/level5/props_*.jpg`, `docs/screens/props/level5/`; Zonen `docs/screens/level5/01_*` … `19_*`.
+- Wesen im Detail `docs/screens/creatures/samantha/`, `kolonie/`, `woodlins/`, `watchers/`, `gastgeber/`, `moth/` (Männchen).
+
+Gefundene und behobene Fehler:
+- **Samantha**:
+  - Weiß im Kerzenlicht grau-braun wie eine Maus (die Fellebene dunkelt etwa um die Hälfte → 1,85).
+  - Offen zeigte das Maul nach unten (→ Kopf hebt sich mit dem Kiefer).
+  - Die Zahnreihen lagen 6 cm lang außen an den Wangen und lasen sich von vorn als zwei bleiche Blätter (→ in die Mundhöhle,
+    Schneidezähne vorn).
+- **Woodlins**: aus der Ferne ein heiles Holzpüppchen (→ gespaltener Kopf mit Fleisch, Spalt bis in den Bauch).
+- **Watcher**:
+  - Aus dem Gang ein schmaler Streifen an der Laibung (→ Kopf weiter vor, Gesicht dreht bis 72°).
+  - Danach zu schmal, wie eine Flöte; kahl wie eine Erdnuss (→ breiter, Mund offen, nasses Haar).
+- **Gastgeber**:
+  - Der Arm ein gerader Stab, der auf den Spieler zeigt (→ Zickzack über der Lehne, Stoffärmel).
+  - Der gefaltete Stoff glänzte grau wie ein Schlauch (Rauheit 0,45 → 1,0).
+  - Bildnis-Augen aus mehr als 3 m unsichtbar (9 → 12,5 mm, nasses Weiß, wunder Rand).
+  - Büro hell wie ein Gang (Deckenlicht → ein Fünftel).
+  - Das abgekratzte Gesicht im Büro-Bildnis las sich als Vase (→ gemalter Kopf, nur das Gesicht abgekratzt).
+- **Modellprüfung der Ebene**: `ent_nest_l1/l2` (116 und 182 Dreiecke) und `ent_samantha_l0..l2` mit gedrehtem Umlaufsinn nach
+  dem Vereinfachen (→ `repair_glb.py`).
+- **Werkzeug**:
+  - Das Nest kam mit ruhiggestellter Regie nicht (`presence nest` ist in Level 5 die Männchen-Art → `hiveat` an einer Tür).
+  - Der Hound erschien hinter dem Scherengitter der Aufzugskabine (→ Start im Hauptgang).
+  - Mit Lampe griff der Hound sofort an (→ Bild aus 6 m vor dem Angriff).
+  - Die Ratte lief vor der Nahaufnahme fort (→ Lampe zuerst).
+
+**Restpunkte** (begründet, Einzelheiten in `KRITIK_Level5.md` Runde 5 und den Briefings):
+- Samanthas Weiß ist im Kerzenlicht hellgrau, erst mit Lampe weiß.
+- Die Hand des Gastgebers wirkt nah wie eine Gliederpuppe.
+- Der Watcher ist erst ab etwa 4 m als Gesicht zu lesen (aus der Ferne ein heller Fleck an der Laibung).
+- Der Wrangler zeigt in der Vorführung ohne Ausbruch nur den glatten, blassen Rücken (Ausbruch in `KREATUR_Wrangler.md`).
+
+## Level 5.3, 188, 903, 37, 36
 
 Strukturprüfungen grün (Level 5 mit begründeten Ausnahmen, Level 188 Schild entfernt, Level 36 vier Wiki-Bereiche ergänzt).
 Ausstattung: Agenten in Arbeit. Einträge folgen mit der Abnahme.

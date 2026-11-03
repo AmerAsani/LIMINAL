@@ -98,9 +98,22 @@ eine lange, glatte Form.
 
 Orte in der Karte; Watchers gesetzt; Hieb erst nach dem Knacken der Finger, Schaden, nie tödlich.
 
+## Abnahme Level 5 (03.11.2026, `KRITIK_Level5.md` Runden 2–5)
+
+Bilder: `docs/screens/level5/wesen_r2_*` … `wesen_r5_*` (Einzelbilder `build/qa/creatures/level5/rN/watcher_*`).
+- **Runde 2**: aus dem Gang nur ein schmaler, heller Streifen mit fünf Punkten an der Laibung (Stab, Thermometer).
+  *Änderung:* Lider wulsten um jede Höhle (im Profil eine Reihe Knoten), Unterkiefer vor, Wangenknochen spitz, lange Strähnen;
+  beim Lugen kommt der Kopf bis knapp vor die Wandflucht und dreht das Gesicht bis 72° zum Spieler (`hotel_l5.cpp`).
+- **Runde 3**: schief und weiter vorn, aber zu schmal (Flöte, Fernbedienung). *Änderung:* Kopf 1,3-fach breiter (`WA_WIDE`), Mund
+  offen mit 18 längeren Zähnen, ein Vorhang aus 48 nassen Strähnen.
+- **Runde 4**: nah ein Gesicht, der kahle Schädel aber wie eine Erdnuss. *Änderung:* nasses Haar über Scheitel und Hinterkopf,
+  zehn Strähnen über den Wangen.
+- **Runde 5**: ein langes, graues Menschengesicht mit nassem Haar, fünf Augen in wunden Wülsten und einem breiten Grinsen lugt
+  schief um die Türkante. Abgenommen.
+
 ## Restmängel
 
-- Von der Seite (Schrägansicht in den Gang) liest sich der Kopf noch als lange, glatte Form; das Gesicht wirkt nur von vorn.
+- Im Schrägblick aus mehr als 6 m bleibt der Kopf ein heller Fleck an der Laibung; das Gesicht liest sich ab etwa 4 m.
 - Die Tür selbst bewegt sich nicht (die Karte hat keine Türblätter in den Öffnungen); „Türen öffnen und schließen sich“ bleibt ein
   Bild der Ebene, nicht des Watchers.
 - Ohne eigene Seite ist alles Auslegung; bei einer neuen Wiki-Seite neu prüfen.

@@ -107,7 +107,20 @@ Handel. Abgenommen mit Restmängeln.
 Büro in der Karte (Schreibtisch, Sessel, Bildnis); er wählt den mit der meisten Angst und bittet ins Büro (Untertitel); im Büro die Hand;
 Handschlag – Verstand voll, Dinge genommen; furchtlos; die Rechnung (Verstand ≤ 20).
 
+## Abnahme Level 5 (03.11.2026, `KRITIK_Level5.md` Runden 2–5)
+
+Bilder: `docs/screens/level5/wesen_r2_*` … `wesen_r5_*` (Einzelbilder `build/qa/creatures/level5/rN/host_*`, `hostflow_*`).
+- **Runde 2**: der Arm von der Tür ein gerader, schwarzer Stab, der auf den Spieler zeigt; Augen der Bildnisse aus 3,6 m
+  unsichtbar; Büro hell wie ein Gang; das abgekratzte Gesicht im Bildnis wie eine Vase. *Änderung:* Ärmel aus Stoff (`_sleeve`:
+  Querschnitt, hängender Stoff, diagonale Stauchfalten an den Gelenken, Nadelstreifen und Naht auf der Fläche, Hornknöpfe,
+  Manschette); der Arm im Zickzack über die Lehne (Glieder 0,5/0,9/0,9 m, `kE18Arm` 0,7); Augen 12,5 mm mit wundem Rand und
+  nassem Weiß; Deckenlicht des Büros auf ein Fünftel (`level5.py`, ohne Zufall); im Bildnis bleiben Haar, Ohren und Kinnlinie
+  gemalt, nur das Gesicht ist unregelmäßig abgekratzt, Nagelkratzer laufen über den Rand.
+- **Runde 3**: Zickzack und Augen lesen sich, das Büro ist dunkel; der Stoff glänzt aber grau wie ein Schlauch. *Änderung:* stumpfe
+  Wolle (Rauheit 1,0 statt 0,45).
+- **Runde 4–5**: dunkler, gefalteter Ärmel, drei Glieder über Lehne und Tisch, die grüne Lampe führt, die Augen der Bildnisse
+  leuchten nass auch aus 3,6 m. Abgenommen.
+
 ## Restmängel
 
-- Der Ärmel liest sich aus der Nähe noch wie ein Rohr; die Augen in den Bildnissen sind aus mehr als 3 m kaum zu sehen.
-- Das Büro ist durch die Deckenleuchte des leeren Zimmers (Karte, nicht verschoben) heller als gewünscht; die grüne Lampe wirkt erst nah.
+- Die Hand ist wachsbleich und glatt; nah im Lampenlicht wirkt sie eher wie eine Gliederpuppe als wie Haut.
