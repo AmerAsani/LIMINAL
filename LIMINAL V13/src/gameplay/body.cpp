@@ -457,7 +457,10 @@ void Body::update(double dt, const Player& p) {
             const vec3 y = normalize(y0 * std::cos(0.5f) + cross(x, y0) * std::sin(0.5f));
             const vec3 z = cross(x, y);
             heldRot_ = columns(x * heldScale_, y * heldScale_, z * heldScale_, vec3(0, 0, 0));
-            heldPos_ = pose_.hand[1] - z * 0.0146f * heldScale_;
+            // V13.3 (Abnahme Level 0): der Stiel liegt in den gekruemmten Fingern, 7,5 cm vom Handgelenk Richtung Knoechel
+            // (vorher am Handgelenk: im Ego-Bild stand der Stiel neben der offenen Hand)
+            const vec3 hd = normalize(pose_.hand[1] - pose_.elbow[1]);
+            heldPos_ = pose_.hand[1] + hd * 0.075f - z * 0.0146f * heldScale_;
         } else if (showHeld_) {
             vec3 x = R, z = normalize(hu * 0.85f + hf * 0.15f), y = cross(z, x);
             if (gesture_ == Gesture::Use && t > 0.25f) {  // zum Mund kippen

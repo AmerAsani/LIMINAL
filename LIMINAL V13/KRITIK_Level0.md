@@ -117,3 +117,30 @@ Neue Befunde:
     beim Hieb die graue Wange des Kopfs vor dem Teppich.
 - **Beilkopf:** Metallanteil 0,6 statt 1,0 (`world_renderer.cpp`). Damit streut der geschmiedete Kopf etwas Licht. Vorher
   und nachher in der Lampenzeile: `docs/screens/props/items/l0_r2/hatchet.jpg` → `l0_r3/hatchet.jpg`.
+
+## Runde 4 (`wesen_r4_1.jpg` … `_3.jpg`, Laufweg `wegbilder_r4_*`: 205 m, 24 Räume, 52 Bilder)
+
+- **Laufweg:** Gegenüber Runde 3 höchstens 0,48 von 255 mittlere Abweichung je Bild (Median 0,05). Nur das Rauschen von
+  TAA und Leuchtenflackern ändert sich.
+- **Erscheinungen und Zonen:** Alle Bilder außer `hand_5`/`_6` gleichen denen aus Runde 3 (mittlere Abweichung unter 1).
+  Der Stand aus Runde 3 hält.
+- **Klang der Ebene** (Prüfstand: 450 s Spielzeit stillstehend bei Verstand 30, `audiolog 60`): 17 Einzelklänge
+  (Kratzen, Flüstern, Stimmen, Tropfen, ferne Geräusche, Brummen) neben den 10 Schleifen. Keine Meldung
+  „Klang fehlt“, also lösen alle Namen aus `level0.json` auf (`hal_scratch_0..2`, `hal_whisper_0..5`, `hal_voices`). Die
+  Regie stellte nach gut einer Minute selbst eine Gestalt in 17 m Abstand an ein Gangende (Protokoll). Die
+  Phantomschritte und der Ausfall sind in `gameplay_test` geprüft („Stromausfall: Licht geht aus / kommt zurück“, „bei
+  klarem Verstand keine Halluzinationen“).
+
+Befunde:
+1. **Beil in der Hand** (`hand_5`, `_6`): Die Riesenhand ist weg. Die Hand ist aber offen, und der Stiel steht etwa
+   10 cm neben ihr. Ursache: Der Griffpunkt lag am Handgelenk, nicht in den gekrümmten Fingern.
+2. **Sicherungspunkt „Der lange Flur“:** Beim Vorbeigehen erscheint „Sicherer Ort · Der lange Flur“.
+   `STRUKTURTYP.md` verlangt, diese Benennung als hervorgehobenen Ort zu entfernen. Der Raum hat seit der Strukturrunde
+   keinen Namen mehr, der Sicherungspunkt trug ihn noch.
+
+Änderungen:
+- **Griff:** Der Stiel liegt 7,5 cm vom Handgelenk in Richtung Knöchel (`body.cpp`), also in der Faust
+  (`docs/screens/props/items/l0_beil/swing_griff.jpg`). Er kommt beim Ausholen unten aus der Faust, und beim Hieb
+  hält die Hand das Stielende.
+- **Sicherungspunkt** heißt „Flur“ (`level0.py`; die Kennung `flur` bleibt, damit Spielstände gültig bleiben).
+- **Tests nach Runde 3:** gameplay 981/0, audio 121/0, coop --quick 209/0, net 72/0, worldgen 29658/0, supply OK.

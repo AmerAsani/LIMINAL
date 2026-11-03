@@ -278,7 +278,7 @@ def safe_point(cid, ri, yaw, label, styled=True, at=None):
 
 
 safe_point('start', start, 0.0, 'Erster Raum')
-safe_point('flur', flur, math.pi / 2, 'Der lange Flur', at=(m.R(flur).cx, m.R(flur).cy))
+safe_point('flur', flur, math.pi / 2, 'Flur', at=(m.R(flur).cx, m.R(flur).cy))  # V13.3: ohne "Der lange" (STRUKTURTYP: kein Wahrzeichen)
 safe_point('loch', min(nord, key=lambda r: math.hypot(m.R(r).cx - 63, m.R(r).cy - 21)), 0.0, 'Vor dem Lochfeld')
 safe_point('saeulen', sf, 0.0, 'Säulenfeld')
 safe_point('boegen', boegen[len(boegen) // 2], 0.0, 'Bögen')
