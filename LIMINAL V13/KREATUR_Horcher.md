@@ -62,6 +62,10 @@ klopfen – 3 bis 5 schwere Schläge in einem von drei Takten (gleichmäßig, zw
   ertastet die dünne Hand auch, wer still steht.
 - **Licht:** das Ohr ist dünne Haut über Knorpel – 0,35 s Lampe darauf (bis 9 m): es kreischt, der Rand knittert, die Hand deckt den
   Gehörgang, 1,6 s hält es inne (auch in der Ankündigung: kein Schlag). Dreimal in einer Minute – dann gewöhnt es sich (60 s).
+- **Halbdunkel** (Abnahme Level 188, **Interpretation**): beim ersten Heraustreten eines Besuchs, danach in 2 von 5 Fällen, stottern
+  die Röhren aller Gänge und fallen 7 s aus (ganzer Stromkreis auf einmal, ohne Welle) – erst geht hinter dir die Tür auf, dann wird
+  es dunkel, und das Ohr erscheint im Lampenkegel. Es ist blind; das Dunkel hilft ihm nicht, es nimmt nur dem Spieler die Sicherheit
+  des grellen Lichts. Die Seite nennt grelle Gänge – sie bleiben es bis auf diesen Augenblick.
 - **Grenzen:** in den Hof folgt es nicht (es bleibt an der Tür und lauscht). Nach 25 s Stille oder wenn das Ziel 5 s im Hof ist, zieht es
   sich durch die nächste Zellentür zurück und ist fort, sobald ungesehen; hört es auf dem Rückweg etwas in 9 m, kehrt es um.
 - **Takt:** Facelings und Skin-Stealer in 18 m haben Vorrang (es klopft nicht, während sie nahe sind); es gibt immer nur einen.
@@ -144,12 +148,24 @@ Orte in der Karte (5 Klopftüren, 3 Zellentüren), Kin-Eintrag, Modelle, kein Wi
 Klänge mit Untertitel und Rat; **Stille**: eine Runde, 3–5 Schläge, es lässt ab, niemand kommt; **Antwort** (gehen): Saugen, Heraustreten
 aus einer Zelle, Tür vor Sicht, mindestens 4 m; **Knall der Wurzelpistole** lockt es dorthin; **Jagd**: Ankündigung, 1,3 s später Treffer,
 nicht sofort tödlich; Netzzustand Rolle 21, Puppe beim Gast mit Zustand; **Ausweichen** in der Ankündigung (leise weg) → verfehlt;
-**Licht** auf dem Ohr → Kreischen, Innehalten; **Hof**: dort klopft es nicht.
+**Licht** auf dem Ohr → Kreischen, Innehalten; **Hof**: dort klopft es nicht; **Halbdunkel** (Abnahme): beim ersten Heraustreten
+fallen die Röhren der Gänge aus.
+
+## Abnahme Level 188 (03.11.2026, `KRITIK_Level188.md` Runden 3–7)
+
+Bilder: `docs/screens/level188/wesen_r3_*` … `wesen_r7_*` (Läufe `horcher`, `auftritt` aus `tools/qa/creatureshots.py level188`).
+- **Runde 3**: die Haut war cremegelb mit Wolken und Sprenkeln, nah mit Lampe wie Marmor (Zahnschmelz-Ebene); der Auftritt im
+  grellen Licht ohne Halbdunkel. *Änderung:* eigene Texturebene „kreide“ (`EL_CHALK`, `texture_entity.cpp`): kalkweiße Haut in
+  Schollen gesprungen, in den Rissen rohes Fleisch; Auftritt im Halbdunkel (Röhren fallen aus, `presence_listener.cpp`, Test).
+- **Runde 4**: rissig, aber 4-cm-Schollen mit überall rotem Rand – nah ein Netz wie Krakelee-Porzellan; das Dunkel kam als Welle
+  (der 24 m lange Gang galt als Halle), dauerte fast 15 s, Zellen und Treppenhaus blieben dabei hell und leuchteten als Sägezahn
+  durch die Oberkante der Wand. *Änderung:* Schollen 2,6 cm, Risse meist eng und dunkel, rot nur, wo die Haut aufklafft; Dunkel
+  ohne Welle (`Haunt::powerCut(…, wave)`, negative Dauer, im Koop durchgereicht).
+- **Runde 5–7**: Tür, dann Dunkel in allen Gängen, im Dunkel schiebt sich der Leib aus der Zelle, mit Lampe Ohr und Faust, nach 7 s
+  stottert das Licht zurück (`wesen_r5_*` auftritt 2–5); die Haut liest sich nah als gesprungene, trockene Kreide (horcher 10).
+  Stufen l1/l2 mit `repair_glb.py` bereinigt (Umlaufsinn). Abgenommen.
 
 ## Restmängel
 
-- Ganz nah (unter 1,3 m, mit Lampe) wirkt das Rissnetz der Kreidehaut eher marmoriert als rissig (Mikroebene `ML_CRAZE` ist für Lack
-  gemacht).
-- Die Gänge sind grell beleuchtet (Seite) – ein Halbdunkel für den ersten Auftritt gibt es nur in der Zelle; der Schreck kommt hier aus
-  dem Klang (Klopfen, Saugen, Tür hinter dir), nicht aus dem Licht.
+- Außerhalb des Auftritts sind die Gänge grell (Seite); das Halbdunkel gibt es nur beim Heraustreten.
 - Etagen: die Karte hat nur Erdgeschoss und Treppenabsatz; auf dem Absatz klopft es (verschlossene Tür), heraustreten kann es nur unten.

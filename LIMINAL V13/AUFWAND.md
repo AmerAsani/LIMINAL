@@ -388,7 +388,71 @@ Gefundene und behobene Fehler:
 - Im Griff wirken die Finger aus 38 cm wulstig.
 - Das eine Lesepult ist eine begründete Ausnahme zu `LOOK_5.3.md` (Ort des Wissens, E-047).
 
-## Level 188, 903, 37, 36
+## Level 188 – abgenommen (03.11.2026)
+
+| Punkt | Stand |
+|---|---|
+| a) Strukturtyp, Raummetrik | Eintrag in `STRUKTURTYP.md` (Eigener Ort „The Courtyard of Windows“): Hof 46 × 46 m, 30 m hoch, weißer Gang, drei Zellen, Treppenhaus, Treppenabsatz; Schild über dem Eingangsfenster entfernt (Wiki nennt keine Schilder). Raummetrik grün: 7 Räume, Decke min/Median 2,80/2,80 m, Gänge min/Median 3,0/3,0 m, Fläche Median 20 m², Sichtachsen Median 42,8 m, P90 50,0 m, 1 großer Raum, 0 Stützen unter 1 m, 0 von 1 verstellt. Ähnlichkeit S 0,990, Ausreißer 0,0 % (15 Fenster). In der Abnahme: Leuchte und Sicherungspunkt „Weißer Gang“ 1,5 m nach Norden zwischen zwei Röhren (`level188.py`, am Ende, ohne Zufall; Karte neu erzeugt, Vergleich: nur diese beiden Zahlen) |
+| b) Ausstattung | `PROPS_Level188.md`: alle 14 Klassen neu in Blender (`models_l188.py`; Fenster a/b/c je 2 Varianten, Fenster mit Umriss, erleuchtet, Eingangsfenster, Mahagonitür zu und offen, Pflaster 3, Birkenkreis mit Deckel, Stütze mit Brettschalung, Oberlicht mit 64 Feldern, Tisch mit Fotos, Büchern, Vase und Wecker, Glasgalerie), Runden vorher, r1–r5, final (`docs/screens/props/level188/`, Übersichten `docs/screens/level188/props_uebersicht_*.jpg`). Im Laufweg und in den Bereichen geprüft (Runden 3 und 5, `zones 1–12`): Fensterreihen, Moos (von weitem Rasen – so will es die Seite, nah Polster), Plattenweg, Birkenkreis mit Fuge, Tisch und Grammophon, Glasgalerie, Oberlicht, Mahagonitüren, Zellen, Treppenhaus, Absatz mit verschlossener Tür |
+| c) Wesen | Alle Wesen der Level-188-Seite im Spiel (ENTITY_ABGLEICH, Abschnitt Level 188): Fensterwesen (drei dunkle Fenster im Erdgeschoss: flüstern, winken, greifen unter 1,9 m), Faceling im rosa Kleid (nur in den Gängen, tödlich), Skin-Stealer (wahre Gestalt, nur in den Gängen), schattenhafte Umrisse (Gestalt im Hof, Umrisse in erleuchteten Fenstern), „andere bösartige Menschenähnliche“ als Horcher (Rolle 21, gekennzeichnete Auslegung; darin das ungesehene „Es“ aus Log 6), Entity 39 als Wurzelpistole (Weltobjekt im Moos und im Riss des Gangs). Ausnahme nach Auftrag: Amor Incrementum (Menschengruppe) – nur Spuren (Probenstiche, leerer Kasten, Probenzettel). Je KREATUR-Datei Wow-Check und mindestens 5 Kritikrunden; in der Abnahme 5 weitere Runden für Horcher und Wurzelpistole (Abschnitt „Abnahme Level 188“ in den Briefings) |
+| d) Kritikrunden | 7 Ebenen-Runden (`KRITIK_Level188.md`): 1 Struktur (01.11.), 2 gleicher Weg (Treppenhaus), 3–7 Abnahme mit Laufweg und allen 10 Wesen-Läufen in ihren Räumen (neu: Tabelle für Level 188 in `tools/qa/creatureshots.py` – Fensterwesen fern/Lampe/nah/Arm, Gestalt im Hof, Faceling im rosa Kleid als Vorführung und echt in ihrer Zelle bis zum Zugriff, Skin-Stealer ebenso, Horcher mit Posen und Auftritt aus der Zelle, Wurzelpistole mit Griff, Schuss, Keimlingen, Spuren und aus 4/7 m, Stromausfall, Beil, Bereiche; Licht der Ebene und Lampe). Bögen `docs/screens/level188/wesen_r3_*` … `wesen_r7_*`. Dazu die Runden der Ausstattung (vorher, r1–r5, final) und der Wesen (Briefings) |
+| e) Laufweg | `walkway.py level188 --rooms 15 --seed 3`: 207 m durch alle 7 erreichbaren Räume (Hof, Gang, drei Zellen, Treppenhaus, Absatz – mehrfach und aus anderen Richtungen), 52 Bilder alle 4 m (`docs/screens/level188/wegbilder_r3_*`, `_r5_*`, Karten `wegkarte_r3.png`, `wegkarte_r5.png`). **E-036 greift:** die Karte hat nach Wiki-Strukturtyp (ein Atrium mit Gängen am Rand) nur 7 Räume; die 200 m bleiben Pflicht, mehr Räume nur für die Zahl widersprächen Teil 2 (Beleg: `room_metrics.py`, Spalte „Raeume“: 7). Runde 1: 214 m durch 6 Räume, 54 Bilder; Runde 2: 207 m durch 7 Räume, 43 Bilder |
+| f) Prüfungen | Modellprüfung aller 50 Modelle der Ebene (Karte mit Varianten, Gaben `e39_*`, Wesen in allen Stufen: Horcher, Faceling im Kleid, Skin-Stealer, Fensterwesen, Gestalt; Funde): 0 Fehler (vorher 3: `ent_listener_l1/l2` und `ent_window_l2` mit gedrehtem Umlaufsinn nach dem Vereinfachen → `repair_glb.py`; der neue Kasten hatte zwischendurch 5,7 % entartete Dreiecke im Samt → Quelle korrigiert). Halt der Ausstattung (`gameplay_test`): level188 320 Objekte mit Halt-Regel, 0 ohne Halt. Schilder (`signs.py --check`): Notausgangsschilder 0 (Grenze 0), Notausgangstüren 0, falsch platziert 0, Sicherheitsleuchten mit Piktogramm 0. Raummetrik und Ähnlichkeit grün. Tests grün: gameplay 1020/0 (neu: Halbdunkel beim ersten Heraustreten), audio 121/0, coop --quick 209/0, net 72/0, worldgen 29658/0, supply OK. Smoke-Test 03.11. (`docs/metrics/smoke_level188.json`, 24 Stationen des Laufwegs): GPU 5,82 ms (max 8,22), Spiel 0,10 ms, bis 0,18 Mio. Dreiecke, VRAM 992 MB, RAM 1118 MB (Spitze 1421 MB), 0 Fehler im Protokoll. Grafik-CPU 16,53 ms ist die Wartezeit auf den 60-Hz-Takt (wie die anderen Ebenen) |
+| g) Aufwand | Struktur und Kritikrunde 1: 01.11. bis 01:21 (Hauptstrang, mit 5.3, 903, 37, 36). Ausstattung 01.11. 19:36–20:45 gemeinsam mit 5.3 (laut `PROPS_Level5_3.md` etwa 10 h für beide). Wesen: Fensterwesen, Faceling im Kleid, Skin-Stealer in V13.2; Horcher und Wurzelpistole (Teil 4) 02.11. abends bis 03.11. 09:22 (WIP 07:59, Grundbau 08:54, Kritikrunden 1–6 bis 09:22), Zusammenführen 11:08. Abnahme (Runden 3–7) 03.11. 11:16–12:15 (Uhr des Rechners; Commits Runde 3 11:44, Runde 4 11:51, Runde 5 11:59, Runden 6–7 12:08): etwa ein Fünftel Werkzeug (Level-188-Tabelle in `creatureshots.py`, `near … weit`, `face` für die Wesen der Gänge, Bilder der Pistole aus 4/7 m), gut die Hälfte Neubau und Bilder (Kreidehaut als eigene Texturebene in zwei Anläufen, Halbdunkel mit Welle und ohne, Moosfleck in drei Anläufen, Kasten neu), der Rest Prüfungen, Messungen, Tests und Dokumente |
+
+**Neu gebaute Assets (Level 188):**
+- **Ausstattung** (`tools/blender/models/models_l188.py`, Bögen `docs/screens/props/level188/`):
+  - Fenster `window_188_a/b/c` (je 2), `window_188_fig`, `window_188_lit`, Eingangsfenster `window_entry_188`;
+  - Mahagonitür `door_mahogany`, offen `door_mahogany_open`; Pflaster `paving_strip` (3), Birkenkreis `birch_circle`;
+  - Stütze `pillar_188`, Oberlicht `skylight_188`, Tisch `table_188` mit Gegenständen, Glasgalerie `walkway_glass`;
+  - Sicherheitsleuchte ohne Piktogramm `safety_light@1` (E-050).
+- **Wesen und Gaben** (Teil 4, `tools/blender/creatures/listener.py`, `models_l188_gifts.py`):
+  - Horcher `ent_listener_l0..l2` (Skelett `hr`); Wurzelpistole `e39_gun`, `e39_root`, `e39_husk`, `e39_bed_moss`,
+    `e39_bed_crack`, `e39_sprout`; Spuren `e39_samples`, `e39_case`, `e39_note`.
+- **In der Abnahme neu oder neu gebaut**:
+  - Texturebene „kreide“ (`EL_CHALK`, `texture_entity.cpp`): Kreidehaut des Horchers (Schollen 2,6 cm, enge dunkle Risse,
+    rote Spalten nur wo die Haut aufklafft, abgeplatzte Schollen); Mikroebenen ab Platz 110;
+  - `e39_case` (tiefer Kasten, stehender Deckel mit Strebe und Abdruck, Samtmulde, Messing), `e39_bed_moss` (ausgezehrter,
+    rostbrauner Moosfleck 0,8 m aus 330 Polstern, Wurzelgeflecht);
+  - `ent_listener_l1/l2`, `ent_window_l2` mit bereinigten Indexlisten (`repair_glb.py`).
+
+**Bilder:**
+- Laufweg `docs/screens/level188/wegbilder_r1_*` … `_r3_*`, `_r5_*`, Karten `wegkarte_r1.png` … `_r5.png`.
+- Wesen in der Ebene `docs/screens/level188/wesen_r3_*` … `wesen_r7_*` (Einzelbilder `build/qa/creatures/level188/r3..r7/`);
+  beste Ansichten: `wesen_r5_*` auftritt 3–4 (Horcher im Halbdunkel), `wesen_r6_*` horcher 10 (Kreidehaut), dress 3 und
+  window 3, `wesen_r7_*` pistole 1–4 und 11 (Fleck), pistole 10 (Kasten).
+- Ausstattung `docs/screens/level188/props_uebersicht_*.jpg`, `docs/screens/props/level188/`; Zonen `docs/screens/level188/01_*` … `13_*`.
+- Wesen im Detail `docs/screens/creatures/horcher/`, `wurzelpistole/`, Fensterwesen und Faceling in ihren Briefings.
+
+Gefundene und behobene Fehler:
+- **Grünes Kreuz im Gang**: die Leuchte des Sicherungspunkts hing genau unter einer Röhre (Geometrie in Geometrie, von weitem
+  ein Apothekenkreuz in einer schilderfreien Ebene) → zwischen zwei Röhren.
+- **Horcher**:
+  - Haut cremegelb und marmoriert (Zahnschmelz-Ebene) → eigene Kreidehaut; danach Netz wie Krakelee-Porzellan → kleinere
+    Schollen, Risse meist eng und dunkel.
+  - Erste Begegnung im grellen Licht ohne Halbdunkel → Röhren fallen beim ersten Heraustreten 7 s aus (Auslegung, Test).
+  - Das Dunkel kam als Welle (der 24 m lange Gang galt als Halle), dauerte fast 15 s, Zellen und Treppenhaus blieben hell →
+    `Haunt::powerCut` mit `wave = false` (negative Dauer, im Koop über das Vorzeichen; alle anderen Aufrufer unverändert).
+- **Wurzelpistole**: aus 1,2 m ein Seestern, aus mehr als 3 m unsichtbar → ausgezehrter Moosfleck mit Wurzelgeflecht (als
+  Ringfläche zuerst wie Papier → Polster; zuerst dunkel wie Laub → rostbraun, 0,8 m).
+- **Kasten der Gabe**: von oben ein Bilderrahmen; der Deckel lag durch den Drehsinn im Boden → neu, Deckel steht.
+- **Modellprüfung**: `ent_listener_l1/l2`, `ent_window_l2` (Umlaufsinn) → `repair_glb.py`; `e39_case` Samt mit entarteten
+  Dreiecken → Quelle.
+- **Werkzeug**: `near` stellte die Kamera im 3 m breiten Gang an die Wand (→ `near … weit`); `face` kannte die Wesen der
+  Gänge nicht; Bild 8 der Pistole stand in der Wand; `zones_11` sah auf die Wand des Absatzes.
+- **Gefunden, nicht in dieser Abnahme behoben**: während eines Stromausfalls, der nur einen Teil eines Stromkreises
+  verdunkelt (Welle in großen Räumen), leuchten hell gebliebene Nachbarräume als Sägezahn aus Dreiecken durch die Oberkante
+  der Wand (Schatten an der Wand-Decken-Kante). In Level 188 tritt es nicht mehr auf (ganzer Stromkreis); Vorschlag für die
+  Buglist.
+
+**Restpunkte** (begründet, Einzelheiten in `KRITIK_Level188.md` Runden 6–7 und den Briefings):
+- Außerhalb des Auftritts sind die Gänge grell (Seite).
+- Der Arm des Fensterwesens wirkt nah (unter 2 m, nur im Augenblick des Zugriffs) steif wie eine Gliederpuppe.
+- Die Pistole bleibt aus mehr als 3 m ein dunkler Punkt; der Fleck verrät die Stelle. Nah wirken die toten Polster als
+  gleichförmige Tupfen.
+- Laufweg und Raumzahl nach E-036 (7 Räume).
+
+## Level 903, 37, 36
 
 Strukturprüfungen grün (Level 5 mit begründeten Ausnahmen, Level 188 Schild entfernt, Level 36 vier Wiki-Bereiche ergänzt).
 Ausstattung: Agenten in Arbeit. Einträge folgen mit der Abnahme.

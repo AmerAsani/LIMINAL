@@ -14,11 +14,13 @@ Gebaut (eigene Gestaltung, keine Waffe aus einem Spiel):
                  ein Dorn; zwei Blaettchen aus einer Naht; am Griffende der Wurzelkragen.
   e39_root       ein Glied einer Wurzel (entlang +x, 0,075 m), blassbraun mit rotem Stich (Blut), Wurzelhaare
   e39_husk       ein Tropfen leerer Huelsen aus dem Lauf (rotbraun, nass)
-  e39_bed_moss   aufgeworfenes Moos um den Griff, dunkle Erde, Oberflaechenwurzeln, eingetrocknete Tropfen
+  e39_bed_moss   aufgeworfenes Moos um den Griff, dunkle Erde, Oberflaechenwurzeln, eingetrocknete Tropfen; Abnahme 188:
+                 ausgezehrter, rostbrauner Moosfleck (0,8 m) aus Polstern mit verzweigtem Wurzelgeflecht
   e39_bed_crack  gesprungener Betonboden des Gangs, Wurzeln in den Rissen, gehobene Splitter, etwas Moos im Riss
   e39_sprout     ein Keimling aus einem Schuss: Stiel, zwei Keimblaetter, oben die winzige Knospe einer Schale
   e39_samples    drei ausgestochene Moosproben mit Staeben und Faehnchen (die Proben, die weggegeben wurden)
-  e39_case       der leere Kasten der Gabe: Holz, innen mit Moos ausgeschlagen, die Mulde in Form der Pistole ist leer
+  e39_case       der leere Kasten der Gabe: tiefer Holzkasten, innen mit Moos ausgeschlagen, die Samtmulde in Form der Pistole
+                 ist leer; Deckel steht offen (Strebe), innen der Abdruck
   e39_note       der Probenzettel (Fund): Karteikarte mit Bleistiftzeilen, ein Moosfleck, Schnur
 Konventionen: Meter, z oben, Blick entlang +x; Bodenmodelle Ursprung am Boden.
 """

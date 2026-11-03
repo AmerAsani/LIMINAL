@@ -124,10 +124,26 @@ Wittern; Anfassen → Griff, eigene Hand gehalten; drei Züge; Knall, ein Keimli
 Losreißen (Schaden, Reißen, kein Schuss); nie tödlich; Knall im Gang lockt den Horcher; Koop: Host meldet Griff, Züge, Schuss als
 Weltereignis `l188`, beim Gast Schuss, Klang und Keimling.
 
+## Abnahme Level 188 (03.11.2026, `KRITIK_Level188.md` Runden 3–7)
+
+Bilder: `docs/screens/level188/wesen_r3_*` … `wesen_r7_*` (Lauf `pistole` aus `tools/qa/creatureshots.py level188`; neu Bild 8
+aus dem Gang statt aus der Wand, Bilder 11–13: Pistole aus 4 und 7 m, Kasten aus 2 m).
+- **Runde 3**: aus 1,2 m von oben noch ein Seestern, aus mehr als 3 m ein dunkler Punkt im Rasen; der Kasten von oben ein
+  Bilderrahmen – der Deckel war um 109° nach hinten gekippt und lag dabei im Boden (Drehsinn), Wände 12 mm um helles Moos.
+  *Änderung:* **ausgezehrter Moosfleck** (**Interpretation**: sie zieht Eisen und Blut aus dem Boden – die Seite nennt Schale aus
+  Mineralien und Metall des Bodens) mit verzweigtem Wurzelgeflecht in `e39_bed_moss`; **Kasten neu** (`e39_case`): 11 cm tief,
+  dunkle Innenwand, Moosbett 4 cm unter dem Rand, Mulde aus blutfleckigem Samt in Pistolenform, Deckel 98° offen mit Messingstrebe
+  und Abdruck der Pistole, Riegel.
+- **Runde 4**: das Geflecht schluckt die sechs Wurzeln (kein Seestern mehr); der Fleck als Fläche aus Ringen las sich wie
+  ausgeschnittenes Papier. *Änderung:* Fleck aus flachen Moospolstern, Rand läuft in den Rasen aus. Kasten: offener Kasten.
+- **Runde 5–7**: totes Moos zuerst dunkles Oliv, dann dunkelbraun wie Laub – aus 4–7 m kaum zu sehen; zuletzt 0,8 m Radius,
+  rostbraun: aus 4 m ein brauner Fleck mit hellen Adern, aus 7 m noch ein Fleck, nah ein ausgezehrter Boden um die schwarze
+  Pistole. Abgenommen.
+
 ## Restmängel
 
-- Die Pistole ist klein (Pistolengröße, wie die Seite) und liest sich aus mehr als 3 m nur als dunkler Gegenstand im Moos; erst das
-  Wittern (Knarren) und die Aufforderung „Herausziehen“ verraten sie.
-- Der Kasten liest sich von oben eher als Rahmen (der offene Deckel liegt flach dahinter).
+- Die Pistole ist klein (Pistolengröße, wie die Seite) und bleibt aus mehr als 3 m ein dunkler Punkt; seit der Abnahme verrät der
+  rostbraune, ausgezehrte Fleck die Stelle aus 4–7 m, nah das Wittern (Knarren) und die Aufforderung „Herausziehen“.
+- Nah wirken die toten Moospolster als gleichförmige Tupfen.
 - Andere Formen der Seite (Sturmgewehre, seltenere Modelle) sind nicht gebaut – im mageren Moos des Hofs wächst nur die kleine Form
   (Auslegung).

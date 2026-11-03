@@ -62,6 +62,10 @@
   hinter dem, der antwortet, aus einer Zellentür. Die „Gaben“ des Kults (Entity 39, `KREATUR_Wurzelpistole.md`): je eine verkümmerte
   Wurzelpistole im Moos des Hofs und im Riss des Gangbodens, dazu drei Probenstiche, der leere Kasten der Gabe und ein Probenzettel
   (Fund). Alles am Ende von `tools/levels/level188.py` ergänzt; die Anordnung davor ist unverändert.
+- **Abnahme (V13.3, `KRITIK_Level188.md`):** beim ersten Heraustreten des Horchers fallen die Röhren der Gänge 7 s aus
+  (Interpretation: Halbdunkel für die erste Begegnung, sonst bleiben die Gänge grell wie auf der Seite); um die Wurzelpistole im
+  Moos ein ausgezehrter, rostbrauner Fleck mit Wurzelgeflecht (Interpretation: sie zieht Eisen aus dem Boden); die grüne Leuchte
+  des Sicherungspunkts im Gang hängt zwischen zwei Röhren (vorher unter einer – ein grünes Kreuz).
 
 ## 3. Konflikte und Grenzen
 
