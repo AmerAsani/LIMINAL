@@ -199,3 +199,11 @@ Agenten: alle ausser „Props Level 1 Blender-Modelle“ (vom Nutzer gestoppt, A
 - **Tests:** gameplay 901/0, coop 209/0, audio 121/0, net 72/0, worldgen 29658/0, supply OK.
 - **Für die Kritikrunden der Abnahme vorgemerkt:** Photoshop (Gesicht wirkt gezeichnet), großes Bündel (Haut puppenhaft glatt), Mottenschwarm im Gesicht (nur dunkel), Fallendraht kaum sichtbar.
 - **Weiter:** Level-2-Abnahme (Kritikrunden 4–5 mit allen Wesen, Laufweg, Smoke, AUFWAND), dann Level 3.
+
+### V13.3 Zwischenstand 13 (03.11.2026)
+- **Level 2 und Level 3 abgenommen** (je 7 Kritikrunden, Laufweg, Prüfungen, Smoke, AUFWAND) – E-046.
+- **Wesen Level 5 und 5.3 zusammengeführt** (Samantha Rolle 19, Gentleman Rolle 20, Ants, Woodlins, Watchers, Gastgeber-Stimme, Wissen der Bibliothek) – E-047.
+- **B-029** (Fundstück-Materialien ohne Platz) gefunden und behoben.
+- **Tests:** gameplay 981/0, coop 209/0, audio 121/0, net 72/0, worldgen 29658/0, supply OK.
+- Der Agent für Level 188 wurde am 02.11. um 23:11 unterbrochen; sein Stand ist als WIP `1272b9f` gesichert und wird fortgesetzt.
+- **Weiter:** Abnahme Level 0, danach 5 und 5.3; parallel die Wesen von Level 188 (Fortsetzung) und die Prüfung der Wesen von 903/37/36.
