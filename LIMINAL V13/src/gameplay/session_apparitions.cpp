@@ -69,6 +69,7 @@ void GameSession::spawnApparitions(const world::ChunkData& cd) {
 }
 
 bool GameSession::useApparition(const ApparitionUse& au, Pawn* p, std::string& msg) {
+    if (au.kind == 12) return useCourtyard(au, p, msg);  // V13.3 Teil 4 Level 188: Wurzelpistole (session_courtyard.cpp)
     if (au.kind >= 10) return useHotel(au, p, msg);  // V13.3 Teil 4 Level 5: die Hand des Gastgebers (session_hotel.cpp)
     if (au.kind != 0) return false;
     if (!appar_.canVend(au.index, msg)) {

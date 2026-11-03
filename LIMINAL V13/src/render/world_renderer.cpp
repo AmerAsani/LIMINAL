@@ -441,6 +441,16 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     materialData_[FM_ENT_GM_RAW] = GpuMaterial{{0.42f, 0.05f, 0.05f}, 0, ent(EL_SKIN, ML_PORES) | kMatFlagSkin, 0.12f, 0, 0.2f};
     materialData_[FM_ENT_GM_GOLD] = GpuMaterial{{0.78f, 0.58f, 0.22f}, 0, tri(L_METAL), 0.3f, 1.0f, 0.15f};
     materialData_[FM_ENT_GM_BOOK] = GpuMaterial{{0.035f, 0.03f, 0.028f}, 0, tri(L_LEATHER), 0.55f, 0, 0.2f};
+    // V13.3 Teil 4 Level 188 (KREATUR_Horcher.md): kreideweiss wie die Gaenge, trocken und stumpf; das Ohr duenner und roetlicher
+    // (Knorpel, Adern), der Gehoergang nass und dunkelrot, Schwielen gelblich-grau und rissig, Wunden nass, Naegel gelb wie Horn
+    materialData_[FM_ENT_HR_SKIN] = GpuMaterial{{0.80f, 0.80f, 0.78f}, 0, ent(EL_TOOTH, ML_CRAZE) | kMatFlagSkin, 0.85f, 0, 0.2f};  // Runde 1: EL_PALE gefleckt; Runde 2: EL_HUMAN rosa Puppe - kreidig, trocken, rissig
+    materialData_[FM_ENT_HR_EAR] = GpuMaterial{{0.86f, 0.74f, 0.72f}, 0, ent(EL_HUMAN, ML_PORES) | kMatFlagSkin, 0.5f, 0, 0.12f};  // Runde 1: braun wie Leder
+    materialData_[FM_ENT_HR_CANAL] = GpuMaterial{{0.30f, 0.035f, 0.045f}, 0, ent(EL_SKIN, ML_PORES) | kMatFlagSkin, 0.12f, 0, 0.25f};
+    materialData_[FM_ENT_HR_CALLUS] = GpuMaterial{{0.70f, 0.64f, 0.50f}, 0, ent(EL_TOOTH, ML_CRAZE), 0.9f, 0, 0.3f};  // Runde 2: dunkel wie ein Huf
+    materialData_[FM_ENT_HR_RAW] = GpuMaterial{{0.40f, 0.04f, 0.04f}, 0, ent(EL_SKIN, ML_PORES) | kMatFlagSkin, 0.1f, 0, 0.25f};
+    materialData_[FM_ENT_HR_NAIL] = GpuMaterial{{0.58f, 0.50f, 0.30f}, 0, ent(EL_HORN, ML_CRAZE), 0.4f, 0, 0.2f};
+    materialData_[FM_ENT_HR_VEIN] = GpuMaterial{{0.46f, 0.48f, 0.66f}, 0, ent(EL_HUMAN, ML_PORES) | kMatFlagSkin, 0.45f, 0, 0.1f};  // Runde 1: schwarze Striche
+    materialData_[FM_ENT_HR_WOOD] = GpuMaterial{{0.22f, 0.075f, 0.04f}, 0, tri(L_WOOD), 0.6f, 0, 0.25f};
     writeMaterials(gpu);
     lights_ = gpu.createStructured(sizeof(GpuLight), 2048, true, false);
     puddles_ = gpu.createStructured(sizeof(vec4), kMaxPuddles * 2, true, false);  // V13.3

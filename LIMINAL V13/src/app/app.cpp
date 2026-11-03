@@ -245,7 +245,7 @@ void App::scriptStep() {
                         : n == "window" ? R::Window : n == "hound" ? R::Hound : n == "smiler" ? R::Smiler : n == "clump" ? R::Clump
                         : n == "duller" ? R::Duller : n == "arms" ? R::Arms : n == "wrangler" ? R::Wrangler
                         : n == "growler" ? R::Growler : n == "nguithrxurh" ? R::Nguithr : n == "ouroboros" ? R::Ouroboros
-                        : n == "goblin" ? R::Goblin : n == "moth" ? R::Moth : n == "jerry" ? R::Jerry : n == "samantha" ? R::Samantha : n == "gentleman" ? R::Gentleman : R::Gestalt;  // V13.3; Teil 4: Motten (Level 2), Jerry, Samantha, Hausherr
+                        : n == "goblin" ? R::Goblin : n == "moth" ? R::Moth : n == "jerry" ? R::Jerry : n == "samantha" ? R::Samantha : n == "gentleman" ? R::Gentleman : n == "listener" ? R::Listener : R::Gestalt;  // V13.3; Teil 4: Motten (Level 2), Jerry, Samantha, Hausherr, Horcher
             auto& pr = session_->presence();
             if (!pr.has(r)) {
                 log::warn("Skript: near - kein {}", game::Presence::roleName(r));
@@ -257,6 +257,7 @@ void App::scriptStep() {
                     if (const world::Tile* t0 = w.tileIfLoaded(ifloor(at.x), ifloor(at.y))) baseZ = t0->floor, aimZ = at.z;
                 if (r == R::Samantha) aimZ = at.z + 0.2f;  // V13.3 Teil 4 Level 5: die kleine Katze - Blick auf ihren Kopf
                 if (r == R::Gentleman) aimZ = at.z + 1.5f;  // V13.3 Teil 4 Level 5.3: der grosse Herr - Blick auf Brust und Kopf
+                if (r == R::Listener) aimZ = at.z + 1.1f;   // V13.3 Teil 4 Level 188: der Horcher - Blick auf das Ohr
                 if (r == R::Jerry)  // V13.3 Teil 4: Jerry auf dem Rohr - der Boden darunter, Blick in sein Gesicht
                     if (const world::Tile* t0 = w.tileIfLoaded(ifloor(at.x), ifloor(at.y))) baseZ = t0->floor, aimZ = at.z + 0.42f;
                 if (r == R::Nguithr)  // V13.3: die Netzkugeln an der Decke - der Boden darunter, Blick auf die Kugeln
@@ -361,7 +362,7 @@ void App::scriptStep() {
                              : n == "skinstealer" ? 7 : n == "wretch" ? 8 : n == "rat" ? 9 : n == "window" ? 10 : n == "player" ? 99
                              : n == "duller" ? 11 : n == "arms" ? 12 : n == "wrangler" ? 13
                              : n == "growler" ? 14 : n == "nguithrxurh" ? 15 : n == "ouroboros" ? 16 : n == "goblin" ? 17
-                             : n == "jerry" ? 18 : n == "samantha" ? 19 : n == "gentleman" ? 20 : 0;  // V13.3; Teil 4: Jerry, Samantha, Hausherr
+                             : n == "jerry" ? 18 : n == "samantha" ? 19 : n == "gentleman" ? 20 : n == "listener" ? 21 : 0;  // V13.3; Teil 4: Jerry, Samantha, Hausherr, Horcher
             auto& pl = session_->player();
             vec3 at{(float)(pl.x + std::cos(pl.angle) * dist), (float)(pl.y + std::sin(pl.angle) * dist), 0.0f};
             at.z = session_->world().tile(ifloor(at.x), ifloor(at.y)).floor;
@@ -466,6 +467,16 @@ void App::scriptStep() {
             int nr = -1;
             std::sscanf(arg.c_str(), "%31s %lf %lf %d", name, &dist, &side, &nr);
             if (!session_->scriptApparition(name, dist, side, nr)) log::warn("Skript: rand '{}' - nicht gefunden oder kein Platz", arg);
+        } else if (cmd == "court" && session_) {  // V13.3 Teil 4 Level 188 (Bilder, Tests): court <hold|grip|wrap|fire|wilt|recover|drip|sprouts> <wert>
+            char key[32] = {};
+            double val = 0.0;
+            if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) < 2 || !session_->courtyard().setState(key, val))
+                log::warn("Skript: court '{}' unbekannt oder keine Wurzelpistole", arg);
+        } else if (cmd == "horcher" && session_) {  // V13.3 Teil 4 Level 188 (Bilder, Tests): horcher <quick|next|emerge|hold|pose|place|state|yaw> <wert>
+            char key[32] = {};
+            double val = 0.0;
+            if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) < 2 || !session_->presence().listenerSet(key, val))
+                log::warn("Skript: horcher '{}' unbekannt oder kein Horcher", arg);
         } else if (cmd == "gent" && session_) {  // V13.3 Teil 4 Level 5.3 (Bilder, Tests): gent <quick|next|hold|pose|book|place|provoke|state|yaw> <wert>
             char key[32] = {};
             double val = 0.0;
@@ -529,6 +540,7 @@ void App::scriptStep() {
                 if (n == "jerry") r = R::Jerry;          // V13.3 Teil 4: Jerry auf seinem Rohr (Spawnpunkt der Karte)
                 if (n == "samantha") r = R::Samantha;    // V13.3 Teil 4 Level 5: die Katze im Gang, ausser Sicht
                 if (n == "gentleman") r = R::Gentleman;  // V13.3 Teil 4 Level 5.3: der Hausherr kommt durch den alten Gang
+                if (n == "listener") r = R::Listener;    // V13.3 Teil 4 Level 188: der Horcher tritt aus einer Zellentuer
                 session_->presence().force(r, dist);
             }
         } else if (cmd == "audioinfo") {  // V11 (Tests): Zustand der Klanglandschaft ins Protokoll
@@ -1689,6 +1701,8 @@ void App::handleEvents() {
                         if (role == Role::Goblin) at(std::format("goblin_step_{}", n % 3), e.pos, 0.18f + 0.35f * e.intensity, 12.0f, 0.94f + 0.14f * var);
                         // V13.3 Teil 4 Level 5.3: der Hausherr - harte Ledersohlen auf Parkett, gemessen (synth_gentleman.cpp)
                         if (role == Role::Gentleman) at(std::format("gm_step_{}", n % 4), e.pos, 0.55f + 0.3f * e.intensity, 30.0f, 0.97f + 0.06f * var);
+                        // V13.3 Teil 4 Level 188: der Horcher - Faust und nackte Fuesse auf Beton (synth_listener.cpp)
+                        if (role == Role::Listener) at(std::format("hr_step_{}", n % 4), e.pos, 0.4f + 0.45f * e.intensity, 22.0f, 0.95f + 0.1f * var);
                         break;
                     // V11 Buendel: Klopfen im Schacht, Herabfallen, Schleifen, Ausholen
                     case PE::Knock:
@@ -2468,6 +2482,9 @@ void App::renderWorld(double dt, bool clean) {
             std::vector<game::HotelL5::Light> hl;  // V13.3 Teil 4 Level 5: Bankerlampe im Buero des Gastgebers
             s.hotel().lights(hl, cam.pos);
             for (const auto& h : hl) al.push_back({h.pos, h.color, h.range, h.dir});
+            std::vector<game::Courtyard188::Light> cl;  // V13.3 Teil 4 Level 188: Muendungsblitz der Wurzelpistole
+            s.courtyard().lights(cl, cam.pos);
+            for (const auto& h : cl) al.push_back({h.pos, h.color, h.range, h.dir});
             for (const auto& a : al) {
                 if (sp.extraLights.size() >= 10) break;
                 gfx::ExtraLight L;

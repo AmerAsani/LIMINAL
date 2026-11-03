@@ -19,6 +19,7 @@ void GameSession::pawnInput(Pawn& p, const PlayerControl& c0, double dt) {
     p.player.speedMul *= presence_.slowFor(p.id, {(float)p.player.x, (float)p.player.y, (float)p.player.z});  // V13.3
     p.player.speedMul *= 1.0 - 0.55 * presence_.jerryHold(p.id);  // V13.3 Teil 4: Jerrys Bann laehmt auch den Gast
     p.player.speedMul *= hotelSlow(p.id);  // V13.3 Teil 4 Level 5: Biss eines Woodlins
+    p.player.speedMul *= court188_.tired(p.id);  // V13.3 Teil 4 Level 188: Blut gespendet (Wurzelpistole)
     if (p.id > 0 && p.id < Phenomena::kPlayers) {  // V13.3: Fieber, Ranken, ihre Einladung (session_phenomena.cpp)
         p.player.speedMul *= phenomena_.speedMul(p.id);
         if (phenomena_.frozen(p.id)) c.forward = c.side = 0.0f, c.sprint = c.jump = c.jumpHeld = false;
@@ -322,6 +323,10 @@ void GameSession::netAddDropped(u32 hash, const std::string& kind, vec3 pos) {
     }
     if (kind == "painting") {  // V13.3: ein Gemaelde liegt jetzt vor einer anderen Tuer (session_phenomena.cpp)
         phenomena_.netMove(hash, pos);
+        return;
+    }
+    if (kind == Courtyard188::kNetName) {  // V13.3 Teil 4 Level 188: Wurzelpistolen (session_courtyard.cpp)
+        netCourtyard(hash, pos);
         return;
     }
     if (kind == HotelL5::kNetName) {  // V13.3 Teil 4 Level 5: Wesen des Hotels (session_hotel.cpp)

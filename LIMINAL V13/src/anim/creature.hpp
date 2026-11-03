@@ -47,6 +47,8 @@
 //   Hausherr (E. 18)    der Herr des Hotels zu Besuch in der Bibliothek (Level 5.3): 2,1 m, Frack, Arme mit zwei Ellbogen,
 //                       wachsbleiche Haende mit zu langen Fingern, Gesicht wie gemalt (Firnis mit Rissen); im selben Skelett
 //                       das Notizbuch, das ihm vor die Fuesse faellt (gm).
+//   Horcher (L. 188)    Auslegung der "anderen boesartigen Menschenaehnlichen" der Gaenge: kreideweiss und gebueckt, der Kopf
+//                       ein riesiges Ohr an einem zu langen Hals, ein Arm zu einer Klopf-Faust ausgewachsen (hr).
 //
 // Wie beim Menschen (anim/skeleton) werden Gelenkpositionen animiert; jeder Knochen ist ein starrer
 // Rahmen vom Start- zum Endgelenk, gedreht nach einem Hinweisvektor ("oben"). Skinning-Matrix =
@@ -61,7 +63,7 @@
 
 namespace lim::anim {
 
-enum class Entity : std::uint8_t { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Wrangler, Growler, Nguithr, Ouroboros, Goblin, Jerry, Samantha, Gentleman, Count };
+enum class Entity : std::uint8_t { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Wrangler, Growler, Nguithr, Ouroboros, Goblin, Jerry, Samantha, Gentleman, Listener, Count };
 constexpr int kEntityCount = (int)Entity::Count;
 
 struct CBone {
@@ -712,5 +714,33 @@ enum State : int {
 };
 CreatureSkeleton makeSkeleton();  // creature_gentleman.cpp
 }  // namespace gm
+
+// V13.3 Teil 4 Level 188: der Horcher (KREATUR_Horcher.md; Wikidot level-188 Rev. 69, Abschnitt Corridors: "andere boesartige
+// menschenaehnliche Lebensformen" ohne Beschreibung - Gestalt und Verhalten sind Auslegung). Wurzel am Boden; Ruhe: gebueckt,
+// der Rumpf nach vorn, der Hals lang nach vorn und unten, das Ohr (Kopf) haengt auf Hueft- bis Brusthoehe und lauscht nach vorn.
+// Arm 0 (links, +y) duenn mit langen Fingern; Arm 1 (rechts) riesig, die Faust am Boden (geht auf zwei Beinen und der Faust).
+namespace hr {
+enum J : std::uint8_t {
+    ROOT, PELVIS, SPINE, CHEST, NECK0, NECK1, NECK2, EAR, EARTIP, LOBE, CANAL,
+    ARM0,                     // + Seite * 4 + i: Schulter, Ellbogen, Handgelenk, Spitze (Finger bzw. Knoechel)
+    LEG0 = ARM0 + 8,          // + Seite * 4 + i: Huefte, Knie, Knoechel, Zehen
+    JCOUNT = LEG0 + 8
+};
+enum B : std::uint8_t {
+    B_ROOT, B_PELVIS, B_SPINE, B_CHEST, B_NECK0, B_NECK1, B_HEAD, B_HELIX, B_LOBE, B_CANAL,
+    B_ARM0,                   // + Seite * 4 + i: Schluesselbein, Oberarm, Unterarm, Hand/Faust
+    B_LEG0 = B_ARM0 + 8,      // + Seite * 3 + i: Oberschenkel, Unterschenkel, Fuss
+    BCOUNT = B_LEG0 + 6
+};
+inline int armJ(int s, int i) { return ARM0 + s * 4 + i; }
+inline int armB(int s, int i) { return B_ARM0 + s * 4 + i; }
+inline int legJ(int s, int i) { return LEG0 + s * 4 + i; }
+inline int legB(int s, int i) { return B_LEG0 + s * 3 + i; }
+// Zustaende (Presence, Animation): 0 tritt aus einer Tuer, 1 lauscht, 2 schleicht zum Geraeusch, 3 jagt (Laerm), 4 Ankuendigung
+// (richtet sich auf, die Faust klopft dreimal), 5 Schlag, 6 zuckt vor dem Licht zurueck (das Ohr knittert), 7 zieht sich in eine Tuer
+// zurueck, 8 fort (9 und 10 heissen in der Praesenz fuer alle Wesen "abgehen"/"toedlicher Zugriff")
+enum State : int { S_EMERGE = 0, S_LISTEN = 1, S_STALK = 2, S_HUNT = 3, S_WARN = 4, S_STRIKE = 5, S_FLINCH = 6, S_RETREAT = 7, S_GONE = 8 };
+CreatureSkeleton makeSkeleton();  // creature_listener.cpp
+}  // namespace hr
 
 }  // namespace lim::anim

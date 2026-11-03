@@ -100,6 +100,9 @@ enum FixedMaterial : u32 {
     FM_ENT_GM_SUIT, FM_ENT_GM_VEST, FM_ENT_GM_SHIRT, FM_ENT_GM_SHOE, FM_ENT_GM_FACE, FM_ENT_GM_HAND, FM_ENT_GM_HAIR, FM_ENT_GM_EYE,
     FM_ENT_GM_SCLERA, FM_ENT_GM_RAW, FM_ENT_GM_GOLD, FM_ENT_GM_BOOK,
     FM_ENT_GM_SILK,  // V13.3 Abnahme Level 5.3: Seidenrevers des Fracks
+    // V13.3 Teil 4 Level 188 (KREATUR_Horcher.md): kreidige Haut, duenne Ohrhaut ueber Knorpel, nasser Gehoergang, Schwielen,
+    // aufgeplatzte Knoechel, gelbe Naegel, durchscheinende Adern, Mahagonisplitter
+    FM_ENT_HR_SKIN, FM_ENT_HR_EAR, FM_ENT_HR_CANAL, FM_ENT_HR_CALLUS, FM_ENT_HR_RAW, FM_ENT_HR_NAIL, FM_ENT_HR_VEIN, FM_ENT_HR_WOOD,
     FM_FIG_END,
 };
 static_assert(FM_FIG_END <= kFixedMaterials);

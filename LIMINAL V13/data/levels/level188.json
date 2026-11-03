@@ -17,7 +17,9 @@
   "presence": { "hound": false, "smiler": false, "gestalt": true, "blackout": false,
                "faceling": { "mode": "lethal", "group": [1, 1], "every": 220, "rooms": ["gang", "zelle", "treppenhaus"] },
                "skinstealer": { "mode": "true", "group": [1, 1], "every": 320, "chance": 0.35, "rooms": ["gang", "zelle", "treppenhaus"] },
-               "window": { "count": 3 } },
+               "window": { "count": 3 },
+               // V13.3 Teil 4: der Horcher (KREATUR_Horcher.md) klopft hinter verschlossenen Tueren der Gaenge (Runde alle ~every s)
+               "listener": { "every": 70, "rooms": ["gang", "zelle", "treppenhaus"] } },
   "next_level": "level5",
   "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0 },
 

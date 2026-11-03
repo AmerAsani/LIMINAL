@@ -98,7 +98,7 @@ struct StyleOverride {
 // every: Abstand der Gruppen, chance: Anteil der Gruppen mit einem Weibchen, das gereizt zubeisst); "window" mode "end":
 // Fensterwesen entstehen an Gangenden (Spawnpunkte "entity"/"window" der Karte), count: hoechstens so viele zugleich
 // V13.3 Teil 4: "jerry" (KREATUR_Jerry.md; mode "room": Jerry sitzt auf dem Rohr in seinem Raum, Spawnpunkt "entity"/"jerry")
-enum KinIndex : int { KIN_FACELING, KIN_SKINSTEALER, KIN_WRETCH, KIN_RAT, KIN_WINDOW, KIN_DULLER, KIN_ARMS, KIN_WRANGLER, KIN_GROWLER, KIN_NGUITHR, KIN_OUROBOROS, KIN_GOBLIN, KIN_MOTH, KIN_JERRY, KIN_SAMANTHA, KIN_GENTLEMAN, KIN_COUNT };  // V13.3: Duller, Arms, Wrangler; KIN_MOTH: Deathmoths ohne Nest (Level 2)
+enum KinIndex : int { KIN_FACELING, KIN_SKINSTEALER, KIN_WRETCH, KIN_RAT, KIN_WINDOW, KIN_DULLER, KIN_ARMS, KIN_WRANGLER, KIN_GROWLER, KIN_NGUITHR, KIN_OUROBOROS, KIN_GOBLIN, KIN_MOTH, KIN_JERRY, KIN_SAMANTHA, KIN_GENTLEMAN, KIN_LISTENER, KIN_COUNT };  // V13.3: Duller, Arms, Wrangler; KIN_MOTH: Deathmoths ohne Nest (Level 2)
 struct KinDef {
     bool on = false;
     std::string mode;                // je Wesen (Faceling: peaceful|irritable|armed|lethal; Skin-Stealer: skin|true|coat;

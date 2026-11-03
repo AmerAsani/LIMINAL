@@ -38,6 +38,7 @@ Status-Begriffe:
 | Entity 15 (Wretches) | https://backrooms-wiki.wikidot.com/entity-15 | 54 | 07.08.2026 06:38 |
 | Entity 17 (Crawlers) | https://backrooms-wiki.wikidot.com/entity-17 | 40 | 01.06.2025 11:47 (als „veraltet“ markiert) |
 | Entity 24 (Death Rats) | https://backrooms-wiki.wikidot.com/entity-24 | 25 | 01.06.2025 11:46 (als „in Überarbeitung“ markiert) |
+| Entity 39 (Gaben im Hof, Level 188) | https://backrooms-wiki.wikidot.com/entity-39 | 46 | 02.11.2026 15:22 (als „in Überarbeitung“ markiert; gelesen 03.11.2026) |
 | Entity 71 (The Red Knight) | https://backrooms-wiki.wikidot.com/entity-71 | 44 | 11.07.2026 23:05 (gelesen 02.11.2026) |
 | Entity 99 (The Game Master) | https://backrooms-wiki.wikidot.com/entity-99 | 39 | 11.08.2026 08:28 |
 
@@ -156,8 +157,9 @@ Die Liste der häufigen Wesen auf der Ebenenseite:
 | Faceling im rosa Kleid (Entity 9) | In den Gängen; tödlich, tötete ein Expeditionsmitglied mit Hieben und Stichen. | **neu (V13.2)**: Variante „rosa Kleid“, nur in den Gängen, tödlich; lässt im Hof ab |
 | Skin-Stealer (Entity 10) | Bösartige Bewohner der Gänge. | **neu (V13.2)**: wahre Gestalt, nur in den Gängen |
 | Schattenhafte Umrisse | Gleichen den Fensterwesen, an Ecken und am Rand des Blicks; nicht direkt ansehen. | **umgesetzt** als Gestalt |
-| Andere bösartige menschenähnliche Wesen | Nicht beschrieben. | **bewusst weggelassen** (keine Beschreibung) |
-| Entity 39, Amor Incrementum | Nur verlinkt; ein Kult ohne Mitglieder auf der Ebene. | **bewusst weggelassen** |
+| Andere bösartige menschenähnliche Wesen | Nicht beschrieben (nur genannt, Abschnitt Corridors); Log 2: rhythmisches Hämmern; Log 4: ein Schatten tritt hinter einem aus einer Tür. | **umgesetzt (V13.3)** als gekennzeichnete Auslegung „Horcher“ (Rolle 21): klopft hinter verschlossenen Türen, lauscht, tritt hinter dem, der antwortet, aus einer Zellentür; blind, hört; Ankündigung vor dem Schlag; Licht auf dem Ohr – [KREATUR_Horcher.md](KREATUR_Horcher.md) |
+| Entity 39 („Gaben“) | Das Wort „gifts“ verlinkt auf Entity 39: pflanzliche Wesen in Gestalt von Schusswaffen, Wurzeln greifen Hand und Arm, trinken Blut, Schuss keimt, ohne Metall schwach. | **umgesetzt (V13.3)**: Wurzelpistole als Weltobjekt im Moos und im Riss des Gangs – wittert, greift, trinkt, entlädt sich von selbst (Lärm), keimt, welkt – [KREATUR_Wurzelpistole.md](KREATUR_Wurzelpistole.md) |
+| Amor Incrementum (Kult) | Menschengruppe; erhielt die Moosproben, schickte Gaben, Priesterin; keine Mitglieder auf der Ebene, keine eigene Seite (404). | **Ausnahme (Menschen, keine Wesen)**; Spuren umgesetzt (V13.3): Probenstiche, leerer Kasten der Gabe, Probenzettel – [KREATUR_Wurzelpistole.md](KREATUR_Wurzelpistole.md) |
 
 ### Level 903 – „The Metro“
 

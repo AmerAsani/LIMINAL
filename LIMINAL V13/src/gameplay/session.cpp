@@ -47,6 +47,7 @@ GameSession::GameSession(const Content& content, const PrefabLibrary& prefabs,
     purple_.setup(world_->level(), (u64)seed);     // V13.3: purpifizierte Wesen in der Wand (session_purple.cpp)
     hotel_.setup(world_->level(), (u64)seed);      // V13.3 Teil 4 Level 5: Wesen des Hotels (session_hotel.cpp)
     lib53_.setup(world_->level());                 // V13.3 Teil 4 Level 5.3: Bibliothek (session_library.cpp)
+    court188_.setup(world_->level(), (u64)seed);   // V13.3 Teil 4 Level 188: Wurzelpistolen, Orte des Horchers (session_courtyard.cpp)
     // V7: Laufbuch (V8: in der Welt beginnt jeder Lauf in der ersten Ebene)
     runLog_.levels.push_back(world_->level().world() ? world_->level().regions.front().id : levelId);
 }
@@ -218,6 +219,7 @@ void GameSession::onChunk(const world::ChunkData& cd, bool loaded) {
         spawnApparitions(cd);  // V13.3 Teil 4: Automaten, Blechtafel der Macchina (session_apparitions.cpp)
         spawnHotel(cd);        // V13.3 Teil 4 Level 5: Fleisch (session_hotel.cpp)
         spawnLibrary(cd);      // V13.3 Teil 4 Level 5.3: Wissen, Notizbuch, Buecherhaufen (session_library.cpp)
+        spawnCourtyard(cd);    // V13.3 Teil 4 Level 188: Wurzelpistolen, Probenzettel (session_courtyard.cpp)
         // V6: abgelegte Items dieses Chunks wieder hinlegen
         for (auto& d : dropped_)
             if (!reg_.alive(d.entity) && world::chunkOf(ifloor(d.pos.x), ifloor(d.pos.y)) == cd.key) spawnDropped(d, {}, true);
@@ -786,6 +788,7 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
     player_.speedMul *= 1.0 - 0.5 * presence_.trance();  // V13.3: der Anblick des Wranglers laehmt
     player_.speedMul *= 1.0 - 0.55 * presence_.jerryHold(netSelfId);  // V13.3 Teil 4: Jerrys Bann laehmt die Schritte
     player_.speedMul *= hotelSlow(0);  // V13.3 Teil 4 Level 5: Biss eines Woodlins in den Knoechel
+    player_.speedMul *= court188_.tired(0);  // V13.3 Teil 4 Level 188: Blut gespendet (Wurzelpistole) - muede
     // V13.3: betaeubt (Nguithr'xurh) langsamer und ohne Sprint; durch das Gewirr einer Growler-Leiche waten
     player_.speedMul *= presence_.slowFor(netSelfId, {(float)player_.x, (float)player_.y, (float)player_.z});
     player_.speedMul *= phenomena_.speedMul(0);            // V13.3: Fieber, Ranken (session_phenomena.cpp)
@@ -936,6 +939,7 @@ void GameSession::update(double dt, const PlayerControl& control, bool paused) {
         updatePurple(dt);     // V13.3: purpifizierte Wesen in der Wand (session_purple.cpp)
         updateHotel(dt);      // V13.3 Teil 4 Level 5: Kolonien, Woodlins, Watchers, Gastgeber (session_hotel.cpp)
         updateLibrary(dt);    // V13.3 Teil 4 Level 5.3: Notizbuch, Zorn, Stille (session_library.cpp)
+        updateCourtyard(dt);  // V13.3 Teil 4 Level 188: Wurzelpistolen, Orte des Horchers (session_courtyard.cpp)
     }
     if (killCam_ && !paused) killT_ += dt;  // V11
     target_ = ecs::kNull;
@@ -1428,6 +1432,7 @@ void GameSession::collectMeshes(std::vector<VisibleMesh>& out) {
     phenomena_.collect(out, eye);  // V13.3: Gemaelde am Boden (KREATUR_GameMaster.md)
     appar_.collect(out, eye);  // V13.3 Teil 4: Automaten, Swindlebird, Photoshop
     hotel_.collect(out, eye);  // V13.3 Teil 4 Level 5: Kolonien, Woodlins, Watchers, Gastgeber
+    court188_.collect(out, eye);  // V13.3 Teil 4 Level 188: Wurzelpistolen, Wurzeln, Keimlinge
     haunt_.collect(out);  // V7: "Der Andere"
     presence_.collect(out, palette_, eye, figureDetail);  // V10: die Figuren
     for (Pawn* p : pawns)  // V13.2 Koop: die Mitspieler (Spielermodell, Lampe von aussen)

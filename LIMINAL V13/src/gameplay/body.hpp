@@ -54,7 +54,7 @@ struct BodyPose {
 
 class Body {
 public:
-    enum class Gesture { None, Grab, Use, Toss, Swing, Throw };  // V13.3: Swing - das Beil (ausholen, Hieb, zurueck); Throw: Leuchtstab knicken, ausholen, werfen (Loslassen 0,62 s)
+    enum class Gesture { None, Grab, Use, Toss, Swing, Throw, Held };  // V13.3: Swing - das Beil (ausholen, Hieb, zurueck); Throw: Leuchtstab knicken, ausholen, werfen (Loslassen 0,62 s)
 
     // Nach Player::update aufrufen (pausiert: dt = 0)
     void update(double dt, const Player& p);
@@ -71,6 +71,10 @@ public:
     // Wurzel (Fussmitte, Koerperdrehung): fuer die TAA-Rueckprojektion mitbewegter Pixel
     mat4 rootMatrix() const;
     bool gestureActive() const { return gesture_ != Gesture::None; }
+    // V13.3 Teil 4 Level 188: die rechte Hand greift nach target und wird dort festgehalten (Wurzelpistole), bis releaseHand()
+    void holdHand(vec3 target, float seconds) { gesture_ = Gesture::Held, gestureT_ = 0.0, gestureTarget_ = target, heldDur_ = seconds; }
+    void releaseHand() { if (gesture_ == Gesture::Held && gestureT_ < heldDur_ - 0.3) heldDur_ = gestureT_ + 0.3; }
+    bool handHeld() const { return gesture_ == Gesture::Held; }
     // V7: Taschenlampe in der linken Hand (lit: Glas leuchtet)
     void setFlashlight(bool held, bool lit) { flashWant_ = held, flashLit_ = lit; }
     // V11: freier Raum vor der Lampe (m, Blickrichtung) - an einer Wand zieht die Hand die Lampe zurueck
@@ -141,6 +145,7 @@ private:
     Gesture gesture_ = Gesture::None;
     double gestureT_ = 0;
     vec3 gestureTarget_;
+    double heldDur_ = 0.0;  // V13.3 Teil 4 Level 188: Gesture::Held
     std::string heldModel_;
     float heldOffset_ = 0.0f, heldScale_ = 1.0f;
     bool showHeld_ = false;

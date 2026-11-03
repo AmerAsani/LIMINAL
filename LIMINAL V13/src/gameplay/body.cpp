@@ -410,6 +410,10 @@ void Body::update(double dt, const Player& p) {
             w = t < 0.1f ? smoothT(t / 0.1f) : smoothT((dur - t) / (dur - 0.1f));
             target = eye_ + hf * (0.28f + 0.22f * smoothT(t / 0.16f)) - hu * (0.24f - 0.08f * smoothT(t / 0.16f)) + R * 0.15f;
             if (t >= dur) gesture_ = Gesture::None;
+        } else if (gesture_ == Gesture::Held) {  // V13.3 Teil 4 Level 188: festgehalten (Wurzelpistole) - hin, halten, los
+            const float dur = (float)heldDur_;
+            w = t < 0.3f ? smoothT(t / 0.3f) : (t > dur - 0.3f ? smoothT((dur - t) / 0.3f) : 1.0f);
+            if (t >= dur) gesture_ = Gesture::None;
         } else if (gesture_ == Gesture::Throw) {
             // V13.3 Leuchtstab: vor der Brust knicken und schuetteln, ueber die Schulter ausholen, nach vorn schleudern
             // (Loslassen bei 0,62 s - GameSession wirft dann), zuruecksinken

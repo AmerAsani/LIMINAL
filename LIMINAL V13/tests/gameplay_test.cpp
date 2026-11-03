@@ -36,6 +36,7 @@
 #include "gameplay/session.hpp"
 #include "gameplay/kin_l3.hpp"  // V13.3 Level 3
 #include "gameplay/library_l53.hpp"  // V13.3 Teil 4 Level 5.3
+#include "gameplay/listener_l188.hpp"  // V13.3 Teil 4 Level 188
 #include "gameplay/sound_field.hpp"
 #include "props/glb_import.hpp"
 #include "gameplay/stats.hpp"
@@ -1746,7 +1747,8 @@ static Mount mountOf(const std::string& m) {
                                    "jerry_perch", "jerry_shrine",  // V13.3 Teil 4 L2: Jerrys Sitzrohr, Opfertisch der Followers
                                    "macchina_suit", "macchina_cradle", "macchina_spear",  // V13.3 Teil 4 L2: Reste der Macchina
                                    "e18_desk", "e18_wingchair",  // V13.3 Teil 4 L5: Buero des Gastgebers
-                                   "lore_lectern", "lore_catalog"};  // V13.3 Teil 4 L5.3: Lesepult, Katalogschrank
+                                   "lore_lectern", "lore_catalog",  // V13.3 Teil 4 L5.3: Lesepult, Katalogschrank
+                                   "e39_case", "e39_samples"};  // V13.3 Teil 4 L188: Kasten der Gabe, Probenstiche (KREATUR_Wurzelpistole.md)
     for (const char* w : wall2)
         if (m == w) return Mount::Wall;
     for (const char* c : ceil2)
@@ -7448,6 +7450,311 @@ static void testV133Level53Gentleman(const std::string& dataDir) {
     }
 }
 
+// V13.3 Teil 4 Level 188 (KREATUR_Horcher.md, KREATUR_Wurzelpistole.md): der Horcher in den Gaengen, die Wurzelpistole
+// (Entity 39) im Moos und im Riss, Probenzettel; Koop (Netzzustand, Weltereignis l188)
+static void testV133Level188(const std::string& dataDir) {
+    std::printf("V13.3 Teil 4: Level 188 - der Horcher, die Wurzelpistole\n");
+    const game::Content& content = *gContent11;
+    game::PrefabLibrary prefabs;
+    prefabs.loadDirectory(dataDir + "/prefabs");
+    JobSystem jobs(2);
+    using Role = game::Presence::Role;
+    namespace hr = anim::hr;
+    namespace l1 = game::l188;
+    const auto L = content.level("level188", world::kLayoutV6);
+    if (!L || !L->map) return check(false, "Level 188: Karte");
+    // --- Karte, Ebene, Texte ------------------------------------------------------------------------------------------------
+    int knock = 0, emerge = 0, moss = 0, floor = 0, note = 0, seeds = 0;
+    for (const auto& s : L->map->spawns) {
+        if (s.kind != "trace") continue;
+        knock += s.set == "hr" && s.hasTag("knock"), emerge += s.set == "hr" && s.hasTag("emerge");
+        moss += s.set == "e39" && s.hasTag("moss"), floor += s.set == "e39" && s.hasTag("floor");
+        note += s.set == "e39" && s.hasTag("note"), seeds += s.set == "e39" && s.hasTag("seed");
+    }
+    std::map<std::string, int> objs;
+    for (const auto& o : L->map->objects) ++objs[o.model];
+    check(knock >= 4 && emerge == 3, std::format("Level 188: Orte des Horchers in der Karte ({} Klopftueren, {} Zellentueren)", knock, emerge));
+    check(moss == 1 && floor == 1 && note == 1 && seeds >= 6 && objs["e39_case"] == 1 && objs["e39_samples"] == 1,
+          "Level 188: Wurzelpistolen (Moos, Riss), Keimorte, Probenzettel, leerer Kasten und Probenstiche in der Karte");
+    const auto& K = L->kin[world::KIN_LISTENER];
+    check(K.on && K.every >= 30.0, "Level 188: der Horcher kennt die Ebene (presence.listener)");
+    bool models = std::filesystem::exists(dataDir + "/models/ent_listener_l0.glb") && std::filesystem::exists(dataDir + "/models/ent_listener_l2.glb");
+    for (const char* m : {"e39_gun", "e39_root", "e39_husk", "e39_bed_moss", "e39_bed_crack", "e39_sprout", "e39_samples", "e39_case", "e39_note"})
+        models = models && std::filesystem::exists(dataDir + "/models/" + std::string(m) + ".glb");
+    check(models, "Level 188: Modelle des Horchers und der Wurzelpistole liegen in data/models");
+    static const char* kWiki[] = {"Entity", "Amor", "Incrementum", "M.E.G", "Organigun", "Asphodel", "Owl-Eyes"};
+    auto clean = [&](const std::string& t) {
+        for (const char* w : kWiki)
+            if (t.find(w) != std::string::npos) return false;
+        return true;
+    };
+    bool namesOk = clean(anim::entityName(anim::Entity::Listener)) && clean(game::Presence::roleName(Role::Listener)), noteOk = false;
+    for (const auto& n : content.notes())
+        if (n.title == game::Courtyard188::kNote) noteOk = true, namesOk = namesOk && clean(n.text) && clean(n.title);
+    for (int c = 0; c < l1::HC_COUNT; ++c)
+        if (const game::KinLine* Ln = game::kinLine(800 + c); Ln && Ln->sub) namesOk = namesOk && clean(Ln->sub);
+    check(noteOk, "Level 188: Probenzettel aus dem Hof in den Notizen");
+    check(namesOk, "Level 188: kein Wiki-Name in Spieltext, Untertiteln und Namen (E-039)");
+    check(game::kinRole((int)Role::Listener) && game::kinLine(800 + l1::HC_KNOCK0) && game::kinLine(800 + l1::HC_KNOCK0)->hint &&
+              game::kinLine(800 + l1::HC_WARN) && game::kinLine(800 + l1::HC_WARN)->hint,
+          "Horcher: Klaenge mit Untertitel (Klangnummern ab 800), Klopfen und Ankuendigung mit Rat");
+
+    auto open = [&](i64 seed) {
+        auto s = std::make_unique<game::GameSession>(content, prefabs, L, seed, "medium", "Test", jobs, 3);
+        s->placeAtSpawn();
+        s->preload();
+        s->presence().setGrace(3000.0);
+        return s;
+    };
+    auto step = [&](game::GameSession& s, std::vector<game::GameEvent>& ev, double secs, const std::function<bool()>& each = {},
+                    const std::function<game::PlayerControl()>& ctl = {}) {
+        for (int i = 0; i < (int)(secs * 60.0); ++i) {
+            if (each && each()) break;
+            s.update(1.0 / 60.0, ctl ? ctl() : game::PlayerControl{}, false);
+            ev.insert(ev.end(), s.events().begin(), s.events().end());
+            s.events().clear();
+        }
+    };
+    auto cue = [](const std::vector<game::GameEvent>& ev, int c) {
+        return (int)std::count_if(ev.begin(), ev.end(), [&](const game::GameEvent& e) {
+            return e.type == game::GameEvent::Figure && e.role == (int)Role::Listener && game::kinCueOf(e.intensity, e.role) == 800 + c;
+        });
+    };
+    auto sound = [](const std::vector<game::GameEvent>& ev, const std::string& n) {
+        return (int)std::count_if(ev.begin(), ev.end(), [&](const game::GameEvent& e) { return e.type == game::GameEvent::SoundAt && e.sound == n; });
+    };
+    auto put = [](game::GameSession& s, double x, double y, double angle, double pitch = 0.0) {
+        auto& pl = s.player();
+        pl.x = x, pl.y = y, pl.z = s.world().tile(ifloor(x), ifloor(y)).floor, pl.vx = pl.vy = 0.0;
+        pl.angle = angle, pl.pitch = pitch;
+        s.body().reset();
+    };
+    auto aimAt = [](game::GameSession& s, vec3 q) {
+        auto& pl = s.player();
+        pl.angle = std::atan2(q.y - pl.y, q.x - pl.x);
+        pl.pitch = std::atan2(q.z - pl.eye(), std::max(0.3, std::hypot(q.x - pl.x, q.y - pl.y)));
+    };
+    // hin und her gehen (Laerm 0,45, kaum Weg)
+    int wob = 0;
+    auto pace = [&]() {
+        game::PlayerControl c;
+        c.forward = ((wob++ / 15) % 2) ? 1.0f : -1.0f;
+        return c;
+    };
+    // --- Klopfen: wer still steht, dem antwortet nur Stille ------------------------------------------------------------------
+    {
+        auto s = open(3);
+        std::vector<game::GameEvent> ev;
+        auto& P = s->presence();
+        put(*s, 58.6, 40.0, -1.5708);  // im Gang, Blick nach Sueden
+        step(*s, ev, 1.0);
+        P.listenerSet("next", 0.0);
+        step(*s, ev, 12.0, [&] { return cue(ev, l1::HC_LOST) > 0; });
+        const auto I = P.listenerInfo();
+        const int knocks = cue(ev, l1::HC_KNOCK0) + cue(ev, l1::HC_KNOCK0 + 1) + cue(ev, l1::HC_KNOCK0 + 2);
+        std::printf("  Klopfen: %d Schlaege, Runden %d, still %d\n", knocks, I.sequences, I.quiet);
+        check(I.sequences == 1 && knocks >= 3, "Horcher: klopft hinter einer verschlossenen Tuer des Gangs (3-5 Schlaege)");
+        check(cue(ev, l1::HC_LOST) == 1 && I.quiet == 1 && !P.has(Role::Listener), "Horcher: keine Antwort (still stehen) - es laesst ab, niemand kommt");
+        // --- Antwort: wer geht, den hat es gehoert - hinter ihm geht eine Zellentuer auf ---------------------------------------------
+        ev.clear();
+        P.listenerSet("next", 0.0);
+        step(*s, ev, 6.0, [&] { return P.listenerInfo().knocking; });
+        step(*s, ev, 6.0, [&] { return cue(ev, l1::HC_LISTEN) > 0; }, pace);
+        check(cue(ev, l1::HC_LISTEN) == 1 && P.listenerInfo().answers == 1, "Horcher: wer waehrend des Klopfens geht, antwortet - hinter der Tuer lauscht es");
+        step(*s, ev, 12.0, [&] { return P.has(Role::Listener); });
+        const auto I2 = P.listenerInfo();
+        check(P.has(Role::Listener) && I2.emerges == 1 && cue(ev, l1::HC_DOOR) == 1,
+              std::format("Horcher: tritt aus einer Zellentuer ({:.1f}, {:.1f}), vorher geht hinter dir eine Tuer auf", I2.pos.x, I2.pos.y));
+        check(I2.pos.x > 61.0f && std::hypot(I2.pos.x - (float)s->player().x, I2.pos.y - (float)s->player().y) >= 4.0f,
+              "Horcher: kommt aus einer Zelle, nicht naeher als 4 m");
+        // --- Laerm: der Schuss der Wurzelpistole im Gang - es jagt dorthin ------------------------------------------------------------
+        step(*s, ev, 6.0, [&] { return P.listenerInfo().state == hr::S_LISTEN; });
+        const auto& guns = s->courtyard().guns();
+        int fg = -1;
+        for (size_t i = 0; i < guns.size(); ++i) fg = guns[i].kind == 1 ? (int)i : fg;
+        check(fg >= 0, "Wurzelpistole: eine im Riss des Gangbodens");
+        if (fg >= 0) {
+            const vec3 fp = guns[(size_t)fg].pos;
+            put(*s, fp.x + 0.9, fp.y, 3.14159);  // an der Pistole im Riss (sonst reisst der Griff gleich los)
+            s->courtyard().setState("recover", fg);
+            s->courtyard().setState("grip", fg);  // der Spieler 0 haelt sie (Bild) - sie feuert nach 3,9 s
+            bool hunt = false;
+            step(*s, ev, 6.0, [&] {
+                const auto J = P.listenerInfo();
+                hunt = hunt || ((J.state == hr::S_HUNT || J.state == hr::S_STALK) && std::hypot(J.heard.x - guns[(size_t)fg].pos.x, J.heard.y - guns[(size_t)fg].pos.y) < 1.5f);
+                return hunt;
+            });
+            check(hunt, "Horcher: hoert den Knall der Wurzelpistole und geht dem Geraeusch nach");
+        }
+    }
+    // --- Jagd, Ankuendigung, Schlag: wer laut bleibt, wird getroffen ---------------------------------------------------------------
+    {
+        auto s = open(4);
+        std::vector<game::GameEvent> ev;
+        auto& P = s->presence();
+        put(*s, 58.6, 47.0, 1.5708);  // Blick nach Norden, die Zellen hinter dir
+        step(*s, ev, 1.0);
+        P.force(Role::Listener, 0.0);
+        step(*s, ev, 0.2);
+        check(P.has(Role::Listener), "Horcher: erzwungen (Skript, Test)");
+        step(*s, ev, 6.0, [&] { return P.listenerInfo().state == hr::S_LISTEN; });
+        const vec3 hp = P.listenerInfo().pos;
+        put(*s, 58.6, hp.y + 2.2, -1.5708);
+        const double h0 = s->stats().health;
+        double tWarn = -1.0, tHit = -1.0, t = 0.0;
+        step(*s, ev, 16.0, [&] {
+            const auto I = P.listenerInfo();
+            if (tWarn < 0.0 && I.state == hr::S_WARN) tWarn = t;
+            if (tHit < 0.0 && s->stats().health < h0 - 1.0) tHit = t;
+            t += 1.0 / 60.0;
+            return tHit >= 0.0;
+        }, pace);
+        std::printf("  Jagd: Ankuendigung nach %.2f s, Treffer nach %.2f s; Gesundheit %.0f -> %.1f\n", tWarn, tHit, h0, s->stats().health);
+        check(tWarn >= 0.0 && tHit > tWarn + 1.2, "Horcher: kuendigt den Schlag an (richtet sich auf, drei Schlaege in die Luft), 1,3 s spaeter trifft die Faust");
+        check(cue(ev, l1::HC_WARN) >= 1 && cue(ev, l1::HC_STRIKE) >= 1 && P.listenerInfo().strikes >= 1 && !s->stats().dead,
+              "Horcher: Schlag mit Klang, nicht sofort toedlich");
+        // Koop: im Netzzustand des Hosts (Rolle 21), Puppe beim Gast
+        std::vector<game::Presence::NetState> ns;
+        P.netStates(ns, vec3{(float)s->player().x, (float)s->player().y, 0.0f}, 8);
+        const auto it = std::find_if(ns.begin(), ns.end(), [](const auto& n) { return n.role == (int)Role::Listener; });
+        check(it != ns.end() && it->role == 21 && it->role < 40, "Horcher: im Netzzustand des Hosts (Rolle 21)");
+        if (it != ns.end()) {
+            game::Presence guest;
+            guest.netApply({*it}, 0.0);
+            check(guest.has(Role::Listener) && guest.listenerInfo().state == it->state, "Horcher: beim Gast als Puppe (Zustand wie beim Host)");
+        }
+    }
+    // --- Ausweichen: in der Ankuendigung leise weg - die Faust trifft den Beton ------------------------------------------------------
+    {
+        auto s = open(5);
+        std::vector<game::GameEvent> ev;
+        auto& P = s->presence();
+        put(*s, 58.6, 47.0, 1.5708);
+        step(*s, ev, 1.0);
+        P.force(Role::Listener, 0.0);
+        step(*s, ev, 6.0, [&] { return P.has(Role::Listener) && P.listenerInfo().state == hr::S_LISTEN; });
+        const vec3 hp = P.listenerInfo().pos;
+        put(*s, 58.6, hp.y + 2.2, -1.5708);
+        const double h0 = s->stats().health;
+        step(*s, ev, 14.0, [&] { return P.listenerInfo().state == hr::S_WARN; }, pace);
+        const bool warned = P.listenerInfo().state == hr::S_WARN;
+        put(*s, 58.6, hp.y + 5.0, -1.5708);  // leise weg (versetzt, kein Laerm)
+        step(*s, ev, 3.0);
+        check(warned && cue(ev, l1::HC_MISS) >= 1 && s->stats().health >= h0 - 1e-6, "Horcher: wer in der Ankuendigung leise weggeht, wird verfehlt");
+    }
+    // --- Licht auf dem Ohr: es kreischt und haelt inne ------------------------------------------------------------------------------
+    {
+        auto s = open(6);
+        std::vector<game::GameEvent> ev;
+        auto& P = s->presence();
+        put(*s, 58.6, 47.0, 1.5708);
+        step(*s, ev, 1.0);
+        P.force(Role::Listener, 0.0);
+        step(*s, ev, 6.0, [&] { return P.has(Role::Listener) && P.listenerInfo().state == hr::S_LISTEN; });
+        const vec3 hp = P.listenerInfo().pos;
+        put(*s, 58.6, hp.y + 4.0, -1.5708);
+        s->flashlight().charge = 100.0;
+        s->flashlight().on = true;
+        step(*s, ev, 4.0, [&] {
+            aimAt(*s, P.listenerInfo().head);
+            return P.listenerInfo().state == hr::S_FLINCH;
+        });
+        check(P.listenerInfo().state == hr::S_FLINCH && cue(ev, l1::HC_FLINCH) == 1 && P.listenerInfo().flinches == 1,
+              "Horcher: Licht auf dem Ohr - es kreischt und haelt inne");
+    }
+    // --- Hof: dort klopft es nicht ----------------------------------------------------------------------------------------------
+    {
+        auto s = open(7);
+        std::vector<game::GameEvent> ev;
+        auto& P = s->presence();
+        put(*s, 30.0, 33.0, 0.0);
+        step(*s, ev, 1.0);
+        P.listenerSet("next", 0.0);
+        step(*s, ev, 10.0);
+        check(P.listenerInfo().sequences == 0 && !P.has(Role::Listener), "Horcher: im Hof klopft es nicht (es wohnt in den Gaengen)");
+    }
+    // --- Wurzelpistole: Griff, Zuege, Schuss als Laerm, Keimling, muede; welk; Losreissen; Koop -------------------------------------
+    {
+        auto s = open(8);
+        std::vector<game::GameEvent> ev;
+        auto& C = s->courtyard();
+        int mg = -1;
+        for (size_t i = 0; i < C.guns().size(); ++i) mg = C.guns()[i].kind == 0 ? (int)i : mg;
+        check(C.guns().size() == 2 && mg >= 0, "Wurzelpistole: zwei im Level (Moos, Riss)");
+        if (mg < 0) return;
+        const vec3 gp = C.guns()[(size_t)mg].pos;
+        put(*s, gp.x - 0.9, gp.y, 0.0);
+        step(*s, ev, 1.0);
+        vec3 np;
+        float ny = 0.0f;
+        int notes = 0;
+        s->registry().each<game::NoteFind>([&](ecs::Entity, game::NoteFind& f) { notes += f.id == "trace:l188_note"; });
+        check(C.noteAt(np, ny) && notes == 1, "Wurzelpistole: der Probenzettel liegt als Fund im Moos");
+        aimAt(*s, gp + vec3{0, 0, 0.12f});
+        step(*s, ev, 0.2);
+        check(C.guns()[(size_t)mg].sense > 0.2f, "Wurzelpistole: wittert den Naechsten (die Wurzeln regen sich)");
+        const double h0 = s->stats().health;
+        s->interact();
+        step(*s, ev, 0.05);
+        check(C.guns()[(size_t)mg].state == 1 && C.guns()[(size_t)mg].victim == 0 && s->body().handHeld(),
+              "Wurzelpistole: Anfassen - sie sitzt fest, die Wurzeln schlingen sich um Hand und Unterarm");
+        double hMin = h0;
+        step(*s, ev, 7.0, [&] {
+            hMin = std::min(hMin, s->stats().health);
+            return C.guns()[(size_t)mg].state >= 3;
+        });
+        const double drained = h0 - hMin;  // die Gesundheit heilt nach (stats.cpp) - der tiefste Stand zaehlt
+        std::printf("  Wurzelpistole: %d Zuege, %.1f Blut, muede %.2f, Keimlinge %zu\n", C.guns()[(size_t)mg].drank, drained, C.tired(0), C.sprouts().size());
+        check(C.guns()[(size_t)mg].drank == 3 && drained > 7.0 && drained < 16.0, "Wurzelpistole: sie trinkt - drei Zuege (je 5, dazwischen heilt es nach)");
+        check(sound(ev, "e39_bang") == 1 && C.guns()[(size_t)mg].shots == 1 && C.sprouts().size() == 1,
+              "Wurzelpistole: die volle Kammer entlaedt sich von selbst (Knall), der Schuss keimt im Moos");
+        check(C.tired(0) < 1.0f && C.guns()[(size_t)mg].state == 3, "Wurzelpistole: danach muede, die Pistole welk");
+        step(*s, ev, 1.0);
+        check(!s->body().handHeld(), "Wurzelpistole: die Hand ist wieder frei");
+        const double h1 = s->stats().health;
+        aimAt(*s, gp + vec3{0, 0, 0.12f});
+        step(*s, ev, 0.1);
+        s->interact();
+        check(C.guns()[(size_t)mg].state == 3 && s->stats().health >= h1 - 1e-6, "Wurzelpistole: welk - anfassen tut nichts");
+        // Losreissen
+        C.setState("recover", mg);
+        put(*s, gp.x - 0.9, gp.y, 0.0);
+        aimAt(*s, gp + vec3{0, 0, 0.12f});
+        step(*s, ev, 0.2);
+        s->interact();
+        step(*s, ev, 0.5);
+        const double h2 = s->stats().health;
+        put(*s, gp.x - 3.0, gp.y, 0.0);
+        step(*s, ev, 0.5);
+        check(C.guns()[(size_t)mg].state == 4 && C.guns()[(size_t)mg].tears == 1 && s->stats().health < h2 - 4.0 && sound(ev, "e39_tear") == 1,
+              "Wurzelpistole: wer sich losreisst, reisst die Wurzeln aus dem Fleisch (Schaden, kein Schuss)");
+        check(s->stats().health >= 5.0 && !s->stats().dead, "Wurzelpistole: nie toedlich");
+        // Koop: der Host meldet Griff und Schuss als Weltereignis l188, der Gast rechnet daraus Bild und Klang
+        s->netRole = game::GameSession::NetRole::Host;
+        C.setState("recover", mg);
+        put(*s, gp.x - 0.9, gp.y, 0.0);
+        aimAt(*s, gp + vec3{0, 0, 0.12f});
+        step(*s, ev, 0.2);
+        s->netWorldOut.clear();
+        s->interact();
+        step(*s, ev, 4.5);
+        std::vector<game::GameSession::NetWorldEvent> net;
+        for (const auto& w : s->netWorldOut)
+            if (w.itemKind == game::Courtyard188::kNetName) net.push_back(w);
+        check(net.size() >= 5, std::format("Wurzelpistole: Host meldet Griff, Zuege und Schuss ({} Ereignisse l188)", net.size()));
+        auto g = open(9);
+        g->netRole = game::GameSession::NetRole::Guest;
+        g->netSelfId = 1;
+        std::vector<game::GameEvent> gev;
+        step(*g, gev, 0.5);
+        for (const auto& w : net) g->netCourtyard(w.hash, w.pos);
+        gev.insert(gev.end(), g->events().begin(), g->events().end());
+        g->events().clear();
+        check(g->courtyard().guns()[(size_t)mg].state == 2 && g->courtyard().sprouts().size() == 1 && sound(gev, "e39_bang") == 1,
+              "Wurzelpistole: beim Gast Schuss, Klang und Keimling wie beim Host");
+    }
+}
+
 int main(int argc, char** argv) {
     if (argc < 2) {
         std::printf("Aufruf: gameplay_test <data-Ordner>\n");
@@ -7465,6 +7772,11 @@ int main(int argc, char** argv) {
         return 2;
     }
     gContent11 = &content11;
+    if (argc > 2 && std::string(argv[2]) == "level188") {  // V13.3 Teil 4: nur Level 188 (schnelle Runde beim Bauen)
+        testV133Level188(argv[1]);
+        std::printf("%s: %d Pruefungen, %d Fehler\n", gFails ? "FEHLGESCHLAGEN" : "OK", gChecks, gFails);
+        return gFails ? 1 : 0;
+    }
     testJump();
     testExplore(content);
     testBody();
@@ -7503,6 +7815,7 @@ int main(int argc, char** argv) {
     testV133Level3Rest(argv[1]);     // V13.3: Level 3 - Smiler ohne Anlass, Red Knight
     testV133Level5Hotel(argv[1]);    // V13.3 Teil 4: Level 5 - Samantha, Kolonien, Woodlins, Watchers, Gastgeber
     testV133Level53Gentleman(argv[1]);  // V13.3 Teil 4: Level 5.3 - der Hausherr, Wissen der Bibliothek
+    testV133Level188(argv[1]);          // V13.3 Teil 4: Level 188 - der Horcher, die Wurzelpistole
     std::printf("%s: %d Pruefungen, %d Fehler\n", gFails ? "FEHLGESCHLAGEN" : "OK", gChecks, gFails);
     return gFails ? 1 : 0;
 }

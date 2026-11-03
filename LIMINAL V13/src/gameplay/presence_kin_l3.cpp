@@ -18,6 +18,7 @@
 #include "gameplay/hotel_l5.hpp"  // V13.3 Teil 4 Level 5: Saetze der Samantha
 #include "gameplay/kin_l3.hpp"
 #include "gameplay/library_l53.hpp"  // V13.3 Teil 4 Level 5.3: Saetze des Hausherrn
+#include "gameplay/listener_l188.hpp"  // V13.3 Teil 4 Level 188: Klaenge des Horchers
 #include "gameplay/presence.hpp"
 #include "gameplay/presence_agent.hpp"
 
@@ -138,10 +139,12 @@ bool kinRole(int role) {
            role == (int)Presence::Role::Moth ||  // V13.3 Level 3: Death Rats, Deathmoths (Klangnummern ab KC_RAT_SAY0)
            role == (int)Presence::Role::Hound || role == (int)Presence::Role::Clump ||  // V13.3 Level 2/3: Rudel, grosses Buendel
            role == (int)Presence::Role::Samantha ||  // V13.3 Teil 4 Level 5: Samantha (Saetze ab 300, hotel_l5.hpp)
-           role == (int)Presence::Role::Gentleman;   // V13.3 Teil 4 Level 5.3: der Hausherr (ab 700, library_l53.hpp)
+           role == (int)Presence::Role::Gentleman ||  // V13.3 Teil 4 Level 5.3: der Hausherr (ab 700, library_l53.hpp)
+           role == (int)Presence::Role::Listener;     // V13.3 Teil 4 Level 188: der Horcher (ab 800, listener_l188.hpp)
 }
 
 const KinLine* kinLine(int cue) {
+    if (cue >= 800) return l188::listenerLine(cue - 800);  // V13.3 Teil 4 Level 188: der Horcher (synth_listener.cpp)
     if (cue >= 700) return lib53::gentLine(cue - 700);  // V13.3 Teil 4 Level 5.3: der Hausherr, die Bibliothek (synth_gentleman.cpp)
     if (cue >= 300) return hotel::samLine(cue - 300);  // V13.3 Teil 4 Level 5: Samantha (synth_hotel.cpp)
     if (cue >= 200) return knightLine(cue);           // V13.3 Level 3: Red Knight (presence_knight.cpp)
@@ -159,6 +162,7 @@ const KinLine* kinLineBySound(const std::string& s) {
     if (const KinLine* L = knightLineBySound(s)) return L;   // V13.3 Level 3: Red Knight
     if (const KinLine* L = hotel::samLineBySound(s)) return L;  // V13.3 Teil 4 Level 5: Samantha
     if (const KinLine* L = lib53::gentLineBySound(s)) return L;  // V13.3 Teil 4 Level 5.3: der Hausherr, die Bibliothek
+    if (const KinLine* L = l188::listenerLineBySound(s)) return L;  // V13.3 Teil 4 Level 188: der Horcher
     return packLineBySound(s);                                // V13.3 Level 2/3
 }
 
