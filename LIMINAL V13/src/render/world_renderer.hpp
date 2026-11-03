@@ -87,6 +87,10 @@ enum FixedMaterial : u32 {
     FM_ENT_RK_PURPLE_GLOW,
     // V13.3 Wow-Check Level 3 (KREATUR_SkinStealer.md, KREATUR_Wretch.md): faulige Stellen des Skin-Stealers; Schorf und Pusteln des Wretch
     FM_ENT_SS_ROT, FM_ENT_WRE_CRUST, FM_ENT_WRE_PUS,
+    // V13.3 Abnahme Level 3 (KREATUR_Clump.md): tote Glieder (zwei Toene) und Kern des grossen Buendels in dessen eigener Haut
+    FM_ENT_CL_DEAD_A, FM_ENT_CL_DEAD_B, FM_ENT_CL_CORE,
+    // V13.3 Abnahme Level 3 (KREATUR_Faceling.md): Haut und Haar des entwickelten Facelings (stumpf statt Puppe und Gummibart)
+    FM_ENT_FC_SKIN, FM_ENT_FC_HAIR,
     FM_FIG_END,
 };
 static_assert(FM_FIG_END <= kFixedMaterials);

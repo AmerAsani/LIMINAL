@@ -341,6 +341,17 @@
     "188"
    ],
    "antitile": 1
+  },
+  {
+   "name": "ps_photos",
+   "id": "EIGEN-ps_photos",
+   "levels": [
+    "2"
+   ],
+   "generator": "ps_photos",
+   "meters": 1.0,
+   "normal_strength": 0.6,
+   "variation": 0.0
   }
  ]
 }

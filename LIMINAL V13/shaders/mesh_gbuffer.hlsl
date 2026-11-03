@@ -23,7 +23,7 @@ Texture2DArray gEntAlbedo : register(t6);
 Texture2DArray gEntNormal : register(t7);
 Texture2DArray gEntOrm : register(t8);
 Texture2DArray gEntMicro : register(t9);
-static const uint kEntLayerSlot = 96, kMicroLayerSlot = 108;  // V12, V13.2, V13.3: Haut des Wretch (texture_entity.hpp)
+static const uint kEntLayerSlot = 96, kMicroLayerSlot = 109;  // V12, V13.2, V13.3: Haut des Wretch, Haut des grossen Buendels (texture_entity.hpp)
 
 struct VSIn
 {

@@ -386,6 +386,9 @@ public:
         bool slashed = false, rift = false, seen = false;
     };
     void knightLights(std::vector<std::pair<vec3, vec3>>& out, vec3 near) const;
+    // V13.3 Abnahme Level 3 (presence_moth_l3.cpp): Motten des Schwarms im Gesicht (naeher als 0,3 m am Auge; Wirt und Gast)
+    // - Fuelllicht und Fluegelstaub vor der Kamera (app.cpp), damit Fluegel, Beine und Staub lesbar sind
+    int mothFaceCount(vec3 eye) const;
     KnightInfo knightInfo() const;
     bool knightSet(const std::string& key, double v);
     static constexpr int kKnightVariant = 4;

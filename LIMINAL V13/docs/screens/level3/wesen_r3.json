@@ -1,0 +1,106 @@
+{
+ "shots": [
+  "bigclump_1.png",
+  "bigclump_2.png",
+  "bigclump_3.png",
+  "bigclump_4.png",
+  "bigclump_5.png",
+  "bigclump_6.png",
+  "bigclump_7.png",
+  "clump_1.png",
+  "clump_2.png",
+  "pack_1.png",
+  "pack_2.png",
+  "pack_3.png",
+  "pack_4.png",
+  "faceling_1.png",
+  "faceling_2.png",
+  "skinstealer_1.png",
+  "skinstealer_2.png",
+  "skinstealer_3.png",
+  "wretch_1.png",
+  "wretch_2.png",
+  "wretch_3.png",
+  "rat_1.png",
+  "rat_2.png",
+  "rat_3.png",
+  "rat_4.png",
+  "rat_5.png",
+  "rat_6.png",
+  "moth_1.png",
+  "moth_2.png",
+  "moth_3.png",
+  "moth_4.png",
+  "moth_5.png",
+  "prae_1.png",
+  "prae_2.png",
+  "prae_3.png",
+  "smiler_1.png",
+  "smiler_2.png",
+  "knight_1.png",
+  "knight_2.png",
+  "knight_3.png",
+  "knight_4.png",
+  "knight_5.png",
+  "knight_6.png",
+  "knight_7.png",
+  "knight_8.png",
+  "knight_9.png",
+  "knight_10.png",
+  "purple_1.png",
+  "purple_2.png",
+  "purple_3.png",
+  "purple_4.png",
+  "purple_5.png"
+ ],
+ "bigclump": {
+  "exit": 0,
+  "warn": []
+ },
+ "clump": {
+  "exit": 0,
+  "warn": [
+   "19:39:21.963 WARN  Skript: near - kein Clump"
+  ]
+ },
+ "pack": {
+  "exit": 0,
+  "warn": []
+ },
+ "faceling": {
+  "exit": 0,
+  "warn": []
+ },
+ "skinstealer": {
+  "exit": 0,
+  "warn": []
+ },
+ "wretch": {
+  "exit": 0,
+  "warn": []
+ },
+ "rat": {
+  "exit": 0,
+  "warn": []
+ },
+ "moth": {
+  "exit": 0,
+  "warn": []
+ },
+ "prae": {
+  "exit": 0,
+  "warn": []
+ },
+ "smiler": {
+  "exit": 0,
+  "warn": []
+ },
+ "knight": {
+  "exit": 0,
+  "warn": []
+ },
+ "purple": {
+  "exit": 0,
+  "warn": []
+ }
+}

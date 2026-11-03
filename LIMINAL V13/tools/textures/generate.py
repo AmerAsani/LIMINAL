@@ -312,7 +312,18 @@ def tuff(dst, size=1024):
     _save_set(dst, alb, h, rough, metal, k=7.0, ao=1.0 - 0.4 * pores)
 
 
-GENERATORS = {'damask': damask, 'books': books, 'tuff': tuff}
+def ps_photos(dst, size=1024):
+    """V13.3: Fotoatlas fuer Photoshop (Entity 104) aus den Blender-Fotos (ps_photos_render.py -> build/qa/ps_photos).
+    Ohne Renderbilder bleibt der vorhandene Atlas stehen (Rendern dauert; der Atlas ist im Repository)."""
+    import ps_photos_atlas  # noqa: E402 (liegt neben diesem Skript)
+    src = os.path.join(ps_photos_atlas.ROOT, 'build', 'qa', 'ps_photos')
+    if os.path.isfile(os.path.join(src, 'mouth.png')):
+        ps_photos_atlas.build(src, dst)
+    elif not os.path.isfile(os.path.join(dst, 'albedo.jpg')):
+        raise SystemExit('ps_photos: weder Renderbilder noch Atlas - erst tools/textures/ps_photos_render.py in Blender')
+
+
+GENERATORS = {'damask': damask, 'books': books, 'tuff': tuff, 'ps_photos': ps_photos}
 
 if __name__ == '__main__':
     GENERATORS[sys.argv[1]](sys.argv[2])

@@ -543,4 +543,65 @@ for (model, rooms, ext, tag) in PURPLE:
     m.obj(model, fx, fy, R.floor, fyaw, tag='emergency')
     m.spawn('trace', fx + math.cos(fyaw) * 0.3, fy + math.sin(fyaw) * 0.3, R.floor, fyaw, tags=[tag], set='purple')  # 0,3 m vor der Wand
 
+# V13.3 Abnahme Level 3 (KRITIK_Level3.md, Runde 3): die Gangnetze waren auf langen Strecken kahl - nur Ziegel und die
+# Kabelleiter unter der Decke (Laufweg 80-200 m). Das Wiki: Elektrokaesten, Kabel und alte Geraete ueberall, Rohre mit
+# schwarzer Fluessigkeit an den Waenden. Eigener Zufall, ganz am Ende: alles andere (auch die purpifizierten Wesen) bleibt
+# unveraendert. Nur Wandteile ab 0,9 m Hoehe (Verteiler, Schaltkaesten mit Panzerrohr zur Decke, Bilder) und Rohre nur an
+# der Rohrwand enger Gaenge - kein Gang wird enger (room_metrics). Abstand zu Ausstattung, Wesen-Plaetzen, Spuren.
+nrng = _random.Random(3304)
+NET_ADDED = {}
+
+
+def net_free(R, fx, fy, yaw, half):
+    """Wandstelle frei: kein Wandteil derselben Wand naeher als half (laengs), keine Wesen-Plaetze, keine Spuren."""
+    nx, ny = math.cos(yaw), math.sin(yaw)
+    for o in m.objects:
+        if o['model'] == 'cable_tray' or not R.contains(o['pos'][0], o['pos'][1]):
+            continue
+        dx, dy = o['pos'][0] - fx, o['pos'][1] - fy
+        dn, ds = dx * nx + dy * ny, abs(-dx * ny + dy * nx)
+        if dn < 0.9 and ds < (max(half, 3.4) if o['model'] == 'pipe_black' else half):
+            return False
+    for s_ in m.spawns:
+        d = math.hypot(s_['pos'][0] - fx, s_['pos'][1] - fy)
+        if d < (3.6 if s_['kind'] == 'trace' else 1.3):
+            return False
+    return True
+
+
+PIPE_NET = 0.82  # Rohrstrang auf 82 %: 4,8 m statt 5,8 m - passt auf die 5-m-Wand eines Netzstuecks (Bogen in die Wand)
+for r in maze:
+    R = m.R(r)
+    pipes = [o for o in m.objects if o['model'] == 'pipe_black' and R.contains(o['pos'][0], o['pos'][1])]
+    pipe_yaw = pipes[0].get('yaw', 0.0) if pipes else None
+    narrow = min(R.w, R.h) < 3
+    if not pipes and nrng.random() < 0.6:
+        runs = [(yaw, run) for yaw, run in wall_runs(r, margin=0) if len(run) >= 5]
+        nrng.shuffle(runs)
+        for yaw, run in runs:
+            j = (len(run) - 5) // 2
+            fx, fy = (run[j][0] + run[j + 4][0]) / 2, (run[j][1] + run[j + 4][1]) / 2
+            if net_free(R, fx, fy, yaw, 2.6):
+                m.obj('pipe_black', fx, fy, R.floor, yaw, scale=[PIPE_NET] * 3, variant=nrng.randrange(2), tag='pipes')
+                pipes, pipe_yaw = [m.objects[-1]], yaw
+                NET_ADDED['pipe_black'] = NET_ADDED.get('pipe_black', 0) + 1
+                break
+    for yaw, run in wall_runs(r):
+        for k in range(1, len(run) - 1, 2):
+            fx, fy = run[k]
+            u = nrng.random()
+            if u < 0.3:
+                pick = ('junction_box', R.floor + 1.5, nrng.randrange(4))
+            elif u < 0.48:
+                pick = ('power_box', R.floor + 1.5, 0)
+            elif u < 0.55:
+                pick = ('painting_angel' if nrng.random() < 0.6 else 'painting_angel_scribbled', R.floor + 1.55, nrng.randrange(2))
+            else:
+                continue
+            if not net_free(R, fx, fy, yaw, 1.35):
+                continue
+            m.obj(pick[0], fx, fy, pick[1], yaw, variant=pick[2], tag='deco')
+            NET_ADDED[pick[0]] = NET_ADDED.get(pick[0], 0) + 1
+print('Gangnetze, ergaenzt:', NET_ADDED)
+
 m.save()

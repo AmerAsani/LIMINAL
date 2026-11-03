@@ -67,9 +67,11 @@ PS_ARM = (0.62, 0.56)
 def _mats():
     return {
         # Automat
-        'lack0': mat('cc_lack_rot', (0.52, 0.06, 0.05), 'paint', r=0.75),
-        'lack1': mat('cc_lack_blau', (0.07, 0.16, 0.42), 'paint', r=0.75),
-        'lack2': mat('cc_lack_schwarz', (0.06, 0.06, 0.065), 'paint', r=0.7),
+        # Abnahme Level 2: Lack mit Gebrauchsspuren (Textur mit Kratzern, Abplatzern, Schmutz; UV aus _box_uv) - vorher
+        # glatt wie neu, der Automat wirkte wie ein Spielzeug
+        'lack0': mat('cc_lack_rot', (0.52, 0.06, 0.05), 'paint', tex='painted_metal_white', r=0.9),
+        'lack1': mat('cc_lack_blau', (0.07, 0.16, 0.42), 'paint', tex='painted_metal_white', r=0.9),
+        'lack2': mat('cc_lack_schwarz', (0.06, 0.06, 0.065), 'paint', tex='painted_metal_grey', r=0.85),
         'trim': mat('cc_chrom', (0.78, 0.78, 0.80), 'metal', r=0.45),
         'dark': mat('cc_dunkel', (0.03, 0.03, 0.035), 'plastic', r=1.2),
         'cavity': mat('cc_hohlraum', (0.015, 0.012, 0.012), 'plastic', r=1.4),
@@ -145,6 +147,20 @@ def text_on(bm, s, size, o, u, v, depth=0.0, align='CENTER', bold=False):
     ev.to_mesh_clear()
     bpy.data.objects.remove(ob)
     bpy.data.curves.remove(cu)
+
+
+def _box_uv(bm, meters=2.0):
+    """UV nach der groessten Normalenkomponente (wie die Projektion der festen Ausstattung), in Textureinheiten:
+    bewegliche Modelle tasten ihre Textur ueber die UV ab - ohne UV waere sie einfarbig."""
+    uvl = bm.loops.layers.uv.verify()
+    bm.normal_update()
+    for f in bm.faces:
+        n = f.normal
+        ax = max(range(3), key=lambda i: abs(n[i]))
+        for lp in f.loops:
+            p = lp.vert.co
+            u, v = ((p.y, p.z), (p.x, p.z), (p.x, p.y))[ax]
+            lp[uvl].uv = (u / meters + 0.37 * ax, v / meters + 0.21 * ax)
 
 
 def quad(bm, a, b, c, d):
@@ -437,6 +453,7 @@ def build_cc_body(v=0):
         z0 = rng.uniform(0.35, 0.6)
         poly_on(K(M['dark']), L1.stroke([(y0, z0), (y0 + rng.uniform(-0.03, 0.03), z0 + rng.uniform(0.01, 0.05))], 0.0016), V((fx + 0.0005, 0, 0)), (0, 1, 0), (0, 0, 1))
     sweep(K(M['blood']), [(fx - 0.004, -0.2, 0.37), (fx + 0.001, -0.205, 0.33), (fx + 0.002, -0.21, 0.30)], [0.004, 0.0035, 0.002], 5)
+    _box_uv(bL)
     K.finish()
 
 
@@ -457,6 +474,7 @@ def build_cc_flap_top(v=0):
     # lokales System: Gelenk bei (0, 0, 0); die Klappe haengt nach unten (z < 0), Vorderseite bei x = +0.02
     h = CC_FLAP_TOP[1] - 1.64
     box(K(M[lack]), (-0.0, -hw, -h), (0.02, hw, 0.0))
+    _box_uv(K(M[lack]))
     box(K(M[glow]), (0.02, -hw + 0.03, -h + 0.02), (0.026, hw - 0.03, -0.02))
     text_on(K(M['hlk']), word, 0.085, (0.0262, 0.0, -h / 2), (0, 1, 0), (0, 0, 1), 0.003)
     box(K(M['trim']), (0.02, -hw, -h), (0.03, hw, -h + 0.012))
@@ -759,208 +777,182 @@ def build_sb_foot():
 
 
 # --- Photoshop -----------------------------------------------------------------------------------------------------------
+# V13.3 Abnahme Level 2: Die Fotos sind echte Aufnahmen gebauter Szenen (tools/textures/ps_photos_render.py, Blender/Cycles:
+# rohes Fleisch, Innereien, Haut, zwei Augen, das aufgerissene Maul eines Pitbulls), als Abzuege mit Papierrand, Blitzabfall,
+# Korn, blutigen Fingerabdruecken im Atlas data/textures/ps_photos (tools/textures/ps_photos_atlas.py). Vorher waren Augen
+# und Maul aus farbigen Flaechen gelegt und wirkten wie ein gezeichnetes Comicgesicht.
+PS_ATLAS = 2048
+PS_MEATS = ['meat_steak', 'meat_mince', 'meat_belly', 'meat_liver', 'meat_osso', 'meat_guts', 'meat_tongue', 'meat_skin']
+PS_CELLS = {'mouth': (0, 0, 1024, 768), 'eye_a': (1024, 0, 2048, 400), 'eye_b': (1024, 400, 2048, 800),
+            'screen': (0, 1824, 272, 2048), 'back': (272, 1824, 528, 2048)}
+for _i, _n in enumerate(PS_MEATS):  # gleich in tools/textures/ps_photos_atlas.py (CELLS)
+    PS_CELLS[_n] = ((_i % 4) * 512, 800 + (_i // 4) * 512, (_i % 4) * 512 + 512, 800 + (_i // 4) * 512 + 512)
+
+
 def _ps_mats():
     return {
-        'block': mat('ps_klotz', (0.28, 0.12, 0.11), 'plastic', r=1.0),
-        'paper': mat('ps_fotorand', (0.94, 0.93, 0.90), 'plastic', r=0.6),
-        'flesh': mat('ps_fleisch', (0.66, 0.20, 0.20), 'plastic', r=0.3),
-        'flesh_d': mat('ps_fleisch_dunkel', (0.36, 0.06, 0.07), 'plastic', r=0.35),
-        'flesh_l': mat('ps_fleisch_hell', (0.88, 0.46, 0.44), 'plastic', r=0.25),
-        'fat': mat('ps_fett', (0.92, 0.84, 0.66), 'plastic', r=0.35),
-        'vein': mat('ps_ader', (0.28, 0.12, 0.30), 'plastic', r=0.4),
-        'shine': mat('ps_glanz', (0.98, 0.86, 0.84), 'plastic', r=0.15),
-        'skin': mat('ps_haut', (0.86, 0.68, 0.58), 'plastic', r=0.5),
-        'skin_d': mat('ps_haut_falte', (0.55, 0.38, 0.32), 'plastic', r=0.55),
-        'sclera': mat('ps_augapfel', (0.95, 0.92, 0.88), 'plastic', r=0.25),
-        'redvein': mat('ps_aederchen', (0.75, 0.15, 0.14), 'plastic', r=0.3),
-        'iris_a': mat('ps_iris_gruen', (0.30, 0.42, 0.20), 'plastic', r=0.3),
-        'iris_b': mat('ps_iris_braun', (0.36, 0.22, 0.10), 'plastic', r=0.3),
-        'iris_r': mat('ps_iris_rand', (0.10, 0.10, 0.08), 'plastic', r=0.3),
-        'pupil': mat('ps_pupille', (0.01, 0.01, 0.01), 'plastic', r=0.2),
-        'catch': mat('ps_lichtpunkt', (1.0, 1.0, 1.0), 'plastic', r=0.1),
-        'lash': mat('ps_wimper', (0.05, 0.035, 0.03), 'plastic', r=0.9),
-        'lid': mat('ps_lidrand', (0.85, 0.45, 0.42), 'plastic', r=0.3),
-        'fur': mat('ps_fell', (0.62, 0.48, 0.34), 'plastic', r=1.1),
-        'fur_d': mat('ps_fell_dunkel', (0.30, 0.22, 0.16), 'plastic', r=1.1),
-        'fur_w': mat('ps_fell_weiss', (0.86, 0.84, 0.80), 'plastic', r=1.1),
-        'lip': mat('ps_lefze', (0.05, 0.04, 0.04), 'plastic', r=0.5),
-        'gum': mat('ps_zahnfleisch', (0.80, 0.40, 0.44), 'plastic', r=0.3),
-        'gum_d': mat('ps_zahnfleisch_dunkel', (0.25, 0.12, 0.14), 'plastic', r=0.4),
-        'tooth': mat('ps_zahn', (0.95, 0.92, 0.82), 'plastic', r=0.3),
-        'tongue': mat('ps_zunge', (0.86, 0.42, 0.48), 'plastic', r=0.25),
-        'throat': mat('ps_schlund', (0.12, 0.02, 0.03), 'plastic', r=0.5),
-        'nose': mat('ps_nase', (0.04, 0.035, 0.035), 'plastic', r=0.3),
-        'drool': mat('ps_geifer', (0.92, 0.90, 0.88), 'plastic', r=0.1),
-        'armskin': mat('ps_armhaut', (0.90, 0.89, 0.86), 'plastic', r=0.75),
-        'armskin_d': mat('ps_armhaut_falte', (0.70, 0.68, 0.66), 'plastic', r=0.8),
+        # Grund des Klotzes zwischen den Abzuegen: durchgeweichter Kleister, Blut, dunkel und feucht
+        'block': mat('ps_klotz', (0.16, 0.035, 0.035), 'plastic', r=0.55),
+        'photo': mat('ps_foto', (1.0, 1.0, 1.0), 'sign', tex='ps_photos', r=0.85),
         'blood': mat('ps_blut', (0.40, 0.02, 0.02), 'plastic', r=0.2),
         'blood_d': mat('ps_blut_alt', (0.16, 0.01, 0.01), 'plastic', r=0.35),
+        'blood_wet': mat('ps_blut_nass', (0.22, 0.008, 0.01), 'plastic', r=0.12),
+        'armskin': mat('ps_armhaut', (0.90, 0.89, 0.86), 'plastic', r=0.75),
+        'armskin_d': mat('ps_armhaut_falte', (0.70, 0.68, 0.66), 'plastic', r=0.8),
         'nail': mat('ps_nagel', (0.80, 0.76, 0.70), 'plastic', r=0.35),
         'edge': mat('ps_kante', (0.01, 0.01, 0.01), 'plastic', r=1.3),
         'handle': mat('ps_anfasser', (0.96, 0.96, 0.96), 'plastic', r=0.9),
-        'sg_red': mat('ps_schirm_rot', (1.0, 0.16, 0.12), 'glow', glow=1.4),
-        'sg_pink': mat('ps_schirm_rosa', (1.0, 0.55, 0.5), 'glow', glow=1.2),
-        'sg_dark': mat('ps_schirm_dunkel', (0.35, 0.02, 0.03), 'glow', glow=0.6),
-        'sg_white': mat('ps_schirm_weiss', (1.0, 0.95, 0.92), 'glow', glow=1.6),
-        'sg_black': mat('ps_schirm_schwarz', (0.02, 0.0, 0.0), 'plastic', r=0.6),
+        'screen': mat('ps_schirm', (0.85, 0.85, 0.85), 'sign', tex='ps_photos', glow=1.3),
     }
 
 
-def _flesh_photo(K, M, o, U, W, w, h, rng, border=0.018):
-    """Fleischfoto (Rand aus Fotopapier): marmoriertes Muskelfleisch, Fettadern, feuchte Lichter, Aederchen."""
-    n = V(U).cross(V(W)).normalized()
-    poly_on(K(M['paper']), [(-w / 2, -h / 2), (w / 2, -h / 2), (w / 2, h / 2), (-w / 2, h / 2)], o, U, W)
-    o1 = o + n * 0.0008
-    iw, ih = w / 2 - border, h / 2 - border
-    poly_on(K(M['flesh']), [(-iw, -ih), (iw, -ih), (iw, ih), (-iw, ih)], o1, U, W)
-    o2 = o + n * 0.0016
-
-    def inside(pts):
-        return [(max(-iw, min(iw, a)), max(-ih, min(ih, b))) for (a, b) in pts]
-    for _ in range(int(w * h * 70) + 6):
-        cx, cy = rng.uniform(-iw, iw), rng.uniform(-ih, ih)
-        poly_on(K(M['flesh_d']), inside(blob2(rng, cx, cy, rng.uniform(0.03, 0.12) * w, rng.uniform(0.02, 0.06) * h, 12, 0.45)), o2, U, W)
-    o3 = o + n * 0.0024
-    for _ in range(int(w * h * 55) + 5):  # Fettadern: lange, gewundene Striche
-        cx, cy = rng.uniform(-iw, iw), rng.uniform(-ih, ih)
-        pts = [(cx, cy)]
-        a = rng.uniform(0, TAU)
-        for k in range(rng.randint(3, 7)):
-            a += rng.uniform(-0.7, 0.7)
-            cx, cy = cx + math.cos(a) * 0.04 * w, cy + math.sin(a) * 0.03 * h
-            pts.append((max(-iw, min(iw, cx)), max(-ih, min(ih, cy))))
-        poly_on(K(M['fat']), L1.stroke(pts, rng.uniform(0.004, 0.012)), o3, U, W)
-    o4 = o + n * 0.0032
-    for _ in range(int(w * h * 30) + 3):
-        cx, cy = rng.uniform(-iw, iw), rng.uniform(-ih, ih)
-        poly_on(K(M['vein']), L1.stroke([(cx, cy), (cx + rng.uniform(-0.05, 0.05), cy + rng.uniform(-0.05, 0.05)),
-                                         (cx + rng.uniform(-0.08, 0.08), cy + rng.uniform(-0.08, 0.08))], 0.0025), o4, U, W)
-        cx, cy = rng.uniform(-iw, iw), rng.uniform(-ih, ih)
-        poly_on(K(M['shine' if rng.random() < 0.6 else 'flesh_l']), inside(blob2(rng, cx, cy, 0.012 + 0.02 * rng.random(), 0.006 + 0.01 * rng.random(), 9, 0.3)), o4, U, W)
+def _cell_uv(name):
+    """Zelle des Atlas als Blender-UV (u0, v0, u1, v1; v nach oben)."""
+    x0, y0, x1, y1 = PS_CELLS[name]
+    return x0 / PS_ATLAS, 1.0 - y1 / PS_ATLAS, x1 / PS_ATLAS, 1.0 - y0 / PS_ATLAS
 
 
-def _eye_photo(K, M, o, U, W, w, h, rng, iris='iris_a', look=(0.0, 0.0)):
-    """Augenfoto: Haut, Lidspalte, Augapfel mit Aederchen, Iris mit Strahlen, Pupille, Lichtpunkt, Wimpern, Braue."""
-    n = V(U).cross(V(W)).normalized()
-    d = lambda k: o + n * (0.0008 * k)
-    poly_on(K(M['paper']), [(-w / 2, -h / 2), (w / 2, -h / 2), (w / 2, h / 2), (-w / 2, h / 2)], d(0), U, W)
-    iw, ih = w / 2 - 0.012, h / 2 - 0.012
-    poly_on(K(M['skin']), [(-iw, -ih), (iw, -ih), (iw, ih), (-iw, ih)], d(1), U, W)
-    for i in range(5):
-        y = -ih + ih * 0.3 + i * ih * 0.09
-        poly_on(K(M['skin_d']), L1.stroke([(-iw * 0.85, y), (0, y - 0.006), (iw * 0.85, y)], 0.0018), d(2), U, W)
-    poly_on(K(M['skin_d']), L1.stroke([(-iw * 0.8, ih * 0.52), (0, ih * 0.66), (iw * 0.8, ih * 0.45)], 0.003), d(2), U, W)  # Lidfalte
-    poly_on(K(M['lash']), L1.stroke([(-iw * 0.9, ih * 0.85), (-iw * 0.2, ih * 0.98), (iw * 0.7, ih * 0.9)], 0.012), d(2), U, W)  # Braue
-    ew, eh = iw * 0.78, ih * 0.42
-    lid = [(ew * math.cos(a), eh * math.sin(a) * (1.0 if math.sin(a) > 0 else 0.75)) for a in [k * TAU / 28 for k in range(28)]]
-    poly_on(K(M['lid']), [(x * 1.05, y * 1.1) for (x, y) in lid], d(3), U, W)
-    poly_on(K(M['sclera']), lid, d(4), U, W)
-    for _ in range(9):
-        a = rng.uniform(0, TAU)
-        sx, sy = math.cos(a) * ew * 0.95, math.sin(a) * eh * 0.7
-        poly_on(K(M['redvein']), L1.stroke([(sx, sy), (sx * 0.75 + rng.uniform(-0.004, 0.004), sy * 0.7), (sx * 0.5, sy * 0.45 + rng.uniform(-0.004, 0.004))], 0.0012), d(5), U, W)
-    for _ in range(120):  # Runde 3: Poren und Haerchen auf der Haut (vorher glatt wie gemalt)
-        x, y = rng.uniform(-iw, iw), rng.uniform(-ih, ih)
-        if abs(x) < ew * 1.05 and abs(y) < eh * 1.1:
+def _ps_card(K, M, place, cx, cz, w, h, rot, cell, layer, rng, peel=0.0, n=8, back=True):
+    """Abzug als leicht gewelltes Gitter: place(s, z, d) -> Punkt (s quer, z hoch, d nach aussen). peel > 0: eine Ecke
+    loest sich und biegt sich ab (dann mit Rueckseite aus Fotopapier). Die Ecken des Rasters liegen auf dem Bildrand."""
+    bm = K(M['photo'])
+    uvl = bm.loops.layers.uv.verify()
+    u0, v0, u1, v1 = _cell_uv(cell)
+    corner = rng.randrange(4)
+    ca, sa = math.cos(rot), math.sin(rot)
+    wav = (rng.uniform(0, TAU), rng.uniform(0, TAU))
+
+    def peeled(i, j):
+        if peel <= 0:
+            return 0.0
+        ka = (i / n) if corner in (1, 2) else 1 - i / n
+        kb = (j / n) if corner in (2, 3) else 1 - j / n
+        q = max(0.0, ka + kb - 1.35)
+        return peel * q * q * 2.5
+
+    def pt(i, j, off):
+        a, b = (i / n - 0.5) * w, (j / n - 0.5) * h
+        lift = 0.0018 * math.sin(a * 9 + wav[0]) * math.sin(b * 7 + wav[1]) + 0.0012 + peeled(i, j)
+        s, z = cx + a * ca - b * sa, cz + a * sa + b * ca
+        return place(s, z, layer + lift + off)
+    for off, flip, uvc in ((0.0, False, (u0, v0, u1, v1)), (-0.0015, True, _cell_uv('back'))):
+        if flip and not (back and peel > 0):
             continue
-        poly_on(K(M['skin_d']), [(x + 0.0012 * math.cos(a), y + 0.0012 * math.sin(a)) for a in [k * TAU / 5 for k in range(5)]], d(2), U, W)
-    ic = (look[0] * ew * 0.3, look[1] * eh * 0.2)
-    ir = eh * 0.95
-    clip = lambda pts: [(x, max(-eh * 0.75, min(eh * 0.98, y))) for (x, y) in pts]
-    poly_on(K(M['iris_r']), clip([(ic[0] + ir * math.cos(a), ic[1] + ir * math.sin(a)) for a in [k * TAU / 24 for k in range(24)]]), d(6), U, W)
-    poly_on(K(M[iris]), clip([(ic[0] + ir * 0.88 * math.cos(a), ic[1] + ir * 0.88 * math.sin(a)) for a in [k * TAU / 24 for k in range(24)]]), d(7), U, W)
-    for k in range(22):
-        a = k * TAU / 22 + rng.uniform(-0.08, 0.08)
-        p0, p1 = (ic[0] + ir * 0.35 * math.cos(a), ic[1] + ir * 0.35 * math.sin(a)), (ic[0] + ir * 0.85 * math.cos(a), ic[1] + ir * 0.85 * math.sin(a))
-        if -eh * 0.75 < p1[1] < eh * 0.98:
-            poly_on(K(M['iris_b' if iris == 'iris_a' else 'iris_r']), L1.stroke([p0, p1], 0.0016), d(8), U, W)
-    poly_on(K(M['pupil']), [(ic[0] + ir * 0.34 * math.cos(a), ic[1] + ir * 0.34 * math.sin(a)) for a in [k * TAU / 16 for k in range(16)]], d(9), U, W)
-    poly_on(K(M['catch']), [(ic[0] + ir * 0.3 + 0.006 * math.cos(a), ic[1] + ir * 0.3 + 0.005 * math.sin(a)) for a in [k * TAU / 8 for k in range(8)]], d(10), U, W)
-    poly_on(K(M['skin']), [(-ew * 1.2, eh * 0.98), (ew * 1.2, eh * 0.98), (ew * 1.2, ih), (-ew * 1.2, ih)], d(5), U, W)  # Oberlid deckt
-    for k in range(16):  # Wimpern oben
-        t = (k + 0.5) / 16
-        x = -ew + 2 * ew * t
-        y = eh * math.sqrt(max(0.0, 1.0 - (x / ew) ** 2)) * 0.98
-        poly_on(K(M['lash']), L1.stroke([(x, y), (x * 1.08, y + 0.012 + 0.004 * math.sin(k)), (x * 1.15, y + 0.017)], 0.0013), d(11), U, W)
+        g = [[bm.verts.new(pt(i, j, off)) for j in range(n + 1)] for i in range(n + 1)]
+        for i in range(n):
+            for j in range(n):
+                q = [g[i][j], g[i + 1][j], g[i + 1][j + 1], g[i][j + 1]]
+                if flip:  # Rueckseite nur, wo sich das Papier abhebt (flach liegt sie am Klotz und flimmerte durch)
+                    if max(peeled(a, b) for (a, b) in ((i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1))) < 0.004:
+                        continue
+                uvs = [(i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1)]
+                if flip:
+                    q, uvs = q[::-1], uvs[::-1]
+                f = bm.faces.new(q)
+                for lp, (a, b) in zip(f.loops, uvs):
+                    fa = a / n if not flip else 1 - a / n
+                    lp[uvl].uv = (uvc[0] + (uvc[2] - uvc[0]) * fa, uvc[1] + (uvc[3] - uvc[1]) * b / n)
+        loose = [v for row in g for v in row if not v.link_faces]
+        if loose:
+            bmesh.ops.delete(bm, geom=loose, context='VERTS')
 
 
-def _mouth_photo(K, M, o, U, W, w, h, rng):
-    """Foto eines weit aufgerissenen Pitbull-Mauls: Fell, schwarze Lefzen, Zahnfleisch, Eck- und Schneidezaehne, Zunge."""
-    n = V(U).cross(V(W)).normalized()
-    d = lambda k: o + n * (0.0008 * k)
-    poly_on(K(M['paper']), [(-w / 2, -h / 2), (w / 2, -h / 2), (w / 2, h / 2), (-w / 2, h / 2)], d(0), U, W)
-    iw, ih = w / 2 - 0.016, h / 2 - 0.016
-    poly_on(K(M['fur']), [(-iw, -ih), (iw, -ih), (iw, ih), (-iw, ih)], d(1), U, W)
-    for _ in range(460):  # Fellstriche (Runde 3: dichter, kuerzer, drei Toene - vorher wie gemalt)
-        x, y = rng.uniform(-iw, iw), rng.uniform(-ih, ih)
-        a = math.atan2(y, x) + rng.uniform(-0.3, 0.3)
-        ln = rng.uniform(0.008, 0.022)
-        m_ = 'fur_d' if rng.random() < 0.4 else ('fur_w' if (abs(x) < iw * 0.25 and y < -ih * 0.4) else 'fur')
-        poly_on(K(M[m_]), L1.stroke([(x, y), (max(-iw, min(iw, x + math.cos(a) * ln)), max(-ih, min(ih, y + math.sin(a) * ln)))], rng.uniform(0.0018, 0.003)), d(2), U, W)
-    for k in range(4):  # Fotovignette: die Ecken dunkler
-        sx, sy = (1 if k % 2 else -1), (1 if k // 2 else -1)
-        poly_on(K(M['fur_d']), [(sx * iw, sy * ih), (sx * iw * 0.7, sy * ih), (sx * iw, sy * ih * 0.62)], d(2), U, W)
-    mw, mh = iw * 0.82, ih * 0.72
-    outline = [(mw * math.cos(a) * (1.0 - 0.12 * math.cos(2 * a)), mh * math.sin(a) * (1.1 if math.sin(a) > 0 else 0.95) - ih * 0.05)
-               for a in [k * TAU / 36 for k in range(36)]]
-    poly_on(K(M['lip']), [(x * 1.08, y * 1.1) for (x, y) in outline], d(3), U, W)
-    poly_on(K(M['gum_d']), outline, d(4), U, W)
-    poly_on(K(M['gum']), [(x * 0.92, y * 0.9) for (x, y) in outline], d(5), U, W)
-    poly_on(K(M['throat']), [(x * 0.62, y * 0.55 + ih * 0.02) for (x, y) in outline], d(6), U, W)
-    poly_on(K(M['tongue']), [(mw * 0.55 * math.cos(a), -mh * 0.35 + mh * 0.42 * math.sin(a) * (0.6 if math.sin(a) > 0 else 1.0)) for a in [k * TAU / 24 for k in range(24)]], d(7), U, W)
-    poly_on(K(M['gum_d']), L1.stroke([(0, -mh * 0.05), (0, -mh * 0.7)], 0.005), d(8), U, W)  # Mittelfurche
-    for (yy, s) in ((mh * 0.86, -1), (-mh * 0.9, 1)):  # Zaehne oben (zeigen nach unten) und unten
-        for k in range(6):  # Schneidezaehne
-            x = (k - 2.5) * mw * 0.085
-            y0 = yy - ih * 0.05 * (1 if s < 0 else -1)
-            poly_on(K(M['tooth']), [(x - 0.008, y0), (x + 0.008, y0), (x + 0.006, y0 + s * 0.024), (x - 0.006, y0 + s * 0.026)], d(9), U, W)
-        for side in (-1, 1):  # Eckzaehne, gross
-            x = side * mw * 0.4
-            y0 = yy * 0.94 - ih * 0.05 * (1 if s < 0 else -1)
-            poly_on(K(M['tooth']), [(x - 0.018, y0), (x + 0.018, y0), (x + 0.003 * side, y0 + s * 0.07)], d(9), U, W)
-            for j in range(3):  # Backenzaehne
-                xx = side * mw * (0.56 + j * 0.12)
-                yb = y0 * (0.9 - 0.12 * j)
-                poly_on(K(M['tooth']), [(xx - 0.013, yb), (xx + 0.013, yb), (xx + 0.006, yb + s * 0.028), (xx - 0.006, yb + s * 0.03)], d(9), U, W)
-    for _ in range(5):  # Geiferfaeden zwischen den Kiefern
-        x = rng.uniform(-mw * 0.7, mw * 0.7)
-        poly_on(K(M['drool']), L1.stroke([(x, mh * 0.7), (x + rng.uniform(-0.01, 0.01), 0.0), (x + rng.uniform(-0.02, 0.02), -mh * 0.6)], 0.0016), d(10), U, W)
-    poly_on(K(M['nose']), [(iw * 0.3 * math.cos(a), ih * 0.9 + ih * 0.12 * math.sin(a)) for a in [k * TAU / 16 for k in range(16)]], d(4), U, W)
-    # Runde 3: nasse Lichter auf Zaehnen, Zunge und Zahnfleisch, Speichel am Rand (Foto mit Blitz)
-    for _ in range(26):
-        x, y = rng.uniform(-mw * 0.8, mw * 0.8), rng.uniform(-mh * 0.8, mh * 0.8)
-        poly_on(K(M['shine']), blob2(rng, x, y, rng.uniform(0.003, 0.009), rng.uniform(0.002, 0.005), 8, 0.3), d(11), U, W)
-    for _ in range(7):
-        x = rng.uniform(-mw * 0.9, mw * 0.9)
-        y = -mh * 0.85
-        poly_on(K(M['drool']), L1.stroke([(x, y), (x + rng.uniform(-0.005, 0.005), y - rng.uniform(0.03, 0.08))], 0.002), d(11), U, W)
+def _ps_place_side(hw):
+    """Umfang des Klotzes als Band: s = 0 Mitte der Vorderseite (+x), nach rechts (+y), um die Kanten herum."""
+    P = 8 * hw
+
+    def place(s, z, d):
+        s = (s + hw) % P - hw
+        if s < hw:
+            return V((hw + d, s, z))
+        if s < 3 * hw:
+            return V((hw - (s - hw), hw + d, z))
+        if s < 5 * hw:
+            return V((-hw - d, hw - (s - 3 * hw), z))
+        return V((-hw + (s - 5 * hw), -hw - d, z))
+    return place
+
+
+def _ps_drip(K, M, place, s, z0, ln, wd, d, rng):
+    """Blut, das unter einem Abzug hervorlaeuft: schmaler, unten verdickter Streifen mit Tropfen."""
+    bm = K(M['blood_wet' if rng.random() < 0.6 else 'blood_d'])
+    k = 10
+    left, right = [], []
+    for i in range(k + 1):
+        t = i / k
+        ww = wd * (0.55 + 0.45 * math.sin(t * 2.4 + 0.3)) * (1.0 + 0.6 * max(0.0, t - 0.82) * 5)
+        ss = s + 0.004 * math.sin(t * 7 + s * 13)
+        left.append(bm.verts.new(place(ss - ww / 2, z0 - ln * t, d)))
+        right.append(bm.verts.new(place(ss + ww / 2, z0 - ln * t, d)))
+    for i in range(k):
+        bm.faces.new([left[i], left[i + 1], right[i + 1], right[i]])
 
 
 def _ps_block_geo(K, M, rng):
     hw = PS_W / 2
-    box(K(M['block']), (-hw, -hw, 0.0), (hw, hw, PS_H))
-    # Fleischfotos auf allen Seiten (je Seite drei uebereinander, schief geklebt, Ecken stehen ab)
-    for (n, u) in (((1, 0, 0), (0, 1, 0)), ((-1, 0, 0), (0, -1, 0)), ((0, 1, 0), (-1, 0, 0)), ((0, -1, 0), (1, 0, 0))):
-        n, u = V(n), V(u)
-        for k in range(3):
-            if n.x > 0.5 and k > 0:
-                continue  # die Vorderseite traegt oben das Gesicht
-            zc = 0.42 + k * 0.78
-            tilt = rng.uniform(-0.05, 0.05)
-            U = (u * math.cos(tilt) + V((0, 0, 1)) * math.sin(tilt))
-            W = (V((0, 0, 1)) * math.cos(tilt) - u * math.sin(tilt))
-            _flesh_photo(K, M, n * (hw + 0.003) + V((0, 0, zc)), U, W, PS_W * 0.96, 0.74, rng)
-    _flesh_photo(K, M, V((0, 0, PS_H + 0.003)), V((1, 0, 0)), V((0, 1, 0)), PS_W * 0.95, PS_W * 0.95, rng)
-    o = V((hw + 0.003, 0, 0))
-    U, W = V((0, 1, 0)), V((0, 0, 1))
-    _flesh_photo(K, M, o + V((0, 0, 1.6)), U, W, PS_W * 0.96, 1.5, rng)
-    # Gesicht: zwei Augenfotos, darunter das Maul (flach, leicht schief, etwas zu weit auseinander)
-    for side, iris, lk in ((-1, 'iris_a', (0.3, 0.1)), (1, 'iris_b', (-0.2, 0.0))):
-        tilt = 0.06 * side + rng.uniform(-0.02, 0.02)
-        Ue = V((0, math.cos(tilt), math.sin(tilt)))
-        We = V((0, -math.sin(tilt), math.cos(tilt)))
-        _eye_photo(K, M, o + V((0.006, side * 0.205, 2.03 + 0.02 * side)), Ue, We, 0.34, 0.21, rng, iris, lk)
-    _mouth_photo(K, M, o + V((0.007, 0.01, 1.5)), V((0, math.cos(0.03), math.sin(0.03))), V((0, -math.sin(0.03), math.cos(0.03))), 0.74, 0.5, rng)
+    # Grund: Klotz mit gefasten senkrechten Kanten (die Abzuege biegen sich um die Kanten, ohne dass er durchsticht)
+    c = 0.035
+    prof = [(hw - c, -hw), (hw, -hw + c), (hw, hw - c), (hw - c, hw), (-hw + c, hw), (-hw, hw - c), (-hw, -hw + c), (-hw + c, -hw)]
+    bm = K(M['block'])
+    lo = [(x, y, 0.0) for (x, y) in prof]
+    hi = [(x, y, PS_H) for (x, y) in prof]
+    for i in range(8):
+        quad(bm, lo[i], lo[(i + 1) % 8], hi[(i + 1) % 8], hi[i])
+    bm.faces.new([bm.verts.new(V(p)) for p in hi])
+    place = _ps_place_side(hw)
+    P = 8 * hw
+    # Collage aus Fleischfotos rings um den Klotz: versetztes Raster, schief, ueberlappend, um die Kanten gebogen
+    layer = 0.004
+    cards = []
+    cols, rows = 12, 7
+    for r in range(rows):
+        for k in range(cols):
+            s = (k + 0.5 * (r % 2) + rng.uniform(-0.25, 0.25)) * P / cols
+            z = 0.2 + r * (PS_H - 0.3) / (rows - 1) + rng.uniform(-0.06, 0.06)
+            sz = rng.uniform(0.34, 0.48)
+            cards.append((s, z, sz))
+    rng.shuffle(cards)
+    meat_pool = []
+    placed = []  # (s, z, Radius, Lage): jeder Abzug liegt knapp ueber denen, die er ueberdeckt
+    for i, (s, z, sz) in enumerate(cards):
+        if not meat_pool:
+            meat_pool = PS_MEATS[:]
+            rng.shuffle(meat_pool)
+        cell = meat_pool.pop()
+        under_face = abs(((s + hw) % P) - hw) < hw + 0.1 and z > 1.05  # unter Augen und Maul nichts Abstehendes (stach durch)
+        peel = rng.uniform(0.03, 0.07) if rng.random() < 0.28 and not under_face else 0.0
+        lay = layer
+        for (s2, z2, r2, l2) in placed:
+            ds = min(abs(s - s2), P - abs(s - s2))
+            if ds < (sz * 0.72 + r2) and abs(z - z2) < (sz * 0.72 + r2):
+                lay = max(lay, l2 + 0.0012)
+        placed.append((s, z, sz * 0.72, lay))
+        _ps_card(K, M, place, s, z, sz, sz, rng.uniform(-0.2, 0.2), cell, lay, rng, peel=peel, n=7)
+    top = max(p_[3] for p_ in placed) + 0.0012
+    # Oben: Abzuege flach auf dem Deckel
+    for k in range(5):
+        cx, cy = rng.uniform(-hw * 0.5, hw * 0.5), rng.uniform(-hw * 0.5, hw * 0.5)
+        _ps_card(K, M, lambda s, z, d: V((-z, s, PS_H + d)), cy, cx, 0.4, 0.4, rng.uniform(0, TAU), rng.choice(PS_MEATS),
+                 0.004 + k * 0.0012, rng, n=5)
+    # Gesicht (Vorderseite, flach wie auf der Seite): zwei Augenfotos etwas zu weit auseinander, eines schiefer; darunter
+    # das Maul, gross und leicht verdreht
+    face = top + 0.004
+    _ps_card(K, M, place, 0.01, 1.5, 0.66, 0.66 * 768 / 1024, 0.035, 'mouth', face, rng, n=10, back=False)
+    for side, cell, tilt, dz, dl in ((-1, 'eye_a', -0.06, 0.03, 0.002), (1, 'eye_b', 0.09, -0.02, 0.0045)):
+        # das rechte Auge liegt ueber dem linken (gleiche Hoehe flimmerte in der Ueberlappung)
+        _ps_card(K, M, place, side * 0.225, 2.05 + dz, 0.44, 0.44 * 400 / 1024, tilt, cell, face + dl, rng, n=8, back=False)
+    # Blut laeuft unter den Abzuegen hervor (an den Seiten und unter dem Maul)
+    for k in range(16):
+        s = rng.uniform(0, P)
+        z0 = rng.uniform(0.6, PS_H - 0.2)
+        _ps_drip(K, M, place, s, z0, rng.uniform(0.12, 0.55), rng.uniform(0.008, 0.02), face + 0.003, rng)
+    for s in (-0.17, 0.05, 0.22):
+        _ps_drip(K, M, place, s, 1.5 - 0.66 * 0.375 + 0.02, rng.uniform(0.25, 0.6), rng.uniform(0.01, 0.022), face + 0.003, rng)
+    # Lache am Fuss
+    bm = K(M['blood_d'])
+    pts = [(hw * 1.25 * (1 + 0.22 * math.sin(3 * a + 1) + 0.1 * math.sin(7 * a)) * math.cos(a),
+            hw * 1.2 * (1 + 0.2 * math.sin(2 * a + 2) + 0.1 * math.sin(5 * a)) * math.sin(a)) for a in [k * TAU / 36 for k in range(36)]]
+    bm.faces.new([bm.verts.new((x, y, 0.003)) for (x, y) in pts])
 
 
 def build_ps_block(v=0):
@@ -971,6 +963,8 @@ def build_ps_block(v=0):
     K.finish()
     if v > 0:  # Scheibe v (1..4) von unten: waagrechte Baender fuer den Glitch
         z0, z1 = PS_H * (v - 1) / 4, PS_H * v / 4
+        z0 -= 0.05 if v == 1 else 0.0  # nicht genau durch den Fuss schneiden (sonst Splitterdreiecke bei z = 0)
+        z1 += 0.05 if v == 4 else 0.0
         for ob in list(bpy.context.scene.objects):
             if ob.type != 'MESH':
                 continue
@@ -1003,24 +997,18 @@ def build_ps_block__v4():
 
 
 def build_ps_screen():
-    """Leuchtendes Bild fuer den Roehrenmonitor (Ebene x = 0, Blick +x, 0,30 x 0,25 m): Fleisch, darin ein Auge."""
-    rng = random.Random(1041)
+    """Leuchtendes Bild fuer den Roehrenmonitor (Ebene x = 0, Blick +x, 0,30 x 0,25 m): Fleisch, darin ein Auge, gestoert
+    (Zelle 'screen' des Atlas, leuchtet)."""
     K = Kit()
     M = _ps_mats()
-    U, W = V((0, 1, 0)), V((0, 0, 1))
-    o = V((0, 0, 0))
+    bm = K(M['screen'])
+    uvl = bm.loops.layers.uv.verify()
+    u0, v0, u1, v1 = _cell_uv('screen')
     w, h = 0.30, 0.25
-    poly_on(K(M['sg_red']), [(-w / 2, -h / 2), (w / 2, -h / 2), (w / 2, h / 2), (-w / 2, h / 2)], o, U, W)
-    for _ in range(26):
-        cx, cy = rng.uniform(-w / 2, w / 2), rng.uniform(-h / 2, h / 2)
-        pts = [(max(-w / 2, min(w / 2, a)), max(-h / 2, min(h / 2, b))) for (a, b) in blob2(rng, cx, cy, rng.uniform(0.01, 0.04), rng.uniform(0.006, 0.02), 10, 0.4)]
-        poly_on(K(M['sg_dark' if rng.random() < 0.6 else 'sg_pink']), pts, o + V((0.0006, 0, 0)), U, W)
-    for k in range(9):  # Zeilenstoerung: dunkle Streifen
-        y = -h / 2 + rng.uniform(0, h)
-        poly_on(K(M['sg_black']), [(-w / 2, y), (w / 2, y), (w / 2, y + 0.003), (-w / 2, y + 0.003)], o + V((0.0012, 0, 0)), U, W)
-    lid = [(0.07 * math.cos(a), 0.035 * math.sin(a)) for a in [k * TAU / 24 for k in range(24)]]
-    poly_on(K(M['sg_white']), lid, o + V((0.0018, 0, 0.01)), U, W)
-    poly_on(K(M['sg_black']), [(0.028 * math.cos(a), 0.01 + 0.028 * math.sin(a)) for a in [k * TAU / 16 for k in range(16)]], o + V((0.0024, 0, 0)), U, W)
+    f = bm.faces.new([bm.verts.new((0, -w / 2, -h / 2)), bm.verts.new((0, w / 2, -h / 2)), bm.verts.new((0, w / 2, h / 2)),
+                      bm.verts.new((0, -w / 2, h / 2))])
+    for lp, uv in zip(f.loops, ((u0, v0), (u1, v0), (u1, v1), (u0, v1))):
+        lp[uvl].uv = uv
     K.finish()
 
 
