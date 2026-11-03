@@ -1,0 +1,71 @@
+{
+ "shots": [
+  "metro_6_lampe.png",
+  "metro_7_lampe.png",
+  "metro_1.png",
+  "metro_2.png",
+  "metro_3.png",
+  "metro_4.png",
+  "metro_5.png",
+  "metro_6.png",
+  "metro_7.png",
+  "faceling_1.png",
+  "faceling_2.png",
+  "faceling_3.png",
+  "faceling_4.png",
+  "faceling_5.png",
+  "faceling_6.png",
+  "faceling_7.png",
+  "zug_6_lampe.png",
+  "zug_1.png",
+  "zug_2.png",
+  "zug_3.png",
+  "zug_4.png",
+  "zug_5.png",
+  "zug_6.png",
+  "blackout_1.png",
+  "blackout_2.png",
+  "blackout_3.png",
+  "hand_1.png",
+  "hand_2.png",
+  "hand_3.png",
+  "zones_2_lampe.png",
+  "zones_3_lampe.png",
+  "zones_4_lampe.png",
+  "zones_7_lampe.png",
+  "zones_8_lampe.png",
+  "zones_1.png",
+  "zones_2.png",
+  "zones_3.png",
+  "zones_4.png",
+  "zones_5.png",
+  "zones_6.png",
+  "zones_7.png",
+  "zones_8.png",
+  "zones_9.png"
+ ],
+ "metro": {
+  "exit": 0,
+  "warn": []
+ },
+ "faceling": {
+  "exit": 0,
+  "warn": []
+ },
+ "zug": {
+  "exit": 0,
+  "warn": []
+ },
+ "blackout": {
+  "exit": 0,
+  "warn": []
+ },
+ "hand": {
+  "exit": 0,
+  "warn": []
+ },
+ "zones": {
+  "exit": 0,
+  "warn": []
+ }
+}

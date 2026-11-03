@@ -1,0 +1,12 @@
+{
+ "level": "level903",
+ "round": "r2",
+ "length_m": 294.2,
+ "rooms": 1,
+ "room_sequence": [
+  0
+ ],
+ "shots": 74,
+ "step_m": 4.0,
+ "exit_code": 0
+}

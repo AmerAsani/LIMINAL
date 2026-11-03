@@ -123,4 +123,12 @@ for o in m.objects:
     if v_:
         o['variant'] = v_
 
+# V13.3 (Abnahme Level 903, Runde 2): an beiden Stirnwaenden das Dunkel (dark_end_903) - mit der Lampe stand dort eine
+# helle Fliesenwand, die Station endete sichtbar (Wiki: mindestens 100 Meilen). Dazu ein letzter Zugabschnitt im Osten:
+# zwischen der letzten Kupplung (192,5) und der Stirnwand klaffte die Hallenwand hinter dem unsichtbaren Zugblock.
+# Am Ende, ohne Zufall: Anordnung, Raeume, Uebergaenge und Varianten davor bleiben gleich.
+m.obj('dark_end_903', R.x0 + 0.005, 13.0, 2.0, 0.0, tag='deco')
+m.obj('dark_end_903', R.x1 - 0.005, 13.0, 2.0, math.pi, tag='deco')
+m.obj('metro_dormant_b', 196.0, 15.0 - 0.005, PLAT, -math.pi / 2, tag='deco')
+
 m.save()

@@ -360,6 +360,54 @@ def _l188():
     }
 
 
+# V13.3 Level 903 (Abnahme): die Metro (Entity 756) ist der fahrende Wagen am linken Gleis (Ziele 37/36), dazu friedliche
+# Facelings auf dem Steig (winken, wen sie wiedererkennen). Wagen: am Steig, Seite im Dunkeln nur mit Lampe (E-041: Modelle
+# auf unsichtbaren Bloecken nicht im Schatten ihres Blocks), Tuer, innen mit beiden Zielanzeigen, vom Gleis. Ruhender Zug,
+# bewohnter Wagen, Kupplung, Glas (Ersatzspiegelung mit Wandpruefung, E-048); Stromausfall, Beil; Bereiche (LOOK_903).
+# Die Wagenenden (x < 94, x > 107) sind Uebergaenge nach 37/36 - die Kamera bleibt dazwischen.
+def _l903():
+    def dark(name, x, y, yaw, pitch=0.0):  # Licht der Ebene aus, nur die Lampe (Schatten unsichtbarer Bloecke)
+        return (f'pos {x} {y} {yaw} {pitch}; worldlight 0; key T; wait 90; shot {{out}}/{name}.png; key T; worldlight 1; '
+                'wait 30; ')
+    return {
+        'metro': ('Metro-Wagen (Entity 756): Front, Lampe, Tuer, innen 37/36, vom Gleis',
+            W0 + _view('metro_1', 84.0, 9.2, -0.62, -0.02) + dark('metro_2', 96.5, 7.8, -2.85, -0.12) +
+            _view('metro_3', 100.5, 8.6, -1.5708, -0.06) + _view('metro_4', 101.5, 5.0, 3.1416, 0.04) +
+            _view('metro_5', 99.5, 5.0, 0.0, 0.04) + _view('metro_6', 98.0, 5.6, 2.2, -0.2, lamp=True) +
+            _view('metro_7', 80.0, 4.6, 0.0, -0.02, lamp=True) +
+            # Runde 3: unter dem Wagen (Stirn vom Gleis, Spalt an der Tuer, Wandseite vom schmalen Streifen am Gleis)
+            _view('metro_8', 86.0, 5.0, 0.0, -0.15, lamp=True) + _view('metro_9', 97.0, 7.35, -1.5708, -0.95) +
+            _view('metro_10', 100.0, 2.5, 1.5708, -0.35, lamp=True) + 'quit'),
+        # friedlich: die Gruppe geht ihres Wegs; wer laenger nah ist, dem winkt eines (nach etwa 4 s mit Sicht)
+        'faceling': ('Facelings, friedlich (Entity 9): Gruppe, Lampe, Winken, Varianten',
+            W0 + 'pos 140 11.5 0 0; wait 20; presence faceling 12; wait 120; near faceling 6 0 1; face faceling; wait 2; '
+            'shot {out}/faceling_1.png; key T; wait 90; shot {out}/faceling_2.png; key T; wait 20; near faceling 3.5; '
+            'face faceling; wait 240; shot {out}/faceling_3.png; figclear; pos 120 11.5 3.1416 0; wait 10; '
+            'figure faceling 3.2; figstate variant 0; wait 60; shot {out}/faceling_4.png; figstate variant 3; wait 30; '
+            'shot {out}/faceling_5.png; figstate variant 4; wait 30; shot {out}/faceling_6.png; key T; wait 90; '
+            'shot {out}/faceling_7.png; quit'),
+        'zug': ('Ruhender Zug, bewohnter Wagen, Kupplung, Glas',
+            W0 + _view('zug_1', 58.0, 13.0, 0.17, 0.0) + _view('zug_2', 88.0, 12.4, 1.5708, 0.05) +
+            dark('zug_3', 88.0, 12.4, 1.5708, 0.05) + dark('zug_4', 96.6, 13.4, 1.0, 0.0) +
+            _view('zug_5', 70.0, 14.0, 1.25, 0.12) + _view('zug_6', 132.0, 13.6, 0.9, 0.05, lamp=True) + 'quit'),
+        'blackout': ('Stromausfall am Steig (Leuchtflaechen)',
+            'pos 112 11.5 3.1416 0.1; ' + W0 + 'wait 30; shot {out}/blackout_1.png; haunt 2; wait 50; '
+            'shot {out}/blackout_2.png; key T; wait 90; shot {out}/blackout_3.png; quit'),
+        'hand': ('Fundstuecke in der Hand (Beil) am Steig',
+            'pos 80 11.5 3.1416 -0.15; ' + W0 + 'wait 20; give glowstick; give hatchet; wait 20; key 2; wait 30; '
+            'shot {out}/hand_1.png; key F; wait 7; shot {out}/hand_2.png; wait 6; shot {out}/hand_3.png; quit'),
+        'zones': ('Bereiche (LOOK_903): Steig, Gleis, Treppe vorn/hinten, Schilder, Enden',
+            W0 + _view('zones_1', 118.0, 11.5, 3.1416, 0.04) + _view('zones_2', 75.0, 7.7, -1.5708, -0.55, lamp=True) +
+            _view('zones_3', 54.0, 11.5, 0.0, 0.1, lamp=True) + _view('zones_4', 68.5, 11.5, 3.1416, 0.1, lamp=True) +
+            _view('zones_5', 76.0, 11.5, 0.0, 0.35) + _view('zones_6', 76.5, 7.8, -1.5708, 0.12) +
+            _view('zones_7', 14.0, 11.5, 3.1416, 0.0, lamp=True) + _view('zones_8', 186.0, 11.5, 0.0, 0.0, lamp=True) +
+            _view('zones_9', 6.0, 11.5, 0.0, 0.0) +
+            # Runde 3: Rueckseite der Treppe nah, Ende im Westen nah, letzter Zugabschnitt im Osten
+            _view('zones_10', 66.2, 11.0, 3.1416, -0.05, lamp=True) + _view('zones_11', 5.5, 11.5, 3.1416, -0.05, lamp=True) +
+            _view('zones_12', 190.0, 12.5, 0.6, 0.0, lamp=True) + 'quit'),
+    }
+
+
 def note_job(level, seed):
     """V13.3 Level 0: Notizen dort aufnehmen, wo das Spiel sie hinlegt (Protokoll "Notiz ... bei (x, y)"), Lampe aus/an."""
     if level != 'level0':
@@ -392,7 +440,8 @@ def note_job(level, seed):
 # Spuren (Ausstattung der Karte): Kamera vor das Modell aus dem Ausstattungs-Abzug
 TRACES = {'level2': [('skin_hung', 0, 2.3), ('skin_lair', 0, 2.6), ('skin_shed', 0, 2.2), ('skin_shed', 1, 2.2),
                      ('skin_scratches', 0, 1.8)]}
-JOBS = {'level0': LEVEL0, 'level2': LEVEL2, 'level3': LEVEL3, 'level5': LEVEL5, 'level5_3': LEVEL5_3, 'level188': _l188()}
+JOBS = {'level0': LEVEL0, 'level2': LEVEL2, 'level3': LEVEL3, 'level5': LEVEL5, 'level5_3': LEVEL5_3, 'level188': _l188(),
+        'level903': _l903()}
 
 
 def trace_job(level):
@@ -433,6 +482,12 @@ def trace_job(level):
     if not parts:
         return None
     return ('Skin-Stealer-Spuren (Entity 10)', W0 + ''.join(parts) + 'quit')
+
+
+def _order(rest):
+    """Reihenfolge im Bogen: zones_2 vor zones_2_lampe vor zones_3 (V13.3 Abnahme Level 903: "_lampe" stand vorher vorn)."""
+    num, _, suffix = rest.partition('_')
+    return (int(num) if num.isdigit() else 0, suffix)
 
 
 def sheets(level, rnd, shots, labels):
@@ -496,7 +551,7 @@ def main():
     shots = []
     for job in labels:
         fs = sorted((f for f in os.listdir(raw) if f.startswith(job + '_') and f.endswith('.png')),
-                    key=lambda f: int(f[len(job) + 1:-4]) if f[len(job) + 1:-4].isdigit() else 0)
+                    key=lambda f: _order(f[len(job) + 1:-4]))
         shots += [(job, os.path.join(raw, f)) for f in fs]
     pages = sheets(a.level, a.round, shots, labels)
     meta = os.path.join(ROOT, 'docs', 'screens', a.level, f'wesen_{a.round}.json')

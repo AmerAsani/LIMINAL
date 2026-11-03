@@ -1367,7 +1367,38 @@ def _build_car(minus, plus, track, dz, seed):
         _bogie(f'dg{bx:.0f}', bx, dz, M, rng)
     if track:  # Gleis unter dem Wagen (die Karte laesst unter dem Wagen 86..116 aus): Weltnull = -CAR_Z
         _track('gleis', -14.5, 15.5, 0.0, -2.0, 3.0, -CAR_Z, M, seed + 5, -14.2, detail=True, xs_simple=lambda x: abs(x) < 9.4,
-               cell=0.2, stones=2.0, hidden=lambda x, y: abs(x) < 8.9 and abs(y) < 1.45)
+               cell=0.2, stones=2.0, hidden=lambda x, y: abs(x) < 8.55 and abs(y) < 1.45)
+        _block_cover(M, rng)
+
+
+def _block_cover(M, rng):
+    """V13.3 (Abnahme Level 903, Runde 2): unter dem Wagen liegt der begehbare Wagenboden der Karte (Block x 92..109,
+    y 4..6, Hoehe 0..1,1 m; im Modell x +-8,5, y +-1). Seine Stirnflaechen trugen die weissen Fliesen der Halle und standen
+    vom Steig und vom Gleis aus hell unter der Kupplung. Davor jetzt der Kopfquertraeger mit Rippen, ein russiges Blech bis
+    ins Schotterbett (liest sich wie der Schatten unter dem Wagen), Bremsleitung und Kabelschleife; an den Seiten unter der
+    Schuerze ein russiges Blech hinter den Drehgestellen."""
+    zb = -CAR_Z - 0.03
+    for sgn in (-1, 1):
+        xb = sgn * 8.506
+        _box(f'blockstirn{sgn}', (xb, -1.03, zb), (xb + sgn * 0.006, 1.03, -0.12), M['grime_dark'])
+        _box(f'kopftraeger{sgn}', (xb + sgn * 0.006, -1.10, -0.62), (xb + sgn * 0.20, 1.10, -0.40), M['under'], bevel=0.01)
+        for y in (-0.75, -0.25, 0.25, 0.75):  # Rippen unter dem Traeger
+            _box(f'rippe{sgn}{y}', (xb + sgn * 0.006, y - 0.012, -0.95), (xb + sgn * 0.12, y + 0.012, -0.62), M['under'])
+        _box(f'kasten{sgn}', (xb + sgn * 0.006, 0.30, -0.90), (xb + sgn * 0.16, 0.72, -0.66), M['under_brown'], bevel=0.008)
+        _tube(f'bremsleitung{sgn}', [(xb + sgn * 0.03, -0.55, -0.42), (xb + sgn * 0.05, -0.55, -0.72), (xb + sgn * 0.20, -0.50, -0.82),
+                                     (xb + sgn * 0.42, -0.42, -0.70)], 0.016, M['under_brown'], seg=6)
+        _tube(f'kabelschleife{sgn}', [(xb + sgn * 0.02, 0.05, -0.62), (xb + sgn * 0.07, 0.10, -0.86), (xb + sgn * 0.09, 0.22, -0.92),
+                                      (xb + sgn * 0.05, 0.34, -0.80)], 0.012, M['cable'], seg=6)
+        _decal(f'stirnrost{sgn}', (xb + sgn * 0.0068, 0.0, -0.95), (0, sgn, 0), (0, 0, 1), _blob(rng, 0.7, 0.12, 11, 0.4),
+               M['under_brown'])
+    for s in (-1, 1):
+        _box(f'blockseite{s}', (-8.52, s * 1.012, zb), (8.52, s * 1.018, -0.40), M['grime_dark'])
+    # Tuerschwellen der Karte (Bloecke 1 x 1 m zwischen Wagen und Steig, Bahnsteigseite -y): ihre Seiten sah man vom Steig
+    # aus weiss im Spalt neben der Tuer
+    for d in DOORS:
+        for e in (-1, 1):
+            x = d + e * 0.506
+            _box(f'schwelle{d:.0f}{e}', (x, -2.0, zb), (x + e * 0.006, -1.0, -0.06), M['grime_dark'])
 
 
 def build_metro_car_903():
@@ -1641,6 +1672,63 @@ def build_sign_903_wall__v1():
 
 
 # --- Treppe, zugemauert und vernagelt ---------------------------------------------------------------------------------------
+def _stairs_back(M, rng):
+    """V13.3 (Abnahme Level 903, Runde 2): Rueckseite der Treppe. Von hinten stand der Kasten offen - zwischen den
+    Bruestungswaenden sah man den Stufenkoerper aus Terrazzo und darueber die Rueckseite der Ziegelwand (wie ein Karton).
+    Jetzt: Fliesenwand bis zur Decke (die Treppe laeuft dort in die Decke), Kantenschutz an den Ecken, Sockelschmutz,
+    eine verschlossene Revisionstuer aus Stahl (Treppen bleiben versperrt, Wiki) mit Zarge, Baendern, Druecker, Schloss,
+    Lueftungsgitter, Warnschild in erfundenen Zeichen; Rost unter den Baendern, Wasserlauf von der Decke."""
+    XR = 6.115  # 1,5 cm hinter der Blockkante (Karte: Treppenblock bis x = 64), nicht im Schatten des Blocks
+    paint = common.material('tuer_revision', (0.36, 0.40, 0.37), look='paint', tex='painted_metal_grey', rough=0.6, r=1.05, m=0.1)
+    frame = common.material('zarge', (0.24, 0.25, 0.25), look='paint', tex='painted_metal_grey', rough=0.55, r=1.0, m=0.2)
+    _box('rueckwand', (5.98, -1.299, 0.0), (XR, 1.299, 4.20), M['tile_w'])
+    for s in (-1, 1):  # Kantenschutz an den Aussenecken
+        _box(f'kantenschutz{s}', (XR - 0.03, s * 1.296, 0.0), (XR + 0.006, s * 1.307, 4.20), M['chrome_worn'])
+    _decal('sockel_hinten', (XR + 0.0015, 0.0, 0.0), (0, 1, 0), (0, 0, 1),
+           [(-1.29, 0.0), (1.29, 0.0), (1.29, 0.10), (0.6, 0.125), (-0.4, 0.11), (-1.29, 0.12)], M['grime'])
+    # Wasserlauf von der Decke (Kalk und Rost) neben der Tuer
+    kalk = common.material('kalkfahne', (0.70, 0.66, 0.57), look='paint', rough=0.9, r=1.3)
+    _decal('wasserlauf', (XR + 0.0017, -0.78, 4.2), (0, 0, -1), (0, 1, 0),
+           [(0.0, -0.035), (0.3, -0.026), (0.75, -0.016), (1.15, -0.009), (1.22, 0.0), (1.1, 0.008), (0.7, 0.018), (0.25, 0.03),
+            (0.0, 0.04)], kalk)
+    _decal('wasserlauf_rost', (XR + 0.0019, -0.776, 4.2), (0, 0, -1), (0, 1, 0),
+           [(0.0, -0.006), (0.45, -0.004), (0.62, 0.0), (0.45, 0.004), (0.0, 0.006)], M['rust_streak'])
+    # Revisionstuer (0,9 x 2,05 m), Zarge aus Stahlprofil
+    yd, hw, H = 0.28, 0.45, 2.05
+    _box('zarge_l', (XR, yd - hw - 0.055, 0.0), (XR + 0.026, yd - hw, H + 0.055), frame, bevel=0.004)
+    _box('zarge_r', (XR, yd + hw, 0.0), (XR + 0.026, yd + hw + 0.055, H + 0.055), frame, bevel=0.004)
+    _box('zarge_o', (XR, yd - hw, H), (XR + 0.026, yd + hw, H + 0.055), frame, bevel=0.004)
+    _box('tuerblatt', (XR + 0.002, yd - hw + 0.004, 0.012), (XR + 0.020, yd + hw - 0.004, H - 0.004), paint, bevel=0.003)
+    for (y0, y1, z0, z1) in ((yd - hw + 0.07, yd + hw - 0.07, 1.16, 1.95), (yd - hw + 0.07, yd + hw - 0.07, 0.48, 1.06)):
+        _box(f'sicke{z0:.2f}', (XR + 0.020, y0, z0), (XR + 0.023, y1, z1), paint, bevel=0.0015)  # gepresstes Feld
+    for z in (0.22, 1.02, 1.82):  # Baender an der linken Zarge, Rost darunter
+        _cyl(f'band{z}', (XR + 0.028, yd - hw - 0.012, z), (XR + 0.028, yd - hw - 0.012, z + 0.11), 0.011, M['nail'], seg=8)
+        _decal(f'bandrost{z}', (XR + 0.0265, yd - hw - 0.03, z), (0, 0, -1), (0, 1, 0),
+               [(0.0, -0.008), (rng.uniform(0.12, 0.3), -0.003), (rng.uniform(0.12, 0.3), 0.004), (0.0, 0.009)], M['rust_streak'])
+    yh = yd + hw - 0.085
+    _cyl('rosette', (XR + 0.020, yh, 1.02), (XR + 0.030, yh, 1.02), 0.026, M['chrome_worn'], seg=12)
+    _cyl('drueckerhals', (XR + 0.030, yh, 1.02), (XR + 0.068, yh, 1.02), 0.009, M['chrome_worn'], seg=8)
+    _box('druecker', (XR + 0.058, yh - 0.125, 1.010), (XR + 0.074, yh + 0.006, 1.030), M['chrome_worn'], bevel=0.004)
+    _box('schloss', (XR + 0.020, yh - 0.018, 0.86), (XR + 0.027, yh + 0.018, 0.95), M['chrome_worn'], bevel=0.002)
+    _decal('schluesselloch', (XR + 0.0272, yh, 0.885), (0, 1, 0), (0, 0, 1), [(-0.004, -0.012), (0.004, -0.012), (0.004, 0.006),
+           (0.0, 0.010), (-0.004, 0.006)], M['ink'])
+    # Lueftungsgitter unten (Rahmen, schraege Lamellen)
+    _box('gitter_rahmen', (XR + 0.020, yd - 0.20, 0.10), (XR + 0.026, yd + 0.20, 0.36), frame)
+    _box('gitter_dunkel', (XR + 0.0262, yd - 0.18, 0.12), (XR + 0.0268, yd + 0.18, 0.34), M['grime_dark'])
+    for k in range(6):
+        ob = _box(f'lamelle{k}', (-0.003, yd - 0.18, -0.014), (0.003, yd + 0.18, 0.014), paint)
+        ob.matrix_world = Matrix.Translation((XR + 0.028, 0, 0.142 + k * 0.036)) @ Matrix.Rotation(0.75, 4, 'Y')
+    # Warnschild (gelb, Bildzeichen Blitz, erfundene Zeichen), Schmutz und Tritte unten am Blatt
+    _box('schild', (XR + 0.023, yd - 0.13, 1.42), (XR + 0.026, yd + 0.13, 1.58), M['sticker_y'], bevel=0.002)
+    _decal('blitz', (XR + 0.0262, yd - 0.09, 1.50), (0, 1, 0), (0, 0, 1),
+           [(0.01, 0.055), (-0.012, 0.0), (0.004, 0.0), (-0.01, -0.055), (0.014, 0.008), (-0.002, 0.008)], M['ink'])
+    _text('schild_text', _word(rng, 3, 4), (XR + 0.0263, yd - 0.05, 1.475), (0, 1, 0), (0, 0, 1), 0.045, M['ink'])
+    for k in range(3):
+        _decal(f'tritt{k}', (XR + 0.0202, yd + rng.uniform(-0.3, 0.3), rng.uniform(0.06, 0.2)), (0, 1, 0), (0, 0, 1),
+               _blob(rng, rng.uniform(0.04, 0.08), rng.uniform(0.02, 0.04), 8, 0.4), M['grime'])
+    _decal('griffspur', (XR + 0.0202, yh - 0.05, 1.04), (0, 1, 0), (0, 0, 1), _blob(rng, 0.07, 0.05, 9, 0.3), M['grime'])
+
+
 def build_stairs_barricaded():
     """Treppe nach oben (Boden, Ursprung am Fuss vor den Brettern, Treppe entlang +x, 6.1 x 2.6 m; Wiki: Treppen tauchen
     auf, sind aber immer versperrt oder zugemauert): Brüstungswaende mit Fliesen und Abdeckstein bis zur Decke, Stufen aus
@@ -1658,6 +1746,7 @@ def build_stairs_barricaded():
         _prism(f'abdeckung{s}', cap, s * (yw - 0.02), s * 1.32, [M['coping']], axis='y')
         _decal(f'sockel{s}', (0.0, s * (yw - 0.0015), 0.0), (1, 0, 0), (0, 0, 1),
                [(0.10, 0.0), (6.1, 0.0), (6.1, 0.12), (0.10, 0.12)], M['grime'])
+    _stairs_back(M, random.Random(41))  # eigener Zufall: Ziegel und Bretter bleiben wie vorher
     # Stufen (Saegezahnprofil) bis unter die Ziegelwand
     XB = 3.55
     pts = [(X0, 0.0)]
@@ -1940,16 +2029,33 @@ def _dormant(kind, seed, worn=False):
             if f.normal.x < 0:
                 f.normal_flip()
     _link('bremsstaub', bm, [M['brake_dust']])
-    # Ablaufschmutz unter der Regenrinne (unregelmaessige Unterkante, Laeufer)
+    # Ablaufschmutz unter der Regenrinne: schmaler Schmutzrand, darunter einzelne Laeufer. V13.3 (Abnahme Level 903,
+    # Runde 2): vorher ein durchgehendes Band bis 2,0 m mit gewellter Unterkante - vom Steig aus wie Schnee auf dem Dach oder
+    # eine Markise ueber der ganzen Zuglaenge. Gleiche Zufallsfolge wie vorher (ein Wurf je Spalte): Rost und Ausstattung
+    # dahinter bleiben, wie sie waren.
     bm = bmesh.new()
-    cols = []
+    cols, drips = [], []
     for i in range(nx + 1):
         y = -3.0 + 6.0 * i / nx
-        zb = 2.05 - abs(math.sin(y * 2.7 + seed)) * 0.08 - (0.12 if rng.random() < 0.18 else 0.0)
+        r = rng.random()
+        zb = 2.13 - abs(math.sin(y * 2.7 + seed)) * 0.025
         cols.append([bm.verts.new((_dx(z) + 0.0045, y, z)) for z in (zb, 2.15, 2.21)])
+        if 0 < i < nx and (r < 0.18 or r > 0.93):
+            drips.append((y + (r - 0.5) * 0.12, zb, 0.12 + 0.5 * abs(math.sin(r * 41.0)), 0.010 + 0.012 * (r % 0.1) * 10))
     for i in range(nx):
         for k in range(2):
             f = bm.faces.new((cols[i][k], cols[i + 1][k], cols[i + 1][k + 1], cols[i][k + 1]))
+            f.normal_update()
+            if f.normal.x < 0:
+                f.normal_flip()
+    for (y, z0, ln, w) in drips:  # Laeufer: schmal, nach unten duenner, folgen der Wagenwand
+        ring = []
+        for t in (0.0, 0.35, 0.7, 1.0):
+            z = z0 + 0.01 - (ln + 0.01) * t
+            hw = w * (1.0 - 0.75 * t) * 0.5
+            ring.append((bm.verts.new((_dx(z) + 0.0046, y - hw, z)), bm.verts.new((_dx(z) + 0.0046, y + hw, z))))
+        for a, b in zip(ring, ring[1:]):
+            f = bm.faces.new((a[0], a[1], b[1], b[0]))
             f.normal_update()
             if f.normal.x < 0:
                 f.normal_flip()
@@ -2088,3 +2194,13 @@ def build_metro_dormant_coupling():
     for k, (xx, r, mat) in enumerate(((-0.06, 0.022, M['rubber']), (-0.13, 0.022, M['rubber']), (-0.20, 0.016, M['cable']))):
         pts = [(xx, -0.45, -0.16), (xx + 0.02, -0.2, -0.30 - 0.03 * k), (xx + 0.02, 0.2, -0.30 - 0.03 * k), (xx, 0.45, -0.16)]
         _tube(f'leitung{k}', pts, r, mat, seg=6)
+
+
+def build_dark_end_903():
+    """V13.3 (Abnahme Level 903, Runde 2): Dunkel am Ende der Station (Wand; Ursprung an der Stirnwand der Halle in
+    Hallenmitte, 2,0 m ueber dem Gleisbett; Flaeche 22 x 5,4 m quer ueber Gleis, Steig und Zug). Wiki: die Station ist
+    vermutlich mindestens 100 Meilen lang; im Spiel endet sie nach 196 m, die Roehren enden 20 m vor den Stirnwaenden.
+    Mit der Lampe stand dort eine helle Fliesenwand. Davor jetzt eine stumpfe, fast lichtlose Flaeche: der Lichtkegel
+    verliert sich, Steig, Gleise, Wand und Zug laufen ins Dunkel (LOOK_903: die Enden verschwinden im Dunkel)."""
+    void = common.material('dunkel_ende', (0.006, 0.006, 0.0065), look='fabric', rough=1.0, r=1.6)
+    _decal('dunkel', (0.006, 0.0, 0.0), (0, 1, 0), (0, 0, 1), [(-11.05, -2.05), (11.05, -2.05), (11.05, 3.38), (-11.05, 3.38)], void)

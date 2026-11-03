@@ -1734,6 +1734,7 @@ static Mount mountOf(const std::string& m) {
                                   "jerry_mural", "jerry_poster",  // V13.3 Teil 4 L2: Jerrys Raum, Wegweiser der Followers
                                   "macchina_tapestry",  // V13.3 Teil 4 L2: Wandtuch der Macchina
                                   "e18_portrait",  // V13.3 Teil 4 L5: Bildnis im Buero des Gastgebers
+                                  "dark_end_903",  // V13.3 Abnahme L903: Dunkel an den Stirnwaenden
 
                                   "purple_stealer", "purple_hound"};  // V13.3 L3: purpifizierte Wesen (KREATUR_L3_Purpur.md)
     static const char* ceil2[] = {"vines_ceiling", "cable_hang", "arcade_gothic"};
