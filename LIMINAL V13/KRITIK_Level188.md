@@ -21,3 +21,59 @@ Befunde:
 ## Runde 2 (gleicher Weg)
 
 207 m durch 7 Räume, 43 Bilder (`wegbilder_r2_*`). Nachweis: Die Treppe liegt im hohen Treppenhaus (020–023), oben bleibt Kopfhöhe, kein Blick nach draußen. Keine weiteren Befunde.
+
+## Runde 3 (Abnahme: Laufweg und alle Wesen, Basis eac0140)
+
+Laufweg `python tools/qa/walkway.py level188 --round r3 --rooms 15 --seed 3`: 207 m durch alle 7 Räume, 52 Bilder
+(`wegbilder_r3_1.jpg`, `_2.jpg`, `wegkarte_r3.png`; Raumfolge Hof, Gang, Zelle 2, Gang, Treppenhaus, Absatz, Treppenhaus, Gang,
+Zelle 3, Gang, Zelle 1 …). Wesen: neu die Tabelle für Level 188 in `tools/qa/creatureshots.py level188 --round r3` (10 Läufe:
+Fensterwesen fern/Lampe/nah/Arm, Gestalt im Hof, Faceling im rosa Kleid, Skin-Stealer, Horcher mit Posen, Auftritt aus der
+Zelle, Wurzelpistole mit Griff, Schuss, Keimlingen, Spuren; dazu was seit E-048 auf allen Ebenen wirkt: Stromausfall im Gang,
+Beil in der Faust; Bereiche nach LOOK_188), je im Licht der Ebene und mit Lampe; Bögen `wesen_r3_1.jpg` … `_5.jpg`.
+
+Befunde:
+1. **Laufweg**: Hof nach LOOK_188 – weiße Fensterwände, Moos, Plattenweg, Birkenkreis, Tisch und Grammophon (000–010); der
+   Gang grell und weiß, Mahagonitüren, leere Zellen, Treppenhaus mit Kopfhöhe (019–023). Das Moos liest sich von weitem als
+   Rasen – so will es die Seite (man hielt es für Kunstrasen, es lebt); nah mit Lampe Polster (pistole 6).
+2. **Fehler: grünes Kreuz an der Decke** (014, 035, 049; `zones_9`, `hand_1`): die Leuchte des Sicherungspunkts „Weißer Gang“
+   hing genau unter einer Röhre (beide bei y0 + 4,5). Die Röhre lief quer durch den grünen Kasten – Geometrie in Geometrie und
+   von weitem ein Apothekenkreuz, also doch ein Schild in einer schilderfreien Ebene.
+3. **Horcher** (horcher 1–10): im Gang gut lesbar – das rosige Ohr vor dem bleichen, gebückten Leib, Ankündigung mit der Faust
+   über dem Ohr (horcher 4), Licht auf dem Ohr (horcher 5). Schlecht: die Haut ist nicht kreideweiß, sondern cremegelb mit
+   Wolken und Sprenkeln; nah mit Lampe (horcher 10) wie Marmor oder Tapioka – kein Riss zu sehen (bekannter Restmangel).
+4. **Auftritt** (auftritt 1–3): das Ohr schiebt sich aus der Zellentür, dann der Leib – aber im grellen Licht ohne jedes
+   Halbdunkel; die Seite gibt die grellen Gänge vor, der Schreck kommt nur aus dem Klang.
+5. **Wurzelpistole** (pistole 1–10): aus 1,2 m von oben ein kleiner schwarzer Körper mit sechs blassen Wurzeln – noch ein
+   Seestern; aus mehr als 3 m nichts als ein dunkler Punkt im Rasen (pistole 9, rechts unten). Der Griff im Ego-Bild, Schuss,
+   Keimlinge gut. **Kasten der Gabe** (pistole 10): von oben ein leerer Bilderrahmen – der Deckel war um 109° nach hinten gekippt
+   und lag dabei im Boden (Drehsinn), die Wände 12 mm dünn um ein helles Moosbett bis an den Rand. **Werkzeug**: Bild 8 (Pistole
+   im Riss) stand in der Wand des Gangs (schwarze Fläche).
+6. **Fensterwesen** (window 1–5): schwarzer Umriss vor der verschwommenen Landschaft, winkt; mit Lampe bleibt er schwarz (ein
+   Schatten, Seite); unter 1,9 m fährt der Arm heraus, roter Rand (Zugriff). **Gestalt** im Hof (gestalt 1–3): dunkle Figur auf
+   dem Moos, steht still, solange man hinsieht – gut.
+7. **Faceling im rosa Kleid, Skin-Stealer** (dress, skinstealer): Werkzeugfehler – `near` stellte die Kamera im 3 m breiten
+   Gang an die Wand (Kopf abgeschnitten), dann tötete sie den Spieler und die Vorführung lag unter dem roten Schleier.
+8. **E-048**: Stromausfall im Gang (blackout 1–3) – die Leuchtflächen der Röhren erlöschen, nur die grüne Leuchte bleibt (Notlicht);
+   mit Lampe der Kegel. Beil (hand 1–3): der Stiel liegt in der Faust; im Schwung wirken die Finger flach.
+9. **Bereiche** (zones 1–12): Eingangsfenster warm, Plattenweg, Birkenkreis mit Fuge des Deckels, Tisch und Grammophon,
+   Glasgalerie, Oberlicht, Tür zum Gang, Treppenhaus, Zelle – nach LOOK_188. Werkzeug: `zones_11` sah auf die Wand des Absatzes.
+
+Änderungen:
+- **Sicherungspunkt „Weißer Gang“**: Leuchte und Punkt 1,5 m nach Norden in die Lücke zwischen zwei Röhren (`level188.py`, am
+  Ende, ohne Zufall; Karte neu erzeugt, Vergleich: nur diese beiden Zahlen).
+- **Horcher-Haut**: eigene Texturebene „kreide“ (`EL_CHALK`, `texture_entity.cpp`; Mikroebenen ab Platz 110): trockene,
+  kalkweiße Haut in Schollen gesprungen wie eingetrockneter Lehm (4 cm), Risse verschieden weit, darin rohes, nasses Fleisch,
+  Schollenränder aufgeworfen und entzündet, einzelne Schollen abgeplatzt, feine Risse nur stellenweise; Kalk matt, Fleisch glänzt.
+  `FM_ENT_HR_SKIN` → `ent(EL_CHALK, ML_PORES)`.
+- **Auftritt im Halbdunkel** (Auslegung, `presence_listener.cpp`): beim ersten Heraustreten je Besuch (später in 2 von 5 Fällen)
+  stottern die Röhren der Gänge und fallen 7 s aus – erst die Tür hinter dir, dann das Dunkel, dann das Ohr im Lampenkegel. Er
+  ist blind; das Dunkel nimmt nur dem Spieler das Licht. Neue Prüfung im `gameplay_test`.
+- **Wurzelpistole** (`e39_bed_moss`): um sie ist das Moos ausgezehrt (Auslegung: sie zieht Eisen und Blut aus dem Boden) – ein
+  unregelmäßiger Fleck aus totem, braunem Moos (Radius um 0,6 m), nach außen trocken und in Zungen wieder grün, darin ein
+  verzweigtes Geflecht blasser Wurzeln, die stellenweise unter das Moos tauchen.
+- **Kasten der Gabe** (`e39_case`): tief (11 cm, Wand 18 mm), dunkle Innenwand, Moosbett 4 cm unter dem Rand mit Polstern, die
+  Mulde als dunkler, blutfleckiger Samt in Pistolenform mit Moosrand; Deckel 98° offen (Drehsinn richtig), von einer Messingstrebe
+  gehalten, innen der Abdruck der Pistole; Messingecken oben und unten, Schließblech und offener Riegel.
+- **Werkzeug**: Faceling und Skin-Stealer erst als Vorführung im Gang (Licht der Ebene, Lampe, nah), dann der echte Auftritt
+  mit nachgeführter Kamera (`face faceling|skinstealer|listener` neu in `app.cpp`); Bild 8 der Pistole aus dem Gang, dazu die
+  Pistole aus 4 und 7 m und der Kasten aus 2 m; Auftritt mit Lampe im Dunkel und nach dem Licht; `zones_11` zur Tür des Absatzes.

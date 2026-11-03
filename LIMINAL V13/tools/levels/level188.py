@@ -307,4 +307,15 @@ m.spawn('trace', fx_, fy_, 0.0, math.pi / 2, set='e39', tags=['floor'])
 for k in range(4):
     m.spawn('trace', GR.x0 + hrng.uniform(0.4, 2.6), fy_ - hrng.uniform(2.0, 5.5), 0.0, 0.0, set='e39', tags=['seed'])
 print('Horcher: Klopftueren', n_knock, 'Zellentueren', n_emerge, '- Wurzelpistole im Moos bei', round(gx, 1), round(gy, 1))
+# --- V13.3 Abnahme Level 188 (KRITIK_Level188.md Runde 3) - am Ende, ohne Zufall; die Karte bleibt sonst gleich --------------
+# Die gruene Leuchte des Sicherungspunkts hing genau unter einer Roehre (y0 + 4,5): die Roehre lief quer durch den Kasten, von
+# weitem ein gruenes Kreuz (Apotheke/Erste Hilfe) und Geometrie in Geometrie. Leuchte und Sicherungspunkt 1,5 m nach Norden in
+# die Luecke zwischen zwei Roehren (y0 + 1,5 und y0 + 4,5).
+SAFE_Y = GR.y0 + 3.0
+for o in m.objects:
+    if o['model'] == 'safety_light' and abs(o['pos'][1] - (GR.y0 + 4.5)) < 0.01:
+        o['pos'][1] = SAFE_Y
+for cp in m.checkpoints:
+    if cp['id'] == 'gang':
+        cp['pos'][1] = round(SAFE_Y, 2)
 m.save()

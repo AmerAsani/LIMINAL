@@ -443,7 +443,7 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     materialData_[FM_ENT_GM_BOOK] = GpuMaterial{{0.035f, 0.03f, 0.028f}, 0, tri(L_LEATHER), 0.55f, 0, 0.2f};
     // V13.3 Teil 4 Level 188 (KREATUR_Horcher.md): kreideweiss wie die Gaenge, trocken und stumpf; das Ohr duenner und roetlicher
     // (Knorpel, Adern), der Gehoergang nass und dunkelrot, Schwielen gelblich-grau und rissig, Wunden nass, Naegel gelb wie Horn
-    materialData_[FM_ENT_HR_SKIN] = GpuMaterial{{0.80f, 0.80f, 0.78f}, 0, ent(EL_TOOTH, ML_CRAZE) | kMatFlagSkin, 0.85f, 0, 0.2f};  // Runde 1: EL_PALE gefleckt; Runde 2: EL_HUMAN rosa Puppe - kreidig, trocken, rissig
+    materialData_[FM_ENT_HR_SKIN] = GpuMaterial{{0.90f, 0.90f, 0.89f}, 0, ent(EL_CHALK, ML_PORES) | kMatFlagSkin, 1.0f, 0, 0.15f};  // Runde 1: EL_PALE gefleckt; Runde 2: EL_HUMAN rosa Puppe - kreidig, trocken, rissig; Abnahme 188: EL_TOOTH nah marmoriert -> eigene Kreidehaut (Schollen, Fleisch in den Rissen)
     materialData_[FM_ENT_HR_EAR] = GpuMaterial{{0.86f, 0.74f, 0.72f}, 0, ent(EL_HUMAN, ML_PORES) | kMatFlagSkin, 0.5f, 0, 0.12f};  // Runde 1: braun wie Leder
     materialData_[FM_ENT_HR_CANAL] = GpuMaterial{{0.30f, 0.035f, 0.045f}, 0, ent(EL_SKIN, ML_PORES) | kMatFlagSkin, 0.12f, 0, 0.25f};
     materialData_[FM_ENT_HR_CALLUS] = GpuMaterial{{0.70f, 0.64f, 0.50f}, 0, ent(EL_TOOTH, ML_CRAZE), 0.9f, 0, 0.3f};  // Runde 2: dunkel wie ein Huf

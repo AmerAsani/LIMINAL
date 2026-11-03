@@ -333,6 +333,10 @@ void App::scriptStep() {
                 std::string n = name;
                 role = n == "smiler" ? R::Smiler : n == "moth" ? R::Moth : n == "gestalt" ? R::Gestalt : n == "nest" ? R::Nest : n == "clump" ? R::Clump : n == "wretch" ? R::Wretch : R::Hound;  // V13.3: wretch (auch Red Knight)
                 lift = role == R::Smiler ? 1.7f : (role == R::Gestalt ? 1.6f : (role == R::Nest ? 1.3f : (role == R::Moth ? 0.0f : (role == R::Clump ? 1.6f : (role == R::Wretch ? 1.2f : 0.6f)))));
+                // V13.3 Abnahme Level 188 (Bilder): die Wesen der Gaenge im Lauf verfolgen
+                if (n == "faceling") role = R::Faceling, lift = 1.3f;
+                if (n == "skinstealer") role = R::SkinStealer, lift = 1.3f;
+                if (n == "listener") role = R::Listener, lift = 1.0f;
             } else {
                 off = std::atof(arg.c_str());
             }

@@ -311,6 +311,56 @@ LEVEL5_3 = {
 }
 
 
+# V13.3 Level 188 (Abnahme): alle Wesen des Hofs und der Gaenge in ihren Raeumen. Fensterwesen (drei dunkle Fenster im
+# Erdgeschoss, einmal je Ebene gesetzt), Gestalt im Hof, Faceling im rosa Kleid und Skin-Stealer nur in den Gaengen; Horcher,
+# Auftritt aus der Zelle und Wurzelpistole aus shots_l188.py (gleiche Ablaeufe wie in den Kritikrunden der Briefings).
+# Dazu die Bereiche (LOOK_188) und was seit E-048 auf allen Ebenen wirkt: Stromausfall (Leuchtflaechen), Spiegelung, Beil.
+def _l188():
+    from shots_l188 import jobs as l188_jobs
+    J = l188_jobs()
+    G0 = 'pos 58.5 52.5 -1.5708 0; ' + W0  # Suedende des weissen Gangs, Blick nach Norden
+    return {
+        'window': ('Fensterwesen (Entity 2): fern, Lampe, nah, Arm',
+            W0 + 'pos 30 33 0 0; wait 60; near window 7; wait 40; shot {out}/window_1.png; ' + _lamp('window', 2) +
+            'near window 3.4; wait 60; shot {out}/window_3.png; key T; wait 90; shot {out}/window_4.png; key T; wait 20; '
+            'near window 1.7; wait 50; shot {out}/window_5.png; quit'),
+        'gestalt': ('Umriss/Gestalt im Hof',
+            W0 + 'pos 33 46 -1.5708 0; wait 30; presence gestalt 16; wait 30; face gestalt; wait 3; shot {out}/gestalt_1.png; '
+            'near gestalt 7; wait 30; shot {out}/gestalt_2.png; ' + _lamp('gestalt', 3) + 'quit'),
+        # Runde 3: "near" stellte die Kamera im 3 m breiten Gang an die Wand (Kopf abgeschnitten), dann toetete sie und die
+        # Vorfuehrung lag unter dem roten Schleier - jetzt erst die Vorfuehrung im Gang (Licht der Ebene, Lampe, nah), dann der
+        # echte Auftritt, die Kamera folgt ihr (face), bis sie zuschlaegt
+        'dress': ('Faceling im rosa Kleid (Entity 9)',
+            G0 + 'figure faceling 3.4; figstate variant 2; wait 60; shot {out}/dress_1.png; key T; wait 90; shot {out}/dress_2.png; '
+            'key T; wait 20; figcam 12 4 1.3 1.5; wait 5; shot {out}/dress_3.png; figcam -40 4 2.8 1.0; wait 5; shot {out}/dress_4.png; '
+            'figclear; cam off; wait 10; presence faceling 14; wait 120; face faceling; wait 2; shot {out}/dress_5.png; wait 45; '
+            'face faceling; wait 2; shot {out}/dress_6.png; wait 45; face faceling; wait 2; shot {out}/dress_7.png; wait 45; '
+            'face faceling; wait 2; shot {out}/dress_8.png; quit'),
+        'skinstealer': ('Skin-Stealer, wahre Gestalt (Entity 10)',
+            G0 + 'figure skinstealer 3.4; wait 60; shot {out}/skinstealer_1.png; ' + _lamp('skinstealer', 2) +
+            'figcam 20 6 1.6 1.45; wait 5; shot {out}/skinstealer_3.png; figclear; cam off; wait 10; presence skinstealer 10; wait 200; '
+            'face skinstealer; wait 2; shot {out}/skinstealer_4.png; wait 60; face skinstealer; wait 2; shot {out}/skinstealer_5.png; '
+            'wait 60; face skinstealer; wait 2; shot {out}/skinstealer_6.png; quit'),
+        'horcher': J['horcher'],
+        'auftritt': J['auftritt'],
+        'pistole': J['pistole'],
+        # E-048: Leuchtflaechen erloeschen im Stromausfall (Halluzination 2 im Gang), Beil in der Faust, Spiegelung im Glas
+        'blackout': ('Stromausfall im Gang (Leuchtflaechen)',
+            'pos 58.5 47 -1.5708 0.12; ' + W0 + 'wait 30; shot {out}/blackout_1.png; haunt 2; wait 50; shot {out}/blackout_2.png; '
+            'key T; wait 90; shot {out}/blackout_3.png; quit'),
+        'hand': ('Fundstuecke in der Hand (Beil) im Gang',
+            'pos 58.5 40 -1.5708 -0.15; ' + W0 + 'wait 20; give glowstick; give hatchet; wait 20; key 2; wait 30; '
+            'shot {out}/hand_1.png; key F; wait 7; shot {out}/hand_2.png; wait 6; shot {out}/hand_3.png; quit'),
+        'zones': ('Bereiche (LOOK_188): Fenster, Moos, Kreis, Tisch, Galerie, Gang, Treppe, Zelle',
+            W0 + _view('zones_1', 15.0, 33.5, 0.0, 0.05) + _view('zones_2', 17.5, 34.5, 3.0, 0.0) +
+            _view('zones_3', 24.0, 40.0, 0.6, -0.75, lamp=True) + _view('zones_4', 37.5, 35.0, 3.6, -0.3) +
+            _view('zones_5', 43.4, 43.2, 4.0, -0.35, lamp=True) + _view('zones_6', 30.0, 22.0, -1.5708, 0.55) +
+            _view('zones_7', 33.0, 33.0, 0.0, 1.35) + _view('zones_8', 50.0, 38.5, 0.0, 0.0) +
+            _view('zones_9', 58.5, 31.2, 1.5708, 0.3) + _view('zones_10', 58.5, 55.5, 1.5708, 0.25) +
+            _view('zones_11', 59.4, 68.0, 3.1416, 0.0) + _view('zones_12', 64.5, 33.0, 3.1416, 0.0, lamp=True) + 'quit'),
+    }
+
+
 def note_job(level, seed):
     """V13.3 Level 0: Notizen dort aufnehmen, wo das Spiel sie hinlegt (Protokoll "Notiz ... bei (x, y)"), Lampe aus/an."""
     if level != 'level0':
@@ -343,7 +393,7 @@ def note_job(level, seed):
 # Spuren (Ausstattung der Karte): Kamera vor das Modell aus dem Ausstattungs-Abzug
 TRACES = {'level2': [('skin_hung', 0, 2.3), ('skin_lair', 0, 2.6), ('skin_shed', 0, 2.2), ('skin_shed', 1, 2.2),
                      ('skin_scratches', 0, 1.8)]}
-JOBS = {'level0': LEVEL0, 'level2': LEVEL2, 'level3': LEVEL3, 'level5': LEVEL5, 'level5_3': LEVEL5_3}
+JOBS = {'level0': LEVEL0, 'level2': LEVEL2, 'level3': LEVEL3, 'level5': LEVEL5, 'level5_3': LEVEL5_3, 'level188': _l188()}
 
 
 def trace_job(level):

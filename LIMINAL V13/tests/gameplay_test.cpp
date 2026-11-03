@@ -7567,6 +7567,8 @@ static void testV133Level188(const std::string& dataDir) {
               std::format("Horcher: tritt aus einer Zellentuer ({:.1f}, {:.1f}), vorher geht hinter dir eine Tuer auf", I2.pos.x, I2.pos.y));
         check(I2.pos.x > 61.0f && std::hypot(I2.pos.x - (float)s->player().x, I2.pos.y - (float)s->player().y) >= 4.0f,
               "Horcher: kommt aus einer Zelle, nicht naeher als 4 m");
+        // V13.3 Abnahme Level 188: beim ersten Heraustreten stottern die Roehren der Gaenge und fallen aus (Halbdunkel)
+        check(s->blackout().seed >= 0, "Horcher: beim ersten Heraustreten fallen die Roehren der Gaenge aus (Halbdunkel)");
         // --- Laerm: der Schuss der Wurzelpistole im Gang - es jagt dorthin ------------------------------------------------------------
         step(*s, ev, 6.0, [&] { return P.listenerInfo().state == hr::S_LISTEN; });
         const auto& guns = s->courtyard().guns();

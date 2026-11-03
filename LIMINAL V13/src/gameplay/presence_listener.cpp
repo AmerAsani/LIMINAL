@@ -82,6 +82,7 @@ constexpr float kStalk = 1.3f, kHunt = 4.4f, kEmergeWalk = 0.8f;  // m/s (der Sp
 constexpr float kWarnAt = 2.4f, kHitRadius = 1.0f, kStrikeReach = 2.7f;
 constexpr double kWarnTime = 1.3, kStrikeTime = 0.9, kFlinchTime = 1.6;
 constexpr float kStrikeHit = 34.0f;
+constexpr float kEmergeDark = 7.0f;    // V13.3 Abnahme Level 188: so lange fallen die Roehren beim Heraustreten aus (s)
 constexpr double kQuietLimit = 25.0;   // so lange nichts gehoert: es zieht sich zurueck
 constexpr double kLightNeed = 0.35;    // s Lampe auf dem Ohr
 constexpr float kLightRange = 9.0f;
@@ -191,6 +192,11 @@ bool Presence::spawnListener(const Context& c, std::vector<Event>& out, bool for
     M.exitTo = vec3{p.x, p.y, t->floor} + dirYaw(H.emergeYaw[(size_t)best]) * 2.2f;
     out.push_back({Event::Mimic, Role::Listener, p + dirYaw(H.emergeYaw[(size_t)best]) * 0.9f + vec3{0, 0, 1.1f}, cueOf(HC_DOOR)});
     out.push_back({Event::Appear, Role::Listener, p});
+    // V13.3 Abnahme Level 188 (Auslegung, KREATUR_Horcher.md): die Gaenge sind grell (Seite) - beim ersten Heraustreten eines
+    // Besuchs, spaeter in 2 von 5 Faellen, stottern die Roehren und fallen einige Sekunden aus: hinter dir geht die Tuer auf,
+    // dann wird es dunkel, und es entfaltet sich im Halbdunkel (Geraeusch vor Sicht; die Lampe zeigt zuerst das Ohr). Es ist
+    // blind - das Dunkel hilft ihm nicht, es nimmt nur dem Spieler die Sicherheit des Lichts.
+    if (H.emerges == 0 || rng_.uniform(0.0, 1.0) < 0.4) out.push_back({Event::Blackout, Role::Listener, c.view.eye, kEmergeDark});
     log::info("Praesenz: Horcher tritt aus einer Tuer ({:.1f}, {:.1f}), {:.0f} m vom Spieler", p.x, p.y, hdist(p, feet));
     agents_.push_back(std::move(a));
     ++H.emerges;

@@ -29,6 +29,7 @@ const EntLayerDesc kEntLayers[EL_COUNT] = {
     {"blass", 0.35f, 0.9f},    // V13.2
     {"wretch", 0.3f, 1.0f},    // V13.3 Wow-Check
     {"buendel", 0.55f, 1.0f},  // V13.3 Abnahme Level 3
+    {"kreide", 0.42f, 1.0f},   // V13.3 Abnahme Level 188
 };
 const EntLayerDesc kMicroLayers[ML_COUNT] = {
     {"poren", 0.08f, 0.45f},
@@ -480,6 +481,41 @@ Tex bundle(float u, float v) {
     return make(col, h, std::clamp(rough, 0.08f, 0.95f), 1.0f - 0.15f * pr - 0.1f * wr - 0.15f * stri);
 }
 
+// V13.3 Abnahme Level 188 (KREATUR_Horcher.md): Kreidehaut des Horchers. Vorher Zahnschmelz mit Haarrissen - nah mit Lampe
+// marmoriert (gelbliche Wolken, duenne helle Linien). Jetzt trockene, kalkweisse Haut, in Schollen gesprungen wie eingetrockneter
+// Lehm: verzogene Schollen (4 cm), Risse verschieden weit, darin rohes, nasses Fleisch; Schollenraender aufgeworfen, einzelne
+// Schollen abgeplatzt; feine Risse nur stellenweise; Kalkstaub matt, das Fleisch glaenzt.
+Tex chalk(float u, float v) {
+    const float wu = u + 0.010f * N(u, v, 9, 9, 601), wv = v + 0.010f * N(u, v, 9, 9, 602);
+    const Cell big = worley(wu, wv, 10, 603);
+    const float eb = big.d2 - big.d1;                                // Abstand zur Schollenkante (Zellen)
+    const float wide = 0.035f + 0.075f * sm(-0.3f, 0.6f, N(u, v, 5, 5, 604));  // Risse klaffen verschieden weit
+    const float crackB = 1.0f - sm(wide * 0.45f, wide, eb);
+    const float curl = sm(wide, wide + 0.07f, eb) * (1.0f - sm(wide + 0.07f, wide + 0.26f, eb));  // aufgeworfener Rand
+    const Cell fine = worley(u + 0.006f * N(u, v, 23, 23, 605), v + 0.006f * N(u, v, 23, 23, 606), 27, 607);
+    const float fmask = sm(0.0f, 0.45f, N(u, v, 6, 6, 608)) * sm(wide + 0.02f, wide + 0.1f, eb);
+    const float crackF = (1.0f - sm(0.0f, 0.045f, fine.d2 - fine.d1)) * fmask;
+    const float flake = (r01(big.id) > 0.93f ? 1.0f : 0.0f) * sm(wide * 0.6f, wide + 0.06f, eb);  // abgeplatzte Scholle
+    const float tilt = r01(big.id * 2654435761u + 7u) - 0.5f;          // jede Scholle steht etwas anders
+    const float mac = fbm(u, v, 3, 3, 4, 609);
+    const float livid = sm(0.1f, 0.6f, fbm(u, v, 4, 4, 3, 610));
+    C3 col = mixc({0.90f, 0.89f, 0.86f}, {0.80f, 0.785f, 0.75f}, sm(-0.4f, 0.5f, mac));
+    col = mixc(col, {0.80f, 0.81f, 0.85f}, livid * 0.35f);  // blaeulich-fahl, wo die Haut duenn ist
+    col = mulc(col, 0.95f + 0.07f * r01(big.id) + 0.04f * curl);
+    const float grain = N(u, v, 190, 190, 611);
+    col = mulc(col, 0.97f + 0.03f * grain);
+    const float rim = (1.0f - sm(wide, wide + 0.05f, eb)) * (1.0f - crackB);  // Rissflanke: entzuendet
+    col = mixc(col, {0.74f, 0.50f, 0.47f}, rim * 0.55f);
+    col = mixc(col, {0.40f, 0.065f, 0.07f}, crackB * 0.92f);
+    col = mixc(col, {0.58f, 0.30f, 0.29f}, crackF * 0.55f);
+    col = mixc(col, {0.47f, 0.12f, 0.11f}, flake * 0.9f);
+    const float wet = std::max(crackB, flake) * 0.9f + crackF * 0.3f;
+    const float h = -0.0009f * crackB - 0.00025f * crackF + 0.00035f * curl - 0.0006f * flake + 0.00012f * tilt * (1.0f - crackB) +
+                    0.00025f * mac + 0.000025f * grain;
+    const float rough = 0.95f - 0.72f * wet + 0.03f * grain;
+    return make(col, h, std::clamp(rough, 0.15f, 0.97f), 1.0f - 0.6f * crackB - 0.3f * crackF - 0.25f * flake - 0.1f * rim);
+}
+
 Tex layerSample(int layer, float u, float v) {
     switch (layer) {
         case EL_SKIN: return skin(u, v);
@@ -494,6 +530,7 @@ Tex layerSample(int layer, float u, float v) {
         case EL_PALE: return pale(u, v);
         case EL_WRETCH: return wretch(u, v);  // V13.3
         case EL_BUNDLE: return bundle(u, v);  // V13.3 Abnahme Level 3
+        case EL_CHALK: return chalk(u, v);    // V13.3 Abnahme Level 188
         default: return nest(u, v);
     }
 }

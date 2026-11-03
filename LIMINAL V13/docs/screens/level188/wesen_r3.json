@@ -1,0 +1,104 @@
+{
+ "shots": [
+  "window_1.png",
+  "window_2.png",
+  "window_3.png",
+  "window_4.png",
+  "window_5.png",
+  "gestalt_1.png",
+  "gestalt_2.png",
+  "gestalt_3.png",
+  "dress_1.png",
+  "dress_2.png",
+  "dress_3.png",
+  "dress_4.png",
+  "dress_5.png",
+  "skinstealer_1.png",
+  "skinstealer_2.png",
+  "skinstealer_3.png",
+  "horcher_1.png",
+  "horcher_2.png",
+  "horcher_3.png",
+  "horcher_4.png",
+  "horcher_5.png",
+  "horcher_6.png",
+  "horcher_7.png",
+  "horcher_8.png",
+  "horcher_9.png",
+  "horcher_10.png",
+  "auftritt_1.png",
+  "auftritt_2.png",
+  "auftritt_3.png",
+  "pistole_1.png",
+  "pistole_2.png",
+  "pistole_3.png",
+  "pistole_4.png",
+  "pistole_5.png",
+  "pistole_6.png",
+  "pistole_7.png",
+  "pistole_8.png",
+  "pistole_9.png",
+  "pistole_10.png",
+  "blackout_1.png",
+  "blackout_2.png",
+  "blackout_3.png",
+  "hand_1.png",
+  "hand_2.png",
+  "hand_3.png",
+  "zones_12_lampe.png",
+  "zones_3_lampe.png",
+  "zones_5_lampe.png",
+  "zones_1.png",
+  "zones_2.png",
+  "zones_3.png",
+  "zones_4.png",
+  "zones_5.png",
+  "zones_6.png",
+  "zones_7.png",
+  "zones_8.png",
+  "zones_9.png",
+  "zones_10.png",
+  "zones_11.png",
+  "zones_12.png"
+ ],
+ "window": {
+  "exit": 0,
+  "warn": []
+ },
+ "gestalt": {
+  "exit": 0,
+  "warn": []
+ },
+ "dress": {
+  "exit": 0,
+  "warn": []
+ },
+ "skinstealer": {
+  "exit": 0,
+  "warn": []
+ },
+ "horcher": {
+  "exit": 0,
+  "warn": []
+ },
+ "auftritt": {
+  "exit": 0,
+  "warn": []
+ },
+ "pistole": {
+  "exit": 0,
+  "warn": []
+ },
+ "blackout": {
+  "exit": 0,
+  "warn": []
+ },
+ "hand": {
+  "exit": 0,
+  "warn": []
+ },
+ "zones": {
+  "exit": 0,
+  "warn": []
+ }
+}

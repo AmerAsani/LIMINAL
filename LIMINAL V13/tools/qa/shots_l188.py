@@ -61,15 +61,20 @@ def jobs():
          'quit')
     E = ('Horcher tritt aus der Zelle',
          'pos 58.6 49.0 1.5708 0; ' + W0 + 'presence listener 0; wait 2; pos 58.3 39.0 1.0 -0.05; wait 25; shot {out}/auftritt_1.png; '
-         'wait 60; shot {out}/auftritt_2.png; wait 90; shot {out}/auftritt_3.png; quit')
+         'wait 60; shot {out}/auftritt_2.png; wait 90; shot {out}/auftritt_3.png; '
+         # Abnahme 188: beim ersten Heraustreten fallen die Roehren aus - mit Lampe, dann wieder Licht (nach 7 s)
+         'key T; wait 60; shot {out}/auftritt_4.png; key T; wait 250; shot {out}/auftritt_5.png; quit')
     P = ('Wurzelpistole (Entity 39)',
          _view(mx, my, myaw + 2.4, 1.15) + W0 + 'wait 30; shot {out}/pistole_1.png; ' + lamp + 'shot {out}/pistole_2.png; key T; wait 30; ' +
          _view(mx, my, myaw + 2.0, 0.6, aim=0.1) + 'wait 60; shot {out}/pistole_3.png; ' +
          'court wrap 0; wait 50; shot {out}/pistole_4.png; ' + lamp + 'shot {out}/pistole_5.png; key T; wait 20; ' +
          _view(mx, my, myaw + 2.4, 2.4) + 'court recover 0; wait 30; court fire 0; wait 2; shot {out}/pistole_6.png; ' +
          _view(seed[0], seed[1], myaw + 2.2, 1.0, aim=0.03) + 'court wilt 0; court sprouts 6; wait 80; shot {out}/pistole_7.png; ' +
-         _view(fx, fy, fyaw + 1.2, 1.3) + 'wait 40; ' + lamp + 'shot {out}/pistole_8.png; key T; wait 20; ' +
-         _view(note[0]['pos'][0] - 0.2, note[0]['pos'][1] - 0.9, myaw + 3.9, 2.0) + 'wait 40; shot {out}/pistole_9.png; ' + _view(cx, cy, myaw + 1.0, 1.1, aim=0.04) + 'wait 30; shot {out}/pistole_10.png; quit')
+         _view(fx, fy, fyaw - 1.2, 1.3) + 'wait 40; ' + lamp + 'shot {out}/pistole_8.png; key T; wait 20; ' +
+         _view(note[0]['pos'][0] - 0.2, note[0]['pos'][1] - 0.9, myaw + 3.9, 2.0) + 'wait 40; shot {out}/pistole_9.png; ' + _view(cx, cy, myaw + 1.0, 1.1, aim=0.04) + 'wait 30; shot {out}/pistole_10.png; ' +
+         # Abnahme 188: aus 4 und 7 m im Licht der Ebene (lesbar?), der Kasten aus 2 m schraeg
+         _view(mx, my, myaw + 2.4, 4.0) + 'wait 40; shot {out}/pistole_11.png; ' + _view(mx, my, myaw + 2.4, 7.0) +
+         'wait 40; shot {out}/pistole_12.png; ' + _view(cx, cy, myaw + 1.6, 2.0, aim=0.05) + 'wait 30; shot {out}/pistole_13.png; quit')
     return {'horcher': H, 'pistole': P, 'auftritt': E}
 
 
