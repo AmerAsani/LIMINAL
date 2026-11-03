@@ -57,6 +57,11 @@
 - **Rückweg:** das Eingangsfenster mit warmem Licht des Hotels dahinter, darüber ein grünes Schild. Es verschwindet nicht, damit der Weg zurück nach Level 5 offen bleibt.
 - **Verstand:** Er sinkt im Hof (0,12 je Sekunde) und in den Gängen (0,06–0,08) – Kälte, Nervengifte, Umrisse.
 - **Funde:** wenige, auf den Fensterbänken im Erdgeschoss.
+- **Wesen der Gänge und Gaben (V13.3 Teil 4):** der Horcher – gekennzeichnete Auslegung der „anderen bösartigen Menschenähnlichen“
+  (`KREATUR_Horcher.md`): er klopft hinter den verschlossenen Mahagonitüren (zwei weitere an der Ostwand des Gangs), lauscht und tritt
+  hinter dem, der antwortet, aus einer Zellentür. Die „Gaben“ des Kults (Entity 39, `KREATUR_Wurzelpistole.md`): je eine verkümmerte
+  Wurzelpistole im Moos des Hofs und im Riss des Gangbodens, dazu drei Probenstiche, der leere Kasten der Gabe und ein Probenzettel
+  (Fund). Alles am Ende von `tools/levels/level188.py` ergänzt; die Anordnung davor ist unverändert.
 
 ## 3. Konflikte und Grenzen
 

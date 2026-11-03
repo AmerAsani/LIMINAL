@@ -476,7 +476,7 @@ void Courtyard188::collect(std::vector<VisibleMesh>& out, vec3 eye) {
     }
     for (Sprout& s : sprouts_) {
         if (length(s.pos - eye) > 30.0f) continue;
-        const float k = std::clamp(0.2f + (float)s.age / 60.0f, 0.2f, 1.0f);
+        const float k = 1.5f * std::clamp(0.2f + (float)s.age / 60.0f, 0.2f, 1.0f);  // Runde 5: ausgewachsen ~0,1 m
         push(out, s.part, mat4::translation(s.pos) * mat4::rotationZ(s.yaw) * mat4::scale(vec3{k, k, k}), s.age < 60.0, 0.1f);
     }
 }

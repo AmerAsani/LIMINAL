@@ -50,7 +50,8 @@ def _mats():
         'bore': mat('e39_lauf', (0.02, 0.015, 0.012), 'plastic', r=0.9),
         'thorn': mat('e39_dorn', (0.72, 0.66, 0.52), 'ceramic', r=0.6),
         'leaf': mat('e39_blatt', (0.20, 0.32, 0.09), 'plastic', r=0.6),
-        'root': mat('e39_wurzel', (0.66, 0.48, 0.38), 'wood', r=1.0),  # Runde 1: auf weissem Beton schwarze Spinnenbeine
+        'leaf_pale': mat('e39_keimblatt', (0.62, 0.66, 0.30), 'plastic', r=0.6),
+        'root': mat('e39_wurzel', (0.70, 0.52, 0.42), 'plastic', r=0.9),  # Runde 1/4: auf weissem Beton schwarze Spinnenbeine - fleischig, blass
         'root_d': mat('e39_wurzel_blutig', (0.36, 0.11, 0.08), 'plastic', r=0.5),
         'husk': mat('e39_huelsen', (0.30, 0.05, 0.035), 'water', r=0.2),
         'husk_dry': mat('e39_huelsen_trocken', (0.18, 0.06, 0.04), 'paint', r=1.3),
@@ -254,12 +255,16 @@ def build_e39_sprout():
     for s in (1, -1):
         base = V((0.006, 0, 0.04))
         tip = base + V((-0.006, s * 0.022, 0.006))
-        ellipsoid(K(M['leaf'], 40), base.lerp(tip, 0.55), tip - base, 0.0125, 0.0058, 8, 4)
+        ellipsoid(K(M['leaf_pale'], 40), base.lerp(tip, 0.55), tip - base, 0.0125, 0.0058, 8, 4)
     top = V((0.009, 0, 0.052))
     blk(K(M['shell'], 25), (0.024, 0.0068, 0.0085), tuple(top + V((0.006, 0, 0.004))), bevel=0.0018)
     blk(K(M['bark'], 30), (0.0075, 0.0062, 0.012), tuple(top + V((-0.002, 0, -0.003))), ry=0.3, bevel=0.0016)
     ellipsoid(K(M['flesh'], 40), top + V((0.0, 0, 0.0085)), V((1, 0, 0)), 0.006, 0.0022, 7, 3)
     ellipsoid(K(M['soil'], 30), V((0, 0, -0.002)), V((0, 0, 1)), 0.006, 0.022, 10, 4)
+    # Runde 5: im Moos unsichtbar (gruen auf gruen) - aufgeworfener, trockener Moosring um das Einschussloch, blasse Keimblaetter
+    for k in range(9):
+        a = TAU * k / 9 + rng.uniform(-0.2, 0.2)
+        ellipsoid(K(M['moss_dry'], 40), V((math.cos(a) * 0.03, math.sin(a) * 0.03, 0.003)), V((math.cos(a), math.sin(a), 0.8)), 0.007, 0.011, 6, 3)
     for k in range(4):
         a = TAU * k / 4 + rng.uniform(-0.3, 0.3)
         sweep(K(M['root'], 35), [V((0, 0, 0.003)), V((math.cos(a) * 0.012, math.sin(a) * 0.012, 0.002)), V((math.cos(a) * 0.022, math.sin(a) * 0.024, 0.0012))],

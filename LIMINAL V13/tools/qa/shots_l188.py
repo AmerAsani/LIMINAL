@@ -39,8 +39,12 @@ def jobs():
     guns = [s for s in tr if s.get('set') == 'e39' and ({'moss', 'floor'} & set(s.get('tags', [])))]
     note = [s for s in tr if s.get('set') == 'e39' and 'note' in s.get('tags', [])]
     moss = [g for g in guns if 'moss' in g['tags']][0]
+    seeds = [s for s in tr if s.get('set') == 'e39' and 'seed' in s.get('tags', [])]
+    seed = seeds[0]['pos']
     floor = [g for g in guns if 'floor' in g['tags']][0]
     mx, my, myaw = moss['pos'][0], moss['pos'][1], moss.get('yaw', 0.0)
+    case = [o for o in M['objects'] if o['model'] == 'e39_case'][0]
+    cx, cy = case['pos'][0], case['pos'][1]
     fx, fy, fyaw = floor['pos'][0], floor['pos'][1], floor.get('yaw', 0.0)
     lamp = 'key T; wait 90; '
     H = ('Horcher (Auslegung, Level 188)',
@@ -63,9 +67,9 @@ def jobs():
          _view(mx, my, myaw + 2.0, 0.6, aim=0.1) + 'wait 60; shot {out}/pistole_3.png; ' +
          'court wrap 0; wait 50; shot {out}/pistole_4.png; ' + lamp + 'shot {out}/pistole_5.png; key T; wait 20; ' +
          _view(mx, my, myaw + 2.4, 2.4) + 'court recover 0; wait 30; court fire 0; wait 2; shot {out}/pistole_6.png; ' +
-         _view(mx, my, myaw + 2.2, 1.3) + 'court wilt 0; court sprouts 5; wait 80; shot {out}/pistole_7.png; ' +
+         _view(seed[0], seed[1], myaw + 2.2, 1.0, aim=0.03) + 'court wilt 0; court sprouts 6; wait 80; shot {out}/pistole_7.png; ' +
          _view(fx, fy, fyaw + 1.2, 1.3) + 'wait 40; ' + lamp + 'shot {out}/pistole_8.png; key T; wait 20; ' +
-         _view(note[0]['pos'][0], note[0]['pos'][1], myaw + 3.6, 1.7) + 'wait 40; shot {out}/pistole_9.png; quit')
+         _view(note[0]['pos'][0] - 0.2, note[0]['pos'][1] - 0.9, myaw + 3.9, 2.0) + 'wait 40; shot {out}/pistole_9.png; ' + _view(cx, cy, myaw + 1.0, 1.1, aim=0.04) + 'wait 30; shot {out}/pistole_10.png; quit')
     return {'horcher': H, 'pistole': P, 'auftritt': E}
 
 
