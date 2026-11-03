@@ -151,7 +151,10 @@ while x + 6 <= 104:
 
 
 def arch_door(a, b, width=3, at=None):
+    # V13.3 Abnahme: Boden und Laibung wie im Bogenraum (Teppich, Putz) statt der hellen Schwelle einer Tuer -
+    # style 'room_a'/'room_b': die Flaechen des Raums a bzw. b der Tuer (der Bogenraum, auch am Saeulenfeld)
     d = m.doors[m.door(a, b, 'wide', width, at=at, top=2.35)]
+    d['style'] = 'room_a' if d['a'] in boegen else 'room_b'
     x0, y0, x1, y1 = d['rect']
     yaw = 0.0 if d['axis'] == 0 else math.pi / 2
     w = x1 - x0 if d['axis'] == 1 else y1 - y0
@@ -266,10 +269,12 @@ for r in [r for r in yellow if m.R(r).type == 'flur'][::3] + flur_segs[::3]:
 
 # --- Sicherungspunkte (hier toetet nichts, aber der Verstand kann versagen) -----------------------------------
 def safe_point(cid, ri, yaw, label, styled=True, at=None):
+    # V13.3 Abnahme Level 0: ohne die gruene Sicherheitsleuchte mit Notausgang-Piktogramm an der Decke - die Seite
+    # nennt keine Schilder (LOOK_0 "Nicht", STRUKTURTYP: 0), und jede Leuchte waere ein Wahrzeichen (LEVEL0_STANDARD 2).
+    # Der Sicherungspunkt selbst bleibt (Speichern, Meldung beim Vorbeigehen).
     R = m.R(ri)
     x, y = at if at else (R.cx, R.cy)
     m.checkpoint(cid, x, y, yaw, label, lit_by_style=styled)
-    m.obj('safety_light', x, y, R.floor + R.height, yaw, tag='emergency')
 
 
 safe_point('start', start, 0.0, 'Erster Raum')

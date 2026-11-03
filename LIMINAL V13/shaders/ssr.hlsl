@@ -39,6 +39,31 @@ float3 ceilingMirror(float3 Pw, float3 Rw, out bool ok)
     if (t > 45.0)
         return 0.0;
     const float3 Q = Pw + Rw * t;
+    // V13.3 (Abnahme Level 0): der Strahl geht nicht durch Waende - die Zellen von Pw bis Q der Reihe nach (DDA). Vorher
+    // zaehlte nur die Zelle unter dem Treffpunkt: Wasser an Wandecken der Dunkelzone spiegelte die Leuchten weit
+    // entfernter Raeume durch die Wand (helle Schlieren im Dunkeln). Gesperrt: Wand, Decke unter dem Strahl, Boden darueber.
+    {
+        const float2 dxy = Q.xy - Pw.xy;
+        int2 c = (int2)floor(Pw.xy);
+        const int2 c1 = (int2)floor(Q.xy);
+        const int2 st = int2(dxy.x >= 0.0 ? 1 : -1, dxy.y >= 0.0 ? 1 : -1);
+        const float2 inv = 1.0 / max(abs(dxy), 1e-5);
+        float2 tm = float2(dxy.x >= 0.0 ? (float)c.x + 1.0 - Pw.x : Pw.x - (float)c.x,
+                           dxy.y >= 0.0 ? (float)c.y + 1.0 - Pw.y : Pw.y - (float)c.y) * inv;
+        [loop] for (int k = 0; k < 96 && any(c != c1); ++k)
+        {
+            const float s = min(tm.x, tm.y);  // Anteil der Strecke beim Eintritt in die naechste Zelle
+            if (tm.x < tm.y) { c.x += st.x; tm.x += inv.x; }
+            else             { c.y += st.y; tm.y += inv.y; }
+            const float2 fk = gHeightRing.Load(int3(c & mask, 0));
+            const float zk = Pw.z + Rw.z * t * s;
+            if (fk.x > 1000.0 || fk.y < zk || fk.x > zk)
+            {
+                ok = true;
+                return gAmbientRing.SampleLevel(gLinearWrap, (Pw.xy + 0.5) * gRingParams.y, 0).rgb * gFogParams.z * 1.3;
+            }
+        }
+    }
     const float2 fq = gHeightRing.Load(int3((int2)floor(Q.xy) & mask, 0));
     if (fq.x > 1000.0)
     {

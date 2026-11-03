@@ -1,0 +1,58 @@
+{
+ "shots": [
+  "gestalt_1.png",
+  "gestalt_2.png",
+  "gestalt_3.png",
+  "gestalt_4.png",
+  "gestalt_5.png",
+  "ghost_1.png",
+  "ghost_2.png",
+  "blackout_1.png",
+  "blackout_2.png",
+  "blackout_3.png",
+  "hand_1.png",
+  "hand_2.png",
+  "hand_3.png",
+  "hand_4.png",
+  "hand_5.png",
+  "hand_6.png",
+  "zones_4_lampe.png",
+  "zones_1.png",
+  "zones_2.png",
+  "zones_3.png",
+  "zones_4.png",
+  "zones_5.png",
+  "zones_6.png",
+  "zones_7.png",
+  "notes_1.png",
+  "notes_2.png",
+  "notes_3.png",
+  "notes_4.png",
+  "notes_5.png",
+  "notes_6.png"
+ ],
+ "gestalt": {
+  "exit": 0,
+  "warn": []
+ },
+ "ghost": {
+  "exit": 0,
+  "warn": []
+ },
+ "blackout": {
+  "exit": 0,
+  "warn": []
+ },
+ "hand": {
+  "exit": 0,
+  "warn": []
+ },
+ "zones": {
+  "exit": 0,
+  "warn": []
+ },
+ "notes": {
+  "exit": 0,
+  "warn": []
+ }
+}

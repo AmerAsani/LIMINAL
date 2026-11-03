@@ -151,10 +151,74 @@ LEVEL3 = {
         _purple('purple_3', 30.55, 52.4, 31.7, 54.5, 0.55) + _purple('purple_4', 30.55, 52.4, 31.7, 54.5, 0.55, lamp=True) +
         _purple('purple_5', 30.25, 54.6, 31.95, 56.3, 1.45) + 'quit'),
 }
+def _view(name, x, y, yaw, pitch=0.0, lamp=False):
+    """V13.3 Level 0: Spielerkamera an eine feste Stelle (Zonen, Halluzinationen), Licht der Ebene oder Lampe."""
+    s = f'pos {x} {y} {yaw} {pitch}; wait 60; shot {{out}}/{name}.png; '
+    return s + (f'key T; wait 90; shot {{out}}/{name}_lampe.png; key T; wait 30; ' if lamp else '')
+
+
+# V13.3 Level 0 (Abnahme): die Seite nennt keine bestaetigten Wesen - im Spiel die Gestalt (dunkle Figur am Gangende), die
+# Halluzinationen (Gestalt im Raum, Stromausfall des Raums; Schritte, Fluestern, Kratzen und Stimmen sind nur Klang) und
+# die Fundstuecke in der Hand (Leuchtstab geknickt und geworfen, Beil geschwungen). Dazu die Zonen der Ebene (LOOK_0).
+LEVEL0 = {
+    'gestalt': ('Gestalt (dunkle Figur, Level 0)',
+        W0 + 'presence gestalt 16; wait 30; face gestalt; wait 3; shot {out}/gestalt_1.png; key T; wait 90; '
+        'shot {out}/gestalt_2.png; key T; wait 30; near gestalt 7; wait 40; shot {out}/gestalt_3.png; near gestalt 3; wait 40; '
+        'shot {out}/gestalt_4.png; key T; wait 90; shot {out}/gestalt_5.png; quit'),
+    # Halluzination 3: bei wenig Verstand faellt das Licht, und im Dunkeln bezieht eine Gestalt Stellung (ausser Sicht, am
+    # Ende eines Gangs) - hinsehen, solange es dunkel ist, dann im zurueckgekehrten Licht und mit Lampe (Saeulenfeld)
+    'ghost': ('Halluzination: Gestalt im Raum',
+        W0 + 'pos 81.5 52 1.5708 0; wait 60; sanity 12; haunt 3; wait 50; face gestalt; wait 3; shot {out}/ghost_1.png; wait 200; '
+        'face gestalt; wait 3; shot {out}/ghost_2.png; key T; wait 90; shot {out}/ghost_3.png; key T; wait 30; quit'),
+    # Halluzination 2: das Licht des Raums faellt aus (vorher/nachher), dann mit Lampe
+    'blackout': ('Halluzination: Raum ohne Licht',
+        W0 + 'pos 18 28 1.5708 0; wait 60; shot {out}/blackout_1.png; haunt 2; wait 50; shot {out}/blackout_2.png; key T; wait 90; '
+        'shot {out}/blackout_3.png; quit'),
+    # Fundstuecke in der Hand im Licht von Level 0: Leuchtstab knicken und werfen (F), Beil schwingen (F)
+    'hand': ('Fundstuecke in der Hand (Leuchtstab, Beil)',
+        W0 + 'pos 18 28 1.5708 -0.15; wait 30; give glowstick; give hatchet; wait 20; key F; wait 9; shot {out}/hand_1.png; '
+        'wait 70; shot {out}/hand_2.png; lurecam 40 25 1.2; wait 4; shot {out}/hand_3.png; cam off; worldlight 0; wait 4; '
+        'shot {out}/hand_4.png; worldlight 1; key 2; wait 20; key F; wait 7; shot {out}/hand_5.png; wait 6; shot {out}/hand_6.png; quit'),
+    'zones': ('Zonen von Level 0',
+        W0 + _view('zones_1', 81.5, 60, 1.571) + _view('zones_2', 62, 85.5, 0.0) + _view('zones_3', 80.5, 21, 3.142) +
+        _view('zones_4', 116, 31.5, 0.524, lamp=True) + _view('zones_5', 128, 121.5, 1.92) + _view('zones_6', 37, 40.5, 4.712) +
+        _view('zones_7', 154, 64, 0.0) + _view('zones_8', 63.4, 85.5, 0.0, -0.45) + 'quit'),
+}
+
+
+def note_job(level, seed):
+    """V13.3 Level 0: Notizen dort aufnehmen, wo das Spiel sie hinlegt (Protokoll "Notiz ... bei (x, y)"), Lampe aus/an."""
+    if level != 'level0':
+        return None
+    import re
+    code, log = run(f'--level {level} --seed {seed}', 'wait 30; quit',
+                    userdir=os.path.join(ROOT, 'build', 'qa', 'ud_creatures', 'notes_probe'), size='640x360')
+    spots = [(float(a), float(b)) for a, b in re.findall(r'Notiz "[^"]*" bei \((-?[\d.]+), (-?[\d.]+)\)', log)]
+    g = Grid(level)
+    parts = []
+    for k, (x, y) in enumerate(spots[:3]):
+        best = None
+        for a in [i * math.pi / 8 for i in range(16)]:
+            cx, cy = x + math.cos(a) * 1.3, y + math.sin(a) * 1.3
+            if g.ok(cx, cy) and g.ok((x + cx) / 2, (y + cy) / 2):
+                best = (cx, cy)
+                break
+        if not best:
+            continue
+        cx, cy = best
+        yaw = math.atan2(y - cy, x - cx)
+        pitch = math.atan2(-1.6, 1.3)
+        parts.append(f'pos {cx:.2f} {cy:.2f} {yaw:.3f} {pitch:.3f}; wait 50; shot {{out}}/notes_{2 * k + 1}.png; '
+                     f'key T; wait 90; shot {{out}}/notes_{2 * k + 2}.png; key T; wait 30; ')
+    if not parts:
+        return None
+    return ('Notizen (Fundort im Spiel)', W0 + ''.join(parts) + 'quit')
+
+
 # Spuren (Ausstattung der Karte): Kamera vor das Modell aus dem Ausstattungs-Abzug
 TRACES = {'level2': [('skin_hung', 0, 2.3), ('skin_lair', 0, 2.6), ('skin_shed', 0, 2.2), ('skin_shed', 1, 2.2),
                      ('skin_scratches', 0, 1.8)]}
-JOBS = {'level2': LEVEL2, 'level3': LEVEL3}
+JOBS = {'level0': LEVEL0, 'level2': LEVEL2, 'level3': LEVEL3}
 
 
 def trace_job(level):
@@ -231,6 +295,10 @@ def main():
     tj = trace_job(a.level)
     if tj:
         jobs['traces'] = tj
+    if not a.sheet_only and (not a.only or 'notes' in a.only.split(',')):
+        nj = note_job(a.level, a.seed)
+        if nj:
+            jobs['notes'] = nj
     if a.only:
         jobs = {k: v for k, v in jobs.items() if k in a.only.split(',')}
     raw = os.path.join(ROOT, 'build', 'qa', 'creatures', a.level, a.round)
@@ -247,7 +315,8 @@ def main():
             report[job] = {'exit': code, 'warn': warn[:6]}
             print(f'{job}: exit {code}', warn[:3], flush=True)
     # alle vorhandenen Bilder dieser Runde (auch aus frueheren Teil-Laeufen mit --only), Reihenfolge der Tabelle
-    labels = {k: v[0] for k, v in dict(JOBS.get(a.level, {}), traces=('Skin-Stealer-Spuren (Entity 10)', '')).items()}
+    labels = {k: v[0] for k, v in dict(JOBS.get(a.level, {}), traces=('Skin-Stealer-Spuren (Entity 10)', ''),
+                                       notes=('Notizen (Fundort im Spiel)', '')).items()}
     shots = []
     for job in labels:
         fs = sorted((f for f in os.listdir(raw) if f.startswith(job + '_') and f.endswith('.png')),

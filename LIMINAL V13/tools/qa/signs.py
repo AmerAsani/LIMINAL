@@ -17,6 +17,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from maplib import LEVELS, NAMES, ROOT, Grid  # noqa: E402
 
 EXIT = ('exit_sign', 'exit_sign_green', 'exit_sign_36')
+# V13.3 (Abnahme Level 0): gruene Sicherheitsleuchte der Sicherungspunkte - traegt beidseitig das Notausgang-Piktogramm
+# (PROPS_Level1.md) und liest sich an der Decke wie ein Notausgangsschild; wird mitgezaehlt und ausgewiesen
+PICTO = ('safety_light',)
 
 
 def count(level):
@@ -34,7 +37,8 @@ def count(level):
         high = z - p['floor'] >= 1.8 or p['back'] > 0.5
         if not (near_door or near_exit) or not high:
             bad.append({'p': [round(x, 2), round(y, 2), round(z, 2)], 'tuer': near_door, 'hoch': high})
-    return {'level': level, 'exit_signs': len(signs), 'exit_doors': len(d['exits']), 'misplaced': bad}
+    picto = [p for p in d['props'] if p['name'] in PICTO]
+    return {'level': level, 'exit_signs': len(signs), 'exit_doors': len(d['exits']), 'misplaced': bad, 'picto': len(picto)}
 
 
 def main():
@@ -46,7 +50,7 @@ def main():
     for lv in args or LEVELS:
         c = count(lv)
         cap = limits.get(lv, {}).get('signs_max', 0)
-        line = f"{NAMES[lv]:10} Notausgangsschilder {c['exit_signs']:3d} (Grenze {cap}), Notausgangstueren {c['exit_doors']}, falsch platziert {len(c['misplaced'])}"
+        line = f"{NAMES[lv]:10} Notausgangsschilder {c['exit_signs']:3d} (Grenze {cap}), Notausgangstueren {c['exit_doors']}, falsch platziert {len(c['misplaced'])}, Sicherheitsleuchten mit Piktogramm {c['picto']}"
         print(line)
         if do_check and (c['exit_signs'] > cap or c['misplaced']):
             fails += 1
