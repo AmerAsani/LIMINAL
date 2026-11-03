@@ -1,0 +1,51 @@
+{
+ "shots": [
+  "gentleman_1.png",
+  "gentleman_2.png",
+  "gentleman_3.png",
+  "gentleman_4.png",
+  "gentleman_5.png",
+  "gentleman_6.png",
+  "gentpose_1.png",
+  "gentpose_2.png",
+  "gentpose_3.png",
+  "gentpose_4.png",
+  "gentpose_5.png",
+  "gentnotice_1.png",
+  "gentnotice_2.png",
+  "gentnotice_3.png",
+  "gentnotice_4.png",
+  "gentnotice_5.png",
+  "loreread_1.png",
+  "loreread_2.png",
+  "loreread_3.png",
+  "zones_1_lampe.png",
+  "zones_3_lampe.png",
+  "zones_1.png",
+  "zones_2.png",
+  "zones_3.png",
+  "zones_4.png",
+  "zones_5.png",
+  "zones_6.png"
+ ],
+ "gentleman": {
+  "exit": 0,
+  "warn": []
+ },
+ "gentpose": {
+  "exit": 0,
+  "warn": []
+ },
+ "gentnotice": {
+  "exit": 0,
+  "warn": []
+ },
+ "loreread": {
+  "exit": 0,
+  "warn": []
+ },
+ "zones": {
+  "exit": 0,
+  "warn": []
+ }
+}

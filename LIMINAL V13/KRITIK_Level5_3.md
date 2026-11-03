@@ -105,3 +105,38 @@ Befunde:
 - Weste vorn flach mit geradem Saum und zwei Spitzen (Kasten statt Ellipsoid), Knöpfe und Kette darauf.
 - Nägel kleiner, auf dem Fingerrücken, die Kuppe frei; aus vergilbtem Elfenbein wie das Gesicht (ohne Bemalung).
 - Werkzeug: Folio mit Blick auf das Blatt.
+- Modellprüfung: die Stufen l1/l2 hatten nach dem Vereinfachen 33 bzw. 30 Dreiecke gegen den Umlaufsinn (Hemd, Hände,
+  Gold, Schuppen) → `repair_glb.py`; danach 3/0.
+
+## Runde 4 (`wesen_r4_1.jpg` … `_3.jpg`: Hausherr nah und in den Haltungen, Folio, neu: Bereiche und Übergänge)
+
+Läufe `gentleman`, `gentpose`, `gentnotice`, `loreread` und neu `zones` (Sicherungspunkte abseits des Laufwegs: vor der
+Leere, Ostflügel zur Tür nach Level 5, alte Gänge, Treppe, Obergeschoss, Kronleuchter und Wappen der Halle).
+
+Befunde:
+1. **Nadelstreifen** (gentleman 3–6): fein und dunkel, aus 1,5 m ein Nadelstreifenfrack; mit Lampe grau mit feinen Streifen
+   (schwarzer Stoff im Taschenlampenlicht) – gut.
+2. **Weste**: als Kasten mit geradem Saum stand sie wie ein roter Ranzen vor dem Frack, breiter als die Öffnung, und schien
+   von hinten durch den Rücken (gentnotice 1/2) – schlechter als in Runde 3.
+3. **Revers**: ohne Spitze lang und glänzend, hängen aber mit runder Kuppe oben wie zwei schwarze Zungen über der Weste.
+4. **Nägel** (gentnotice 4/5): klein, aber hell wie Pflaster auf dem Fingerrücken.
+5. **Gesicht**: flacheres Rissnetz – das Rouge, die Schatten und die hellen Stellen tragen jetzt das Bild; aus 1,5 m bleibt
+   der Firnis körnig (Mikroebene der Craquelure und Flecken der Zahnschmelz-Ebene) – Restpunkt.
+6. **Folio** (loreread 1/2): auch mit Blick auf das Blatt kein „Folio lesen“. Ursache (Spielfehler, nicht Werkzeug): der
+   unsichtbare Block des Lesepults ist 1,25 m hoch, `findTarget` prüft die Sichtlinie bis 1,2 m über dem Boden – das
+   Folio war im Spiel von keinem Platz aus zu lesen (die Karteikarten mit 1,05 m schon).
+7. **Bereiche** (zones 1–6): vor der Leere das weiße Eisengitter vor schwarzem Raum (mit Lampe hell); der Ostflügel endet an
+   der alten Tür nach Level 5 im Kerzenlicht; die alten Gänge dunkel (nur mit Lampe Regale); Treppe mit Marmor; Obergeschoss
+   mit Durchgang zur Galerie; in der Halle der weiße eiserne Kronleuchter und die Wappen an der Decke – nach LOOK_5.3, keine
+   Schilder, keine elektrischen Leuchten. Keine Änderung.
+8. **Szene in Haltungen** (gentpose 1–5): Verbeugung, Lesen, Ansprache gut; der Wurf ist als Haltung nur ein Stehen (das
+   Buch fliegt im Ablauf, gentflow).
+
+Änderungen:
+- Weste zurück zur Form aus Runde 3 (flaches Ellipsoid mit Knöpfen und Kette).
+- Revers als flaches Band (Querschnitt 4–4,5 mm, oben am Kragen 4,4 cm, unten 6,8 cm breit) knapp über dem Frack.
+- Nägel noch kleiner und dünn (1,4 mm, feineres Gitter), sie liegen fast in der Haut.
+- **Lesepult**: Block 1,25 → 1,15 m (`tools/levels/level5_3.py`, Karte neu erzeugt; Vergleich der Karten: nur diese Zahl
+  geändert). Neue Prüfung im `gameplay_test`: beide Funde vom Platz des Lesers aus erreichbar – schlug mit der alten Karte
+  fehl („Folio lesen“, 1,13 m), mit der neuen grün.
+- `gm_notebook.glb`: 38 entartete Dreiecke (28,8 %) → `repair_glb.py`.

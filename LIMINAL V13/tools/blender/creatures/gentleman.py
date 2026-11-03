@@ -147,8 +147,10 @@ def build(J, bones):
         # Sack - jetzt aus glaenzender Seide (eigene Gruppe), etwas breiter und erhabener
         # Runde 3: oben sah nur die Spitze als schwarzer Punkt heraus (wie ein Knopf) - die Spitze entfaellt, das Revers liegt
         # oben weiter vorn und reicht bis an den Kragen
+        # Runde 4: als Ellipsoid hing es mit runder Kuppe oben wie eine schwarze Zunge ueber der Weste - jetzt ein flaches Band
+        # (oben schmal am Kragen, unten breiter), knapp ueber dem Frack
         top2 = top + np.array([0.012, 0.004 * g, 0.03])
-        revers.append(A.ell(CHEST, (top2 + bot) / 2 + X * 0.006, A.unit(bot - top2), (0.18, 0.034, 0.008), up=A.unit(X + Y * g * 0.5), k=0.0))
+        revers.append(A.tube(CHEST, top2 + X * 0.003, bot + X * 0.004, (0.022, 0.004), (0.034, 0.0045), up=A.unit(X + Y * g * 0.5), k=0.0))
     for b, a_, e_ in ((TAIL_L, 29, 30), (TAIL_R, 31, 32)):  # Schoesse bis in die Kniekehlen, in der Mitte geteilt
         a, e = J[a_], J[e_]
         mid = a + (e - a) * 0.5 - X * 0.012
@@ -184,7 +186,8 @@ def build(J, bones):
             nd = A.unit(p3 - p2)
             # Abnahme Level 5.3, Runde 3: im Griff (38 cm) lagen die Naegel als Kappen ueber den Fingerkuppen - kleiner, auf
             # dem Fingerruecken, die Kuppe frei
-            (nails_l if s == 0 else nails_r).append(A.ell(armB(s, 4), p3 - nd * 0.0105 + out * 0.0058, nd, (0.0078, 0.0047, 0.0012), up=out, k=0.0))
+            # Runde 4: hell auf dem Fingerruecken wie Pflaster - noch kleiner und duenn, sie liegen fast in der Haut
+            (nails_l if s == 0 else nails_r).append(A.ell(armB(s, 4), p3 - nd * 0.0105 + out * 0.0052, nd, (0.0064, 0.0036, 0.0007), up=out, k=0.0))
             if s == 1 and f == 3:  # Siegelring (rechte Hand, kleiner Finger)
                 rc = base + d * fl * 0.2
                 ring.append(A.cone(armB(s, 4), rc - d * 0.006, rc + d * 0.006, 0.0118, 0.0118, k=0.0))
@@ -192,16 +195,15 @@ def build(J, bones):
 
     # --- Weste (ochsenblutrot) mit Knoepfen und Uhrkette, Hemd mit hohem Kragen, Krawatte --------------------------------------
     vest += remap(B.torso(t=0.008, upper=True, lower=False))
-    # Runde 0: stand als roter Bauch vor dem Frack; Abnahme Level 5.3: noch ein runder Ballon (Runde 2), flacher noch ein Oval
-    # (Runde 3) - jetzt vorn flach mit geradem Saum und zwei Spitzen wie eine Weste
-    vest += [A.box(SPINE, (0.0, 0, 1.27), X, (0.074, 0.115, 0.175), 0.045, k=0.04)]
-    for g in (1, -1):
-        vest.append(A.cone(SPINE, (0.066, 0.05 * g, 1.12), (0.06, 0.07 * g, 1.055), 0.03, 0.003, k=0.012))
+    # Runde 0: stand als roter Bauch vor dem Frack; Abnahme Level 5.3: noch ein runder Ballon (Runde 2) - flacher und laenger
+    # (Runde 3: mit Knoepfen und Kette eine Weste). Runde 4: als Kasten mit geradem Saum stand sie wie ein roter Ranzen vor dem
+    # Frack (breiter als die Oeffnung) - zurueck zur Form aus Runde 3
+    vest += [A.ell(SPINE, (0.0, 0, 1.25), X, (0.078, 0.118, 0.165), k=0.04)]
     vest.append(A.box(CHEST, (0.15, 0, 1.55), X, (0.05, 0.035, 0.06), 0.012, k=0.012, op='sub'))  # V-Ausschnitt
     vest.append(A.box(CHEST, (0.0, 0, 1.75), X, (0.2, 0.3, 0.1), 0.02, k=0.02, op='sub'))  # Schultern frei (unter dem Frack)
 
     def vest_x(z):
-        return 0.074 + 0.003 if 1.14 <= z <= 1.4 else 0.074 * math.sqrt(max(0.0, 1.0 - ((abs(z - 1.27) - 0.13) / 0.045) ** 2)) + 0.003
+        return 0.078 * math.sqrt(max(0.0, 1.0 - ((z - 1.25) / 0.165) ** 2)) + 0.003
     for k_ in range(4):
         z = 1.16 + 0.048 * k_
         gold.append(A.ell(SPINE, (vest_x(z) + 0.001, 0, z), X, (0.004, 0.0055, 0.0055), k=0.0))
@@ -342,9 +344,9 @@ def build(J, bones):
         {'name': 'hand_r', 'fm': 'ent_gm_hand', 'parts': hand_r, 'disp': skin_hand, 'h': 0.0011, 'cav_scale': 0.003, 'merge': 'haende', 'lod_weight': 1.8},
         # Abnahme Level 5.3: die Naegel waren im Griff weisse Kappen wie Verbaende (Runde 2), als Horn schwarze Fingerhuete
         # (Runde 3) - vergilbtes Elfenbein wie das Gesicht, ohne Bemalung
-        {'name': 'naegel_l', 'fm': 'ent_gm_face', 'parts': nails_l, 'disp': None, 'h': 0.0006, 'cav_scale': 0.001, 'merge': 'naegel',
+        {'name': 'naegel_l', 'fm': 'ent_gm_face', 'parts': nails_l, 'disp': None, 'h': 0.0004, 'cav_scale': 0.001, 'merge': 'naegel',
          'paint': no_paint},
-        {'name': 'naegel_r', 'fm': 'ent_gm_face', 'parts': nails_r, 'disp': None, 'h': 0.0006, 'cav_scale': 0.001, 'merge': 'naegel',
+        {'name': 'naegel_r', 'fm': 'ent_gm_face', 'parts': nails_r, 'disp': None, 'h': 0.0004, 'cav_scale': 0.001, 'merge': 'naegel',
          'paint': no_paint},
         {'name': 'revers', 'fm': 'ent_gm_silk', 'parts': revers, 'disp': None, 'h': 0.0016, 'cav_scale': 0.004},
         {'name': 'augen', 'fm': 'ent_gm_sclera', 'parts': eyes, 'disp': None, 'h': 0.0005, 'cav_scale': 0.002, 'lod_weight': 2.0},

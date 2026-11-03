@@ -7307,6 +7307,20 @@ static void testV133Level53Gentleman(const std::string& dataDir) {
         });
         check(models && std::filesystem::exists(dataDir + "/models/gm_notebook.glb") && std::filesystem::exists(dataDir + "/models/ent_gentleman_l0.glb"),
               "Wissen: die Modelle der Funde (Zettel, Karteikarten, Notizbuch) und des Hausherrn liegen in data/models");
+        // Abnahme Level 5.3 (Kritikrunde 4): vom Platz des Lesers aus laesst sich jeder Fund lesen - der unsichtbare Block des
+        // Lesepults verdeckte mit 1,25 m die Sichtlinie zum Folio (findTarget prueft bis 1,2 m ueber dem Boden)
+        for (const auto& [id, x, y, prompt] : {std::tuple{"trace:l53_lore141", 65.0, 42.35, "Folio lesen"},
+                                               std::tuple{"trace:l53_lore189", 67.4, 46.6, "Karteikarten lesen"}}) {
+            vec3 at{};
+            s->registry().each<game::NoteFind, game::Transform>([&](ecs::Entity, game::NoteFind& f, game::Transform& t) {
+                if (f.id == id) at = t.pos;
+            });
+            put(*s, x, y, 0.0);
+            aimAt(*s, at);
+            step(*s, ev, 0.2);
+            check(s->targetPrompt() == prompt,
+                  std::format("Wissen: \"{}\" vom Platz des Lesers erreichbar ({:.2f} m)", prompt, std::hypot(at.x - x, at.y - y)));
+        }
     }
     // --- der Besuch: Regie, Szene, Fund, Stille, Zorn; kein Angriff ohne Stoerung -------------------------------------------
     {
