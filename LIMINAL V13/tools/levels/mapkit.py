@@ -98,6 +98,7 @@ FLOOR_MOUNT = {'chair', 'rack', 'bed', 'barrel', 'cart', 'pump', 'wardrobe', 'tr
                'macchina_suit', 'macchina_cradle', 'macchina_spear',  # V13.3 Teil 4 L2: Reste der Macchina (KREATUR_Macchina.md)
                'e18_desk', 'e18_wingchair',  # V13.3 Teil 4 L5: Buero des Gastgebers (KREATUR_Gastgeber.md)
                'lore_lectern', 'lore_catalog',  # V13.3 Teil 4 L5.3: Lesepult und Katalogschrank (KREATUR_Bibliothekswissen.md)
+               'e39_case', 'e39_samples',  # V13.3 Teil 4 L188: leerer Kasten der Gabe, Probenstiche (KREATUR_Wurzelpistole.md)
                'carousel_36', 'luggage_pile', 'checkin_counter', 'bta_booth', 'travelator', 'travelator_stopped', 'seats_row', 'gate_counter', 'camp_c32'}  # V12 L36
 
 

@@ -78,7 +78,11 @@ PREVIEW_RGB = {'ent_skin': (0.55, 0.47, 0.40), 'ent_hair': (0.03, 0.03, 0.03), '
                'ent_gm_suit': (0.07, 0.07, 0.08), 'ent_gm_vest': (0.32, 0.06, 0.06), 'ent_gm_shirt': (0.85, 0.83, 0.78),
                'ent_gm_shoe': (0.03, 0.03, 0.03), 'ent_gm_face': (0.80, 0.70, 0.58), 'ent_gm_hand': (0.78, 0.73, 0.66),
                'ent_gm_hair': (0.03, 0.03, 0.03), 'ent_gm_eye': (0.15, 0.09, 0.05), 'ent_gm_sclera': (0.85, 0.8, 0.75),
-               'ent_gm_raw': (0.5, 0.06, 0.06), 'ent_gm_gold': (0.8, 0.6, 0.25), 'ent_gm_book': (0.06, 0.05, 0.05)}
+               'ent_gm_raw': (0.5, 0.06, 0.06), 'ent_gm_gold': (0.8, 0.6, 0.25), 'ent_gm_book': (0.06, 0.05, 0.05),
+               # V13.3 Teil 4 Level 188: der Horcher
+               'ent_hr_skin': (0.80, 0.79, 0.75), 'ent_hr_ear': (0.84, 0.74, 0.71), 'ent_hr_canal': (0.32, 0.04, 0.05),
+               'ent_hr_callus': (0.62, 0.55, 0.42), 'ent_hr_raw': (0.48, 0.05, 0.05), 'ent_hr_nail': (0.62, 0.55, 0.36),
+               'ent_hr_vein': (0.36, 0.38, 0.55), 'ent_hr_wood': (0.26, 0.09, 0.05)}
 
 
 def build_group(g, nb):

@@ -230,4 +230,81 @@ for o in m.objects:
         v_ = vrng.randrange(VARIANTS[o['model']])
         if v_:
             o['variant'] = v_
+# --- V13.3 Teil 4 (KREATUR_Horcher.md, KREATUR_Wurzelpistole.md): Orte der Wesen - am Ende, eigener Zufall ----------------
+# Die Anordnung oben bleibt unveraendert; hier kommen nur Spawnpunkte (trace) und wenige Ausstattungsstuecke dazu.
+hrng = random.Random(18841)
+GR = m.R(G)
+doors_ = [o for o in m.objects if o['model'] in ('door_mahogany', 'door_mahogany_open')]
+
+
+def free_wall(fx, fy, gap=2.2):
+    return all(math.hypot(fx - o['pos'][0], fy - o['pos'][1]) > gap for o in doors_)
+
+
+# weitere verschlossene Mahagonituren an der Ostwand des Gangs hinter den Zellen (Wiki: die meisten Tueren sind von innen
+# verschlossen) - hinter ihnen klopft es
+east = [f for f in m.wall_faces(G, margin=1) if abs(abs(f[2]) - math.pi) < 0.01 and f[1] > 48.4 and free_wall(f[0], f[1])]
+hrng.shuffle(east)
+placed = []
+for (fx, fy, yaw) in east:
+    if len(placed) >= 2 or any(abs(fy - q) < 2.6 for q in placed):
+        continue
+    m.obj('door_mahogany', fx, fy, 0.0, yaw, tag='deco')
+    doors_.append(m.objects[-1])
+    placed.append(fy)
+# Klopfen: vor jeder verschlossenen Tuer in Gang und Treppenhaus (0,75 m davor, Blick zur Tuer)
+n_knock = 0
+for o in doors_:
+    if o['model'] != 'door_mahogany':
+        continue
+    ox, oy, oz = o['pos']
+    yaw = o.get('yaw', 0.0)
+    if not (56.5 <= ox <= 60.5 and 30.0 <= oy <= 70.0):
+        continue
+    kx, ky = ox + math.cos(yaw) * 0.75, oy + math.sin(yaw) * 0.75
+    m.spawn('trace', kx, ky, oz, yaw + math.pi, set='hr', tags=['knock'])
+    n_knock += 1
+# Heraustreten: in jeder Zelle hinter der offenen Tuer, Blick in den Gang
+n_emerge = 0
+for d in m.doors:
+    if {d['a'], d['b']} & set(cells) and G in (d['a'], d['b']):
+        x0, y0, x1, y1 = d['rect']
+        cy = (y0 + y1) / 2
+        m.spawn('trace', x1 + 0.85, cy, 0.0, math.pi, set='hr', tags=['emerge'])
+        n_emerge += 1
+# Wurzelpistolen (Entity 39): eine im Moos des Hofs (abseits der Wege, bei ihrem leeren Kasten und den Probenstichen), eine im
+# Riss des Gangbodens vor der Treppe (dort hoert sie der Horcher); Keimorte in Reichweite vor dem Lauf
+blocked = [(o['pos'][0], o['pos'][1]) for o in m.objects if o.get('tag') not in ('light', 'window', 'emergency') and o['pos'][2] < 1.0]
+
+
+def clear(x, y, r):
+    return all(math.hypot(x - bx, y - by) > r for bx, by in blocked)
+
+
+cand = []
+for _ in range(400):
+    a = hrng.uniform(0.0, 2.0 * math.pi)
+    rr = hrng.uniform(9.0, 15.0)
+    x, y = CX + math.cos(a) * rr, CY + math.sin(a) * rr
+    if m.at(x, y) == A and clear(x, y, 2.2) and all(m.at(x + dx, y + dy) == A for dx in (-2.5, 2.5) for dy in (-2.5, 2.5)):
+        cand.append((x, y, a))
+gx, gy, ga = cand[0]
+gyaw = ga + math.pi * 0.5
+m.spawn('trace', gx, gy, 0.0, gyaw, set='e39', tags=['moss'])
+for k in range(6):  # Keimorte im Moos vor dem Lauf
+    a = gyaw + hrng.uniform(-0.6, 0.6)
+    r_ = hrng.uniform(1.8, 5.0)
+    sx, sy = gx + math.cos(a) * r_, gy + math.sin(a) * r_
+    if m.at(sx, sy) == A and clear(sx, sy, 0.8):
+        m.spawn('trace', sx, sy, 0.0, 0.0, set='e39', tags=['seed'])
+cx_, cy_ = gx - math.cos(gyaw) * 1.4 + math.cos(gyaw + 1.57) * 0.9, gy - math.sin(gyaw) * 1.4 + math.sin(gyaw + 1.57) * 0.9
+m.obj('e39_case', cx_, cy_, 0.0, gyaw + 0.4, tag='deco')
+sx_, sy_ = gx + math.cos(gyaw + 1.57) * 2.2, gy + math.sin(gyaw + 1.57) * 2.2
+m.obj('e39_samples', sx_, sy_, 0.0, gyaw + 1.57, tag='deco')
+m.spawn('trace', sx_ + math.cos(gyaw) * 0.45, sy_ + math.sin(gyaw) * 0.45, 0.0, gyaw + 0.3, set='e39', tags=['note'])
+fx_, fy_ = GR.x0 + 0.42, GR.y1 - 2.6  # Gangboden, Westseite, vor der Treppe
+m.spawn('trace', fx_, fy_, 0.0, math.pi / 2, set='e39', tags=['floor'])
+for k in range(4):
+    m.spawn('trace', GR.x0 + hrng.uniform(0.4, 2.6), fy_ - hrng.uniform(2.0, 5.5), 0.0, 0.0, set='e39', tags=['seed'])
+print('Horcher: Klopftueren', n_knock, 'Zellentueren', n_emerge, '- Wurzelpistole im Moos bei', round(gx, 1), round(gy, 1))
 m.save()

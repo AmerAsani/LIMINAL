@@ -31,6 +31,7 @@
 #include "gameplay/purpification.hpp"
 #include "gameplay/hotel_l5.hpp"
 #include "gameplay/library_l53.hpp"  // V13.3 Teil 4 Level 5.3
+#include "gameplay/courtyard_l188.hpp"  // V13.3 Teil 4 Level 188
 #include "gameplay/player.hpp"
 #include "gameplay/prefabs.hpp"
 #include "gameplay/stats.hpp"
@@ -238,6 +239,9 @@ public:
     bool hotelForce(const std::string& what, int nr);  // Skript/Test: colony <nr>, host <phase>, watcher <nr>, woodlins
     // V13.3 Teil 4 Level 5.3 (session_library.cpp): Orte und Funde der Bibliothek, Notizbuch und Zorn nach dem Besuch des Hausherrn
     const Library53& library() const { return lib53_; }
+    // V13.3 Teil 4 Level 188 (session_courtyard.cpp): Wurzelpistolen (Entity 39), Probenzettel, Orte des Horchers
+    Courtyard188& courtyard() { return court188_; }
+    const Courtyard188& courtyard() const { return court188_; }
 
     // Darstellung
     const world::Room* currentRoom() const { return room_; }
@@ -318,6 +322,7 @@ public:
     void netWorldState(std::vector<u32>& pickedOut, std::vector<NetWorldEvent>& dropsOut) const;
     void netPowerCut(vec3 pos, float seconds);
     void netApparition(u32 code, vec3 pos);
+    void netCourtyard(u32 code, vec3 pos);  // V13.3 Teil 4 Level 188 (session_courtyard.cpp)
     void netHotel(u32 code, vec3 pos);  // V13.3 Teil 4 Level 5 (session_hotel.cpp)  // V13.3 Teil 4: Randwesen von Level 2 (session_apparitions.cpp)
     void netFlicker(vec3 pos);
     std::vector<Presence::NetState> netCreatures;          // letzte Momentaufnahme der Wesen
@@ -550,6 +555,13 @@ private:
     void spawnLibrary(const world::ChunkData& cd);
     void libraryNote(vec3 pos, float yaw, const std::string& title, const std::string& id, const std::string& model, const std::string& prompt);
     void libraryPile();
+    // V13.3 Teil 4 Level 188 (session_courtyard.cpp): Wurzelpistolen, Probenzettel, Orte des Horchers
+    Courtyard188 court188_;
+    std::vector<Courtyard188::Event> courtEvents_;
+    void updateCourtyard(double dt);
+    void applyCourtyard(std::vector<Courtyard188::Event>& evs);
+    void spawnCourtyard(const world::ChunkData& cd);
+    bool useCourtyard(const ApparitionUse& au, Pawn* p, std::string& msg);
     void samanthaWorld(const Presence::Event& e);
     std::vector<mat4> palette_;
     FigureRig playerRig_;

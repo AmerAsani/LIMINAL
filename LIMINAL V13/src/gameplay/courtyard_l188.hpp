@@ -53,9 +53,10 @@ public:
         float yaw = 0.0f, lean = 0.22f;
         int kind = 0;               // 0 im Moos (Hof), 1 im Riss des Gangbodens
         std::string id;             // stabile Kennung (Bedienfeld)
-        int state = 0;              // 0 ruht, 1 Griff (trinkt), 2 Schuss, 3 welk
+        int state = 0;              // 0 ruht, 1 Griff (trinkt), 2 Schuss (Wurzeln loesen sich), 3 welk, 4 losgerissen
         double t = 0.0, cool = 0.0, dripT = 4.0, creakT = 0.0, flashT = -1.0;
-        int victim = -1, drank = 0;
+        int victim = -1, drank = 0, shots = 0, tears = 0;
+        vec3 victimEye;              // Auge des Gehaltenen (der Arm laeuft von der Hand dorthin)
         float sense = 0.0f, senseV = 0.0f, droop = 0.0f, droopV = 0.0f, wrap = 0.0f, wrapV = 0.0f;
         vec3 senseAt, hand;
         double huskT = -1.0;        // ein Tropfen faellt (s seit dem Loesen)
@@ -76,7 +77,7 @@ public:
         u32 code = 0;
     };
     struct PlayerIn {
-        vec3 feet;
+        vec3 feet, eye;
         bool alive = false;
     };
     struct Light {

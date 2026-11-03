@@ -1380,7 +1380,10 @@ bool entityFromGlb(Entity e, FigureModel& out, std::string& info, const std::str
         // V13.3 Teil 4 Level 5.3: der Hausherr
         {"ent_gm_suit", FM_ENT_GM_SUIT}, {"ent_gm_vest", FM_ENT_GM_VEST}, {"ent_gm_shirt", FM_ENT_GM_SHIRT}, {"ent_gm_shoe", FM_ENT_GM_SHOE},
         {"ent_gm_face", FM_ENT_GM_FACE}, {"ent_gm_hand", FM_ENT_GM_HAND}, {"ent_gm_hair", FM_ENT_GM_HAIR}, {"ent_gm_eye", FM_ENT_GM_EYE},
-        {"ent_gm_sclera", FM_ENT_GM_SCLERA}, {"ent_gm_raw", FM_ENT_GM_RAW}, {"ent_gm_gold", FM_ENT_GM_GOLD}, {"ent_gm_book", FM_ENT_GM_BOOK}};
+        {"ent_gm_sclera", FM_ENT_GM_SCLERA}, {"ent_gm_raw", FM_ENT_GM_RAW}, {"ent_gm_gold", FM_ENT_GM_GOLD}, {"ent_gm_book", FM_ENT_GM_BOOK},
+        // V13.3 Teil 4 Level 188: der Horcher
+        {"ent_hr_skin", FM_ENT_HR_SKIN}, {"ent_hr_ear", FM_ENT_HR_EAR}, {"ent_hr_canal", FM_ENT_HR_CANAL}, {"ent_hr_callus", FM_ENT_HR_CALLUS},
+        {"ent_hr_raw", FM_ENT_HR_RAW}, {"ent_hr_nail", FM_ENT_HR_NAIL}, {"ent_hr_vein", FM_ENT_HR_VEIN}, {"ent_hr_wood", FM_ENT_HR_WOOD}};
     const CreatureSkeleton& sk = entitySkeleton(e);
     FigureModel m;
     std::vector<mat4> frames;

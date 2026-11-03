@@ -1746,7 +1746,8 @@ static Mount mountOf(const std::string& m) {
                                    "jerry_perch", "jerry_shrine",  // V13.3 Teil 4 L2: Jerrys Sitzrohr, Opfertisch der Followers
                                    "macchina_suit", "macchina_cradle", "macchina_spear",  // V13.3 Teil 4 L2: Reste der Macchina
                                    "e18_desk", "e18_wingchair",  // V13.3 Teil 4 L5: Buero des Gastgebers
-                                   "lore_lectern", "lore_catalog"};  // V13.3 Teil 4 L5.3: Lesepult, Katalogschrank
+                                   "lore_lectern", "lore_catalog",  // V13.3 Teil 4 L5.3: Lesepult, Katalogschrank
+                                   "e39_case", "e39_samples"};  // V13.3 Teil 4 L188: Kasten der Gabe, Probenstiche (KREATUR_Wurzelpistole.md)
     for (const char* w : wall2)
         if (m == w) return Mount::Wall;
     for (const char* c : ceil2)

@@ -467,6 +467,11 @@ void App::scriptStep() {
             int nr = -1;
             std::sscanf(arg.c_str(), "%31s %lf %lf %d", name, &dist, &side, &nr);
             if (!session_->scriptApparition(name, dist, side, nr)) log::warn("Skript: rand '{}' - nicht gefunden oder kein Platz", arg);
+        } else if (cmd == "court" && session_) {  // V13.3 Teil 4 Level 188 (Bilder, Tests): court <hold|grip|wrap|fire|wilt|recover|drip|sprouts> <wert>
+            char key[32] = {};
+            double val = 0.0;
+            if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) < 2 || !session_->courtyard().setState(key, val))
+                log::warn("Skript: court '{}' unbekannt oder keine Wurzelpistole", arg);
         } else if (cmd == "horcher" && session_) {  // V13.3 Teil 4 Level 188 (Bilder, Tests): horcher <quick|next|emerge|hold|pose|place|state|yaw> <wert>
             char key[32] = {};
             double val = 0.0;
@@ -2477,6 +2482,9 @@ void App::renderWorld(double dt, bool clean) {
             std::vector<game::HotelL5::Light> hl;  // V13.3 Teil 4 Level 5: Bankerlampe im Buero des Gastgebers
             s.hotel().lights(hl, cam.pos);
             for (const auto& h : hl) al.push_back({h.pos, h.color, h.range, h.dir});
+            std::vector<game::Courtyard188::Light> cl;  // V13.3 Teil 4 Level 188: Muendungsblitz der Wurzelpistole
+            s.courtyard().lights(cl, cam.pos);
+            for (const auto& h : cl) al.push_back({h.pos, h.color, h.range, h.dir});
             for (const auto& a : al) {
                 if (sp.extraLights.size() >= 10) break;
                 gfx::ExtraLight L;

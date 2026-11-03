@@ -356,6 +356,19 @@ Sound e39Wilt(int rate) {  // welk: trockenes Knistern, ein Seufzen der Fasern
     finishL(b, level::kFoley - 4.0f, 0.12f, 0.5f, 3926u);
     return b.sound();
 }
+Sound e39Tear(int rate) {  // losgerissen: Fasern reissen aus dem Fleisch - nasses Reissen, ein Peitschen der Wurzeln
+    Rand r(3930u);
+    Buf b(1.4f, rate);
+    for (int k = 0; k < 4; ++k) hissL(b, 0.03f * (float)k, 0.18f, r.range(1400.0f, 2600.0f), 0.9f, 0.32f, r);
+    grains(b, 0.0f, 0.35f, 90.0f, [](Buf& bb, float at, Rand& rr) { clickL(bb, at, rr.range(0.08f, 0.25f), rr.range(900.0f, 2200.0f), rr); }, r,
+           [](float t) { return std::exp(-t * 6.0f); });
+    for (int k = 0; k < 3; ++k) bubble(b, 0.05f + 0.07f * (float)k, r.range(2.0f, 3.5f), 0.25f, r);
+    CreakSpec cs;
+    cs.rate0 = 160.0f, cs.rate1 = 40.0f, cs.formants = {800.0f, 2100.0f, 3900.0f}, cs.q = 5.0f;
+    creak(b, 0.25f, 0.6f, cs, 0.3f, r);
+    finishL(b, level::kFoley + 2.0f, 0.12f, 0.5f, 3931u);
+    return b.sound();
+}
 
 }  // namespace
 
@@ -382,6 +395,7 @@ void addListenerSounds(std::vector<SoundDef>& d, int rate) {
     d.push_back({"e39_bang", [=] { return e39Bang(rate); }});
     d.push_back({"e39_drip", [=] { return e39Drip(rate); }});
     d.push_back({"e39_wilt", [=] { return e39Wilt(rate); }});
+    d.push_back({"e39_tear", [=] { return e39Tear(rate); }});  // V13.3 Teil 4 Level 188: losgerissen
 }
 
 }  // namespace lim::audio
