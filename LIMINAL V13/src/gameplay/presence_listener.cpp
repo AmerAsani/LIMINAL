@@ -124,7 +124,10 @@ float cueOf(int c) { return kListenerCueBase + (float)c; }
 bool corridorRoom(const world::Room* r) {
     return r && r->type && (r->type->key == "gang" || r->type->key == "zelle" || r->type->key == "treppenhaus");
 }
-bool corridorTile(const world::Tile* t) { return t && t->open() && corridorRoom(t->room); }
+// Tuerkacheln gehoeren keinem Raum (Test: sonst blieb es in der Zellentuer stecken) - nur der Hof ist verboten
+bool corridorTile(const world::Tile* t) {
+    return t && t->open() && (corridorRoom(t->room) || !t->room || !t->room->type || t->room->type->key != "hof");
+}
 // so weit hoert es diesen Laerm (0 nichts)
 float hearRange(double noise) {
     if (noise >= 0.95) return 28.0f;

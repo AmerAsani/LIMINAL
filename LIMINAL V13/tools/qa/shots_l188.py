@@ -52,16 +52,21 @@ def jobs():
          'horcher pose 3; horcher place 3.0; horcher yaw 0.0; wait 40; shot {out}/horcher_6.png; '
          'horcher pose 1; horcher place 9.0; wait 40; shot {out}/horcher_7.png; ' +
          lamp + 'shot {out}/horcher_8.png; key T; wait 20; '
-         'horcher pose 5; horcher place 2.2; wait 30; shot {out}/horcher_9.png; quit')
+         'horcher pose 5; horcher place 2.2; wait 30; shot {out}/horcher_9.png; '
+         'horcher pose 1; horcher place 1.25; wait 40; ' + lamp + 'shot {out}/horcher_10.png; key T; wait 10; '
+         'quit')
+    E = ('Horcher tritt aus der Zelle',
+         'pos 58.6 49.0 1.5708 0; ' + W0 + 'presence listener 0; wait 2; pos 58.3 39.0 1.0 -0.05; wait 25; shot {out}/auftritt_1.png; '
+         'wait 60; shot {out}/auftritt_2.png; wait 90; shot {out}/auftritt_3.png; quit')
     P = ('Wurzelpistole (Entity 39)',
-         _view(mx, my, myaw + 2.4, 1.7) + W0 + 'wait 30; shot {out}/pistole_1.png; ' + lamp + 'shot {out}/pistole_2.png; key T; wait 30; ' +
-         _view(mx, my, myaw + 2.0, 0.85, aim=0.1) + 'wait 60; shot {out}/pistole_3.png; ' +
+         _view(mx, my, myaw + 2.4, 1.15) + W0 + 'wait 30; shot {out}/pistole_1.png; ' + lamp + 'shot {out}/pistole_2.png; key T; wait 30; ' +
+         _view(mx, my, myaw + 2.0, 0.6, aim=0.1) + 'wait 60; shot {out}/pistole_3.png; ' +
          'court wrap 0; wait 50; shot {out}/pistole_4.png; ' + lamp + 'shot {out}/pistole_5.png; key T; wait 20; ' +
-         _view(mx, my, myaw + 2.4, 2.4) + 'court recover 0; wait 30; court fire 0; wait 1; shot {out}/pistole_6.png; '
-         'court wilt 0; court sprouts 5; wait 80; shot {out}/pistole_7.png; ' +
+         _view(mx, my, myaw + 2.4, 2.4) + 'court recover 0; wait 30; court fire 0; wait 2; shot {out}/pistole_6.png; ' +
+         _view(mx, my, myaw + 2.2, 1.3) + 'court wilt 0; court sprouts 5; wait 80; shot {out}/pistole_7.png; ' +
          _view(fx, fy, fyaw + 1.2, 1.3) + 'wait 40; ' + lamp + 'shot {out}/pistole_8.png; key T; wait 20; ' +
-         _view(note[0]['pos'][0], note[0]['pos'][1], myaw + 3.6, 2.6) + 'wait 40; shot {out}/pistole_9.png; quit')
-    return {'horcher': H, 'pistole': P}
+         _view(note[0]['pos'][0], note[0]['pos'][1], myaw + 3.6, 1.7) + 'wait 40; shot {out}/pistole_9.png; quit')
+    return {'horcher': H, 'pistole': P, 'auftritt': E}
 
 
 def sheet(files, labels, out):
@@ -92,7 +97,7 @@ def main():
         J = {k: v for k, v in J.items() if k in a.only.split(',')}
     raw = os.path.join(ROOT, 'build', 'qa', 'creatures', 'level188', a.round)
     os.makedirs(raw, exist_ok=True)
-    dirs = {'horcher': 'horcher', 'pistole': 'wurzelpistole'}
+    dirs = {'horcher': 'horcher', 'pistole': 'wurzelpistole', 'auftritt': 'horcher'}
     for job, (label, script) in J.items():
         for f in os.listdir(raw):
             if f.startswith(job + '_'):
@@ -102,7 +107,8 @@ def main():
         warn = [ln.strip() for ln in log.splitlines() if 'Skript' in ln and ('kein' in ln or 'unbekannt' in ln or 'nicht' in ln)]
         files = sorted((os.path.join(raw, f) for f in os.listdir(raw) if f.startswith(job + '_') and f.endswith('.png')),
                        key=lambda p: int(os.path.basename(p)[len(job) + 1:-4]))
-        out = sheet(files, label, os.path.join(ROOT, 'docs', 'screens', 'creatures', dirs[job], f'{a.round}.jpg')) if files else None
+        name = f'{a.round}.jpg' if job != 'auftritt' else f'{a.round}_auftritt.jpg'
+        out = sheet(files, label, os.path.join(ROOT, 'docs', 'screens', 'creatures', dirs[job], name)) if files else None
         print(f'{job}: exit {code}, {len(files)} Bilder, Bogen {out}', warn[:4], flush=True)
 
 

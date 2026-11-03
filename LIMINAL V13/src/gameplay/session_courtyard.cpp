@@ -62,6 +62,17 @@ void GameSession::updateCourtyard(double dt) {
     }
     court188_.update(dt, pl, auth, courtEvents_);
     applyCourtyard(courtEvents_);
+    // die eigene Hand: solange eine Pistole sie haelt, greift sie hinunter zum Griff (Ego-Bild), die Wurzeln winden sich darum
+    const int selfIdx = netRole == NetRole::Guest ? netSelfId : 0;
+    bool held = false;
+    const auto& guns = court188_.guns();
+    for (size_t i = 0; i < guns.size(); ++i) {
+        if (guns[i].victim != selfIdx || (guns[i].state != 1 && !(guns[i].state == 2 && guns[i].t < 0.5))) continue;
+        held = true;
+        if (!body_.handHeld()) body_.holdHand(court188_.gripPos(guns[i]), 8.0f);
+        court188_.setArm((int)i, body_.pose().hand[1], body_.pose().elbow[1]);
+    }
+    if (!held && body_.handHeld()) body_.releaseHand();
 }
 
 void GameSession::applyCourtyard(std::vector<Courtyard188::Event>& evs) {

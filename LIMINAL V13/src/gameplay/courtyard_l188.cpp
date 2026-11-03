@@ -161,6 +161,7 @@ static mat4 gunMatrix(const Courtyard188::Gun& g) {
 }
 
 vec3 Courtyard188::muzzle(const Gun& g) const { return applyM(gunMatrix(g), vec3{kMuzzleX + 0.006f, 0.0f, kMuzzleZ}); }
+vec3 Courtyard188::gripPos(const Gun& g) const { return applyM(gunMatrix(g), vec3{-0.004f, 0.0f, kGripTop * 0.62f}); }
 
 void Courtyard188::startGrip(Gun& g, int player, std::vector<Event>& out) {
     const int gi = (int)(&g - guns_.data());
@@ -220,6 +221,7 @@ void Courtyard188::update(double dt, const std::array<PlayerIn, kPlayers>& playe
     for (size_t gi = 0; gi < guns_.size(); ++gi) {
         Gun& g = guns_[gi];
         g.t += dt;
+        g.armOk = std::max(0.0, g.armOk - dt);
         // wittern: der naechste Lebende in 2,4 m (nur in Ruhe)
         float best = 1e9f;
         vec3 at = g.senseAt;
@@ -421,13 +423,20 @@ void Courtyard188::collect(std::vector<VisibleMesh>& out, vec3 eye) {
         }
         if (de > 22.0f) continue;  // Wurzeln nur nah
         const vec3 base = g.pos + vec3{0, 0, 0.004f};
-        const vec3 hand = applyM(B, vec3{-0.004f, 0.0f, kGripTop * 0.62f});
-        const vec3 arm = nrmC(g.victimEye - vec3{0, 0, 0.32f} - hand, {0, 0, 1});  // zur Schulter
+        // Runde 2: ohne sichtbaren Arm las sich die Spirale im Ego-Bild nur als Knaeuel um den Griff - jetzt greift die eigene
+        // Hand hinunter (Body::holdHand) und die Wurzeln steigen vom Griff zu ihr hinauf und winden sich um den Unterarm
+        vec3 hand = applyM(B, vec3{-0.004f, 0.0f, kGripTop * 0.62f});
+        vec3 elbow = hand + nrmC(g.victimEye - vec3{0, 0, 0.32f} - hand, {0, 0, 1}) * 0.3f;
+        if (g.armOk > 0.0) hand = g.armHand, elbow = g.armElbow;
+        const vec3 arm = nrmC(elbow - hand, {0, 0, 1});
+        const float armLen = std::clamp(length(elbow - hand), 0.15f, 0.4f);
         const vec3 au = nrmC(cross(arm, std::fabs(arm.z) < 0.9f ? vec3{0, 0, 1} : vec3{1, 0, 0}), {0, 1, 0});
         const vec3 av = cross(arm, au);
         const bool drinking = g.state == 1 && g.t > kWrapT;
         for (int i = 0; i < kTendrils; ++i) {
-            const float ang = g.yaw + (float)i * (2.0f * kPiC / kTendrils) + 0.35f * std::sin((float)i * 2.1f + (float)gi);
+            // im Riss (Runde 3): die Wurzeln folgen den zwei langen Rissen der Platte (models_l188_gifts.py: 0,3 und 0,3 + pi)
+            const float ang = g.kind == 1 ? g.yaw + 0.3f + (i < kTendrils / 2 ? 0.0f : kPiC) + 0.12f * (float)(i % (kTendrils / 2) - 1)
+                                          : g.yaw + (float)i * (2.0f * kPiC / kTendrils) + 0.35f * std::sin((float)i * 2.1f + (float)gi);
             const vec3 dr = dirOf(ang), side{-dr.y, dr.x, 0.0f};
             vec3 pts[kSegs + 1];
             for (int j = 0; j <= kSegs; ++j) {
@@ -436,7 +445,8 @@ void Courtyard188::collect(std::vector<VisibleMesh>& out, vec3 eye) {
                 // Spinnenbeine); im Riss des Gangs bleiben sie flach im Riss
                 const float r = 0.02f + s * 0.42f;
                 vec3 rest = base + dr * r + side * (0.025f * std::sin(s * 5.0f + (float)i));
-                rest.z += g.kind == 0 ? 0.02f * (1.0f - s) - 0.11f * s * s : 0.004f - 0.03f * s * s;
+                // Runde 3: im Moos noch zu viel frei (ein Stern aus Strichen) - nach einem Drittel unter dem Moos
+                rest.z += g.kind == 0 ? 0.02f * (1.0f - s) - 0.24f * s * s : 0.004f - 0.03f * s * s;
                 // wittern: die Wurzeln zucken und kriechen ein wenig zum Naechsten (kaum Hub - es tastet, es steht nicht auf)
                 if (g.sense > 0.01f) {
                     const float k = g.sense * std::sin(kPiC * std::min(1.0f, s * 1.6f));
@@ -444,14 +454,14 @@ void Courtyard188::collect(std::vector<VisibleMesh>& out, vec3 eye) {
                     rest.z += (0.012f + 0.006f * std::sin((float)g.t * 9.0f + (float)(i * 7 + j))) * k;
                 }
                 vec3 wp;
-                if (s < 0.35f) {  // vom Griffende hinauf zur Hand
-                    const float u = s / 0.35f;
-                    wp = base + (hand - base) * u + dr * (0.07f * std::sin(kPiC * u));
-                } else {          // um Hand und Unterarm, spiralig bis zum Ellbogen (der Arm zeigt zur Schulter des Gehaltenen)
-                    const float u = (s - 0.35f) / 0.65f;
-                    const float phi = ang + u * 5.0f * kPiC;
-                    const float rad = 0.045f + 0.012f * u + (drinking ? 0.005f * std::sin((float)g.t * 8.0f - u * 6.0f) : 0.0f);
-                    wp = hand + arm * (0.03f + u * 0.5f) + (au * std::cos(phi) + av * std::sin(phi)) * rad;
+                if (s < 0.45f) {  // vom Griffende hinauf zur Hand
+                    const float u = s / 0.45f;
+                    wp = base + (hand - base) * u + dr * (0.09f * std::sin(kPiC * u));
+                } else {          // um Hand und Unterarm, spiralig bis zum Ellbogen
+                    const float u = (s - 0.45f) / 0.55f;
+                    const float phi = ang + u * 4.0f * kPiC;
+                    const float rad = 0.04f + 0.01f * u + (drinking ? 0.005f * std::sin((float)g.t * 8.0f - u * 6.0f) : 0.0f);
+                    wp = hand + arm * (armLen * 0.95f * u) + (au * std::cos(phi) + av * std::sin(phi)) * rad;
                 }
                 const float w = sm(g.wrap * 1.5f - s * 0.5f);
                 pts[j] = rest + (wp - rest) * w;

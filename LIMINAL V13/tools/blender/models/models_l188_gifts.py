@@ -54,11 +54,11 @@ def _mats():
         'root_d': mat('e39_wurzel_blutig', (0.36, 0.11, 0.08), 'plastic', r=0.5),
         'husk': mat('e39_huelsen', (0.30, 0.05, 0.035), 'water', r=0.2),
         'husk_dry': mat('e39_huelsen_trocken', (0.18, 0.06, 0.04), 'paint', r=1.3),
-        'moss': mat('moos_rand', (0.24, 0.32, 0.10), 'fabric', 'moss', r=1.4),
-        'moss_dry': mat('e39_moos_trocken', (0.30, 0.30, 0.14), 'fabric', 'moss', r=1.6),
+        'moss': mat('e39_moos', (0.78, 0.84, 0.72), 'fabric', 'moss', r=1.3),  # Runde 2: wie der Boden des Hofs (Zone hof), sonst schwarz
+        'moss_dry': mat('e39_moos_trocken', (0.95, 0.86, 0.62), 'fabric', 'moss', r=1.5),
         'soil': mat('e39_erde', (0.26, 0.19, 0.12), 'concrete', r=1.8),  # Runde 1: auf dem Moos ein schwarzes Loch
         'concrete': mat('beton_weiss', (0.93, 0.93, 0.92), 'concrete', 'concrete_white', r=1.2),
-        'crack': mat('e39_riss', (0.05, 0.045, 0.04), 'concrete', r=1.5),
+        'crack': mat('e39_riss', (0.30, 0.29, 0.27), 'concrete', r=1.5),  # Runde 2: schwarze Strahlen wie Spinnenbeine
         'stick': mat('e39_stab', (0.62, 0.50, 0.32), 'wood', r=1.3),
         'paper': mat('e39_zettel', (0.86, 0.84, 0.76), 'paint', r=1.25),
         'pencil': mat('e39_bleistift', (0.18, 0.18, 0.2), 'paint', r=1.0),
@@ -221,14 +221,16 @@ def build_e39_bed_crack():
     rng = random.Random(3904)
     K = Kit()
     M = _mats()
-    for k in range(6):  # Risse strahlenfoermig
-        a = TAU * k / 6 + rng.uniform(-0.3, 0.3)
-        L = rng.uniform(0.16, 0.3)
-        pts = _wiggle(rng, V((0, 0, 0.0008)), V((math.cos(a) * L, math.sin(a) * L, 0.0008)), 7, 0.02, z=lambda t: 0.0008)
-        sweep(K(M['crack'], 0), pts, [0.006 - 0.005 * i / 7 for i in range(8)], 4)
-        if k % 2 == 0:
-            pts2 = [p + V((0, 0, 0.0025)) for p in pts[:5]]
-            sweep(K(M['root'], 35), pts2, [0.005 - 0.0006 * i for i in range(5)], 6)
+    # Runde 2: sechs gleich lange schwarze Strahlen lasen sich wie Spinnenbeine - jetzt zwei lange, verzweigte Risse quer
+    # durch die Platte (der Boden ist gesprungen), die Wurzeln folgen ihnen ein Stueck
+    for k, (a, L) in enumerate(((0.3, 0.42), (0.3 + math.pi, 0.36), (2.0, 0.18))):
+        pts = _wiggle(rng, V((0, 0, 0.0008)), V((math.cos(a) * L, math.sin(a) * L, 0.0008)), 9, 0.025, z=lambda t: 0.0008)
+        sweep(K(M['crack'], 0), pts, [0.0055 - 0.0045 * i / 9 for i in range(10)], 4)
+        if k < 2:
+            for j in (3, 6):  # Verzweigungen
+                b = pts[j] + V((math.cos(a + 1.1) * 0.08, math.sin(a + 1.1) * 0.08, 0.0))
+                sweep(K(M['crack'], 0), _wiggle(rng, pts[j], b, 4, 0.01, z=lambda t: 0.0008), [0.003, 0.0026, 0.002, 0.0014, 0.0008], 4)
+            sweep(K(M['root'], 35), [p + V((0, 0, 0.0028)) for p in pts[:6]], [0.0055 - 0.0006 * i for i in range(6)], 6)
     for k in range(4):  # gehobene Splitter
         a = TAU * k / 4 + rng.uniform(-0.4, 0.4)
         r = rng.uniform(0.03, 0.06)

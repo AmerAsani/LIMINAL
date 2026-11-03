@@ -376,6 +376,12 @@ def build(J, bones):
     for i, kp in enumerate(knuckles):
         callus.append(A.ell(FB, kp + d * 0.006 + back * 0.004, d, (0.034, 0.03, 0.028), up=back, k=0.006))
     callus.append(A.box(FB, W + d * 0.262 - back * 0.03, d, (0.022, 0.1, 0.05), 0.02, up=back, k=0.01))  # Schlagflaeche unten
+    # Runde 3: die Fuesse gingen nackt und sauber ueber Beton - Hornhaut an Ferse und Ballen
+    for s in (0, 1):
+        An, To = J[legJ(s, 2)], J[legJ(s, 3)]
+        fdv = A.unit(np.array([To[0] - An[0], To[1] - An[1], 0.0]))
+        callus.append(A.ell(legB(s, 2), np.array([An[0] - 0.045, An[1], 0.012]), fdv, (0.03, 0.028, 0.012), up=Z, k=0.006))
+        callus.append(A.ell(legB(s, 2), np.array([To[0] - 0.035, To[1], 0.01]), fdv, (0.026, 0.038, 0.01), up=Z, k=0.006))
     fist_shape = [p for p in skin if p.bone == FB] + callus
     rs2 = np.random.default_rng(1884)
     for i, kp in enumerate(knuckles):

@@ -57,6 +57,8 @@ public:
         double t = 0.0, cool = 0.0, dripT = 4.0, creakT = 0.0, flashT = -1.0;
         int victim = -1, drank = 0, shots = 0, tears = 0;
         vec3 victimEye;              // Auge des Gehaltenen (der Arm laeuft von der Hand dorthin)
+        vec3 armHand, armElbow;      // Hand und Ellbogen des Gehaltenen (eigener Koerper, Ego-Bild), gueltig solange armOk > 0
+        double armOk = 0.0;
         float sense = 0.0f, senseV = 0.0f, droop = 0.0f, droopV = 0.0f, wrap = 0.0f, wrapV = 0.0f;
         vec3 senseAt, hand;
         double huskT = -1.0;        // ein Tropfen faellt (s seit dem Loesen)
@@ -97,6 +99,11 @@ public:
     static u32 netKind(u32 code) { return code >> 24; }
     // Skript/Test
     bool setState(const std::string& key, double v);
+    // eigener Koerper: die festgehaltene Hand (die Wurzeln winden sich um diesen Unterarm)
+    void setArm(int idx, vec3 hand, vec3 elbow) {
+        if (idx >= 0 && idx < (int)guns_.size()) guns_[(size_t)idx].armHand = hand, guns_[(size_t)idx].armElbow = elbow, guns_[(size_t)idx].armOk = 0.25;
+    }
+    vec3 gripPos(const Gun& g) const;
 
     void collect(std::vector<VisibleMesh>& out, vec3 eye);
     void lights(std::vector<Light>& out, vec3 eye) const;
