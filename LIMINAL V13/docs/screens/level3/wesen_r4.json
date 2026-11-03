@@ -1,0 +1,55 @@
+{
+ "shots": [
+  "bigclump_1.png",
+  "bigclump_2.png",
+  "bigclump_3.png",
+  "bigclump_4.png",
+  "bigclump_5.png",
+  "bigclump_6.png",
+  "bigclump_7.png",
+  "clump_1.png",
+  "clump_2.png",
+  "faceling_1.png",
+  "faceling_2.png",
+  "faceling_3.png",
+  "faceling_4.png",
+  "rat_1.png",
+  "rat_2.png",
+  "rat_3.png",
+  "rat_4.png",
+  "rat_5.png",
+  "rat_6.png",
+  "moth_1.png",
+  "moth_2.png",
+  "moth_3.png",
+  "moth_4.png",
+  "moth_5.png",
+  "smiler_1.png",
+  "smiler_2.png",
+  "smiler_3.png"
+ ],
+ "bigclump": {
+  "exit": 0,
+  "warn": []
+ },
+ "clump": {
+  "exit": 0,
+  "warn": []
+ },
+ "faceling": {
+  "exit": 0,
+  "warn": []
+ },
+ "rat": {
+  "exit": 0,
+  "warn": []
+ },
+ "moth": {
+  "exit": 0,
+  "warn": []
+ },
+ "smiler": {
+  "exit": 0,
+  "warn": []
+ }
+}

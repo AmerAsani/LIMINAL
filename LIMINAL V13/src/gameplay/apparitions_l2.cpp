@@ -171,9 +171,11 @@ void Apparitions::setup(const world::LevelDef& level, u64 seed) {
                 int var = 0;
                 if (std::sscanf(t.c_str() + 2, "%f,%f,%f,%d", &dx, &dy, &dyaw, &var) != 4) continue;
                 const float mr = kMonRot[std::clamp(var, 0, 2)];
-                const vec3 local{-0.02f + 0.2035f * std::cos(mr), 0.2035f * std::sin(mr), 0.958f};
+                // Abnahme Level 2: Blender-y ist im Spiel gespiegelt (props/glb_import) - die Drehung des Monitors wirkt im
+                // Spiel andersherum; vorher sass das Bild bis 9 cm neben der Scheibe und das dunkle Glas schnitt ein Oval hinein
+                const vec3 local{-0.02f + 0.2035f * std::cos(mr), -0.2035f * std::sin(mr), 0.958f};
                 ps.screen = apply(mat4::translation(vec3{dx, dy, p.z}) * mat4::rotationZ(dyaw), local);
-                ps.screenYaw = dyaw + mr;
+                ps.screenYaw = dyaw - mr;
             }
             psSpots_.push_back(ps);
         } else if (s.set == "macchina" && cfg_.macchina) {
@@ -888,7 +890,7 @@ void Apparitions::collect(std::vector<VisibleMesh>& out, vec3 eye) {
     // Bild auf dem Monitor: sein Bild; nach der Gabe der genommene Gegenstand (flach wie ein Foto)
     const mat4 S = mat4::translation(s.screen) * mat4::rotationZ(s.screenYaw);
     const bool showItem = s.state == 3 || (s.state == 2 && s.t > 1.5);
-    if (!showItem) push(out, s.screenImg, S * mat4::scale(vec3{1.0f, 1.18f, 1.18f}), s.burst > 0.0);  // Runde 4: fuellt die Scheibe
+    if (!showItem) push(out, s.screenImg, S * mat4::translation(vec3{0.003f, 0.0f, 0.0f}) * mat4::scale(vec3{1.0f, 0.95f, 0.95f}), s.burst > 0.0);
     else if (!s.offer.model.empty())
         push(out, s.offer, S * mat4::translation(vec3{0.004f, 0.0f, -0.1f}) * mat4::scale(vec3{0.05f, 0.8f, 0.8f}), false);
     // Box: zwoelf schwarze Kanten, Anfasser an den Ecken (wie das Freistellwerkzeug)

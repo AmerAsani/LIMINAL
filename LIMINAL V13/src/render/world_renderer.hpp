@@ -16,7 +16,7 @@ struct ExtraLight;  // V7, renderer.hpp
 
 // Die ersten GPU-Materialien sind fest vergeben (Items, Requisiten);
 // Weltmaterialien folgen dahinter.
-constexpr u32 kFixedMaterials = 224;  // V9: 16 -> 32 (Sicherungen ...), V10: 64 (Figuren), V13.2: 80, V13.3: 160 (weitere Wesen), 224 (Fundstuecke aus Blender ab FM_FIG_END, render/item_models.cpp)
+constexpr u32 kFixedMaterials = 288;  // V13.3 (B-029): 288 - die Wesen reichen bis 195, die Fundstuecke brauchen 33 Plaetze dahinter; V9: 16 -> 32 (Sicherungen ...), V10: 64 (Figuren), V13.2: 80, V13.3: 160 (weitere Wesen), 224 (Fundstuecke aus Blender ab FM_FIG_END, render/item_models.cpp)
 enum FixedMaterial : u32 {
     FM_ITEM_ENERGY = 0, FM_ITEM_ALMOND = 1, FM_BODY = 2, FM_BODY_FACE = 3,
     FM_VEND_BODY = 4, FM_VEND_GLOW = 5, FM_VEND_GLASS = 6,  // V6: Automat
@@ -87,6 +87,10 @@ enum FixedMaterial : u32 {
     FM_ENT_RK_PURPLE_GLOW,
     // V13.3 Wow-Check Level 3 (KREATUR_SkinStealer.md, KREATUR_Wretch.md): faulige Stellen des Skin-Stealers; Schorf und Pusteln des Wretch
     FM_ENT_SS_ROT, FM_ENT_WRE_CRUST, FM_ENT_WRE_PUS,
+    // V13.3 Abnahme Level 3 (KREATUR_Clump.md): tote Glieder (zwei Toene) und Kern des grossen Buendels in dessen eigener Haut
+    FM_ENT_CL_DEAD_A, FM_ENT_CL_DEAD_B, FM_ENT_CL_CORE,
+    // V13.3 Abnahme Level 3 (KREATUR_Faceling.md): Haut und Haar des entwickelten Facelings (stumpf statt Puppe und Gummibart)
+    FM_ENT_FC_SKIN, FM_ENT_FC_HAIR,
     // V13.3 Teil 4 Level 5 (KREATUR_Samantha.md): schwarzes und weisses Katzenfell, gruene Augen mit Tapetum (leuchten im
     // Lampenlicht), Nase und Ballen, Schnurrhaare, Zahnfleisch und Gaumen (nass)
     FM_ENT_SM_FUR, FM_ENT_SM_FURW, FM_ENT_SM_EYE, FM_ENT_SM_NOSE, FM_ENT_SM_WHISKER, FM_ENT_SM_GUM,
@@ -98,6 +102,10 @@ enum FixedMaterial : u32 {
     FM_FIG_END,
 };
 static_assert(FM_FIG_END <= kFixedMaterials);
+// V13.3 (B-029): Platz fuer die Materialien der Fundstuecke (render/item_models.cpp, ab FM_FIG_END; heute 33) - sonst
+// faellt ein Fundstueck still auf ein falsches Material zurueck (nur eine Warnung im Protokoll)
+constexpr u32 kItemMaterialSlots = 48;
+static_assert(FM_FIG_END + kItemMaterialSlots <= kFixedMaterials);
 // V10: Material wird triplanar aus der Ruheposition texturiert (Figuren), Bit 25 von GpuMaterial::layers
 constexpr u32 kMatFlagTriplanar = 1u << 25;
 // V10: Wesen - Bits 0-7 Ebene (EntLayer), 8-15 Mikroebene, Bit 26 gesetzt

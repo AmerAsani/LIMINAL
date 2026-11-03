@@ -67,6 +67,8 @@ PREVIEW_RGB = {'ent_skin': (0.55, 0.47, 0.40), 'ent_hair': (0.03, 0.03, 0.03), '
                'ent_hd_oil': (0.02, 0.02, 0.02), 'ent_hd_scar': (0.85, 0.62, 0.60), 'ent_hd_soot': (0.07, 0.065, 0.06),
                'ent_cl_raw': (0.50, 0.08, 0.07), 'ent_cl_bone': (0.86, 0.80, 0.68), 'ent_ob_rust': (0.45, 0.25, 0.12),
                'ent_hd_burn': (0.30, 0.14, 0.10), 'ent_cl_hide_a': (0.70, 0.56, 0.48), 'ent_cl_hide_b': (0.48, 0.36, 0.29),
+               'ent_cl_dead_a': (0.62, 0.50, 0.44), 'ent_cl_dead_b': (0.46, 0.36, 0.32), 'ent_cl_core': (0.58, 0.36, 0.38),
+               'ent_fc_skin': (0.62, 0.52, 0.46), 'ent_fc_hair': (0.09, 0.08, 0.07),
                # V13.3 Level 3: Red Knight; Wow-Check Skin-Stealer, Wretch
                'ent_rk_plate': (0.55, 0.55, 0.57), 'ent_rk_plate_dark': (0.12, 0.11, 0.11), 'ent_rk_mail': (0.4, 0.4, 0.41),
                'ent_rk_cape': (0.45, 0.05, 0.04), 'ent_rk_gold': (0.75, 0.55, 0.2), 'ent_rk_blade': (0.7, 0.7, 0.71),

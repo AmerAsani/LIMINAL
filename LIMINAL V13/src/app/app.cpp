@@ -2366,6 +2366,24 @@ void App::renderWorld(double dt, bool clean) {
                 L.size = 0.012f;
                 sp.extraLights.push_back(L);
             }
+            // V13.3 Abnahme Level 3 (KREATUR_Deathmoth.md): Motten im Gesicht sitzen hinter der Lampe (die Hand haelt sie vor
+            // den Koerper) und zeigten nur dunkle Flaechen. Die Lampe streut von Hand, Aermel und den Fluegeln vor der Linse
+            // zurueck: weiches Fuelllicht unter dem Kinn (ohne Schatten), dazu Fluegelstaub vor der Kamera. Ohne Lampe nur ein
+            // Hauch (Umrisse), denn Licht aus ist die Abwehr.
+            if (const int faceMoths = s.presence().mothFaceCount(cam.pos); faceMoths > 0) {
+                const vec3 fw{std::cos(cam.pitch) * std::cos(cam.yaw), std::cos(cam.pitch) * std::sin(cam.yaw), std::sin(cam.pitch)}, upv{0.0f, 0.0f, 1.0f};
+                gfx::ExtraLight L;
+                L.pos = cam.pos + fw * 0.03f - upv * 0.13f;
+                L.dir = fw;
+                L.color = fb.on ? vec3{1.0f, 0.9f, 0.76f} * (0.12f * fb.power) : vec3{0.55f, 0.6f, 0.7f} * 0.025f;
+                L.range = 0.9f;
+                L.spill = 1.0f;
+                L.size = 0.15f;
+                L.soft = 0.08f;
+                L.shadows = false;
+                sp.extraLights.push_back(L);
+                sp.mothDust = std::min(1.0f, (float)faceMoths / 3.0f) * (fb.on ? 1.0f : 0.35f);
+            }
             // V13.2 Koop: die Lampen der Mitspieler (gleicher Kegel, ohne Schatten ab dem dritten)
             int others = 0;
             for (const game::Pawn* pw : s.pawns) {

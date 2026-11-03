@@ -56,8 +56,10 @@ T& extOf(A& a) {
 }
 float cueM(int k) { return kKinCue + (float)k; }
 // Plaetze im Gesicht (Kamerarahmen: vor, rechts, oben): Mund, Nase, Augen, Ohren, Wangen
-constexpr float kSlot[8][3] = {{0.075f, 0.0f, -0.095f}, {0.095f, 0.0f, -0.035f}, {0.075f, 0.036f, 0.005f}, {0.075f, -0.036f, 0.005f},
-                               {-0.005f, 0.092f, -0.02f}, {-0.005f, -0.092f, -0.02f}, {0.06f, 0.065f, -0.07f}, {0.06f, -0.065f, -0.07f}};
+// V13.3 Abnahme Level 3: 4-5 cm weiter vor dem Auge und weiter aussen (vorher fuellten die Fluegel jeder Motte das ganze
+// Bild - Leib, Beine und Staub dazwischen waren nie zu sehen); alle Plaetze bleiben naeher als 0,3 m (mothFaceCount)
+constexpr float kSlot[8][3] = {{0.12f, 0.0f, -0.11f}, {0.14f, 0.0f, -0.04f}, {0.12f, 0.06f, 0.01f}, {0.12f, -0.06f, 0.01f},
+                               {-0.005f, 0.092f, -0.02f}, {-0.005f, -0.092f, -0.02f}, {0.1f, 0.1f, -0.08f}, {0.1f, -0.1f, -0.08f}};
 }  // namespace
 
 bool Presence::mothL3(const Context& c) const { return c.kin && c.kin[world::KIN_MOTH].on && c.kin[world::KIN_MOTH].mode == "swarm"; }
@@ -68,6 +70,13 @@ void Presence::swarmRouse(bool on) {
 bool Presence::swarmRoused() const {
     const auto* S = static_cast<const Swarm*>(l3Swarm_.get());
     return S && S->roused;
+}
+
+int Presence::mothFaceCount(vec3 eye) const {
+    int n = 0;
+    for (const auto& o : agents_)
+        if (o->role == Role::Moth && (o->variant == 3 || o->variant == 4) && (o->state == 4 || o->puppet) && length(o->pos - eye) < 0.3f) ++n;
+    return n;
 }
 
 void Presence::prepMothL3(Agent& a, const Context& c) {
@@ -371,7 +380,7 @@ void Presence::thinkMothL3(Agent& a, double dt, const Context& c, std::vector<Ev
             const vec3 want = eye + fw * (s[0] + wob) + rt * s[1] + up * s[2];
             a.vel = {};
             a.pos = a.pos + (want - a.pos) * (float)std::min(1.0, dt * 14.0);
-            a.fly = 0.55f + 0.35f * (float)std::sin(time_ * 19.0 + a.phase);
+            a.fly = 0.3f + 0.25f * (float)std::sin(time_ * 19.0 + a.phase);  // Abnahme Level 3: halb angelegt, zitternd (vorher 0,55 +- 0,35)
             a.shiver = 1.0f;
             a.up = nrmF(a.pos - (eye - fw * 0.04f), fw), a.fwd = nrmF(eye - fw * 0.02f - up * 0.05f - a.pos, -fw);
             a.yaw = std::atan2(a.fwd.y, a.fwd.x);

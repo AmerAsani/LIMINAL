@@ -35,6 +35,9 @@ X = np.array([1.0, 0.0, 0.0])
 TONES = CL.TONES
 # Runde 2: lebende Arme in eigener, stumpfer, trockener Haut (die Toene des kleinen Buendels glaenzten wie Kunststoff)
 HIDE = {'clump_a': 'ent_cl_hide_a', 'clump_b': 'ent_cl_hide_b', 'clump_c': 'ent_cl_hide_b'}
+# V13.3 Abnahme Level 3: auch die toten Glieder und der Kern bekommen eigene Materialien mit der Haut des grossen Buendels
+# (Flecken, Dehnungsstreifen, Narbennaehte, Blut, Schmier, Naesse) - die Toene des kleinen Buendels waren glatt wie eine Puppe
+DEAD_FM = {'clump_a': 'ent_cl_dead_a', 'clump_b': 'ent_cl_dead_b', 'clump_c': 'ent_cl_dead_b'}
 
 
 def arm_joints(J, a):
@@ -328,11 +331,11 @@ def build_big(J, bones, bare):
 
     core_add = [p for p in core if p.op == 'add']
     limb_add = [p for t in TONES for _, ps in tone_parts[t] for p in ps if p.op == 'add']
-    groups = [{'name': 'kern', 'fm': 'clump_core', 'parts': core, 'disp': core_disp, 'h': 0.0032, 'cav_scale': 0.016,
+    groups = [{'name': 'kern', 'fm': 'ent_cl_core', 'parts': core, 'disp': core_disp, 'h': 0.0032, 'cav_scale': 0.016,
                'cav_extra': limb_add}]
     for t in TONES:
         for name, ps in tone_parts[t]:
-            fm = HIDE[t] if name.startswith(('arm', 'bein')) else t
+            fm = HIDE[t] if name.startswith(('arm', 'bein')) else DEAD_FM[t]
             groups.append({'name': name, 'fm': fm, 'parts': ps, 'disp': limb_disp, 'h': 0.0022, 'cav_scale': 0.010,
                            'cav_extra': core_add, 'merge': 'glieder_' + fm})
     for i, ns in enumerate(nails_by_hand):

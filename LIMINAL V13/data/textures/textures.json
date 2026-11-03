@@ -555,6 +555,19 @@
     "188"
    ],
    "antitile": 1
+  },
+  {
+   "name": "ps_photos",
+   "dir": "ps_photos",
+   "source": "eigen:ps_photos",
+   "meters": 1.0,
+   "normal_strength": 0.6,
+   "rough_bias": 0.0,
+   "variation": 0.0,
+   "levels": [
+    "2"
+   ],
+   "antitile": 0
   }
  ]
 }

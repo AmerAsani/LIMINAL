@@ -724,6 +724,14 @@ void Renderer::renderScene(const CameraState& cam, const SceneParams& p, const s
         ctx->VSSetShader(shaders_.dustVS.get(), nullptr, 0);
         ctx->PSSetShader(shaders_.dustPS.get(), nullptr, 0);
         ctx->Draw((UINT)count * 6, 0);
+        // V13.3 Abnahme Level 3: Motten im Gesicht - Fluegelstaub (Schuppen) in einem kleinen Wuerfel um die Kamera, ab 10 cm,
+        // groessere, hellere Teilchen; beleuchtet wie der Staub (Lampe, Fuelllicht vor dem Gesicht)
+        if (p.mothDust > 0.01f) {
+            pc.p0 = {(float)(count / 2), 1.4f, 0.4f * std::min(1.0f, p.mothDust), 0.0f};
+            pc.p1 = {(float)std::min<u32>(nLights, 24u), 0.1f, 1.5f, 0};  // Runde 4: 2,2 las sich als Schneeflocken
+            gpu_.update(passCb_, &pc, sizeof(pc));
+            ctx->Draw((UINT)(count / 2) * 6, 0);
+        }
         ctx->VSSetShaderResources(0, 2, nullSrv);
         ctx->OMSetRenderTargets(0, nullptr, nullptr);
         ctx->OMSetDepthStencilState(gpu_.dsNone(), 0);

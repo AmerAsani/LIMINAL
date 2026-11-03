@@ -20,12 +20,31 @@ Rechner“).
 
 ## Umsetzung
 
-**Modell** (`models_l2_rand.py`): `ps_block@1..4` (der Klotz 0,9 × 0,9 × 2,36 m in vier waagrechten Scheiben für den Glitch, zusammen
-rund 15 000 Dreiecke): Fleischfotos auf allen Seiten (Fotopapierrand, marmoriertes Muskelfleisch, Fettadern, Äderchen, feuchte
-Lichter), vorn zwei Augenfotos (Haut mit Poren, Lidfalte, Augapfel mit Äderchen, Iris mit Strahlen, Lichtpunkt, Wimpern, Braue; die
-Augen sehen in verschiedene Richtungen) und das Pitbull-Maul (dichtes Fell in drei Tönen, schwarze Lefzen, Zahnfleisch, Eck- und
-Schneidezähne, Zunge, Geifer, nasse Lichter, Fotovignette). `ps_screen` (leuchtendes Bild auf dem Röhrenmonitor), `ps_arm_a/b`,
-`ps_hand@0/1` (weiß, blutig, Nägel), `ps_edge`, `ps_handle` (Box und Anfasser wie beim Freistellwerkzeug).
+**Modell** (`models_l2_rand.py`, neu in der Abnahme von Level 2): Die Fotos sind echte Aufnahmen gebauter Szenen, keine
+gemalten Flächen mehr.
+- **Fotos** (`tools/textures/ps_photos_render.py`, Blender/Cycles; Fleisch, Haut und Fell mit Lichtstreuung, nass glänzend,
+  Blitz an der Kamera, geringe Schärfentiefe):
+  - acht Fleischszenen: marmoriertes Steak in der Styroporschale mit blutiger Saugeinlage, Hackfleisch auf Metzgerpapier,
+    Bauchspeck, Leber in Blut, Beinscheibe mit Mark, Darm auf Edelstahl, Rinderzunge, Haut mit Gänsehaut;
+  - zwei menschliche Augen (Lider mit Lidfalte und feuchtem Rand, Wimpern, Iris mit Fasern, Äderchen, Hornhaut mit dem
+    Blitz), die in verschiedene Richtungen sehen;
+  - das weit aufgerissene Maul eines Pitbulls: Fell, schwarze Lefzen, schwarz gefleckter Gaumen, Eck- und Schneidezähne
+    mit Zahnstein, Zunge, Speichelfäden.
+- **Atlas** `data/textures/ps_photos` (`tools/textures/ps_photos_atlas.py`, 2048 px): jedes Foto als Abzug mit Farbstich,
+  Blitzabfall, Korn, manchmal Datumsaufdruck; weißer Papierrand, vergilbt, mit eingesogenem Blut und blutigen
+  Fingerabdrücken; dazu das Monitorbild und die Rückseite des Fotopapiers.
+- **Klotz** `ps_block@1..4` (0,9 × 0,9 × 2,36 m, vier waagrechte Scheiben für den Glitch, zusammen rund 10 000 Dreiecke):
+  - Grund aus durchgeweichtem Kleister und Blut, die senkrechten Kanten gefast.
+  - Darauf eine Collage aus 84 Abzügen rings um den Klotz, um die Kanten gebogen, schief und überlappend. Jeder liegt knapp
+    über denen, die er deckt.
+  - Gut jede vierte Ecke löst sich und biegt sich ab, mit Papierrückseite.
+  - Oben fünf Abzüge, aus 19 Stellen läuft Blut unter den Abzügen hervor, am Fuß eine Lache.
+  - Vorn das Gesicht, flach wie auf der Seite: zwei Augenfotos, etwas zu weit auseinander und verschieden schief, darunter
+    groß das Maul.
+- **Weitere Teile**:
+  - `ps_screen`: das leuchtende Monitorbild aus dem Atlas – Fleisch, darin ein Auge, rot, mit Zeilen und Versatz.
+  - `ps_arm_a/b`, `ps_hand@0/1`: weiß, blutig, Nägel.
+  - `ps_edge`, `ps_handle`: Box und Anfasser wie beim Freistellwerkzeug.
 
 **Verhalten** (`apparitions_l2.cpp`, ohne Rolle; Level-JSON `apparitions.photoshop`, `photoshop_chance` 0,6, `box_range` 1,52,
 `box_time` 5):
@@ -74,8 +93,10 @@ Tödlich nur für den, der näher als zwei Schritte an den Schreibtisch tritt un
 
 „Hinter einem flackernden Röhrenmonitor ragt ein Klotz aus Fleischfotos auf, ein Hundemaul als Mund – ein Schritt zu viel, und eine
 schwarze Auswahlbox rastet um dich ein und zieht sich zu, bis aus dem Bildschirm ein weißer, blutiger Arm nach deiner Flasche greift.“
-Ehrliche Antwort: „IIIH“ in der Box; der Klotz selbst wirkt bewusst wie ein Bastelprojekt aus der Hölle (so beschreibt ihn ein Zeuge
-auf der Seite).
+Ehrliche Antwort: „IIIH“, jetzt schon vor der Box. Der Klotz ist mit echten Fotos von rohem Fleisch, Darm und Zunge
+zugeklebt, aus denen ein echtes Hundemaul und zwei fremde Augen starren, blutig und schief geklebt; bewusst wie ein
+Bastelprojekt aus der Hölle (so beschreibt ihn ein Zeuge auf der Seite). Bis Runde 5 lautete die Antwort für den Klotz
+„Comic“ – deshalb neu gebaut.
 
 ## Kritikrunden (Bilder `docs/screens/creatures/l2_randwesen/`)
 
@@ -97,6 +118,33 @@ Kanten 1,5-fach. *Gut:* Box mit deutlichen Ecken, Bild füllt den Schirm (ein du
 **Runde 5 (aus den Augen des Spielers)** – `r5_pov_bogen.jpg`, `r5_pov_ps_box.jpg`. *Gut:* In der Box schneidet die schwarze Kante quer
 durchs Bild, der Klotz starrt über den Monitor; der Hinweis erscheint beim ersten Blick. Abnahme.
 
+**Runde 6 (Abnahme von Level 2, Wesenbogen `docs/screens/level2/wesen_r4_1.jpg`)** – *Schlecht:* Im Spiel neben den
+anderen Wesen wirkt der Klotz wie ein gezeichnetes Comic-Gesicht:
+- Augen und Maul sind aus Flächenfarben gelegt (Iris als Scheibe, Zähne als Dreiecke), der Körper ist ein roter Kasten
+  mit gemalten Adern.
+- Auf der Seite sind es Fotos – davon ist nichts zu sehen.
+- Der Monitor zeigt in der Mitte ein schwarzes Oval.
+
+*Änderung:* Neubau mit echten Fotos (siehe Modell): Szenen in Blender/Cycles, Atlas aus Abzügen, Collage um den Klotz.
+Bilder: `r6_ps_vorher_nachher.jpg` (links vorher, rechts nachher), `r6_ps_fotos.jpg` (der Atlas).
+
+**Runde 7 (`docs/screens/level2/wesen_r5_1.jpg`)** – *Gut:* Aus 3 m liest sich jedes Bild als Foto: ein echtes
+Hundemaul mit Zähnen und Speichel, zwei Augen, die nicht zusammenpassen, ringsum rohes Fleisch und Darm. Im Glitch
+verrutschen die Scheiben mitsamt den Abzügen.
+
+*Schlecht:*
+- Zwischen den Augen flimmert ein Schachbrett: Eine abstehende Ecke stach durch die Augenfotos.
+- Das Monitorbild sitzt 9 cm neben der Scheibe, das dunkle Glas schneidet ein Oval hinein. Ursache: Die Drehung des
+  Monitors ist im Spiel gespiegelt (Blender-y), deshalb lag es schon in den Runden 1–5 daneben.
+- Die unterste Scheibe hat Splitterdreiecke (Schnitt genau durch den Fuß).
+
+*Änderung:* Unter dem Gesicht keine abstehenden Ecken, das rechte Auge eine Lage höher, Monitorbild mit gespiegelter
+Drehung (`apparitions_l2.cpp`), Schnitt 5 cm unter dem Fuß.
+
+**Runde 8 (`r7_ps_bogen.jpg`: Licht der Ebene, Lampe, Box; `r7_ps_nah.jpg`)** – Kein Flimmern mehr. Das Monitorbild füllt
+die Scheibe (Fleisch mit Auge, rot, gestört). Aus der Ferne steht in einem hellen Büro ein Klotz aus blutigen Fotos, aus
+der Nähe sieht man Fingerabdrücke und Datumsaufdrucke. Die Modellprüfung ist grün. Abnahme.
+
 ## Tests (`gameplay_test`, `testV133L2Rand`)
 
 Aus der Ferne harmlos; näher als fünf Fuß schließt die Box ein (Meldung an das Opfer); hingeworfen holt der Arm es in den Bildschirm,
@@ -106,4 +154,7 @@ Koop: Box mit Opfer und Meldung, Gabe beim Gast.
 ## Restmängel
 
 - Keine Kamera im Spiel (siehe Interpretation); keine Gegenstandsbeine.
+- Die Fotos sind Aufnahmen gebauter 3D-Szenen, keine echten Fotografien. Aus unter 1 m ist das Maul als sehr gutes
+  Modell erkennbar; ab Spielabstand (die Box greift bei 1,52 m) liest es sich als Foto.
+- Bei Textur 1024 (Standard) wird der 2048-Atlas halbiert. Die Datumsaufdrucke sind dann aus der Nähe weich.
 - Dinge, die aus der Box geworfen werden, werden nicht „ausgeschnitten“ (nur Spieler).

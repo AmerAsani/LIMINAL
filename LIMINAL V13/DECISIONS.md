@@ -580,3 +580,18 @@ Arbeitsmodus: autonom, ohne Rückfragen (Auftrag vom 25.10.2026, „Autonomes Ne
 - **Red Knight (Entity 71):** Körper und Auftritt in Level 3 belegt (Vorfallbericht) – gebaut als nicht feindliche Erscheinung (Flucht in Panik, Hieb gegen das Unsichtbare, Riss), Variante 4 der Rolle Wretch, eigener Zufall.
 - **Speicherfehler beim Zusammenführen:** B-025 bis B-028 (`BUGLISTE.md`), gefunden mit AddressSanitizer.
 - **Beleg:** `KREATUR_L3_Purpur.md`, `KREATUR_DeathRat.md`, `KREATUR_Deathmoth.md`, `KREATUR_Hound.md`, `KREATUR_Clump.md`, `KREATUR_Smiler.md`, `KREATUR_RedKnight.md`.
+
+## E-046 Abnahme Level 2 und Level 3 (V13.3, 02.11.2026)
+
+- **Level 2 abgenommen** (7 Runden, `KRITIK_Level2.md`, `AUFWAND.md`): Photoshop trägt jetzt Fotos gebauter Szenen (Cycles, Atlas mit Generator in `selection.json`) statt gemalter Flächen; bewegliche Modelle tasten Texturen über UV ab; die Modellprüfung je Ebene umfasst alle benutzten Modelle samt Wesen-Stufen (`repair_glb.py` bereinigt Indexlisten nach dem Vereinfachen).
+- **Level 3 abgenommen** (7 Runden, `KRITIK_Level3.md`, `AUFWAND.md`): großes Bündel mit eigener Texturebene „buendel“ (kleines Bündel behält die V11-Haut); Motten im Gesicht mit schattenlosem Fülllicht und Flügelstaub (nur Darstellung, Schaden unverändert); Fallendraht als dreiadriges Seil mit hellen Isolierfetzen (Fairness vor Tarnung).
+- **Bekannte Restpunkte** (in `AUFWAND.md`): Fertigungsstraße GPU bis 15,7 ms (unter 16,7 ms, schon vorher so); Kopf des entwickelten Facelings aus Grundformen glatt; Jerry im Ebenenlicht blau vor blauem Wandbild schwer zu sehen (Raum bewusst dunkel).
+
+## E-047 Wesen von Level 5 und 5.3 (V13.3, 02.11.2026)
+
+- **Samantha** (Entity 26): eigene Rolle 19; liest Gedanken und spricht die Sprache des Spielers; Fleisch-Tausch – gutes Fleisch (Steaks vom Zimmerservice) bringt den nächsten Weg hinaus samt Warnung vor dem Stock, Dosenfleisch nur eine grobe Richtung; nie tödlich (hält bei 15 Gesundheit inne); Lampe ins Gesicht oder Rennen gilt als unhöflich.
+- **Ants** (Entity 89): Kolonie als Weltobjekt in etwa 35 % der dunklen Ecken je Lauf, Schaden knapp über der Erholung, nie unter 30 Gesundheit, Abzupfen. **Woodlins** und **Watchers**: Weltobjekte mit Verhalten nach ihren Entity-Seiten. **Entity 18** (Level 5): Gastgeber-Stimme, die in ein Büro bittet.
+- **Gentleman** (Entity 18 in 5.3): Rolle 20 („Hausherr“), die Schlussgeschichte der Seite als beobachtbare Szene einmal je Besuch; Gesicht als gemaltes Bildnis mit Rissen (Auslegung: „unbewegtes Gesicht“, nutzt die Bildnisse); Zorn der Bibliothek als herabstürzende Bücher nach seinem Abgang.
+- **Ambassadors und Macchina in 5.3:** als Wissen der Bibliothek (Bücher, Tafeln, Notizbuch), laut Seite nicht anwesend.
+- **B-029:** feste Materialien auf 288 erhöht, Platzprüfung für Fundstücke beim Bauen.
+- **Beleg:** `KREATUR_Samantha.md`, `KREATUR_Ants.md`, `KREATUR_Woodlins.md`, `KREATUR_Watchers.md`, `KREATUR_Gentleman.md`, `ENTITY_ABGLEICH.md`.

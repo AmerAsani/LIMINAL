@@ -372,8 +372,11 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     // Runde 2: verbrannte Haut (dunkel rotbraun, stumpf, rissig); die Arme des grossen Buendels trocken und stumpf (zwei Toene;
     // Runde 3: dunkler - im Lampenlicht lasen sie sich wie Puppenhaut)
     materialData_[FM_ENT_HD_BURN] = GpuMaterial{{0.55f, 0.26f, 0.18f}, 0, ent(EL_SKIN, ML_CRAZE) | kMatFlagSkin, 1.25f, 0, 0.3f};
-    materialData_[FM_ENT_CL_HIDE_A] = GpuMaterial{{1.42f, 1.08f, 0.95f}, 0, ent(EL_SKIN, ML_CRAZE) | kMatFlagSkin, 0.85f, 0, 0.3f};
-    materialData_[FM_ENT_CL_HIDE_B] = GpuMaterial{{0.98f, 0.70f, 0.58f}, 0, ent(EL_SKIN, ML_CRAZE) | kMatFlagSkin, 0.9f, 0, 0.3f};
+    // V13.3 Abnahme Level 3: nah im Lampenlicht noch puppenhaft glatt - eigene Haut (EL_BUNDLE: Flecken, Dehnungsstreifen,
+    // Narbennaehte, Blut, Schmier, Naesse nur fleckweise); die toten Glieder und der Kern ebenso (vorher die Toene des kleinen
+    // Buendels mit gleichmaessigem Glanz), tot etwas grauer, der Kern roetlicher
+    materialData_[FM_ENT_CL_HIDE_A] = GpuMaterial{{1.10f, 1.0f, 0.96f}, 0, ent(EL_BUNDLE, ML_PORES) | kMatFlagSkin, 1.0f, 0, 0.3f};
+    materialData_[FM_ENT_CL_HIDE_B] = GpuMaterial{{0.84f, 0.72f, 0.66f}, 0, ent(EL_BUNDLE, ML_PORES) | kMatFlagSkin, 1.0f, 0, 0.3f};
     // V13.3 Level 3 (KREATUR_RedKnight.md): Red Knight - alter Stahl (Gebrauchsspuren, Kratzer: Rauheit aus der Textur, Schmutz
     // ueber variation), geschwaerzt in Dellen und Fugen; Kettengeflecht stumpf und dunkel; Umhang aus verblichener roter Wolle,
     // Goldsaum (Faden, matt metallisch); die Klinge heller und glatter; Purpur als Glasur (leicht leuchtend) und als Adern (hell)
@@ -390,6 +393,13 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     materialData_[FM_ENT_WRE_CRUST] = GpuMaterial{{0.30f, 0.14f, 0.08f}, 0, ent(EL_HORN, ML_CRAZE), 1.3f, 0, 0.35f};
     materialData_[FM_ENT_WRE_PUS] = GpuMaterial{{0.95f, 0.82f, 0.42f}, 0, ent(EL_TOOTH, ML_PORES) | kMatFlagSkin, 0.18f, 0, 0.15f};
     materialData_[FM_ENT_RK_PURPLE_GLOW] = GpuMaterial{{0.62f, 0.25f, 1.0f}, 2.2f, ent(EL_TOOTH, ML_PORES), 0.2f, 0, 0.0f};
+    materialData_[FM_ENT_CL_DEAD_A] = GpuMaterial{{1.0f, 0.97f, 0.98f}, 0, ent(EL_BUNDLE, ML_CRAZE) | kMatFlagSkin, 1.05f, 0, 0.3f};
+    materialData_[FM_ENT_CL_DEAD_B] = GpuMaterial{{0.74f, 0.68f, 0.68f}, 0, ent(EL_BUNDLE, ML_CRAZE) | kMatFlagSkin, 1.05f, 0, 0.3f};
+    materialData_[FM_ENT_CL_CORE] = GpuMaterial{{1.05f, 0.78f, 0.80f}, 0, ent(EL_BUNDLE, ML_PORES) | kMatFlagSkin, 0.95f, 0, 0.3f};
+    // V13.3 Abnahme Level 3 (KREATUR_Faceling.md): der Entwickelte - Haut stumpf, grauer, mehr Staub (vorher glatt wie eine
+    // Schaufensterpuppe); Haar stumpf und verfilzt, graubraun statt nass glaenzend schwarz (der Bart las sich als Gummiklotz)
+    materialData_[FM_ENT_FC_SKIN] = GpuMaterial{{0.78f, 0.75f, 0.73f}, 0, ent(EL_HUMAN, ML_CRAZE) | kMatFlagSkin, 1.3f, 0, 0.7f};  // Runde 5: noch rosa wie eine Puppe - fahler, mehr Staub
+    materialData_[FM_ENT_FC_HAIR] = GpuMaterial{{1.7f, 1.55f, 1.4f}, 0, ent(EL_HAIR, ML_FIBER), 1.6f, 0, 0.45f};
     // V13.3 Teil 4 Level 5 (KREATUR_Samantha.md): kurzes, dichtes Katzenfell - schwarz mit seidigem Schimmer (leicht braun im
     // Licht), weiss leicht cremig; gruene Augen mit Tapetum (glaenzend nass, leichtes Eigenleuchten - Augenleuchten im
     // Lampenlicht, Auslegung: das Wiki nennt gruene Augen); rosa-graue Nase und Ballen; weisse Schnurrhaare; Zahnfleisch nass

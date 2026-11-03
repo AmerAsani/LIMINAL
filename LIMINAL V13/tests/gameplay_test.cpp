@@ -6526,9 +6526,10 @@ static void testV133Level3RatMoth(const std::string& dataDir) {
               "Motten: die Lampe lockt - der Schwarm fliegt auf (Brummen)");
         // stehen bleiben mit Lampe: erst das Brummen vor dem Gesicht (Ankuendigung), dann Motten im Gesicht
         const double h0 = s->stats().health;
-        int maxFace = 0;
+        int maxFace = 0, maxLit = 0;  // V13.3 Abnahme Level 3: maxLit - Motten, fuer die das Fuelllicht vor dem Gesicht brennt
         step(*s, ev, 14.0, [&] {
             maxFace = std::max(maxFace, P.l3Info().onFace);
+            maxLit = std::max(maxLit, P.mothFaceCount(s->player().eyePos()));
             return false;
         }, [&](int) {
             game::PlayerControl c;
@@ -6537,6 +6538,8 @@ static void testV133Level3RatMoth(const std::string& dataDir) {
         const int warn = first(ev, PE::Hiss, Role::Moth), hit = first(ev, PE::Hit, Role::Moth);
         check(maxFace >= 2 && warn >= 0 && hit > warn && s->stats().health < h0,
               std::format("Motten: greifen Mund, Nase, Augen, Ohren an ({} zugleich), angekuendigt (Brummen vor dem ersten Biss)", maxFace));
+        check(maxLit >= 2 && maxLit <= maxFace + 1,
+              std::format("Motten im Gesicht: {} im Fuelllicht vor der Kamera (Abnahme Level 3: Fluegel, Beine, Staub lesbar)", maxLit));
         // Lampe aus und rennen: sie lassen los und verlieren ihn
         s->flashlight().on = false;
         const vec3 away = normalize(vec3{(float)(s->player().x - mp.x), (float)(s->player().y - mp.y), 0.0f});
@@ -6548,7 +6551,7 @@ static void testV133Level3RatMoth(const std::string& dataDir) {
         });
         step(*s, ev, 4.0);
         I = P.l3Info();
-        check(I.onFace == 0, "Motten: Lampe aus und rennen - keine Motte mehr im Gesicht");
+        check(I.onFace == 0 && P.mothFaceCount(s->player().eyePos()) == 0, "Motten: Lampe aus und rennen - keine Motte mehr im Gesicht");
         // Praetorianer: aufbaeumen (Klicken, Zischen) vor dem Stich; der Stich laehmt
         P.clear();
         P.force(Role::Moth);

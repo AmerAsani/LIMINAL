@@ -102,7 +102,7 @@ Bilder: `docs/screens/creatures/clump/` (vorher: `docs/screens/creatures/vorher/
 
 **Gleichgewicht:** Es ist schwer, aber blind: wer schleicht oder stillsteht, wird nicht gefunden; das Schaben vor jedem Hieb lässt Zeit, zur Seite zu gehen; nach einem gebrochenen Rohr ist es 2,6 s taub. Zwei rennende Spieler vertreiben es (Koop).
 
-**Wow-Check:** Über dem Gang klatschen Hände an Beton, Putz rieselt in den Lampenkegel – oben hängt ein Knoten aus Muskeln, sieben Arme gespreizt, unten pendeln ein rostiges Rohr und ein Spieß aus gesplittertem Knochen; dann fällt es herunter und schabt mit dem Knochen über die Ziegel. Ehrlich: an der Decke im Halbdunkel und wenn es fällt *IIIH*; ganz nah im vollen Lampenlicht etwas weniger (die glatte Haut der Arme wirkt dort puppenhaft – siehe „Bleibt offen“).
+**Wow-Check:** Über dem Gang klatschen Hände an Beton, Putz rieselt in den Lampenkegel – oben hängt ein Knoten aus Muskeln, sieben Arme gespreizt, unten pendeln ein rostiges Rohr und ein Spieß aus gesplittertem Knochen; dann fällt es herunter und schabt mit dem Knochen über die Ziegel. Ehrlich: an der Decke im Halbdunkel und wenn es fällt *IIIH*; ganz nah im vollen Lampenlicht seit der Abnahme Level 3 ebenso: fleckige, verschmierte, stellenweise nasse Haut mit Narbennähten statt Puppenhaut.
 
 ### Kritikrunden (Level 3)
 
@@ -115,8 +115,9 @@ Bilder: `docs/screens/creatures/l3_clump_gross/r1` … `r5` (je Runde ein Bogen 
 | 3 (`r3/bogen_r3.jpg`) | Am Boden geordnet (der lange Arm liegt, b/e); in der Ebene stark: an der Decke über dem Gang ein Knoten aus Muskeln, darunter pendeln Rohr und Knochenspieß (h/i); gefallen und ausholend eine Masse praller Glieder (j/k). Im Lampenlicht liest sich die Haut wie Puppenhaut. | Haut dunkler (beide Töne). |
 | 4 (`r4/bogen_r4.jpg`) | Kaum Unterschied; am Rohr fehlte der Rost (dieselbe Verschiebung des Rauschens wie beim Rudel). | Rostnarben am Rohr. |
 | 5 (`r5/bogen_r5.jpg`) | Endstand: an der Decke im Halbdunkel das stärkste Bild (h/i), am Boden mit Waffen erhoben (c/d), entwaffnet mit zweitem Spieß (e). Abgenommen. | – |
+| 6 Abnahme Level 3 (`docs/screens/level3/wesen_r3_1.jpg` … `wesen_r7_*`, `abnahme_vn_buendel.jpg`) | Im hellen Gang und nah im Lampenlicht glatt und gleichmäßig glänzend wie eine Puppe: die Arme trugen die Haut des Hound, die toten Glieder und der Kern die Töne des kleinen Bündels (Rauheit 0,42); ganz nah danach ein Wurmmuster aus dem Gratrauschen. | Eigene Texturebene `EL_BUNDLE` (Totenflecken, Blutergüsse, gestaute Röte, Dehnungsstreifen, Narbennähte, Beulen, Poren und Stoppeln, eingetrocknetes Blut, schwarzer Schmier aus den Rohren, nässende Bläschen; nass nur fleckweise), eigene Materialien für Arme, tote Glieder und Kern (`FM_ENT_CL_HIDE_A/B`, `FM_ENT_CL_DEAD_A/B`, `FM_ENT_CL_CORE`); beide Modelle neu gebaut. |
 
-**Bleibt offen:** Nah und im vollen Lampenlicht wirken die glatten Arme noch etwas puppenhaft (Haut ohne Schmutz und Blutspuren – das Material hat keine Flecken je Stelle); das Rohr verschwindet beim Entwaffnen mit dem Modellwechsel (es bricht und wird weggeschleudert – es liegt kein Stück am Boden).
+**Bleibt offen:** ~~Nah und im vollen Lampenlicht wirken die glatten Arme noch etwas puppenhaft~~ – behoben in der Abnahme Level 3 (Runde 6 oben, eigene Haut mit Flecken, Blut, Schmier und Nässe); das Rohr verschwindet beim Entwaffnen mit dem Modellwechsel (es bricht und wird weggeschleudert – es liegt kein Stück am Boden).
 
 ### Tests (`gameplay_test`, „V13.3: Level 2/3 – … grosses bewaffnetes Buendel“)
 Erscheint bewaffnet (Variante 1) und lauert an der Decke, solange es still ist; Schritte in der Nähe: es jagt an der Decke, lässt sich fallen (Aufschlag), vor jedem Hieb das Schaben der Knochen, ein Hieb tötet nicht; wer still steht, wird nicht gefunden; entwaffnet reißt es sich den Knochen frei (Variante 2, ein Riss-Klang); nach langer Stille zieht es sich zurück.

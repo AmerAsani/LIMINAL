@@ -1368,6 +1368,8 @@ bool entityFromGlb(Entity e, FigureModel& out, std::string& info, const std::str
         // V13.3 Level 2/3: Rudel-Hounds, grosses Buendel
         {"ent_hd_oil", FM_ENT_HD_OIL}, {"ent_hd_scar", FM_ENT_HD_SCAR}, {"ent_hd_soot", FM_ENT_HD_SOOT}, {"ent_cl_raw", FM_ENT_CL_RAW},
         {"ent_cl_bone", FM_ENT_CL_BONE}, {"ent_hd_burn", FM_ENT_HD_BURN}, {"ent_cl_hide_a", FM_ENT_CL_HIDE_A}, {"ent_cl_hide_b", FM_ENT_CL_HIDE_B},
+        {"ent_cl_dead_a", FM_ENT_CL_DEAD_A}, {"ent_cl_dead_b", FM_ENT_CL_DEAD_B}, {"ent_cl_core", FM_ENT_CL_CORE},  // V13.3 Abnahme Level 3
+        {"ent_fc_skin", FM_ENT_FC_SKIN}, {"ent_fc_hair", FM_ENT_FC_HAIR},
         // V13.3 Level 3: Red Knight
         {"ent_rk_plate", FM_ENT_RK_PLATE}, {"ent_rk_plate_dark", FM_ENT_RK_PLATE_DARK}, {"ent_rk_mail", FM_ENT_RK_MAIL}, {"ent_rk_cape", FM_ENT_RK_CAPE},
         {"ent_rk_gold", FM_ENT_RK_GOLD}, {"ent_rk_blade", FM_ENT_RK_BLADE}, {"ent_rk_purple", FM_ENT_RK_PURPLE}, {"ent_rk_purple_glow", FM_ENT_RK_PURPLE_GLOW},

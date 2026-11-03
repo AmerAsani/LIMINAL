@@ -176,10 +176,61 @@ def build(J, bones):
         if sel[-1] != len(pts) - 1:
             sel.append(len(pts) - 1)
         P = [pts[i][2] for i in sel]
-        V, T, W = tube_mesh(P, lambda j: bones_of_idx(sel[j]), 0.00026, sides, nb, twist=0.9 * per, strands=2, strand_off=0.0003)
+        # V13.3 Abnahme Level 3: im Spiel kaum zu sehen (zwei Litzen, im 2-m-Gang gut 4 mm) - jetzt drei abisolierte Adern,
+        # zum Seil verdrillt (das Spiel dehnt die Knochen gleichmaessig: im 2-m-Gang etwa 1 cm, im 1-m-Gang 5 mm)
+        V, T, W = tube_mesh(P, lambda j: bones_of_idx(sel[j]), 0.0003, sides, nb, twist=0.9 * per, strands=3, strand_off=0.00034)
         cav = np.zeros(len(V))
         edge = np.full(len(V), 0.6)
         lods.append((V, T, W, cav, edge))
+
+    # V13.3 Abnahme Level 3: Fetzen der abgenagten Isolierung haengen am Draht (so bauen Nager: die Adern sind mit den Zaehnen
+    # blank geschaelt). Hell und matt - im Lampenlicht eine Reihe heller Flecken quer durch den Gang, auch wo der Draht selbst
+    # im Bild nur eine Linie ist. Je Fetzen ein gekruemmter, spitz zulaufender Streifen, beidseitig (eigene Punkte je Seite).
+    def tatters(seed, count):
+        V, T, W = [], [], []
+        trng = np.random.default_rng(seed)
+        npts = len(pts)
+        for k in range(count):
+            idx = int(npts * (0.07 + 0.86 * (k + 0.2 + 0.6 * trng.random()) / count))
+            idx = min(max(idx, 1), npts - 2)
+            p0 = pts[idx][2]
+            d = A.unit(pts[idx + 1][2] - pts[idx - 1][2])
+            side = A.perp(d, Z)
+            L = 0.0035 + 0.0028 * trng.random()
+            wd = 0.0010 + 0.0006 * trng.random()
+            curl = trng.uniform(-0.7, 0.7)
+            tw = trng.uniform(-0.9, 0.9)
+            b0, b1, f = bones_of_idx(idx)
+            wv = np.zeros(nb)
+            wv[b0] += 1.0 - f
+            wv[b1] += f
+            m = 6
+            front = []
+            for s in range(m):
+                t = s / (m - 1)
+                c = p0 - Z * (0.00035 + L * t) + side * (curl * L * 0.5 * t * t)
+                a = tw * t
+                across = d * math.cos(a) + side * math.sin(a)
+                nrm = A.unit(np.cross(across, Z))
+                half = 0.5 * wd * (1.0 - 0.5 * t)
+                front.append((c - across * half, c + across * half, nrm))
+            for back in (False, True):
+                base = len(V)
+                for (pl_, pr_, nrm) in front:
+                    off = -nrm * 0.00004 if back else nrm * 0.0
+                    V += [pl_ + off, pr_ + off]
+                    W += [wv, wv]
+                for s in range(m - 1):
+                    a0 = base + 2 * s
+                    if back:
+                        T += [(a0, a0 + 1, a0 + 2), (a0 + 1, a0 + 3, a0 + 2)]
+                    else:
+                        T += [(a0, a0 + 2, a0 + 1), (a0 + 1, a0 + 2, a0 + 3)]
+        V, T, W = np.array(V), np.array(T, dtype=np.int64), np.array(W)
+        return [(V, T, W, np.zeros(len(V)), np.full(len(V), 0.4))] * 3
+
+    shreds_w = tatters(2431, 9)
+    shreds_r = tatters(2432, 3)
     # Spleisse mit Isolierband (dunkle Knoten) auf dem Draht - auch fertig, an den Schwanzknochen
     knots = []
     for i, f in ((1, 0.5), (2, 0.7)):
@@ -207,4 +258,6 @@ def build(J, bones):
         {'name': 'funke2', 'fm': 'ent_ob_spark', 'parts': sparks[2], 'disp': None, 'h': 0.0006, 'cav_scale': 0.002, 'merge': 'funke'},
         {'name': 'knoten', 'fm': 'ent_ob_rubber', 'parts': knots, 'disp': None, 'h': 0.00012, 'cav_scale': 0.001},
         {'name': 'draht', 'fm': 'ent_pg_brass', 'parts': [], 'lod_mesh': lods},
+        {'name': 'fetzen_w', 'fm': 'ent_ob_tape_w', 'parts': [], 'lod_mesh': shreds_w},
+        {'name': 'fetzen_r', 'fm': 'ent_ob_tape_r', 'parts': [], 'lod_mesh': shreds_r},
     ]

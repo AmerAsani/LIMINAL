@@ -1,0 +1,128 @@
+{
+ "shots": [
+  "photoshop_1.png",
+  "photoshop_2.png",
+  "photoshop_3.png",
+  "photoshop_4.png",
+  "photoshop_5.png",
+  "cuisine_1.png",
+  "cuisine_2.png",
+  "cuisine_3.png",
+  "cuisine_4.png",
+  "swindle_1.png",
+  "swindle_2.png",
+  "macchina_1.png",
+  "macchina_2.png",
+  "macchina_3.png",
+  "macchina_4.png",
+  "jerry_1.png",
+  "jerry_2.png",
+  "jerry_3.png",
+  "window_1.png",
+  "window_2.png",
+  "window_3.png",
+  "moth_1.png",
+  "moth_2.png",
+  "moth_3.png",
+  "rat_1.png",
+  "rat_2.png",
+  "pack_1.png",
+  "pack_2.png",
+  "pack_3.png",
+  "smiler_1.png",
+  "smiler_2.png",
+  "clump_1.png",
+  "clump_2.png",
+  "clump_3.png",
+  "clump_4.png",
+  "nguithrxurh_1.png",
+  "nguithrxurh_2.png",
+  "growler_1.png",
+  "growler_2.png",
+  "wrangler_1.png",
+  "wrangler_2.png",
+  "faceling_1.png",
+  "faceling_2.png",
+  "faceling_3.png",
+  "wretch_1.png",
+  "wretch_2.png",
+  "traces_1.png",
+  "traces_2.png",
+  "traces_3.png",
+  "traces_4.png",
+  "traces_5.png",
+  "traces_6.png",
+  "traces_7.png",
+  "traces_8.png",
+  "traces_9.png",
+  "traces_10.png"
+ ],
+ "photoshop": {
+  "exit": 0,
+  "warn": []
+ },
+ "cuisine": {
+  "exit": 0,
+  "warn": []
+ },
+ "swindle": {
+  "exit": 0,
+  "warn": []
+ },
+ "macchina": {
+  "exit": 0,
+  "warn": []
+ },
+ "jerry": {
+  "exit": 0,
+  "warn": []
+ },
+ "window": {
+  "exit": 0,
+  "warn": []
+ },
+ "moth": {
+  "exit": 0,
+  "warn": []
+ },
+ "rat": {
+  "exit": 0,
+  "warn": []
+ },
+ "pack": {
+  "exit": 0,
+  "warn": []
+ },
+ "smiler": {
+  "exit": 0,
+  "warn": []
+ },
+ "clump": {
+  "exit": 0,
+  "warn": []
+ },
+ "nguithrxurh": {
+  "exit": 0,
+  "warn": []
+ },
+ "growler": {
+  "exit": 0,
+  "warn": []
+ },
+ "wrangler": {
+  "exit": 0,
+  "warn": []
+ },
+ "faceling": {
+  "exit": 0,
+  "warn": []
+ },
+ "wretch": {
+  "exit": 0,
+  "warn": []
+ },
+ "traces": {
+  "exit": 0,
+  "warn": []
+ }
+}

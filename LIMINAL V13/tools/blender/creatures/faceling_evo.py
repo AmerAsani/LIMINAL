@@ -55,12 +55,22 @@ def build(J, bones):
                         [-Z] * 6, rng, jitter=0.4)
     mouth = [A.ell(Hm.JAW, mouthC + X * 0.004, X, (0.024, 0.025, 0.012), k=0.0)]
     # mehr Haar: Brauen, Backen, Kinn, Unterarme (Faeden)
-    hair = groups[-1]['parts']
-    for s in (0, 1):
-        g = Hm.side(s)
-        hair.append(A.ell(Hm.JAW, c + X * r[0] * 0.70 + Y * g * r[1] * 0.55 - Z * r[2] * 0.5, X, (0.03, 0.03, 0.045), k=0.01))
-    hair.append(A.ell(Hm.JAW, c + X * r[0] * 0.72 - Z * r[2] * 0.85, X, (0.035, 0.05, 0.03), k=0.01))
+    # V13.3 Abnahme Level 3: der Bart war drei glatte Ellipsoide (ein glaenzender Klotz wie ein Maulkorb) - jetzt einzelne,
+    # verfilzte Straehnen an Backen und Kinn, ungleich lang, um den offenen Mund frei, dazwischen Haut
     fur = []
+    for k in range(150):
+        phi = rng.uniform(-1.25, 1.25)
+        el = rng.uniform(-1.25, -0.42)
+        ce, se = math.cos(el), math.sin(el)
+        p = c + X * (r[0] * ce * math.cos(phi)) + Y * (r[1] * ce * math.sin(phi)) + Z * (r[2] * se)
+        if np.linalg.norm(p - (mouthC + X * 0.02)) < 0.034 or rng.random() < 0.18:  # Mund frei, kahle Stellen
+            continue
+        out = A.unit((p - c) * np.array([1.0, 1.0, 0.5]))
+        d = A.unit(out * 0.55 - Z * 0.8 + np.array([0.0, rng.uniform(-0.25, 0.25), 0.0]))
+        ln = 0.012 + 0.022 * rng.random() ** 1.5
+        p0 = p - out * 0.002
+        mid = p0 + d * ln * 0.5 + out * 0.003 * rng.random()
+        fur += A.chain(lambda i: Hm.JAW, [p0, mid, p0 + d * ln], [0.0017, 0.0011, 0.0004], k=0.0)
     for s in (0, 1):
         E, W = B.j(Hm.jEL, s), B.j(Hm.jWR, s)
         for k in range(16):
@@ -84,4 +94,11 @@ def build(J, bones):
                {'name': 'gaumen', 'fm': 'ent_mouth', 'parts': mouth, 'disp': None, 'h': 0.002, 'cav_scale': 0.004},
                {'name': 'koerperhaar', 'fm': 'ent_hair', 'parts': fur, 'disp': None, 'h': 0.0009, 'cav_scale': 0.002, 'merge': 'ent_hair_fur'},
                {'name': 'stein', 'fm': 'ent_stone', 'parts': stone, 'disp': stone_disp, 'h': 0.0025, 'cav_scale': 0.01}]
+    # V13.3 Abnahme Level 3 (KRITIK_Level3.md, Runde 3): im Lampenlicht glatt wie eine Schaufensterpuppe, der Bart ein
+    # glaenzender schwarzer Klotz (das geteilte Haar ist nass und glaenzt). Eigene Haut (stumpf, staubig, fleckig) und eigenes
+    # Haar (stumpf, verfilzt, graubraun) - nur fuer den Entwickelten (Level 3); die anderen Facelings bleiben, wie sie sind
+    groups[0]['fm'] = 'ent_fc_skin'
+    for g in groups:
+        if g['fm'] == 'ent_hair':
+            g['fm'] = 'ent_fc_hair'
     return groups

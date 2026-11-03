@@ -16,7 +16,7 @@ struct GpuMaterial
 
 cbuffer LayerCB : register(b1)
 {
-    float4 gLayer[112];  // V12: 112 Ebenen (Welt 0-90, Wesen ab 96, Mikro ab 107 - V13.2, ab 108 - V13.3). x: Meter je Kachel, y: Normalstaerke, z: Rauheit-Bias
+    float4 gLayer[116];  // V12: 112 Ebenen (Welt 0-90, Wesen ab 96, Mikro ab 107 - V13.2, ab 108 - V13.3, ab 109 - V13.3 Abnahme Level 3; 116 Plaetze). x: Meter je Kachel, y: Normalstaerke, z: Rauheit-Bias
 };
 
 StructuredBuffer<GpuMaterial> gMaterials : register(t0);
