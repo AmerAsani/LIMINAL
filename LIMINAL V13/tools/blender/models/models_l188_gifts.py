@@ -59,7 +59,7 @@ def _mats():
         'moss_dry': mat('e39_moos_trocken', (0.95, 0.86, 0.62), 'fabric', 'moss', r=1.5),
         # Abnahme 188 Runde 5: mit der Moostextur nur ein dunkles Oliv (die Textur ist gruen) - aus 4-7 m kaum vom Rasen zu
         # trennen; jetzt ohne Textur ein helles, stumpfes Strohbraun (heller als der Rasen, andere Farbe)
-        'moss_dead': mat('e39_moos_tot', (0.21, 0.145, 0.06), 'concrete', r=1.8),
+        'moss_dead': mat('e39_moos_tot', (0.46, 0.34, 0.15), 'concrete', r=1.8),  # Runde 6: 0,21/0,145/0,06 dunkel wie Laub
         'velvet': mat('e39_kasten_samt', (0.20, 0.035, 0.04), 'fabric', r=1.6),  # Abnahme 188: Mulde dunkel (Blut im Samt)
         'soil': mat('e39_erde', (0.26, 0.19, 0.12), 'concrete', r=1.8),  # Runde 1: auf dem Moos ein schwarzes Loch
         'concrete': mat('beton_weiss', (0.93, 0.93, 0.92), 'concrete', 'concrete_white', r=1.2),
@@ -194,7 +194,7 @@ def _surface_roots(K, M, rng, n, r0, r1, z=0.002):
         sweep(K(M['root'], 35), pts, [0.0048 - 0.0032 * i / 6 for i in range(7)], 6)
 
 
-def _withered_patch(K, M, rng, R0=0.62):
+def _withered_patch(K, M, rng, R0=0.8):
     """V13.3 Abnahme Level 188 (Auslegung, KREATUR_Wurzelpistole.md): die Pistole zieht Eisen und Blut aus dem Boden - um sie
     ist das Moos ausgezehrt. Ein unregelmaessiger Fleck (Radius um 0,6 m) aus totem, braunem Moos, nach aussen trockenes,
     dann wieder gruenes Moos in Zungen; der Rand sinkt in den Boden. Darin ein Geflecht blasser Wurzeln, das vom Griff
@@ -207,14 +207,14 @@ def _withered_patch(K, M, rng, R0=0.62):
     def rad(a):
         return R0 * (1.0 + 0.2 * math.sin(3 * a + ph[0]) + 0.11 * math.sin(5 * a + ph[1]) + 0.07 * math.sin(9 * a + ph[2]))
 
-    for k in range(230):
+    for k in range(330):  # Runde 6: Radius 0,8 m (aus 7 m sonst ein Punkt), dichter
         a = rng.uniform(0, TAU)
         t = math.sqrt(rng.uniform(0.0, 1.0)) * rng.uniform(0.92, 1.08)  # gleichmaessig ueber die Flaeche, Rand ausgefranst
         tongue = 0.5 + 0.5 * math.sin(4 * a + ph[3])
-        if t < 0.45 + 0.12 * tongue:
+        if t < 0.55 + 0.12 * tongue:
             mk = 'moss_dead'
-        elif t < 0.75 + 0.12 * tongue:
-            mk = 'moss_dead' if rng.random() < 0.4 else 'moss_dry'
+        elif t < 0.8 + 0.1 * tongue:
+            mk = 'moss_dead' if rng.random() < 0.55 else 'moss_dry'
         else:
             mk = 'moss_dry' if rng.random() < 0.6 else 'moss'
         r = rad(a) * t

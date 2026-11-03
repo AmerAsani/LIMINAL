@@ -1,0 +1,35 @@
+{
+ "shots": [
+  "horcher_1.png",
+  "horcher_2.png",
+  "horcher_3.png",
+  "horcher_4.png",
+  "horcher_5.png",
+  "horcher_6.png",
+  "horcher_7.png",
+  "horcher_8.png",
+  "horcher_9.png",
+  "horcher_10.png",
+  "pistole_1.png",
+  "pistole_2.png",
+  "pistole_3.png",
+  "pistole_4.png",
+  "pistole_5.png",
+  "pistole_6.png",
+  "pistole_7.png",
+  "pistole_8.png",
+  "pistole_9.png",
+  "pistole_10.png",
+  "pistole_11.png",
+  "pistole_12.png",
+  "pistole_13.png"
+ ],
+ "horcher": {
+  "exit": 0,
+  "warn": []
+ },
+ "pistole": {
+  "exit": 0,
+  "warn": []
+ }
+}

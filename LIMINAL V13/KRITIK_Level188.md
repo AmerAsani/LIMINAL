@@ -1,7 +1,8 @@
 # Kritikrunden Level 188 (Abnahmeschranke d)
 
 Laufweg `python tools/qa/walkway.py level188 --round rN --rooms 15 --seed 3` (7 erreichbare Räume, E-036), Bögen
-`docs/screens/level188/wegbilder_rN_*.jpg`. Grundlage: Wikidot Level 188 (Rev. 69).
+`docs/screens/level188/wegbilder_rN_*.jpg`. Wesen ab Runde 3 `python tools/qa/creatureshots.py level188 --round rN`,
+Bögen `docs/screens/level188/wesen_rN_*.jpg` (Einzelbilder `build/qa/creatures/level188/rN/`). Grundlage: Wikidot Level 188 (Rev. 69).
 
 ## Runde 1 (Struktur, Ausstattung V13.2)
 
@@ -143,3 +144,42 @@ Befunde:
   andere Farbe), trockenes Moos bleibt mit Textur.
 - **Werkzeug**: `near <wesen> <abstand> <seite> 1` sucht erst den größten Abstand über alle Winkel (im 3 m breiten Gang und in
   der Zelle stand die Kamera sonst an der Wand); `face faceling|skinstealer` zielt auf den Kopf (1,5 m).
+
+## Runde 6 (Abnahme: alle Wesen `wesen_r6_1.jpg` … `_6.jpg`, 10 Läufe; Laufweg wie Runde 5)
+
+Befunde:
+1. **Fensterwesen** (window 1–5): dunkler Umriss vor der verschwommenen Landschaft, winkt (window 1–3), mit Lampe bleibt er ein
+   Schatten (window 4), unter 1,9 m der Arm und der rote Rand des Zugriffs (window 5). Nah (1,7 m) wirkt der Arm steif wie das
+   Glied einer Gliederpuppe – Restpunkt (ein Schatten nach der Seite; nur im Augenblick des Zugriffs so nah).
+2. **Gestalt** (gestalt 1–3): steht weit hinten im Hof auf dem Moos, mit Lampe unverändert schwarz. Abgenommen.
+3. **Faceling im rosa Kleid**: Vorführung im Gang (dress 1–4, Licht der Ebene, Lampe, nah: das leere Gesicht unter dem
+   schwarzen Haar). Der echte Auftritt mit weitem Abstand (dress 5–8): sie steht in ihrer Zelle mit dem Gesicht zur Wand und
+   rührt sich nicht, solange sie einen nicht sieht – der Zugriff selbst ist in Runde 5 belegt (dress 7–8). Abgenommen.
+4. **Skin-Stealer** (skinstealer 1–6): Vorführung im Gang und echt in einer Zelle aus 4 m, mit Lampe – fahlgelbe Noppenhaut,
+   eingesunkene Augen, gebückt an der Wand. Abgenommen.
+5. **Horcher** (horcher 1–10, auftritt 1–5): Halbdunkel beim Heraustreten, Kreidehaut, Ankündigung, Licht auf dem Ohr wie in
+   Runde 5. Abgenommen.
+6. **Wurzelpistole** (pistole 1–13): der Fleck aus Polstern mit dem Wurzelgeflecht ist nah gut, aber das tote Moos ist mit
+   0,21/0,145/0,06 dunkelbraun wie nasses Laub – aus 4 und 7 m (pistole 11, 12) noch kaum zu sehen.
+7. **Stromausfall, Beil, Bereiche** (blackout 1–3, hand 1–3, zones 1–12): unverändert gut, `zones_9` ohne Kreuz.
+8. **Modellprüfung der Ebene** (50 Modelle: Karte mit Varianten, Gaben, Wesen in allen Stufen, Funde): `ent_listener_l1/l2`
+   und `ent_window_l2` mit Dreiecken gegen den Umlaufsinn (bis 9,4 % in einem Teil, nach dem Vereinfachen).
+
+Änderungen:
+- **Moosfleck**: Radius 0,8 m (330 Polster), mehr totes Moos, Farbe 0,46/0,34/0,15 (unter dem Licht ein stumpfes Rostbraun –
+  passt zur Auslegung: sie zieht Eisen aus dem Boden).
+- `repair_glb.py ent_listener_l1 ent_listener_l2 ent_window_l2` (41, 61 und 6 Dreiecke gedreht; Modellprüfung 50/0).
+
+## Runde 7 (Zwischenprobe Wurzelpistole und Horcher-Stufen, `wesen_r7_1.jpg`, `_2.jpg`)
+
+Befunde:
+1. **Wurzelpistole**: aus 1,2 m ein rostbrauner, ausgezehrter Fleck mit blassem Wurzelgeflecht um die schwarze Pistole
+   (pistole 1–4) – sie liest sich als Wesen, das den Boden auszehrt, nicht als Spielzeug im Rasen; aus 4 m (pistole 11) ein
+   brauner Fleck mit hellen Adern neben dem Kasten, aus 7 m (pistole 12) noch ein kleiner brauner Fleck – man sieht, dass dort
+   etwas ist. Nah wirken die Polster als einzelne Tupfen etwas gleichförmig (Restpunkt).
+2. **Horcher-Stufen** nach `repair_glb` (horcher 7–8 aus 9 m): unverändert im Bild. Abgenommen.
+3. **Kasten** (pistole 10, 13): offener Kasten, unverändert. Abgenommen.
+
+Restpunkte (in `AUFWAND.md`): der Arm des Fensterwesens wirkt nah steif; die toten Moospolster sind nah gleichförmige Tupfen;
+die Pistole selbst bleibt aus mehr als 3 m ein dunkler Punkt (der Fleck verrät sie); die Gänge sind außerhalb des Auftritts
+grell (Seite).
