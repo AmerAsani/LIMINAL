@@ -256,6 +256,55 @@ LEVEL5 = {
 }
 
 
+# V13.3 Level 5.3 (Abnahme): der Hausherr (Rolle 20) an seinem Platz in der grossen Halle (Spawnpunkt gm/stand 54,5/105,6, Blick
+# nach Westen) und im alten Gang (gm/door 63,5/129); der Besuch aus fester Kamera am Ende des Gangs (63,5/98, Anzeige an); die
+# Stoerung von hinten; der Zorn der Bibliothek (Buecherhaufen rechts von seinem Platz, 52,9/106,6); das Wissen der Bibliothek auf
+# der Galerie (Folio 65,1/41,2 und Karteikarten 67,3/45,7, 4,1 m hoch). Haltungen: gent hold/pose/stand (presence_gentleman.cpp).
+GM0 = W0 + 'pos 50 100 0 0; wait 20; presence gentleman; wait 30; gent hold 1; '
+LEVEL5_3 = {
+    'gentleman': ('Hausherr (Entity 18): fern, mittel, nah',
+        GM0 + 'gent pose 1; gent stand 1; wait 30; near gentleman 8 0; wait 40; shot {out}/gentleman_1.png; ' + _lamp('gentleman', 2) +
+        'near gentleman 3.6 0.35; wait 30; shot {out}/gentleman_3.png; ' + _lamp('gentleman', 4) +
+        'near gentleman 1.5 0.2; wait 30; shot {out}/gentleman_5.png; ' + _lamp('gentleman', 6) + 'quit'),
+    'gentpose': ('Hausherr: Verbeugung, Lesen, Wurf, Ansprache',
+        GM0 + 'gent pose 3; gent stand 3; wait 30; near gentleman 3.2 1.1; wait 40; shot {out}/gentpose_1.png; gent pose 4; wait 40; '
+        'shot {out}/gentpose_2.png; gent pose 5; gent book 4.6; wait 30; shot {out}/gentpose_3.png; gent book -1; gent pose 6; wait 40; '
+        'near gentleman 4 0.3; wait 30; shot {out}/gentpose_4.png; key T; wait 90; shot {out}/gentpose_5.png; quit'),
+    'gentnotice': ('Hausherr: Wahrnehmen (Kopf bis 166 Grad), Ankuendigung, Griff',
+        GM0 + 'gent pose 11; gent stand 11; wait 30; near gentleman 2.6 3.1416; wait 40; shot {out}/gentnotice_1.png; ' +
+        _lamp('gentnotice', 2) + 'gent pose 13; near gentleman 2.1 0; wait 40; shot {out}/gentnotice_3.png; gent pose 14; '
+        'gent place 0.85; wait 30; shot {out}/gentnotice_4.png; key T; wait 90; shot {out}/gentnotice_5.png; quit'),
+    # der Besuch, wie er im Spiel ablaeuft (60 Bilder je Sekunde): Tuer und Gang, an seinem Platz Umsehen, Notizbuch, Wurf,
+    # Ansprache mit Stille, Rueckzug; danach der Zorn der Bibliothek (Buecherhaufen) und das Notizbuch als Fund
+    'gentflow': ('Hausherr: Besuch (Gang, Szene, Ansprache, Rueckzug), Zorn der Bibliothek',
+        # Runde 2: aus 12 m war er im Bild zu klein - Gang aus der Halle (63,5/101), die Szene aus 6 m (59/101,5), beide ueber 3 m
+        # von seinem Weg (sonst bemerkt er den Spieler); zuletzt der Fund hinter ihm und die Buecherhaufen
+        W0 + 'pos 63.5 101 1.5708 0.04; wait 30; presence gentleman; wait 180; shot {out}/gentflow_1.png; wait 360; '
+        'shot {out}/gentflow_2.png; wait 300; shot {out}/gentflow_3.png; pos 59.0 101.5 2.402 0.1; wait 540; shot {out}/gentflow_4.png; '
+        'wait 300; shot {out}/gentflow_5.png; wait 150; shot {out}/gentflow_6.png; wait 150; shot {out}/gentflow_7.png; wait 180; '
+        'shot {out}/gentflow_8.png; wait 540; shot {out}/gentflow_9.png; wait 360; shot {out}/gentflow_10.png; wait 660; '
+        'shot {out}/gentflow_11.png; wait 600; shot {out}/gentflow_12.png; pos 59.1 103.4 1.5708 -0.62; wait 60; '
+        'shot {out}/gentflow_13.png; pos 55.8 104.3 2.48 -0.42; wait 60; shot {out}/gentflow_14.png; key T; wait 90; '
+        'shot {out}/gentflow_15.png; quit', '--level level5_3 --seed 3', True),
+    # Stoerung im Spiel: von hinten naeher als 3 m - er bringt zu Ende, was er tut, dreht den Kopf, kommt, kuendigt an, greift.
+    # Runde 2: der Spieler stand beim Erscheinen am Start im Gang (0,4 m) - bemerkt, bevor er an seinem Platz war; jetzt erst fort
+    'gentdisturb': ('Hausherr: Stoerung von hinten (Ablauf), mit Untertiteln',
+        W0 + 'pos 50 100 0 0; wait 30; presence gentleman; wait 30; gent stand 1; pos 57.4 105.6 3.1416 0.08; wait 90; '
+        'shot {out}/gentdisturb_1.png; wait 120; shot {out}/gentdisturb_2.png; wait 120; shot {out}/gentdisturb_3.png; wait 120; '
+        'shot {out}/gentdisturb_4.png; wait 120; shot {out}/gentdisturb_5.png; wait 120; shot {out}/gentdisturb_6.png; wait 120; '
+        'shot {out}/gentdisturb_7.png; wait 120; shot {out}/gentdisturb_8.png; wait 180; shot {out}/gentdisturb_9.png; quit',
+        '--level level5_3 --seed 3', True),
+    'lore': ('Wissen der Bibliothek: Folio (Entity 141), Karteikarten (Entity 189)',
+        W0 + 'pos 65.0 43.1 -1.5708 -0.55; wait 60; shot {out}/lore_1.png; key T; wait 90; shot {out}/lore_2.png; key T; wait 30; '
+        'pos 67.45 47.4 -1.69 -0.5; wait 60; shot {out}/lore_3.png; key T; wait 90; shot {out}/lore_4.png; key T; wait 30; '
+        'pos 64.4 44.4 -1.2 -0.12; wait 60; shot {out}/lore_5.png; quit'),
+    'loreread': ('Wissen: Folio lesen (Diktiergeraet), Karteikarten lesen',
+        W0 + 'pos 65.0 42.3 -1.5708 -0.45; wait 60; key E; wait 60; shot {out}/loreread_1.png; wait 240; shot {out}/loreread_2.png; '
+        'key E; wait 30; pos 67.4 46.6 -1.69 -0.7; wait 60; key E; wait 60; shot {out}/loreread_3.png; quit',
+        '--level level5_3 --seed 3', True),
+}
+
+
 def note_job(level, seed):
     """V13.3 Level 0: Notizen dort aufnehmen, wo das Spiel sie hinlegt (Protokoll "Notiz ... bei (x, y)"), Lampe aus/an."""
     if level != 'level0':
@@ -288,7 +337,7 @@ def note_job(level, seed):
 # Spuren (Ausstattung der Karte): Kamera vor das Modell aus dem Ausstattungs-Abzug
 TRACES = {'level2': [('skin_hung', 0, 2.3), ('skin_lair', 0, 2.6), ('skin_shed', 0, 2.2), ('skin_shed', 1, 2.2),
                      ('skin_scratches', 0, 1.8)]}
-JOBS = {'level0': LEVEL0, 'level2': LEVEL2, 'level3': LEVEL3, 'level5': LEVEL5}
+JOBS = {'level0': LEVEL0, 'level2': LEVEL2, 'level3': LEVEL3, 'level5': LEVEL5, 'level5_3': LEVEL5_3}
 
 
 def trace_job(level):

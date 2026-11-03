@@ -80,6 +80,7 @@ def build(J, bones):
     c, r = B.headC, B.headR
     suit, legs, vest, shirt, cuffs, shoes, hair, brows = [], [], [], [], [], [], [], []
     hand_l, hand_r, nails_l, nails_r, ring, gold, raw, flake, book, pages = [], [], [], [], [], [], [], [], [], []
+    revers = []  # Abnahme Level 5.3: Seidenrevers (eigenes Material)
     links = ([], [])
 
     # --- Haut: das Gesicht wie bemalt, langer duenner Hals ----------------------------------------------------------------------
@@ -142,9 +143,11 @@ def build(J, bones):
         # Runde 0: die Revers hingen als zwei schwarze Zungen in der Oeffnung - jetzt flach auf der Brust neben der Oeffnung
         top, bot = np.array([0.072, 0.088 * g, 1.6]), np.array([0.118, 0.072 * g, 1.31])
         d = A.unit(bot - top)
-        suit.append(A.ell(CHEST, (top + bot) / 2 + X * 0.003, d, (0.16, 0.03, 0.007), up=A.unit(X + Y * g * 0.5), k=0.01))
-        suit.append(A.ell(CHEST, top + np.array([0.004, 0.03 * g, 0.02]), A.unit((0.15, g * 0.9, 0.5)), (0.03, 0.014, 0.006),
-                          up=A.unit(X + Y * g * 0.3), k=0.006))
+        # Abnahme Level 5.3: aus Stoff gleich dem Frack waren sie unsichtbar und die Weste stand als roter Ballon im schwarzen
+        # Sack - jetzt aus glaenzender Seide (eigene Gruppe), etwas breiter und erhabener
+        revers.append(A.ell(CHEST, (top + bot) / 2 + X * 0.005, d, (0.165, 0.034, 0.008), up=A.unit(X + Y * g * 0.5), k=0.0))
+        revers.append(A.ell(CHEST, top + np.array([0.006, 0.032 * g, 0.02]), A.unit((0.15, g * 0.9, 0.5)), (0.032, 0.015, 0.007),
+                            up=A.unit(X + Y * g * 0.3), k=0.0))
     for b, a_, e_ in ((TAIL_L, 29, 30), (TAIL_R, 31, 32)):  # Schoesse bis in die Kniekehlen, in der Mitte geteilt
         a, e = J[a_], J[e_]
         mid = a + (e - a) * 0.5 - X * 0.012
@@ -186,18 +189,19 @@ def build(J, bones):
 
     # --- Weste (ochsenblutrot) mit Knoepfen und Uhrkette, Hemd mit hohem Kragen, Krawatte --------------------------------------
     vest += remap(B.torso(t=0.008, upper=True, lower=False))
-    vest += [A.ell(SPINE, (0.006, 0, 1.24), X, (0.085, 0.12, 0.15), k=0.04)]  # Runde 0: stand als roter Bauch vor dem Frack
+    # Runde 0: stand als roter Bauch vor dem Frack; Abnahme Level 5.3: noch ein runder Ballon - flacher und laenger
+    vest += [A.ell(SPINE, (0.0, 0, 1.25), X, (0.078, 0.118, 0.165), k=0.04)]
     vest.append(A.box(CHEST, (0.15, 0, 1.55), X, (0.05, 0.035, 0.06), 0.012, k=0.012, op='sub'))  # V-Ausschnitt
     vest.append(A.box(CHEST, (0.0, 0, 1.75), X, (0.2, 0.3, 0.1), 0.02, k=0.02, op='sub'))  # Schultern frei (unter dem Frack)
 
     def vest_x(z):
-        return 0.006 + 0.085 * math.sqrt(max(0.0, 1.0 - ((z - 1.24) / 0.15) ** 2)) + 0.003
+        return 0.078 * math.sqrt(max(0.0, 1.0 - ((z - 1.25) / 0.165) ** 2)) + 0.003
     for k_ in range(4):
         z = 1.16 + 0.048 * k_
         gold.append(A.ell(SPINE, (vest_x(z) + 0.001, 0, z), X, (0.004, 0.0055, 0.0055), k=0.0))
     chain_pts = [np.array([vest_x(z) - 0.004 * abs(y) / 0.09, y, z]) for y, z in ((0.09, 1.22), (0.07, 1.198), (0.05, 1.188), (0.03, 1.192), (0.012, 1.2), (0.0, 1.208))]
     gold += A.chain(lambda i: SPINE, chain_pts, [0.0018] * 6, k=0.0)
-    shirt += [A.ell(CHEST, (0.07, 0, 1.54), X, (0.062, 0.062, 0.1), k=0.0),
+    shirt += [A.ell(CHEST, (0.064, 0, 1.53), X, (0.054, 0.058, 0.11), k=0.0),  # Abnahme Level 5.3: weniger Ei
               A.cone(NECK, (0.0, 0, 1.675), (0.006, 0, 1.79), 0.06, 0.055, k=0.0)]
     shirt.append(A.cone(NECK, (0.0, 0, 1.69), (0.006, 0, 1.8), 0.051, 0.048, k=0.004, op='sub'))
     for g in (1, -1):
@@ -263,7 +267,8 @@ def build(J, bones):
     def varnish(Q):  # Craquelure: Runde 1 nicht zu sehen, Runde 2 ein klumpiger Teig - jetzt feine, scharfe Rissnetze
         d1, d2 = sdf.worley(Q, 85, seed=1805)
         d1b, d2b = sdf.worley(Q, 34, seed=1806)
-        return 0.00035 * np.exp(-((d2 - d1) * 22.0) ** 2) + 0.0007 * np.exp(-((d2b - d1b) * 16.0) ** 2)
+        # Abnahme Level 5.3: aus 1,5 m noch zerknittert wie Papier - das grobe Netz flacher (die feinen Risse traegt die Mikroebene)
+        return 0.00025 * np.exp(-((d2 - d1) * 22.0) ** 2) + 0.00035 * np.exp(-((d2b - d1b) * 16.0) ** 2)
 
     def skin_hand(Q):  # wachsbleich: kaum Poren, feine Querfalten an den Fingern
         return -0.00012 * sdf.fbm(Q, 300, 2, seed=1807) + 0.0002 * sdf.ridged(Q * np.array([0.2, 0.2, 1.0]), 400, 1, seed=1808)
@@ -274,6 +279,43 @@ def build(J, bones):
     def wet(Q):
         return -0.0003 * sdf.fbm(Q, 500, 2, seed=1810)
 
+    # Abnahme Level 5.3: das gemalte Gesicht hatte keine gemalten Schatten und kein Wangenrot - jetzt bemalt wie ein altes
+    # Bildnis, aber zu sauber: zwei runde Flecken Rouge wie bei einer Puppe, Umbra in den Augenhoehlen, neben der Nase, unter den
+    # Wangenknochen, unter Nase und Unterlippe, an Schlaefen und Kinnlade (Schatten, die zum Licht im Raum nicht passen);
+    # Bleiweiss auf Nasenruecken, Stirn, Kinn und den Wangenknochen. Werte je Punkt (Material kMatFlagEntPaint):
+    # Licht 0..1 und Rot (> 0) bzw. Schatten (< 0); weich auslaufend wie lasiert, das Rouge mit festerem Rand.
+    def face_paint(V):
+        q = (V - c) / r  # Kopf: x vorn, y links, z oben
+        qx, qy, qz = q[:, 0], q[:, 1], q[:, 2]
+        front = np.clip((qx - 0.25) / 0.35, 0.0, 1.0)
+
+        def blob(y0, z0, ry, rz, soft=False):
+            d = np.sqrt(((qy - y0) / ry) ** 2 + ((qz - z0) / rz) ** 2)
+            return np.clip((1.25 - d) / 0.5, 0.0, 1.0) if not soft else np.exp(-0.5 * (d * 1.6) ** 2)
+
+        def sstep(a, b, x):
+            t = np.clip((x - a) / (b - a), 0.0, 1.0)
+            return t * t * (3.0 - 2.0 * t)
+        rouge = np.zeros(len(V))
+        shade = np.zeros(len(V))
+        light = np.zeros(len(V))
+        for g in (1.0, -1.0):
+            rouge = np.maximum(rouge, 0.9 * blob(0.52 * g, -0.24, 0.17, 0.15))           # Rouge: rund, zu deutlich
+            shade = np.maximum(shade, 0.62 * blob(0.40 * g, 0.12, 0.26, 0.17, True))     # Augenhoehlen
+            shade = np.maximum(shade, 0.48 * blob(0.15 * g, -0.16, 0.06, 0.16, True))    # neben der Nase
+            shade = np.maximum(shade, 0.55 * blob(0.60 * g, -0.50, 0.15, 0.10, True))    # unter den Wangenknochen
+            shade = np.maximum(shade, 0.40 * blob(0.26 * g, -0.48, 0.07, 0.10, True))    # Mundwinkel
+            light = np.maximum(light, 0.45 * blob(0.47 * g, -0.06, 0.08, 0.05, True))    # Wangenknochen oben
+        shade = np.maximum(shade, 0.55 * blob(0.0, -0.36, 0.10, 0.05, True))             # unter der Nase
+        shade = np.maximum(shade, 0.50 * blob(0.0, -0.62, 0.14, 0.05, True))             # unter der Unterlippe
+        shade = np.maximum(shade, 0.45 * sstep(0.70, 0.95, np.abs(qy)))                  # Schlaefen, Seiten
+        shade = np.maximum(shade, 0.50 * sstep(-0.72, -0.95, qz))                         # Kinnlade
+        light = np.maximum(light, 0.65 * blob(0.0, -0.10, 0.035, 0.20, True))            # Nasenruecken
+        light = np.maximum(light, 0.50 * blob(0.0, 0.52, 0.20, 0.14, True))              # Stirn
+        light = np.maximum(light, 0.40 * blob(0.0, -0.80, 0.07, 0.05, True))             # Kinn
+        rouge, shade, light = rouge * front, shade * np.clip(front * 1.4, 0.0, 1.0), light * front
+        return light * (1.0 - rouge * 0.6), np.clip(rouge - shade * (1.0 - rouge), -1.0, 1.0)
+
     return [
         {'name': 'frack', 'fm': 'ent_gm_suit', 'parts': suit, 'disp': cloth_disp, 'h': 0.0036, 'cav_scale': 0.012, 'merge': 'frack'},
         {'name': 'hose', 'fm': 'ent_gm_suit', 'parts': legs, 'disp': leg_disp, 'h': 0.0038, 'cav_scale': 0.012, 'merge': 'frack'},
@@ -281,20 +323,24 @@ def build(J, bones):
         {'name': 'hemd', 'fm': 'ent_gm_shirt', 'parts': shirt, 'disp': None, 'h': 0.0018, 'cav_scale': 0.005, 'merge': 'hemd', 'cav_extra': suit},
         {'name': 'manschetten', 'fm': 'ent_gm_shirt', 'parts': cuffs, 'disp': None, 'h': 0.0018, 'cav_scale': 0.004, 'merge': 'hemd'},
         {'name': 'schuhe', 'fm': 'ent_gm_shoe', 'parts': shoes, 'disp': None, 'h': 0.0022, 'cav_scale': 0.006},
-        {'name': 'gesicht', 'fm': 'ent_gm_face', 'parts': skin, 'disp': varnish, 'h': 0.0009, 'cav_scale': 0.003, 'lod_weight': 2.4},
+        {'name': 'gesicht', 'fm': 'ent_gm_face', 'parts': skin, 'disp': varnish, 'h': 0.0009, 'cav_scale': 0.003, 'lod_weight': 2.4,
+         'paint': face_paint},
         {'name': 'brauen', 'fm': 'ent_gm_hair', 'parts': brows, 'disp': None, 'h': 0.0006, 'cav_scale': 0.0015, 'merge': 'haar'},
         {'name': 'haar', 'fm': 'ent_gm_hair', 'parts': hair, 'disp': combed, 'h': 0.0016, 'cav_scale': 0.004, 'merge': 'haar', 'cav_extra': skin},
         {'name': 'hand_l', 'fm': 'ent_gm_hand', 'parts': hand_l, 'disp': skin_hand, 'h': 0.0011, 'cav_scale': 0.003, 'merge': 'haende', 'lod_weight': 1.8},
         {'name': 'hand_r', 'fm': 'ent_gm_hand', 'parts': hand_r, 'disp': skin_hand, 'h': 0.0011, 'cav_scale': 0.003, 'merge': 'haende', 'lod_weight': 1.8},
-        {'name': 'naegel_l', 'fm': 'ent_tooth', 'parts': nails_l, 'disp': None, 'h': 0.0006, 'cav_scale': 0.001, 'merge': 'naegel'},
-        {'name': 'naegel_r', 'fm': 'ent_tooth', 'parts': nails_r, 'disp': None, 'h': 0.0006, 'cav_scale': 0.001, 'merge': 'naegel'},
+        # Abnahme Level 5.3: die Naegel waren im Griff weisse Kappen wie Verbaende - gelb wie Horn
+        {'name': 'naegel_l', 'fm': 'ent_horn', 'parts': nails_l, 'disp': None, 'h': 0.0006, 'cav_scale': 0.001, 'merge': 'naegel'},
+        {'name': 'naegel_r', 'fm': 'ent_horn', 'parts': nails_r, 'disp': None, 'h': 0.0006, 'cav_scale': 0.001, 'merge': 'naegel'},
+        {'name': 'revers', 'fm': 'ent_gm_silk', 'parts': revers, 'disp': None, 'h': 0.0016, 'cav_scale': 0.004},
         {'name': 'augen', 'fm': 'ent_gm_sclera', 'parts': eyes, 'disp': None, 'h': 0.0005, 'cav_scale': 0.002, 'lod_weight': 2.0},
         {'name': 'iris', 'fm': 'ent_gm_eye', 'parts': iris, 'disp': None, 'h': 0.0004, 'cav_scale': 0.001, 'lod_weight': 2.0},
         {'name': 'pupillen', 'fm': 'ent_jy_pupil', 'parts': pupil, 'disp': None, 'h': 0.0003, 'cav_scale': 0.001, 'lod_weight': 2.0},
         {'name': 'lidrand', 'fm': 'ent_gm_raw', 'parts': lid, 'disp': wet, 'h': 0.0004, 'cav_scale': 0.001, 'merge': 'roh'},
         {'name': 'lippen', 'fm': 'ent_gm_raw', 'parts': paint, 'disp': None, 'h': 0.0004, 'cav_scale': 0.001, 'merge': 'roh'},
         {'name': 'riss', 'fm': 'ent_gm_raw', 'parts': raw, 'disp': wet, 'h': 0.0005, 'cav_scale': 0.0015, 'merge': 'roh', 'lod_weight': 1.6},
-        {'name': 'schuppen', 'fm': 'ent_gm_face', 'parts': flake, 'disp': None, 'h': 0.0004, 'cav_scale': 0.001, 'merge': 'schuppen'},
+        {'name': 'schuppen', 'fm': 'ent_gm_face', 'parts': flake, 'disp': None, 'h': 0.0004, 'cav_scale': 0.001, 'merge': 'schuppen',
+         'paint': face_paint},
         {'name': 'ring', 'fm': 'ent_gm_gold', 'parts': ring, 'disp': None, 'h': 0.0005, 'cav_scale': 0.001, 'merge': 'gold'},
         {'name': 'knoepfe', 'fm': 'ent_gm_gold', 'parts': gold, 'disp': None, 'h': 0.0008, 'cav_scale': 0.002, 'merge': 'gold'},
         {'name': 'manschettenknopf_l', 'fm': 'ent_gm_gold', 'parts': links[0], 'disp': None, 'h': 0.0007, 'cav_scale': 0.002, 'merge': 'gold'},

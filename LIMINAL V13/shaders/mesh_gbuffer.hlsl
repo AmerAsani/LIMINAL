@@ -283,6 +283,31 @@ void skinMarks(inout GBufferOut g, float3 bp)
     g.misc.a = sss;
 }
 
+// V13.3 Abnahme Level 5.3 (KREATUR_Gentleman.md): Nadelstreifen auf dem Frack (world_renderer.hpp kMatPinstripe). Kreidestreifen,
+// 1,3 mm breit alle 12,5 mm, senkrecht in der Ruhepose: vorn, hinten und ueber die Schultern quer zu y, an den Seiten quer zu x.
+// Die Abdeckung wird ueber die Breite des Pixels gemittelt (Integral der Streifenfolge) - aus der Ferne ein etwas hellerer
+// Stoff statt Flimmern; die Streifen folgen leicht dem Fall des Stoffs und sind gewebt (nicht ganz gleichmaessig hell).
+float stripeCover(float u, float duty)
+{
+    const float fw = max(fwidth(u), 1e-4);
+    const float a = u - 0.5 * fw, b = u + 0.5 * fw;
+    const float Fa = floor(a) * duty + min(frac(a), duty);
+    const float Fb = floor(b) * duty + min(frac(b), duty);
+    return saturate((Fb - Fa) / fw);
+}
+
+void pinstripes(inout GBufferOut g, float3 bp, float3 bn)
+{
+    const float period = 0.0125, duty = 0.105;
+    float3 w = pow(abs(normalize(bn)), 6.0);
+    w /= (w.x + w.y + w.z);
+    const float sway = 0.0011 * sin(bp.z * 23.0 + bp.x * 9.0);  // der Stoff faellt nicht ganz gerade
+    const float c = stripeCover((bp.y + sway) / period, duty) * (w.x + w.z) + stripeCover((bp.x + sway) / period, duty) * w.y;
+    const float weave = 0.8 + 0.4 * vnoise3(bp * float3(380.0, 380.0, 90.0));
+    const float3 chalk = float3(0.23, 0.23, 0.245) * weave;
+    g.albedo.rgb = lerp(g.albedo.rgb, chalk, c * 0.9);
+}
+
 // V10: die Wesen. Triplanar in der Ruhepose (v laeuft an den Seiten nach oben - Fasern und
 // Ringfalten haben eine Richtung), grosse Kachel (~1 m) plus feine Detailnormalen. Dazu je Punkt
 // (uv): Verdeckung -> Schmutz in Falten und Ritzen, Woelbung -> abgegriffene, hellere Kanten; und
@@ -502,7 +527,19 @@ GBufferOut PSMain(VSOut i, bool front : SV_IsFrontFace)
     uint layer = m.layers & 0xFFu;
     if ((m.layers >> 26) & 1u)  // V10: die Wesen
     {
-        GBufferOut g = shadeEntity(m, i.bindPos, i.bindN, N, i.uv);
+        // V13.3 Abnahme Level 5.3: gemaltes Gesicht (kMatFlagEntPaint) - uv.x < 0 gemaltes Licht (Bleiweiss), uv.y > 0 Wangenrot
+        // (Krapplack), uv.y < 0 gemalter Schatten (Umbra); die Kante entfaellt (die Bemalung liegt in ihrem Kanal)
+        const bool painted = ((m.layers >> 24) & 1u) != 0u;
+        GBufferOut g = shadeEntity(m, i.bindPos, i.bindN, N, painted ? float2(saturate(i.uv.x), 0.0) : i.uv);
+        if (painted)
+        {
+            const float light = saturate(-i.uv.x), blush = saturate(i.uv.y), shade = saturate(-i.uv.y);
+            float3 a = g.albedo.rgb;
+            a = lerp(a, a * float3(0.50, 0.41, 0.36), shade * 0.85);
+            a = lerp(a, a * float3(1.16, 0.56, 0.52), blush * 0.85);
+            a = lerp(a, saturate(a * 1.22 + float3(0.06, 0.055, 0.05)), light);
+            g.albedo.rgb = saturate(a);
+        }
         g.normal.w = gAttached;
         if (memb != 0u)  // V13.3: durchscheinend - in der Mitte schimmert das dunkle Innere durch, der Rand leuchtet hell
         {
@@ -520,6 +557,8 @@ GBufferOut PSMain(VSOut i, bool front : SV_IsFrontFace)
     if ((m.layers >> 25) & 1u)  // V10: Figuren (Haut, Stoff, Haar)
     {
         GBufferOut g = shadeTriplanar(m, layer, i.bindPos, i.bindN, N, i.uv);
+        if (!smoke && ((m.layers >> 16) & 0xFFu) == 0xF1u)  // V13.3 Abnahme Level 5.3: Nadelstreifen (kMatPinstripe)
+            pinstripes(g, i.bindPos, i.bindN);
         g.normal.w = smoke ? 0.0 : gAttached;  // V11: Rauch mit langem Verlauf (zieht leicht nach)
         // V13: Haut laesst Licht eindringen (Anteil im Glanzkanal, lighting.hlsl); in Falten und Ritzen weniger
         if ((m.layers >> 30) & 1u)

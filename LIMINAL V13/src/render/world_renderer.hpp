@@ -99,6 +99,7 @@ enum FixedMaterial : u32 {
     // Siegelring, das schwarze Notizbuch
     FM_ENT_GM_SUIT, FM_ENT_GM_VEST, FM_ENT_GM_SHIRT, FM_ENT_GM_SHOE, FM_ENT_GM_FACE, FM_ENT_GM_HAND, FM_ENT_GM_HAIR, FM_ENT_GM_EYE,
     FM_ENT_GM_SCLERA, FM_ENT_GM_RAW, FM_ENT_GM_GOLD, FM_ENT_GM_BOOK,
+    FM_ENT_GM_SILK,  // V13.3 Abnahme Level 5.3: Seidenrevers des Fracks
     FM_FIG_END,
 };
 static_assert(FM_FIG_END <= kFixedMaterials);
@@ -128,6 +129,14 @@ constexpr u32 kMatFlagSilhouette = 1u << 31;
 // V13.3: durchscheinende Haut (Wrangler) - nur bei Wesen (kMatFlagEntity): Bits 16-23 = Deckkraft (1..255, 0 = deckend). Der
 // Mesh-Shader duennt gerastert aus (schraeg gesehen dichter), das TAA mischt es zu einer milchigen Haut
 constexpr u32 kMatMembraneShift = 16;
+// V13.3 Abnahme Level 5.3 (KREATUR_Gentleman.md): Nadelstreifen - nur an triplanaren Figurenmaterialien ohne Rauch: Bits 16-23
+// = 0xF1 (sonst eine Kopie der Ebene, die der Mesh-Shader dort nicht liest; keine Ebene hat diese Nummer). Kreidestreifen in der
+// Ruhepose, senkrecht, gefiltert (mesh_gbuffer.hlsl pinstripes)
+constexpr u32 kMatPinstripe = 0xF1u << 16;
+// V13.3 Abnahme Level 5.3: gemaltes Gesicht - nur bei Wesen (kMatFlagEntity; Bit 24 gilt sonst nur fuer die Glasfront): die
+// zweite Texturkoordinate traegt statt der Kante die Bemalung (> 0 Wangenrot, < 0 gemalter Schatten), die erste unter 0 gemaltes
+// Licht (tools/blender/creatures/build.py, Gruppe "paint")
+constexpr u32 kMatFlagEntPaint = 1u << 24;
 
 struct LightStats {
     u32 total = 0, visible = 0;

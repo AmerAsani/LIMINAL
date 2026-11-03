@@ -418,14 +418,22 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     // leichtem Seidenglanz, Hemd und Kragen gestaerkt, Lackschuhe (Spiegelglanz); das Gesicht: Elfenbein mit vergilbtem Firnis,
     // glatt und glaenzend, die Mikroebene Haarrisse (Craquelure eines alten Gemaeldes); Haende wachsbleich; Haar schwarz mit
     // Pomade; Augen nass (die einzigen lebendigen Teile); im Riss rohes, nasses Fleisch; Siegelring Gold; Notizbuch schwarzes Leder
-    materialData_[FM_ENT_GM_SUIT] = GpuMaterial{{0.05f, 0.05f, 0.056f}, 0, tri(L_WORSTED), 1.0f, 0, 0.3f};  // Runde 2: glaenzte wie Satin
-    materialData_[FM_ENT_GM_VEST] = GpuMaterial{{0.20f, 0.035f, 0.035f}, 0, tri(L_WORSTED), 0.5f, 0, 0.25f};
+    // Abnahme Level 5.3: der Frack hatte keine Nadelstreifen (der Aermel im Buero von Level 5 hat sie) - Kreidestreifen im Shader
+    static_assert(L_COUNT < 0xF1u, "kMatPinstripe darf keine Ebene sein");
+    // und im Lampenlicht war er grau wie Kunststoff (Glanz des Kammgarns) - stumpfer (Rauheit 1,0 -> 1,6)
+    materialData_[FM_ENT_GM_SUIT] = GpuMaterial{{0.05f, 0.05f, 0.056f}, 0, (tri(L_WORSTED) & ~(0xFFu << 16)) | kMatPinstripe, 1.6f, 0, 0.3f};  // Runde 2: glaenzte wie Satin
+    // Abnahme Level 5.3: die Revers aus schwarzer Seide (glatt, mit Glanz) - sie fassen die Weste ein, der Frack liest sich als Frack
+    materialData_[FM_ENT_GM_SILK] = GpuMaterial{{0.03f, 0.03f, 0.034f}, 0, tri(L_COTTON), 0.32f, 0, 0.05f};
+    // Abnahme Level 5.3: im Kerzenlicht leuchtend rot (der Blick fiel zuerst auf den Bauch) - tiefer ochsenblutrot
+    materialData_[FM_ENT_GM_VEST] = GpuMaterial{{0.15f, 0.026f, 0.028f}, 0, tri(L_WORSTED), 0.5f, 0, 0.25f};
     materialData_[FM_ENT_GM_SHIRT] = GpuMaterial{{0.80f, 0.78f, 0.72f}, 0, tri(L_COTTON), 0.55f, 0, 0.15f};
     materialData_[FM_ENT_GM_SHOE] = GpuMaterial{{0.016f, 0.015f, 0.015f}, 0, tri(L_LEATHER), 0.1f, 0, 0.1f};
     // Runde 1: mit der Menschenhaut im Kerzenlicht braun, im Lampenlicht eine Puppe - jetzt Zahnschmelz-Ebene (vergilbt, Flecken,
     // feine Risse) wie Porzellan unter altem Firnis
-    materialData_[FM_ENT_GM_FACE] = GpuMaterial{{0.72f, 0.66f, 0.56f}, 0, ent(EL_TOOTH, ML_CRAZE), 0.4f, 0, 0.15f};  // Runde 2: im Lampenlicht ueberstrahlt
-    materialData_[FM_ENT_GM_HAND] = GpuMaterial{{0.84f, 0.81f, 0.76f}, 0, ent(EL_HUMAN, ML_PORES) | kMatFlagSkin, 0.45f, 0, 0.1f};  // Runde 5: im Kerzenlicht braun
+    // Abnahme Level 5.3: ohne gemalte Schatten und Wangenrot - jetzt bemalt wie ein altes Bildnis (kMatFlagEntPaint, gentleman.py)
+    materialData_[FM_ENT_GM_FACE] = GpuMaterial{{0.72f, 0.66f, 0.56f}, 0, ent(EL_TOOTH, ML_CRAZE) | kMatFlagEntPaint, 0.4f, 0, 0.15f};  // Runde 2: im Lampenlicht ueberstrahlt
+    // Abnahme Level 5.3: im Griff (Lampe, 38 cm) rosig-orange wie Knetmasse - wachsbleich heisst: weniger Rot
+    materialData_[FM_ENT_GM_HAND] = GpuMaterial{{0.76f, 0.80f, 0.78f}, 0, ent(EL_HUMAN, ML_PORES) | kMatFlagSkin, 0.45f, 0, 0.1f};  // Runde 5: im Kerzenlicht braun
     materialData_[FM_ENT_GM_HAIR] = GpuMaterial{{0.02f, 0.018f, 0.016f}, 0, ent(EL_HAIR, ML_FIBER), 0.28f, 0, 0.1f};
     materialData_[FM_ENT_GM_EYE] = GpuMaterial{{0.12f, 0.07f, 0.04f}, 0, ent(EL_TOOTH, ML_PORES), 0.03f, 0, 0.0f};
     materialData_[FM_ENT_GM_SCLERA] = GpuMaterial{{0.80f, 0.72f, 0.66f}, 0, ent(EL_TOOTH, ML_PORES), 0.05f, 0, 0.1f};
