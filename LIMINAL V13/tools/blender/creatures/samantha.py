@@ -68,13 +68,15 @@ def build(J, bones):
         # kurze, dreieckige Zaehne wie eine Saege (14 je Reihe statt 9)
         up_pts = [np.array([0.198 - 0.0046 * i, s * (0.0115 + 0.001 * i), 0.2148]) for i in range(14)]
         lo_pts = [np.array([0.192 - 0.0045 * i, s * (0.011 + 0.00095 * i), 0.2108]) for i in range(14)]
-        teeth += A.teeth_row(HEAD, up_pts, 0.0056, 0.0017, [(0.12, s * 0.1, -1.0)] * 14, rng, jitter=0.25)
-        teeth += A.teeth_row(JAW, lo_pts, 0.0052, 0.0016, [(0.12, s * 0.1, 1.0)] * 14, rng, jitter=0.25)
+        # Runde 4: von vorn sah man jede Reihe der Laenge nach - ein langes, bleiches Blatt je Seite; die Zaehne neigen sich
+        # jetzt nach innen in den Rachen (wie bei einem Neunauge): von vorn ein gezackter Rand rund um die Oeffnung
+        teeth += A.teeth_row(HEAD, up_pts, 0.0056, 0.0017, [(0.2, -s * 0.55, -1.0)] * 14, rng, jitter=0.25)
+        teeth += A.teeth_row(JAW, lo_pts, 0.0052, 0.0016, [(0.2, -s * 0.55, 1.0)] * 14, rng, jitter=0.25)
         # zweite, innere Reihe (Saege bis in den Rachen)
         teeth += A.teeth_row(HEAD, [p * np.array([1, 0.72, 1]) - X * 0.004 for p in up_pts[2:11:2]], 0.0045, 0.0012, [(0.0, -s * 0.3, -1.0)] * 5, rng, jitter=0.4)
         teeth += A.teeth_row(JAW, [p * np.array([1, 0.72, 1]) - X * 0.004 for p in lo_pts[2:11:2]], 0.0042, 0.0011, [(0.0, -s * 0.3, 1.0)] * 5, rng, jitter=0.4)
-        teeth += [A.cone(HEAD, (0.199, s * 0.0118, 0.2165), (0.2005, s * 0.0112, 0.2035), 0.0026, 0.0004, k=0.0),   # Fang oben
-                  A.cone(JAW, (0.193, s * 0.0105, 0.2095), (0.195, s * 0.0102, 0.2195), 0.0022, 0.0004, k=0.0)]     # Fang unten
+        teeth += [A.cone(HEAD, (0.199, s * 0.0118, 0.2165), (0.2012, s * 0.0098, 0.2055), 0.0022, 0.0004, k=0.0),   # Fang oben
+                  A.cone(JAW, (0.193, s * 0.0105, 0.2095), (0.1955, s * 0.0092, 0.2185), 0.0019, 0.0004, k=0.0)]     # Fang unten (Runde 4: kuerzer)
     # Augen: gross, gruen, leicht vorstehend; schmale senkrechte Pupillen
     for s in (1, -1):
         c = np.array([0.1715, s * 0.0195, 0.2455])

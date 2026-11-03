@@ -109,3 +109,31 @@ Befunde:
 - **Gastgeber**: Stoff stumpf (Rauheit 1,0 statt 0,45).
 - **Werkzeug**: Hound mit Lampe aus 6 m (das Bild vor dem Angriff), Ratten nah mit Lampe gleich nach dem Auftritt, Nest:
   zweiter Schritt in die Tür.
+
+## Runde 4 (alle Wesen `wesen_r4_1.jpg` … `_5.jpg`, 16 Läufe; Laufweg unverändert)
+
+Befunde:
+1. **Samantha**: das Weiß ist im Kerzenlicht hellgrau, mit Lampe weiß – liest sich als Frack-Katze. Das Maul offen und rot.
+   Schlecht: von vorn sieht man jede Zahnreihe der Länge nach – je Seite ein langes, bleiches Blatt neben der Schnauze
+   (samantha 4–5); die Fänge stehen über die Lippe hinaus.
+2. **Woodlins**: aus 3,5 m ein dunkles Holzwesen mit aufgeplatztem, rosa Kopf (woodlin 1), nah das Fleisch zwischen den
+   Hälften, Fäden, Saft über Hals und Brust (woodlin 3–4) – kein Spielzeug mehr. Die Glieder bleiben gedrechselte Stuhlbeine
+   (gewollt: Wesen aus Möbelholz).
+3. **Watcher**: aus der Nähe jetzt ein Gesicht – fünf Augen in wunden Wülsten, ein breiter, offener Mund mit gelben Zähnen,
+   Haar an der Seite (watcher 5–6). Schlecht: der kahle, graue Schädel liest sich mit dem langen Kinn wie eine Erdnuss oder
+   ein Totem, nicht wie ein Menschenkopf.
+4. **Gastgeber**: der Ärmel dunkel und stumpf, Falten an den Ellbogen, Zickzack über der Lehne – liest sich als zu langer
+   Arm im Anzug (host 4, hostflow 3). Büro dunkel, die grüne Lampe führt; Augen der Bildnisse auch aus 3,6 m (host 2) – gut.
+5. **Nest und Weibchen**: in der Tür sticht der Schwarm (nest 5, roter Rand: Treffer); die Motten selbst sitzen zu nah am
+   Auge und sind dunkel (wie in Level 3, Darstellung dort schon gerichtet). Innen Harzschichten, Gelege rechts.
+6. **Gut**: Hound im Gang mit Lampe (hound 2), Ratte nah im Lampenkegel (rat 3), Skin-Stealer, Growler, Nguithr'xurh,
+   Motten-Männchen an der Birne. Wrangler: in der Vorführung ohne Ausbruch nur der glatte, blasse Rücken im Kesselgang
+   (Ausbruch und Zugriff sind in `KREATUR_Wrangler.md` Runde 7 belegt; im Kesselraum steckt er bis dahin im Boden).
+
+Änderungen:
+- **Samantha** (`samantha.py`): die Zähne neigen sich nach innen in den Rachen (Richtung −0,55 quer statt +0,1) – von vorn ein
+  gezackter Rand rund um die Öffnung statt zweier Blätter; Fänge kürzer und nach innen.
+- **Watcher** (`wa_face`): nasses, schwarzes Haar deckt Scheitel und Hinterkopf, zehn Strähnen kleben über den Wangen bis zum
+  Kiefer (die Augensäule bleibt frei).
+- Modellprüfung der Ebene: `ent_nest_l1/l2` (Bestand) und die neu gebauten `ent_samantha_l0..l2` mit `repair_glb.py`
+  bereinigt (Umlaufsinn nach dem Vereinfachen).

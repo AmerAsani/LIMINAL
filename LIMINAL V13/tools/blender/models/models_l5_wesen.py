@@ -429,6 +429,15 @@ def build_wa_face():
         p2 = p1 + out * rng.uniform(0.005, 0.02) + V((rng.uniform(-0.01, 0.01), 0, -rng.uniform(0.15, 0.22)))
         p3 = p2 + V((rng.uniform(-0.01, 0.015), out.y * 0.01, -rng.uniform(0.08, 0.2)))
         sweep(K(M['hair'], 30), [p0, p1, p2, p3], [0.0058, 0.005, 0.0035, 0.0008], 5)
+    # Runde 4: der kahle, graue Schaedel las sich wie eine Erdnuss oder ein Totem - nasses Haar deckt Scheitel und Hinterkopf,
+    # einzelne Straehnen kleben ueber die Wangen bis zum Kiefer (die Augensaeule bleibt frei): ein Menschenkopf
+    ellipsoid(K(M['hair'], 30), V((-0.03, 0.0, 0.32)), V((0, 0, 1)), 0.122, 0.093, 16, 10)
+    for i in range(10):
+        sd = 1 if i % 2 else -1
+        y0 = sd * rng.uniform(0.04, 0.062)
+        pts = [V((0.055, y0, 0.405)), V((0.098, y0 * 1.08, 0.31)), V((0.106, y0 * 1.15, 0.2)),
+               V((0.1, y0 * 1.12, rng.uniform(0.06, 0.12)))]
+        sweep(K(M['hair'], 30), pts, [0.0045, 0.0038, 0.0028, 0.0008], 5)
     K.finish(Matrix.Diagonal((1.0, WA_WIDE, 1.0, 1.0)))
 
 
