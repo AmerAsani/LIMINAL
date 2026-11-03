@@ -77,3 +77,41 @@ Befunde:
 - **Werkzeug**: Faceling und Skin-Stealer erst als Vorführung im Gang (Licht der Ebene, Lampe, nah), dann der echte Auftritt
   mit nachgeführter Kamera (`face faceling|skinstealer|listener` neu in `app.cpp`); Bild 8 der Pistole aus dem Gang, dazu die
   Pistole aus 4 und 7 m und der Kasten aus 2 m; Auftritt mit Lampe im Dunkel und nach dem Licht; `zones_11` zur Tür des Absatzes.
+
+## Runde 4 (alle Wesen `wesen_r4_1.jpg` … `_6.jpg`, 10 Läufe; Laufweg unverändert)
+
+Befunde:
+1. **Sicherungspunkt**: die grüne Leuchte hängt als eigener Kasten zwischen zwei Röhren (`zones_9`, `hand_1`) – kein Kreuz mehr.
+2. **Horcher-Haut** (horcher 1–10): jetzt Schollen mit Rissen, in den Rissen rotes Fleisch, einzelne abgeplatzte Stellen –
+   rissig, nicht mehr marmoriert. Schlecht: die Schollen (4 cm) sind am dünnen Leib so groß wie ein Glied breit, und jeder Riss
+   hat denselben roten Rand – nah ein gleichmäßiges Netz wie Krakelee-Porzellan (horcher 10), von weitem ein Muster.
+3. **Auftritt im Halbdunkel** (auftritt 1–5): die Tür geht auf, die Röhren stottern und gehen aus, im Dunkel schiebt sich der
+   bleiche Leib aus der Zelle (auftritt 3), mit Lampe Ohr und Faust (auftritt 4) – der Schreck, der vorher fehlte. Schlecht:
+   der 24 m lange Gang zählt als „großer Raum“ (`Haunt::powerCut`, Welle Feld um Feld wie im Parkdeck): das Dunkel kam als Welle,
+   dauerte fast 15 s statt 7 (auftritt 5 noch dunkel), und während der Welle blieben Treppenhaus und Zellen hell. In den
+   Posen-Bildern (horcher 2–10, erzwungenes Heraustreten) leuchteten dabei die Zellen durch die Oberkante der Gangwand –
+   ein Sägezahn aus hellen Dreiecken unter der Decke (Licht der Nachbarräume durch die Wandkante, sonst im Hellen unsichtbar).
+4. **Wurzelpistole** (pistole 1–13): der ausgezehrte Fleck mit dem Wurzelgeflecht macht die Stelle aus 1–2 m sofort lesbar,
+   die sechs Wurzeln der Pistole gehen im Geflecht auf (kein Seestern mehr). Schlecht: der Fleck ist eine Fläche aus Ringen mit
+   Material je Viereck – flache Farben, eckige Ränder, wie ein ausgeschnittenes Papier (pistole 4, 9, 10); aus 4 und 7 m
+   (pistole 11, 12) ein kleiner, dunkler Fleck.
+5. **Kasten der Gabe** (pistole 10, 13): von oben ein offener Holzkasten mit stehendem Deckel, Moosbett, dunkelroter Mulde in
+   Pistolenform und Messingecken – kein Rahmen mehr. Modellprüfung: der Samt hatte 5,7 % entartete Dreiecke (Fase auf 4 mm).
+6. **Faceling im rosa Kleid** (dress 1–4): im Gang eine gesichtslose Frau im rosa Kleid, still, 3,4 m – im grellen Licht
+   unheimlich gerade weil nichts verdeckt ist; mit Lampe gleich. **Skin-Stealer** (skinstealer 1–3): wahre Gestalt, fahlgelb
+   mit dunklen Flecken und Noppen, eingesunkene Augen. Werkzeug: der echte Auftritt (dress 5–8, skinstealer 4–6) war nicht im
+   Bild – sie erscheint in einer Zelle (Protokoll: 61,5/34,5) und geht dort umher, bis sie jemanden sieht; die Kamera (`face`)
+   sah auf die Zellenwand.
+7. **Unverändert gut**: Fensterwesen (window 1–5), Gestalt (gestalt 1–3), Stromausfall der Halluzination (blackout 1–3),
+   Beil (hand 1–3); `zones_11` zeigt jetzt die verschlossene Tür des Treppenabsatzes.
+
+Änderungen:
+- **Kreidehaut**: Schollen 2,6 cm, die meisten Risse eng und nur dunkel (trockener Spalt), weit und rot mit entzündetem Rand nur
+  in Flecken, wo die Haut aufklafft; Haarrisse grau; abgeplatzte Schollen nur in diesen Flecken.
+- **Dunkel ohne Welle**: `Haunt::powerCut(…, wave)` – der Horcher schickt die Dauer negativ (der ganze Stromkreis auf einmal,
+  7 s); `Session` und Koop (`netPowerCut`, Vorzeichen der übertragenen Dauer) reichen das durch, Protokoll unverändert, alle
+  anderen Aufrufer behalten die Welle.
+- **Moosfleck**: 230 flache Moospolster wie der Buckel am Griff, innen tot und braun, nach außen trocken, am Rand einzelne grüne
+  und trockene Polster, die in den Rasen auslaufen; das Wurzelgeflecht liegt darüber und taucht zwischen den Polstern ab.
+- **Kasten**: Samt 6 mm mit kleiner Fase (Modellprüfung 0 Fehler).
+- **Werkzeug**: echter Auftritt von Faceling und Skin-Stealer mit `near` in ihrer Zelle.

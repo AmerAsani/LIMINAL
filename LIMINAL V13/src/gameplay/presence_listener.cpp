@@ -196,7 +196,8 @@ bool Presence::spawnListener(const Context& c, std::vector<Event>& out, bool for
     // Besuchs, spaeter in 2 von 5 Faellen, stottern die Roehren und fallen einige Sekunden aus: hinter dir geht die Tuer auf,
     // dann wird es dunkel, und es entfaltet sich im Halbdunkel (Geraeusch vor Sicht; die Lampe zeigt zuerst das Ohr). Es ist
     // blind - das Dunkel hilft ihm nicht, es nimmt nur dem Spieler die Sicherheit des Lichts.
-    if (H.emerges == 0 || rng_.uniform(0.0, 1.0) < 0.4) out.push_back({Event::Blackout, Role::Listener, c.view.eye, kEmergeDark});
+    // (Dauer negativ: der ganze Stromkreis auf einmal - der Gang ist 24 m lang und galt sonst als Halle mit Welle)
+    if (H.emerges == 0 || rng_.uniform(0.0, 1.0) < 0.4) out.push_back({Event::Blackout, Role::Listener, c.view.eye, -kEmergeDark});
     log::info("Praesenz: Horcher tritt aus einer Tuer ({:.1f}, {:.1f}), {:.0f} m vom Spieler", p.x, p.y, hdist(p, feet));
     agents_.push_back(std::move(a));
     ++H.emerges;

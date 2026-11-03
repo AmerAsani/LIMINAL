@@ -233,7 +233,7 @@ void Haunt::flicker(const world::Room* room) {
     boLoud_ = false;
 }
 
-bool Haunt::powerCut(const world::Room* room, double len, vec3 from) {
+bool Haunt::powerCut(const world::Room* room, double len, vec3 from, bool wave) {
     if (boReal_) return false;
     if (boSeed_ >= 0 && boLen_ < 0.6) boSeed_ = -1;  // ein kurzes Flackern weicht
     if (!startBlackout(room, len)) return false;
@@ -244,7 +244,7 @@ bool Haunt::powerCut(const world::Room* room, double len, vec3 from) {
     waveFront_ = -1.0f;
     // V11: grosse Raeume (Parkdeck, Halle): vom fernsten Eck her (hoechstens 48 m), Feld um Feld
     const float W = (float)room->w(), D = (float)room->h();
-    if (std::max(W, D) >= 24.0f) {
+    if (wave && std::max(W, D) >= 24.0f) {
         vec3 far{};
         float best = -1.0f;
         for (float cx : {(float)room->x0 + 2.0f, (float)room->x1 - 2.0f})

@@ -64,7 +64,8 @@ public:
     void flicker(const world::Room* room);
     // V10: echter Stromausfall im Raum (das Flackern von Level 1) - auch ohne Halluzinationen
     // V11: in grossen Raeumen als Welle vom fernen Ende her (from: Spieler)
-    bool powerCut(const world::Room* room, double len, vec3 from = {});
+    // V13.3 Abnahme Level 188: wave = false - der ganze Stromkreis auf einmal (der Horcher tritt heraus), auch in langen Gaengen
+    bool powerCut(const world::Room* room, double len, vec3 from = {}, bool wave = true);
 
 private:
     bool startBlackout(const world::Room* room, double len);

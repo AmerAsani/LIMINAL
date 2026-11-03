@@ -78,7 +78,7 @@ public:
             Bark,        // Hound bellt kurz - gleich stuermt er los
             TakeOff,     // ein Mottenschwarm fliegt auf
             Sting,       // eine Motte sticht zu
-            Blackout,    // Stromausfall im Raum des Spielers (Level-1-Flackern); strength: Dauer (s)
+            Blackout,    // Stromausfall im Raum des Spielers (Level-1-Flackern); strength: Dauer (s), negativ: ohne Welle (V13.3 Level 188)
             Announce,    // V11: das Laecheln oeffnet sich weit, der Ton steigt - in 1,5 s greift es zu (F2)
             Calm,        // V11: der Spieler hat sich beruhigt, es schliesst sich wieder
             Knock,       // V11 Buendel: Schlaege an Rohr oder Wand (lauscht)

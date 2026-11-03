@@ -485,17 +485,20 @@ Tex bundle(float u, float v) {
 // marmoriert (gelbliche Wolken, duenne helle Linien). Jetzt trockene, kalkweisse Haut, in Schollen gesprungen wie eingetrockneter
 // Lehm: verzogene Schollen (4 cm), Risse verschieden weit, darin rohes, nasses Fleisch; Schollenraender aufgeworfen, einzelne
 // Schollen abgeplatzt; feine Risse nur stellenweise; Kalkstaub matt, das Fleisch glaenzt.
+// Abnahme Runde 4: Schollen von 4 cm mit rotem Rand ueberall lasen sich am duennen Leib wie Krakelee-Porzellan (ein
+// gleichmaessiges Netz) - jetzt 2,6 cm, die meisten Risse eng und nur dunkel (trocken), weit und rot nur in Flecken.
 Tex chalk(float u, float v) {
-    const float wu = u + 0.010f * N(u, v, 9, 9, 601), wv = v + 0.010f * N(u, v, 9, 9, 602);
-    const Cell big = worley(wu, wv, 10, 603);
+    const float wu = u + 0.008f * N(u, v, 11, 11, 601), wv = v + 0.008f * N(u, v, 11, 11, 602);
+    const Cell big = worley(wu, wv, 16, 603);
     const float eb = big.d2 - big.d1;                                // Abstand zur Schollenkante (Zellen)
-    const float wide = 0.035f + 0.075f * sm(-0.3f, 0.6f, N(u, v, 5, 5, 604));  // Risse klaffen verschieden weit
+    const float gape = sm(0.15f, 0.75f, N(u, v, 4, 4, 604));         // wo die Haut aufklafft (Flecken)
+    const float wide = 0.022f + 0.085f * gape;                       // Risse: meist eng, in Flecken weit
     const float crackB = 1.0f - sm(wide * 0.45f, wide, eb);
-    const float curl = sm(wide, wide + 0.07f, eb) * (1.0f - sm(wide + 0.07f, wide + 0.26f, eb));  // aufgeworfener Rand
-    const Cell fine = worley(u + 0.006f * N(u, v, 23, 23, 605), v + 0.006f * N(u, v, 23, 23, 606), 27, 607);
-    const float fmask = sm(0.0f, 0.45f, N(u, v, 6, 6, 608)) * sm(wide + 0.02f, wide + 0.1f, eb);
-    const float crackF = (1.0f - sm(0.0f, 0.045f, fine.d2 - fine.d1)) * fmask;
-    const float flake = (r01(big.id) > 0.93f ? 1.0f : 0.0f) * sm(wide * 0.6f, wide + 0.06f, eb);  // abgeplatzte Scholle
+    const float curl = sm(wide, wide + 0.06f, eb) * (1.0f - sm(wide + 0.06f, wide + 0.22f, eb));  // aufgeworfener Rand
+    const Cell fine = worley(u + 0.006f * N(u, v, 23, 23, 605), v + 0.006f * N(u, v, 23, 23, 606), 38, 607);
+    const float fmask = sm(-0.2f, 0.35f, N(u, v, 6, 6, 608)) * sm(wide + 0.02f, wide + 0.1f, eb);
+    const float crackF = (1.0f - sm(0.0f, 0.04f, fine.d2 - fine.d1)) * fmask;
+    const float flake = (r01(big.id) > 0.95f ? 1.0f : 0.0f) * gape * sm(wide * 0.6f, wide + 0.06f, eb);  // abgeplatzte Scholle
     const float tilt = r01(big.id * 2654435761u + 7u) - 0.5f;          // jede Scholle steht etwas anders
     const float mac = fbm(u, v, 3, 3, 4, 609);
     const float livid = sm(0.1f, 0.6f, fbm(u, v, 4, 4, 3, 610));
@@ -504,12 +507,13 @@ Tex chalk(float u, float v) {
     col = mulc(col, 0.95f + 0.07f * r01(big.id) + 0.04f * curl);
     const float grain = N(u, v, 190, 190, 611);
     col = mulc(col, 0.97f + 0.03f * grain);
-    const float rim = (1.0f - sm(wide, wide + 0.05f, eb)) * (1.0f - crackB);  // Rissflanke: entzuendet
-    col = mixc(col, {0.74f, 0.50f, 0.47f}, rim * 0.55f);
-    col = mixc(col, {0.40f, 0.065f, 0.07f}, crackB * 0.92f);
-    col = mixc(col, {0.58f, 0.30f, 0.29f}, crackF * 0.55f);
+    const float rim = (1.0f - sm(wide, wide + 0.05f, eb)) * (1.0f - crackB) * gape;  // Rissflanke: entzuendet, nur wo es klafft
+    col = mixc(col, {0.74f, 0.50f, 0.47f}, rim * 0.5f);
+    const C3 deep = mixc({0.24f, 0.19f, 0.17f}, {0.40f, 0.065f, 0.07f}, gape);  // eng: trockener, dunkler Spalt; weit: Fleisch
+    col = mixc(col, deep, crackB * 0.9f);
+    col = mixc(col, {0.56f, 0.53f, 0.50f}, crackF * 0.55f);  // Haarrisse grau (Staub in der Fuge)
     col = mixc(col, {0.47f, 0.12f, 0.11f}, flake * 0.9f);
-    const float wet = std::max(crackB, flake) * 0.9f + crackF * 0.3f;
+    const float wet = std::max(crackB * gape, flake) * 0.9f + crackF * 0.1f;
     const float h = -0.0009f * crackB - 0.00025f * crackF + 0.00035f * curl - 0.0006f * flake + 0.00012f * tilt * (1.0f - crackB) +
                     0.00025f * mac + 0.000025f * grain;
     const float rough = 0.95f - 0.72f * wet + 0.03f * grain;

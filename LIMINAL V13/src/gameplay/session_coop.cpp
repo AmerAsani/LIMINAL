@@ -355,7 +355,7 @@ void GameSession::netAddDropped(u32 hash, const std::string& kind, vec3 pos) {
 }
 
 void GameSession::netPowerCut(vec3 pos, float seconds) {
-    haunt_.powerCut(world_->roomAt(pos.x, pos.y), seconds, pos);
+    haunt_.powerCut(world_->roomAt(pos.x, pos.y), std::fabs(seconds), pos, seconds >= 0.0f);  // V13.3 Level 188: negativ = ohne Welle
 }
 
 void GameSession::netDie(int role) {

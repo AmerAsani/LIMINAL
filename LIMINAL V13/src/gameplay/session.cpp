@@ -1790,7 +1790,7 @@ void GameSession::updatePresence(double dt) {
                 }
             }
             if (e.type == PE::Blackout) {  // der Strom faellt im Raum des Gasts aus - fuer alle
-                haunt_.powerCut(world_->roomAt(e.pos.x, e.pos.y), e.strength, e.pos);
+                haunt_.powerCut(world_->roomAt(e.pos.x, e.pos.y), std::fabs(e.strength), e.pos, e.strength >= 0.0f);  // V13.3: negativ = ohne Welle
                 netBlackoutOut.push_back({e.pos, e.strength});
                 continue;
             }
@@ -1874,7 +1874,7 @@ void GameSession::updatePresence(double dt) {
                 }
                 break;
             case PE::Blackout:
-                haunt_.powerCut(room_, e.strength, {(float)player_.x, (float)player_.y, (float)player_.z});
+                haunt_.powerCut(room_, std::fabs(e.strength), {(float)player_.x, (float)player_.y, (float)player_.z}, e.strength >= 0.0f);  // V13.3: negativ = ohne Welle
                 if (netRole == NetRole::Host) netBlackoutOut.push_back({{(float)player_.x, (float)player_.y, (float)player_.z}, e.strength});
                 break;
             case PE::Flicker:

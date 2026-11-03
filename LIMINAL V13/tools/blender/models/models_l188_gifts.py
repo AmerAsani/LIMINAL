@@ -197,39 +197,30 @@ def _withered_patch(K, M, rng, R0=0.62):
     ist das Moos ausgezehrt. Ein unregelmaessiger Fleck (Radius um 0,6 m) aus totem, braunem Moos, nach aussen trockenes,
     dann wieder gruenes Moos in Zungen; der Rand sinkt in den Boden. Darin ein Geflecht blasser Wurzeln, das vom Griff
     ausgeht, sich verzweigt und stellenweise unter das Moos taucht. Liest sich aus 5-8 m als falscher Fleck im Rasen."""
-    NA, NR = 56, 7
+    # Runde 4: als eine Flaeche aus Ringen mit Material je Viereck las sich der Fleck wie ein ausgeschnittenes Papier (harte,
+    # eckige Kanten, flache Farben). Jetzt aus vielen flachen Moospolstern wie der Buckel am Griff: innen tot und braun, nach
+    # aussen trocken, am Rand einzelne gruene und trockene Polster, die in den Rasen auslaufen (kein Rand).
     ph = [rng.uniform(0, TAU) for _ in range(4)]
 
     def rad(a):
         return R0 * (1.0 + 0.2 * math.sin(3 * a + ph[0]) + 0.11 * math.sin(5 * a + ph[1]) + 0.07 * math.sin(9 * a + ph[2]))
 
-    def zat(t, a):
-        return 0.0055 - 0.0085 * t ** 2 + 0.0025 * math.sin(7 * a + ph[3]) * math.sin(t * 9.0)
-
-    pts = [[None] * NA for _ in range(NR + 1)]
-    for i in range(NR + 1):
-        t = i / NR
-        for j in range(NA):
-            a = TAU * j / NA
-            r = rad(a) * (t if i else 0.0)
-            pts[i][j] = V((math.cos(a) * r, math.sin(a) * r, zat(t, a)))
-    for i in range(NR):
-        t = (i + 0.5) / NR
-        for j in range(NA):
-            a = TAU * (j + 0.5) / NA
-            tongue = 0.5 + 0.5 * math.sin(4 * a + ph[1] * 2.0)
-            if t < 0.42 + 0.12 * tongue:
-                mk = 'moss_dead'
-            elif t < 0.7 + 0.15 * tongue:
-                mk = 'moss_dead' if rng.random() < 0.35 else 'moss_dry'
-            else:
-                mk = 'moss_dry' if rng.random() < 0.55 - 0.3 * (t - 0.7) / 0.3 else 'moss'
-            bm = K(M[mk], 50, weld=True)
-            q = [pts[i][j], pts[i + 1][j], pts[i + 1][(j + 1) % NA], pts[i][(j + 1) % NA]]
-            if i == 0:
-                bm.faces.new([bm.verts.new(p) for p in (q[0], q[1], q[2])])
-            else:
-                bm.faces.new([bm.verts.new(p) for p in q])
+    for k in range(230):
+        a = rng.uniform(0, TAU)
+        t = math.sqrt(rng.uniform(0.0, 1.0)) * rng.uniform(0.92, 1.08)  # gleichmaessig ueber die Flaeche, Rand ausgefranst
+        tongue = 0.5 + 0.5 * math.sin(4 * a + ph[3])
+        if t < 0.45 + 0.12 * tongue:
+            mk = 'moss_dead'
+        elif t < 0.75 + 0.12 * tongue:
+            mk = 'moss_dead' if rng.random() < 0.4 else 'moss_dry'
+        else:
+            mk = 'moss_dry' if rng.random() < 0.6 else 'moss'
+        r = rad(a) * t
+        c = V((math.cos(a) * r, math.sin(a) * r, rng.uniform(-0.004, 0.0) - 0.004 * t))
+        h = rng.uniform(0.006, 0.012) * (1.0 - 0.4 * t)
+        rr = rng.uniform(0.035, 0.075) * (1.0 - 0.3 * t)
+        ax = V((rng.uniform(-0.15, 0.15), rng.uniform(-0.15, 0.15), 1.0))
+        ellipsoid(K(M[mk], 40), c, ax, h, rr, 9, 4)
     # Wurzelgeflecht: Hauptwurzeln vom Griff, je ein bis zwei Seitenwurzeln; mal ueber, mal unter dem Moos (z)
     n = 11
     for k in range(n):
@@ -386,7 +377,7 @@ def build_e39_case():
     # Mulde in Pistolenform: Lauf entlang +x, Griff schraeg nach hinten unten (wie e39_gun)
     shape = [((0.035, 0.0), (0.17, 0.036), 0.0), ((-0.055, -0.04), (0.05, 0.10), 0.33)]
     for (c, sz, rz) in shape:
-        blk(K(M['velvet'], 0), (sz[0], sz[1], 0.004), (c[0], c[1], ZB + 0.0005), rz=rz, bevel=0.0015)
+        blk(K(M['velvet'], 0), (sz[0], sz[1], 0.006), (c[0], c[1], ZB - 0.0005), rz=rz, bevel=0.001)
         for k in range(12):  # Moosrand: aufgeworfene Lippe um die Mulde
             a = TAU * k / 12
             q = V((math.cos(a) * sz[0] * 0.55, math.sin(a) * sz[1] * 0.58, 0.0))
@@ -394,7 +385,7 @@ def build_e39_case():
             ellipsoid(K(M['moss'], 40), V((c[0], c[1], ZB + 0.003)) + q, V((0, 0, 1)), 0.005, 0.008, 6, 3)
     for k in range(6):  # eingetrocknete Blutflecken im Samt und am Moos
         p = V((rng.uniform(-0.08, 0.1), rng.uniform(-0.06, 0.02), ZB + 0.003))
-        ellipsoid(K(M['husk_dry'], 30), p, V((0, 0, 1)), 0.0008, rng.uniform(0.004, 0.01), 8, 3)
+        ellipsoid(K(M['husk_dry'], 30), p, V((0, 0, 1)), 0.0015, rng.uniform(0.005, 0.01), 8, 3)
     for k in range(6):  # abgerissene Wurzelfasern, die ueber den Rand der Mulde haengen
         p0 = V((-0.07 + rng.uniform(-0.012, 0.012), -0.075 + rng.uniform(-0.01, 0.01), ZB + 0.004))
         p1 = p0 + V((rng.uniform(-0.04, 0.04), rng.uniform(-0.035, 0.01), 0.003))
@@ -411,7 +402,7 @@ def build_e39_case():
     # innen am Deckel der Abdruck der Pistole (dunkler, gedrueckter Samt)
     for (c, sz, rz) in shape:
         m3 = lid @ Matrix.Translation(V((c[0], W / 2 + c[1], -0.0095))) @ Matrix.Rotation(rz, 4, 'Z')
-        cube(K(M['velvet'], 0), (-sz[0] * 0.47, -sz[1] * 0.47, -0.001), (sz[0] * 0.47, sz[1] * 0.47, 0.001), m3, 0.001)
+        cube(K(M['velvet'], 0), (-sz[0] * 0.47, -sz[1] * 0.47, -0.002), (sz[0] * 0.47, sz[1] * 0.47, 0.002), m3, 0.0006)
     # Messing: Ecken, zwei Scharniere, Strebe (Kasten rechts -> Deckel), offener Riegel vorn
     for sx in (-1, 1):
         for sy in (-1, 1):
