@@ -66,11 +66,12 @@ def build(J, bones):
     for s in (1, -1):
         up_pts = [np.array([0.198 - 0.0072 * i, s * (0.0115 + 0.0016 * i), 0.2148]) for i in range(9)]
         lo_pts = [np.array([0.192 - 0.007 * i, s * (0.011 + 0.0015 * i), 0.2108]) for i in range(9)]
-        teeth += A.teeth_row(HEAD, up_pts, 0.0075, 0.0021, [(0.12, s * 0.1, -1.0)] * 9, rng, jitter=0.35)
-        teeth += A.teeth_row(JAW, lo_pts, 0.007, 0.002, [(0.12, s * 0.1, 1.0)] * 9, rng, jitter=0.35)
+        # Abnahme Level 5, Runde 2: die Reihen lasen sich nah als bleiche Schuppenstapel - duenner, spitzer, laenger (Nadeln)
+        teeth += A.teeth_row(HEAD, up_pts, 0.0088, 0.0015, [(0.12, s * 0.1, -1.0)] * 9, rng, jitter=0.35)
+        teeth += A.teeth_row(JAW, lo_pts, 0.0082, 0.0014, [(0.12, s * 0.1, 1.0)] * 9, rng, jitter=0.35)
         # zweite, innere Reihe (Saege bis in den Rachen)
-        teeth += A.teeth_row(HEAD, [p * np.array([1, 0.72, 1]) - X * 0.004 for p in up_pts[1:7]], 0.005, 0.0016, [(0.0, -s * 0.3, -1.0)] * 6, rng, jitter=0.4)
-        teeth += A.teeth_row(JAW, [p * np.array([1, 0.72, 1]) - X * 0.004 for p in lo_pts[1:7]], 0.0048, 0.0015, [(0.0, -s * 0.3, 1.0)] * 6, rng, jitter=0.4)
+        teeth += A.teeth_row(HEAD, [p * np.array([1, 0.72, 1]) - X * 0.004 for p in up_pts[1:7]], 0.0058, 0.0012, [(0.0, -s * 0.3, -1.0)] * 6, rng, jitter=0.4)
+        teeth += A.teeth_row(JAW, [p * np.array([1, 0.72, 1]) - X * 0.004 for p in lo_pts[1:7]], 0.0055, 0.0011, [(0.0, -s * 0.3, 1.0)] * 6, rng, jitter=0.4)
         teeth += [A.cone(HEAD, (0.199, s * 0.0118, 0.2165), (0.2005, s * 0.0112, 0.2035), 0.0026, 0.0004, k=0.0),   # Fang oben
                   A.cone(JAW, (0.193, s * 0.0105, 0.2095), (0.195, s * 0.0102, 0.2195), 0.0022, 0.0004, k=0.0)]     # Fang unten
     # Augen: gross, gruen, leicht vorstehend; schmale senkrechte Pupillen

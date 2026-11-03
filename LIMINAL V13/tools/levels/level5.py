@@ -510,6 +510,10 @@ if cand:
     m.obj('e18_wingchair', deskx + nx * 0.85, desky + ny * 0.85, R.floor, face + math.pi)  # abgewandt: zur Rueckwand
     m.obj('e18_portrait', dx + nx * (back - 0.005), dy + ny * (back - 0.005), 1.7, face)
     m.spawn('trace', deskx + math.cos(face) * 0.9, desky + math.sin(face) * 0.9, R.floor, face, set='office', tags=['o0.9'])  # vor dem Tisch
+    # V13.3 Abnahme Level 5, Runde 2: das Deckenlicht des leeren Zimmers machte das Buero hell wie einen Flur - nur ein
+    # schwacher Schein bleibt (die gruene Bankerlampe des Gastgebers fuehrt das Licht); kein Zufall, die Anordnung bleibt
+    for l in m.rooms[off].lights:
+        l[3] = round(l[3] * 0.2, 3)
 # Fleisch: Tabletts des Zimmerservice vor verschlossenen Zimmertueren (Steak), Dosen in den Kesselraeumen
 doors_deco = [o for o in m.objects if o['model'].startswith('hotel_door') and math.hypot(o['pos'][0] - m.start[0], o['pos'][1] - m.start[1]) > 20]
 for o in hr.sample(doors_deco, min(5, len(doors_deco))):

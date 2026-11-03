@@ -68,7 +68,7 @@ public:
     static constexpr float kAntR = 0.02f;                       // Halbmesser des Modells ant_ball (Massstab je Tierchen)
     static constexpr float kWlHip = 0.0f, kWlShoulder = 0.22f, kWlLegA = 0.15f, kWlLegB = 0.16f, kWlJaw[3] = {0.049f, 0.0f, 0.307f};  // Runde 4: Kopf 1,4-fach
     static constexpr float kWaArmA = 0.55f, kWaArmB = 0.62f;
-    static constexpr float kE18Arm = 0.42f;
+    static constexpr float kE18Arm = 0.7f;  // Abnahme Level 5, Runde 2: Glieder 0,5 / 0,9 / 0,9 m (Zickzack)
 
     struct Config {
         bool ants = false, woodlins = false, watchers = false, host = false, meat = false;

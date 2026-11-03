@@ -1,0 +1,126 @@
+{
+ "shots": [
+  "samantha_1.png",
+  "samantha_2.png",
+  "samantha_3.png",
+  "samantha_4.png",
+  "samantha_5.png",
+  "samflow_1.png",
+  "samflow_2.png",
+  "samflow_3.png",
+  "samflow_4.png",
+  "samtrade_1.png",
+  "samtrade_2.png",
+  "samtrade_3.png",
+  "samtrade_4.png",
+  "colony_1.png",
+  "colony_2.png",
+  "colony_3.png",
+  "colony_4.png",
+  "woodlin_1.png",
+  "woodlin_2.png",
+  "woodlin_3.png",
+  "woodlin_4.png",
+  "woodlin_5.png",
+  "woodlin_6.png",
+  "watcher_1.png",
+  "watcher_2.png",
+  "watcher_3.png",
+  "watcher_4.png",
+  "watcher_5.png",
+  "watcher_6.png",
+  "host_1.png",
+  "host_2.png",
+  "host_3.png",
+  "host_4.png",
+  "host_5.png",
+  "hostflow_1.png",
+  "hostflow_2.png",
+  "hostflow_3.png",
+  "hostflow_4.png",
+  "moth_1.png",
+  "moth_2.png",
+  "nest_1.png",
+  "nest_2.png",
+  "nest_3.png",
+  "nest_4.png",
+  "hound_1.png",
+  "hound_2.png",
+  "skinstealer_1.png",
+  "skinstealer_2.png",
+  "skinstealer_3.png",
+  "rat_1.png",
+  "rat_2.png",
+  "growler_1.png",
+  "growler_2.png",
+  "nguithrxurh_1.png",
+  "nguithrxurh_2.png",
+  "wrangler_1.png",
+  "wrangler_2.png",
+  "wrangler_3.png"
+ ],
+ "samantha": {
+  "exit": 0,
+  "warn": []
+ },
+ "samflow": {
+  "exit": 0,
+  "warn": []
+ },
+ "samtrade": {
+  "exit": 0,
+  "warn": []
+ },
+ "colony": {
+  "exit": 0,
+  "warn": []
+ },
+ "woodlin": {
+  "exit": 0,
+  "warn": []
+ },
+ "watcher": {
+  "exit": 0,
+  "warn": []
+ },
+ "host": {
+  "exit": 0,
+  "warn": []
+ },
+ "hostflow": {
+  "exit": 0,
+  "warn": []
+ },
+ "moth": {
+  "exit": 0,
+  "warn": []
+ },
+ "nest": {
+  "exit": 0,
+  "warn": []
+ },
+ "hound": {
+  "exit": 0,
+  "warn": []
+ },
+ "skinstealer": {
+  "exit": 0,
+  "warn": []
+ },
+ "rat": {
+  "exit": 0,
+  "warn": []
+ },
+ "growler": {
+  "exit": 0,
+  "warn": []
+ },
+ "nguithrxurh": {
+  "exit": 0,
+  "warn": []
+ },
+ "wrangler": {
+  "exit": 0,
+  "warn": []
+ }
+}

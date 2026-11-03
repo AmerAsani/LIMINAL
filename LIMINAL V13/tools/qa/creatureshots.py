@@ -187,6 +187,74 @@ LEVEL0 = {
 }
 
 
+# V13.3 Level 5 (Abnahme): alle Wesen des Hotels in ihren Raeumen. Die Wesen ohne Rolle (Kolonie, Woodlins, Watchers, Gastgeber)
+# stehen an den Plaetzen der Karte (hotel <art> <abstand> <winkel>); Samantha im Hauptgang (Rolle 19). Vierter Eintrag: Anzeige
+# an (Untertitel der Stimmen, Meldungen). Kesselgang: Gang der Kesselraeume (120..160, 30..32).
+LEVEL5 = {
+    'samantha': ('Samantha (Entity 26)',
+        W0 + 'pos 70 66 0 0; wait 20; presence samantha 8; wait 30; near samantha 3.0; wait 40; shot {out}/samantha_1.png; ' +
+        _lamp('samantha', 2) + 'figclear; figure samantha 1.3; figstate crouch 1; figstate talk 1; figstate tilt 0.55; wait 40; '
+        'figcam 12 3 0.6 0.24; wait 5; shot {out}/samantha_3.png; figstate talk 0; figstate tilt 0; figstate growl 1; figstate shiver 1; '
+        'figstate jaw 1; figstate wave 1; figcam 0 2 0.42 0.22; wait 30; shot {out}/samantha_4.png; key T; wait 90; '
+        'shot {out}/samantha_5.png; quit'),
+    'samflow': ('Samantha ohne Fleisch (Warnung, Sprung)',
+        W0 + 'pos 70 66 0 0; wait 20; presence samantha 8; wait 20; near samantha 2.7; wait 50; shot {out}/samflow_1.png; '
+        'near samantha 1.9; wait 70; shot {out}/samflow_2.png; wait 60; shot {out}/samflow_3.png; wait 160; shot {out}/samflow_4.png; quit',
+        '--level level5 --seed 3', True),
+    'samtrade': ('Samantha mit Fleisch (Tausch, Lesung)',
+        W0 + 'give steak; pos 70 66 0 0; wait 20; presence samantha 8; wait 20; near samantha 2.6; key T; wait 50; '
+        'shot {out}/samtrade_1.png; near samantha 1.2; wait 40; shot {out}/samtrade_2.png; look 0 -0.5; wait 120; '
+        'shot {out}/samtrade_3.png; wait 150; shot {out}/samtrade_4.png; quit', '--level level5 --seed 3', True),
+    'colony': ('Kolonie (Entity 89)',
+        W0 + 'hotel colony 2.4 0 0; wait 40; shot {out}/colony_1.png; key T; hotel colony 1.5 0.4 0; wait 90; shot {out}/colony_2.png; '
+        'hotelforce colony 0; wait 28; shot {out}/colony_3.png; wait 140; look 0 -1.2; wait 20; shot {out}/colony_4.png; quit'),
+    'woodlin': ('Woodlins (Entity 45)',
+        W0 + 'hotel woodlin 3.5 0 0; hotelforce woodlins 0; hotelstate hold 1; wait 40; shot {out}/woodlin_1.png; ' +
+        _lamp('woodlin', 2) + 'hotel woodlin 1.6 0.5 0; wait 30; shot {out}/woodlin_3.png; key T; wait 90; shot {out}/woodlin_4.png; '
+        'key T; wait 30; hotel woodlin 7 0 0; wait 30; shot {out}/woodlin_5.png; hotel woodlin 2.4 0 0; hotelstate hold 0; '
+        'look 3.14 0; wait 90; look 3.14 0; wait 3; shot {out}/woodlin_6.png; quit'),
+    'watcher': ('Watcher (Entity 38)',
+        W0 + 'hotel watcher 7 0.5 0; hotelstate hold 1; hotelstate wa_peek 1; wait 40; shot {out}/watcher_1.png; ' +
+        _lamp('watcher', 2) + 'hotel watcher 3.5 0.3 0; wait 30; shot {out}/watcher_3.png; hotel watcher 2.6 1.1 0; wait 30; '
+        'shot {out}/watcher_4.png; key T; wait 90; shot {out}/watcher_5.png; key T; wait 30; hotel watcher 1.8 0.2 0; '
+        'hotelstate wa_arm 1; wait 20; shot {out}/watcher_6.png; quit'),
+    'host': ('Gastgeber (Entity 18): Bildnis und Buero',
+        W0 + 'hotel portrait 2.2 0 0; hotelforce host 1; wait 60; shot {out}/host_1.png; hotel portrait 3.6 0 0; wait 20; '
+        'shot {out}/host_2.png; hotel office 4.5 0 0; hotelforce host 2; hotelstate host_arm 1; hotelstate host_lamp 1; wait 80; '
+        'shot {out}/host_3.png; hotel office 1.4 0 0; look 0 -0.35; wait 30; shot {out}/host_4.png; key T; wait 90; '
+        'shot {out}/host_5.png; quit'),
+    'hostflow': ('Gastgeber: Ablauf (Stimme, Buero, Hand)',
+        W0 + 'sanity 45; hotelstate host_on 300; pos 52 66 3.14 0; wait 200; hotel portrait 1.8 0 0; wait 30; '
+        'shot {out}/hostflow_1.png; hotel office 3.2 0 0; wait 220; shot {out}/hostflow_2.png; hotel office 1.3 0 0; '
+        'look 0 -0.25; wait 280; shot {out}/hostflow_3.png; key E; wait 40; shot {out}/hostflow_4.png; quit',
+        '--level level5 --seed 3', True),
+    'moth': ('Deathmoth-Maennchen an den Birnen (Entity 4)',
+        W0 + 'pos 130 31 0 0; wait 30; presence moth; wait 120; near moth 3.2; wait 30; shot {out}/moth_1.png; ' + _lamp('moth', 2) +
+        'quit'),
+    # das Nest entsteht an der Tuer eines dunklen Zimmers (Regie ruhig gestellt: an dieser Tuer erzwingen, 54/68 am Hauptgang)
+    'nest': ('Nest und Weibchen (Entity 4)',
+        W0 + 'pos 54.5 64.8 1.5708 0; wait 30; hiveat 54 68; wait 60; shot {out}/nest_1.png; ' + _lamp('nest', 2) +
+        'pos 54.5 66.6 1.5708 0.15; key T; wait 120; shot {out}/nest_3.png; wait 240; shot {out}/nest_4.png; quit'),
+    'hound': ('Hound (Entity 8)',
+        W0 + 'pos 70 66 0 0; wait 30; presence hound 9; wait 150; near hound 4; wait 20; shot {out}/hound_1.png; ' +
+        _lamp('hound', 2) + 'quit'),
+    'skinstealer': ('Skin-Stealer, wahre Gestalt (Entity 10)',
+        W0 + 'presence skinstealer 6; wait 240; near skinstealer 3.2; wait 2; shot {out}/skinstealer_1.png; ' +
+        _lamp('skinstealer', 2) + 'near skinstealer 1.8; wait 2; shot {out}/skinstealer_3.png; quit'),
+    'rat': ('Death Rats (Entity 24)',
+        W0 + 'presence rat; wait 150; near rat 2.8; wait 10; shot {out}/rat_1.png; ' + _lamp('rat', 2) +
+        'near rat 1.5; key T; wait 90; shot {out}/rat_3.png; quit'),
+    'growler': ('Growler, ausgewachsen (Entity 130)',
+        W0 + 'presence growler; wait 150; near growler 3.5; wait 20; shot {out}/growler_1.png; ' + _lamp('growler', 2) + 'quit'),
+    'nguithrxurh': ("Nguithr'xurh (Entity 16)",
+        W0 + 'presence nguithrxurh; wait 150; near nguithrxurh 3.2; wait 20; shot {out}/nguithrxurh_1.png; ' +
+        _lamp('nguithrxurh', 2) + 'quit'),
+    'wrangler': ('Wrangler im Kesselgang (Entity 75)',
+        W0 + 'pos 126 31 0 0; wait 30; figure wrangler 3.6; wait 60; shot {out}/wrangler_1.png; ' + _lamp('wrangler', 2) +
+        'figclear; presence wrangler; wait 200; near wrangler 4; key T; wait 90; shot {out}/wrangler_3.png; quit'),
+}
+
+
 def note_job(level, seed):
     """V13.3 Level 0: Notizen dort aufnehmen, wo das Spiel sie hinlegt (Protokoll "Notiz ... bei (x, y)"), Lampe aus/an."""
     if level != 'level0':
@@ -219,7 +287,7 @@ def note_job(level, seed):
 # Spuren (Ausstattung der Karte): Kamera vor das Modell aus dem Ausstattungs-Abzug
 TRACES = {'level2': [('skin_hung', 0, 2.3), ('skin_lair', 0, 2.6), ('skin_shed', 0, 2.2), ('skin_shed', 1, 2.2),
                      ('skin_scratches', 0, 1.8)]}
-JOBS = {'level0': LEVEL0, 'level2': LEVEL2, 'level3': LEVEL3}
+JOBS = {'level0': LEVEL0, 'level2': LEVEL2, 'level3': LEVEL3, 'level5': LEVEL5}
 
 
 def trace_job(level):
@@ -310,8 +378,10 @@ def main():
             for f in os.listdir(raw):
                 if f.startswith(job + '_'):
                     os.remove(os.path.join(raw, f))
+            # dritter Eintrag: eigene Startargumente; vierter: Anzeige an (Untertitel, Meldungen)
             code, log = run(args[0] if args else f'--level {a.level} --seed {a.seed}', script.format(out=raw.replace('\\', '/')),
-                            userdir=os.path.join(ROOT, 'build', 'qa', 'ud_creatures', job), size=a.size)
+                            userdir=os.path.join(ROOT, 'build', 'qa', 'ud_creatures', job), size=a.size,
+                            hud=len(args) > 1 and bool(args[1]))
             warn = [ln.strip() for ln in log.splitlines() if 'Skript' in ln and ('kein' in ln or 'unbekannt' in ln or 'nicht' in ln)]
             report[job] = {'exit': code, 'warn': warn[:6]}
             print(f'{job}: exit {code}', warn[:3], flush=True)

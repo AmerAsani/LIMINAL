@@ -406,11 +406,14 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     // Licht), weiss leicht cremig; gruene Augen mit Tapetum (glaenzend nass, leichtes Eigenleuchten - Augenleuchten im
     // Lampenlicht, Auslegung: das Wiki nennt gruene Augen); rosa-graue Nase und Ballen; weisse Schnurrhaare; Zahnfleisch nass
     materialData_[FM_ENT_SM_FUR] = GpuMaterial{{0.035f, 0.032f, 0.032f}, 0, ent(EL_FUR, ML_FIBER), 0.55f, 0, 0.15f};
-    materialData_[FM_ENT_SM_FURW] = GpuMaterial{{0.86f, 0.84f, 0.79f}, 0, ent(EL_FUR, ML_FIBER), 0.75f, 0, 0.15f};
+    // Abnahme Level 5, Runde 2: im Kerzenlicht grau-braun wie eine Maus (die Fellebene dunkelt um etwa die Haelfte) - heller, ein
+    // Hauch kuehler, damit es unter warmem Licht weiss bleibt (vgl. FM_ENT_SILK)
+    materialData_[FM_ENT_SM_FURW] = GpuMaterial{{1.55f, 1.55f, 1.6f}, 0, ent(EL_FUR, ML_FIBER), 0.8f, 0, 0.08f};
     materialData_[FM_ENT_SM_EYE] = GpuMaterial{{0.30f, 0.62f, 0.18f}, 0.55f, ent(EL_TOOTH, ML_PORES), 0.04f, 0, 0.0f};
     materialData_[FM_ENT_SM_NOSE] = GpuMaterial{{0.62f, 0.40f, 0.42f}, 0, ent(EL_HUMAN, ML_PORES) | kMatFlagSkin, 0.35f, 0, 0.2f};
     materialData_[FM_ENT_SM_WHISKER] = GpuMaterial{{0.92f, 0.91f, 0.88f}, 0, ent(EL_HAIR, ML_FIBER), 0.4f, 0, 0.05f};
-    materialData_[FM_ENT_SM_GUM] = GpuMaterial{{0.55f, 0.16f, 0.18f}, 0, ent(EL_SKIN, ML_PORES) | kMatFlagSkin, 0.16f, 0, 0.1f};
+    // Abnahme Level 5, Runde 2: offen von vorn eher dunkel als rot - satter, nasser (der Kopf hebt sich jetzt beim Aufreissen)
+    materialData_[FM_ENT_SM_GUM] = GpuMaterial{{0.78f, 0.14f, 0.15f}, 0, ent(EL_SKIN, ML_PORES) | kMatFlagSkin, 0.12f, 0, 0.1f};
     // V13.3 Teil 4 Level 5.3 (KREATUR_Gentleman.md): Frack aus dunklem Kammgarn (stumpf, feiner Koeper), Weste ochsenblutrot mit
     // leichtem Seidenglanz, Hemd und Kragen gestaerkt, Lackschuhe (Spiegelglanz); das Gesicht: Elfenbein mit vergilbtem Firnis,
     // glatt und glaenzend, die Mikroebene Haarrisse (Craquelure eines alten Gemaeldes); Haende wachsbleich; Haar schwarz mit
