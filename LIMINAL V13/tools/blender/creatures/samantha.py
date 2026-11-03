@@ -62,17 +62,26 @@ def build(J, bones):
     gum += [A.ell(JAW, (0.165, 0, 0.2135), X, (0.03, 0.0145, 0.0035), k=0.0),          # Unterkiefer innen
             A.ell(HEAD, (0.163, 0, 0.2155), X, (0.034, 0.017, 0.004), k=0.0)]           # Gaumen (sichtbar, wenn offen)
     gum += [A.ell(TONGUE, (0.168, 0, 0.2155), X, (0.024, 0.0105, 0.0032), k=0.0)]       # breite Zunge
-    # Saegezaehne: oben und unten je Seite eine Reihe bis tief hinter die Augen, vorn zu lange Fangzaehne
+    # Saegezaehne: oben und unten je Seite eine Reihe bis unter die Augen, vorn eine Reihe kleiner, spitzer Schneidezaehne,
+    # zu lange Fangzaehne. Abnahme Level 5, Runden 2-5: die Seitenreihen reichten 6 cm weit nach hinten und lagen aussen an den
+    # Wangen - mit gehobenem Kopf sah man sie von vorn der Laenge nach als zwei lange, bleiche Blaetter. Jetzt liegen sie in
+    # der Mundhoehle (3,6 cm, hinten kleiner), neigen sich nach innen, und vorn schliesst eine gezackte Reihe den Ring.
     for s in (1, -1):
-        up_pts = [np.array([0.198 - 0.0072 * i, s * (0.0115 + 0.0016 * i), 0.2148]) for i in range(9)]
-        lo_pts = [np.array([0.192 - 0.007 * i, s * (0.011 + 0.0015 * i), 0.2108]) for i in range(9)]
-        teeth += A.teeth_row(HEAD, up_pts, 0.0075, 0.0021, [(0.12, s * 0.1, -1.0)] * 9, rng, jitter=0.35)
-        teeth += A.teeth_row(JAW, lo_pts, 0.007, 0.002, [(0.12, s * 0.1, 1.0)] * 9, rng, jitter=0.35)
-        # zweite, innere Reihe (Saege bis in den Rachen)
-        teeth += A.teeth_row(HEAD, [p * np.array([1, 0.72, 1]) - X * 0.004 for p in up_pts[1:7]], 0.005, 0.0016, [(0.0, -s * 0.3, -1.0)] * 6, rng, jitter=0.4)
-        teeth += A.teeth_row(JAW, [p * np.array([1, 0.72, 1]) - X * 0.004 for p in lo_pts[1:7]], 0.0048, 0.0015, [(0.0, -s * 0.3, 1.0)] * 6, rng, jitter=0.4)
-        teeth += [A.cone(HEAD, (0.199, s * 0.0118, 0.2165), (0.2005, s * 0.0112, 0.2035), 0.0026, 0.0004, k=0.0),   # Fang oben
-                  A.cone(JAW, (0.193, s * 0.0105, 0.2095), (0.195, s * 0.0102, 0.2195), 0.0022, 0.0004, k=0.0)]     # Fang unten
+        up_pts = [np.array([0.196 - 0.0045 * i, s * (0.0105 + 0.0006 * i), 0.2148]) for i in range(9)]
+        lo_pts = [np.array([0.19 - 0.0044 * i, s * (0.0098 + 0.0006 * i), 0.2108]) for i in range(9)]
+        for i, p in enumerate(up_pts):
+            f = 1.0 - 0.06 * i
+            teeth += A.teeth_row(HEAD, [p], 0.0052 * f, 0.0016 * f, [(0.25, -s * 0.6, -1.0)], rng, jitter=0.2)
+        for i, p in enumerate(lo_pts):
+            f = 1.0 - 0.06 * i
+            teeth += A.teeth_row(JAW, [p], 0.0048 * f, 0.0015 * f, [(0.25, -s * 0.6, 1.0)], rng, jitter=0.2)
+        teeth += [A.cone(HEAD, (0.199, s * 0.0118, 0.2165), (0.2012, s * 0.0098, 0.2055), 0.0022, 0.0004, k=0.0),   # Fang oben
+                  A.cone(JAW, (0.193, s * 0.0105, 0.2095), (0.1955, s * 0.0092, 0.2185), 0.0019, 0.0004, k=0.0)]     # Fang unten
+    # vorn zwischen den Faengen: je Kiefer sieben kleine, spitze Schneidezaehne (der gezackte Rand, den man von vorn sieht)
+    for k in range(7):
+        y = -0.0078 + 0.0026 * k
+        teeth += A.teeth_row(HEAD, [np.array([0.2005 - 0.06 * y * y / 0.0078, y, 0.2152])], 0.0038, 0.0012, [(0.35, 0.0, -1.0)], rng, jitter=0.3)
+        teeth += A.teeth_row(JAW, [np.array([0.1945 - 0.06 * y * y / 0.0078, y, 0.2106])], 0.0034, 0.0011, [(0.35, 0.0, 1.0)], rng, jitter=0.3)
     # Augen: gross, gruen, leicht vorstehend; schmale senkrechte Pupillen
     for s in (1, -1):
         c = np.array([0.1715, s * 0.0195, 0.2455])

@@ -71,6 +71,15 @@ im Spiel −y). *Änderung:* Lage gespiegelt, auf die Textseite; Höhe auf die S
 ## Tests (`gameplay_test`, `testV133Level53Gentleman`)
 
 Wissen in der Karte (Lesepult, Spawnpunkt `e141`); Fund liegt bereit; Modell des Funds vorhanden; Text ohne Wiki-Namen (E-039).
+Abnahme Level 5.3: der Fund ist vom Platz des Lesers aus erreichbar („Folio lesen“).
+
+## Abnahme Level 5.3 (03.11.2026)
+
+Im Spiel ließ sich das Folio nicht lesen (`KRITIK_Level5_3.md` Runden 2–4): der unsichtbare Block des Lesepults war 1,25 m
+hoch, `findTarget` prüft die Sichtlinie bis 1,2 m über dem Boden – kein Platz vor dem Pult erreichte den Fund. Block 1,15 m
+(`tools/levels/level5_3.py`, Karte neu erzeugt), neue Prüfung im `gameplay_test`. Runde 5 (`docs/screens/level5_3/wesen_r5_4.jpg`,
+loreread 1/2): „Folio mit roter Tafel“ mit den übersetzten Randnotizen. Das Pult ist die eine begründete Ausnahme zu
+`LOOK_5.3.md` (keine Lesepulte – das Wissen braucht einen Ort).
 
 ## Restmängel
 

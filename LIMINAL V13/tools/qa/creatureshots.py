@@ -151,10 +151,199 @@ LEVEL3 = {
         _purple('purple_3', 30.55, 52.4, 31.7, 54.5, 0.55) + _purple('purple_4', 30.55, 52.4, 31.7, 54.5, 0.55, lamp=True) +
         _purple('purple_5', 30.25, 54.6, 31.95, 56.3, 1.45) + 'quit'),
 }
+def _view(name, x, y, yaw, pitch=0.0, lamp=False):
+    """V13.3 Level 0: Spielerkamera an eine feste Stelle (Zonen, Halluzinationen), Licht der Ebene oder Lampe."""
+    s = f'pos {x} {y} {yaw} {pitch}; wait 60; shot {{out}}/{name}.png; '
+    return s + (f'key T; wait 90; shot {{out}}/{name}_lampe.png; key T; wait 30; ' if lamp else '')
+
+
+# V13.3 Level 0 (Abnahme): die Seite nennt keine bestaetigten Wesen - im Spiel die Gestalt (dunkle Figur am Gangende), die
+# Halluzinationen (Gestalt im Raum, Stromausfall des Raums; Schritte, Fluestern, Kratzen und Stimmen sind nur Klang) und
+# die Fundstuecke in der Hand (Leuchtstab geknickt und geworfen, Beil geschwungen). Dazu die Zonen der Ebene (LOOK_0).
+LEVEL0 = {
+    'gestalt': ('Gestalt (dunkle Figur, Level 0)',
+        W0 + 'presence gestalt 16; wait 30; face gestalt; wait 3; shot {out}/gestalt_1.png; key T; wait 90; '
+        'shot {out}/gestalt_2.png; key T; wait 30; near gestalt 7; wait 40; shot {out}/gestalt_3.png; near gestalt 3; wait 40; '
+        'shot {out}/gestalt_4.png; key T; wait 90; shot {out}/gestalt_5.png; quit'),
+    # Halluzination 3: bei wenig Verstand faellt das Licht, und im Dunkeln bezieht eine Gestalt Stellung (ausser Sicht, am
+    # Ende eines Gangs) - hinsehen, solange es dunkel ist, dann im zurueckgekehrten Licht und mit Lampe (Saeulenfeld)
+    'ghost': ('Halluzination: Gestalt im Raum',
+        W0 + 'pos 81.5 52 1.5708 0; wait 60; sanity 12; haunt 3; wait 50; face gestalt; wait 3; shot {out}/ghost_1.png; wait 200; '
+        'face gestalt; wait 3; shot {out}/ghost_2.png; key T; wait 90; shot {out}/ghost_3.png; key T; wait 30; quit'),
+    # Halluzination 2: das Licht des Raums faellt aus (vorher/nachher), dann mit Lampe
+    'blackout': ('Halluzination: Raum ohne Licht',
+        W0 + 'pos 18 28 1.5708 0; wait 60; shot {out}/blackout_1.png; haunt 2; wait 50; shot {out}/blackout_2.png; key T; wait 90; '
+        'shot {out}/blackout_3.png; quit'),
+    # Fundstuecke in der Hand im Licht von Level 0: Leuchtstab knicken und werfen (F), Beil schwingen (F)
+    'hand': ('Fundstuecke in der Hand (Leuchtstab, Beil)',
+        W0 + 'pos 18 28 1.5708 -0.15; wait 30; give glowstick; give hatchet; wait 20; key F; wait 9; shot {out}/hand_1.png; '
+        'wait 70; shot {out}/hand_2.png; lurecam 40 25 1.2; wait 4; shot {out}/hand_3.png; cam off; worldlight 0; wait 4; '
+        'shot {out}/hand_4.png; worldlight 1; key 2; wait 20; key F; wait 7; shot {out}/hand_5.png; wait 6; shot {out}/hand_6.png; quit'),
+    'zones': ('Zonen von Level 0',
+        W0 + _view('zones_1', 81.5, 60, 1.571) + _view('zones_2', 62, 85.5, 0.0) + _view('zones_3', 80.5, 21, 3.142) +
+        _view('zones_4', 116, 31.5, 0.524, lamp=True) + _view('zones_5', 128, 121.5, 1.92) + _view('zones_6', 37, 40.5, 4.712) +
+        _view('zones_7', 154, 64, 0.0) + _view('zones_8', 63.4, 85.5, 0.0, -0.45) +
+        _view('zones_9', 169.5, 64, 0.0, 0.0, lamp=True) + 'quit'),  # Naht: die flackernde Wand nach Level 1
+}
+
+
+# V13.3 Level 5 (Abnahme): alle Wesen des Hotels in ihren Raeumen. Die Wesen ohne Rolle (Kolonie, Woodlins, Watchers, Gastgeber)
+# stehen an den Plaetzen der Karte (hotel <art> <abstand> <winkel>); Samantha im Hauptgang (Rolle 19). Vierter Eintrag: Anzeige
+# an (Untertitel der Stimmen, Meldungen). Kesselgang: Gang der Kesselraeume (120..160, 30..32).
+LEVEL5 = {
+    'samantha': ('Samantha (Entity 26)',
+        W0 + 'pos 70 66 0 0; wait 20; presence samantha 8; wait 30; near samantha 3.0; wait 40; shot {out}/samantha_1.png; ' +
+        _lamp('samantha', 2) + 'figclear; figure samantha 1.3; figstate crouch 1; figstate talk 1; figstate tilt 0.55; wait 40; '
+        'figcam 12 3 0.6 0.24; wait 5; shot {out}/samantha_3.png; figstate talk 0; figstate tilt 0; figstate growl 1; figstate shiver 1; '
+        'figstate jaw 1; figstate wave 1; figcam 0 2 0.42 0.22; wait 30; shot {out}/samantha_4.png; key T; wait 90; '
+        'shot {out}/samantha_5.png; quit'),
+    'samflow': ('Samantha ohne Fleisch (Warnung, Sprung)',
+        W0 + 'pos 70 66 0 0; wait 20; presence samantha 8; wait 20; near samantha 2.7; wait 50; shot {out}/samflow_1.png; '
+        'near samantha 1.9; wait 70; shot {out}/samflow_2.png; wait 60; shot {out}/samflow_3.png; wait 160; shot {out}/samflow_4.png; quit',
+        '--level level5 --seed 3', True),
+    'samtrade': ('Samantha mit Fleisch (Tausch, Lesung)',
+        W0 + 'give steak; pos 70 66 0 0; wait 20; presence samantha 8; wait 20; near samantha 2.6; key T; wait 50; '
+        'shot {out}/samtrade_1.png; near samantha 1.2; wait 40; shot {out}/samtrade_2.png; look 0 -0.5; wait 120; '
+        'shot {out}/samtrade_3.png; wait 150; shot {out}/samtrade_4.png; quit', '--level level5 --seed 3', True),
+    'colony': ('Kolonie (Entity 89)',
+        W0 + 'hotel colony 2.4 0 0; wait 40; shot {out}/colony_1.png; key T; hotel colony 1.5 0.4 0; wait 90; shot {out}/colony_2.png; '
+        'hotelforce colony 0; wait 28; shot {out}/colony_3.png; wait 140; look 0 -1.2; wait 20; shot {out}/colony_4.png; quit'),
+    'woodlin': ('Woodlins (Entity 45)',
+        W0 + 'hotel woodlin 3.5 0 0; hotelforce woodlins 0; hotelstate hold 1; wait 40; shot {out}/woodlin_1.png; ' +
+        _lamp('woodlin', 2) + 'hotel woodlin 1.6 0.5 0; wait 30; shot {out}/woodlin_3.png; key T; wait 90; shot {out}/woodlin_4.png; '
+        'key T; wait 30; hotel woodlin 7 0 0; wait 30; shot {out}/woodlin_5.png; hotel woodlin 2.4 0 0; hotelstate hold 0; '
+        'look 3.14 0; wait 90; look 3.14 0; wait 3; shot {out}/woodlin_6.png; quit'),
+    'watcher': ('Watcher (Entity 38)',
+        W0 + 'hotel watcher 7 0.5 0; hotelstate hold 1; hotelstate wa_peek 1; wait 40; shot {out}/watcher_1.png; ' +
+        _lamp('watcher', 2) + 'hotel watcher 3.5 0.3 0; wait 30; shot {out}/watcher_3.png; hotel watcher 2.6 1.1 0; wait 30; '
+        'shot {out}/watcher_4.png; key T; wait 90; shot {out}/watcher_5.png; key T; wait 30; hotel watcher 1.8 0.2 0; '
+        'hotelstate wa_arm 1; wait 20; shot {out}/watcher_6.png; quit'),
+    'host': ('Gastgeber (Entity 18): Bildnis und Buero',
+        W0 + 'hotel portrait 2.2 0 0; hotelforce host 1; wait 60; shot {out}/host_1.png; hotel portrait 3.6 0 0; wait 20; '
+        'shot {out}/host_2.png; hotel office 4.5 0 0; hotelforce host 2; hotelstate host_arm 1; hotelstate host_lamp 1; wait 80; '
+        'shot {out}/host_3.png; hotel office 1.4 0 0; look 0 -0.35; wait 30; shot {out}/host_4.png; key T; wait 90; '
+        'shot {out}/host_5.png; quit'),
+    'hostflow': ('Gastgeber: Ablauf (Stimme, Buero, Hand)',
+        W0 + 'sanity 45; hotelstate host_on 300; pos 52 66 3.14 0; wait 200; hotel portrait 1.8 0 0; wait 30; '
+        'shot {out}/hostflow_1.png; hotel office 3.2 0 0; wait 220; shot {out}/hostflow_2.png; hotel office 1.3 0 0; '
+        'look 0 -0.25; wait 280; shot {out}/hostflow_3.png; key E; wait 40; shot {out}/hostflow_4.png; quit',
+        '--level level5 --seed 3', True),
+    'moth': ('Deathmoth-Maennchen an den Birnen (Entity 4)',
+        W0 + 'pos 130 31 0 0; wait 30; presence moth; wait 120; near moth 3.2; wait 30; shot {out}/moth_1.png; ' + _lamp('moth', 2) +
+        'quit'),
+    # das Nest entsteht an der Tuer eines dunklen Zimmers (Regie ruhig gestellt: an dieser Tuer erzwingen, 54/68 am Hauptgang)
+    'nest': ('Nest und Weibchen (Entity 4)',
+        W0 + 'pos 54.5 64.8 1.5708 0; wait 30; hiveat 54 68; wait 60; shot {out}/nest_1.png; ' + _lamp('nest', 2) +
+        'pos 54.5 66.6 1.5708 0.15; key T; wait 120; shot {out}/nest_3.png; pos 54.5 67.6 1.5708 0.1; wait 150; '
+        'shot {out}/nest_4.png; wait 120; shot {out}/nest_5.png; quit'),  # in der Tuer: die Weibchen fliegen auf
+    'hound': ('Hound (Entity 8)',
+        W0 + 'pos 70 66 0 0; wait 30; presence hound 9; wait 150; near hound 4; wait 20; shot {out}/hound_1.png; ' +
+        'near hound 6; key T; wait 45; shot {out}/hound_2.png; quit'),  # mit Lampe greift er an: das Bild vorher
+    'skinstealer': ('Skin-Stealer, wahre Gestalt (Entity 10)',
+        W0 + 'presence skinstealer 6; wait 240; near skinstealer 3.2; wait 2; shot {out}/skinstealer_1.png; ' +
+        _lamp('skinstealer', 2) + 'near skinstealer 1.8; wait 2; shot {out}/skinstealer_3.png; quit'),
+    'rat': ('Death Rats (Entity 24)',
+        W0 + 'presence rat; wait 150; near rat 2.8; wait 10; shot {out}/rat_1.png; ' + _lamp('rat', 2) +
+        'key T; near rat 1.3; wait 20; shot {out}/rat_3.png; quit'),
+    'growler': ('Growler, ausgewachsen (Entity 130)',
+        W0 + 'presence growler; wait 150; near growler 3.5; wait 20; shot {out}/growler_1.png; ' + _lamp('growler', 2) + 'quit'),
+    'nguithrxurh': ("Nguithr'xurh (Entity 16)",
+        W0 + 'presence nguithrxurh; wait 150; near nguithrxurh 3.2; wait 20; shot {out}/nguithrxurh_1.png; ' +
+        _lamp('nguithrxurh', 2) + 'quit'),
+    'wrangler': ('Wrangler im Kesselgang (Entity 75)',
+        W0 + 'pos 126 31 0 0; wait 30; figure wrangler 3.6; wait 60; shot {out}/wrangler_1.png; ' + _lamp('wrangler', 2) +
+        'figclear; presence wrangler; wait 200; near wrangler 4; key T; wait 90; shot {out}/wrangler_3.png; quit'),
+}
+
+
+# V13.3 Level 5.3 (Abnahme): der Hausherr (Rolle 20) an seinem Platz in der grossen Halle (Spawnpunkt gm/stand 54,5/105,6, Blick
+# nach Westen) und im alten Gang (gm/door 63,5/129); der Besuch aus fester Kamera am Ende des Gangs (63,5/98, Anzeige an); die
+# Stoerung von hinten; der Zorn der Bibliothek (Buecherhaufen rechts von seinem Platz, 52,9/106,6); das Wissen der Bibliothek auf
+# der Galerie (Folio 65,1/41,2 und Karteikarten 67,3/45,7, 4,1 m hoch). Haltungen: gent hold/pose/stand (presence_gentleman.cpp).
+GM0 = W0 + 'pos 50 100 0 0; wait 20; presence gentleman; wait 30; gent hold 1; '
+LEVEL5_3 = {
+    'gentleman': ('Hausherr (Entity 18): fern, mittel, nah',
+        GM0 + 'gent pose 1; gent stand 1; wait 30; near gentleman 8 0; wait 40; shot {out}/gentleman_1.png; ' + _lamp('gentleman', 2) +
+        'near gentleman 3.6 0.35; wait 30; shot {out}/gentleman_3.png; ' + _lamp('gentleman', 4) +
+        'near gentleman 1.5 0.2; wait 30; shot {out}/gentleman_5.png; ' + _lamp('gentleman', 6) + 'quit'),
+    'gentpose': ('Hausherr: Verbeugung, Lesen, Wurf, Ansprache',
+        GM0 + 'gent pose 3; gent stand 3; wait 30; near gentleman 3.2 1.1; wait 40; shot {out}/gentpose_1.png; gent pose 4; wait 40; '
+        'shot {out}/gentpose_2.png; gent pose 5; gent book 4.6; wait 30; shot {out}/gentpose_3.png; gent book -1; gent pose 6; wait 40; '
+        'near gentleman 4 0.3; wait 30; shot {out}/gentpose_4.png; key T; wait 90; shot {out}/gentpose_5.png; quit'),
+    'gentnotice': ('Hausherr: Wahrnehmen (Kopf bis 166 Grad), Ankuendigung, Griff',
+        GM0 + 'gent pose 11; gent stand 11; wait 30; near gentleman 2.6 3.1416; wait 40; shot {out}/gentnotice_1.png; ' +
+        _lamp('gentnotice', 2) + 'gent pose 13; near gentleman 2.1 0; wait 40; shot {out}/gentnotice_3.png; gent pose 14; '
+        'gent place 0.85; wait 30; shot {out}/gentnotice_4.png; key T; wait 90; shot {out}/gentnotice_5.png; quit'),
+    # der Besuch, wie er im Spiel ablaeuft (60 Bilder je Sekunde): Tuer und Gang, an seinem Platz Umsehen, Notizbuch, Wurf,
+    # Ansprache mit Stille, Rueckzug; danach der Zorn der Bibliothek (Buecherhaufen) und das Notizbuch als Fund
+    'gentflow': ('Hausherr: Besuch (Gang, Szene, Ansprache, Rueckzug), Zorn der Bibliothek',
+        # Runde 2: aus 12 m war er im Bild zu klein - Gang aus der Halle (63,5/101), die Szene aus 6 m (59/101,5), beide ueber 3 m
+        # von seinem Weg (sonst bemerkt er den Spieler); zuletzt der Fund hinter ihm und die Buecherhaufen
+        W0 + 'pos 63.5 101 1.5708 0.04; wait 30; presence gentleman; wait 180; shot {out}/gentflow_1.png; wait 360; '
+        'shot {out}/gentflow_2.png; wait 300; shot {out}/gentflow_3.png; pos 59.0 101.5 2.402 0.1; wait 540; shot {out}/gentflow_4.png; '
+        'wait 300; shot {out}/gentflow_5.png; wait 150; shot {out}/gentflow_6.png; wait 150; shot {out}/gentflow_7.png; wait 180; '
+        'shot {out}/gentflow_8.png; wait 540; shot {out}/gentflow_9.png; wait 360; shot {out}/gentflow_10.png; wait 660; '
+        'shot {out}/gentflow_11.png; wait 600; shot {out}/gentflow_12.png; pos 59.1 103.4 1.5708 -0.62; wait 60; '
+        'shot {out}/gentflow_13.png; pos 55.8 104.3 2.48 -0.42; wait 60; shot {out}/gentflow_14.png; key T; wait 90; '
+        'shot {out}/gentflow_15.png; quit', '--level level5_3 --seed 3', True),
+    # Stoerung im Spiel: von hinten naeher als 3 m - er bringt zu Ende, was er tut, dreht den Kopf, kommt, kuendigt an, greift.
+    # Runde 2: der Spieler stand beim Erscheinen am Start im Gang (0,4 m) - bemerkt, bevor er an seinem Platz war; jetzt erst fort
+    'gentdisturb': ('Hausherr: Stoerung von hinten (Ablauf), mit Untertiteln',
+        W0 + 'pos 50 100 0 0; wait 30; presence gentleman; wait 30; gent stand 1; pos 57.4 105.6 3.1416 0.08; wait 90; '
+        'shot {out}/gentdisturb_1.png; wait 120; shot {out}/gentdisturb_2.png; wait 120; shot {out}/gentdisturb_3.png; wait 120; '
+        'shot {out}/gentdisturb_4.png; wait 120; shot {out}/gentdisturb_5.png; wait 120; shot {out}/gentdisturb_6.png; wait 120; '
+        'shot {out}/gentdisturb_7.png; wait 120; shot {out}/gentdisturb_8.png; wait 180; shot {out}/gentdisturb_9.png; quit',
+        '--level level5_3 --seed 3', True),
+    'lore': ('Wissen der Bibliothek: Folio (Entity 141), Karteikarten (Entity 189)',
+        W0 + 'pos 65.0 43.1 -1.5708 -0.55; wait 60; shot {out}/lore_1.png; key T; wait 90; shot {out}/lore_2.png; key T; wait 30; '
+        'pos 67.45 47.4 -1.69 -0.5; wait 60; shot {out}/lore_3.png; key T; wait 90; shot {out}/lore_4.png; key T; wait 30; '
+        'pos 64.4 44.4 -1.2 -0.12; wait 60; shot {out}/lore_5.png; quit'),
+    'loreread': ('Wissen: Folio lesen (Diktiergeraet), Karteikarten lesen',
+        W0 + 'pos 65.0 42.3 -1.45 -0.45; wait 60; key E; wait 60; shot {out}/loreread_1.png; wait 240; shot {out}/loreread_2.png; '
+        'key E; wait 30; pos 67.4 46.6 -1.69 -0.7; wait 60; key E; wait 60; shot {out}/loreread_3.png; quit',
+        '--level level5_3 --seed 3', True),
+    # Abnahme Runde 4: Bereiche und Uebergaenge abseits des Laufwegs (Sicherungspunkte der Karte): vor der Leere mit dem weissen
+    # Gitter, Ostfluegel zur Tuer nach Level 5, alte Gaenge (+6 m), Treppe, Obergeschoss, Kronleuchter und Wappen der Halle
+    'zones': ('Bereiche und Uebergaenge (Leere, Ausgang, alte Gaenge, Treppe, Obergeschoss, Kronleuchter)',
+        W0 + _view('zones_1', 14.0, 81.0, 3.1416, 0.0, lamp=True) + _view('zones_2', 123.5, 80.5, 0.0) +
+        _view('zones_3', 103.5, 23.5, 1.5708, 0.0, lamp=True) + _view('zones_4', 90.5, 23.5, 0.0) +
+        _view('zones_5', 64.0, 43.5, 1.5708) + _view('zones_6', 64.0, 80.0, 1.5708, 0.55) + 'quit'),
+}
+
+
+def note_job(level, seed):
+    """V13.3 Level 0: Notizen dort aufnehmen, wo das Spiel sie hinlegt (Protokoll "Notiz ... bei (x, y)"), Lampe aus/an."""
+    if level != 'level0':
+        return None
+    import re
+    code, log = run(f'--level {level} --seed {seed}', 'wait 30; quit',
+                    userdir=os.path.join(ROOT, 'build', 'qa', 'ud_creatures', 'notes_probe'), size='640x360')
+    spots = [(float(a), float(b)) for a, b in re.findall(r'Notiz "[^"]*" bei \((-?[\d.]+), (-?[\d.]+)\)', log)]
+    g = Grid(level)
+    parts = []
+    for k, (x, y) in enumerate(spots[:3]):
+        best = None
+        for a in [i * math.pi / 8 for i in range(16)]:
+            cx, cy = x + math.cos(a) * 1.3, y + math.sin(a) * 1.3
+            if g.ok(cx, cy) and g.ok((x + cx) / 2, (y + cy) / 2):
+                best = (cx, cy)
+                break
+        if not best:
+            continue
+        cx, cy = best
+        yaw = math.atan2(y - cy, x - cx)
+        pitch = math.atan2(-1.6, 1.3)
+        parts.append(f'pos {cx:.2f} {cy:.2f} {yaw:.3f} {pitch:.3f}; wait 50; shot {{out}}/notes_{2 * k + 1}.png; '
+                     f'key T; wait 90; shot {{out}}/notes_{2 * k + 2}.png; key T; wait 30; ')
+    if not parts:
+        return None
+    return ('Notizen (Fundort im Spiel)', W0 + ''.join(parts) + 'quit')
+
+
 # Spuren (Ausstattung der Karte): Kamera vor das Modell aus dem Ausstattungs-Abzug
 TRACES = {'level2': [('skin_hung', 0, 2.3), ('skin_lair', 0, 2.6), ('skin_shed', 0, 2.2), ('skin_shed', 1, 2.2),
                      ('skin_scratches', 0, 1.8)]}
-JOBS = {'level2': LEVEL2, 'level3': LEVEL3}
+JOBS = {'level0': LEVEL0, 'level2': LEVEL2, 'level3': LEVEL3, 'level5': LEVEL5, 'level5_3': LEVEL5_3}
 
 
 def trace_job(level):
@@ -231,6 +420,10 @@ def main():
     tj = trace_job(a.level)
     if tj:
         jobs['traces'] = tj
+    if not a.sheet_only and (not a.only or 'notes' in a.only.split(',')):
+        nj = note_job(a.level, a.seed)
+        if nj:
+            jobs['notes'] = nj
     if a.only:
         jobs = {k: v for k, v in jobs.items() if k in a.only.split(',')}
     raw = os.path.join(ROOT, 'build', 'qa', 'creatures', a.level, a.round)
@@ -241,13 +434,16 @@ def main():
             for f in os.listdir(raw):
                 if f.startswith(job + '_'):
                     os.remove(os.path.join(raw, f))
+            # dritter Eintrag: eigene Startargumente; vierter: Anzeige an (Untertitel, Meldungen)
             code, log = run(args[0] if args else f'--level {a.level} --seed {a.seed}', script.format(out=raw.replace('\\', '/')),
-                            userdir=os.path.join(ROOT, 'build', 'qa', 'ud_creatures', job), size=a.size)
+                            userdir=os.path.join(ROOT, 'build', 'qa', 'ud_creatures', job), size=a.size,
+                            hud=len(args) > 1 and bool(args[1]))
             warn = [ln.strip() for ln in log.splitlines() if 'Skript' in ln and ('kein' in ln or 'unbekannt' in ln or 'nicht' in ln)]
             report[job] = {'exit': code, 'warn': warn[:6]}
             print(f'{job}: exit {code}', warn[:3], flush=True)
     # alle vorhandenen Bilder dieser Runde (auch aus frueheren Teil-Laeufen mit --only), Reihenfolge der Tabelle
-    labels = {k: v[0] for k, v in dict(JOBS.get(a.level, {}), traces=('Skin-Stealer-Spuren (Entity 10)', '')).items()}
+    labels = {k: v[0] for k, v in dict(JOBS.get(a.level, {}), traces=('Skin-Stealer-Spuren (Entity 10)', ''),
+                                       notes=('Notizen (Fundort im Spiel)', '')).items()}
     shots = []
     for job in labels:
         fs = sorted((f for f in os.listdir(raw) if f.startswith(job + '_') and f.endswith('.png')),

@@ -13,7 +13,7 @@ liegen entlang +x). Masse gleichlautend in hotel_l5.hpp:
   wa_eye          ein Auge (Halbmesser 2 cm, Iris nach +x)
   wa_hand@0/@1    Hand um die Kante der Tueroeffnung (links/rechts): Ballen in der Laibung, vier lange Finger um die Ecke
   wa_arm_a/b, wa_claw  der lange Arm beim Hieb (0,55 / 0,62 m) und die gespreizte Hand
-  e18_arm_a/b/c   Arm des Gastgebers im Anzugaermel (je 0,42 m, gestreckt im Spiel), e18_hand die Hand zum Handschlag
+  e18_arm_a/b/c   Arm des Gastgebers im Anzugaermel (je 0,7 m, gestreckt im Spiel), e18_hand die Hand zum Handschlag
   e18_eye         Auge, das aus der Leinwand eines Bildnisses tritt (Lid aus Haut)
   e18_desk, e18_wingchair, e18_portrait  Buero (Kartenobjekte): Schreibtisch mit Bankerlampe, Vertrag, Telefon; Ohrensessel;
                   Bildnis eines Mannes im Anzug, das Gesicht abgekratzt
@@ -36,7 +36,7 @@ TAU = 2.0 * math.pi
 ANT_R = 0.02
 WL_SHOULDER, WL_LEG_A, WL_LEG_B, WL_JAW = 0.22, 0.15, 0.16, (0.035, 0.0, 0.305)
 WA_ARM_A, WA_ARM_B = 0.55, 0.62
-E18_ARM = 0.42
+E18_ARM = 0.7  # Abnahme Level 5, Runde 2 (vorher 0,42): im Spiel 0,76- bis 1,3-fach gestreckt
 
 
 def _rot_to(d):
@@ -57,7 +57,10 @@ def _mats():
         'wood': mat('woodlin_nussbaum', (0.20, 0.11, 0.06), 'wood', r=0.55),
         'wood_l': mat('woodlin_nussbaum_hell', (0.34, 0.21, 0.12), 'wood', r=0.7),
         'raw': mat('woodlin_rohholz', (0.62, 0.48, 0.32), 'wood', r=1.3),
-        'flesh': mat('woodlin_fleisch', (0.80, 0.66, 0.58), 'plastic', r=0.3),
+        # Abnahme Level 5, Runde 2: rosiger, nasser (vorher fahl wie Wachs) - im Kerzenlicht muss es Fleisch sein
+        'flesh': mat('woodlin_fleisch', (0.74, 0.40, 0.36), 'plastic', r=0.22),
+        'flesh_l': mat('woodlin_fleisch_bleich', (0.88, 0.70, 0.62), 'plastic', r=0.25),
+        'vein_w': mat('woodlin_adern', (0.36, 0.06, 0.08), 'plastic', r=0.3),
         'sap': mat('woodlin_saft', (0.28, 0.06, 0.04), 'water', r=0.25),
         'hole': mat('woodlin_astloch', (0.01, 0.008, 0.006), 'plastic', r=0.2),
         'brass': mat('woodlin_messing', (0.62, 0.46, 0.22), 'metal', r=0.6, m=0.9),
@@ -74,15 +77,23 @@ def _mats():
         'hair': mat('watcher_haar', (0.02, 0.02, 0.02), 'water', r=0.4),
         'void': mat('watcher_schlund', (0.03, 0.01, 0.01), 'plastic', r=0.4),
         # Gastgeber: Nadelstreifen-Anzug (dunkles Anthrazit), Hemdmanschette, Manschettenknopf, wachsbleiche Hand
-        'suit': mat('gastgeber_anzug', (0.06, 0.06, 0.07), 'fabric', r=1.0),
-        'stripe': mat('gastgeber_nadelstreifen', (0.30, 0.30, 0.32), 'fabric', r=1.0),
+        # Abnahme Level 5, Runde 3: mit den Falten glaenzte der Stoff grau wie ein Schlauch (Rauheit 0,45) - stumpfer Wollstoff
+        'suit': mat('gastgeber_anzug', (0.06, 0.06, 0.07), 'fabric', r=2.2),
+        'stripe': mat('gastgeber_nadelstreifen', (0.30, 0.30, 0.32), 'fabric', r=2.2),
         'shirt': mat('gastgeber_manschette', (0.88, 0.86, 0.80), 'fabric', r=0.9),
         'gold': mat('gastgeber_gold', (0.85, 0.66, 0.30), 'metal', r=0.4, m=1.0),
         'hand': mat('gastgeber_haut', (0.72, 0.63, 0.57), 'plastic', r=0.65),
         'hand_d': mat('gastgeber_haut_falten', (0.62, 0.50, 0.44), 'plastic', r=0.7),
-        'eye_w': mat('bildnis_augapfel', (0.86, 0.80, 0.70), 'ceramic', r=0.15),
+        'eye_w': mat('bildnis_augapfel', (0.92, 0.88, 0.80), 'ceramic', r=0.12, glow=0.18),
         'eye_i': mat('bildnis_iris', (0.25, 0.16, 0.09), 'ceramic', r=0.15),
         'lid': mat('bildnis_lid', (0.70, 0.46, 0.38), 'plastic', r=0.35),
+        # Abnahme Level 5, Runde 2: aus mehr als 3 m waren die Augen nicht zu sehen - groesser, das Weiss leuchtet nass aus dem
+        # dunklen Firnis, ein wunder, roter Rand trennt es von der Leinwand
+        'lid_raw': mat('bildnis_lid_wund', (0.50, 0.08, 0.07), 'plastic', r=0.2),
+        'suit_seam': mat('gastgeber_naht', (0.035, 0.035, 0.04), 'fabric', r=2.2),
+        'button': mat('gastgeber_hornknopf', (0.10, 0.07, 0.05), 'plastic', r=0.35),
+        'paint_hair': mat('buero_gemalt_haar', (0.06, 0.045, 0.035), 'paint', r=0.5),
+        'gouge': mat('buero_kratzer', (0.22, 0.07, 0.05), 'paint', r=0.7),
         # Buero
         'desk': mat('buero_mahagoni', (0.30, 0.12, 0.07), 'wood', r=0.45),
         'desk_d': mat('buero_mahagoni_dunkel', (0.16, 0.06, 0.04), 'wood', r=0.6),
@@ -171,8 +182,8 @@ def _turned(bm, prof, segs=12, M=None):
 
 def build_wl_body():
     """Rumpf (Ursprung Huefte, aufrecht entlang +z): gedrechselte Spindel wie ein Treppendocke, Schulterring, darueber der
-    geschnitzte Kopf: Fratze mit Astloch-Augen (nass, tief), Brauenwulst, Nasengrat; ein Riss klafft vom Scheitel bis in die
-    Brust - darin bleiches Fleisch und dunkler Saft."""
+    geschnitzte Kopf, gespalten wie ein Scheit: zwei Haelften mit Astloch-Augen klaffen nach oben auseinander, dazwischen
+    quillt nasses Fleisch; der Spalt laeuft bis in den Bauch - Fleisch zwischen rohen Kanten, dunkler Saft."""
     rng = random.Random(4501)
     K = Kit()
     M = _mats()
@@ -183,34 +194,69 @@ def build_wl_body():
     for z in (0.055, 0.205, 0.235):  # Ringe (heller, abgegriffen)
         lathe(K(M['wood_l'], 35), [(0.027 if z < 0.1 else 0.05, z - 0.004), (0.031 if z < 0.1 else 0.055, z), (0.027 if z < 0.1 else 0.05, z + 0.004)], 14)
     K.finish()
-    # Kopf: Ei mit Gesicht nach +x (Runde 5: 1,4-fach um den Hals - die geschnitzte Fratze muss man sehen)
-    K = Kit()
-    ellipsoid(K(M['wood'], 40), V((0.0, 0.0, 0.315)), V((0, 0, 1)), 0.06, 0.046, 14, 9)
-    ellipsoid(K(M['wood'], 40), V((0.03, 0.0, 0.335)), V((0, 1, 0)), 0.042, 0.012, 10, 5)  # Brauenwulst
-    sweep(K(M['wood'], 40), [V((0.042, 0, 0.335)), V((0.05, 0, 0.312)), V((0.052, 0, 0.298))], [0.008, 0.009, 0.006], 6)  # Nase
-    for s in (1, -1):  # Astloecher als Augen: dunkler Ring, nass glaenzendes Schwarz darin
-        c = V((0.04, s * 0.02, 0.32))
-        lathe(K(M['wood_l'], 30), [(0.009, -0.002), (0.012, 0.0), (0.009, 0.003)], 10, Matrix.Translation(c) @ _rot_to((1, s * 0.3, 0)))
-        ellipsoid(K(M['hole'], 30), c + V((0.002, 0, 0)), V((1, s * 0.3, 0)), 0.006, 0.0085, 8, 4)
-    # Wangen als geschnitzte Wuelste, Mundwinkel (der Kiefer ist eigen)
+    # Kopf (Abnahme Level 5, Runde 2: aus der Ferne eine Holzmarionette - ein heiles, geschnitztes Ei mit einem duennen Riss):
+    # der Kopf ist gespalten wie ein Scheit - zwei Haelften klaffen nach oben auseinander (V), dazwischen quillt bleiches,
+    # rohes Fleisch mit Saft; rohes Holz und Splitter an den Bruchkanten; je Haelfte ein Astloch-Auge, ungleich hoch. Der
+    # Spalt laeuft ueber Hals und Brust bis in den Bauch der Spindel (das liest sich auch von weitem als heller Strich).
+    piv = V((0.0, 0.0, 0.272))  # Drehpunkt der Haelften (ueber dem Kiefergelenk)
     for s in (1, -1):
-        ellipsoid(K(M['wood'], 40), V((0.03, s * 0.03, 0.3)), V((1, 0, -0.3)), 0.02, 0.012, 8, 5)
-    # Riss: vom Scheitel ueber das Gesicht in die Brust - rohes Holz an den Raendern, Fleisch darin, Saft laeuft
-    path = [V((-0.01, 0.006, 0.375)), V((0.03, 0.004, 0.36)), V((0.045, -0.008, 0.34)), V((0.048, 0.006, 0.31)), V((0.04, -0.004, 0.285)),
-            V((0.035, 0.006, 0.262)), V((0.03, 0.0, 0.25))]
-    sweep(K(M['raw'], 30), path, [0.003, 0.005, 0.006, 0.006, 0.006, 0.005, 0.003], 6)
-    sweep(K(M['flesh'], 40), [p + V((0.002, 0, 0)) for p in path[1:-1]], [0.0035, 0.0045, 0.004, 0.0045, 0.004], 6)
-    for i in range(4):  # Saft
-        p = path[2 + i] + V((0.004, rng.uniform(-0.004, 0.004), 0))
-        sweep(K(M['sap'], 40), [p, p + V((0.002, 0, -rng.uniform(0.01, 0.03)))], [0.0018, 0.0008], 5)
-    # Splitter an den Rissraendern
-    for i in range(10):
-        p = path[rng.randrange(1, len(path) - 1)]
-        d = V((0.4, rng.choice((-1, 1)), rng.uniform(-0.3, 0.3))).normalized()
-        sweep(K(M['raw'], 20), [p, p + d * rng.uniform(0.006, 0.012)], [0.0015, 0.0003], 3)
-    # Messingnagel im Scheitel (wie ein Moebelbeschlag)
-    lathe(K(M['brass'], 30), [(0.0, 0.372), (0.008, 0.372), (0.006, 0.378), (0.0, 0.38)], 10)
+        K = Kit()
+        ellipsoid(K(M['wood'], 40), V((0.0, s * 0.024, 0.315)), V((0, 0, 1)), 0.06, 0.03, 14, 9)
+        ellipsoid(K(M['wood'], 40), V((0.03, s * 0.02, 0.336)), V((0, 1, 0)), 0.022, 0.011, 8, 5)  # Brauenwulst (halb)
+        ellipsoid(K(M['wood'], 40), V((0.032, s * 0.036, 0.298)), V((1, 0, -0.3)), 0.018, 0.012, 8, 5)  # Wange
+        c = V((0.042, s * 0.026, 0.322 + (0.008 if s > 0 else -0.004)))  # Astloch, ungleich hoch
+        lathe(K(M['wood_l'], 30), [(0.009, -0.002), (0.012, 0.0), (0.009, 0.003)], 10, Matrix.Translation(c) @ _rot_to((1, s * 0.35, 0)))
+        ellipsoid(K(M['hole'], 30), c + V((0.002, 0, 0)), V((1, s * 0.35, 0)), 0.006, 0.0085, 8, 4)
+        # Bruchflaeche innen: rohes, helles Holz in Fasern, Splitter stehen in den Spalt
+        for k in range(7):
+            z = 0.27 + 0.016 * k
+            x = 0.045 * math.sqrt(max(0.0, 1.0 - ((z - 0.315) / 0.062) ** 2))
+            p0 = V((-x * 0.9, s * 0.0045, z))
+            sweep(K(M['raw'], 30), [p0, V((x * 0.95, s * 0.0045, z + 0.002))], [0.0042, 0.0042], 5)
+        for k in range(9):
+            z = rng.uniform(0.27, 0.37)
+            x = 0.045 * math.sqrt(max(0.0, 1.0 - ((z - 0.315) / 0.062) ** 2)) * rng.uniform(0.6, 1.0)
+            p0 = V((x, s * 0.004, z))
+            sweep(K(M['raw'], 20), [p0, p0 + V((rng.uniform(0.0, 0.006), -s * rng.uniform(0.006, 0.014), rng.uniform(-0.004, 0.006)))],
+                  [0.0022, 0.0003], 3)
+        if s > 0:  # Messingnagel im Scheitel der einen Haelfte (wie ein Moebelbeschlag)
+            lathe(K(M['brass'], 30), [(0.0, 0.0), (0.008, 0.0), (0.006, 0.006), (0.0, 0.008)], 10,
+                  Matrix.Translation((-0.01, 0.026, 0.372)) @ _rot_to((0, 0.3, 1)))
+        tilt = Matrix.Translation(piv) @ Matrix.Rotation(-s * 0.42, 4, 'X') @ Matrix.Translation(-piv)  # Runde 3: weiter (0,32)
+        K.finish(Matrix.Translation((0, 0, 0.3)) @ Matrix.Diagonal((1.4, 1.4, 1.4, 1.0)) @ Matrix.Translation((0, 0, -0.3)) @ tilt)
+    # Fleisch im Spalt: quillt nach vorn und oben aus dem V, nass, mit Saft und dunklen Adern
+    K = Kit()
+    # Runde 3: aus 3,5 m nur ein rosa Tupfen auf dem Kopf - mehr Fleisch, das oben aus dem V quillt (ueber den Scheitel), und
+    # Gewebefaeden, die zwischen den Haelften gespannt sind
+    ellipsoid(K(M['flesh'], 40), V((0.008, 0.0, 0.33)), V((0, 0, 1)), 0.07, 0.026, 12, 8)
+    for k in range(9):
+        p = V((rng.uniform(0.0, 0.032), rng.uniform(-0.016, 0.016), rng.uniform(0.29, 0.405)))
+        ellipsoid(K(M['flesh_l'] if k % 2 else M['flesh'], 40), p, V((1, rng.uniform(-0.3, 0.3), rng.uniform(-0.3, 0.3))),
+                  rng.uniform(0.013, 0.019), rng.uniform(0.01, 0.014), 8, 5)
+    for k in range(6):  # Gewebefaeden quer durch den Spalt, durchhaengend
+        z = rng.uniform(0.33, 0.39)
+        x = rng.uniform(-0.01, 0.03)
+        w = 0.03 + (z - 0.33) * 0.6
+        sweep(K(M['flesh_l'], 40), [V((x, -w, z)), V((x + 0.006, 0.0, z - rng.uniform(0.008, 0.02))), V((x, w, z))], [0.0018, 0.0012, 0.0018], 5)
+    for k in range(5):  # Adern
+        p0 = V((0.03, rng.uniform(-0.01, 0.01), rng.uniform(0.29, 0.36)))
+        sweep(K(M['vein_w'], 40), [p0, p0 + V((0.004, rng.uniform(-0.01, 0.01), rng.uniform(-0.03, 0.03)))], [0.0014, 0.0008], 4)
+    for k in range(9):  # Saft laeuft ueber das Gesicht und den Hals
+        p = V((rng.uniform(0.03, 0.045), rng.uniform(-0.02, 0.02), rng.uniform(0.29, 0.34)))
+        sweep(K(M['sap'], 40), [p, p + V((0.006, rng.uniform(-0.004, 0.004), -rng.uniform(0.04, 0.09)))], [0.0028, 0.0014], 5)
     K.finish(Matrix.Translation((0, 0, 0.3)) @ Matrix.Diagonal((1.4, 1.4, 1.4, 1.0)) @ Matrix.Translation((0, 0, -0.3)))
+    # der Spalt laeuft ueber Hals und Brust in den Bauch der Spindel: Fleisch zwischen rohen Kanten, Saft
+    K = Kit()
+    zs = [0.255, 0.24, 0.215, 0.19, 0.17, 0.14, 0.12]
+    rr = {0.255: 0.024, 0.24: 0.032, 0.215: 0.054, 0.19: 0.026, 0.17: 0.042, 0.14: 0.052, 0.12: 0.047}
+    path = [V((rr[z] - 0.001, 0.0, z)) for z in zs]
+    sweep(K(M['flesh'], 40), path, [0.006, 0.0075, 0.009, 0.007, 0.008, 0.0065, 0.003], 7)
+    for s in (1, -1):
+        sweep(K(M['raw'], 30), [p + V((0.002, s * 0.0075, 0)) for p in path], [0.0024, 0.0028, 0.003, 0.0026, 0.003, 0.0026, 0.0012], 5)
+    for k in range(6):  # Saft ueber Brust und Bauch, bis zur Taille
+        p = path[min(6, 1 + k)] + V((0.004, rng.uniform(-0.006, 0.006), 0))
+        sweep(K(M['sap'], 40), [p, p + V((0.004, rng.uniform(-0.003, 0.003), -rng.uniform(0.03, 0.07)))], [0.0026, 0.0011], 5)
+    K.finish()
 
 
 def build_wl_jaw():
@@ -258,6 +304,7 @@ def build_wl_leg_b():
 # jetzt als Distanzfeld (wie die Wesen mit Skelett): eingefallene Wangen, tiefe Hoehlen, Falten und Poren in der Haut.
 WA_EYES = [(0.085, 0.0, 0.36), (0.098, 0.008, 0.30), (0.104, -0.006, 0.235), (0.1, 0.01, 0.17), (0.088, -0.004, 0.11)]
 WA_EYE_S = [0.7, 1.0, 1.25, 0.85, 0.6]
+WA_WIDE = 1.3  # Abnahme Level 5, Runde 3: Kopf und Gesichtsteile in der Breite (y)
 
 
 def _sdf():
@@ -326,10 +373,20 @@ def build_wa_head():
         parts.append(A.ell(0, (0.06, sd * 0.058, 0.12), X, (0.04, 0.022, 0.05), op='sub', k=0.02))  # eingefallene Wange
         parts.append(A.ell(0, (0.0, sd * 0.07, 0.31), X, (0.05, 0.02, 0.05), op='sub', k=0.02))   # Schlaefe
         parts.append(A.ell(0, (-0.03, sd * 0.072, 0.24), (0, sd, 0.3), (0.03, 0.012, 0.022), k=0.006))  # Ohr, angelegt
+    # Abnahme Level 5, Runde 2: von der Seite (Schraegblick in den Gang) eine lange, glatte Form - jetzt wulsten die Lider um
+    # jede Hoehle wie Geschwuelste aus dem Gesicht (im Profil eine Reihe Knoten), der Unterkiefer steht vor (Unterbiss),
+    # die Wangenknochen stehen spitz
     for (x, y, z), s in zip(WA_EYES, WA_EYE_S):
-        parts.append(A.ell(0, (x + 0.004, y, z), X, (0.03 * s, 0.024 * s, 0.021 * s), op='sub', k=0.008))
-    parts.append(A.ell(0, (0.1, 0, 0.055), (0, 1, 0), (0.05, 0.03, 0.006), op='sub', k=0.004))  # Mund, breit, lippenlos
-    _sdf_obj('kopf', parts, 0.0021, _skin_disp(), M['skin'], 10000)
+        parts.append(A.ell(0, (x + 0.012, y, z), X, (0.024 * s, 0.03 * s, 0.026 * s), k=0.012))
+    parts.append(A.ell(0, (0.085, 0, 0.038), (0, 1, 0), (0.048, 0.024, 0.026), k=0.02))  # Unterkiefer, vorstehend
+    for sd in (1, -1):
+        parts.append(A.ell(0, (0.075, sd * 0.056, 0.222), X, (0.022, 0.016, 0.018), k=0.01))  # Wangenknochen, spitz
+    for (x, y, z), s in zip(WA_EYES, WA_EYE_S):
+        parts.append(A.ell(0, (x + 0.01, y, z), X, (0.032 * s, 0.022 * s, 0.019 * s), op='sub', k=0.006))
+    parts.append(A.ell(0, (0.112, 0, 0.055), (0, 1, 0), (0.062, 0.035, 0.012), op='sub', k=0.004))  # Mund, breit, lippenlos, offen
+    ob = _sdf_obj('kopf', parts, 0.0021, _skin_disp(), M['skin'], 12000)
+    # Abnahme Level 5, Runde 3: schmal wie eine Floete oder eine Fernbedienung - 1,3-fach breiter (ein Gesicht, kein Stab)
+    ob.data.transform(Matrix.Diagonal((1.0, WA_WIDE, 1.0, 1.0)))
 
 
 def build_wa_face():
@@ -342,18 +399,46 @@ def build_wa_face():
         c = V((x - 0.006, y, z))
         lathe(K(M['rim'], 30), [(0.019 * s, -0.004), (0.022 * s, 0.0), (0.02 * s, 0.006)], 16, Matrix.Translation(c) @ _rot_to((1, 0, 0)))
         ellipsoid(K(M['void'], 30), c - V((0.008, 0, 0)), V((1, 0, 0)), 0.008 * s, 0.019 * s, 10, 5)
-    ellipsoid(K(M['void'], 30), V((0.085, 0, 0.055)), V((0, 1, 0)), 0.045, 0.004, 10, 4)  # Rachen hinter den Zaehnen
-    for k in range(14):  # Zaehne, gelb, schief, zu viele
-        y = -0.042 + 0.084 * k / 13
+    ellipsoid(K(M['void'], 30), V((0.088, 0, 0.055)), V((0, 1, 0)), 0.055, 0.009, 10, 4)  # Rachen hinter den Zaehnen (Runde 3: offen)
+    for k in range(18):  # Zaehne, gelb, schief, zu viele (Runde 3: breiter Mund, laenger)
+        y = -0.052 + 0.104 * k / 17
         for up_ in (1, -1):
-            p = V((0.094 - 0.012 * (y / 0.042) ** 2, y, 0.055 + up_ * 0.0045))
-            sweep(K(M['nail'], 30), [p, p + V((rng.uniform(0.0, 0.003), rng.uniform(-0.002, 0.002), -up_ * rng.uniform(0.006, 0.011)))], [0.0035, 0.0012], 4)
+            p = V((0.098 - 0.014 * (y / 0.052) ** 2, y, 0.055 + up_ * 0.0095))
+            sweep(K(M['nail'], 30), [p, p + V((rng.uniform(0.0, 0.004), rng.uniform(-0.002, 0.002), -up_ * rng.uniform(0.008, 0.015)))], [0.0038, 0.0012], 4)
     for i in range(18):  # duenne, nasse Straehnen vom Scheitel
         a = rng.uniform(0.6, TAU - 0.6)
         p0 = V((0.05 * math.cos(a) - 0.02, 0.05 * math.sin(a), 0.42))
         pts = [p0, p0 + V((-0.03, 0.012 * math.sin(a), -0.05)), p0 + V((-0.05, 0.02 * math.sin(a), -rng.uniform(0.12, 0.3)))]
         sweep(K(M['hair'], 30), pts, [0.003, 0.002, 0.0005], 4)
-    K.finish()
+    for i in range(16):  # Abnahme Runde 2: lange, verklebte Straehnen ueber die Schlaefen bis unter den Kiefer (im Profil)
+        sd = 1 if i % 2 else -1
+        a = rng.uniform(-0.5, 0.5)
+        p0 = V((rng.uniform(-0.02, 0.05), sd * rng.uniform(0.045, 0.07), rng.uniform(0.36, 0.41)))
+        p1 = p0 + V((rng.uniform(0.0, 0.02), sd * 0.03, -0.12))
+        p2 = p1 + V((rng.uniform(-0.01, 0.03), sd * rng.uniform(0.0, 0.015), -rng.uniform(0.12, 0.22)))
+        p3 = p2 + V((rng.uniform(-0.01, 0.02), sd * 0.004, -rng.uniform(0.05, 0.12)))
+        sweep(K(M['hair'], 30), [p0, p1, p2, p3], [0.0042, 0.0034, 0.0022, 0.0006], 5)
+    # Runde 3: ein Vorhang aus nassem, schwarzem Haar rahmt das Gesicht (Seiten und Hinterkopf, bis unter das Kinn) - so liest
+    # sich auch der schief gelegte Kopf an der Laibung als Kopf
+    for i in range(48):
+        a = math.radians(rng.uniform(70, 290))  # nicht vor dem Gesicht (+x)
+        r0 = 0.072
+        p0 = V((r0 * math.cos(a) - 0.01, r0 * math.sin(a) * 0.95, rng.uniform(0.38, 0.43)))
+        out = V((math.cos(a) * 0.9, math.sin(a), 0.0))
+        p1 = p0 + out * 0.025 + V((0, 0, -0.1))
+        p2 = p1 + out * rng.uniform(0.005, 0.02) + V((rng.uniform(-0.01, 0.01), 0, -rng.uniform(0.15, 0.22)))
+        p3 = p2 + V((rng.uniform(-0.01, 0.015), out.y * 0.01, -rng.uniform(0.08, 0.2)))
+        sweep(K(M['hair'], 30), [p0, p1, p2, p3], [0.0058, 0.005, 0.0035, 0.0008], 5)
+    # Runde 4: der kahle, graue Schaedel las sich wie eine Erdnuss oder ein Totem - nasses Haar deckt Scheitel und Hinterkopf,
+    # einzelne Straehnen kleben ueber die Wangen bis zum Kiefer (die Augensaeule bleibt frei): ein Menschenkopf
+    ellipsoid(K(M['hair'], 30), V((-0.03, 0.0, 0.32)), V((0, 0, 1)), 0.122, 0.093, 16, 10)
+    for i in range(10):
+        sd = 1 if i % 2 else -1
+        y0 = sd * rng.uniform(0.04, 0.062)
+        pts = [V((0.055, y0, 0.405)), V((0.098, y0 * 1.08, 0.31)), V((0.106, y0 * 1.15, 0.2)),
+               V((0.1, y0 * 1.12, rng.uniform(0.06, 0.12)))]
+        sweep(K(M['hair'], 30), pts, [0.0045, 0.0038, 0.0028, 0.0008], 5)
+    K.finish(Matrix.Diagonal((1.0, WA_WIDE, 1.0, 1.0)))
 
 
 def build_wa_eye():
@@ -472,41 +557,95 @@ def build_wa_claw():
 
 
 # --- der Gastgeber (Entity 18) ----------------------------------------------------------------------------------------------
-def _sleeve(K, M, rng, cuff=False):
+def _sleeve(K, M, rng, r0, r1, cuff=False):
+    """Aermel aus Stoff (Ursprung Gelenk, entlang +x, Laenge E18_ARM). Abnahme Level 5, Runde 2: nah las sich der Arm wie ein
+    Ofenrohr (gleicher Kreis, Ringe, gerade Streifen). Jetzt: Querschnitt breiter als hoch, unten haengt der Stoff durch;
+    Stauchfalten diagonal und einseitig an beiden Gelenken (Innenseite der Ellbogen), dazwischen lange, flache Zugfalten;
+    die Nadelstreifen und die Naht liegen auf derselben Flaeche (folgen den Falten)."""
     L = E18_ARM
-    pts = [V((L * t, 0.0, 0.0)) for t in (0.0, 0.3, 0.6, 1.0)]
-    sweep(K(M['suit'], 30), pts, [0.05, 0.047, 0.044, 0.042], 12)
-    ellipsoid(K(M['suit'], 30), V((0.0, 0, 0)), V((1, 0, 0)), 0.06, 0.055, 10, 6)  # Runde 2: Ellbogen (kein Rohr)
-    for k in range(7):  # Nadelstreifen
-        a = TAU * k / 7
-        o = V((0, math.cos(a), math.sin(a)))
-        sweep(K(M['stripe'], 20), [p + o * 0.0455 for p in pts], [0.0012] * 4, 3, caps=False)
-    for t in (0.35, 0.55, 0.75):  # Falten
-        lathe(K(M['suit'], 30), [(0.046, -0.006), (0.049, 0.0), (0.046, 0.006)], 12, Matrix.Translation((L * t, 0, 0)) @ _rot_to((1, 0, rng.uniform(-0.2, 0.2))))
+    NS, NA = 34, 30
+    folds = []
+    for end in (0.0, 1.0):  # Stauchfalten an den Gelenken: 4 je Ende, diagonal, auf einer Seite
+        ph = rng.uniform(-0.5, 0.5) + (math.pi * 0.5 if end else -math.pi * 0.5)
+        for k in range(4):
+            tc = abs(end - (0.05 + 0.075 * k + rng.uniform(-0.015, 0.015)))
+            folds.append((tc, rng.uniform(0.018, 0.028), ph + rng.uniform(-0.4, 0.4), rng.uniform(0.0045, 0.0075) * (1.0 - 0.15 * k),
+                          rng.uniform(-1.0, 1.0)))
+    pulls = [(rng.uniform(0, TAU), rng.uniform(0.0015, 0.003), rng.uniform(0.2, 0.8)) for _ in range(4)]
+
+    def rad(t, a):
+        base = r0 + (r1 - r0) * t
+        c, s = math.cos(a), math.sin(a)  # a = 0: +y, a = pi/2: oben (+z)
+        r = base * (1.0 + 0.07 * c * c - 0.05 * s * s)
+        if s < 0.0:
+            r += base * 0.12 * s * s  # unten haengt der Stoff
+        for (tc, w, ph, amp, tilt) in folds:
+            tt = t + tilt * 0.035 * math.sin(a - ph)
+            side = max(0.0, math.cos(a - ph)) ** 1.5
+            r += amp * side * math.exp(-((tt - tc) / w) ** 2)
+        for (ph, amp, tc) in pulls:  # lange, flache Zugfalten
+            r += amp * math.cos(3.0 * (a - ph)) * math.exp(-((t - tc) / 0.3) ** 2)
+        r += 0.0006 * math.sin(11.0 * a + 17.0 * t) * math.sin(7.0 * t + 3.0 * a)  # feines Gekraeusel
+        return r
+
+    def at(t, a, d=0.0):
+        cz = -0.006 * math.sin(math.pi * t)  # der Stoff sackt in der Mitte
+        rr = rad(t, a) + d
+        return V((L * t, rr * math.cos(a), cz + rr * math.sin(a)))
+
+    bm = K(M['suit'], 55)
+    rings = [[bm.verts.new(at(i / (NS - 1), TAU * j / NA)) for j in range(NA)] for i in range(NS)]
+    for i in range(NS - 1):
+        for j in range(NA):
+            j2 = (j + 1) % NA
+            bm.faces.new((rings[i][j], rings[i][j2], rings[i + 1][j2], rings[i + 1][j]))
+    c0 = bm.verts.new(V((0.0, 0.0, 0.0)))
+    c1 = bm.verts.new(V((L, 0.0, 0.0)))
+    for j in range(NA):  # Deckel (in den Nachbargliedern verborgen)
+        j2 = (j + 1) % NA
+        bm.faces.new((c0, rings[0][j2], rings[0][j]))
+        bm.faces.new((c1, rings[-1][j], rings[-1][j2]))
+
+    def strip(bm2, a0, half, d):  # Band auf der Stoffflaeche (folgt den Falten)
+        prev = None
+        for i in range(NS):
+            t = i / (NS - 1)
+            hw = half / (r0 + (r1 - r0) * t)
+            row = (bm2.verts.new(at(t, a0 - hw, d)), bm2.verts.new(at(t, a0 + hw, d)))
+            if prev:
+                bm2.faces.new((prev[0], prev[1], row[1], row[0]))
+            prev = row
+    for k in range(16):  # Nadelstreifen (Kreide auf Anthrazit), 1,2 mm breit
+        strip(K(M['stripe'], 55), TAU * k / 16 + 0.1, 0.0006, 0.0005)
+    strip(K(M['suit_seam'], 55), -math.pi * 0.5 + 0.25, 0.0014, 0.0007)  # Naht unten
     if cuff:
-        lathe(K(M['shirt'], 30), [(0.0, L - 0.002), (0.033, L - 0.002), (0.034, L + 0.03), (0.0, L + 0.03)], 12, _rot_to((1, 0, 0)))
-        lathe(K(M['gold'], 30), [(0.0, 0.0), (0.006, 0.0), (0.005, 0.003), (0.0, 0.004)], 8,
-              Matrix.Translation((L + 0.015, 0.0, 0.034)) @ _rot_to((0, 0, 1)))
+        # Hemdmanschette ragt 2 cm vor, Manschettenknopf; drei Hornknoepfe aussen am Aermelende
+        lathe(K(M['shirt'], 30), [(0.0, L - 0.03), (r1 * 0.84, L - 0.03), (r1 * 0.86, L + 0.02), (r1 * 0.8, L + 0.024), (0.0, L + 0.024)], 16, _rot_to((1, 0, 0)))
+        lathe(K(M['gold'], 30), [(0.0, 0.0), (0.0065, 0.0), (0.0055, 0.003), (0.0, 0.0042)], 10,
+              Matrix.Translation((L + 0.008, 0.0, r1 * 0.86)) @ _rot_to((0, 0, 1)))
+        for k in range(3):
+            p = at(0.86 + 0.035 * k, 0.0, 0.0008)
+            lathe(K(M['button'], 30), [(0.0, 0.0), (0.0055, 0.0), (0.005, 0.0022), (0.0, 0.0028)], 10, Matrix.Translation(p) @ _rot_to((0, 1, 0)))
 
 
 def build_e18_arm_a():
     rng = random.Random(1801)
     K = Kit()
-    _sleeve(K, _mats(), rng)
+    _sleeve(K, _mats(), rng, 0.056, 0.05)
     K.finish()
 
 
 def build_e18_arm_b():
     rng = random.Random(1802)
     K = Kit()
-    _sleeve(K, _mats(), rng)
+    _sleeve(K, _mats(), rng, 0.052, 0.047)
     K.finish()
 
 
 def build_e18_arm_c():
     rng = random.Random(1803)
     K = Kit()
-    _sleeve(K, _mats(), rng, cuff=True)
+    _sleeve(K, _mats(), rng, 0.05, 0.043, cuff=True)
     K.finish()
 
 
@@ -536,13 +675,16 @@ def build_e18_hand():
 
 
 def build_e18_eye():
-    """Auge im Bildnis (Halbmesser 9 mm, Iris nach +x): tritt aus der Leinwand, nasses Lid aus Haut darum."""
+    """Auge im Bildnis (Halbmesser 12,5 mm, Iris nach +x): tritt aus der Leinwand, nasses Lid aus Haut darum, ein wunder,
+    roter Rand (Abnahme Level 5, Runde 2: mit 9 mm aus mehr als 3 m nicht zu sehen; jetzt etwas zu gross fuer ein Gesicht)."""
     K = Kit()
     M = _mats()
-    ellipsoid(K(M['eye_w'], 60), V((0, 0, 0)), V((1, 0, 0)), 0.009, 0.009, 12, 8)
-    lathe(K(M['eye_i'], 60), [(0.0, 0.0089), (0.0042, 0.0079), (0.0046, 0.0075)], 12, _rot_to((1, 0, 0)))
-    lathe(K(M['paint_d'], 60), [(0.0, 0.009), (0.0022, 0.0084)], 10, _rot_to((1, 0, 0)))
-    lathe(K(M['lid'], 40), [(0.0105, -0.004), (0.011, 0.0), (0.0098, 0.0035), (0.0085, 0.0045)], 14, _rot_to((1, 0, 0)))
+    R = 0.0125
+    ellipsoid(K(M['eye_w'], 60), V((0, 0, 0)), V((1, 0, 0)), R, R, 14, 9)
+    lathe(K(M['eye_i'], 60), [(0.0, R * 0.99), (R * 0.47, R * 0.88), (R * 0.51, R * 0.83)], 14, _rot_to((1, 0, 0)))
+    lathe(K(M['paint_d'], 60), [(0.0, R * 1.0), (R * 0.25, R * 0.94)], 12, _rot_to((1, 0, 0)))
+    lathe(K(M['lid'], 40), [(R * 1.17, -R * 0.45), (R * 1.22, 0.0), (R * 1.09, R * 0.39), (R * 0.95, R * 0.5)], 16, _rot_to((1, 0, 0)))
+    lathe(K(M['lid_raw'], 40), [(R * 1.55, -R * 0.75), (R * 1.6, -R * 0.4), (R * 1.25, -R * 0.2), (R * 1.18, -R * 0.42)], 16, _rot_to((1, 0, 0)))
     K.finish()
 
 
@@ -629,14 +771,30 @@ def build_e18_portrait():
     for s in (1, -1):
         blk(K(M['paint_shirt'], 20), (0.004, 0.06, 0.22), (0.019, s * 0.035, -0.26), rx=s * 0.35)
     blk(K(M['paint_red'], 20), (0.004, 0.035, 0.2), (0.0205, 0, -0.28))
-    # Hals und Kopf: der Kopf ist abgekratzt - helle, rohe Leinwand mit Kratzspuren
-    blk(K(M['paint_skin'], 20), (0.004, 0.08, 0.08), (0.019, 0, -0.14))
-    ellipsoid(K(M['canvas'], 20), V((0.019, 0, 0.02)), V((0, 0, 1)), 0.15, 0.11, 14, 3)
+    # Hals und Kopf (Abnahme Level 5, Runde 2: die glatte, helle Ellipse auf dem Hals las sich wie eine Vase): gemalt sind
+    # noch Haar, Ohren, Kinnlinie und Hals - nur das Gesicht ist abgekratzt, ungleichmaessig, bis auf die Leinwand; tiefe
+    # Kratzer laufen ueber den Rand hinaus in den Firnis (wie von Naegeln)
     rng = random.Random(1805)
-    for i in range(18):
-        y = rng.uniform(-0.1, 0.1)
-        z = rng.uniform(-0.1, 0.14)
-        blk(K(M['paint_d'], 20), (0.002, 0.004, rng.uniform(0.03, 0.08)), (0.0215, y, z), rx=rng.uniform(-0.4, 0.4))
+    blk(K(M['paint_skin'], 20), (0.004, 0.075, 0.08), (0.019, 0, -0.14))
+    # Kopf (gemalt): Eiform aus Schaedel und Kinnpartie, Haar oben, Ohren an den Seiten
+    ellipsoid(K(M['paint_skin'], 20), V((0.0185, 0, 0.035)), V((1, 0, 0)), 0.003, 0.08, 16, 3)
+    ellipsoid(K(M['paint_skin'], 20), V((0.0185, 0, -0.035)), V((1, 0, 0)), 0.003, 0.064, 16, 3)
+    ellipsoid(K(M['paint_hair'], 20), V((0.0193, 0, 0.075)), V((1, 0, 0)), 0.003, 0.07, 14, 3)  # Haar, gescheitelt
+    for s in (1, -1):
+        ellipsoid(K(M['paint_skin'], 20), V((0.019, s * 0.079, 0.012)), V((1, 0, 0)), 0.003, 0.019, 8, 3)  # Ohren
+    # das Gesicht: abgekratzt bis auf die Leinwand, unregelmaessig (Flecken mit Resten der Farbe)
+    for i in range(9):
+        c = V((0.0205 + 0.0002 * i, rng.uniform(-0.035, 0.035), rng.uniform(-0.06, 0.05)))
+        blk(K(M['canvas'], 20), (0.002, rng.uniform(0.045, 0.08), rng.uniform(0.05, 0.09)), c, rx=rng.uniform(-0.6, 0.6))
+    for i in range(7):  # Farbreste auf der Leinwand
+        blk(K(M['paint_skin'], 20), (0.002, rng.uniform(0.008, 0.02), rng.uniform(0.006, 0.016)),
+            (0.0228, rng.uniform(-0.05, 0.05), rng.uniform(-0.07, 0.05)), rx=rng.uniform(-1.0, 1.0))
+    for g in range(4):  # Kratzer: je vier parallele Furchen, ueber den Rand hinaus
+        a = rng.uniform(-0.5, 0.5) + (0.3 if g % 2 else -0.3)
+        y0, z0 = rng.uniform(-0.06, 0.06), rng.uniform(-0.02, 0.08)
+        for k in range(4):
+            Lk = rng.uniform(0.12, 0.2)
+            blk(K(M['gouge'], 20), (0.0025, 0.0045, Lk), (0.0232, y0 + 0.011 * k * math.cos(a), z0 - 0.04 + 0.011 * k * math.sin(a)), rx=a)
     K.finish()
 
 

@@ -29,5 +29,7 @@
 - Sicherungspunkte: Hängelaterne mit grünem Glas (wie im Hotel).
 
 ## Nicht
-- keine Lesetische, Lesepulte, Fenster (die Seite nennt keine)
+- keine Lesetische, Lesepulte, Fenster (die Seite nennt keine). Ausnahme (Abnahme Level 5.3, 03.11.2026): ein einzelnes
+  Lesepult im Obergeschoss trägt das Folio der roten Lichter (Wissen der Bibliothek, E-047, `KREATUR_Ambassadors.md`) – das
+  Wissen der Seite braucht einen Ort, an dem man es findet; kein Lesetisch, kein zweites Pult.
 - keine Personen

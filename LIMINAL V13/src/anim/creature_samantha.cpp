@@ -236,6 +236,9 @@ void CreatureAnimator::updateSamantha(float dt, const Input& in) {
     }
     if (eat > 0.01f) wp += (-1.15f - wp) * eat, wy *= 1.0f - eat;
     if (air > 0.01f) wy *= 1.0f - air, wp = wp * (1.0f - air) + 0.15f * air;  // im Sprung: Kopf in Flugrichtung
+    // Abnahme Level 5, Runde 2: mit gesenktem Kopf zeigte das aufgerissene Maul nach unten (von vorn sah man das Kinn, nicht den
+    // Rachen) - der Kopf hebt sich um gut ein Drittel des Kieferwinkels, die Oeffnung zeigt nach vorn (wie eine Schlange)
+    wp += 0.55f * std::clamp(X[X_JAW], 0.0f, 1.0f);
     wy = std::clamp(wrapA(wy), -1.45f, 1.45f);
     wp = std::clamp(wp, -1.25f, 0.95f);
     // Fressen: ruckartiges Reissen (Kopf seitlich und zurueck)

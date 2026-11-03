@@ -194,10 +194,37 @@ Angriff ohne Störung, einmal je Besuch; **Störung** (1,9 m): bemerkt, Ankündi
 Verstand, danach Rückzug; Netzzustand Rolle 20 und Puppe beim Gast mit Zustand; **Ausweichen** in der Ankündigung rettet; **Licht** im
 Gesicht: Mahnung, dann bemerkt.
 
+## Abnahme Level 5.3 (03.11.2026)
+
+Vier weitere Runden in der Ebene (`KRITIK_Level5_3.md` Runden 2–5, Bögen `docs/screens/level5_3/wesen_r2_*` … `wesen_r5_*`,
+Läufe `tools/qa/creatureshots.py level5_3`: fern/mittel/nah mit und ohne Lampe, Haltungen, Wahrnehmen/Ankündigung/Griff, der
+Besuch und die Störung im Spiel mit Untertiteln):
+- **Nadelstreifen** (bekannte Schwäche): im Shader (`mesh_gbuffer.hlsl` `pinstripes`, Material `kMatPinstripe`) –
+  Kreidestreifen 1,1 mm alle 12,5 mm, senkrecht in der Ruhepose (haften am Stoff), gewebt, über die Pixelbreite gemittelt
+  (kein Flimmern aus der Ferne); Frack, Hose, Ärmel. Runde 3: zu hell (Schlafanzug) → Kreide 0,15, Anteil 0,8.
+- **Gemaltes Gesicht** (bekannte Schwäche): Bemalung je Punkt (`gentleman.py` `face_paint`, `build.py` Gruppe `paint`,
+  Material-Bit `kMatFlagEntPaint`): zwei runde Rouge-Flecken, zu deutlich wie bei einer Puppe; Umbra in den Augenhöhlen,
+  neben der Nase, unter den Wangenknochen, unter Nase und Unterlippe, an Schläfen und Kinnlade; Bleiweiß auf Nasenrücken,
+  Stirn, Kinn und Wangenknochen. Das grobe Rissnetz ist in zwei Schritten flacher (die feinen Risse trägt die Mikroebene).
+- **Frack**: stumpfer (Rauheit 1,6), Grund 0,04; **Seidenrevers** (`FM_ENT_GM_SILK`, flaches Band, glänzend) an der Öffnung;
+  Weste flacher und tiefer ochsenblutrot (0,15), Hemdbrust flacher. Ein Kasten mit geradem Saum (Runde 4) stand wie ein
+  Ranzen vor dem Frack und schien durch den Rücken – verworfen.
+- **Hand**: weniger Rot (wachsbleich statt Knetmasse); Nägel klein und dünn aus vergilbtem Elfenbein (vorher weiße Kappen,
+  als Horn schwarze Fingerhüte, dann Pflaster).
+- **Zorn der Bibliothek**: vier Haufen entlang der Regalfront (eine Kaskade) statt zwei.
+- **Spielfehler**: das Folio der roten Lichter ließ sich nicht lesen (unsichtbarer Block des Lesepults 1,25 m über der
+  Sichtlinie von `findTarget`) → 1,15 m; neue Prüfung im `gameplay_test` (beide Funde vom Platz des Lesers erreichbar).
+- **Modellprüfung**: die Stufen nach dem Vereinfachen und `gm_notebook.glb` (28,8 % entartete Dreiecke) mit `repair_glb.py`
+  bereinigt.
+
 ## Restmängel
 
-- Der Frack hat keine Nadelstreifen (der Ärmel in Level 5 hat sie): die Kreaturenmaterialien sind Triplanar-Ebenen ohne Streifen.
-- Das gemalte Gesicht zeigt die Craquelure als Relief und Fleckenebene; gemalte Schatten (Wangenrot, Lichter) gibt es nicht.
+- Aus 1,5 m wirkt der Firnis des Gesichts körnig wie Pappmaché (Mikroebene der Craquelure und Flecken der
+  Zahnschmelz-Ebene); das Bemalte trägt das Bild.
+- Die Seidenrevers sind nur unten an der Öffnung zu sehen (oben liegt die Brust des Fracks davor).
+- Unter der Lampe ist der schwarze Frack grau (Glanz des Stoffs im Taschenlampenlicht), die Streifen bleiben fein.
+- Im Griff (38 cm vor dem Auge) wirken die Finger wulstig (Hand aus dem Baukasten der Menschenwesen, Maßstab 1,18), die
+  Nägel als helle Flecken auf dem Fingerrücken.
 - Kommt ein Gast erst nach der Ansprache dazu (Puppe nie in der Ansprache gesehen), fehlt bei ihm der Fund „Notizbuch“ (der Host hat
   ihn; Aufheben über den Host). Wer während der Ansprache dazukommt, bekommt ihn.
 - Der Wurf trifft keine Hindernisse: der Platz in der Karte ist so gewählt, dass 4,6 m hinter ihm freier Boden ist.

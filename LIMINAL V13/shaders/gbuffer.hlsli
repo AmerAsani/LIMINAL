@@ -170,7 +170,10 @@ GBufferOut shadeSurface(GpuMaterial m, uint layer, float2 uvMeters, float2 uvGra
     o.albedo = float4(albedo, orm.r);
     o.normal = float4(n * 0.5 + 0.5, 0.0);
     o.misc = float4(rough, metal, (float)flickCode / 255.0, 1.0);
-    float fl = flickerFactor(flickMode, flickSeed, gCameraPos.w) * blackoutFactorAt(flickSeed, wpos);
+    // V13.3 (Abnahme Level 0): im Stromausfall erlischt die Leuchtflaeche quadratisch - die 3 % Rest des Lichts
+    // leuchteten nach der Belichtungsanpassung im dunklen Raum noch weiss (Leuchten "an", Raum dunkel)
+    const float bo = blackoutFactorAt(flickSeed, wpos);
+    float fl = flickerFactor(flickMode, flickSeed, gCameraPos.w) * bo * bo;
     o.emissive = m.emissive > 0.0 ? m.albedo * alb.rgb * (m.emissive * emissiveScale * fl * gFogParams.w) : 0.0;
     return o;
 }

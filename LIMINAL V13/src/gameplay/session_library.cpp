@@ -45,15 +45,20 @@ void GameSession::libraryNote(vec3 pos, float yaw, const std::string& title, con
 void GameSession::libraryPile() {
     const vec3 p = lib53_.pileAt();
     if (!world_->tileIfLoaded(ifloor(p.x), ifloor(p.y))) return;
-    ecs::Entity e = reg_.create();
-    reg_.add<Transform>(e, Transform{p, lib53_.standYaw() + 0.6f, 1.0f});
-    reg_.add<MeshRenderer>(e, MeshRenderer{"prop:books_fallen"});
-    reg_.add<ChunkOwned>(e, ChunkOwned{world::chunkOf(ifloor(p.x), ifloor(p.y))});
-    ecs::Entity e2 = reg_.create();  // ein zweiter, kleinerer Haufen ein Stueck weiter (die Kaskade)
-    const vec3 f{std::cos(lib53_.standYaw()), std::sin(lib53_.standYaw()), 0.0f};
-    reg_.add<Transform>(e2, Transform{p + f * 1.3f, lib53_.standYaw() - 1.1f, 0.8f});
-    reg_.add<MeshRenderer>(e2, MeshRenderer{"prop:books_fallen"});
-    reg_.add<ChunkOwned>(e2, ChunkOwned{world::chunkOf(ifloor(p.x), ifloor(p.y))});
+    // Abnahme Level 5.3 (Kritikrunde 2): zwei kleine Haufen lasen sich als ein paar liegengelassene Buecher - jetzt eine Kaskade
+    // entlang der Regalfront: ein grosser Haufen unter der Stelle, aus der das Notizbuch fiel, drei kleinere zu beiden Seiten
+    const float yaw = lib53_.standYaw();
+    const vec3 f{std::cos(yaw), std::sin(yaw), 0.0f}, l{-f.y, f.x, 0.0f};
+    const struct { vec3 off; float turn, scale; } kPiles[] = {
+        {{0, 0, 0}, 0.6f, 1.15f}, {f * 1.3f, -1.1f, 0.9f}, {f * 2.45f + l * 0.15f, 2.3f, 0.75f}, {f * -0.95f - l * 0.1f, -2.6f, 0.85f}};
+    for (const auto& k : kPiles) {
+        const vec3 q = p + k.off;
+        if (!world_->tileIfLoaded(ifloor(q.x), ifloor(q.y))) continue;
+        ecs::Entity e = reg_.create();
+        reg_.add<Transform>(e, Transform{q, yaw + k.turn, k.scale});
+        reg_.add<MeshRenderer>(e, MeshRenderer{"prop:books_fallen"});
+        reg_.add<ChunkOwned>(e, ChunkOwned{world::chunkOf(ifloor(q.x), ifloor(q.y))});
+    }
 }
 
 void GameSession::spawnLibrary(const world::ChunkData& cd) {

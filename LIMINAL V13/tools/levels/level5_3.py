@@ -333,7 +333,9 @@ def _local(o, lx, ly):
 
 
 m.obj('lore_lectern', LECT[0], LECT[1], U_.floor, LECT[2])
-m.block(U, 64, 41, 66, 42, 1.25, hidden=True)
+# Abnahme Level 5.3 (Kritikrunde 4): mit 1,25 m verdeckte der Block die Sichtlinie zum Folio (session findTarget prueft bis
+# 1,2 m ueber dem Boden) - das Folio liess sich nicht lesen. 1,15 m: man steigt weiter nicht auf das Pult
+m.block(U, 64, 41, 66, 42, 1.15, hidden=True)
 sx, sy = _local(LECT, 0.031, -0.13)  # der Zettel auf der Textseite des Folios (Brett 20 Grad; Blender-y ist im Spiel -y)
 fx, fy = _local(LECT, 0.9, 0.0)     # der Spawnpunkt selbst steht vor dem Pult (im Block liegt keiner); Tag p: wo der Fund liegt
 m.spawn('trace', fx, fy, U_.floor + 1.096, LECT[2], set='lore', tags=['e141', f'p{sx:.3f},{sy:.3f}'])

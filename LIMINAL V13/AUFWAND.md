@@ -193,12 +193,202 @@ Gefundene und behobene Fehler:
   - Mottenschwarm flog auf, griff aber nie an (Sitzzustand ignorierte den aufgescheuchten Schwarm);
   - purpurne Wesen: Gummipuppe mit Lichtbahnen wie ein Stromschlag, die Wand lavendelgrau statt violett.
 
-## Level 0 – Struktur angepasst, Abnahme folgt
+## Level 0 – abgenommen (03.11.2026)
 
-Decken ≥ 2,7 m, breitere Durchbrüche (Sichtachsen 22,0 → 25,5 m), keine hervorgehobenen Raumnamen; Ähnlichkeit S 0,89.
-Laufweg vorher: 202 m durch 25 Räume (`docs/screens/level0/wegbilder_vorher_*.jpg`).
+| Punkt | Stand |
+|---|---|
+| a) Strukturtyp, Raummetrik | Eintrag in `STRUKTURTYP.md` (Labyrinth „The Lobby“): Vorzimmer als Grundstruktur (65 %), dazu nur Raumtypen der Seite (Bögen, Säulenfeld, Löcher, Dunkelzone, rote Räume, Manila-Raum) und die Naht nach Level 1; Schilder 0. Strukturrunde 27.10.: Decken ≥ 2,7 m (Dunkelzone), breitere Durchbrüche (Sichtachsen Median 22,0 → 25,5 m), keine hervorgehobenen Raumnamen. In der Abnahme: Sicherungspunkte ohne Leuchte, „Flur“ statt „Der lange Flur“, Bogen-Durchgänge mit Teppich (siehe Fehler). Raummetrik grün: 315 Räume, Decke min/Median 2,70/2,90 m, Gänge 2,0 m, Fläche Median 30 m², Sichtachsen Median 25,5 m, P90 46,5 m, 4 große Räume, 0 Stützen unter 1 m zur Wand, 0 verstellt. Ähnlichkeit S 0,891, Ausreißer 14,2 % (120 Fenster; Grenzen in `metric_limits.json`) |
+| b) Ausstattung | `PROPS_Level0.md`: 7 Klassen neu in Blender (`models_l0.py`: Rasterleuchte in 3 Fassungen, tote Rasterleuchte 2, rote Rasterleuchte 2, Luftauslass 3, Lüftungsgitter 2, Steckdose 3, Bogen `arch3` mit `arch2`/`arch4`), Tapete neu als Kachel aus 53-cm-Bahnen (`tools/textures/wallpaper_l0.py`, 2 Runden), 11 Fundstücke und Interaktionsobjekte neu (`models_items.py`). 5 Kritikrunden und Schlussrunde mit Kontaktbögen (vorher, r1–r5, final; `docs/screens/props/level0/`, `docs/screens/level0/props_uebersicht_*.jpg`, `docs/screens/props/items/`). In der Abnahme: Leuchtstab und Beil im Prüfstand (`itemsheet.py`), Beilkopf mit Metallanteil 0,6, die 7 Sicherheitsleuchten entfallen. Karte jetzt 1050 Objekte (vorher 1057) |
+| c) Wesen | Die Seite nennt keine bestätigten Wesen (ENTITY_ABGLEICH, Abschnitt Level 0). Im Spiel: **Gestalt** (dunkle Figur am Gangende, ändert sich nie, solange man hinsieht, greift nie an; `KREATUR_Gestalt.md`, 5 Kritikrunden), **Halluzinationen** (Gestalt im Dunkeln nach einem Ausfall, Stromausfall des Raums, Phantomschritte, Flüstern, Kratzen, ferne Stimmen). Ausnahme nach Auftrag: andere Wanderer (Menschen) nur über ihre Notizen. In der Abnahme in vier Runden (2–5) im Spiel geprüft, mit Licht der Ebene und Lampe |
+| d) Kritikrunden | 5 Ebenen-Runden (`KRITIK_Level0.md`): 1 Struktur (27.10.), 2–5 Abnahme mit Laufweg, allen Erscheinungen und Fundstücken. Werkzeug `tools/qa/creatureshots.py` um Level 0 erweitert (Gestalt, Halluzinationen, Fundstücke in der Hand, Notizen am Fundort, 9 Zonen-Ansichten); Bögen `docs/screens/level0/wesen_r2_*` … `wesen_r5_*`. Dazu die Runden der Ausstattung (r1–r5, final), der Tapete (2) und der Gestalt (5) |
+| e) Laufweg | `walkway.py level0 --rooms 15 --seed 3`: 205 m durch 24 Räume, 52 Bilder alle 4 m (`docs/screens/level0/wegbilder_r2_*` … `_r5_*`, Karten `wegkarte_r2..r5.png`); vorher 202 m/25 Räume (`wegbilder_vorher_*`), Runde 1 212 m/25 Räume (mit `--rooms 25`) |
+| f) Prüfungen | Modellprüfung aller 33 Modelle der Ebene (7 Kartenklassen in 16 Fassungen, Gestalt l0–l2, 11 Fundstücke, Lampe und Hand im Ego-Bild): 0 Fehler (vor der Abnahme 34 mit der Sicherheitsleuchte, ebenfalls 0). Wasserfläche, Pfützen, Leuchtstab und Beil sind Netze aus Code. Halt der Ausstattung (`gameplay_test`): level0 1050 Objekte mit Halt-Regel, 0 ohne Halt. Schilder 0 (Grenze 0), Sicherheitsleuchten mit Piktogramm 0 (neu gezählt, vorher 7). Raummetrik und Ähnlichkeit grün. Tests grün: gameplay 981/0, audio 121/0, coop --quick 209/0, net 72/0, worldgen 29658/0, supply OK (ein Lauf von coop meldete im Lauf mit simuliertem schlechtem Netz 6,4 m Ortsabweichung nach dem Anhalten, die Wiederholung 209/0; dieselbe Abweichung steht schon in `PROPS_Level0.md`, Netzcode). Smoke-Test 03.11. (`docs/metrics/smoke_level0.json`, 24 Stationen des Laufwegs): GPU 3,14 ms (max 3,80; am 27.10. 4,64/8,39), Spiel 0,06 ms, bis 0,53 Mio. Dreiecke, VRAM 982 MB, RAM 1134 MB (Spitze 1490 MB), 0 Fehler im Protokoll. Grafik-CPU 16,61 ms ist die Wartezeit auf den 60-Hz-Takt (wie Level 1 und 2). Klang: 450 s Spielzeit ohne „Klang fehlt“ |
+| g) Aufwand | Gestalt (V13, mit Clump, Motte und Nest) 26.10. 07:52–11:01. `LEVEL0_STANDARD.md` 27.10. bis 06:07 (gemeinsame Vorarbeit). Ausstattung 27.10. 10:40–11:30 und 01.11. 13:00–20:00 (laut `PROPS_Level0.md` etwa 7,5 h: Bestand, Builder, Zusammenführung, Fundstücke in Blender, Prüfstand, Tapete, Runden). Struktur 27.10. bis 16:27, Kritikrunde 1 17:51 (Hauptstrang). Abnahme (Runden 2–5) 03.11. 08:10–09:25 (etwa 1,3 h): etwa 0,4 h Werkzeug (Level 0 in `creatureshots.py`, Leuchtstab und Beil in `itemsheet.py`, Leuchten in `signs.py`), 0,6 h Bilder, Prüfstände und Fehlersuche (Ausfall, Spiegelung, Bogen, Beil), 0,3 h Prüfungen, Messungen, Tests und Dokumente |
 
-## Level 5, 5.3, 188, 903, 37, 36
+**Neu gebaute Assets (Level 0):**
+- **Ausstattung** (`tools/blender/models/models_l0.py`, Bögen `docs/screens/props/level0/`):
+  - Rasterleuchte `troffer` (3: Röhrenbänder, sterbende Röhre, Wasserfleck), `troffer_off` (2, eine mit gesprungener
+    Scheibe), `troffer_red` (2);
+  - Luftauslass `ceiling_diffuser` (3, Staubhof), Lüftungsgitter `vent_grille` (2), Steckdose `outlet` (3,
+    Griffschmutz);
+  - Bogen `arch3` mit Laibung und Kämpferprofil (`arch2`/`arch4` mitgebaut).
+- **Tapete** `wallpaper_threshold`: Kachel 2,12 m aus vier Bahnen (`tools/textures/wallpaper_l0.py`, CC0-Grundlage).
+- **Fundstücke** (`models_items.py`): `item_energy`, `item_almond`, `item_battery`, `item_note`, `item_fuse`,
+  `item_fusebox`, `item_fusebox_empty`, `item_vending`, `item_exit_door`, `item_elev_frame`, `item_elev_door`.
+- **Gestalt** `ent_gestalt_l0..l2` (V13, `tools/blender/creatures/gestalt.py`, Material `ent_silhouette`).
+- **In der Abnahme:**
+  - keine neuen Modelle;
+  - geändert: Beil (Metallanteil des Kopfs, Schwung und Griff im Ego-Bild), Tür-Art `room_a`/`room_b` für die
+    Bogen-Durchgänge, Leuchtflächen im Stromausfall und die Ersatzspiegelung der Decke (Shader).
+
+**Bilder:**
+- Laufweg `docs/screens/level0/wegbilder_vorher_*.jpg`, `wegbilder_r1..r5_*.jpg`, `wegkarte_*.png`.
+- Erscheinungen, Fundstücke in der Hand, Zonen und Notizen `docs/screens/level0/wesen_r2..r5_*.jpg` (Einzelbilder
+  `build/qa/creatures/level0/r2..r5/`).
+- Fundstücke am Boden `docs/screens/props/items/l0_r2/`, `l0_r3/`, `l0_r5/` (Leuchtstab, Beil, Notiz). Beil-Schwung
+  vorher und nachher: `docs/screens/props/items/l0_beil/swing_vorher.jpg`, `swing_nachher2.jpg`, `swing_griff.jpg`.
+- Ausstattung `docs/screens/props/level0/` (vorher, r1–r5, final, Tapete, Bögen im Spiel),
+  `docs/screens/level0/props_uebersicht_*.jpg`.
+- Feste Ansichten von V12 `docs/screens/level0/01…15`, Gestalt `docs/screens/creatures/gestalt/`.
+
+Gefundene und behobene Fehler:
+- **Struktur** (27.10.):
+  - Decken unter 2,7 m in der Dunkelzone.
+  - Sichtachsen Median 22,0 m (→ breitere Durchbrüche, 25,5 m).
+  - Hervorgehobene Raumnamen „Der lange Flur“ und „Vergilbtes Zimmer“.
+- **Ausstattung** (PROPS_Level0):
+  - Die Tapete wirkte auf 3–4 m glatt wie gestrichen (→ Bahnen); die erste Fassung war zu stark (Holzpaneele).
+  - Der Griffschmutz war heller als die feuchte Wand.
+  - Der Bogen stand im Studio mit einem Spalt über dem Sturz.
+  - Teile von Notausgang und Aufzug fehlten (zu wenige feste Materialien, 160 → 224).
+  - Die Schrift der Batterie war gespiegelt.
+- **Abnahme**:
+  - 7 grüne Sicherheitsleuchten mit Notausgang-Piktogramm an der Decke: das Notausgangsschild, das der Auftrag
+    bemängelt. `signs.py` zählte sie nicht (→ entfallen; werden jetzt ausgewiesen).
+  - Der Sicherungspunkt hieß noch „Der lange Flur“ (→ „Flur“).
+  - In den Bogen-Durchgängen lag eine helle Türschwelle statt Teppich (→ Tür-Art `room_a`/`room_b`, `generator.cpp`).
+  - Im Stromausfall blieben die Leuchtflächen weiß (→ erlöschen quadratisch, `gbuffer.hlsli`).
+  - Helle Lichtschlieren auf dem Wasser der Dunkelzone: Die Ersatzspiegelung ging bis 45 m durch Wände (→ Strahl
+    Zelle für Zelle, `ssr.hlsl`).
+  - Beil: Beim Ausholen füllte eine riesige Hand die Bildecke; beim Hieb war nur der Nacken des Kopfs zu sehen; der
+    Kopf war im Lampenlicht schwarz; der Stiel stand neben der offenen Hand (→ `body.cpp`, `world_renderer.cpp`).
+- **Werkzeug**:
+  - Der Rand der Gestalt war gesprenkelt, weil das Bild direkt nach dem Versetzen entstand (TAA, → 40 Bilder warten).
+  - Die Gestalt der Halluzination steht regelgerecht hinter dem Spieler und wurde nicht aufgenommen (→ `face gestalt`).
+
+## Level 5 – abgenommen (03.11.2026)
+
+| Punkt | Stand |
+|---|---|
+| a) Strukturtyp, Raummetrik | Eintrag in `STRUKTURTYP.md` (Eigener Ort „Terror Hotel“): Main Hall mit langen Fluren und Zimmern, Beverly Room, Boiler Room (Kesselgang, Kesselräume), Aufzugshalle, Gang zu 5.3, Metro-Halt; begründete Ausnahmen für Kesselgänge (2 m, Wiki: beengt) und Aufzugskabinen (2,8 m). Raummetrik grün: 75 Räume, Decke min/Median 3,00/3,00 m, Gänge min/Median 3,0/3,5 m, Fläche Median 36 m², Sichtachsen Median 21,0 m, P90 98,0 m (die endlosen Hauptflure), 6 große Räume, 0 Stützen unter 1 m, 0 von 7 verstellt. Ähnlichkeit S 0,879, Ausreißer 13,1 % (61 Fenster). In der Abnahme: Deckenlicht des Büros auf ein Fünftel (`level5.py`, am Ende, ohne Zufall; sonst gleiche Karte, geprüft) |
+| b) Ausstattung | `PROPS_Level5.md`: 21 Klassen neu in Blender (`models_l5.py`; Türen 6 Bauarten × 4 Fassungen mit 24 Nummern ohne Muster, Leuchter 3, Bildnisse 3, Bücherregal 4, Kessel mit Manometer, Wasserstandsglas, Dampfdom), 58 Modelle; Runden vorher, r1–r5, final (`docs/screens/props/level5/`, Übersichten `docs/screens/level5/props_uebersicht_*.jpg`). Im Laufweg geprüft (Runden 2 und 5): Damast, Täfelung, Kerzenleuchter alle 4 m, Stuck, Sofas, Sessel, Regale, Bildnisse, Kronleuchter, Mahjong-Tisch, Kessel und Öfen; kein Schmutz in den Hotelbereichen (die hellen Stellen der Sessel sind abgesessener Samt, `PROPS_Level5.md`) |
+| c) Wesen | Alle Wesen der Level-5-Seite im Spiel (ENTITY_ABGLEICH, Abschnitt Level 5): Deathmoths (Weibchen im Stock, Männchen an den Birnen der Kesselgänge), Nest an Türen dunkler Zimmer, Hound, Skin-Stealer (wahre Gestalt), Death Rats, Growler (ausgewachsen), Nguithr'xurh, Wrangler (Kesselraum), Samantha (Rolle 19, Fleischhandel), Kolonien (Entity 89), Woodlins, Watchers, Gastgeber (Entity 18: Stimme, Bildnisse, Büro, Hand, Handel). Ausnahme nach Auftrag: Menschengruppen (Housekeeping, Homely Hotel, The Originals, Lost Hall Society). Je KREATUR-Datei Wow-Check und mindestens 5 Kritikrunden; in der Abnahme 4 weitere Runden für Samantha, Woodlins, Watchers und Gastgeber (Abschnitt „Abnahme Level 5“ in den Briefings) |
+| d) Kritikrunden | 5 Ebenen-Runden (`KRITIK_Level5.md`): 1 Struktur (27.10.), 2–5 Abnahme mit Laufweg und allen 16 Wesen-Läufen in ihren Räumen (neu: Tabelle für Level 5 in `tools/qa/creatureshots.py` – Samantha im Gang, ohne und mit Fleisch; Kolonie, Woodlins, Watcher, Gastgeber mit Bildnis, Büro und Ablauf; Motten-Männchen, Nest mit Weibchen, Hound, Skin-Stealer, Death Rats, Growler, Nguithr'xurh, Wrangler; Licht der Ebene und Lampe, mit Anzeige für Untertitel). Bögen `docs/screens/level5/wesen_r2_*` … `wesen_r5_*`. Dazu die Runden der Ausstattung (r1–r5, final) und der Wesen (je 5 in den Briefings) |
+| e) Laufweg | `walkway.py level5 --rooms 15 --seed 3`: 687 m durch 15 Räume, 172 Bilder alle 4 m (`docs/screens/level5/wegbilder_r2_*`, `_r5_*`, Karten `wegkarte_r2.png`, `wegkarte_r5.png`). Die Zimmer gehen einzeln von sehr langen Fluren ab – darum ist der Weg für 15 Räume dreimal so lang wie verlangt; E-036 greift nicht (80 Räume, alle erreichbar). Runde 1: 1 002 m durch 18 Räume, 251 Bilder |
+| f) Prüfungen | Modellprüfung aller 125 Modelle der Ebene (Karte mit Varianten, Weltobjekte des Hotels, Fleisch, Büro, Wesen in allen Stufen: Samantha, Motte und Männchen, Nest, Hound, Skin-Stealer, Ratte, Growler, Nguithr'xurh mit Netzen, Wrangler): 0 Fehler (vorher 5: `ent_nest_l1/l2` und die neu gebauten `ent_samantha_l0..l2` mit gedrehtem Umlaufsinn, → `repair_glb.py`). Halt der Ausstattung (`gameplay_test`): level5 2256 Objekte mit Halt-Regel, 0 ohne Halt. Schilder: Notausgangsschilder 0 (Grenze 0), Notausgangstüren 0, falsch platziert 0. Raummetrik und Ähnlichkeit grün. Tests grün: gameplay 981/0, audio 121/0, coop --quick 209/0, net 72/0, worldgen 29658/0, supply OK. Smoke-Test 03.11. (`docs/metrics/smoke_level5.json`, 24 Stationen des Laufwegs): GPU 4,44 ms (max 5,26), Spiel 0,17 ms, bis 1,46 Mio. Dreiecke, VRAM 1023 MB, RAM 1124 MB (Spitze 1466 MB), 0 Fehler im Protokoll. Grafik-CPU 16,46 ms ist die Wartezeit auf den 60-Hz-Takt (wie Level 1 und 2) |
+| g) Aufwand | Struktur 27.10. bis 17:51 (Kritikrunde 1 mit Level 0, Hauptstrang). Ausstattung 27.10. etwa 1,5 h und 01.11. etwa 8 h (laut `PROPS_Level5.md`; Commits 01.11. 19:40–20:26). Wesen (Agent, Commit-Zeiten): Samantha und die Wesen des Hotels ohne Rolle 02.11. bis 20:37, Kritikrunden 1–5, Briefings, Männchen der Deathmoths bis 20:55; Zusammenführen 03.11. 08:10. Growler, Nguithr'xurh, Wrangler, Skin-Stealer, Death Rats aus ihren eigenen Läufen (V13.2/V13.3, Briefings). Abnahme (Runden 2–5) 03.11. 09:16–10:10 (Uhr des Rechners; Runde 2 09:39, Runde 3 09:45, Runde 4 09:53): etwa ein Viertel Werkzeug (Level-5-Tabelle in `creatureshots.py`, Nest erzwingen, Prüfliste der Modelle), die Hälfte Neubau und Bilder (Ärmel, Woodlin-Kopf, Watcher-Kopf, Samanthas Maul in vier Anläufen, Bildnis und Augen), der Rest Prüfungen, Messungen, Tests und Dokumente |
+
+**Neu gebaute Assets (Level 5):**
+- **Ausstattung** (`tools/blender/models/models_l5.py`, Bögen `docs/screens/props/level5/`):
+  - Sessel, Sofa (Chesterfield), Kleiderschrank, Bücherregal (4), Teetisch, Doppelbett;
+  - Zimmertüren `hotel_door_a–f` (6 × 4 Fassungen mit Messingnummern), Silberschild „The Beverly Room“;
+  - Täfelung, Stuckgesims, Kerzenwandleuchter (3), Bildnisse (3), helles Fenster nach Level 188;
+  - Kronleuchter (2), grüne Hängelaterne (Sicherungspunkte), Aufzug mit Kupfergitter;
+  - Mahjong-Tisch, Grammophon; Flammrohrkessel, Ziegelofen, Metro-Wagen.
+- **Wesen und Erscheinungen** (Teil 4):
+  - Samantha `ent_samantha_l0..l2` (Skelett `sa`, 37 Gelenke);
+  - Kolonie `ant_ball` (4); Woodlin `wl_body`, `wl_jaw`, `wl_leg_a`, `wl_leg_b`;
+  - Watcher `wa_head`, `wa_face`, `wa_eye`, `wa_hand` (2), `wa_body`, `wa_arm_a`, `wa_arm_b`, `wa_claw`;
+  - Gastgeber `e18_arm_a/b/c`, `e18_hand`, `e18_eye`, Büro `e18_desk`, `e18_wingchair`, `e18_portrait`;
+  - Fleisch `meat_steak`, `meat_tin`.
+- **In der Abnahme neu oder neu gebaut**:
+  - `e18_arm_a/b/c` als Stoffärmel (Falten, Naht, Nadelstreifen auf der Fläche, Hornknöpfe, Manschette; 0,7 m, im Zickzack);
+  - `e18_eye` (12,5 mm, wunder Rand, nasses Weiß), `e18_portrait` (gemalter Kopf, nur das Gesicht abgekratzt, Nagelkratzer);
+  - `wl_body` (gespaltener Kopf, Fleisch, Gewebefäden, Saft bis in den Bauch);
+  - `wa_head` (Lidwülste, Unterbiss, 1,3-fach breiter, offener Mund), `wa_face` (Rachen, 18 Zähne, Haar über Scheitel, Haarvorhang);
+  - `ent_samantha_l0..l2` (Zähne in der Mundhöhle, Schneidezähne vorn, kürzere Fänge); Material `FM_ENT_SM_FURW` und `FM_ENT_SM_GUM`;
+  - `ent_nest_l1/l2` mit bereinigten Indexlisten (`repair_glb.py`).
+
+**Bilder:**
+- Laufweg `docs/screens/level5/wegbilder_r1_*`, `_r2_*`, `_r5_*`, `wegkarte_r2.png`, `wegkarte_r5.png`.
+- Wesen in der Ebene `docs/screens/level5/wesen_r2_*` … `wesen_r5_*` (Einzelbilder `build/qa/creatures/level5/r2..r5/`).
+- Ausstattung `docs/screens/level5/props_*.jpg`, `docs/screens/props/level5/`; Zonen `docs/screens/level5/01_*` … `19_*`.
+- Wesen im Detail `docs/screens/creatures/samantha/`, `kolonie/`, `woodlins/`, `watchers/`, `gastgeber/`, `moth/` (Männchen).
+
+Gefundene und behobene Fehler:
+- **Samantha**:
+  - Weiß im Kerzenlicht grau-braun wie eine Maus (die Fellebene dunkelt etwa um die Hälfte → 1,85).
+  - Offen zeigte das Maul nach unten (→ Kopf hebt sich mit dem Kiefer).
+  - Die Zahnreihen lagen 6 cm lang außen an den Wangen und lasen sich von vorn als zwei bleiche Blätter (→ in die Mundhöhle,
+    Schneidezähne vorn).
+- **Woodlins**: aus der Ferne ein heiles Holzpüppchen (→ gespaltener Kopf mit Fleisch, Spalt bis in den Bauch).
+- **Watcher**:
+  - Aus dem Gang ein schmaler Streifen an der Laibung (→ Kopf weiter vor, Gesicht dreht bis 72°).
+  - Danach zu schmal, wie eine Flöte; kahl wie eine Erdnuss (→ breiter, Mund offen, nasses Haar).
+- **Gastgeber**:
+  - Der Arm ein gerader Stab, der auf den Spieler zeigt (→ Zickzack über der Lehne, Stoffärmel).
+  - Der gefaltete Stoff glänzte grau wie ein Schlauch (Rauheit 0,45 → 1,0).
+  - Bildnis-Augen aus mehr als 3 m unsichtbar (9 → 12,5 mm, nasses Weiß, wunder Rand).
+  - Büro hell wie ein Gang (Deckenlicht → ein Fünftel).
+  - Das abgekratzte Gesicht im Büro-Bildnis las sich als Vase (→ gemalter Kopf, nur das Gesicht abgekratzt).
+- **Modellprüfung der Ebene**: `ent_nest_l1/l2` (116 und 182 Dreiecke) und `ent_samantha_l0..l2` mit gedrehtem Umlaufsinn nach
+  dem Vereinfachen (→ `repair_glb.py`).
+- **Werkzeug**:
+  - Das Nest kam mit ruhiggestellter Regie nicht (`presence nest` ist in Level 5 die Männchen-Art → `hiveat` an einer Tür).
+  - Der Hound erschien hinter dem Scherengitter der Aufzugskabine (→ Start im Hauptgang).
+  - Mit Lampe griff der Hound sofort an (→ Bild aus 6 m vor dem Angriff).
+  - Die Ratte lief vor der Nahaufnahme fort (→ Lampe zuerst).
+
+**Restpunkte** (begründet, Einzelheiten in `KRITIK_Level5.md` Runde 5 und den Briefings):
+- Samanthas Weiß ist im Kerzenlicht hellgrau, erst mit Lampe weiß.
+- Die Hand des Gastgebers wirkt nah wie eine Gliederpuppe.
+- Der Watcher ist erst ab etwa 4 m als Gesicht zu lesen (aus der Ferne ein heller Fleck an der Laibung).
+- Der Wrangler zeigt in der Vorführung ohne Ausbruch nur den glatten, blassen Rücken (Ausbruch in `KREATUR_Wrangler.md`).
+
+## Level 5.3 – abgenommen (03.11.2026)
+
+| Punkt | Stand |
+|---|---|
+| a) Strukturtyp, Raummetrik | Eintrag in `STRUKTURTYP.md` (Eigener Ort „Promethei Bibliotheca“): Eingangsgang aus Level 5, große Halle mit drei Geschossen Regalen, Gänge und alte Gänge (+6 m), Obergeschoss, Treppe, Leere hinter dem Gitter, Ausgang zurück nach Level 5. Raummetrik grün: 207 Räume, Decke min/Median 3,00/7,40 m, Gänge min/Median 3,0/3,0 m, Fläche Median 310 m², Sichtachsen Median 28,2 m, P90 63,8 m, 3 große Räume, 0 Stützen unter 1 m, 0 von 173 verstellt. Ähnlichkeit S 0,812, Ausreißer 3,4 % (59 Fenster). In der Abnahme: unsichtbarer Block des Lesepults 1,25 → 1,15 m (`level5_3.py`, am Ende; Karte neu erzeugt, Vergleich: nur diese Zahl) |
+| b) Ausstattung | `PROPS_Level5_3.md`: alle 16 Klassen neu in Blender (`models_l53.py`; Regale der Gänge 2 × 3 Varianten, Regalwand 3 Geschosse mit Galerien, Kandelaber, eiserner Kronleuchter, Tuffsäule, alte Tür, Inschrift, Renaissance-Gemälde 2 × 2, Wappen an der Decke, abgelöste Tapete, herabgefallene Bücher 3), Runden vorher, r1–r5, final (`docs/screens/props/level5_3/`, Übersichten `docs/screens/level5_3/props_uebersicht_*.jpg`). Im Laufweg geprüft (Runden 2 und 5): Damast und Täfelung im Eingangsgang, Regale in drei Geschossen, Tuffsäulen, Kandelaber, Holztreppe, Wappen, Gemälde mit Inschrift, Kandelaber alle 6 m in den Gängen, Marmor an den Kreuzungen; neu in der Abnahme die Bereiche abseits des Wegs (Leere mit Gitter, Ausgang, alte Gänge, Treppe, Obergeschoss, Kronleuchter) |
+| c) Wesen | Alle Wesen der Level-5.3-Seite im Spiel (ENTITY_ABGLEICH, Abschnitt Level 5.3): der Hausherr (Entity 18, Rolle 20: Besuch durch den alten Gang, Szene mit Notizbuch, Ansprache, Stille, Abgang; Störung mit Wahrnehmen, Ankündigung, Griff, nie tödlich), Library Mind (fallende Bücher, Bücherhaufen in der Halle, Regale knarren, Stille, Zorn nach dem Besuch), Wissen der Bibliothek über die Ambassadors (Entity 141: Folio mit roter Tafel am Lesepult, Diktiergerät) und Macchina (Entity 189: Katalogschrank mit Karteikarten) – laut Seite nicht anwesend. Je Briefing Wow-Check und Kritikrunden; in der Abnahme 4 weitere Runden für den Hausherrn (Abschnitt „Abnahme Level 5.3“ in `KREATUR_Gentleman.md`) |
+| d) Kritikrunden | 5 Ebenen-Runden (`KRITIK_Level5_3.md`): 1 Struktur (01.11.), 2–5 Abnahme mit Laufweg und den Wesen-Läufen in ihren Räumen (neu: Tabelle für Level 5.3 in `tools/qa/creatureshots.py` – Hausherr fern/mittel/nah mit Licht der Ebene und Lampe, Haltungen der Szene, Wahrnehmen von hinten, Ankündigung, Griff aus der Spielersicht, der Besuch und die Störung, wie sie im Spiel ablaufen, mit Untertiteln; Folio und Karteikarten mit und ohne Lampe, Lesen; ab Runde 4 Bereiche und Übergänge). Bögen `docs/screens/level5_3/wesen_r2_*` … `wesen_r5_*`. Dazu die Runden der Ausstattung (vorher, r1–r5, final) und des Hausherrn (Runden 0–5 im Briefing) |
+| e) Laufweg | `walkway.py level5_3 --rooms 15 --seed 3`: 202 m durch 20 Räume, 51 Bilder alle 4 m (`docs/screens/level5_3/wegbilder_r2_*`, `_r5_*`, Karten `wegkarte_r2.png`, `wegkarte_r5.png`); 15 Räume sind schon nach etwa 120 m erreicht, der Weg geht bis 200 m weiter. E-036 greift nicht (173 Räume, alle erreichbar). Runde 1: 202 m durch 20 Räume, 51 Bilder |
+| f) Prüfungen | Modellprüfung aller 42 Modelle der Ebene (28 Klassen der Karte mit Varianten, Weltobjekte Lesepult, Katalogschrank, Zettel, Karteikarten, Notizbuch, Bücherhaufen, Hausherr in allen Stufen): 0 Fehler (vorher 3: `gm_notebook` mit 28,8 % entarteten Dreiecken, `ent_gentleman_l1/l2` mit gedrehtem Umlaufsinn nach dem Vereinfachen → `repair_glb.py`). Halt der Ausstattung (`gameplay_test`): level5_3 1482 Objekte mit Halt-Regel, 0 ohne Halt. Schilder: Notausgangsschilder 0 (Grenze 0), Notausgangstüren 0, falsch platziert 0. Raummetrik und Ähnlichkeit grün. Tests grün: gameplay 983/0 (neu: Funde vom Platz des Lesers erreichbar), audio 121/0, coop --quick 209/0, net 72/0, worldgen 29658/0, supply OK. Smoke-Test 03.11. (`docs/metrics/smoke_level5_3.json`, 24 Stationen des Laufwegs): GPU 6,34 ms (max 10,73), Spiel 0,06 ms, bis 2,65 Mio. Dreiecke, VRAM 1119 MB, RAM 1207 MB (Spitze 1439 MB), 0 Fehler im Protokoll. Grafik-CPU 16,61 ms ist die Wartezeit auf den 60-Hz-Takt (wie Level 1, 2 und 5) |
+| g) Aufwand | Struktur und Kritikrunde 1: 01.11. bis 01:21 (Hauptstrang, mit 188, 903, 37, 36). Ausstattung 27.10. etwa 2 h und 01.11. etwa 10 h für 5.3 und 188 zusammen (laut `PROPS_Level5_3.md`; Commits 01.11. 19:36 und 20:45). Wesen (Agent, Commit-Zeiten): Hausherr und Wissen der Bibliothek 02.11. bis 22:45 (Grundbau 22:03, Kritikrunden 0–5, Briefings); Zusammenführen 03.11. 08:10. Abnahme (Runden 2–5) 03.11. 10:10–11:05 (Uhr des Rechners; Commits Runde 2 10:31, Runde 3 10:39, Runde 4 10:46): etwa ein Fünftel Werkzeug (Level-5.3-Tabelle in `creatureshots.py` mit Ablauf und Störung, Bereiche, Prüfliste der Modelle), gut die Hälfte Neubau und Bilder (Nadelstreifen im Shader, Bemalung des Gesichts mit neuem Kanal in `build.py`, Revers in drei Anläufen, Weste in zwei, Nägel in drei, drei Neubauten des Hausherrn in Blender), der Rest der Spielfehler am Lesepult mit Test, Prüfungen, Messungen und Dokumente |
+
+**Neu gebaute Assets (Level 5.3):**
+- **Ausstattung** (`tools/blender/models/models_l53.py`, Bögen `docs/screens/props/level5_3/`):
+  - Regale der Gänge `bookcase_aisle`, `bookcase_aisle_b` (je 3), Stirnseite `bookcase_end`;
+  - Regalwand `library_wall` (3), `library_wall_lamp`, `library_wall_upper` mit Galerien, Geländer und Handlauf;
+  - Kandelaber `candelabrum` (2), eiserner Kronleuchter `chandelier_iron`, Tuffsäule `column_tuff`;
+  - alte Tür `door_old_open`, Inschrift `inscription_bibliotheca`, Gemälde `painting_renaissance_a/b` (je 2);
+  - Wappen `ceiling_arms` (2), abgelöste Tapete `wallpaper_peel`, herabgefallene Bücher `books_fallen` (3).
+- **Wesen und Wissen** (Teil 4, `tools/blender/creatures/gentleman.py`, `models_l53_wissen.py`):
+  - der Hausherr `ent_gentleman_l0..l2` (Skelett `gm`, 35 Gelenke), Notizbuch `gm_notebook`;
+  - Lesepult `lore_lectern` mit Folio, Katalogschrank `lore_catalog`, Zettel `lore_slip`, Karteikarten `lore_cards`.
+- **In der Abnahme neu oder neu gebaut**:
+  - `ent_gentleman_l0..l2`: bemaltes Gesicht (Rouge, Umbra, Bleiweiß; flacheres Rissnetz), Seidenrevers, flachere Weste,
+    Hemdbrust, Nägel aus Elfenbein; Materialien `FM_ENT_GM_SILK` (neu), Frack mit Nadelstreifen (`kMatPinstripe`), Weste,
+    Hand; Shader `pinstripes` und Bemalung (`kMatFlagEntPaint`) in `mesh_gbuffer.hlsl`; Kanal `paint` in `build.py`;
+  - Zorn der Bibliothek als Kaskade aus vier Haufen (`session_library.cpp`);
+  - `gm_notebook` mit bereinigter Indexliste (`repair_glb.py`).
+
+**Bilder:**
+- Laufweg `docs/screens/level5_3/wegbilder_r1_*`, `_r2_*`, `_r5_*`, `wegkarte_r1.png`, `wegkarte_r2.png`, `wegkarte_r5.png`.
+- Wesen und Wissen in der Ebene `docs/screens/level5_3/wesen_r2_*` … `wesen_r5_*` (Einzelbilder `build/qa/creatures/level5_3/r2..r5/`).
+- Ausstattung `docs/screens/level5_3/props_uebersicht_*.jpg`, `docs/screens/props/level5_3/`; Zonen `docs/screens/level5_3/01_*` … `18_*`.
+- Hausherr im Detail `docs/screens/creatures/gentleman/` (Runden 0–5).
+
+Gefundene und behobene Fehler:
+- **Spielfehler Lesepult**: das Folio der roten Lichter ließ sich von keinem Platz aus lesen – der unsichtbare Block des
+  Pults (1,25 m) lag über der Sichtlinie, die `findTarget` bis 1,2 m über dem Boden prüft (→ 1,15 m; neue Prüfung im
+  `gameplay_test`, die mit der alten Karte fehlschlug).
+- **Hausherr**:
+  - Frack ohne Nadelstreifen (→ Shader, an der Haut haftend, gefiltert); dann zu hell wie ein Schlafanzug (→ feiner, dunkler).
+  - Im Lampenlicht grau wie Kunststoff (Rauheit 1,0 → 1,6, Grund 0,05 → 0,04).
+  - Gesicht ohne gemalte Schatten und Wangenrot (→ Bemalung je Punkt); grobes Rissnetz wie zerknittertes Papier (→ flacher).
+  - Revers unsichtbar, der Frack ein schwarzer Sack mit rotem Ballon (→ Seidenrevers; Spitze als Knopf → ohne Spitze; runde
+    Kuppe als Zunge → flaches Band).
+  - Weste als leuchtender Ballon (→ flacher, dunkler); als Kasten ein Ranzen, der durch den Rücken schien (→ verworfen).
+  - Hand im Griff rosig wie Knetmasse (→ wachsbleich); Nägel als weiße Kappen, schwarze Fingerhüte, Pflaster (→ klein, dünn,
+    Elfenbein).
+- **Zorn der Bibliothek**: zwei kleine Haufen lasen sich als liegengelassene Bücher (→ Kaskade aus vier Haufen).
+- **Modellprüfung**: `gm_notebook` (28,8 % entartete Dreiecke), `ent_gentleman_l1/l2` (Umlaufsinn) → `repair_glb.py`.
+- **Werkzeug**: der Spieler stand beim Erscheinen am Start im Gang und verbrauchte die Störung (→ erst fort); aus 12 m war
+  die Szene zu klein (→ 6 m, beide Plätze über 3 m von seinem Weg); das Folio aus dem falschen Winkel; Taste „Escape“
+  unbekannt.
+- **Gefunden, nicht in dieser Abnahme behoben**: der glTF-Export schreibt v als 1 − v, das Spiel liest die zweite
+  Texturkoordinate der Wesen ungespiegelt – die Kante (Wölbung) kommt bei allen Wesen invertiert an. Alle Wesen sind mit
+  diesem Stand abgestimmt; die Bemalung rechnet es ein. Vorschlag für eine eigene Entscheidung.
+
+**Restpunkte** (begründet, Einzelheiten in `KRITIK_Level5_3.md` Runde 5 und `KREATUR_Gentleman.md`):
+- Der Firnis des gemalten Gesichts ist aus 1,5 m körnig wie Pappmaché; das Bemalte trägt das Bild.
+- Die Seidenrevers sind nur unten an der Öffnung zu sehen.
+- Im Griff wirken die Finger aus 38 cm wulstig.
+- Das eine Lesepult ist eine begründete Ausnahme zu `LOOK_5.3.md` (Ort des Wissens, E-047).
+
+## Level 188, 903, 37, 36
 
 Strukturprüfungen grün (Level 5 mit begründeten Ausnahmen, Level 188 Schild entfernt, Level 36 vier Wiki-Bereiche ergänzt).
 Ausstattung: Agenten in Arbeit. Einträge folgen mit der Abnahme.

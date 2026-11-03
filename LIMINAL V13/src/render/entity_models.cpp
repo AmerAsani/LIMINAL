@@ -1380,7 +1380,8 @@ bool entityFromGlb(Entity e, FigureModel& out, std::string& info, const std::str
         // V13.3 Teil 4 Level 5.3: der Hausherr
         {"ent_gm_suit", FM_ENT_GM_SUIT}, {"ent_gm_vest", FM_ENT_GM_VEST}, {"ent_gm_shirt", FM_ENT_GM_SHIRT}, {"ent_gm_shoe", FM_ENT_GM_SHOE},
         {"ent_gm_face", FM_ENT_GM_FACE}, {"ent_gm_hand", FM_ENT_GM_HAND}, {"ent_gm_hair", FM_ENT_GM_HAIR}, {"ent_gm_eye", FM_ENT_GM_EYE},
-        {"ent_gm_sclera", FM_ENT_GM_SCLERA}, {"ent_gm_raw", FM_ENT_GM_RAW}, {"ent_gm_gold", FM_ENT_GM_GOLD}, {"ent_gm_book", FM_ENT_GM_BOOK}};
+        {"ent_gm_sclera", FM_ENT_GM_SCLERA}, {"ent_gm_raw", FM_ENT_GM_RAW}, {"ent_gm_gold", FM_ENT_GM_GOLD}, {"ent_gm_book", FM_ENT_GM_BOOK},
+    {"ent_gm_silk", FM_ENT_GM_SILK}};  // V13.3 Abnahme Level 5.3
     const CreatureSkeleton& sk = entitySkeleton(e);
     FigureModel m;
     std::vector<mat4> frames;

@@ -30,7 +30,8 @@ MASK = (1 << 64) - 1
 GOLD = 0x9E3779B97F4A7C15
 LEVEL_ID = 'level0'  # Notizen fester Karten gehoeren zur Ebene (data/notes.json "maps")
 MAP_ID = 'itemstudio'
-ITEMS = {'energy': 'energy', 'almond': 'almond', 'battery': 'battery', 'fuse': 'fuse_office'}
+ITEMS = {'energy': 'energy', 'almond': 'almond', 'battery': 'battery', 'fuse': 'fuse_office',
+         'glowstick': 'glowstick', 'hatchet': 'hatchet'}  # V13.3 Abnahme Level 0: Leuchtstab und Beil (Code-Netze)
 
 
 # --- core/rng.cpp (bitgenau) ---------------------------------------------------------------------
@@ -149,7 +150,8 @@ def build_studio(kind):
 # --- Kameras -------------------------------------------------------------------------------------
 ROWS = [('50cm', 0.5, False), ('2m', 2.0, False), ('50cm_lampe', 0.5, True), ('2m_lampe', 2.0, True)]
 ITEM_BOX = {'energy': ((-0.11, -0.034, 0.0), (0.11, 0.034, 0.024)), 'almond': ((-0.055, -0.055, 0.0), (0.055, 0.055, 0.262)),
-            'battery': ((-0.017, -0.017, 0.0), (0.017, 0.017, 0.0645)), 'fuse': ((-0.088, -0.019, 0.0), (0.088, 0.019, 0.038))}
+            'battery': ((-0.017, -0.017, 0.0), (0.017, 0.017, 0.0645)), 'fuse': ((-0.088, -0.019, 0.0), (0.088, 0.019, 0.038)),
+            'glowstick': ((-0.009, -0.076, 0.0), (0.009, 0.081, 0.018)), 'hatchet': ((-0.09, -0.10, 0.0), (0.35, 0.06, 0.03))}
 
 
 def center_half(b):
@@ -265,7 +267,8 @@ def main():
     ap.add_argument('--size', default='1280x720')
     ap.add_argument('--settle', type=int, default=14)
     a = ap.parse_args()
-    allk = ['energy', 'almond', 'battery', 'fuse', 'note', 'fusebox', 'fusebox_empty', 'vending', 'elevator', 'exit_door']
+    allk = ['energy', 'almond', 'battery', 'fuse', 'glowstick', 'hatchet', 'note', 'fusebox', 'fusebox_empty', 'vending', 'elevator',
+            'exit_door']
     want = [k for k in allk if not a.only or k in a.only.split(',')]
     shotdir = os.path.join(QA, 'shots', a.round)
     os.makedirs(shotdir, exist_ok=True)
@@ -286,7 +289,7 @@ def main():
             booths['exit_door']['pos'] = (ex[0][0], ex[0][1], ex[0][2])
             booths['exit_door']['yaw'] = ex[0][3]
     first = True
-    for item in ['energy', 'almond', 'battery', 'fuse']:
+    for item in ['energy', 'almond', 'battery', 'fuse', 'glowstick', 'hatchet']:
         keys = [k for k in want if k == item or (first and k not in ITEMS)]
         if not keys:
             continue

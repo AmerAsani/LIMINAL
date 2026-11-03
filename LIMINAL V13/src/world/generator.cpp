@@ -1115,6 +1115,13 @@ std::unique_ptr<Sector> Generator::mapSector(i64 sx, i64 sy) const {
         if (kind == DoorKind::Opening) top = cmin;
         d.top = std::max(top, d.sill + 1.9);
         doorStyle(d);
+        // V13.3 (Abnahme Level 0): style room_a/room_b - Boden und Laibung wie im Raum a bzw. b (Bogen-Durchgaenge mit
+        // Sturz, aber ohne die helle Schwelle und den glatten Rahmen einer Tuer)
+        if (md.style == "room_a" || md.style == "room_b") {
+            const Room* rs = md.style == "room_a" ? ra : rb;
+            d.matSill = rs->fmat;
+            d.matFrame = rs->wmat;
+        }
     }
     sec->buildIndex();
     // V11: Wasseroberflaechen (je Raum mit Wasser eine Flaeche auf dem Spiegel, von beiden Seiten sichtbar)

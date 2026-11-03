@@ -1163,9 +1163,11 @@ void HotelL5::collect(std::vector<VisibleMesh>& out, vec3 eye) {
             // Kopf: steht tief in der dunklen Oeffnung an der Laibung und kommt nach vorn an die Kante, schief gelegt (fast
             // waagrecht) - er ist groesser als die Tuer und muss sich unter den Sturz ducken
             const float pk = sm01(a.peek);
-            const vec3 neck = edge - o * (0.6f - 0.52f * pk) - al * (sd * (0.12f + 0.1f * pk)) + U * (1.66f - 0.04f * pk);
+            // Abnahme Level 5, Runde 2: aus dem Gang sah man nur einen schmalen Streifen an der Laibung - der Kopf kommt bis knapp
+            // vor die Wandflucht und dreht das Gesicht weiter zum Ziel (bis 72 Grad, wie eine Eule), damit man es auch schraeg sieht
+            const vec3 neck = edge - o * (0.6f - 0.66f * pk) - al * (sd * (0.12f + 0.02f * pk)) + U * (1.66f - 0.04f * pk);
             // Runde 4: der Kopf dreht sich mit dem Blick zum Ziel (das Gesicht, nicht die Seite); weniger schief
-            const float turnTo = std::clamp(std::remainder(std::atan2(a.look.y, a.look.x) - S.yaw, kTau), -0.7f, 0.7f) * pk;
+            const float turnTo = std::clamp(std::remainder(std::atan2(a.look.y, a.look.x) - S.yaw, kTau), -1.25f, 1.25f) * pk;
             const mat4 Hm = mat4::translation(neck) * mat4::rotationZ(S.yaw + turnTo) * rotX(sd * 0.55f * a.tilt * pk) *
                             rotY(-0.15f + 0.08f * std::sin((float)clock_ * 0.5f)) * mat4::scale(vec3{1.2f, 1.2f, 1.2f});  // Runde 2: groesser
             push(out, a.head, Hm, true, 0.5f, kRotSkinLook);
@@ -1203,8 +1205,11 @@ void HotelL5::collect(std::vector<VisibleMesh>& out, vec3 eye) {
         // gelegt (zu lang: drei Glieder), die Hand hebt sich zum Handschlag ueber die Besucherseite
         const vec3 sh = office_.pos - f * 0.66f + l * 0.24f + U * 1.02f;  // hinter der hohen Lehne des abgewandten Sessels
         const vec3 handP = office_.pos + f * (0.12f + 0.55f * u) + l * 0.02f + U * (0.93f + 0.025f * std::sin((float)clock_ * 1.3f));
-        const vec3 e1 = sh + (f * 0.3f + U * 0.26f + l * 0.04f) * (0.4f + 0.6f * u);
-        const vec3 e2 = sh + (office_.pos - f * 0.04f + l * 0.14f + U * 0.86f - sh) * u + U * 0.1f * (1.0f - u);
+        // Abnahme Level 5, Runde 2: von der Tuer lagen Schulter, Ellbogen und Hand auf einer Linie (ein Stab, der auf einen
+        // zeigt) - jetzt knickt der erste Ellbogen hoch ueber der Lehne zur Seite (wie ein Spinnenbein), der zweite liegt
+        // seitlich auf dem Tisch, der Unterarm quert zur Hand: drei Glieder im Zickzack, die man von vorn zaehlen kann
+        const vec3 e1 = sh + (U * 0.42f + l * 0.22f - f * 0.05f) * (0.4f + 0.6f * u);
+        const vec3 e2 = sh + (office_.pos - f * 0.1f + l * 0.32f + U * 0.84f - sh) * u + U * 0.1f * (1.0f - u);
         auto seg = [&](Part& p, vec3 a0, vec3 b0) {  // Glied mit etwas Ueberstand an den Ellbogen (keine Luecke)
             const float L = length(b0 - a0) + 0.05f;
             push(out, p, along(a0 - nrm(b0 - a0, f) * 0.025f, b0 - a0, U) * mat4::scale(vec3{L / kE18Arm, 1.0f, 1.0f}), true, 1.0f);
