@@ -400,6 +400,33 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     // Schaufensterpuppe); Haar stumpf und verfilzt, graubraun statt nass glaenzend schwarz (der Bart las sich als Gummiklotz)
     materialData_[FM_ENT_FC_SKIN] = GpuMaterial{{0.78f, 0.75f, 0.73f}, 0, ent(EL_HUMAN, ML_CRAZE) | kMatFlagSkin, 1.3f, 0, 0.7f};  // Runde 5: noch rosa wie eine Puppe - fahler, mehr Staub
     materialData_[FM_ENT_FC_HAIR] = GpuMaterial{{1.7f, 1.55f, 1.4f}, 0, ent(EL_HAIR, ML_FIBER), 1.6f, 0, 0.45f};
+    // V13.3 Teil 4 Level 5 (KREATUR_Samantha.md): kurzes, dichtes Katzenfell - schwarz mit seidigem Schimmer (leicht braun im
+    // Licht), weiss leicht cremig; gruene Augen mit Tapetum (glaenzend nass, leichtes Eigenleuchten - Augenleuchten im
+    // Lampenlicht, Auslegung: das Wiki nennt gruene Augen); rosa-graue Nase und Ballen; weisse Schnurrhaare; Zahnfleisch nass
+    materialData_[FM_ENT_SM_FUR] = GpuMaterial{{0.035f, 0.032f, 0.032f}, 0, ent(EL_FUR, ML_FIBER), 0.55f, 0, 0.15f};
+    materialData_[FM_ENT_SM_FURW] = GpuMaterial{{0.86f, 0.84f, 0.79f}, 0, ent(EL_FUR, ML_FIBER), 0.75f, 0, 0.15f};
+    materialData_[FM_ENT_SM_EYE] = GpuMaterial{{0.30f, 0.62f, 0.18f}, 0.55f, ent(EL_TOOTH, ML_PORES), 0.04f, 0, 0.0f};
+    materialData_[FM_ENT_SM_NOSE] = GpuMaterial{{0.62f, 0.40f, 0.42f}, 0, ent(EL_HUMAN, ML_PORES) | kMatFlagSkin, 0.35f, 0, 0.2f};
+    materialData_[FM_ENT_SM_WHISKER] = GpuMaterial{{0.92f, 0.91f, 0.88f}, 0, ent(EL_HAIR, ML_FIBER), 0.4f, 0, 0.05f};
+    materialData_[FM_ENT_SM_GUM] = GpuMaterial{{0.55f, 0.16f, 0.18f}, 0, ent(EL_SKIN, ML_PORES) | kMatFlagSkin, 0.16f, 0, 0.1f};
+    // V13.3 Teil 4 Level 5.3 (KREATUR_Gentleman.md): Frack aus dunklem Kammgarn (stumpf, feiner Koeper), Weste ochsenblutrot mit
+    // leichtem Seidenglanz, Hemd und Kragen gestaerkt, Lackschuhe (Spiegelglanz); das Gesicht: Elfenbein mit vergilbtem Firnis,
+    // glatt und glaenzend, die Mikroebene Haarrisse (Craquelure eines alten Gemaeldes); Haende wachsbleich; Haar schwarz mit
+    // Pomade; Augen nass (die einzigen lebendigen Teile); im Riss rohes, nasses Fleisch; Siegelring Gold; Notizbuch schwarzes Leder
+    materialData_[FM_ENT_GM_SUIT] = GpuMaterial{{0.05f, 0.05f, 0.056f}, 0, tri(L_WORSTED), 1.0f, 0, 0.3f};  // Runde 2: glaenzte wie Satin
+    materialData_[FM_ENT_GM_VEST] = GpuMaterial{{0.20f, 0.035f, 0.035f}, 0, tri(L_WORSTED), 0.5f, 0, 0.25f};
+    materialData_[FM_ENT_GM_SHIRT] = GpuMaterial{{0.80f, 0.78f, 0.72f}, 0, tri(L_COTTON), 0.55f, 0, 0.15f};
+    materialData_[FM_ENT_GM_SHOE] = GpuMaterial{{0.016f, 0.015f, 0.015f}, 0, tri(L_LEATHER), 0.1f, 0, 0.1f};
+    // Runde 1: mit der Menschenhaut im Kerzenlicht braun, im Lampenlicht eine Puppe - jetzt Zahnschmelz-Ebene (vergilbt, Flecken,
+    // feine Risse) wie Porzellan unter altem Firnis
+    materialData_[FM_ENT_GM_FACE] = GpuMaterial{{0.72f, 0.66f, 0.56f}, 0, ent(EL_TOOTH, ML_CRAZE), 0.4f, 0, 0.15f};  // Runde 2: im Lampenlicht ueberstrahlt
+    materialData_[FM_ENT_GM_HAND] = GpuMaterial{{0.84f, 0.81f, 0.76f}, 0, ent(EL_HUMAN, ML_PORES) | kMatFlagSkin, 0.45f, 0, 0.1f};  // Runde 5: im Kerzenlicht braun
+    materialData_[FM_ENT_GM_HAIR] = GpuMaterial{{0.02f, 0.018f, 0.016f}, 0, ent(EL_HAIR, ML_FIBER), 0.28f, 0, 0.1f};
+    materialData_[FM_ENT_GM_EYE] = GpuMaterial{{0.12f, 0.07f, 0.04f}, 0, ent(EL_TOOTH, ML_PORES), 0.03f, 0, 0.0f};
+    materialData_[FM_ENT_GM_SCLERA] = GpuMaterial{{0.80f, 0.72f, 0.66f}, 0, ent(EL_TOOTH, ML_PORES), 0.05f, 0, 0.1f};
+    materialData_[FM_ENT_GM_RAW] = GpuMaterial{{0.42f, 0.05f, 0.05f}, 0, ent(EL_SKIN, ML_PORES) | kMatFlagSkin, 0.12f, 0, 0.2f};
+    materialData_[FM_ENT_GM_GOLD] = GpuMaterial{{0.78f, 0.58f, 0.22f}, 0, tri(L_METAL), 0.3f, 1.0f, 0.15f};
+    materialData_[FM_ENT_GM_BOOK] = GpuMaterial{{0.035f, 0.03f, 0.028f}, 0, tri(L_LEATHER), 0.55f, 0, 0.2f};
     writeMaterials(gpu);
     lights_ = gpu.createStructured(sizeof(GpuLight), 2048, true, false);
     puddles_ = gpu.createStructured(sizeof(vec4), kMaxPuddles * 2, true, false);  // V13.3

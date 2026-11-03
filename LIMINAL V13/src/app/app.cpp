@@ -245,7 +245,7 @@ void App::scriptStep() {
                         : n == "window" ? R::Window : n == "hound" ? R::Hound : n == "smiler" ? R::Smiler : n == "clump" ? R::Clump
                         : n == "duller" ? R::Duller : n == "arms" ? R::Arms : n == "wrangler" ? R::Wrangler
                         : n == "growler" ? R::Growler : n == "nguithrxurh" ? R::Nguithr : n == "ouroboros" ? R::Ouroboros
-                        : n == "goblin" ? R::Goblin : n == "moth" ? R::Moth : n == "jerry" ? R::Jerry : R::Gestalt;  // V13.3; Teil 4: Motten (Level 2), Jerry
+                        : n == "goblin" ? R::Goblin : n == "moth" ? R::Moth : n == "jerry" ? R::Jerry : n == "samantha" ? R::Samantha : n == "gentleman" ? R::Gentleman : R::Gestalt;  // V13.3; Teil 4: Motten (Level 2), Jerry, Samantha, Hausherr
             auto& pr = session_->presence();
             if (!pr.has(r)) {
                 log::warn("Skript: near - kein {}", game::Presence::roleName(r));
@@ -255,6 +255,8 @@ void App::scriptStep() {
                 float baseZ = r == R::Window ? at.z - 1.9f : at.z, aimZ = r == R::Window ? at.z : at.z + (r == R::Rat ? 0.1f : 1.0f);
                 if (r == R::Moth)  // V13.3 Teil 4: Motten an der Decke - der Boden darunter, Blick auf die Motte
                     if (const world::Tile* t0 = w.tileIfLoaded(ifloor(at.x), ifloor(at.y))) baseZ = t0->floor, aimZ = at.z;
+                if (r == R::Samantha) aimZ = at.z + 0.2f;  // V13.3 Teil 4 Level 5: die kleine Katze - Blick auf ihren Kopf
+                if (r == R::Gentleman) aimZ = at.z + 1.5f;  // V13.3 Teil 4 Level 5.3: der grosse Herr - Blick auf Brust und Kopf
                 if (r == R::Jerry)  // V13.3 Teil 4: Jerry auf dem Rohr - der Boden darunter, Blick in sein Gesicht
                     if (const world::Tile* t0 = w.tileIfLoaded(ifloor(at.x), ifloor(at.y))) baseZ = t0->floor, aimZ = at.z + 0.42f;
                 if (r == R::Nguithr)  // V13.3: die Netzkugeln an der Decke - der Boden darunter, Blick auf die Kugeln
@@ -359,7 +361,7 @@ void App::scriptStep() {
                              : n == "skinstealer" ? 7 : n == "wretch" ? 8 : n == "rat" ? 9 : n == "window" ? 10 : n == "player" ? 99
                              : n == "duller" ? 11 : n == "arms" ? 12 : n == "wrangler" ? 13
                              : n == "growler" ? 14 : n == "nguithrxurh" ? 15 : n == "ouroboros" ? 16 : n == "goblin" ? 17
-                             : n == "jerry" ? 18 : 0;  // V13.3; Teil 4: Jerry
+                             : n == "jerry" ? 18 : n == "samantha" ? 19 : n == "gentleman" ? 20 : 0;  // V13.3; Teil 4: Jerry, Samantha, Hausherr
             auto& pl = session_->player();
             vec3 at{(float)(pl.x + std::cos(pl.angle) * dist), (float)(pl.y + std::sin(pl.angle) * dist), 0.0f};
             at.z = session_->world().tile(ifloor(at.x), ifloor(at.y)).floor;
@@ -464,6 +466,35 @@ void App::scriptStep() {
             int nr = -1;
             std::sscanf(arg.c_str(), "%31s %lf %lf %d", name, &dist, &side, &nr);
             if (!session_->scriptApparition(name, dist, side, nr)) log::warn("Skript: rand '{}' - nicht gefunden oder kein Platz", arg);
+        } else if (cmd == "gent" && session_) {  // V13.3 Teil 4 Level 5.3 (Bilder, Tests): gent <quick|next|hold|pose|book|place|provoke|state|yaw> <wert>
+            char key[32] = {};
+            double val = 0.0;
+            if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) < 2 || !session_->presence().gentSet(key, val))
+                log::warn("Skript: gent '{}' unbekannt oder kein Hausherr", arg);
+        } else if (cmd == "sam" && session_) {  // V13.3 Teil 4 Level 5 (Bilder, Tests): sam <quick|hold|pose|next|state|yaw> <wert> - Samantha
+            char key[32] = {};
+            double val = 0.0;
+            if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) < 2 || !session_->presence().samSet(key, val))
+                log::warn("Skript: sam '{}' unbekannt oder keine Katze", arg);
+        } else if (cmd == "hotel" && session_) {  // V13.3 Teil 4 Level 5: hotel <colony|watcher|woodlin|office> [abstand] [winkel] [nr]
+            char name[32] = {};
+            double dist = 3.0, side = 0.0;
+            int nr = -1;
+            std::sscanf(arg.c_str(), "%31s %lf %lf %d", name, &dist, &side, &nr);
+            if (!session_->scriptHotel(name, dist, side, nr)) log::warn("Skript: hotel '{}' - nicht gefunden oder kein Platz", arg);
+        } else if (cmd == "look" && session_) {  // V13.3 Teil 4 Level 5 (Bilder): look <drehen rad> [neigung rad] - Blick des Spielers
+            double turn = 0.0, pitch = 1e9;
+            std::sscanf(arg.c_str(), "%lf %lf", &turn, &pitch);
+            session_->player().angle += turn;
+            if (pitch < 1e8) session_->player().pitch = pitch;
+        } else if (cmd == "hotelstate" && session_) {  // V13.3 Teil 4 Level 5: hotelstate <hold|wood_t|host_after|host_on|wa_peek|wa_arm|host_arm|host_lamp> <wert>
+            char key[32] = {};
+            double val = 0.0;
+            if (std::sscanf(arg.c_str(), "%31s %lf", key, &val) == 2) session_->hotel().setState(key, val);
+        } else if (cmd == "hotelforce" && session_) {  // V13.3 Teil 4 Level 5: hotelforce <colony|host|watcher|woodlins> <nr>
+            char key[32] = {};
+            int nr = 0;
+            if (std::sscanf(arg.c_str(), "%31s %d", key, &nr) < 1 || !session_->hotelForce(key, nr)) log::warn("Skript: hotelforce '{}' nicht moeglich", arg);
         } else if (cmd == "randstate" && session_) {  // V13.3 Teil 4: randstate <cc_vend|cc_anger|cc_lurch|cc_arm|sb_flee|sb_t|ps_box|ps_fed|ps_glitch> <wert>
             char key[32] = {};
             double val = 0.0;
@@ -496,6 +527,8 @@ void App::scriptStep() {
                 if (n == "ouroboros") r = R::Ouroboros;  // V13.3: die Baustelle im Sektor Ouroboros
                 if (n == "goblin") r = R::Goblin;        // V13.3: eine Bande Plague Goblins (Portal ausser Sicht)
                 if (n == "jerry") r = R::Jerry;          // V13.3 Teil 4: Jerry auf seinem Rohr (Spawnpunkt der Karte)
+                if (n == "samantha") r = R::Samantha;    // V13.3 Teil 4 Level 5: die Katze im Gang, ausser Sicht
+                if (n == "gentleman") r = R::Gentleman;  // V13.3 Teil 4 Level 5.3: der Hausherr kommt durch den alten Gang
                 session_->presence().force(r, dist);
             }
         } else if (cmd == "audioinfo") {  // V11 (Tests): Zustand der Klanglandschaft ins Protokoll
@@ -1654,6 +1687,8 @@ void App::handleEvents() {
                         if (role == Role::Ouroboros) at(std::format("ouro_step_{}", n % 3), e.pos, 0.3f + 0.35f * e.intensity, 18.0f, 0.92f + 0.12f * var);
                         // V13.3: Plague Goblins - Krallen tickern auf dem Boden, der Umhang streift nach
                         if (role == Role::Goblin) at(std::format("goblin_step_{}", n % 3), e.pos, 0.18f + 0.35f * e.intensity, 12.0f, 0.94f + 0.14f * var);
+                        // V13.3 Teil 4 Level 5.3: der Hausherr - harte Ledersohlen auf Parkett, gemessen (synth_gentleman.cpp)
+                        if (role == Role::Gentleman) at(std::format("gm_step_{}", n % 4), e.pos, 0.55f + 0.3f * e.intensity, 30.0f, 0.97f + 0.06f * var);
                         break;
                     // V11 Buendel: Klopfen im Schacht, Herabfallen, Schleifen, Ausholen
                     case PE::Knock:
@@ -1724,11 +1759,17 @@ void App::handleEvents() {
                         else at(std::format("goblin_squawk_{}", n % 2), e.pos, 1.0f, 42.0f, 0.96f + 0.08f * var);
                         break;
                     case PE::Steal:
+                        if (role == Role::Samantha) {  // V13.3 Teil 4 Level 5: Papier raschelt, Zaehne
+                            at("sam_take", e.pos, 0.8f, 8.0f);
+                            break;
+                        }
                         if (e.intensity < 0.25f) at("goblin_rummage", e.pos, 0.95f, 6.0f);
                         else if (e.intensity < 0.75f) at(std::format("goblin_chatter_{}", n % 3), e.pos, 0.8f, 12.0f, 1.1f);
                         else at("goblin_stash", e.pos, 0.9f, 8.0f);
                         break;
-                    case PE::Take: at("goblin_stash", e.pos, 0.6f, 10.0f, 0.95f + 0.1f * var); break;
+                    case PE::Take:
+                        if (role != Role::Samantha) at("goblin_stash", e.pos, 0.6f, 10.0f, 0.95f + 0.1f * var);  // V13.3 Teil 4 Level 5: gefressen - kein Laut
+                        break;
                     case PE::Hiss:
                         if (role == Role::Moth) at("moth_buzz", e.pos, 0.6f + 0.4f * e.intensity, 12.0f);  // V13.3 Teil 4: gereizte Motten um den Kopf
                         else at("goblin_hiss", e.pos, 1.0f, 24.0f);
@@ -1739,7 +1780,9 @@ void App::handleEvents() {
                         break;
                     case PE::Portal: at(e.intensity > 0.5f ? "goblin_portal_open" : "goblin_portal_close", e.pos, 1.0f, 46.0f); break;
                     case PE::Perish: at("goblin_death", e.pos, 1.0f, 30.0f); break;
-                    case PE::Whisper: at(std::format("window_whisper_{}", n % 4), e.pos, 0.35f + 0.5f * e.intensity, 12.0f); break;
+                    case PE::Whisper:
+                        if (role != Role::Gentleman) at(std::format("window_whisper_{}", n % 4), e.pos, 0.35f + 0.5f * e.intensity, 12.0f);  // V13.3 Teil 4 Level 5.3: sein Blick zehrt lautlos
+                        break;
                     case PE::Plead: at(std::format("wretch_plead_{}", n % 3), e.pos, 0.7f, 20.0f, 0.95f + 0.1f * var); break;
                     case PE::Gurgle:
                         if (e.intensity > 0.5f) at(std::format("wretch_snarl_{}", n % 3), e.pos, 0.8f, 30.0f, 0.95f + 0.1f * var);
@@ -2042,9 +2085,10 @@ void App::updateAudio(double dt) {
         lastProx = prox;
         hush = std::max(0.0, hush - dt);
         const float hushAmt = (float)std::clamp(hush / 4.0, 0.0, 1.0);
-        soundscape_.setQuiet(hush > 0.0 || prox > 0.3f);
+        const float libHush = s.library().hush;  // V13.3 Teil 4 Level 5.3: die Bibliothek schweigt, waehrend er spricht (KREATUR_Gentleman.md)
+        soundscape_.setQuiet(hush > 0.0 || prox > 0.3f || libHush > 0.3f);
         soundscape_.setBedDuck(outside || st.dead ? 1.0f
-                                                  : std::max({std::clamp(s.blackout().amount * 0.7f, 0.0f, 0.7f), prox * 0.5f, hushAmt * 0.75f}));
+                                                  : std::max({std::clamp(s.blackout().amount * 0.7f, 0.0f, 0.7f), prox * 0.5f, hushAmt * 0.75f, libHush * 0.95f}));
     }
     app::wranglerLoops(*audio_, soundscape_, s, ear, audioGen_, st.dead);  // V13.3: Rumpeln, Leib, Sog (app/wrangler_audio.cpp)
     // V6: Keuchen nach dem Sprinten. V11: einzelne Atemzuege (Ein- und Ausatmen), je atemloser desto
@@ -2281,7 +2325,8 @@ void App::renderWorld(double dt, bool clean) {
                 md.dynamic = v.dynamic;
                 md.cullCenter = v.cullCenter;
                 md.cullRadius = v.cullRadius;
-                md.material = v.material == game::kShadowLook ? (int)gfx::FM_ENT_SHADOW : v.material;  // V10
+                md.material = v.material == game::kShadowLook ? (int)gfx::FM_ENT_SHADOW : v.material == game::kUmbraLook ? (int)gfx::FM_ENT_UMBRA
+                              : v.material == game::kRotSkinLook ? (int)gfx::FM_ENT_ROTSKIN : v.material == game::kDarkSkinLook ? (int)gfx::FM_ENT_DULLERSKIN : v.material;  // V10; V13.3 Teil 4 Level 5
                 md.clip = v.clip;  // V13
                 md.dualQuat = v.dualQuat;  // V13.2
                 md.fx = v.fx;              // V13.3: Pilz, Ranken (KREATUR_Crawler.md)
@@ -2420,6 +2465,9 @@ void App::renderWorld(double dt, bool clean) {
         if (playing) {
             std::vector<game::Apparitions::Light> al;
             s.apparitions().lights(al, cam.pos);
+            std::vector<game::HotelL5::Light> hl;  // V13.3 Teil 4 Level 5: Bankerlampe im Buero des Gastgebers
+            s.hotel().lights(hl, cam.pos);
+            for (const auto& h : hl) al.push_back({h.pos, h.color, h.range, h.dir});
             for (const auto& a : al) {
                 if (sp.extraLights.size() >= 10) break;
                 gfx::ExtraLight L;

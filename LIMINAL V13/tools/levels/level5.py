@@ -429,4 +429,96 @@ for o in m.objects:
     if v_:
         o['variant'] = v_
 
+
+# V13.3 Teil 4 (gameplay/hotel_l5.hpp, KREATUR_*.md): Orte der Wesen ohne Rolle und das Fleisch - eigener Zufall nach allen
+# Platzierungen (die Anordnung oben bleibt gleich). Spawnpunkte kind "trace": ants (dunkelste Zimmerecke), woodlin (vor den
+# Moebeln der Gaenge), watcher (Tueroeffnung dunkler/leerer Zimmer, Seite der lugenden Kante), office (Buero des Gastgebers:
+# Mitte des Schreibtischs, Blick zur Tuer), meat (Steak vor Zimmertueren - Zimmerservice -, Dosen im Kesselraum).
+hr = random.Random(5260)
+
+
+def door_of(r):
+    """Tuer des Zimmers r zu einem Gang: (Mitte auf der Gangwand, Blick in den Gang, Gang)."""
+    for d in m.doors:
+        if r not in (d['a'], d['b']):
+            continue
+        other = d['b'] if d['a'] == r else d['a']
+        if other not in corridors:
+            continue
+        x0, y0, x1, y1 = d['rect']
+        R, C = m.R(r), m.R(other)
+        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+        if C.y0 >= R.y1 or C.y1 <= R.y0:  # Gang noerdlich/suedlich
+            y = C.y0 if C.y0 >= R.y1 else C.y1
+            return cx, y, (math.pi / 2 if C.y0 >= R.y1 else -math.pi / 2), other
+        x = C.x0 if C.x0 >= R.x1 else C.x1
+        return x, cy, (0.0 if C.x0 >= R.x1 else math.pi), other
+    return None
+
+
+# Kolonien: je Zimmer die Ecke, die am weitesten von Tuer und Lampe liegt (die dunkelste)
+for r in rooms_dark + rooms_empty + rooms_furn:
+    R = m.R(r)
+    dd = door_of(r)
+    if not dd:
+        continue
+    best = None
+    for (cx, cy) in ((R.x0 + 0.3, R.y0 + 0.3), (R.x1 - 0.3, R.y0 + 0.3), (R.x0 + 0.3, R.y1 - 0.3), (R.x1 - 0.3, R.y1 - 0.3)):
+        if m.blocked(cx, cy) or any(math.hypot(o['pos'][0] - cx, o['pos'][1] - cy) < 1.0 for o in m.objects if o['model'] in ('wardrobe', 'hotel_bed', 'side_table', 'armchair')):
+            continue
+        dist = math.hypot(cx - dd[0], cy - dd[1])
+        if best is None or dist > best[0]:
+            best = (dist, cx, cy)
+    if best and (r in rooms_dark or hr.random() < 0.6):
+        _, cx, cy = best
+        m.spawn('trace', cx, cy, R.floor, math.atan2(R.cy - cy, R.cx - cx), set='ants')
+# Woodlins: vor den Moebeln der Gaenge und der Aufzugshalle (Sofa, Sessel, Regal, Beistelltisch)
+for o in list(m.objects):
+    if o['model'] not in ('sofa', 'armchair', 'bookcase', 'side_table'):
+        continue
+    x, y = o['pos'][0], o['pos'][1]
+    ri = m.at(x, y)
+    if ri < 0 or ri not in corridors + [lobby]:
+        continue
+    yaw = o.get('yaw', 0.0)
+    fx, fy = x + math.cos(yaw) * 0.55, y + math.sin(yaw) * 0.55
+    if m.blocked(fx, fy):
+        continue
+    m.spawn('trace', fx, fy, 0.0, yaw, set='woodlin')
+# Watchers: Tueroeffnungen dunkler und leerer Zimmer (nicht die eingerichteten - dort brennt Licht)
+for r in rooms_dark + rooms_empty:
+    dd = door_of(r)
+    if dd:
+        # 6 cm vor der Wandflucht im Gang (der Punkt muss in einem Raum liegen); das Spiel rechnet ihn zurueck (o0.06)
+        m.spawn('trace', dd[0] + math.cos(dd[2]) * 0.06, dd[1] + math.sin(dd[2]) * 0.06, 0.0, dd[2], set='watcher', tags=[f'side{hr.choice((-1, 1))}', 'o0.06'])
+# Buero des Gastgebers: ein leeres Zimmer am Hauptgang, weit vom Start; Schreibtisch zur Tuer, dahinter der abgewandte
+# Ohrensessel, an der Rueckwand ein Bildnis (eigene Modelle; Kollision als Block)
+cand = [r for r in rooms_empty if door_of(r) and door_of(r)[3] == main and math.hypot(m.R(r).cx - m.start[0], m.R(r).cy - m.start[1]) > 45]
+if not cand:
+    cand = [r for r in rooms_empty if door_of(r)]
+if cand:
+    off = hr.choice(cand)
+    R = m.R(off)
+    dx, dy, dyaw, _ = door_of(off)
+    nx, ny = -math.cos(dyaw), -math.sin(dyaw)  # von der Tuer in das Zimmer
+    depth = (R.h if abs(ny) > 0.5 else R.w)
+    back = depth + 1.0  # Gangwand bis Rueckwand (eine Kachel Wand)
+    deskx, desky = dx + nx * (back - 1.7), dy + ny * (back - 1.7)  # vor dem Beistelltisch in der Mitte
+    face = dyaw  # der Schreibtisch sieht zur Tuer
+    m.obj('e18_desk', deskx, desky, R.floor, face)
+    m.block(off, int(math.floor(deskx - 0.8)), int(math.floor(desky - 0.8)), int(math.floor(deskx - 0.8)) + 2, int(math.floor(desky - 0.8)) + 2, 0.8, hidden=True)
+    m.obj('e18_wingchair', deskx + nx * 0.85, desky + ny * 0.85, R.floor, face + math.pi)  # abgewandt: zur Rueckwand
+    m.obj('e18_portrait', dx + nx * (back - 0.005), dy + ny * (back - 0.005), 1.7, face)
+    m.spawn('trace', deskx + math.cos(face) * 0.9, desky + math.sin(face) * 0.9, R.floor, face, set='office', tags=['o0.9'])  # vor dem Tisch
+# Fleisch: Tabletts des Zimmerservice vor verschlossenen Zimmertueren (Steak), Dosen in den Kesselraeumen
+doors_deco = [o for o in m.objects if o['model'].startswith('hotel_door') and math.hypot(o['pos'][0] - m.start[0], o['pos'][1] - m.start[1]) > 20]
+for o in hr.sample(doors_deco, min(5, len(doors_deco))):
+    yaw = o.get('yaw', 0.0)
+    x, y = o['pos'][0] + math.cos(yaw) * 0.32 + math.cos(yaw + math.pi / 2) * 0.35, o['pos'][1] + math.sin(yaw) * 0.32 + math.sin(yaw + math.pi / 2) * 0.35
+    if not m.blocked(x, y):
+        m.spawn('trace', x, y, 0.0, yaw + hr.uniform(-0.4, 0.4), set='meat', tags=['good'])
+for r in hr.sample(k_rooms, min(3, len(k_rooms))):
+    p = wall_spot(r, 0.35)
+    if p:
+        m.spawn('trace', p[0], p[1], m.R(r).floor, p[2] + hr.uniform(-0.6, 0.6), set='meat', tags=['poor'])
 m.save()

@@ -18,6 +18,7 @@ void GameSession::pawnInput(Pawn& p, const PlayerControl& c0, double dt) {
     p.player.speedMul = p.stats.speedMul() * (p.stats.exhausted ? 0.9 : 1.0);
     p.player.speedMul *= presence_.slowFor(p.id, {(float)p.player.x, (float)p.player.y, (float)p.player.z});  // V13.3
     p.player.speedMul *= 1.0 - 0.55 * presence_.jerryHold(p.id);  // V13.3 Teil 4: Jerrys Bann laehmt auch den Gast
+    p.player.speedMul *= hotelSlow(p.id);  // V13.3 Teil 4 Level 5: Biss eines Woodlins
     if (p.id > 0 && p.id < Phenomena::kPlayers) {  // V13.3: Fieber, Ranken, ihre Einladung (session_phenomena.cpp)
         p.player.speedMul *= phenomena_.speedMul(p.id);
         if (phenomena_.frozen(p.id)) c.forward = c.side = 0.0f, c.sprint = c.jump = c.jumpHeld = false;
@@ -87,6 +88,7 @@ bool GameSession::pawnInteract(Pawn& p, u32 hash, std::string& msg, int& note) {
     note = -1;
     if (p.alive && hash < 4) return pawnSpeak(p, (int)hash);  // V13.3: Ansprechen (Satz 0..3, session_lure.cpp)
     if (!p.alive || !hash) return false;
+    if (hotel_.any() && hotelInteractPawn(p, hash, msg)) return true;  // V13.3 Teil 4 Level 5: abzupfen, Handschlag
     ecs::Entity found = ecs::kNull;
     reg_.each<Pickup, Transform>([&](ecs::Entity e, Pickup& pk, Transform&) {
         if (found == ecs::kNull && worldItemHash(pk.worldId) == hash) found = e;
@@ -320,6 +322,10 @@ void GameSession::netAddDropped(u32 hash, const std::string& kind, vec3 pos) {
     }
     if (kind == "painting") {  // V13.3: ein Gemaelde liegt jetzt vor einer anderen Tuer (session_phenomena.cpp)
         phenomena_.netMove(hash, pos);
+        return;
+    }
+    if (kind == HotelL5::kNetName) {  // V13.3 Teil 4 Level 5: Wesen des Hotels (session_hotel.cpp)
+        netHotel(hash, pos);
         return;
     }
     if (kind == Apparitions::kNetName) {  // V13.3 Teil 4: Randwesen von Level 2 (session_apparitions.cpp)

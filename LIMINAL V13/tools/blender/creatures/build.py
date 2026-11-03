@@ -73,7 +73,12 @@ PREVIEW_RGB = {'ent_skin': (0.55, 0.47, 0.40), 'ent_hair': (0.03, 0.03, 0.03), '
                'ent_rk_plate': (0.55, 0.55, 0.57), 'ent_rk_plate_dark': (0.12, 0.11, 0.11), 'ent_rk_mail': (0.4, 0.4, 0.41),
                'ent_rk_cape': (0.45, 0.05, 0.04), 'ent_rk_gold': (0.75, 0.55, 0.2), 'ent_rk_blade': (0.7, 0.7, 0.71),
                'ent_rk_purple': (0.45, 0.12, 0.7), 'ent_rk_purple_glow': (0.8, 0.4, 1.0), 'ent_ss_rot': (0.42, 0.36, 0.22),
-               'ent_wre_crust': (0.30, 0.14, 0.08), 'ent_wre_pus': (0.95, 0.82, 0.42)}
+               'ent_wre_crust': (0.30, 0.14, 0.08), 'ent_wre_pus': (0.95, 0.82, 0.42),
+               # V13.3 Teil 4 Level 5.3: der Hausherr
+               'ent_gm_suit': (0.07, 0.07, 0.08), 'ent_gm_vest': (0.32, 0.06, 0.06), 'ent_gm_shirt': (0.85, 0.83, 0.78),
+               'ent_gm_shoe': (0.03, 0.03, 0.03), 'ent_gm_face': (0.80, 0.70, 0.58), 'ent_gm_hand': (0.78, 0.73, 0.66),
+               'ent_gm_hair': (0.03, 0.03, 0.03), 'ent_gm_eye': (0.15, 0.09, 0.05), 'ent_gm_sclera': (0.85, 0.8, 0.75),
+               'ent_gm_raw': (0.5, 0.06, 0.06), 'ent_gm_gold': (0.8, 0.6, 0.25), 'ent_gm_book': (0.06, 0.05, 0.05)}
 
 
 def build_group(g, nb):

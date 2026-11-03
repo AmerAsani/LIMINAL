@@ -29,8 +29,8 @@
   "max_over_median": 39.666666666666664
  },
  "sight": {
-  "median": 20.5,
-  "p90": 98.5,
+  "median": 21.0,
+  "p90": 98.0,
   "points": 476
  },
  "pillar_wall_gaps": {

@@ -48,6 +48,7 @@ ASan ohne Befund (901/0, 209/0).
 | B-026 | Wesen-Schleife | `Presence::update` lief mit Iterator über `agents_`; `buildTrap` (Fallen der Death Rats) legte darin ein Wesen an und entfernte die älteste Falle – Iterator ungültig. | **behoben**: Schleife über den Index bis zur Anzahl davor (neue Wesen ab dem nächsten Bild); abgeräumte Fallen erst nach der Schleife entfernt (`cull_`). |
 | B-027 | Level-3-Motten | Platz im Gesicht: negativer Rest bei negativer `phase` las vor `taken[8]`; Gruppenvergleiche ohne Rolle konnten fremde Wesen (z. B. Fallen, Rolle Rat, Variante 3) als Motten behandeln und ihr `ext` falsch umdeuten. | **behoben**: Index normalisiert, alle Gruppenvergleiche nur für Motten der Varianten 3–5. |
 | B-028 | Koop-Test | `testReconnectKick` gab die Sitzung des gesperrten Gasts frei, bevor `stop()` darin aufräumte (die App räumt in der richtigen Reihenfolge auf: `leaveCoop` → `stop()` → Sitzung). | **behoben** im Test (erst `stop()`, dann die Sitzung). |
+| B-029 | Materialien | Nach dem Merge der Wesen von Level 3, 5 und 5.3 reichten die festen Wesen-Materialien bis Platz 195; die 33 Materialien der Fundstücke (ab `FM_FIG_END`) hätten bis 228 gebraucht, Grenze 224 – die letzten 5 Fundstücke fielen still auf ein falsches Material (nur Warnung im Protokoll, kein Test schlug an). | **behoben**: `kFixedMaterials` 288, dazu `static_assert(FM_FIG_END + kItemMaterialSlots(48) <= kFixedMaterials)`; Smoke Level 0: Plätze 195..227, keine Warnung. |
 
 ## Prüfungen (Teil 5)
 

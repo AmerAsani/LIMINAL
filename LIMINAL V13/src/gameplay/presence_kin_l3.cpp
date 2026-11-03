@@ -15,7 +15,9 @@
 //                entlarvt wird: dreimal angesprochen (beim zweiten Mal wiederholt er den Satz genau gleich) oder die Lampe
 //                zu lange im Gesicht (die faulende Haut). Satt verabschiedet er sich nach einer Weile. Die Verwandlung
 //                (2,4 s, Haut und Mantel reissen) ist die Ankuendigung; danach wie in Level 1.
+#include "gameplay/hotel_l5.hpp"  // V13.3 Teil 4 Level 5: Saetze der Samantha
 #include "gameplay/kin_l3.hpp"
+#include "gameplay/library_l53.hpp"  // V13.3 Teil 4 Level 5.3: Saetze des Hausherrn
 #include "gameplay/presence.hpp"
 #include "gameplay/presence_agent.hpp"
 
@@ -134,10 +136,14 @@ void turnTo(A& a, vec3 toP, double rate, double dt) {
 bool kinRole(int role) {
     return role == (int)Presence::Role::Wretch || role == (int)Presence::Role::SkinStealer || role == (int)Presence::Role::Rat ||
            role == (int)Presence::Role::Moth ||  // V13.3 Level 3: Death Rats, Deathmoths (Klangnummern ab KC_RAT_SAY0)
-           role == (int)Presence::Role::Hound || role == (int)Presence::Role::Clump;  // V13.3 Level 2/3: Rudel, grosses Buendel
+           role == (int)Presence::Role::Hound || role == (int)Presence::Role::Clump ||  // V13.3 Level 2/3: Rudel, grosses Buendel
+           role == (int)Presence::Role::Samantha ||  // V13.3 Teil 4 Level 5: Samantha (Saetze ab 300, hotel_l5.hpp)
+           role == (int)Presence::Role::Gentleman;   // V13.3 Teil 4 Level 5.3: der Hausherr (ab 700, library_l53.hpp)
 }
 
 const KinLine* kinLine(int cue) {
+    if (cue >= 700) return lib53::gentLine(cue - 700);  // V13.3 Teil 4 Level 5.3: der Hausherr, die Bibliothek (synth_gentleman.cpp)
+    if (cue >= 300) return hotel::samLine(cue - 300);  // V13.3 Teil 4 Level 5: Samantha (synth_hotel.cpp)
     if (cue >= 200) return knightLine(cue);           // V13.3 Level 3: Red Knight (presence_knight.cpp)
     if (cue >= KC_L3_END) return packLine(cue);       // V13.3 Level 2/3: Hound-Rudel, grosses Buendel
     if (cue >= KC_RAT_SAY0) return ratMothLine(cue);  // V13.3 Level 3
@@ -151,6 +157,8 @@ const KinLine* kinLineBySound(const std::string& s) {
         if (L.sound && s == L.sound) return &L;
     if (const KinLine* L = ratMothLineBySound(s)) return L;  // V13.3 Level 3
     if (const KinLine* L = knightLineBySound(s)) return L;   // V13.3 Level 3: Red Knight
+    if (const KinLine* L = hotel::samLineBySound(s)) return L;  // V13.3 Teil 4 Level 5: Samantha
+    if (const KinLine* L = lib53::gentLineBySound(s)) return L;  // V13.3 Teil 4 Level 5.3: der Hausherr, die Bibliothek
     return packLineBySound(s);                                // V13.3 Level 2/3
 }
 

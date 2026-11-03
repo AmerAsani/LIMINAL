@@ -90,3 +90,33 @@ die Tafel liegt nur beim Anzug (nie Zufallsnotiz).
 
 - Die Werkstatt ist ohne Lampe fast schwarz; mit der Lampe gut lesbar (gewollt).
 - Weg zu Level 811 (blaue Rohrlichter, Klingentür) nicht gebaut.
+
+## Level 5.3 – Wissen in der Bibliothek (V13.3 Teil 4)
+
+Quelle zusätzlich: [Level 5.3 „Promethei Bibliotheca“](https://backrooms-wiki.wikidot.com/level-5-3) Rev. 40 (24.08.2026, Praetor3005,
+CC BY-SA 3.0): die Bücher der Bibliothek enthalten Wissen über die Backrooms, u. a. über die Macchina. Geprüft: die Entity-189-Seite
+(Rev. 27) nennt Level 5 und 5.3 nicht; die Macchina sind laut Seite seit etwa 1850 verschwunden – **umgesetzt (V13.3): als Wissen,
+laut Seite nicht anwesend**. Im Spiel heißen sie „das Volk in den Anzügen“ (E-039).
+
+**Katalogschrank** (`lore_catalog`, `tools/blender/models/models_l53_wissen.py`; Kartenobjekt im Obergeschoss frei vor dem östlichen
+Regalblock, Front nach Süden, Block für die Kollision): Eiche, 4 × 5 Schubladen mit Messingrahmen und Schildern, eine Schublade
+herausgezogen voller Karten mit Reiter; oben ein **Kohleabrieb** (Zeichen in Reihen, in der Mitte eine Kugel aus Licht mit Strahlen – die
+große Antwort) und ein **Stück Rohrblech** mit eingeschlagenen Zeichen (das Metall der Anzüge).
+
+**Fund** „Karteikarten mit Zahnrad“ (`data/notes.json`, mode `fund`): ein Bündel Karten mit Schnur (`lore_cards`, Reiter mit Zahnrad und
+Helm), eigene Worte aus der Seite: Leben in Metallanzügen voller unverstandener Maschinen, durch Wände gehen (Noclip), Menschengesichter
+auf die Visiere geschweißt, ohne Anzug nicht lebendig, die wahre Gestalt zu zeigen verboten, Speere und Piken, Zeichenschrift, Wandtücher,
+das Metall aus den Wänden, jedes dritte Kind ohne Anzug, die große Antwort, danach niemand mehr. Spawnpunkt `trace`/`lore` Tag `e189`.
+
+**Kritikrunden** (Bilder `docs/screens/creatures/l53_wissen/`, gemeinsam mit dem Lesepult – KREATUR_Ambassadors.md):
+- **Runde 1** – `w1_bogen.jpg`: Schrank, gezogene Schublade mit Karten und Abrieb gut lesbar; die Karten liegen auf dem Abrieb.
+- **Runde 2** – `w2_bogen.jpg`: mit Lampe die Messingschilder und Karten klar; Lage der Karten unverändert (Fehler erst in Runde 4 verstanden).
+- **Runde 3** – `w3_bogen.jpg`: im Obergeschoss aus der Ferne (`obergeschoss_fern`) erkennbar, abseits des Wegs zwischen den Türen.
+- **Runde 4** – `w4_pult_nah.jpg`: Ursache gefunden – Blender-y ist im Spiel −y; die Karten lagen auf dem Abrieb statt daneben.
+- **Runde 5 (Abnahme)** – `w5_pult_schrank_nah.jpg`, `w5_schrank_nah.jpg`, `w5_schrank_nah_lampe.jpg`: Karten links, Abrieb und Blech rechts.
+
+**Wow-Check:** „Ein Katalogschrank, eine Schublade halb offen – und auf der Karte steht, dass jedes dritte Kind starb, weil kein Anzug mehr
+da war.“ Ehrliche Antwort: kein Schreck, ein stilles Grauen, wie bei den Resten in Level 2.
+
+**Tests** (`gameplay_test`, `testV133Level53Gentleman`): Katalogschrank und Spawnpunkt `e189` in der Karte, Fund liegt bereit, Modell
+vorhanden, Text ohne Wiki-Namen.

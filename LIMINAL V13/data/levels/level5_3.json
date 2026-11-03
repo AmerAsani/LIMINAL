@@ -4,7 +4,8 @@
 // Kandelaber, eiserne Kronleuchter; Gaenge zwischen Regalen in alle Richtungen, aeltere Gaenge mit Wappen an der Decke,
 // Holztreppen zu hoeheren Geschossen, Gitter vor einer Leere. Der Library Mind laesst Buecher fallen und nimmt
 // Erinnerungen (langsamer Verlust an Verstand). Ausgang: alte Holztuer in einer Sackgasse, zurueck nach Level 5.
-// Karte data/maps/level5_3.json aus tools/levels/level5_3.py. Keine Wesen.
+// Karte data/maps/level5_3.json aus tools/levels/level5_3.py. V13.3 Teil 4: der Hausherr (KREATUR_Gentleman.md) und Wissen
+// der Bibliothek ueber die roten Lichter und das Volk in den Anzuegen (KREATUR_Bibliothekswissen.md; Spawnpunkte trace/lore).
 {
   "id": "level5_3",
   "name": "Level 5.3",
@@ -13,7 +14,10 @@
   "generator": "map",
   "map": "level5_3",
   "presence_region": 0,
-  "presence": { "hound": false, "smiler": false, "gestalt": false, "blackout": false },
+  "presence": { "hound": false, "smiler": false, "gestalt": false, "blackout": false,
+                // V13.3 Teil 4 (KREATUR_Gentleman.md): der Hausherr besucht die Bibliothek - einmal je Besuch, fruehestens nach
+                // every Sekunden, wenn jemand in der Halle steht (Orte: Spawnpunkte trace/gm der Karte)
+                "gentleman": { "every": 150, "count": 1 } },
   "next_level": "level5",
   "finds": { "note": 0.0, "battery": 0.0, "battery_dark": 0.0, "exit_start": 99999, "exit_range": 1, "exit_max": 0.0 },
 

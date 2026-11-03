@@ -1373,7 +1373,14 @@ bool entityFromGlb(Entity e, FigureModel& out, std::string& info, const std::str
         // V13.3 Level 3: Red Knight
         {"ent_rk_plate", FM_ENT_RK_PLATE}, {"ent_rk_plate_dark", FM_ENT_RK_PLATE_DARK}, {"ent_rk_mail", FM_ENT_RK_MAIL}, {"ent_rk_cape", FM_ENT_RK_CAPE},
         {"ent_rk_gold", FM_ENT_RK_GOLD}, {"ent_rk_blade", FM_ENT_RK_BLADE}, {"ent_rk_purple", FM_ENT_RK_PURPLE}, {"ent_rk_purple_glow", FM_ENT_RK_PURPLE_GLOW},
-        {"ent_ss_rot", FM_ENT_SS_ROT}, {"ent_wre_crust", FM_ENT_WRE_CRUST}, {"ent_wre_pus", FM_ENT_WRE_PUS}};  // V13.3 Wow-Check Level 3
+        {"ent_ss_rot", FM_ENT_SS_ROT}, {"ent_wre_crust", FM_ENT_WRE_CRUST}, {"ent_wre_pus", FM_ENT_WRE_PUS},  // V13.3 Wow-Check Level 3
+        // V13.3 Teil 4 Level 5: Samantha
+        {"ent_sm_fur", FM_ENT_SM_FUR}, {"ent_sm_furw", FM_ENT_SM_FURW}, {"ent_sm_eye", FM_ENT_SM_EYE}, {"ent_sm_nose", FM_ENT_SM_NOSE},
+        {"ent_sm_whisker", FM_ENT_SM_WHISKER}, {"ent_sm_gum", FM_ENT_SM_GUM},
+        // V13.3 Teil 4 Level 5.3: der Hausherr
+        {"ent_gm_suit", FM_ENT_GM_SUIT}, {"ent_gm_vest", FM_ENT_GM_VEST}, {"ent_gm_shirt", FM_ENT_GM_SHIRT}, {"ent_gm_shoe", FM_ENT_GM_SHOE},
+        {"ent_gm_face", FM_ENT_GM_FACE}, {"ent_gm_hand", FM_ENT_GM_HAND}, {"ent_gm_hair", FM_ENT_GM_HAIR}, {"ent_gm_eye", FM_ENT_GM_EYE},
+        {"ent_gm_sclera", FM_ENT_GM_SCLERA}, {"ent_gm_raw", FM_ENT_GM_RAW}, {"ent_gm_gold", FM_ENT_GM_GOLD}, {"ent_gm_book", FM_ENT_GM_BOOK}};
     const CreatureSkeleton& sk = entitySkeleton(e);
     FigureModel m;
     std::vector<mat4> frames;

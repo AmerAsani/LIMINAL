@@ -577,7 +577,7 @@ const CreatureSkeleton& entitySkeleton(Entity e) {
                                                                    makeClump(), makeBiped(Entity::Faceling), makeBiped(Entity::SkinStealer),
                                                                    makeBiped(Entity::Wretch), makeRat(), makeWindow(), du::skeleton(),
                                                                    ar::skeleton(), wg::makeWrangler(), makeGrowlerSkeleton(), makeNguithrSkeleton(),
-                                                                   ob::makeSkeleton(), gb::makeSkeleton(), jy::makeSkeleton()};  // V13.3
+                                                                   ob::makeSkeleton(), gb::makeSkeleton(), jy::makeSkeleton(), sa::makeSkeleton(), gm::makeSkeleton()};  // V13.3
     return all[(size_t)std::min((int)e, kEntityCount - 1)];
 }
 
@@ -602,6 +602,8 @@ const char* entityModel(Entity e) {
         case Entity::Ouroboros: return "ent_ouroboros";  // V13.3
         case Entity::Goblin: return "ent_goblin";        // V13.3
         case Entity::Jerry: return "ent_jerry";          // V13.3 Teil 4
+        case Entity::Samantha: return "ent_samantha";    // V13.3 Teil 4 Level 5
+        case Entity::Gentleman: return "ent_gentleman";  // V13.3 Teil 4 Level 5.3
         default: return "ent_smiler";
     }
 }
@@ -661,6 +663,8 @@ const char* entityName(Entity e) {
         case Entity::Ouroboros: return "Ouroboros-Arbeiter";  // V13.3
         case Entity::Goblin: return "Plague Goblin";  // V13.3
         case Entity::Jerry: return "Jerry";           // V13.3 Teil 4
+        case Entity::Samantha: return "Samantha";     // V13.3 Teil 4 Level 5
+        case Entity::Gentleman: return "Hausherr";    // V13.3 Teil 4 Level 5.3 (Wiki-Name nicht im Spiel, E-039)
         default: return "?";
     }
 }

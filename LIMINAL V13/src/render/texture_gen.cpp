@@ -1089,6 +1089,35 @@ std::vector<u8> generateItemIcon(const std::string& kind, int size) {
                 float hl = std::exp(-std::pow((u - 0.42f) * 22.0f, 2.0f)) * 0.22f;
                 r += hl, g += hl, b += hl;
             }
+        } else if (kind == "steak") {
+            // V13.3 Teil 4 Level 5 (KREATUR_Samantha.md): rohes Steak auf Metzgerpapier - rot mit Fettrand und Marmorierung
+            const float x = u - 0.5f, y = v - 0.5f;
+            const float paper = std::max(std::fabs(x * 0.9f + y * 0.35f), std::fabs(y * 0.95f - x * 0.3f));
+            if (paper < 0.4f) a = 1, r = 0.86f, g = 0.80f, b = 0.68f;  // Papier
+            const float e = (x * x) / 0.10f + (y * y) / 0.055f + 0.12f * std::sin(std::atan2(y, x) * 3.0f);
+            if (e < 1.0f) {
+                a = 1;
+                const float m = std::sin(u * 47.0f + v * 13.0f) * std::sin(v * 39.0f - u * 7.0f);
+                r = 0.58f + 0.08f * m, g = 0.08f, b = 0.09f;
+                if (m > 0.55f) r = 0.88f, g = 0.72f, b = 0.66f;  // Marmorierung
+                if (e > 0.78f && y < 0.02f) r = 0.94f, g = 0.88f, b = 0.74f;  // Fettrand
+                float hl = std::exp(-std::pow((y + 0.08f) * 14.0f, 2.0f)) * 0.18f;
+                r += hl, g += hl, b += hl;
+            }
+        } else if (kind == "dosenfleisch") {
+            // Dose ohne Marke: verbeultes Blech, verblichenes Papieretikett, Schluessel zum Aufrollen
+            const float x = u - 0.5f, y = v - 0.5f;
+            if (std::fabs(x) < 0.3f && std::fabs(y) < 0.2f) {
+                a = 1;
+                r = 0.62f, g = 0.63f, b = 0.64f;
+                if (std::fabs(y) < 0.13f) r = 0.70f, g = 0.42f, b = 0.30f;  // Etikett
+                if (std::fabs(y) < 0.035f && std::fabs(x) < 0.2f) r = 0.92f, g = 0.86f, b = 0.72f;
+                if (std::fabs(x + 0.08f) < 0.05f && std::fabs(y + 0.07f) < 0.03f) r = 0.55f, g = 0.25f, b = 0.22f;  // Fleischbild
+                float hl = std::exp(-std::pow((x + 0.12f) * 12.0f, 2.0f)) * 0.22f;
+                r += hl, g += hl, b += hl;
+            } else if (x > 0.3f && x < 0.42f && std::fabs(y) < 0.03f) {
+                a = 1, r = 0.55f, g = 0.55f, b = 0.56f;  // Schluessel
+            }
         } else if (kind == "cc_ware") {
             // V13.3 Teil 4: Ware der Cannibal Cuisine - Schokoriegelpapier, ein Ende aufgerissen, darin rohes Fleisch mit Fett
             float c = 0.7071f, s = 0.7071f;

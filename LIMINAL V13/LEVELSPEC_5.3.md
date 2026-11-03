@@ -62,8 +62,9 @@
 ## 3. Konflikte und Grenzen
 
 - **Sieben Stockwerke:** Die Engine kennt je Kachel nur einen Boden. Begehbar sind drei Höhen; die Halle zeigt drei Geschosse Regale. Mehr Stockwerke übereinander lassen sich nicht begehen (technische Grenze, `DECISIONS.md` E-013).
-- **Library Mind:** Er handelt nicht (kein Handel mit Erinnerungen, kein Einsturz von Regalen). Nur fallende Bücher und der langsame Verlust.
-- **Bücher lesen:** nicht möglich. Die Funde liegen auf den Regalböden.
+- **Library Mind:** Er handelt nicht (kein Handel mit Erinnerungen). Nur fallende Bücher und der langsame Verlust; V13.3: Stille während der Ansprache des Hausherrn und sein Zorn danach (Bücher stürzen aus dem Regal).
+- **Bücher lesen:** nur die zwei Funde des Wissens (V13.3: Zettel im Folio, Karteikarten) und das Notizbuch des Hausherrn; die übrigen Funde liegen auf den Regalböden.
 - **Gruppen** (M.E.G. Housekeeping, Ariane Circle, Hermes, Lost Hall Society, Originals): nicht dargestellt.
-- **Entity 18:** nicht dargestellt; die Seite erwähnt ihn nur in einer Erzählung.
+- **Entity 18:** V13.3: als Besuch nach der Schlussgeschichte gebaut (einmal je Ebene, Szene in der Halle, Notizbuch als Fund, Stille, Zorn der Bibliothek) – `KREATUR_Gentleman.md`.
+- **Ambassadors (Entity 141), Macchina (Entity 189):** V13.3: als Wissen (laut Seiten nicht anwesend) – Lesepult mit Folio und Katalogschrank im Obergeschoss, zwei Funde zum Lesen – `KREATUR_Ambassadors.md`, `KREATUR_Macchina.md`.
 - **Unzuverlässiger Eingang:** Der Gang aus Level 5 führt immer hierher.
