@@ -167,7 +167,9 @@ bool WorldRenderer::init(Gpu& gpu, int ringSize) {
     materialData_[FM_ITEM_FUSE] = GpuMaterial{{1, 1, 1}, 0, all(L_FUSE), 1.0f, 0, 0.0f};
     // V13.3: Beil - Eschenstiel (geoelt, abgegriffen), geschmiedeter Kopf (dunkel, die Schneide blank geschliffen)
     materialData_[FM_ITEM_HATCHET_WOOD] = GpuMaterial{{0.62f, 0.45f, 0.28f}, 0, all(L_WOOD), 0.7f, 0, 0.25f};
-    materialData_[FM_ITEM_HATCHET_HEAD] = GpuMaterial{{0.24f, 0.24f, 0.25f}, 0, all(L_METAL), 0.42f, 1.0f, 0.3f};
+    // V13.3 (Abnahme Level 0): Metallanteil 0,6 statt 1,0 - geschmiedetes Eisen mit Zunder streut etwas Licht; rein
+    // metallisch war der Kopf im Lampenlicht ohne Spiegelbild schwarz (itemsheet, Zeile "50cm_lampe")
+    materialData_[FM_ITEM_HATCHET_HEAD] = GpuMaterial{{0.24f, 0.24f, 0.25f}, 0, all(L_METAL), 0.42f, 0.6f, 0.3f};
     // V13.3: Leuchtstab - Huelle aus mattem, durchscheinendem Kunststoff (ungeknickt blass gelbgruen, glaenzend); geknickt
     // leuchtet die Fluessigkeit gruen (hell, gegen Ende matt); Kappe aus festem, dunklerem Kunststoff
     materialData_[FM_ITEM_GLOWSTICK] = GpuMaterial{{0.58f, 0.72f, 0.42f}, 0, all(L_DIFFUSER), 0.3f, 0, 0.05f};

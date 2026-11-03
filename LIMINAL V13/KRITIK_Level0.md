@@ -82,3 +82,38 @@ Befunde:
   (`ssr.hlsl`).
 - **Werkzeug:** Die Gestalt wird erst 40 Bilder nach dem Versetzen aufgenommen. Bei Halluzination 3 dreht sich die Kamera
   zur Gestalt (`face gestalt`), im Dunkeln und danach im Licht. Neue Ansicht `zones_8` blickt in den Bogen-Durchgang.
+
+## Runde 3 (`wesen_r3_1.jpg` … `_3.jpg`, Laufweg `wegbilder_r3_*`: 205 m, 24 Räume, 52 Bilder)
+
+Prüfung der Änderungen aus Runde 2:
+- **Laufweg:** Gleiche Strecke wie Runde 2. Mittlere Bildabweichung je Bild höchstens 0,15 von 255 (Bild 001: dort hing
+  die Leuchte am Startpunkt), Median 0,04. Die neue Spiegelung verändert die Vorzimmer nicht.
+- **Bögen** (`zones_2`, neue Ansicht `zones_8`): Der Teppich läuft durch den Bogen, die Laibung ist Putz wie Bogen und
+  Wand. Die dunkle Platte hinter dem rechten Bogen ist die Treppe zum höheren Süden (Prüfstand mit Lampe: zwei
+  Teppichstufen). Kein Fehler.
+- **Stromausfall** (`blackout_2`, `_3`): Die Leuchten sind im Ausfall dunkelgrau und nicht mehr weiß. Der Gang hinter
+  der Öffnung bleibt hell (anderer Stromkreis). So soll ein Ausfall des Raums aussehen.
+- **Dunkelzone** (`zones_4`, `_4_lampe`): ohne Lampe ganz schwarz (0 Bildpunkte über 60; vorher 260), mit Lampe nasser
+  Beton ohne Schlieren.
+- **Naht** (`zones_7`): ohne grüne Leuchte. Der Blick geht durch die gelbe Naht auf den Beton von Level 1.
+- **Gestalt** (`gestalt_3`, `_4`): Der Rand ist jetzt auch ohne Lampe weich.
+- **Halluzination 3** (`ghost_1` … `_3`): Nach dem Ausfall steht die Gestalt in 19 m Abstand als Umriss in der hellen
+  Öffnung am Ende des dunklen Säulenfelds. Im zurückgekehrten Licht steht sie noch dort, mit Lampe kaum heller. Das ist
+  die stärkste Szene der Ebene. Die Farben sind bei Verstand 12 blass (gewollte Wirkung des niedrigen Verstands).
+
+Neue Befunde:
+1. **Beil in der Hand** (`hand_5`, `_6`; Prüfstand `docs/screens/props/items/l0_beil/swing_vorher.jpg`, 8 Bilder über 0,6 s): Beim Ausholen
+   füllt eine riesige Hand die rechte obere Ecke, und die Finger wirken wie ein Schlauch mit Holzmaserung (der Stiel
+   direkt vor dem Auge). Die Ursache: Die Hand steht beim Ausholen 0,1 m vor und 0,27 m neben dem Auge. Beim Hieb sieht
+   man nur einen dunklen Stummel, nämlich den Nacken des Kopfs von hinten. Als Beil ist das nicht zu erkennen. Das
+   betrifft das Beil auf allen Ebenen (Fund in Level 1).
+2. **Beilkopf im Lampenlicht schwarz** (Befund 9 aus Runde 2).
+
+Änderungen:
+- **Schwung des Beils** (`body.cpp`, nur die Darstellung; der Treffer rechnet weiter mit Auge und Blick):
+  - ausgeholt 0,24 m vor, 0,1 m über und 0,3 m neben dem Auge (vorher 0,1 / 0,08 / 0,27);
+  - der Kopf ist 0,5 rad um den Stiel gekantet.
+  - Ergebnis (`l0_beil/swing_nachher2.jpg`, 5 Bilder): Beim Ausholen sieht man oben rechts Eschenstiel und Stahlkopf in normaler Größe,
+    beim Hieb die graue Wange des Kopfs vor dem Teppich.
+- **Beilkopf:** Metallanteil 0,6 statt 1,0 (`world_renderer.cpp`). Damit streut der geschmiedete Kopf etwas Licht. Vorher
+  und nachher in der Lampenzeile: `docs/screens/props/items/l0_r2/hatchet.jpg` → `l0_r3/hatchet.jpg`.

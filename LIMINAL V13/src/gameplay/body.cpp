@@ -397,7 +397,9 @@ void Body::update(double dt, const Player& p) {
             w = t < 0.12f ? smoothT(t / 0.12f) : (t > 0.52f ? smoothT((dur - t) / (dur - 0.52f)) : 1.0f);
             const float up = smoothT(t / 0.2f), chop = smoothT((t - 0.2f) / 0.13f);
             const vec3 low = eye_ + hf * 0.36f - hu * 0.26f + R * 0.2f;
-            const vec3 raised = eye_ + hf * 0.1f + hu * 0.08f + R * 0.27f;
+            // V13.3 (Abnahme Level 0): ausgeholt 0,4 m vom Auge statt 0,3 m (bei 0,1 m vor dem Auge fuellte die Hand
+            // riesig die rechte obere Ecke); der Kopf des Beils steht dann ueber dem Bildrand
+            const vec3 raised = eye_ + hf * 0.24f + hu * 0.1f + R * 0.3f;
             const vec3 struck = eye_ + hf * 0.6f - hu * 0.34f + R * 0.05f;
             target = lerp(lerp(low, raised, up), struck, chop);
             showHeld_ = true;
@@ -449,7 +451,10 @@ void Body::update(double dt, const Player& p) {
             // dann schlaegt der Kopf nach vorn unten; die Schneide zeigt immer in die Schlagrichtung
             const float th = 0.55f + (-1.25f) * smoothT(t / 0.2f) + 2.45f * smoothT((t - 0.2f) / 0.13f) - 0.6f * smoothT((t - 0.4f) / 0.3f);
             const vec3 x = normalize(hu * std::cos(th) + hf * std::sin(th));
-            const vec3 y = normalize(hf * std::cos(th) - hu * std::sin(th));
+            const vec3 y0 = normalize(hf * std::cos(th) - hu * std::sin(th));
+            // V13.3 (Abnahme Level 0): der Kopf leicht gekantet (0,5 rad um den Stiel) - beim Hieb sieht man die Wange
+            // des Beils statt nur seinen schmalen Nacken von hinten
+            const vec3 y = normalize(y0 * std::cos(0.5f) + cross(x, y0) * std::sin(0.5f));
             const vec3 z = cross(x, y);
             heldRot_ = columns(x * heldScale_, y * heldScale_, z * heldScale_, vec3(0, 0, 0));
             heldPos_ = pose_.hand[1] - z * 0.0146f * heldScale_;
