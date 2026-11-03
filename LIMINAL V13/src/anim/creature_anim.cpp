@@ -71,6 +71,7 @@ void CreatureAnimator::init(Entity e, vec3 pos, float yaw, unsigned seed) {
     pose_ = bindPose(*sk_);
     creatureFrames(*sk_, pose_, bindFrames_);
     legs_ = e == Entity::Hound || e == Entity::Rat || e == Entity::Samantha ? 4 : (isBiped(e) || e == Entity::Duller || e == Entity::Gentleman ? 2 : 0);  // V13.3 Teil 4 Level 5: Samantha
+    if (e == Entity::Listener) legs_ = 3;  // V13.3 Teil 4 Level 188: der Horcher - zwei Fuesse und die Klopf-Faust
     int chains = 0;
     switch (e) {
         case Entity::Smiler: chains = sm::kWisps; break;
@@ -132,6 +133,16 @@ void CreatureAnimator::snap(vec3 pos, float yaw) {
             l.t = 0.0f;
         }
     }
+    if (e_ == Entity::Listener) {  // V13.3 Teil 4 Level 188: Knoechel und Faust der Ruhepose
+        const int ids[3] = {hr::legJ(0, 2), hr::legJ(1, 2), hr::armJ(1, 3)};
+        for (int i = 0; i < 3; ++i) {
+            Leg& l = leg_[i];
+            l.plant = l.from = l.to = restAt(ids[i]);
+            l.plant.z = l.from.z = l.to.z = pos.z;
+            l.swing = false;
+            l.t = 0.0f;
+        }
+    }
     if (e_ == Entity::Gentleman) {  // V13.3 Teil 4 Level 5.3: Knoechel der Ruhepose
         for (int i = 0; i < 2; ++i) {
             Leg& l = leg_[i];
@@ -178,6 +189,7 @@ float CreatureAnimator::height() const {
     if (e_ == Entity::Rat && !extra_.empty() && extra_[0] > 1.5f) return ratL3Height();  // V13.3 Level 3: grosse Ratte, Falle
     if (praetorian()) return std::max(0.4f, pose_.j[mo::ANTT_L].z - pos_.z);             // V13.3 Level 3: Praetorianer
     if (e_ == Entity::Gentleman) return std::max(1.0f, pose_.j[gm::HEADTOP].z - pos_.z);  // V13.3 Teil 4 Level 5.3: Verbeugung
+    if (e_ == Entity::Listener) return std::max(1.0f, std::max(pose_.j[hr::CHEST].z, pose_.j[hr::EARTIP].z) - pos_.z + 0.12f);  // V13.3 Teil 4 Level 188
     return sk_->height;
 }
 
@@ -203,6 +215,7 @@ vec3 CreatureAnimator::headPos() const {
         case Entity::Jerry: return headPos_;        // V13.3 Teil 4: zwischen den Augen (Blickkontakt, Schreck)
         case Entity::Samantha: return headPos_;     // V13.3 Teil 4 Level 5: zwischen den Augen
         case Entity::Gentleman: return headPos_;    // V13.3 Teil 4 Level 5.3: zwischen den Augen
+        case Entity::Listener: return pose_.j[hr::CANAL];  // V13.3 Teil 4 Level 188: der Gehoergang (Mund) mitten im Ohr
         default: return pose_.j[ns::TOP];
     }
 }
@@ -238,6 +251,7 @@ void CreatureAnimator::update(double dtIn, const Input& in) {
     if (e_ == Entity::Jerry) turn = 2.2f;         // V13.3 Teil 4: tritt auf dem Rohr langsam herum
     if (e_ == Entity::Samantha) turn = 7.0f;      // V13.3 Teil 4 Level 5: die Katze wendet flink
     if (e_ == Entity::Gentleman) turn = 2.4f;     // V13.3 Teil 4 Level 5.3: gemessen
+    if (e_ == Entity::Listener) turn = 3.0f;      // V13.3 Teil 4 Level 188: schwerfaellig auf der Faust
     if (e_ == Entity::Rat && !extra_.empty() && extra_[0] > 1.5f) turn = extra_[0] > 2.5f ? 1000.0f : 3.5f;  // V13.3 Level 3: schwer; Falle fest
     if (praetorian()) turn = 7.0f;                // V13.3 Level 3: Praetorianer - wendig
     if (bigClump()) turn = 3.2f;                  // V13.3 Level 3: das grosse Buendel - wendiger als das kleine
@@ -285,6 +299,7 @@ void CreatureAnimator::update(double dtIn, const Input& in) {
         case Entity::Jerry: updateJerry(dt, in); break;    // V13.3 Teil 4
         case Entity::Samantha: updateSamantha(dt, in); break;  // V13.3 Teil 4 Level 5
         case Entity::Gentleman: updateGentleman(dt, in); break;  // V13.3 Teil 4 Level 5.3
+        case Entity::Listener: updateListener(dt, in); break;    // V13.3 Teil 4 Level 188
         default: updateNest(dt, in); break;
     }
     last_ = in;

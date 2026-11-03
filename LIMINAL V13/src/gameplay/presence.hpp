@@ -55,8 +55,9 @@ public:
     // V13.3 Teil 4: Jerry hinter den Plague Goblins (presence_jerry.cpp)
     // V13.3 Teil 4 Level 5: Samantha hinter Jerry (presence_samantha.cpp)
     // V13.3 Teil 4 Level 5.3: der Hausherr hinter Samantha (presence_gentleman.cpp)
-    enum class Role { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Wrangler, Growler, Nguithr, Ouroboros, Goblin, Jerry, Samantha, Gentleman };
-    static constexpr int kRoleCount = 21;  // V13.3: Duller, Arms, Wrangler (KREATUR_Wrangler.md), Growler, Nguithr'xurh, Ouroboros-Arbeiter, Plague Goblins, Jerry
+    // V13.3 Teil 4 Level 188: der Horcher hinter dem Hausherrn (presence_listener.cpp)
+    enum class Role { Smiler, Hound, Moth, Gestalt, Nest, Clump, Faceling, SkinStealer, Wretch, Rat, Window, Duller, Arms, Wrangler, Growler, Nguithr, Ouroboros, Goblin, Jerry, Samantha, Gentleman, Listener };
+    static constexpr int kRoleCount = 22;  // V13.3: Duller, Arms, Wrangler (KREATUR_Wrangler.md), Growler, Nguithr'xurh, Ouroboros-Arbeiter, Plague Goblins, Jerry
     static const char* roleName(Role r);
 
     struct Event {
@@ -456,6 +457,18 @@ public:
     GentInfo gentInfo() const;
     void gentProvoke(int player);
     bool gentSet(const std::string& key, double v);
+    // V13.3 Teil 4 Level 188 (KREATUR_Horcher.md; presence_listener.cpp): der Horcher hinter den verschlossenen Tueren der Gaenge.
+    // listenerSpots: Orte aus der Karte (Sitzung: Spawnpunkte trace/hr - Tag knock: vor einer verschlossenen Tuer, Tag emerge:
+    // hinter einer offenen Zellentuer, Blick in den Gang); listenerInfo (Tests): Zustand von Klopfen und Wesen; listenerSet
+    // (Tests, Skripte): quick, next, knock, emerge, hold, pose, state, place
+    struct ListenerInfo {
+        bool active = false, knocking = false, listening = false;
+        int state = -1, target = -1, sequences = 0, answers = 0, emerges = 0, strikes = 0, flinches = 0, quiet = 0, door = -1;
+        vec3 pos, head, heard;
+    };
+    void listenerSpots(const std::vector<vec3>& knock, const std::vector<vec3>& emerge, const std::vector<float>& emergeYaw);
+    ListenerInfo listenerInfo() const;
+    bool listenerSet(const std::string& key, double v);
 
 private:
     struct Agent;
@@ -611,6 +624,10 @@ private:
     void regieGentleman(double dt, const Context& c, std::vector<Event>& out);
     bool spawnGentleman(const Context& c, std::vector<Event>& out, bool forced);
     void thinkGentleman(Agent& a, double dt, const Context& c, std::vector<Event>& out);
+    // V13.3 Teil 4 Level 188: der Horcher (presence_listener.cpp)
+    void regieListener(double dt, const Context& c, std::vector<Event>& out);
+    bool spawnListener(const Context& c, std::vector<Event>& out, bool forced);
+    void thinkListener(Agent& a, double dt, const Context& c, std::vector<Event>& out);
     void updateHive(double dt, const Context& c, std::vector<Event>& out);
     bool walkTo(Agent& a, const NavField& f, double speed, double dt, const Context& c);
     bool hiddenSpawn(const Context& c, int lo, int hi, bool behind, vec3& out, const std::function<bool(vec3)>& ok = {});
@@ -674,6 +691,8 @@ private:
     std::shared_ptr<void> samStats_;
     // V13.3 Teil 4 Level 5.3: der Hausherr - Szene (Orte), Regie, Zaehler (presence_gentleman.cpp)
     std::shared_ptr<void> gent_;
+    // V13.3 Teil 4 Level 188: der Horcher - Tueren, Klopfen, Regie, Zaehler (presence_listener.cpp)
+    std::shared_ptr<void> lis_;
 };
 
 }  // namespace lim::game

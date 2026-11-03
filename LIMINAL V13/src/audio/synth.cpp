@@ -26,6 +26,7 @@ std::unordered_map<std::string, Sound> synthesizeAll(JobSystem& jobs, int rate) 
     addJerrySounds(defs, rate);      // V13.3 Teil 4: Jerry
     addHotelSounds(defs, rate);      // V13.3 Teil 4 Level 5: Samantha, Kolonie, Woodlins, Watchers, Gastgeber
     addGentlemanSounds(defs, rate);  // V13.3 Teil 4 Level 5.3: der Hausherr, die Bibliothek
+    addListenerSounds(defs, rate);   // V13.3 Teil 4 Level 188: der Horcher, die Wurzelpistole
     addLureSounds(defs, rate);      // V13.3: Leuchtstab, Ansprechen
     addPhenomenaSounds(defs, rate);  // V13.3: Erscheinungen von Level 1
     addL2Sounds(defs, rate);         // V13.3 Teil 4: Level 2 (Fenster, Motten, Ratten)

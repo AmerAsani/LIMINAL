@@ -577,7 +577,7 @@ const CreatureSkeleton& entitySkeleton(Entity e) {
                                                                    makeClump(), makeBiped(Entity::Faceling), makeBiped(Entity::SkinStealer),
                                                                    makeBiped(Entity::Wretch), makeRat(), makeWindow(), du::skeleton(),
                                                                    ar::skeleton(), wg::makeWrangler(), makeGrowlerSkeleton(), makeNguithrSkeleton(),
-                                                                   ob::makeSkeleton(), gb::makeSkeleton(), jy::makeSkeleton(), sa::makeSkeleton(), gm::makeSkeleton()};  // V13.3
+                                                                   ob::makeSkeleton(), gb::makeSkeleton(), jy::makeSkeleton(), sa::makeSkeleton(), gm::makeSkeleton(), hr::makeSkeleton()};  // V13.3
     return all[(size_t)std::min((int)e, kEntityCount - 1)];
 }
 
@@ -604,6 +604,7 @@ const char* entityModel(Entity e) {
         case Entity::Jerry: return "ent_jerry";          // V13.3 Teil 4
         case Entity::Samantha: return "ent_samantha";    // V13.3 Teil 4 Level 5
         case Entity::Gentleman: return "ent_gentleman";  // V13.3 Teil 4 Level 5.3
+        case Entity::Listener: return "ent_listener";    // V13.3 Teil 4 Level 188 (KREATUR_Horcher.md)
         default: return "ent_smiler";
     }
 }
@@ -665,6 +666,7 @@ const char* entityName(Entity e) {
         case Entity::Jerry: return "Jerry";           // V13.3 Teil 4
         case Entity::Samantha: return "Samantha";     // V13.3 Teil 4 Level 5
         case Entity::Gentleman: return "Hausherr";    // V13.3 Teil 4 Level 5.3 (Wiki-Name nicht im Spiel, E-039)
+        case Entity::Listener: return "Horcher";      // V13.3 Teil 4 Level 188 (eigene Benennung; das Wiki nennt keinen Namen)
         default: return "?";
     }
 }

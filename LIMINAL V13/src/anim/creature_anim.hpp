@@ -120,6 +120,7 @@ private:
     void updateJerry(float dt, const Input& in);  // V13.3 Teil 4: creature_jerry.cpp (Jerry auf dem Rohr)
     void updateSamantha(float dt, const Input& in);  // V13.3 Teil 4 Level 5: creature_samantha.cpp (die Katze)
     void updateGentleman(float dt, const Input& in);  // V13.3 Teil 4 Level 5.3: creature_gentleman.cpp (der Hausherr)
+    void updateListener(float dt, const Input& in);   // V13.3 Teil 4 Level 188: creature_listener.cpp (der Horcher)
     // V13.3 Level 3 (KREATUR_DeathRat.md, KREATUR_Deathmoth.md): grosse Death Rat und ihre Falle (creature_rat_l3.cpp),
     // Praetorianer (creature_moth_l3.cpp) - Variante ueber extra_[0] (2 Ratte, 3 Falle; 5 Praetorianer)
     void updateRatL3(float dt, const Input& in);
