@@ -345,7 +345,10 @@ def _M():
     mt = common.material
     return {
         # Wagenkasten
-        'alu': mt('wagen_alu', (0.74, 0.76, 0.78), look='metal', tex='metal_aluminum', rough=0.35, metal=0.9, r=0.75, m=0.75),
+        # V13.3 (Abnahme Level 903, Runde 4): r 0,75 -> 1,05, m 0,75 -> 0,55 - nur im Lampenlicht (Ebenenlicht aus) war die
+        # Wagenseite schwarz, nur roter Streifen und Fensterrahmen leuchteten (kein Eigenschatten: glattes Metall ohne
+        # Streuanteil); jetzt gebuerstet wie die Laibungen, mit breitem Schimmer im Lichtkegel
+        'alu': mt('wagen_alu', (0.74, 0.76, 0.78), look='metal', tex='metal_aluminum', rough=0.45, metal=0.8, r=1.05, m=0.55),
         'alu_dull': mt('wagen_alu_matt', (0.55, 0.57, 0.58), look='metal', tex='metal_aluminum', rough=0.55, metal=0.8, r=1.2, m=0.55),
         'alu_old': mt('wagen_alt', (0.50, 0.53, 0.55), look='metal', tex='painted_metal_grey', rough=0.6, metal=0.3, r=1.0, m=0.25),
         'paint_old': mt('wagen_alt_lack', (0.34, 0.355, 0.365), look='paint', rough=0.6, r=1.0),
@@ -368,7 +371,9 @@ def _M():
         'disp_bg': mt('anzeige_schwarz', (0.018, 0.018, 0.02), look='plastic', rough=0.3, r=0.4),
         'disp': mt('anzeige_weiss', (0.95, 0.98, 1.0), look='glow', glow=1.6),
         'disp_amber': mt('anzeige_bernstein', (1.0, 0.62, 0.18), look='glow', glow=1.2),
-        'under': mt('unterboden', (0.10, 0.10, 0.10), look='paint', tex='painted_metal_grey', rough=0.8, r=1.25),
+        # V13.3 (Abnahme Level 903, Runde 3): ohne Lacktextur - im Lampenlicht vom Gleis wurde der Rammschutz mit
+        # painted_metal_grey weiss mit schwarzen Flecken (Dalmatiner); jetzt stumpfer, russiger Unterbodenschutz
+        'under': mt('unterboden', (0.085, 0.083, 0.08), look='paint', rough=0.9, r=1.45),
         'under_brown': mt('unterboden_rost', (0.16, 0.12, 0.09), look='metal', tex='metal_rusty_iron', rough=0.8, metal=0.3, r=1.2, m=0.2),
         'bogie': mt('drehgestell', (0.17, 0.155, 0.14), look='metal', tex='metal_rusty_iron', rough=0.7, metal=0.4, r=1.15, m=0.3),
         'wheel': mt('rad', (0.36, 0.33, 0.30), look='metal', tex='metal_rusty_iron', rough=0.6, metal=0.6, r=1.0, m=0.5),
@@ -1093,7 +1098,8 @@ def _car_end(prefix, sgn, M, rng, kind, front):
         for yy in (0.26, 0.12):
             _cyl(f'{prefix}_tuergriff{side}_{yy}', (xg0, yy, 0.98), (xg, yy, 0.98), 0.009, M['steel'], seg=6)
         _cyl(f'{prefix}_tuergriff{side}', (xg, 0.27, 0.98), (xg, 0.11, 0.98), 0.012, M['steel'], seg=8)
-    _box(f'{prefix}_tuerblech', (min(dx0, dx1) - 0.002, -0.33, 0.03), (max(dx0, dx1) + 0.002, 0.33, 0.25), M['chrome_worn'])
+    # Trittblech gebuerstet (V13.3 Abnahme Level 903, Runde 3: als Edelstahl im Lampenlicht ein leeres weisses Rechteck)
+    _box(f'{prefix}_tuerblech', (min(dx0, dx1) - 0.002, -0.33, 0.03), (max(dx0, dx1) + 0.002, 0.33, 0.25), M['alu_dull'])
     # Eckpfosten (gefast) entlang des Profils
     for s in (-1, 1):
         rings = []

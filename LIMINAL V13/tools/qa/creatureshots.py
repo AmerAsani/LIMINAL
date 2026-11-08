@@ -377,11 +377,17 @@ def _l903():
             _view('metro_7', 80.0, 4.6, 0.0, -0.02, lamp=True) +
             # Runde 3: unter dem Wagen (Stirn vom Gleis, Spalt an der Tuer, Wandseite vom schmalen Streifen am Gleis)
             _view('metro_8', 86.0, 5.0, 0.0, -0.15, lamp=True) + _view('metro_9', 97.0, 7.35, -1.5708, -0.95) +
-            _view('metro_10', 100.0, 2.5, 1.5708, -0.35, lamp=True) + 'quit'),
-        # friedlich: die Gruppe geht ihres Wegs; wer laenger nah ist, dem winkt eines (nach etwa 4 s mit Sicht)
-        'faceling': ('Facelings, friedlich (Entity 9): Gruppe, Lampe, Winken, Varianten',
-            W0 + 'pos 140 11.5 0 0; wait 20; presence faceling 12; wait 120; near faceling 6 0 1; face faceling; wait 2; '
-            'shot {out}/faceling_1.png; key T; wait 90; shot {out}/faceling_2.png; key T; wait 20; near faceling 3.5; '
+            _view('metro_10', 100.0, 2.5, 1.5708, -0.35, lamp=True) +
+            # Runde 4: Wagenseite nur im Lampenlicht, frontal aus 2 m und schraeg entlang der Seite (E-041)
+            dark('metro_11', 98.0, 8.4, -1.5708, -0.08) + dark('metro_12', 104.0, 9.6, -2.2, -0.08) + 'quit'),
+        # friedlich: die Gruppe geht ihres Wegs; wer laenger nah ist, dem winkt eines (nach etwa 4 s mit Sicht).
+        # Runde 5: Facelings erscheinen ausser Sicht - auf dem offenen Steig ist das fast nur der fahrende Wagen (Runde 4:
+        # Gruppe bei 99,5/5,5, hinter der Wagenwand nicht zu sehen). Sie kommen also mit dem Wagen an (Wiki: hinein nur mit
+        # dem Wagen): erst durch die offene Tuer in den Wagen, nach 15 s auf dem Steig, dann nah heran fuer das Winken
+        'faceling': ('Facelings, friedlich (Entity 9): Ankunft im Wagen, Steig, Lampe, Winken, Varianten',
+            W0 + 'pos 124 11.5 3.1416 0; wait 20; presence faceling 9; wait 30; pos 100.5 8.9 -1.5708 0.02; wait 30; '
+            'shot {out}/faceling_1.png; key T; wait 90; shot {out}/faceling_2.png; key T; pos 112 10.5 3.1416 0; wait 900; '
+            'face faceling; wait 2; shot {out}/faceling_8.png; near faceling 3.5 0 1; '
             'face faceling; wait 240; shot {out}/faceling_3.png; figclear; pos 120 11.5 3.1416 0; wait 10; '
             'figure faceling 3.2; figstate variant 0; wait 60; shot {out}/faceling_4.png; figstate variant 3; wait 30; '
             'shot {out}/faceling_5.png; figstate variant 4; wait 30; shot {out}/faceling_6.png; key T; wait 90; '
