@@ -130,3 +130,22 @@ Schlecht:
 
 Änderung für Runde 5:
 - Zone `sackgasse`: dichter dunkler Nebel 0,18 statt 0,06 (Farbe `dark_fog`), Karte unverändert.
+
+## Runde 5
+
+Bögen `wegbilder_r5_*.jpg` (481 m, 15 Räume, 121 Bilder), `wesen_r5_1..4.jpg`.
+
+Bestätigt: Wände, Terrazzo, Putz, Läden, keine violetten Flecken – wie Runde 4, über den ganzen Weg.
+
+Schlecht:
+- **Sackgasse** im Bild fast unverändert (mittlere Helligkeit des Ausschnitts r4 75,0 → r5 72,2): der Nebel folgt dem Raum
+  des Spielers mit einer Zeitkonstante von gut 0,8 s (`session.cpp`), das Bild entstand 1 s nach dem Versetzen; dazu
+  gleicht die Belichtung aus. Die Aufnahme zeigt also den Übergang, nicht den Zustand.
+- **C33: eine helle Platte schwebt im Türausschnitt** (`wesen_r5_4` gates_5, Ausschnitt in voller Größe oben rechts in der
+  Öffnung). Ursache: das Licht aus der offenen Tür steht in der Karte als Wandleuchte (Art 1); dazu zeichnet die Engine
+  einen Leuchtkörper 0,5 × 0,26 m auf 1,9 m Höhe an die Wand – vor der hellen Fläche der Fluggastbrücke.
+
+Änderungen für Runde 6:
+- `tools/levels/level36.py` (am Ende, ohne Zufall): das Licht an C33 wird ein Licht ohne Leuchtkörper (Art 0 ohne Panel,
+  2,2 m hoch, Ort, Farbe, Stärke wie bisher); Karte neu erzeugt, Vergleich mit der alten Karte: nur dieser Eintrag.
+- `creatureshots.py`: in der Sackgasse 5 s warten (Nebel und Belichtung angeglichen), dann Bild und Lampe.

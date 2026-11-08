@@ -237,4 +237,12 @@ for o in m.objects:
     o.pop('variant', None)
     if v_:
         o['variant'] = v_
+
+# V13.3 (Abnahme Level 36, KRITIK_Level36 Runde 5): das Licht aus der offenen Tuer an C33 war eine Wandleuchte - dazu
+# zeichnet die Engine einen Leuchtkoerper an die Wand (0,5 m breit, 1,9 m hoch), der im hellen Tuerausschnitt schwebte.
+# Jetzt ein Licht ohne Leuchtkoerper vor der Tuer (Art 0 ohne Panel, 2,2 m hoch); Ort, Farbe und Staerke wie bisher.
+for r_ in m.rooms:
+    for l_ in r_.lights:
+        if l_[2] == 1 and len(l_) >= 12 and tuple(l_[9:12]) == (0.9, 1.0, 0.92):
+            l_[2], l_[5], l_[6], l_[7] = 0, 0, 0, 2.2
 m.save()

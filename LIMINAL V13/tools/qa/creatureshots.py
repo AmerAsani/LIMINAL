@@ -463,7 +463,9 @@ def _l36():
         'rundgang': ('Rundgang: Waende aus Aluminium, Laufband mit Glas, stehendes Band, Wegweiser, Sackgasse hinter EXIT',
             W0 + _view('rundgang_1', 63.0, 14.5, 0.0, 0.0) + _view('rundgang_2', 80.0, 13.8, -0.6, -0.2, lamp=True) +
             _view('rundgang_3', 100.0, 13.8, -0.3, -0.35) + _view('rundgang_4', 98.0, 13.0, -1.5708, 0.15) +
-            _view('rundgang_5', 98.0, 8.2, -1.5708, 0.1, lamp=True) + _view('rundgang_6', 70.0, 36.0, 0.0, 0.0) + 'quit'),
+            # Runde 5: in der Sackgasse 5 s warten - Nebel und Belichtung gleichen sich erst nach dem Betreten an
+            'pos 98.0 8.2 -1.5708 0.1; wait 300; shot {out}/rundgang_5.png; key T; wait 90; shot {out}/rundgang_5_lampe.png; '
+            'key T; wait 30; ' + _view('rundgang_6', 70.0, 36.0, 0.0, 0.0) + 'quit'),
         'laeden': ('Ladenzeile: Fronten, Schaufenster (Spiegelstreifen), geschlossen, Lounge, Meeting Place',
             W0 + _view('laeden_1', 69.0, 24.5, 0.0, 0.0) + _view('laeden_2', 99.5, 20.0, -1.5708, 0.0) +
             _view('laeden_3', 113.5, 28.5, 1.5708, 0.0, lamp=True) + _view('laeden_4', 104.0, 44.0, 0.6, -0.05) +
