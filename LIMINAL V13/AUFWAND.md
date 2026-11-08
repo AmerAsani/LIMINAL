@@ -37,6 +37,49 @@ Gefundene und behobene Fehler:
   - Leuchtstab-Funde und offenes Mandelwasser beim Spät-Beitritt doppelt gezählt (Prüfsumme wich ab).
 - Zusammenführen: Zeilenenden-Konflikt der Testdatei (E-037).
 
+**Neu gebaute Assets (Level 1)** – Nachtrag 08.11.2026 (Schlussprüfung: der Eintrag war dünner als der von Level 0; die
+Angaben stammen aus den Ausstattungs- und Wesen-Dokumenten, nichts neu bewertet):
+- **Teil A, Code-Modelle in Blender** (`models_l1_code.py`, `PROPS_Level1.md`): `batten` (an/tot), `ceiling_vent` (2),
+  `chair` (2), `desk_crt` (3), `gauge` (4), `highbay`, `pipe_run` (4) mit neu `pipe_elbow`, `pipe_wall`, `pipe_drop`,
+  `power_box`, `rack` (6: Kartonlager, gewickelt, ausgeräumt, Wasserschaden, Kisten, …), `safety_light`, `side_table` (2).
+- **Teil B in Blender** (`PROPS_Level1_B.md`): `arch_tall3/4`, `column_round`, `crate_a/b/c`, `debris_a/b`,
+  `exit_sign_green`, `hanging_bulb`, `hospital_bed`, `padded_panel`, `painting_a–f`, `painting_lean_a–c`,
+  `pillar_band*` (5), `swing_door1/2`, `work_table`; aus den Kritikrunden `arcade_gothic`.
+- **Sektoren** (`PROPS_Level1_Sektoren.md`, 27 Klassen, 40 Modelle): Ouroboros `scaffold` (3), `wall_unfinished` (2),
+  `cement_bags`, `rebar_bundle`, `formwork`, `work_light`, `cement_mixer`, `wheelbarrow`, `sawhorse`, `site_barrier`,
+  `tarp_pile`; Garden `vines_ceiling` (3), `ivy_wall` (2), `moss_patch` (3), `fern_cluster`, `roots_floor`,
+  `shrub_concrete`, `sapling`, `overgrown_crate`; Fabled `neon_tube` (4), `neon_sign` (2), `cable_hang` (2),
+  `cabinet_vermilion`, `table_vermilion`, `bench_vermilion`, `screen_vermilion`, `panel_vermilion`.
+- **Erscheinungen** (`models_l1_phenomena.py`, 19 Modelle): `fungus_wall` (3), `fungus_floor` (3), `fungus_camp`,
+  `claw_marks`, `goo_trail`, `plant_wanderer` (2), `painting_floor` (4), `painting_jester` (3), `almond_open`;
+  dazu `door_oversize`.
+- **Wesen** (je Stufe l0–l2, Briefings `KREATUR_*.md`): `ent_duller`, `ent_arms`, `ent_wrangler` (mit `_f`, `_fs`,
+  Brut), `ent_growler`, `ent_nguithrxurh` (mit Netz und eingesponnener Motte), `ent_ouroboros` (mit `_heavy`,
+  `_scaffold`, `_wall`), `ent_goblin` (mit `_gate`, `_scout`, Portal); der Crawler-Befall nutzt `fungus_wall/floor/camp`
+  (oben), der Leuchtstab-Köder für den Smiler ein eigenes Netz im Code (`render/mesh_glowstick.cpp`, drei Stufen;
+  `KREATUR_Smiler.md`).
+
+**Bilder:**
+- Laufweg `docs/screens/level1/wegbilder_r1_*` … `_r7_*`, `wegbilder_vorher_*`, Karten `wegkarte_r1.png` … `_r7.png`.
+- Bereiche und Wesen `docs/screens/level1/01_ankunft_aquila.jpg` … `21_smiler.jpg`.
+- Ausstattung `docs/screens/level1/props_uebersicht_*` (A vorher/final, B r1/r2, Sektoren r1–r6 und final),
+  Einzelbögen `docs/screens/props/level1/<runde>/`; Wesen in den Briefings (`docs/screens/creatures/<name>/`).
+- Schlussprüfung: `docs/screens/props/level1/repair_vorher/`, `repair_nachher/` (Modellprüfung B-033).
+
+**Nachtrag Schlussprüfung (08.11.2026):** Die Modellprüfung der Abnahme (01.11.) umfasste nur die Ausstattung der Karte.
+Über alle 670 Modelle fielen 31 Modelle der Level-1-Wesen und -Erscheinungen auf (Arms, Duller, Plague Goblins,
+Ouroboros-Arbeiter/Gerüst/Mauer, Skin-Stealer-Haut, Bild der Spielleiterin, übergroße Tür: entartete oder gedrehte
+Dreiecke) → `repair_glb.py`, danach 670/0 (B-033). Vorher/Nachher der zwei Ausstattungsstücke mit Rückseitenkappung:
+mittlere Abweichung 0,15 (Rauschen). Smoke-Test 08.11.: GPU 4,55 ms (max 6,59), RAM 1 338 MB (Spitze 1 422 MB), 0 Fehler.
+
+**Restpunkte** (begründet, Einzelheiten in `PROPS_Level1*.md`, Abschnitte „Restmängel“, und `KRITIK_Level1.md`):
+- Die Karte setzt nur gerade Rohrstücke (Schelle je Meter); im Rohrgang geht eine Stange der unteren Lage durch das
+  obere Rohr.
+- Insekten im Leuchtband gehen im Bloom unter; Holz von Stuhl und Beistelltisch zeigt Dielenfugen der Fototextur.
+- Stretchfolie ohne echte Transparenz; `ceiling_vent` ohne echtes Deckenloch (2,5 cm Laibung).
+- `rack` mit etwa 4 300 Dreiecken je Feld am oberen Rand.
+- Die Fabled-Halle bleibt dunkel mit Lichtinseln (gewollt: dunkelster Wohnbereich).
+
 ## Level 2 – abgenommen (02.11.2026)
 
 | Punkt | Stand |
