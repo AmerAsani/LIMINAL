@@ -168,10 +168,10 @@ GBufferOut shadeSurface(GpuMaterial m, uint layer, float2 uvMeters, float2 uvGra
         const float2 oa = frac(sin(float2(3.0, 7.0) * ia) * 43.17), ob = frac(sin(float2(3.0, 7.0) * (ia + 1.0)) * 43.17);
         const float4 a1 = gAlbedoTex.SampleGrad(gAniso, float3(uv + oa, layer), gx, gy);
         const float4 a2 = gAlbedoTex.SampleGrad(gAniso, float3(uv + ob, layer), gx, gy);
-        // V13.3 (Abnahme Level 36): gLayer.w = 2 - schmaler Uebergang, staerker vom Helligkeitsunterschied gefuehrt (die
-        // Grenze laeuft an Kornkanten entlang). Breit ueberblendet zeigte Terrazzo halb durchscheinende, doppelte Koerner
-        // und wirkte unscharf; alle anderen Ebenen (w = 1) unveraendert
-        const float bw = li.w > 1.5 ? 0.08 : 0.3, bk = li.w > 1.5 ? 0.25 : 0.1;
+        // V13.3 (Abnahme Level 36): gLayer.w = 2 - schmaler Uebergang, vom Helligkeitsunterschied so gefuehrt, dass die
+        // dunkleren Koerner beider Versaetze ganz bleiben (die Grenze laeuft um sie herum). Breit ueberblendet zeigte Terrazzo
+        // halb durchscheinende, doppelte Koerner und wirkte unscharf; alle anderen Ebenen (w = 1) unveraendert
+        const float bw = li.w > 1.5 ? 0.08 : 0.3, bk = li.w > 1.5 ? -0.25 : 0.1;
         const float b = smoothstep(0.5 - bw, 0.5 + bw, f - bk * dot(a1.rgb - a2.rgb, float3(1.0, 1.0, 1.0)));
         const float2 n1 = gNormalTex.SampleGrad(gAniso, float3(uv + oa, layer), gx, gy).xy;
         const float2 n2 = gNormalTex.SampleGrad(gAniso, float3(uv + ob, layer), gx, gy).xy;

@@ -327,7 +327,7 @@ def alu_panel_36(dst, size=1024):
     """V13.3 (Abnahme Level 36): Wandverkleidung der Flughafengaenge aus Aluminium-Verbundplatten (Kassetten), Kachel 3 m.
     Zwei Platten 1,5 m breit und 3 m hoch je Kachel (Projektion v = -z: Bildzeile S - z/mpp, Fuge auf 0 m und 3 m),
     offene Fuge 12 mm mit dunkler Hinterlage, gekantete Plattenraender (schmaler Glanz an der Kante), seidenmatter
-    Metallic-Lack (Pulver/PVDF): hell silbergrau, Rauheit um 0,5, Metall 0,45 - Streulicht und weicher Glanz statt Spiegel
+    Metallic-Lack (Pulver/PVDF): hell silbergrau, Rauheit um 0,5, Metall 0,35 - Streulicht und weicher Glanz statt Spiegel
     (V12: metal_aluminum war spiegelglatt und Vollmetall, die Gaenge zeigten dunkle Waende mit verschmierten Spiegelungen).
     Je Platte ein wenig anderer Ton und Glanz (Walzrichtung, Charge), feine waagrechte Schleifspur, leichte Welligkeit
     grosser Platten (Oelkanne), wenige Fingerabdruecke und Schrammen auf Griffhoehe."""
@@ -358,7 +358,7 @@ def alu_panel_36(dst, size=1024):
     streak = (streak / max(1e-6, np.abs(streak).max())).astype(np.float32) * 0.5
     peel = _periodic_noise(S, 1.6, rng)
     big = _periodic_noise(S, 90.0, rng)
-    base = np.array([0.70, 0.71, 0.72], np.float32)  # hell silbergrau, kaum kuehl
+    base = np.array([0.76, 0.765, 0.77], np.float32)  # hell silbergrau, kaum kuehl (Runde 3: 0,70 las sich zu dunkel)
     lum = 1.0 + tone[panel] + big * 0.05 + streak * 0.025
     # Griffhoehe 0,9-1,7 m: wenige Fingerabdruecke (glaenzender, etwas dunkler) und feine Schrammen
     img = Image.new('L', (S, S), 0)
@@ -383,7 +383,7 @@ def alu_panel_36(dst, size=1024):
     alb *= (1.0 - 0.06 * smudge)[..., None]
     alb *= (1.0 + 0.08 * scr)[..., None]
     rough = 0.50 + gloss[panel] + peel * 0.06 + streak * 0.04 - 0.14 * smudge + 0.08 * scr
-    metal = np.full((S, S), 0.45, np.float32)
+    metal = np.full((S, S), 0.35, np.float32)  # Runde 3: 0,45 - zu wenig Streulicht, Waende schiefergrau
     # Kante: Lack an der Rundung etwas glaenzender (schmale Lichtkante)
     rim = (edge > 0.0) & (edge < 1.0)
     rough = np.where(rim, rough - 0.08, rough)

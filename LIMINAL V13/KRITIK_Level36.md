@@ -71,3 +71,62 @@ Schlecht:
   `gbuffer.hlsli`, `imported_textures.cpp`). Texturen mit `antitile` 1 rechnen wie bisher.
 - `process.py` kennt Einträge `same_as` (dieselben Bilder mit eigenen Werten), damit die Varianten reproduzierbar bleiben.
 - Läden: Rückwand innen eigenes Material `wall_in` (matt, Look `plastic`); `storefront_a/b/c` neu gebaut (Dreiecke gleich).
+
+## Runde 3
+
+Bögen `wegbilder_r3_*.jpg` (481 m, 15 Räume, 121 Bilder), `wesen_r3_1..4.jpg`.
+
+Besser:
+- **Gänge lesen sich als verkleidete Flughafengänge**: Plattenraster mit feinen dunklen Fugen, keine Spiegelbilder mehr
+  (`wegbilder_r3_1` 018–029, `_2` 036–058, `_3` durchgehend; `wesen_r3_2` rundgang_1–3, sicherheit_1–2). Die
+  Laufband-Balustraden bleiben dunkles Glas (deckend, PROPS_Level36), die Spiegelung des polierten Terrazzos (Leuchten als
+  weiche Flecken) ist gewollt.
+- Putz matt, keine Wischer mehr in Sackgasse und Gates (`wesen_r3_2` rundgang_4, `wesen_r3_4` gates_5).
+- Rückwand der Läden sauber weiß (`wesen_r3_3` laeden_2, laeden_3).
+
+Schlecht:
+- **Platten zu dunkel und schieferblau** (`wegbilder_r3_2` 042–058): Metall 0,45 lässt nur 55 % Streulicht; mit dem
+  bläulichen Nebel wirken die Wände anthrazit statt hell aluminiumfarben (LOOK_36: „hell, ordentlich“).
+- **Terrazzo** (Ausschnitte r2/r3 in voller Größe): weniger Doppelkörner, aber der Übergang schneidet Körner jetzt sichtbar
+  ab (halbe Körner mit gerader Kante). Grundproblem bleibt die Texeldichte: 1024 Bildpunkte auf 2 m (2 mm je Punkt) – aus
+  1 m Abstand wird die Textur vergrößert; die Körner sind 6–12 cm groß (für Terrazzo grob) und weich gezeichnet.
+- **Violette Flecken an den Wandfüßen** der Gänge (`wesen_r3_3` rundgang_6, `wegbilder_r3_2` 066, `_3` 072). Mit den
+  Debug-Ansichten des Renderers eingegrenzt (Einstellung `debug_view`, Beleg `docs/screens/level36/violett_belege.jpg`):
+  - nicht im Direktlicht, nicht in der Albedo, nicht im SSAO;
+  - im Umgebungslicht (Ansicht 2), auch ohne indirektes Licht, SSR, TAA und Volumenlicht;
+  - unabhängig vom violetten Licht des BTA-Stands, von der Lampenfarbe der Läden, vom Ladenlicht vor den Schaufenstern und
+    von den Ladenfronten selbst (je Gegenprobe in einer Kopie der Karte unverändert);
+  - verschwindet, wenn die Zone `gang` neutral getönt ist (Lampe 1/1/1, Wand neutral).
+  Ursache im Einzelnen nicht geklärt (das Umgebungslicht ist je Kachel lampe × Wandton der Zone); Vorschlag für die Buglist.
+- **Sackgasse** weiter mittelgrau: Licht des Rundgangs fällt durch die 4 m breite, raumhohe Öffnung; dazu rechnet
+  `Room::lightAt` bis 5,5 m hinter einer Öffnung 60 % des Nachbarraums ein (gilt für alle Ebenen).
+
+Änderungen für Runde 4:
+- `alu_panel_36`: Grundton 0,76, Metall 0,35 (mehr Streulicht, Metallic-Glanz bleibt).
+- `terrazzo_36`: Kachel 1,2 m (Körner 4–7 cm, Texeldichte 1,2 mm); im schmalen Übergang gewinnen die dunkleren Körner
+  beider Versätze (Führung umgekehrt), damit keine Körner abgeschnitten werden.
+- Zone `gang`: Lampe 1/1/1, Wand 0,88 neutral (das kalte Licht der Leuchten steht als Farbe in der Karte und bleibt).
+
+## Runde 4
+
+Bögen `wegbilder_r4_*.jpg` (481 m, 15 Räume, 121 Bilder), `wesen_r4_1..4.jpg`.
+
+Besser:
+- **Wände** hell aluminiumfarben mit Metallic-Glanz, Fugenraster klar; im kalten Licht der Leuchten leicht kühl
+  (`wegbilder_r4_2` 042–058, `_3` 072–107; `wesen_r4_2` rundgang_1–3).
+- **Keine violetten Flecken** mehr (`wegbilder_r4_2` 066–071, `_3` 072; `wesen_r4_3` rundgang_6).
+- **Terrazzo scharf** (Vergleich r2/r4 in voller Größe): kleinere Körner (4–7 cm), klar gezeichnet, keine halb
+  durchscheinenden Doppelkörner und keine abgeschnittenen Körner; in den schmalen Übergängen liegen die Körner etwas
+  dichter (liest sich wie natürliche Streuung). Aus der Ferne feines Korn, keine Helligkeitswolken
+  (`wesen_r4_1` boden_1, boden_2; `wesen_r4_2` boden_3).
+- Übrige Bereiche unverändert gut: Gepäckband, Fundsachen, Schalter, BTA, Röntgenbänder, Läden, Lounge, Meeting Place,
+  C32, C33.
+
+Schlecht:
+- **Sackgasse** weiter mittelgrau ausgeleuchtet (`wesen_r4_2` rundgang_4–5): die Zone hat das dunkle Ebenenlicht
+  (`dark`, Umgebung 0,01), aber der Nebel ist mit 0,06 zu dünn, um das Streulicht aus dem Rundgang zu schlucken.
+- Sicherheitskontrolle kühler und dunkler als die Gänge (eigene Zone, Boden 0,62) – als eigener Bereich in Ordnung.
+- Schaufenster: die schrägen Spiegelstreifen bleiben als Zeichen für Glas (Glas ist im Spiel deckend; PROPS_Level36).
+
+Änderung für Runde 5:
+- Zone `sackgasse`: dichter dunkler Nebel 0,18 statt 0,06 (Farbe `dark_fog`), Karte unverändert.
