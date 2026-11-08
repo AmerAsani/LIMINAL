@@ -452,6 +452,66 @@ Gefundene und behobene Fehler:
   gleichförmige Tupfen.
 - Laufweg und Raumzahl nach E-036 (7 Räume).
 
+## Level 903 – abgenommen (08.11.2026)
+
+| Punkt | Stand |
+|---|---|
+| a) Strukturtyp, Raummetrik | Eintrag in `STRUKTURTYP.md` (Labyrinth, linear: endlos gleicher U-Bahnsteig, zwei Gleise, ruhender Zug, verbarrikadierte Treppen): ein Bahnsteig 196 × 22 m, Halle 5,3 m, Mittelsteig 8 m breit und 1,1 m über dem Gleisbett. Raummetrik grün: 1 Raum, Decke min/Median 5,30/5,30 m, keine Gänge, Fläche 4312 m², Sichtachsen Median 98,5 m, P90 170,2 m, 1 großer Raum, 0 Stützen unter 1 m, 0 von 0 verstellt. Ähnlichkeit S 1,000, Ausreißer 0,0 % (15 Fenster). In der Abnahme (`level903.py`, am Ende, ohne Zufall): Dunkelfläche `dark_end_903` an beiden Stirnwänden, ein letzter Zugabschnitt im Osten (dort klaffte die Hallenwand hinter dem unsichtbaren Zugblock); Karte neu erzeugt, erneutes Erzeugen am 08.11. ergibt dieselbe Datei |
+| b) Ausstattung | `PROPS_Level903.md`: alle 13 Klassen neu in Blender (`models_l903.py`; fahrender Wagen 903 und derselbe Wagen für Level 37, Gleis 2, Bahnsteigkante 3, Röhre 3, Hängeschild a/b, Wandschild 2, Treppe, ruhender Zug a/b je 2, bewohnter Wagen, Kupplung), Runden vorher, r1–r5, final (`docs/screens/props/level903/`, Übersichten `docs/screens/level903/props_uebersicht_*.jpg`). In der Abnahme an Ort und Stelle geprüft (Läufe `metro`, `zug`, `zones` je Runde, Ebenenlicht und Lampe) und nachgebessert: Wagenkasten, Unterboden, Trittblech, Abdeckung des Wagenboden-Blocks, Treppenrückseite, Ablaufschmutz des ruhenden Zugs, Dunkelfläche (Nachträge in `PROPS_Level903.md`) |
+| c) Wesen | Alle Wesen der Level-903-Seite im Spiel (ENTITY_ABGLEICH, Abschnitt Level 903): die Metro (Entity 756) als fahrender Wagen, der Ziele annimmt (vorn Level 37, hinten Level 36, Bildzeichen statt Schrift), neutral; friedliche Facelings (Entity 9, `KREATUR_Faceling.md`: Gruppen 2–4, drei Varianten, winken, wen sie eine Weile sehen; Briefing mit Wow-Check und Kritikrunden aus V13.2). Ausnahme nach Auftrag: Bewohner und feindselige Lokomotiv-Basen (Menschen) – der bewohnte Wagen ist als Kulisse da. Neu in der Abnahme belegt: Facelings erscheinen außer Sicht, auf dem offenen Steig fast nur im fahrenden Wagen – sie kommen mit dem Wagen an und gehen auf den Steig (`LEVELSPEC_903.md`); die Wagenseite hat im Lampenlicht keinen Eigenschatten (E-041 wirkt), war aber durch das Material schwarz → behoben |
+| d) Kritikrunden | 6 Ebenen-Runden (`KRITIK_Level903.md`): 1 Struktur (01.11.), 2 Abnahme des Vorgängers (03.11., WIP 24e48f0, vom Nutzer angehalten; in dieser Abnahme geprüft und übernommen), 3–6 Abnahme mit Laufweg und allen 6 Läufen der neuen Level-903-Tabelle in `tools/qa/creatureshots.py` (Metro-Wagen: Front, Tür, innen mit beiden Zielanzeigen, vom Gleis, unter dem Wagen, Seite nur im Lampenlicht; Facelings: Ankunft im Wagen, Steig, Winken, Varianten; ruhender Zug mit bewohntem Wagen und Glas; Stromausfall; Beil; Bereiche nach LOOK_903 mit Treppen von vorn und hinten, Schildern und Enden). Bögen `docs/screens/level903/wesen_r2_*` … `wesen_r6_*`; dazu die Runden der Ausstattung (vorher, r1–r5, final) |
+| e) Laufweg | `walkway.py level903 --rooms 15 --seed 3`: 294 m in einem Raum (der Bahnsteig hin und zurück bis in das Dunkel beider Enden), 74 Bilder alle 4 m (`docs/screens/level903/wegbilder_r3_*`, `_r6_*`, Karten `wegkarte_r3.png`, `wegkarte_r6.png`; vorher `_r1_*`, `_r2_*` mit denselben Zahlen). **E-036 greift:** die Seite beschreibt eine einzige lange Station; die Karte hat 1 Raum (`room_metrics.py`, Spalte „Raeume“: 1). Die 200 m bleiben Pflicht und sind erfüllt; `walkway.py` meldet wegen der Raumzahl Exitcode 1 |
+| f) Prüfungen | Modellprüfung aller 32 Modelle der Ebene (Karte mit Varianten: Wagen, Dunkelfläche, ruhender Zug a/b je 2, bewohnter Wagen, Kupplung, Kante 3, Sicherheitsleuchte ohne Piktogramm, Hängeschilder, Wandschild 2, Treppe, Gleis 2, Röhre 3; Facelings in drei Varianten je Stufe l0–l2; dazu `metro_car_37`): 0 Fehler. Halt der Ausstattung (`gameplay_test`): level903 556 Objekte mit Halt-Regel, 0 ohne Halt. Schilder (`signs.py --check`): Notausgangsschilder 0 (Grenze 0), Notausgangstüren 0, falsch platziert 0, Sicherheitsleuchten mit Piktogramm 0 – die beleuchteten Schilder der Seite sind Stationsschilder in erfundener Schrift. Raummetrik und Ähnlichkeit grün. Tests grün: gameplay 1020/0, audio 121/0, coop --quick 209/0 (erster Lauf parallel zu den übrigen Tests 1 Fehler im Szenario „schlechtes Netz“, Abstand Host/Gast nach dem Anhalten – bekannt zeitabhängig; Wiederholung allein 209/0; geändert sind nur Modelle), net 72/0, worldgen 29658/0, supply OK. Smoke-Test 08.11. (`docs/metrics/smoke_level903.json`, 24 Stationen): GPU 2,17 ms (max 3,03), Spiel 0,03 ms, Grafik-CPU 8,28 ms, bis 0,35 Mio. Dreiecke, VRAM 1208 MB, RAM 1107 MB (Spitze 1403 MB), 0 Fehler im Protokoll |
+| g) Aufwand | Struktur und Kritikrunde 1: 01.11. (Hauptstrang, mit 5.3, 188, 37, 36). Ausstattung etwa 8 h (27.10. und 01.11., `PROPS_Level903.md`). Wesen: Facelings in V13.2, der Wagen als Metro seit V12/V13.2. Abnahme: Runde 2 am 03.11. nach der Abnahme von Level 188 (12:15) bis zum Anhalten (WIP 12:43); Runden 3–6 am 08.11. 14:55–15:40 (Uhr des Rechners; Bau 14:57, Commits Runden 2–4 15:11, Runden 5–6 15:32, Abschluss mit diesem Eintrag): etwa ein Fünftel Werkzeug (Level-903-Tabelle fortgesetzt: Faceling-Lauf, Wagenseite im Dunkeln, Debug-Ansichten des Renderers für Schatten/Albedo/Normalen), gut ein Drittel Ursachensuche und Neubau des Wagenmaterials (drei Anläufe: Unterboden und Trittblech, Metallwerte, Silberlack), der Rest Bilder, Prüfungen, Messungen, Tests und Dokumente |
+
+**Neu gebaute Assets (Level 903):**
+- **Ausstattung** (`tools/blender/models/models_l903.py`, Bögen `docs/screens/props/level903/`):
+  - fahrender Wagen `metro_car_903` (mit Gleis darunter), derselbe Wagen `metro_car_37`; Gleis `track_metro` (2);
+  - Bahnsteigkante `platform_edge` (3), Röhre `tube_long` (3), Hängeschilder `sign_903_a/b`, Wandschild `sign_903_wall` (2);
+  - Treppe `stairs_barricaded`; ruhender Zug `metro_dormant_a/b` (je 2), bewohnter Wagen `metro_dormant_home`, Kupplung
+    `metro_dormant_coupling`; Sicherheitsleuchte ohne Piktogramm `safety_light@1` (E-050).
+- **In der Abnahme neu oder neu gebaut**:
+  - `dark_end_903` (neu): fast lichtlose Fläche 22 × 5,4 m vor beiden Stirnwänden (Halt-Regel in `mapkit.py`, `gameplay_test`);
+  - `stairs_barricaded`: Rückseite mit Fliesen bis zur Decke, Kantenschutz, Wasserlauf, Revisionstür (Zarge, Bänder,
+    Drücker, Schloss, Lüftungsgitter, Warnschild in erfundenen Zeichen);
+  - `metro_dormant_a/b/home` (mit Varianten): Ablaufschmutz schmal mit Läufern;
+  - `metro_car_903`: Abdeckung des Wagenboden-Blocks (Kopfquerträger, Rippen, Blech, Bremsleitung, Kabelschleife, Rost,
+    Seitenbleche, dunkle Türschwellen); `metro_car_903` und `metro_car_37`: Wagenkasten Silberlack, Unterboden stumpf
+    ohne Lacktextur, Trittblech gebürstet.
+
+**Bilder:**
+- Laufweg `docs/screens/level903/wegbilder_r1_*`, `_r2_*`, `_r3_*`, `_r6_*`, Karten `wegkarte_r1.png`, `_r2.png`, `_r3.png`,
+  `_r6.png`.
+- Wesen und Bereiche `docs/screens/level903/wesen_r2_*` … `wesen_r6_*` (Einzelbilder `build/qa/creatures/level903/r2..r6/`);
+  beste Ansichten: `wesen_r6_2` faceling 1–2 (Ankunft im Wagen) und faceling 8 (Winken auf dem Steig), metro 11–12
+  (Wagenseite im Lampenlicht); `wesen_r6_1` metro 1, 3, 4, 8 (Wagen am Steig, Tür, innen, vom Gleis); `wesen_r6_3` zug 2–3
+  (bewohnter Wagen); `wesen_r6_4` zones 4 (Treppenrückseite).
+- Beleg Wagenseite `docs/screens/level903/wagenseite_lampe.jpg` (vorher, Schattenansicht, Albedo, nachher); Schatten
+  unsichtbarer Blöcke `schatten_vorher_nachher.jpg`, `schatten_gegenprobe.jpg` (E-041).
+- Ausstattung `docs/screens/level903/props_uebersicht_*.jpg`, `docs/screens/props/level903/`; Bereiche `docs/screens/level903/01_*` … `12_*`.
+
+Gefundene und behobene Fehler:
+- **Ende der Station**: mit der Lampe eine helle Fliesenwand → Dunkelfläche an beiden Stirnwänden; im Osten klaffte hinter
+  dem unsichtbaren Zugblock die Hallenwand → letzter Zugabschnitt.
+- **Treppe von hinten**: offener Kasten (Stufenkörper, Rückseite der Ziegelwand) → Fliesenwand mit Revisionstür.
+- **Ruhender Zug**: Ablaufschmutz als helles Band wie Schnee auf dem Dach → schmaler Rand mit Läufern.
+- **Unter dem Wagen**: Stirnflächen und Türschwellen des begehbaren Blocks mit weißen Hallenfliesen → abgedeckt.
+- **Front vom Gleis im Lampenlicht**: Trittblech als leeres weißes Rechteck, Rammschutz weiß-schwarz gefleckt → gebürstet,
+  Unterboden ohne Lacktextur.
+- **Wagenseite im reinen Lampenlicht schwarz**: kein Eigenschatten (Schattenansicht frei), sondern die Metalltextur (Metall
+  aus der Textur 1, glatt; m und r allein halfen nicht) → Silberlack; gilt auch für den Wagen in Level 37.
+- **Werkzeug**: `near … 6 0 1` stellte die Kamera hinter die Treppe; Facelings im Wagen waren hinter der Wagenwand nicht zu
+  sehen → Ankunft durch die offene Tür, Steig, Winken.
+
+**Restpunkte** (begründet, Einzelheiten in `KRITIK_Level903.md` Runden 3–6 und `PROPS_Level903.md`):
+- Glas ist deckend (Engine); der ruhende Zug hat keinen Innenraum – seine dunklen Scheiben lesen sich wie bei einem
+  abgestellten, unbeleuchteten Zug.
+- Aus weniger als 6 m zeigt die Dunkelfläche im Lampenlicht eine schwache runde Aufhellung (liest sich als ferne Wand im Dunst).
+- Facelings erscheinen auf dem offenen Steig fast nur im fahrenden Wagen (Regel „außer Sicht“); als Ankunft mit dem Wagen
+  gedeutet.
+- Im Wagen steht ein offenes Türblatt mit dunkler Scheibe vor der Innenwand (seit der Ausstattung).
+- Laufweg und Raumzahl nach E-036 (1 Raum).
+
 ## Level 903, 37, 36
 
 Strukturprüfungen grün (Level 5 mit begründeten Ausnahmen, Level 188 Schild entfernt, Level 36 vier Wiki-Bereiche ergänzt).
