@@ -23,7 +23,7 @@
 - **Laufbänder:** für lange Wege, oft nur in eine Richtung. Stotternde oder stehende meiden.
 - **Einkaufshallen:** mit Teppich und Läden wie in der Frontrooms-Welt; meist wertlose Ware.
 - **Gates:** Wartebereiche mit Toiletten, Trinkbrunnen, Sitzreihen und Tischen.
-- **Lounges** gibt es; hier nicht dargestellt.
+- **Lounges** gibt es (V13.3: eine Lounge gebaut, siehe Abschnitt 2).
 
 **Licht und Klang**
 - In sich überlagernden Räumen bricht das Licht: Spiegelungen passen nicht, manche Bereiche sind auffällig hell oder dunkel, Schilder flackern.
@@ -63,7 +63,12 @@
   - ein Rundgang mit Laufbändern (eines steht) und widersprüchlichen Wegweisern;
   - eine dunkle Sackgasse hinter einem „EXIT“-Schild, darin ein leerer Wegweiser;
   - eine Ladenzeile (Zeitungen, Kaffee, Mode, geschlossene Läden);
-  - die Gatehalle C mit Uhren, Trinkbrunnen, Toilettenschildern und fünf Gates.
+  - die Gatehalle C mit Uhren, Trinkbrunnen, Toilettenschildern und fünf Gates;
+  - V13.3 (Struktur): eine Sicherheitskontrolle außer Betrieb (drei Spuren), ein Fundbüro an der Gepäckausgabe, eine
+    Lounge und der Meeting Place (Sitzreihen, rote Damasttapete).
+- **Oberflächen (V13.3, Abnahme):** Gänge, Rundgang, Gatehalle und Sicherheitskontrolle mit Aluminium-Verbundplatten
+  (Fugenraster 1,5 × 3 m, seidenmatter Metallic-Lack), Böden aus geschliffenem Terrazzo (Körner 4–7 cm), Putz matt.
+  Die Sackgasse hat kein eigenes Licht und dichten dunklen Nebel; Licht des Rundgangs fällt durch die Öffnung.
 - **Die Wartenden an C32:** nur ihre Habseligkeiten (Decken, Taschen, Becher, Pappschild mit der Flugnummer) und ihr Stimmengewirr. Niemand ist zu sehen.
 - **Das Ende:**
   - An C33 läuft der Einstieg: grüne Statusleuchte, die Tür steht offen, dahinter Licht.
@@ -80,5 +85,5 @@
 - **26 Terminals, unendliche Gates, nicht-euklidische Wege:** Nur ein Ausschnitt (Terminal C, ein Rundgang). Die „Unendlichkeit“ zeigen die widersprüchlichen Schilder und der Rundgang.
 - **Andere Wanderer, BTA-Personal, Gruppen:** nicht dargestellt (keine Menschen im Spiel).
 - **Zeitdehnung, Schlaflosigkeit, Temperaturwechsel:** nicht als Spielmechanik, nur über die Uhren und den Verlust an Verstand.
-- **Lounges, Meeting Place:** nicht gebaut.
+- **Lounges, Meeting Place:** je einer gebaut (V13.3); die geheimen Lounges der B.N.T.G. nicht.
 - **Fahrende Laufbänder:** Die Engine hat keine bewegten Böden; die Bänder stehen.

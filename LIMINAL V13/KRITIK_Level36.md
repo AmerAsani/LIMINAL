@@ -51,7 +51,7 @@ Schlecht:
   Kontrast sinkt, das Auge liest Unschärfe.
 - **Rückwand der Läden** (`wesen_r2_3` laeden_2, laeden_3): weiß mit grauen Wolken – der Look `paint` (Abplatzer-Struktur)
   auf `white_dull`; nicht „sauber“.
-- **Sackgasse nicht dunkel** (`wesen_r2_2` rundgang_4, `wesen_r2_3` rundgang_5): LOOK_36 und LEVELSPEC_36 verlangen eine
+- **Sackgasse nicht dunkel** (`wesen_r2_2` rundgang_4–5, `wesen_r2_3` rundgang_5_lampe): LOOK_36 und LEVELSPEC_36 verlangen eine
   dunkle Sackgasse; im Bild ist sie mittelgrau ausgeleuchtet. Zu prüfen: Licht des Rundgangs durch die 4 m breite Öffnung
   oder Belichtungsanpassung.
 - Violette Schlieren an Gangwänden (`wegbilder_r2_2` 066, 067, 071) – vermutlich Spiegelung; nach dem Wandwechsel prüfen.
@@ -149,3 +149,25 @@ Schlecht:
 - `tools/levels/level36.py` (am Ende, ohne Zufall): das Licht an C33 wird ein Licht ohne Leuchtkörper (Art 0 ohne Panel,
   2,2 m hoch, Ort, Farbe, Stärke wie bisher); Karte neu erzeugt, Vergleich mit der alten Karte: nur dieser Eintrag.
 - `creatureshots.py`: in der Sackgasse 5 s warten (Nebel und Belichtung angeglichen), dann Bild und Lampe.
+
+## Runde 6 (Schlussrunde)
+
+Bögen `wegbilder_r6_*.jpg` (481 m, 15 Räume, 121 Bilder), `wesen_r6_1..4.jpg`; Vergleich Runde 2 / Runde 6:
+`docs/screens/level36/abnahme_vorher_nachher.jpg` (Rundgang, Gang 6, Terrazzo nah, Tür an C33).
+
+Befunde:
+- **C33**: der Türausschnitt ist frei, die Fluggastbrücke eine helle Fläche mit Bodenstreifen; vor der Tür ein heller
+  Lichtfleck auf dem Teppich (`wesen_r6_4` gates_4, gates_5). Abgenommen.
+- **Sackgasse** nach 5 s im Raum dunkler (mittlere Helligkeit des Ausschnitts 72 → 64), die Rückwand liegt im Nebel;
+  mit Lampe ein Lichtkegel auf der Rückwand (`wesen_r6_2` rundgang_5, `wesen_r6_3` rundgang_5_lampe). Ganz dunkel wird sie nicht: die Belichtung passt
+  sich an, und durch die 4 m breite Öffnung fällt das Licht des Rundgangs (Karte und Engine bleiben, siehe Restpunkte).
+- Wände, Terrazzo, Putz, Läden, Lounge, Meeting Place, Gatehalle, C32 unverändert gut; keine violetten Flecken; kein
+  Spiegelbild auf Wandflächen; die Spiegelung im polierten Terrazzo bleibt weich und ruhig (gewollt).
+- Keine weiteren Änderungen.
+
+Restpunkte (begründet):
+- Ursache der violetten Flecken im Umgebungslicht bei kühl getönter Zone nicht im Einzelnen geklärt (Beleg
+  `violett_belege.jpg`); in Level 36 durch neutrale Zonenfarbe behoben. Vorschlag für die Buglist.
+- Sackgasse nur halbdunkel (Belichtung, breite Öffnung, `Room::lightAt` rechnet 60 % des Nachbarraums bis 5,5 m ein).
+- Glas deckend (Engine): Schaufenster mit Spiegelstreifen, Laufband-Balustraden dunkles Glas.
+- Sicherheitskontrolle kühler als die Gänge (eigene Zone).

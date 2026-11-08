@@ -87,6 +87,9 @@ Fandom-Seiten wurden für V12 **nicht** verwendet (Auftrag: nur Wikidot).
 | `terrazzo_antique` | [Terrazzo004](https://ambientcg.com/view?id=Terrazzo004) „Terrazzo 004“ | CC0-1.0 | ambientCG, abgerufen 2026-10-25, SHA-256 b781734c13ba… | 36 |
 | `metal_aluminum` | [Metal050A](https://ambientcg.com/view?id=Metal050A) „Metal 050 A“ | CC0-1.0 | ambientCG, abgerufen 2026-10-25, SHA-256 c4d0ac0d0c87… | 36, 903 |
 | `plaster_white` | [Plaster002](https://ambientcg.com/view?id=Plaster002) „Plaster 002“ | CC0-1.0 | ambientCG, abgerufen 2026-10-25, SHA-256 c364e72a39ea… | 36, 188 |
+| `alu_panel_36` | eigen (alu_panel_36) | – | eigenes Werk, `tools/textures/generate.py` (V13.3, Abnahme Level 36) | 36 |
+| `plaster_matt_36` | wie `plaster_white` (dieselben Bilder, Rauheit + 0,3) | CC0-1.0 | siehe `plaster_white` | 36 |
+| `terrazzo_36` | wie `terrazzo_antique` (dieselben Bilder, Kachel 1,2 m, schmaler Kachelbruch) | CC0-1.0 | siehe `terrazzo_antique` | 36 |
 
 ## 3. Modelle
 

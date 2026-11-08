@@ -573,7 +573,70 @@ Gefundene und behobene Fehler:
 - Ausgänge zu 130, 43, 233 und Löcher unter Wasser nicht gebaut (`LEVELSPEC_37.md`, Abschnitt 3); der Wagen ist der
   einzige Weg hinaus.
 
+## Level 36 – abgenommen (08.11.2026)
+
+| Punkt | Stand |
+|---|---|
+| a) Strukturtyp, Raummetrik | Eintrag in `STRUKTURTYP.md` (Mischform „Timeless Airport“: Gepäckausgabe mit Fundbüro, Check-in mit Schalterreihe und BTA-Stand, Sicherheitskontrolle außer Betrieb, Rundgang mit Laufbändern und widersprüchlichen Wegweisern, Sackgasse hinter EXIT, Ladenzeile, Lounge, Meeting Place, Gatehalle C mit fünf Gates; Ende an C33). Raummetrik grün: 20 Räume, Decke min/Median 4,00/4,50 m, Gänge min/Median 6,0/6,0 m, Fläche Median 281 m², Sichtachsen Median 48,2 m, P90 91,6 m (Grenzen ≥ 42/84 m), 15 große Räume, 0 Stützen unter 1 m, 0 von 6 verstellt. Ähnlichkeit S 0,862, Ausreißer 10,6 % (66 Fenster, min 0,68; Grenze 20 %). In der Abnahme (`level36.py`, am Ende, ohne Zufall): das Licht aus der offenen Tür an C33 ist ein Licht ohne Leuchtkörper (vorher Wandleuchte mit Leuchtkörper im Türausschnitt); Karte neu erzeugt, Vergleich mit der alten Karte: nur dieser Lichteintrag |
+| b) Ausstattung | `PROPS_Level36.md`: alle 34 Klassen neu in Blender (`models_l36.py`; Gepäckband, Fundsachen 3, Check-in 3, Abflugtafel, BTA-Stand, Laufband und stehendes Laufband, Wegweiser a/b/leer, Ausgangsschild, Ladenfronten a/b/c/geschlossen, Sitzreihe 3, Gate-Schalter, Gate-Schilder C30–C34, Gate-Türen zu/offen, Uhren, Trinkbrunnen, WC-Schild, Habseligkeiten C32, Röntgenband 2, Torsonde, Wannenstapel, Loungesessel 2, Loungetisch), Runden vorher, r1–r5, final (`docs/screens/props/level36/`, Übersichten `docs/screens/level36/props_uebersicht_*.jpg`). In der Abnahme an Ort und Stelle geprüft (sieben Läufe je Runde, Ebenenlicht und Lampe) und nachgebessert: Rückwand der Läden, Umfeld der Boarding-Tür, dazu die Flächen Wand, Boden, Putz (Tabelle „Nachträge der Abnahme“ in `PROPS_Level36.md`) |
+| c) Wesen | Die Seite nennt keine Wesen (Wertung 0/5): nur Reisende, Gruppen und eine Durchsagestimme (`ENTITY_ABGLEICH.md`, Abschnitt Level 36: übereinstimmend). Im Spiel: keine Wesen; die Durchsage ist Klang der Ebene (`pa_announce`, alle 35–80 s in Gepäckausgabe, Check-in, Gängen, Läden, Gatehalle und Gates), das Stimmengewirr der Wartenden an C32 ein Klangort am Lager; Reisende und Gruppen sind Menschen (Ausnahme nach Auftrag) – an C32 nur ihre Habseligkeiten. Keine neue `Presence::Role`, kein neues `anim::Entity` |
+| d) Kritikrunden | 6 Ebenen-Runden (`KRITIK_Level36.md`): 1 Struktur (01.11.), 2–6 Abnahme mit Laufweg und den sieben Läufen der neuen Level-36-Tabelle in `tools/qa/creatureshots.py` (Gepäckausgabe: Ankunft am Band, Lamellen mit Lampe, Fundsachen, Fundbüro; Check-in: Halle, Tafeln, Schalter mit Lampe, BTA; Boden: Terrazzo nah, streifend mit Lampe, im Rundgang, Teppich der Gates; Sicherheitskontrolle; Rundgang: Wände, Laufband mit Glas und Lampe, stehendes Band, Sackgasse von außen und innen mit Lampe, Gang zu den Läden; Ladenzeile, Schaufenster, Mode mit Lampe, Lounge, Meeting Place; Gatehalle, Uhr und Brunnen, C32 mit Lampe, C33 fern und nah). Bögen `docs/screens/level36/wesen_r2_*` … `wesen_r6_*` (der Name kommt vom Werkzeug; gezeigt werden Bereiche und Flächen). Schwerpunkte nach Auftrag: Glas- und Metallflächen (V12: verschmierte Spiegelungen) und Schärfe des Terrazzos |
+| e) Laufweg | `walkway.py level36 --rooms 15 --seed 3`: 481 m durch 15 Räume, 121 Bilder alle 4 m (`docs/screens/level36/wegbilder_r2_*` … `_r6_*`, Karten `wegkarte_r2.png` … `_r6.png`; vorher `_r1_*` mit denselben Zahlen), Exitcode 0 – über Gepäckausgabe, Check-in, Sicherheitskontrolle, Gänge, Meeting Place, Rundgang mit Sackgasse, Ladenzeile, Gatehalle, C34, C33 und C32 |
+| f) Prüfungen | Modellprüfung aller 44 Modelldateien der Ebene (35 Klassen der Karte mit Varianten, darunter die neu gebauten `storefront_a/b/c`): 0 Fehler. Halt der Ausstattung (`gameplay_test`, nach dem Neuerzeugen der Karte): level36 172 Objekte mit Halt-Regel, 0 ohne Halt (gesamt 10 690, 0). Schilder (`signs.py --check level36`): Notausgangsschilder 1 (Grenze 2; Wiki: Schildern nicht trauen – das eine EXIT führt in die Sackgasse), Notausgangstüren 0, falsch platziert 0, Sicherheitsleuchten mit Piktogramm 4 (in Level 36 erlaubt, E-050). Raummetrik und Ähnlichkeit grün. Tests grün: gameplay 1020/0 (vor und nach der Kartenänderung), audio 121/0, coop --quick 209/0, net 72/0, worldgen 29658/0, supply OK. Smoke-Test 08.11. (`docs/metrics/smoke_level36.json`, 24 Stationen, mit den neuen Flächen): GPU 3,12 ms (max 5,02), Spiel 0,04 ms, Grafik-CPU 8,28 ms, bis 0,39 Mio. Dreiecke, VRAM 1216 MB, RAM 1126 MB (Spitze 1405 MB), 0 Fehler im Protokoll |
+| g) Aufwand | Struktur und Kritikrunde 1: 01.11. (Hauptstrang, mit 5.3, 188, 903, 37). Ausstattung etwa 10 h (27.10. und 01./02.11., `PROPS_Level36.md`). Abnahme am 08.11. nach der von Level 37 (Basis 55c073a, 17:05) in einem Durchgang bis etwa 18:00 (Uhr des Rechners; Commits Runde 2 17:36, Runden 3–4 17:40, Runde 5 17:48, Abschluss mit diesem Eintrag): etwa ein Viertel Werkzeug (Level-36-Tabelle in `creatureshots.py`, `same_as` in `process.py`, Debug-Ansichten über `debug_view`), ein Drittel Ursachen und Neubau der Flächen (Vollmetall der Wandtextur, Kachelbruch des Terrazzos, Gegenproben zu den violetten Flecken in einer Kopie der Karte und der Level-Datei), der Rest Bilder und Urteile, Prüfungen, Messungen, Tests und Dokumente |
+
+**Neu gebaute Assets (Level 36):**
+- **Ausstattung** (`tools/blender/models/models_l36.py`, Bögen `docs/screens/props/level36/`): siehe Tabelle in
+  `PROPS_Level36.md` (34 Klassen, fünf davon neu für die ergänzten Wiki-Bereiche); Sicherheitsleuchte mit Piktogramm
+  `safety_light` (Level 36 darf Schilder tragen, E-050).
+- **In der Abnahme neu oder neu gebaut**:
+  - Textur `alu_panel_36` (eigen, `tools/textures/generate.py`): Aluminium-Verbundplatten 1,5 × 3 m mit offener
+    12-mm-Fuge und dunkler Hinterlage, gekantete Ränder, seidenmatter Metallic-Lack (Grundton 0,76, Rauheit um 0,5,
+    Metall 0,35), je Platte eigener Ton und Glanz, Schleifspur, Welligkeit, Fingerabdrücke und Schrammen auf Griffhöhe –
+    Zonen `gang` und `sicherheit`;
+  - `plaster_matt_36` (Bilder von `plaster_white`, Rauheit + 0,3, Variation 0,15) für Wände und Decken aller Zonen;
+  - `terrazzo_36` (Bilder von `terrazzo_antique`, Kachel 1,2 m, Kachelbruch-Modus 2: schmaler Übergang, dunkle Körner
+    beider Versätze bleiben ganz; `gbuffer.hlsli`, `imported_textures.cpp` – Modus 1 aller anderen Texturen unverändert);
+  - `storefront_a/b/c`: Rückwand innen mit eigenem mattem Material `wall_in`;
+  - Karte: Licht an C33 ohne Leuchtkörper; Zone `gang` neutral getönt; Zone `sackgasse` mit dichterem dunklem Nebel.
+- **Werkzeug:** Level-36-Tabelle in `tools/qa/creatureshots.py` (sieben Läufe), `same_as` in `tools/textures/process.py`.
+
+**Bilder:**
+- Laufweg `docs/screens/level36/wegbilder_r1_*` … `_r6_*`, Karten `wegkarte_r1.png` … `_r6.png`.
+- Bereiche `docs/screens/level36/wesen_r2_*` … `wesen_r6_*` (Einzelbilder `build/qa/creatures/level36/r2..r6/`); beste
+  Ansichten: `wesen_r6_2` rundgang_1–3 (Platten, Laufband), boden_3 (Terrazzo im Rundgang), `wesen_r6_1` boden_1–2
+  (Terrazzo nah und mit Lampe), gepaeck_1, checkin_4 (BTA), `wesen_r6_3` laeden_2–3 (Läden), laeden_5 (Meeting Place),
+  gates_1 (Gatehalle), `wesen_r6_4` gates_4–5 (C33).
+- Vergleich `docs/screens/level36/abnahme_vorher_nachher.jpg` (Runde 2 links, Runde 6 rechts); Beleg der violetten Flecken
+  `docs/screens/level36/violett_belege.jpg` (Debug-Ansichten, Gegenproben).
+- Ausstattung `docs/screens/level36/props_uebersicht_*.jpg`, `docs/screens/props/level36/`; Bereiche
+  `docs/screens/level36/01_*` … `16_*`.
+
+Gefundene und behobene Fehler:
+- **Spiegelwände** (V12-Befund „verschmierte Spiegelungen“): `metal_aluminum` ist Vollmetall mit Rauheit 0,05 – ohne
+  Streuanteil zeigten die Gänge nur verwischte Bildraum-Spiegelungen und sonst dunkelgraue Flächen ohne Fugen → eigene
+  Verbundplatten; zuerst zu dunkel und schieferblau (Metall 0,45, Grundton 0,70) → 0,35/0,76.
+- **Terrazzo unscharf** (V12-Befund): breiter Kachelbruch (rund 60 % Mischzonen) mit halb durchscheinenden Doppelkörnern,
+  grobe Körner bei 2 mm je Texel → schmaler Übergang; zuerst schnitt er Körner ab → Führung umgekehrt, dunkle Körner
+  bleiben ganz; Kachel 1,2 m.
+- **Putz** mit glatten Stellen unter der SSR-Grenze → matt.
+- **Violette Flecken** an den Wandfüßen der Gänge neben der Ladenzeile, im Umgebungslicht (Debug-Ansicht 2), unabhängig
+  von BTA-Licht, Ladenlampe, Ladenlicht und Ladenfronten → Zone `gang` neutral getönt (das kalte Licht steht in der Karte).
+- **Rückwand der Läden** mit Abplatzer-Wolken → mattes Material.
+- **C33**: Leuchtkörper der Wandleuchte schwebte im hellen Türausschnitt → Licht ohne Leuchtkörper.
+- **Werkzeug**: die Aufnahme in der Sackgasse entstand 1 s nach dem Versetzen, Nebel und Belichtung noch im Übergang → 5 s.
+- **Dokumente**: `LEVELSPEC_36.md` nannte Lounge und Meeting Place „nicht gebaut“ → berichtigt; `LOOK_36.md` um die vier
+  ergänzten Bereiche und die Oberflächen erweitert.
+
+**Restpunkte** (begründet, Einzelheiten in `KRITIK_Level36.md` Runde 6):
+- Ursache der violetten Flecken im Umgebungslicht bei kühl getönter Zone nicht im Einzelnen geklärt; in Level 36
+  vermieden. Vorschlag für die Buglist (Gegenproben in `violett_belege.jpg`).
+- Die Sackgasse ist halbdunkel, nicht dunkel: Belichtung passt sich an, das Licht des Rundgangs fällt durch die 4 m breite
+  Öffnung, und `Room::lightAt` rechnet bis 5,5 m hinter einer Öffnung 60 % des Nachbarraums ein (alle Ebenen).
+- Glas ist deckend (Engine): Schaufenster mit Spiegelstreifen statt Scheibe, Laufband-Balustraden aus dunklem Glas.
+- Die Sicherheitskontrolle bleibt kühler als die Gänge (eigene Zone).
+
 ## Level 903, 37, 36
 
 Strukturprüfungen grün (Level 5 mit begründeten Ausnahmen, Level 188 Schild entfernt, Level 36 vier Wiki-Bereiche ergänzt).
-Ausstattung: Agenten in Arbeit. Einträge folgen mit der Abnahme.
+Ausstattung: Agenten in Arbeit. Einträge folgen mit der Abnahme. Nachtrag 08.11.: alle drei abgenommen (Abschnitte oben).

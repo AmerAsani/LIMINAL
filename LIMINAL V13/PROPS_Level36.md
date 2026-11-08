@@ -180,3 +180,18 @@ und WC unter der streifenden Lampe ohne Plastikglanz; Gepäck, Regale, Röntgenb
 - Sitzung 2 (01./02.11.): restliche Klassen, fünf neue Klassen, Varianten, Blöcke, Runden r1–r5 und final, Stellenbilder,
   Dokument – etwa 9 h (davon gut die Hälfte Laufzeit der Kontaktbögen).
 - Runden: 5 Kritikrunden (r1, r2 voll; r3, r4 geänderte Klassen; r5 voll) und Schlussrunde final.
+
+## Nachträge der Abnahme (V13.3, 08.11.2026)
+
+Geprüft an Ort und Stelle in den Läufen von `creatureshots.py level36` (Runden 2–6, Ebenenlicht und Lampe) und im Laufweg;
+Einzelheiten in `KRITIK_Level36.md`.
+
+| Klasse / Fläche | Befund | Änderung |
+|---|---|---|
+| storefront_a/b/c | Rückwand innen weiß mit grauen Wolken (Look `paint` mit Abplatzer-Struktur) | eigenes Material `wall_in` (Look `plastic`, r 1,35), neu gebaut; Dreiecke unverändert (4167/4696/6247) |
+| gate_door_boarding (Umfeld) | im hellen Türausschnitt schwebte eine Platte: Leuchtkörper der Wandleuchte aus der Karte | Licht an C33 ohne Leuchtkörper (`level36.py` am Ende, ohne Zufall) |
+| Wände der Gänge (Fläche) | `metal_aluminum` spiegelglatt und Vollmetall: dunkle Spiegelwände mit verschmierten Bildern | eigene Textur `alu_panel_36` (Verbundplatten mit Fuge, Metallic-Lack) |
+| Böden (Fläche) | Terrazzo mit Doppelkörnern im breiten Kachelbruch, grobe Körner, unscharf | `terrazzo_36` (Kachel 1,2 m, schmaler Kachelbruch mit ganzen Körnern) |
+| Putz (Fläche) | glatte Stellen spiegelten die Leuchten als Wolken | `plaster_matt_36` (Rauheit + 0,3) |
+
+Modellprüfung nach den Nachträgen: 44 Dateien der Ebene, 0 Fehler.
