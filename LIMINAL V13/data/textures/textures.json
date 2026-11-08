@@ -568,6 +568,45 @@
     "2"
    ],
    "antitile": 0
+  },
+  {
+   "name": "alu_panel_36",
+   "dir": "alu_panel_36",
+   "source": "eigen:alu_panel_36",
+   "meters": 3.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.1,
+   "levels": [
+    "36"
+   ],
+   "antitile": 0
+  },
+  {
+   "name": "plaster_matt_36",
+   "dir": "plaster_white",
+   "source": "wie:plaster_white",
+   "meters": 2.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.3,
+   "variation": 0.15,
+   "levels": [
+    "36"
+   ],
+   "antitile": 1
+  },
+  {
+   "name": "terrazzo_36",
+   "dir": "terrazzo_antique",
+   "source": "wie:terrazzo_antique",
+   "meters": 2.0,
+   "normal_strength": 1.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "levels": [
+    "36"
+   ],
+   "antitile": 2
   }
  ]
 }

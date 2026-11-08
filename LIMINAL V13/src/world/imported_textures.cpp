@@ -36,7 +36,9 @@ bool loadImportedTextures(const std::string& dataDir, std::string& err) {
         it.normalStrength = (float)t["normal_strength"].asNumber(1.0);
         it.roughBias = (float)t["rough_bias"].asNumber(0.0);
         it.variation = (float)t["variation"].asNumber(0.25);
-        it.antitile = t["antitile"].asNumber(0.0) > 0.5 ? 1.0f : 0.0f;
+        // V13.3 (Abnahme Level 36): 2 = Kachelbruch mit schmalem Uebergang (koernige Boeden wie Terrazzo ohne Doppelbild)
+        const double at = t["antitile"].asNumber(0.0);
+        it.antitile = at > 1.5 ? 2.0f : (at > 0.5 ? 1.0f : 0.0f);
         if (it.name.empty() || it.meters <= 0.0f) {
             err = "textures.json: Eintrag ohne Namen oder Groesse";
             return false;

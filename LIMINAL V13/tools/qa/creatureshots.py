@@ -442,6 +442,39 @@ def _l37():
     }
 
 
+# V13.3 Level 36 (Abnahme): laut Seite keine Wesen (nur Reisende und die Durchsagestimme, beides nicht als Figur). Die Laeufe
+# zeigen die Bereiche nach LOOK_36 (Gepaeckausgabe mit Band und Fundsachen, Check-in mit Tafeln und BTA, Sicherheitskontrolle,
+# Rundgang mit Laufbaendern und Wegweisern, Sackgasse hinter EXIT, Ladenzeile, Lounge, Meeting Place, Gatehalle, C32, Ende an
+# C33) und gezielt die beiden Schwaechen aus V12: Glas- und Metallflaechen (Spiegelungen) und die Schaerfe des Terrazzos.
+def _l36():
+    return {
+        'gepaeck': ('Gepaeckausgabe: Ankunft am Band, Lamellen nah, Fundsachen, Fundbuero',
+            W0 + _view('gepaeck_1', 24.0, 72.0, -2.36, 0.0) + _view('gepaeck_2', 18.0, 70.2, -1.5708, -0.45, lamp=True) +
+            _view('gepaeck_3', 9.0, 69.5, 3.1416, -0.05) + _view('gepaeck_4', 13.0, 87.2, 1.5708, -0.1) + 'quit'),
+        'checkin': ('Check-in: Halle, Abflugtafeln, Schalter nah, BTA-Stand',
+            W0 + _view('checkin_1', 44.0, 64.0, 0.12, 0.05) + _view('checkin_2', 70.0, 69.0, -1.5708, 0.3) +
+            _view('checkin_3', 52.0, 71.6, 1.5708, -0.2, lamp=True) + _view('checkin_4', 93.5, 68.0, -1.5708, 0.0) + 'quit'),
+        'boden': ('Terrazzo: Schaerfe nah (0,5-3 m), streifend, mit Lampe; Teppich der Gates',
+            W0 + _view('boden_1', 60.0, 66.0, 0.0, -0.75) + _view('boden_2', 60.0, 66.0, 0.0, -0.25, lamp=True) +
+            _view('boden_3', 63.0, 14.5, 0.0, -0.5) + _view('boden_4', 155.0, 45.0, 0.45, -0.6) + 'quit'),
+        'sicherheit': ('Sicherheitskontrolle (ausser Betrieb): Spuren, Band, Torsonde',
+            W0 + _view('sicherheit_1', 56.5, 43.5, 2.5, -0.05) + _view('sicherheit_2', 44.5, 48.2, 0.0, -0.15, lamp=True) +
+            'quit'),
+        'rundgang': ('Rundgang: Waende aus Aluminium, Laufband mit Glas, stehendes Band, Wegweiser, Sackgasse hinter EXIT',
+            W0 + _view('rundgang_1', 63.0, 14.5, 0.0, 0.0) + _view('rundgang_2', 80.0, 13.8, -0.6, -0.2, lamp=True) +
+            _view('rundgang_3', 100.0, 13.8, -0.3, -0.35) + _view('rundgang_4', 98.0, 13.0, -1.5708, 0.15) +
+            _view('rundgang_5', 98.0, 8.2, -1.5708, 0.1, lamp=True) + _view('rundgang_6', 70.0, 36.0, 0.0, 0.0) + 'quit'),
+        'laeden': ('Ladenzeile: Fronten, Schaufenster (Spiegelstreifen), geschlossen, Lounge, Meeting Place',
+            W0 + _view('laeden_1', 69.0, 24.5, 0.0, 0.0) + _view('laeden_2', 99.5, 20.0, -1.5708, 0.0) +
+            _view('laeden_3', 113.5, 28.5, 1.5708, 0.0, lamp=True) + _view('laeden_4', 104.0, 44.0, 0.6, -0.05) +
+            _view('laeden_5', 36.0, 20.0, 0.7, -0.05) + 'quit'),
+        'gates': ('Gatehalle, Uhr und Brunnen, C32 (Wartende), Ende an C33 (offene Tuer)',
+            W0 + _view('gates_1', 146.0, 12.0, 1.5708, 0.0) + _view('gates_2', 145.0, 50.5, 3.1416, 0.05) +
+            _view('gates_3', 155.0, 45.0, 0.45, -0.1, lamp=True) + _view('gates_4', 156.0, 64.0, 0.0, 0.0) +
+            _view('gates_5', 163.5, 63.0, 0.4, 0.0) + 'quit'),
+    }
+
+
 def note_job(level, seed):
     """V13.3 Level 0: Notizen dort aufnehmen, wo das Spiel sie hinlegt (Protokoll "Notiz ... bei (x, y)"), Lampe aus/an."""
     if level != 'level0':
@@ -475,7 +508,7 @@ def note_job(level, seed):
 TRACES = {'level2': [('skin_hung', 0, 2.3), ('skin_lair', 0, 2.6), ('skin_shed', 0, 2.2), ('skin_shed', 1, 2.2),
                      ('skin_scratches', 0, 1.8)]}
 JOBS = {'level0': LEVEL0, 'level2': LEVEL2, 'level3': LEVEL3, 'level5': LEVEL5, 'level5_3': LEVEL5_3, 'level188': _l188(),
-        'level903': _l903(), 'level37': _l37()}
+        'level903': _l903(), 'level37': _l37(), 'level36': _l36()}
 
 
 def trace_job(level):

@@ -463,6 +463,8 @@ def _m():
         'white': mat('weiss_schichtstoff', (0.86, 0.86, 0.84), look='plastic', rough=0.4, r=0.8),
         'housing': mat('gehaeuse_pulver_weiss', (0.84, 0.84, 0.82), look='plastic', rough=0.5, r=0.95),
         'white_dull': mat('weiss_lack_matt', (0.80, 0.80, 0.78), look='paint', rough=0.7, r=1.15),
+        # V13.3 Abnahme Level 36: Rueckwand der Laeden sauber und matt (der Look paint zeigte dort Abplatzer-Wolken)
+        'wall_in': mat('wand_innen_matt', (0.84, 0.84, 0.82), look='plastic', rough=0.8, r=1.35),
         'grey': mat('grau_lack', (0.45, 0.46, 0.47), look='paint', rough=0.6, r=0.9),
         'black_pl': mat('kunststoff_schwarz', (0.035, 0.036, 0.04), look='plastic', rough=0.6, r=1.1),
         'grey_pl': mat('kunststoff_grau', (0.30, 0.31, 0.32), look='plastic', rough=0.6, r=1.05),
@@ -1646,7 +1648,7 @@ def _storefront_base(K, M, name, glow_rgb, seed, closed=False):
     Rollladenkasten mit Fuehrungsschienen, Leuchtkasten mit erhabenen Buchstaben; innen Rueckwand, Deckenlicht."""
     lit = common.material(f'laden_licht{seed}', glow_rgb, look='glow', glow=0.9)
     gx = 0.86  # Glasebene
-    box(K, M['white_dull'] if not closed else M['grey'], (0.0, -3.0, 0.0), (0.02, 3.0, 3.2))  # Rueckwand innen
+    box(K, M['wall_in'] if not closed else M['grey'], (0.0, -3.0, 0.0), (0.02, 3.0, 3.2))  # Rueckwand innen
     for y0 in (-3.0, 2.85):  # Pfeiler
         box(K, M['anthr'], (0.0, y0, 0.0), (0.95, y0 + 0.15, 3.2), bev=0.01)
         box(K, M['gap'], (0.9505, y0 + 0.07, 0.05), (0.9515, y0 + 0.08, 3.15))

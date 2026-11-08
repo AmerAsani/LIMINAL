@@ -1,0 +1,70 @@
+{
+ "shots": [
+  "gepaeck_1.png",
+  "gepaeck_2.png",
+  "gepaeck_2_lampe.png",
+  "gepaeck_3.png",
+  "gepaeck_4.png",
+  "checkin_1.png",
+  "checkin_2.png",
+  "checkin_3.png",
+  "checkin_3_lampe.png",
+  "checkin_4.png",
+  "boden_1.png",
+  "boden_2.png",
+  "boden_2_lampe.png",
+  "boden_3.png",
+  "boden_4.png",
+  "sicherheit_1.png",
+  "sicherheit_2.png",
+  "sicherheit_2_lampe.png",
+  "rundgang_1.png",
+  "rundgang_2.png",
+  "rundgang_2_lampe.png",
+  "rundgang_3.png",
+  "rundgang_4.png",
+  "rundgang_5.png",
+  "rundgang_5_lampe.png",
+  "rundgang_6.png",
+  "laeden_1.png",
+  "laeden_2.png",
+  "laeden_3.png",
+  "laeden_3_lampe.png",
+  "laeden_4.png",
+  "laeden_5.png",
+  "gates_1.png",
+  "gates_2.png",
+  "gates_3.png",
+  "gates_3_lampe.png",
+  "gates_4.png",
+  "gates_5.png"
+ ],
+ "gepaeck": {
+  "exit": 0,
+  "warn": []
+ },
+ "checkin": {
+  "exit": 0,
+  "warn": []
+ },
+ "boden": {
+  "exit": 0,
+  "warn": []
+ },
+ "sicherheit": {
+  "exit": 0,
+  "warn": []
+ },
+ "rundgang": {
+  "exit": 0,
+  "warn": []
+ },
+ "laeden": {
+  "exit": 0,
+  "warn": []
+ },
+ "gates": {
+  "exit": 0,
+  "warn": []
+ }
+}

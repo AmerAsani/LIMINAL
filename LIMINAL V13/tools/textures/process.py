@@ -47,6 +47,14 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     manifest = []
     for t in sel:
+        if t.get('same_as'):  # V13.3 (Abnahme Level 36): dieselben Bilder einer anderen Textur mit eigenen Werten
+            manifest.append({'name': t['name'], 'dir': t['same_as'], 'source': 'wie:' + t['same_as'],
+                             'meters': t.get('meters', next((m['meters'] for m in manifest if m['name'] == t['same_as']), 2.0)),
+                             'normal_strength': t.get('normal_strength', 1.0), 'rough_bias': t.get('rough_bias', 0.0),
+                             'variation': t.get('variation', 0.25), 'antitile': t.get('antitile', 0),
+                             'levels': t.get('levels', [])})
+            print('ok', t['name'], 'wie', t['same_as'], flush=True)
+            continue
         aid, name = t['id'], t['name']
         xdir = os.path.join(DL, aid, 'x')
         dst = os.path.join(OUT, name)

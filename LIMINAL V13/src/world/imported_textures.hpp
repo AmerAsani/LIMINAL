@@ -24,7 +24,7 @@ struct ImportedTexture {
     float normalStrength = 1.0f;
     float roughBias = 0.0f;
     float variation = 0.25f;  // grossflaechige Variation im Shader (0..1)
-    float antitile = 0.0f;    // V13: Kachelbruch im Shader (1 = an; nur fuer Texturen ohne Raster)
+    float antitile = 0.0f;    // V13: Kachelbruch im Shader (1 = an; nur fuer Texturen ohne Raster; V13.3: 2 = schmaler Uebergang)
 };
 
 // Liest data/textures/textures.json (einmal; spaetere Aufrufe mit demselben Ordner tun nichts)

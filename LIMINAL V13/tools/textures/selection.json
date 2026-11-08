@@ -352,6 +352,39 @@
    "meters": 1.0,
    "normal_strength": 0.6,
    "variation": 0.0
+  },
+  {
+   "name": "alu_panel_36",
+   "id": "EIGEN-alu_panel_36",
+   "levels": [
+    "36"
+   ],
+   "generator": "alu_panel_36",
+   "meters": 3.0,
+   "normal_strength": 1.0,
+   "variation": 0.1
+  },
+  {
+   "name": "plaster_matt_36",
+   "same_as": "plaster_white",
+   "levels": [
+    "36"
+   ],
+   "meters": 2.0,
+   "rough_bias": 0.3,
+   "variation": 0.15,
+   "antitile": 1
+  },
+  {
+   "name": "terrazzo_36",
+   "same_as": "terrazzo_antique",
+   "levels": [
+    "36"
+   ],
+   "meters": 2.0,
+   "rough_bias": 0.0,
+   "variation": 0.25,
+   "antitile": 2
   }
  ]
 }
