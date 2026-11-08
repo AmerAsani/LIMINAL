@@ -114,6 +114,7 @@ public:
     double floor = 0.0;
     double water = -999.0;  // V11: Wasserspiegel (absolute Hoehe; < -900 kein Wasser)
     bool hasWater() const { return water > -900.0; }
+    int waterLook = 0;  // V13.3 (Abnahme Level 37): 0 dunkles Meer, 1 flaches Becken, 2 tiefes Becken (Kaustik nur fuer Becken)
     bool fixedFloor = false;
     double height = 3.0;
     double stairStep = 0.3;

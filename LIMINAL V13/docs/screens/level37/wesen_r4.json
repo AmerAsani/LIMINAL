@@ -1,0 +1,51 @@
+{
+ "shots": [
+  "tunnel_1.png",
+  "tunnel_1_lampe.png",
+  "tunnel_2.png",
+  "tunnel_3.png",
+  "tunnel_3_lampe.png",
+  "tunnel_4.png",
+  "tunnel_5.png",
+  "becken_1.png",
+  "becken_1_lampe.png",
+  "becken_2.png",
+  "becken_3.png",
+  "becken_4.png",
+  "becken_4_lampe.png",
+  "halle_1.png",
+  "halle_1_lampe.png",
+  "halle_2.png",
+  "halle_3.png",
+  "grube_1.png",
+  "grube_2.png",
+  "grube_2_lampe.png",
+  "grube_3.png",
+  "grube_4.png",
+  "grube_5.png",
+  "wasser_1.png",
+  "wasser_1_lampe.png",
+  "wasser_2.png",
+  "wasser_3.png"
+ ],
+ "tunnel": {
+  "exit": 0,
+  "warn": []
+ },
+ "becken": {
+  "exit": 0,
+  "warn": []
+ },
+ "halle": {
+  "exit": 0,
+  "warn": []
+ },
+ "grube": {
+  "exit": 0,
+  "warn": []
+ },
+ "wasser": {
+  "exit": 0,
+  "warn": []
+ }
+}

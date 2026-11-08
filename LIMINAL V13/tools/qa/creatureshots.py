@@ -414,6 +414,34 @@ def _l903():
     }
 
 
+# V13.3 Level 37 (Abnahme): laut Seite keine Wesen ("Devoid of Entities"). Die Laeufe zeigen die Bereiche nach LOOK_37 und
+# das Wasser (Teil 1: Wellen, Spiegelung mit Fresnel, Tiefe, Wasserlinie an der Wand): Tunnel mit dem Wagen in der Wand,
+# Raeume mit Licht tief von der Wand, aus der Ecke und von unten, dunkler Raum, Saeulenhalle, Gruben (hell, dunkel, unter
+# Wasser, an der Oberflaeche), Nahansichten des Wassers. pos in einer Grube setzt den Spieler auf ihren Boden (unter Wasser);
+# er treibt in etwa 5 s an die Oberflaeche.
+def _l37():
+    return {
+        'tunnel': ('Tunnel mit Wagen: Wagen in der Wand, Stufen, innen (zurueck nach 903), Wandleuchten tief',
+            W0 + _view('tunnel_1', 34.0, 9.5, 3.1416, 0.0, lamp=True) + _view('tunnel_2', 7.5, 9.6, -2.37, 0.05) +
+            _view('tunnel_3', 12.5, 10.2, -1.5708, -0.2, lamp=True) + _view('tunnel_4', 12.5, 6.0, 0.0, 0.0) +
+            _view('tunnel_5', 24.0, 7.0, 0.65, -0.25) + 'quit'),
+        'becken': ('Raeume: Licht tief von der Wand, aus der Ecke, von unten; dunkler Raum',
+            W0 + _view('becken_1', 9.5, 20.5, 3.1416, -0.1, lamp=True) + _view('becken_2', 36.6, 20.4, -0.59, 0.05) +
+            _view('becken_3', 28.5, 16.5, -1.06, 0.15) + _view('becken_4', 24.5, 14.0, 1.5708, -0.05, lamp=True) + 'quit'),
+        'halle': ('Saeulenhalle: Raster, Licht von unten, Lampe',
+            W0 + _view('halle_1', 13.5, 38.4, 0.9, 0.0, lamp=True) + _view('halle_2', 13.5, 38.4, 1.5708, -0.05) +
+            _view('halle_3', 11.5, 41.5, 0.69, -0.35) + 'quit'),
+        'grube': ('Gruben: hell von oben, dunkel mit Lampe, unter Wasser, an der Oberflaeche',
+            W0 + _view('grube_1', 5.5, 29.0, 0.0, -0.3) + _view('grube_2', 16.5, 10.3, 1.5708, -0.35, lamp=True) +
+            'pos 11.5 26.5 0.0 0.1; wait 20; shot {out}/grube_3.png; key T; wait 90; shot {out}/grube_4.png; key T; '
+            'wait 420; shot {out}/grube_5.png; quit'),
+        'wasser': ('Wasser nah: Wasserlinie, Spiegelung, Fresnel, Lampe, Tropfen (4-6 im Abstand von 1 s)',
+            W0 + _view('wasser_1', 37.0, 17.0, -2.36, -0.75, lamp=True) + _view('wasser_2', 27.0, 9.0, 0.5, -0.45) +
+            _view('wasser_3', 5.5, 38.5, 1.5708, -0.04) + _view('wasser_4', 13.5, 38.4, 0.9, -0.75) +
+            'wait 60; shot {out}/wasser_5.png; wait 60; shot {out}/wasser_6.png; quit'),
+    }
+
+
 def note_job(level, seed):
     """V13.3 Level 0: Notizen dort aufnehmen, wo das Spiel sie hinlegt (Protokoll "Notiz ... bei (x, y)"), Lampe aus/an."""
     if level != 'level0':
@@ -447,7 +475,7 @@ def note_job(level, seed):
 TRACES = {'level2': [('skin_hung', 0, 2.3), ('skin_lair', 0, 2.6), ('skin_shed', 0, 2.2), ('skin_shed', 1, 2.2),
                      ('skin_scratches', 0, 1.8)]}
 JOBS = {'level0': LEVEL0, 'level2': LEVEL2, 'level3': LEVEL3, 'level5': LEVEL5, 'level5_3': LEVEL5_3, 'level188': _l188(),
-        'level903': _l903()}
+        'level903': _l903(), 'level37': _l37()}
 
 
 def trace_job(level):

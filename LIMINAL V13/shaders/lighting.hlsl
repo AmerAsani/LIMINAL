@@ -309,6 +309,35 @@ float capsuleAO(float3 P, float3 N)
     return saturate(1.0 - occ * 1.1);
 }
 
+// --- V13.3 (Abnahme Level 37): Lichtnetz klarer Becken (Kaustik) -------------------------------
+// Die Wellen buendeln das Licht zu einem wandernden Netz heller Linien. Naeherung: Raender einer langsam wandernden
+// Zellstruktur (Abstand zum naechsten minus zum zweitnaechsten Punkt), weich verzerrt, zwei Lagen verschiedener Groesse.
+// Rueckgabe 0..1, im Mittel etwa 0,25.
+float causticCells(float2 p, float t)
+{
+    const float2 i = floor(p), f = p - i;
+    float d1 = 8.0, d2 = 8.0;
+    [unroll] for (int y = -1; y <= 1; ++y)
+    [unroll] for (int x = -1; x <= 1; ++x)
+    {
+        const float2 g = float2(x, y);
+        const uint u = (uint)(int)(i.x + g.x + 8192.0) * 73856093u ^ (uint)(int)(i.y + g.y + 8192.0) * 19349663u;
+        const float2 h = float2(hash01(u), hash01(u ^ 0x9E3779B9u));
+        const float2 o = 0.5 + 0.4 * sin(t * (0.45 + 0.35 * h.yx) + 6.2831853 * h);
+        const float d = length(g + o - f);
+        if (d < d1) { d2 = d1; d1 = d; }
+        else d2 = min(d2, d);
+    }
+    const float e = d2 - d1;
+    return exp(-e * e * 40.0);
+}
+
+float causticNet(float2 p, float t)
+{
+    p += 0.2 * float2(sin(p.y * 1.3 + t * 0.7), sin(p.x * 1.1 - t * 0.6));
+    return saturate(0.7 * causticCells(p, t) + 0.45 * causticCells(p * 1.9 + float2(3.7, 1.3), t * 1.3));
+}
+
 // --- Kachel-Frustum ---------------------------------------------------------------------
 float4 sidePlane(float3 n) { return float4(normalize(n), 0.0); }
 
@@ -432,6 +461,49 @@ void CSMain(uint3 gid : SV_GroupID, uint3 dtid : SV_DispatchThreadID, uint gi : 
     float3 diffColor = albedo * (1.0 - metal);
     float a = rough * rough;
 
+    // V13.3 (Abnahme Level 37): klares Becken-Wasser. Der Umgebungs-Ring traegt im Alpha den Wasserspiegel (sonst -60000,
+    // also nur in Becken - das dunkle Meer und alle anderen Ebenen bleiben unberuehrt). Daraus:
+    // - die Wasserflaeche (zeigt den Boden darunter): Lichtnetz der Lampen ueber dem Wasser, mit der Tiefe schwaecher;
+    //   Lampen unter Wasser als Schein im Wasser (Kern und Hof);
+    // - unter Wasser (Gruben): Lichtnetz von oben, mit der Tiefe schwaecher;
+    // - ueber Wasser: Licht von Lampen unter Wasser kommt als Netz an (Decke, Saeulen, Waende); Licht der Lampen ueber
+    //   dem Wasser wird vom Wasser gespiegelt und wirft ein wanderndes Netz an Waende und Decke (Spiegellicht mit Fresnel,
+    //   Spiegelpunkt auf demselben Becken, Schatten auf beiden Wegen);
+    // - an der Wand eine schmale Wasserlinie.
+    const int rmask = (int)gRingParams.x - 1;
+    const float wl = gAmbient.Load(int3((int2)floor(P.xy + N.xy * 0.45) & rmask, 0)).a;
+    const float hW = P.z - wl;
+    // Wasserflaeche von unten (Taucher) bleibt wie bisher
+    const bool pool = wl > -1000.0 && !(abs(hW) < 0.05 && N.z < -0.6 && misc.r < 0.03);
+    const bool surf = pool && abs(hW) < 0.05 && N.z > 0.6 && misc.r < 0.03;
+    float cSurf = 1.0, cBelow = 1.0, cAbove = 1.0, cMirror = 1.0;
+    if (pool)
+    {
+        const float tW = gCameraPos.w;
+        // Wandkoordinate entlang der Wand aus der Achse der Flaeche (die Normale im G-Buffer traegt das Fugenrelief -
+        // mit ihr verrauschte das Netz zu Koernung)
+        const float2 ax = abs(N.x) > abs(N.y) ? float2(0.0, sign(N.x)) : float2(-sign(N.y), 0.0);
+        const float2 wallUv = float2(dot(P.xy, ax), P.z);
+        if (surf)
+        {
+            const float floorZ = gHeight.Load(int3((int2)floor(P.xy) & rmask, 0)).x;
+            cSurf = lerp(1.0, 0.45 + 2.2 * causticNet(P.xy * 2.4, tW), exp(-max(wl - floorZ, 0.0) * 0.45));
+        }
+        else if (hW < 0.0)
+            cBelow = lerp(1.0, 0.45 + 2.2 * causticNet((abs(N.z) > 0.5 ? P.xy : wallUv) * 2.4, tW), exp(hW * 0.3));
+        else
+        {
+            const float2 q = abs(N.z) > 0.5 ? P.xy : float2(wallUv.x, wallUv.y * 0.8);
+            cAbove = 0.4 + 2.4 * causticNet(q * 1.3, tW * 0.8);
+            const float2 qm = abs(N.z) > 0.5 ? P.xy * 1.3 : float2(wallUv.x * 1.6, hW * 2.6);
+            cMirror = lerp(1.0, 0.3 + 2.8 * causticNet(qm, tW * 0.9), abs(N.z) > 0.5 ? 0.75 : exp(-hW * 0.6));
+            if (abs(N.z) < 0.5)
+                diffColor *= 1.0 - 0.3 * (1.0 - smoothstep(0.004, 0.022, hW)) - 0.06 * (1.0 - smoothstep(0.02, 0.09, hW));
+        }
+    }
+    float3 glow = 0.0, mirror = 0.0;
+    int mirrorLeft = 3;
+
     float3 color = gEmissiveBuf[px];
     float3 direct = 0.0;
     float shadowSum = 0.0, shadowCount = 0.0;
@@ -455,6 +527,54 @@ void CSMain(uint3 gid : SV_GroupID, uint3 dtid : SV_DispatchThreadID, uint gi : 
             continue;
         float d = sqrt(d2);
         float3 l = toL / d;
+        // V13.3 (Abnahme Level 37): Becken - Lampe unter Wasser als Schein in der Wasserflaeche; Spiegellicht ueber Wasser
+        const bool lBelow = pool && L.posRange.z < wl;
+        if (surf && lBelow)
+        {
+            // Der Blick knickt an der Flaeche ab: der Schein liegt dort, wo der gebrochene Strahl die Tiefe der Lampe
+            // erreicht (Parallaxe wie beim Boden); flach ueber das Wasser kommt wenig heraus (1 - Fresnel), der Weg
+            // im Wasser schwaecht ihn
+            const float dep = max(wl - L.posRange.z, 0.05);
+            const float sinI = saturate(1.0 - NoV * NoV);
+            const float sinT = sqrt(sinI) / 1.333, cosT = sqrt(1.0 - sinT * sinT);
+            const float2 vh = P.xy - gCameraPos.xy;
+            const float2 dh = P.xy + (dot(vh, vh) > 1e-6 ? normalize(vh) : float2(0.0, 0.0)) * (dep * sinT / cosT) - L.posRange.xy;
+            const float dh2 = dot(dh, dh);
+            const float Tw = 1.0 - (0.02 + 0.98 * pow(1.0 - NoV, 5.0));
+            glow += L.colorRadius.rgb * ((exp(-dh2 / (0.04 + 0.05 * dep)) * 0.6 + exp(-dh2 / (0.5 + 0.6 * dep)) * 0.12) *
+                                         exp(-dep / cosT * 0.25) * Tw);
+            continue;
+        }
+        if (pool && !surf && !lBelow && hW > 0.0 && hW < 6.0 && mirrorLeft > 0)
+        {
+            const float3 Lm = float3(L.posRange.xy, 2.0 * wl - L.posRange.z);
+            const float3 toM = Lm - P;
+            const float dm2 = dot(toM, toM);
+            const float NoLm = dot(N, toM);
+            if (dm2 < range * range && NoLm > 0.0)
+            {
+                const float3 S = P + toM * (hW / max(P.z - Lm.z, 1e-3));
+                if (abs(gAmbient.Load(int3((int2)floor(S.xy) & rmask, 0)).a - wl) < 0.05)
+                {
+                    --mirrorLeft;
+                    const float dm = sqrt(dm2);
+                    const float3 lr = normalize(L.posRange.xyz - S);
+                    const float em = lightEmission(L.dirSpill, L.areaV.w, asuint(L.viewPosFlags.w), lr);
+                    const float xm = dm / range;
+                    const float wm = saturate(1.0 - xm * xm * xm * xm);
+                    const float Fw = 0.02 + 0.98 * pow(1.0 - saturate(lr.z), 5.0);
+                    float vis = 1.0;
+                    if ((asuint(L.viewPosFlags.w) & 1u) != 0 && gLightParams.z > 0.0)
+                    {
+                        const float3 S1 = S + float3(0.0, 0.0, 0.05);
+                        vis = traceShadow(S1, L.posRange.xyz, 16);
+                        if (vis > 0.0)
+                            vis *= traceShadow(shadowOrigin, S1, 12);
+                    }
+                    mirror += L.colorRadius.rgb * (wm * wm / (dm2 + 0.25 + L.areaU.w) * em * Fw * vis * (NoLm / dm));
+                }
+            }
+        }
         float NoL = dot(N, l);
         if (NoL <= -kSkinWrap.r * sss)
             continue;
@@ -464,6 +584,8 @@ void CSMain(uint3 gid : SV_GroupID, uint3 dtid : SV_DispatchThreadID, uint gi : 
         float window = saturate(1.0 - x * x * x * x);
         float atten = window * window / (d2 + 0.25 + L.areaU.w);
         float3 radiance = L.colorRadius.rgb * (atten * emit);
+        if (pool && !surf)
+            radiance *= lBelow ? (hW > 0.0 ? cAbove : 1.0) : (hW < 0.0 ? cBelow : 1.0);
         if (max(radiance.r, max(radiance.g, radiance.b)) * max(NoL, 0.25 * sss) < 2e-4)
             continue;
         if ((asuint(L.viewPosFlags.w) & 1u) != 0 && gLightParams.z > 0.0)
@@ -507,8 +629,13 @@ void CSMain(uint3 gid : SV_GroupID, uint3 dtid : SV_DispatchThreadID, uint gi : 
         float3 F = F_Schlick(f0, VoH);
         float3 spec = D_GGX(NoH, aL) * V_Smith(NoV, NoL, a) * F * norm;
         float3 diff = diffColor * (1.0 / PI) * (1.0 - F);
-        direct += (diff * diffK + spec * NoL) * radiance;
+        direct += (diff * diffK * cSurf + spec * NoL) * radiance;
     }
+    // V13.3 (Abnahme Level 37): Spiegellicht des Beckens (mit Lichtnetz) und Schein der Lampen unter Wasser
+    // Verstaerkung 6: die gewellte Flaeche spiegelt flach einfallendes Licht staerker als die glatte (Fresnel allein) und
+    // buendelt es; mit 1,6 blieb das Netz an den Waenden unsichtbar (Runde 3), mit 16 ueberstrahlte es (Probe)
+    direct += mirror * cMirror * diffColor * (6.0 / PI);
+    color += glow * (0.35 + 0.65 * albedo / max(max(albedo.r, max(albedo.g, albedo.b)), 0.05));
 
     // Umgebungslicht (vorberechnet je Kachelecke, weich interpoliert)
     float2 auv = (P.xy + N.xy * 0.45 + 0.5) * gRingParams.y;

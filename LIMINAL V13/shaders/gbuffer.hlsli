@@ -102,7 +102,10 @@ GBufferOut shadeSurface(GpuMaterial m, uint layer, float2 uvMeters, float2 uvGra
     // V13.3: Wasserflaeche (Rauheitsfaktor 0,02 nur bei Wasser): sanfte, wandernde Wellen; der Boden darunter (Textur der
     // Flaeche) wirkt durch die Brechung leicht verzogen
     const bool water = m.roughness < 0.025 && N.z > 0.5;
+    // V13.3 (Abnahme Level 37): klare Becken tragen ihre Tiefe (m) im Metall-Zuschlag; 0 = dunkles Meer wie bisher
+    const float poolDepth = water ? m.metalness : 0.0;
     float3 waveN = float3(0.0, 0.0, 1.0);
+    float blur = 1.0;
     if (water)
     {
         const float t = gCameraPos.w;
@@ -113,11 +116,45 @@ GBufferOut shadeSurface(GpuMaterial m, uint layer, float2 uvMeters, float2 uvGra
         const float hx = gMacroTex.SampleLevel(gLinearWrap, p1 + float2(e, 0.0), 0).g + 0.45 * gMacroTex.SampleLevel(gLinearWrap, p2 + float2(e, 0.0), 0).b;
         const float hy = gMacroTex.SampleLevel(gLinearWrap, p1 + float2(0.0, e), 0).g + 0.45 * gMacroTex.SampleLevel(gLinearWrap, p2 + float2(0.0, e), 0).b;
         waveN = normalize(float3(-(hx - h0) / e * 0.014, -(hy - h0) / e * 0.014, 1.0));
-        uvMeters += waveN.xy * 0.12;
+        if (poolDepth > 0.0)
+        {
+            // Tropfen: in 60 % der 4-m-Zellen schlaegt alle 7-13 s an zufaelliger Stelle einer ein (Klang "drip" der
+            // Ebene); die Ringe laufen mit 0,35 m/s aus und klingen in gut 2 s ab. Sichtbar werden sie wie in echt vor
+            // allem in Spiegelung und Glanz (Bogen aus Lichtpunkten). Ausgewertet werden die vier naechsten Zellen.
+            const float2 cc = floor(wpos.xy / 4.0 - 0.5);
+            float2 rip = 0.0;
+            [unroll] for (int k = 0; k < 4; ++k)
+            {
+                const float2 cell = cc + float2(k & 1, k >> 1);
+                const uint cs = (uint)(int)(cell.x + 4096.0) * 73856093u ^ (uint)(int)(cell.y + 4096.0) * 19349663u;
+                if (hash01(cs ^ 0x51ED27u) > 0.6)
+                    continue;
+                const float period = 7.0 + 6.0 * hash01(cs ^ 0x2C1B3Cu);
+                const float tt = t + period * hash01(cs ^ 0x7F4A7Cu);
+                const float age = fmod(tt, period);
+                const uint sd = (uint)(tt / period) * 7919u ^ cs;
+                const float2 at = (cell + 0.12 + 0.76 * float2(hash01(sd), hash01(sd ^ 0x9E3779B9u))) * 4.0;
+                const float2 dd = wpos.xy - at;
+                const float dr = length(dd);
+                const float x = (dr - age * 0.35) * 34.0;
+                const float wave = 0.45 * exp(-age * 1.6) * sin(x) * exp(-x * x * 0.02) / (1.0 + dr * 2.0);
+                rip += (dr > 1e-4 ? dd / dr : float2(0.0, 0.0)) * wave;
+            }
+            waveN = normalize(waveN + float3(rip, 0.0));
+            // Tiefenwirkung: der Boden liegt poolDepth tiefer; der Blickstrahl knickt an der Flaeche ab (Brechzahl 1,33),
+            // der Boden erscheint verschoben (Parallaxe) und in der Tiefe weicher
+            const float3 v = normalize(wpos - gCameraPos.xyz);
+            const float sinI = length(v.xy);
+            const float sinT = sinI / 1.333;
+            const float tanT = sinT / sqrt(max(1.0 - sinT * sinT, 1e-3));
+            uvMeters += (sinI > 1e-4 ? v.xy / sinI : float2(0.0, 0.0)) * (poolDepth * tanT);
+            blur = 1.0 + poolDepth * 0.9;
+        }
+        uvMeters += waveN.xy * (0.12 + 0.08 * poolDepth);
     }
     float4 li = gLayer[layer];
     float2 uv = uvMeters / li.x;
-    float2 gx = ddx(uvGradMeters) / li.x, gy = ddy(uvGradMeters) / li.x;
+    float2 gx = ddx(uvGradMeters) / li.x * blur, gy = ddy(uvGradMeters) / li.x * blur;
     // V13: Kachelbruch (nach I. Quilez, "texture repetition", Variante 3). Ein grossflaechiger Index waehlt je Stelle
     // einen von acht Versaetzen der Textur; zwischen zwei benachbarten wird weich ueberblendet (gesteuert vom
     // Helligkeitsunterschied, damit kein Brei entsteht). Nur fuer Ebenen ohne Raster (gLayer.w = 1: Teppich, Beton,

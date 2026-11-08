@@ -1074,6 +1074,7 @@ std::unique_ptr<Sector> Generator::mapSector(i64 sx, i64 sy) const {
         if (mr.flicker >= 0) room->flicker = mr.flicker;
         for (const MapRoom::Block& b : mr.blocks) room->blocks.push_back({b.x0, b.y0, b.x1, b.y1, b.h, b.hidden});
         room->water = mr.water;  // V11
+        room->waterLook = mr.waterLook;  // V13.3 (Abnahme Level 37)
         if (!mr.lights.empty()) {
             room->lightsAuthored = true;
             for (const MapLight& l : mr.lights) {
@@ -1127,14 +1128,18 @@ std::unique_ptr<Sector> Generator::mapSector(i64 sx, i64 sy) const {
     // V11: Wasseroberflaechen (je Raum mit Wasser eine Flaeche auf dem Spiegel, von beiden Seiten sichtbar)
     // V13.3: klares Wasser - die Flaeche traegt Muster und Textur des Bodens darunter, getoent mit der Wasserfarbe
     // (shaders/gbuffer.hlsli: Wellen, Brechung, Spiegelung); so sieht man durch flaches Wasser die Fliesen
+    // V13.3 (Abnahme Level 37): Becken (water_look 1, 2) tragen ihre Wassertiefe als Metall-Zuschlag; der Shader verschiebt
+    // den Boden darunter danach (Tiefenwirkung mit Brechung), zeichnet ihn in der Tiefe weicher und laesst Tropfen
+    // einschlagen. Das dunkle Meer (Level 0) bleibt unveraendert (kein Zuschlag).
     auto clearWater = [&](const MapRoom& mr) {
         Sector::Prop& p = sec->props.back();
         const Room* r = sec->roomAt((mr.x0 + mr.x1) / 2, (mr.y0 + mr.y1) / 2);
         if (!r || p.mats.empty() || !p.model || p.model->parts.empty()) return;
         const Material& fm = bank_[r->fmat];
         const props::MatDesc& d = p.model->parts[0].mat;
+        const float depth = mr.waterLook >= 1 ? (float)std::clamp(mr.water - mr.floor, 0.05, 8.0) : -1.0f;
         p.mats[0] = bank_.get({d.r, d.g, d.b}, fm.plane, WallPattern::Plain, false, {}, 0.72, Surface::PropWater,
-                              {fm.layer[0], 255, 255});
+                              {fm.layer[0], 255, 255}, {-1.0f, depth});
     };
     for (const MapRoom& mr : M.rooms)
         if (mr.water > -900.0) {

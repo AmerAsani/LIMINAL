@@ -474,6 +474,7 @@ void WorldRenderer::resetRing(Gpu& gpu, int rx, int ry, int w, int h) {
         hf[i + 1] = floatToHalf(-60000.0f);
     }
     std::vector<u16> am((size_t)w * h * 4, 0);
+    for (size_t i = 3; i < am.size(); i += 4) am[i] = floatToHalf(-60000.0f);  // V13.3: kein Becken-Wasser
     D3D11_BOX box{(UINT)rx, (UINT)ry, 0, (UINT)(rx + w), (UINT)(ry + h), 1};
     gpu.ctx()->UpdateSubresource(height_.tex.get(), 0, &box, hf.data(), (UINT)w * 4, 0);
     gpu.ctx()->UpdateSubresource(ambient_.tex.get(), 0, &box, am.data(), (UINT)w * 8, 0);
@@ -558,7 +559,10 @@ void WorldRenderer::addChunk(Gpu& gpu, const world::ChunkData& cd) {
             am[i * 4] = floatToHalf(a.x);
             am[i * 4 + 1] = floatToHalf(a.y);
             am[i * 4 + 2] = floatToHalf(a.z);
-            am[i * 4 + 3] = floatToHalf(1.0f);
+            // V13.3 (Abnahme Level 37): Alpha = Wasserspiegel klarer Becken ueber dieser Kachel (sonst -60000); daraus
+            // zeichnet die Beleuchtung das Lichtnetz (Kaustik), die gespiegelten Lichter und die Lampen unter Wasser
+            const bool pool = !t.solid() && t.room && t.room->hasWater() && t.room->waterLook >= 1 && fl < (float)t.room->water - 0.02f;
+            am[i * 4 + 3] = floatToHalf(pool ? (float)t.room->water : -60000.0f);
         }
     D3D11_BOX box{(UINT)rx, (UINT)ry, 0, (UINT)(rx + world::CS), (UINT)(ry + world::CS), 1};
     gpu.ctx()->UpdateSubresource(height_.tex.get(), 0, &box, hf, world::CS * 4, 0);
