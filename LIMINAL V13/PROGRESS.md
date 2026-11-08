@@ -214,3 +214,16 @@ Agenten: alle ausser „Props Level 1 Blender-Modelle“ (vom Nutzer gestoppt, A
 - **E-050:** Sicherheitsleuchten ohne Piktogramm in schilderfreien Ebenen; `signs.py` mit Auffrischung und strengerer Prüfung.
 - **Tests:** gameplay 1019/0 (auch unter AddressSanitizer), coop 209/0, audio 121/0, net 72/0, worldgen 29658/0, supply OK, Schilder OK, Raummetrik OK.
 - **Weiter:** Abnahme Level 188, 903, 37, 36; dann Schluss (60-min-Koop-Langlauf, alle Tests, Einfrier-Prüfung V12/V10, README mit V13-Bildern, Upload V13, `REPORT_V13_3.md`, `SELBSTKONTROLLE.md`).
+
+### V13.3 Zwischenstand 15 (08.11.2026) – Schluss
+- **Abgenommen:** alle zehn Ebenen (Level 188 am 03.11., 903, 37 und 36 am 08.11.; E-051).
+- **Schlussprüfung** auf `f45bc4d` (Branch `worktree-wf_e3a3c0ee-980-4`):
+  - Tests: gameplay 1020/0, audio 121/0, audio_device 66/0, net 72/0, Transport 90/0, coop --quick 209/0, worldgen 29658/0, supply OK, Raummetrik/Schilder/Ähnlichkeit OK, kein Netzwerk SAUBER;
+  - Smoke-Test aller zehn Ebenen OK (GPU im Mittel 1,97–4,88 ms, RAM-Spitze 1 413–1 560 MB, 0 Fehler);
+  - Koop-Langlauf 60 min: Lauf 1 fehlgeschlagen (10 Prüfungen, 2 Fehler: ein Gast nach 55 min getrennt), Lauf 2 OK (10/0);
+  - V12-Manifest 0 Abweichungen, V10 unverändert gegen `main`.
+- **Gefunden und behoben:** B-033 (31 Modelle der Level-1-Wesen nie geprüft → `repair_glb.py`, 670/0), B-030 (Port-Prüfung im Koop-Test); `AUFWAND.md` Level 1 auf das Niveau von Level 0 ergänzt.
+- **Offen eingetragen:** B-036 (Langlauf: ein Gast nach 55 min getrennt, Ursache offen, Diagnose mit `LIMINAL_NET_LOG=1` eingebaut), B-031 (violette Flecken), B-032 (Teil-Stromausfall), B-035 (großes Bündel: Waffe durch das Handgelenk); Vermutung B-034 (Koop zwei Prozesse unter Last).
+- **README-Bilder V13:** 16 Bilder in `docs/readme_v13/` mit `AUSWAHL.md` (E-052).
+- **Dokumente:** `REPORT_V13_3.md`, `SELBSTKONTROLLE.md` (92 ja, 4 nein).
+- **Weiter (Hauptstrang):** Zusammenführen nach `liminal-v13`, Upload V13 nach `GITHUB_UPLOAD.md` (Branch, Tag `v13.3`, Bau-Test aus frischem Klon, Release, README mit den V13-Bildern).
