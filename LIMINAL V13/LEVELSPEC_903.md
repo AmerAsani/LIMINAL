@@ -48,11 +48,13 @@
 - **Ankunft:** aus Level 5 im Wagen, der dort im Kesselgang hielt.
 - **Maße:**
   - Die Station ist 196 m lang, der Mittelsteig 8 m breit und 1,1 m über dem Gleisbett, die Halle 5,3 m hoch.
-  - Die Enden verschwinden im Dunkel; die Röhren enden 20 m vor den Wänden.
+  - Die Enden verschwinden im Dunkel; die Röhren enden 20 m vor den Wänden. Vor den Stirnwänden steht eine fast
+    lichtlose Fläche – auch der Lichtkegel der Lampe findet dort keine Wand (Abnahme V13.3).
 - **Wände:** weiße Fliesen mit Stationsschildern in erfundenen Zeichen (keine echte Schrift).
 - **Decke:** dunkler Beton.
 - **Der ruhende Zug:** 6-m-Abschnitte mit Faltenbalg alle 19 m. Ein Wagen ist bewohnt: zugezogene Vorhänge, Licht durch einen Spalt, Pflanze, Schild.
-- **Treppen:** zwei Treppen auf dem Steig, oben zugemauert, unten vernagelt.
+- **Treppen:** zwei Treppen auf dem Steig, oben zugemauert, unten vernagelt; von hinten Fliesenwand mit verschlossener
+  Revisionstür (Abnahme V13.3).
 - **Klang** (die Seite nennt keinen): Lüftung, Brummen der Röhren, selten das Grollen eines fernen Wagens.
 - **Verstand:** erholt sich langsam (Wiki: bewohnbar, sicher).
 - **Funde:** wenige, auf den Bänken im Wagen.
@@ -60,7 +62,10 @@
 ## 3. Konflikte und Grenzen
 
 - **Länge** (100 Meilen): nicht darstellbar. Das Dunkel an den Enden deutet sie an.
-- **Facelings und Bewohner:** nicht dargestellt (keine Modelle, keine Menschen im Spiel). Der bewohnte Wagen zeigt nur, dass jemand dort lebt.
+- **Facelings:** seit V13.2 im Spiel (`KREATUR_Faceling.md`): friedlich, Gruppen von 2–4, winken, wen sie eine Weile
+  sehen. Sie erscheinen außer Sicht – auf dem offenen Steig fast nur im fahrenden Wagen; sie kommen also mit dem Wagen an
+  und gehen auf den Steig (Abnahme V13.3, passt zur Seite: hinein nur mit einem Wagen).
+- **Bewohner (Menschen):** nicht dargestellt (keine Menschen im Spiel). Der bewohnte Wagen zeigt nur, dass jemand dort lebt.
 - **Haltezeit und Ankunft alle paar Stunden:** Der Wagen steht immer da. Sonst müsste man Stunden warten.
 - **Fahrt:** Kein Fahrtbild; der Wechsel geschieht beim Betreten des Wagenendes.
 - **Weitere Wagenarten, Graffiti, Flaggen:** nur eine Wagenart im Wagen, Aufkleber am ruhenden Zug.

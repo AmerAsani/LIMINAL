@@ -345,10 +345,11 @@ def _M():
     mt = common.material
     return {
         # Wagenkasten
-        # V13.3 (Abnahme Level 903, Runde 4): r 0,75 -> 1,05, m 0,75 -> 0,55 - nur im Lampenlicht (Ebenenlicht aus) war die
-        # Wagenseite schwarz, nur roter Streifen und Fensterrahmen leuchteten (kein Eigenschatten: glattes Metall ohne
-        # Streuanteil); jetzt gebuerstet wie die Laibungen, mit breitem Schimmer im Lichtkegel
-        'alu': mt('wagen_alu', (0.74, 0.76, 0.78), look='metal', tex='metal_aluminum', rough=0.45, metal=0.8, r=1.05, m=0.55),
+        # V13.3 (Abnahme Level 903, Runden 4-5): nur im Lampenlicht (Ebenenlicht aus) war die Wagenseite schwarz, nur roter
+        # Streifen und Fensterrahmen leuchteten. Kein Eigenschatten (Schattenansicht: frei), sondern das Material: die
+        # Metalltextur bringt Metall 1 mit (Shader: Metall = Textur + m), glatt - eine Lampe am Auge sieht nur einen
+        # Lichtpunkt. m/r allein halfen nicht (Runde 5). Jetzt Silberlack: Streuanteil, metallischer Glanz (m 0,35)
+        'alu': mt('wagen_alu', (0.70, 0.72, 0.74), look='carpaint', rough=0.4, metal=0.35, r=0.6, m=0.35),
         'alu_dull': mt('wagen_alu_matt', (0.55, 0.57, 0.58), look='metal', tex='metal_aluminum', rough=0.55, metal=0.8, r=1.2, m=0.55),
         'alu_old': mt('wagen_alt', (0.50, 0.53, 0.55), look='metal', tex='painted_metal_grey', rough=0.6, metal=0.3, r=1.0, m=0.25),
         'paint_old': mt('wagen_alt_lack', (0.34, 0.355, 0.365), look='paint', rough=0.6, r=1.0),

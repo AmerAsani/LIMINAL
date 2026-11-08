@@ -90,3 +90,39 @@ Befunde:
   `metro_car_37` neu gebaut.
 - Werkzeug: Faceling-Lauf zeigt die Ankunft durch die offene Tür (faceling_1/2), nach 15 s den Steig (faceling_8) und das
   Winken (faceling_3).
+
+## Runde 5 (Wesen `wesen_r5_1.jpg` … `_5.jpg`, 6 Läufe; Laufweg wie Runde 3)
+
+Befunde:
+1. **Facelings** (faceling_1/2): durch die offene Tür zwei Facelings im Wagen, die eben angekommen sind (Frau mit langem
+   dunklem Haar, Mann in Grün), mit Lampe die leeren Gesichter; faceling_8: eines geht nach 15 s auf dem Steig und hebt die
+   Hand; faceling_3: aus 3,5 m stehend, ruhig. Friedlich, verschieden, im Spiel – abgenommen.
+2. **Wagenseite nur im Lampenlicht** (metro_11, metro_12): unverändert schwarz – r und m allein helfen nicht. Ursache mit den
+   Debug-Ansichten des Renderers belegt (`docs/screens/level903/wagenseite_lampe.jpg`): Schattenansicht (weiß = Schatten) an
+   der Wand schwarz, also **frei** (E-041 wirkt); Albedo hellgrau, Normalen nach außen; direktes Licht dennoch null. Der
+   Shader rechnet Metall = Metallkanal der Textur + m (`gbuffer.hlsli`): `metal_aluminum` bringt 1 mit, glatt – eine Lampe
+   am Auge sieht auf glattem Vollmetall nur einen Lichtpunkt, der hier ins Fenster fällt.
+3. **Front vom Gleis** (metro_8_lampe), **Wagen im Ebenenlicht** (metro_1, metro_3), **Innenraum** (metro_4–6): unverändert gut.
+4. Übrige Läufe wie Runde 3.
+
+Änderungen:
+- `alu` (Wagenkasten, Türblätter, Stirn): Silberlack statt Metalltextur (`carpaint`, m 0,35, r 0,6) – Streuanteil und
+  metallischer Glanz; Probe vorher/nachher in `wagenseite_lampe.jpg` (Lampe frontal: Lichtkegel auf Lack mit Schmutzfahnen;
+  Ebenenlicht an der Tür: hellgrau wie vorher). `metro_car_903`, `metro_car_37` neu gebaut.
+
+## Runde 6 (Abnahme: Wesen `wesen_r6_1.jpg` … `_5.jpg`, 6 Läufe; Laufweg `wegbilder_r6_*`: 294 m, 74 Bilder, 1 Raum)
+
+Befunde:
+1. **Wagenseite nur im Lampenlicht** (metro_2, metro_11, metro_12): heller Lichtkegel auf grauem Lack mit Schmutzfahnen,
+   Fenster, Türen und roter Streifen gut lesbar; schräg entlang der Seite (metro_12) läuft das Licht weich aus – behoben.
+2. **Wagen im Ebenenlicht** (metro_1, metro_3, Laufweg 045–051): silbergrau mit rotem Streifen und Schmutz; hebt sich vom
+   blaugrauen ruhenden Zug ab – der fahrende Wagen ist der eine, der lebt. Front vom Gleis (metro_7/8, mit Lampe) gut.
+3. **Innenraum** (metro_4–6): Lichtbänder, Bänke, Haltestangen, Zielanzeigen; rechts in metro_4 ein offenes Türblatt mit
+   dunkler Scheibe (Glas deckend) – so seit der Ausstattung, hinnehmbar.
+4. **Facelings** (faceling_1–8): Ankunft im Wagen, auf dem Steig mit erhobener Hand (faceling_8), Varianten mit und ohne
+   Lampe – unverändert gut.
+5. **Laufweg**: wie Runde 3, der Wagen in neuer Farbe; Enden im Dunkel, Treppen mit Rückseite, Zug ohne Schneekante.
+   Keine neuen Mängel.
+6. Zug, Stromausfall, Beil, Bereiche wie Runde 3.
+
+Keine Änderung. Damit 6 Runden (Schranke d).

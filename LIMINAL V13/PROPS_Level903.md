@@ -234,6 +234,18 @@ Prüfbögen der Runden (50 cm im Licht, 50 cm von der Seite, 50 cm nur Lampe):
   sieht man die Hallenwand.
 - Die Werbekarten und Aufkleber zeigen erfundene Zeichen und einfache Formen, keine Bilder.
 
+### Nachträge aus der Abnahme (V13.3, 03.–08.11.2026, `KRITIK_Level903.md` Runden 2–6)
+- **Wagen** (`metro_car_903`, `metro_car_37`): Wagenkasten als Silberlack statt Metalltextur – im reinen Lampenlicht war
+  die Seite schwarz (Metall 1 aus der Textur, glatt; kein Eigenschatten, belegt in
+  `docs/screens/level903/wagenseite_lampe.jpg`); Unterboden ohne Lacktextur (im Lampenlicht vom Gleis weiß gefleckt),
+  Trittblech gebürstet; unter dem Wagen Kopfquerträger, Blech und Leitungen vor dem Block der Karte.
+- **Enden**: `dark_end_903` (neu) – fast lichtlose Fläche vor beiden Stirnwänden; letzter Zugabschnitt im Osten.
+- **Treppe**: Rückseite mit Fliesen, Kantenschutz und verschlossener Revisionstür (vorher offener Kasten).
+- **Ruhender Zug**: Ablaufschmutz schmal mit einzelnen Läufern (vorher ein helles Band wie Schnee).
+- **Weiter offen, begründet:** Glas deckend (Engine). Der ruhende Zug hat keinen Innenraum: seine dunklen Scheiben lesen
+  sich wie bei einem abgestellten, unbeleuchteten Zug; ein Innenraum wäre nur hinter durchsichtigem Glas oder offenen
+  Scheiben sichtbar und brächte bei 30 Abschnitten schätzungsweise 100 000 Dreiecke mehr.
+
 ## Aufwand
 - Etwa 8 Stunden Agentenzeit (27.10. ca. 4 h: Analyse, Vorher-Bögen, Wagen und Gleis; 01.11. ca. 4 h: übrige
   Klassen, Varianten, Runden r1–r5 und final, Tests, Dokumente).
