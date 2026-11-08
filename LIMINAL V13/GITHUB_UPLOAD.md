@@ -45,7 +45,8 @@ ist `3952886` mit Elternteil `c701337`).
 | Release | Stand | Paket |
 |---|---|---|
 | v11 „LIMINAL V11“ | **veröffentlicht** | `LIMINAL_V11.zip`, 2,1 MB, sha256 `2394a79c…694f`; probegestartet |
-| v12 „LIMINAL V12“ | **veröffentlicht** (02.11.2026, „Latest“) | `LIMINAL_V12.zip`, 157 MB, in 18 Teilen `LIMINAL_V12.zip.001`–`.018` (je 8,58 MB, letzter 4,07 MB); Gesamtdatei sha256 `08927be46a7c6e17e4a8f1ffd854faf96854f8077b9ca36eb6538f1e24f0b166` |
+| v12 „LIMINAL V12“ | **veröffentlicht** (02.11.2026) | `LIMINAL_V12.zip`, 157 MB, in 18 Teilen `LIMINAL_V12.zip.001`–`.018` (je 8,58 MB, letzter 4,07 MB); Gesamtdatei sha256 `08927be46a7c6e17e4a8f1ffd854faf96854f8077b9ca36eb6538f1e24f0b166` |
+| v13.3 „LIMINAL V13.3“ | **veröffentlicht** (08.11.2026, „Latest“) | `LIMINAL_V13.zip`, 263 MB, in 30 Teilen `LIMINAL_V13.zip.001`–`.030`; sha256 `a1bd446d1f5a538796caad2b1f39e51a77308a56792177e4f025c6d99d388fa5` |
 
 Die Pakete enthalten `LIMINAL.exe`, `data`, `shaders`, `assets`, `LIESMICH.txt` und `licenses/`, gebaut außerhalb der
 eingefrorenen Ordner (V12-Manifest danach: 25 550 Dateien, 0 verändert). Beide Release-Beschreibungen enthalten den Link
@@ -114,11 +115,41 @@ Bilddateien außerhalb der Versionsordner; die Bilder in den Versionsordnern ble
   Einzige Warnungen: fehlende Einstellungsdateien beim allerersten Start (normal). Keine Funde, nichts zu beheben;
   Versionsordner unverändert (V12-Manifest 0 verändert).
 
+## V13-Upload (08.11.2026)
+
+Voraussetzung erfüllt: alle zehn Ebenen abgenommen, `ENTITY_ABGLEICH` umgesetzt, Schlussprüfung mit `REPORT_V13_3.md` und
+`SELBSTKONTROLLE.md` (ehrlich: Langlauf B-036 offen).
+
+- **Prüfung vor dem Push:** 359 neue Commits, 7 546 neue Dateistände (1,62 GB), keine Datei über 15 MB, keine neuen
+  LFS-Dateien; Suche nach Schlüsseln und Passwörtern (privater Schlüssel, `ghp_`, `github_pat_`, `AKIA`, Zuweisungen von
+  `secret`/`password`/`token`/`api_key`) ohne Fund außer den PEM-Kopfzeilen als Zeichenketten in Mbed TLS
+  (`pk_internal.h`). `PROMPT_V13_3.md` und `LIMINAL V11/` nicht im Branch.
+- **Push nur benannter Refs, in drei Schritten** wegen der Größe (`9e1d96e` 0,89 GB, `bd460da` 1,55 GB, `3ffe707`),
+  jeweils vorwärts; danach Tag `v13.3` (annotiert, auf `3ffe707`) und `784f0d4` (Wurzelordner des Branches: README,
+  `LICENSES.md`, `ATTRIBUTION.md` mit den Wesen-Seiten von V13, `licenses/`). `git ls-remote`: `liminal-v13`, `v13.3`;
+  `main` enthält `liminal-v13` nicht; Tags `v11`/`v12` unverändert. Kein Force-Push, kein Pull Request.
+- **Release v13.3 „LIMINAL V13.3“** („Latest“): Paket `LIMINAL_V13.zip` (877 Dateien, 394,9 MB entpackt, 262 804 498 Byte)
+  mit `LIMINAL.exe`, `liminal_net.dll`, `liminal_lobby.exe`, `koop.example.json`, `data`, `shaders`, `assets`,
+  `LIESMICH.txt` (mit Koop-Kurzanleitung) und `licenses/` (LLVM, mingw-w64, Inter, libdatachannel, libjuice, usrsctp,
+  plog, Mbed TLS, nlohmann/json, `THIRD_PARTY_NOTICES.txt`); gebaut außerhalb des Versionsordners. In 30 Teilen
+  `LIMINAL_V13.zip.001`–`.030` (je 9 000 000 Byte, letzter 1 804 498) über den Browser angehängt, weil `gh` nicht angemeldet
+  ist. SHA-256 `a1bd446d1f5a538796caad2b1f39e51a77308a56792177e4f025c6d99d388fa5`. Beschreibung mit Anleitung zum
+  Zusammensetzen, Prüfsumme, Koop-Hinweisen samt ehrlichem Stand, Link zum Quelltext und Bau mit `tools\build.ps1`.
+- **Kontrolle als Fremder:** API ohne Anmeldung: veröffentlicht, 30 Assets, Summe gleich der Paketgröße, `latest` = `v13.3`.
+  Alle 30 Teile mit `curl` ohne Anmeldedaten geladen, mit `copy /b` zusammengesetzt: gleiche Prüfsumme. Das entpackte Paket
+  startete mit eigenem Benutzerordner 60 s ohne ERROR (Hauptmenü, Texturen geladen).
+- **Bau-Test aus frischem Klon** (`git -c credential.helper= clone --branch liminal-v13 --single-branch`, 59 s, 2,8 GB):
+  `tools\build.ps1` rc 0 in 122 s (portable Werkzeugkette selbst geladen: llvm-mingw, CMake, Ninja), `LiminalGame.exe`, `liminal_net.dll` und `liminal_lobby.exe` gebaut (Quellen aus `third_party`, Lobby aus `tools/lobby`); gameplay_test im Klon 1020/0; Start 150 s ohne ERROR (einzige Warnung: Audiogerät des Rechners stumm geschaltet).
+- **README auf `main`** (`072de77`): Bildleiste mit den 16 Bildern aus `docs/readme_v13/` (1920×1080, je unter 300 KB;
+  Ordner `docs/readme/` jetzt 25 Bilder, 5,0 MB), Funktionen V13.3, Download-Zeile Release v13.3, Abschnitt „Co-op“
+  (LAN, Lobby, `koop.json`-Felder, ehrlicher Stand), Quelltext- und Bauzeilen V13, Versionszeile V13, ältere Bilder
+  V12/V11 als eigener Abschnitt. Auf GitHub geprüft: 25 Bilder, keines kaputt. `LICENSES.md` (Netzbibliotheken) und
+  `ATTRIBUTION.md` (Wesen-Seiten V13) auch auf `main`.
+- **Repository-Seite:** Beschreibung auf „… with co-op for up to four players … V1–V13 here, V13.3 latest.“ geändert
+  (erlaubt: Beschreibung). Keine Einstellungen, Regeln, Sichtbarkeit oder Webhooks angefasst; offene Pull Requests: 0.
+
 ## Offen
 
 - Lizenz des Spiels: wählt der Nutzer (CC BY-SA 3.0 oder GPLv3); dann in einem Zug LICENSE-Datei, README,
   `LICENSES.md` und Release-Beschreibungen.
-- Nach Abschluss von V13.3: `liminal-v13` und Tag `v13.3` hochladen – Quelltext mit `third_party` (libdatachannel,
-  libjuice, Mbed TLS, usrsctp) und `tools/lobby`, Lizenztexte dazu; Bau-Test aus frischem Klon; Release mit Link zum
-  Quelltext und Bausatz; README mit V13-Bildern (12–16, je Ebene eines, Hand mit Taschenlampe, drei Wesen,
-  Wasser/Spiegelung, Koop) und Koop-Anleitung (koop.json, Lobby) fertigstellen.
+- V13: erledigt (Abschnitt „V13-Upload“).

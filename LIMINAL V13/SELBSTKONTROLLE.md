@@ -29,7 +29,7 @@ Zusammenfassung am Ende.
 | A18 | Alle Tests grün | ja (ohne den Langlauf, siehe A15) | `REPORT_V13_3.md` Abschnitt 4 (gameplay 1020/0, audio 121/0, audio_device 66/0, net 72/0, Transport 90/0, coop --quick 209/0, worldgen 29 658/0, supply OK, Raummetrik/Schilder/Ähnlichkeit OK, Modellprüfung 670/0, kein Netzwerk) |
 | A19 | V10 unverändert | ja | `git diff --quiet main HEAD -- "LIMINAL V10"` ohne Abweichung (08.11.) |
 | A20 | V12 unverändert | ja | `freeze.py "LIMINAL V12" "Sicherungen\v12_frozen_2026-10-26.txt" --verify`: „Manifest 25550, veraendert 0, fehlend 0, neu 0“ (08.11.); `git diff --quiet liminal-v12 HEAD -- "LIMINAL V12"` |
-| A21 | Upload verifiziert oder Befehle dokumentiert | nein | **Folgt im Hauptstrang** (dieser Schritt pusht nach Auftrag nicht). Geplante Schritte in `GITHUB_UPLOAD.md`, Abschnitt „Offen“ (Branch `liminal-v13`, Tag `v13.3`, Bau-Test aus frischem Klon, Release, README mit `docs/readme_v13/`). Keine technische Grenze, sondern Arbeitsteilung |
+| A21 | Upload verifiziert oder Befehle dokumentiert | ja | Nachgetragen 08.11.2026 (Hauptstrang): Branch `liminal-v13` und Tag `v13.3` per `git ls-remote` bestätigt; Release v13.3 mit 30 Teilen, ohne Anmeldung geladen, Prüfsumme gleich; Bau-Test aus frischem Klon; README auf `main`. `GITHUB_UPLOAD.md`, Abschnitt „V13-Upload“ |
 | A22 | `REPORT_V13_3.md` erstellt (Änderungen, getestete Funktionen, bekannte Probleme, Restrisiken, Stand pro Level und Entity) | ja | `REPORT_V13_3.md` Abschnitte 2, 3, 8–12 |
 
 Teil 7 (Testen), soweit nicht oben enthalten:
@@ -66,12 +66,11 @@ Smoke-Test je Ebene OK (`docs/metrics/smoke_<level>.json`), `gameplay_test` 1020
 
 ## C. Zusammenfassung
 
-Geprüft: 96 Punkte (22 aus Abschnitt 11, 4 aus Teil 7, 70 Schranken a–g). **92 ja, 4 nein.**
+Geprüft: 96 Punkte (22 aus Abschnitt 11, 4 aus Teil 7, 70 Schranken a–g). **93 ja, 3 nein** (A21 am 08.11.2026 nach dem Upload nachgetragen).
 
-Die vier „nein“:
+Die drei „nein“ (A21 ist seit dem Upload „ja“):
 1. **A15 Multiplayer-Tests grün:** der 60-min-Langlauf schlug in Lauf 1 fehl (ein Gast nach 55 min getrennt, B-036); Lauf 2 ohne Last bestand. Alle anderen Mehrspieler-Tests grün (Protokoll 72/0, Transport 90/0, Koop 209/0). Nicht behoben, weil die Ursache nicht bestimmt ist und sich im zweiten Lauf nicht zeigte; ein Eingriff in SCTP-Wartezeiten oder Stille-Grenze ohne Nachweis wäre geraten. Diagnose ist eingebaut (`LIMINAL_NET_LOG=1`); weitere Langläufe nötig.
-2. **A21 Upload verifiziert oder Befehle dokumentiert:** folgt im Hauptstrang (in diesem Schritt nach Auftrag kein Push). Schritte in `GITHUB_UPLOAD.md`, Abschnitt „Offen“.
-3. **Level 188, Schranke e:** 207 m erfüllt, 15 Räume nicht – die Ebene hat nur 7 erreichbare Räume (Wiki: ein Hof mit Gängen). Echte Grenze, E-036.
-4. **Level 903, Schranke e:** 294 m erfüllt, 15 Räume nicht – die Ebene ist ein einziger Bahnsteig (Wiki). Echte Grenze, E-036.
+2. **Level 188, Schranke e:** 207 m erfüllt, 15 Räume nicht – die Ebene hat nur 7 erreichbare Räume (Wiki: ein Hof mit Gängen). Echte Grenze, E-036.
+3. **Level 903, Schranke e:** 294 m erfüllt, 15 Räume nicht – die Ebene ist ein einziger Bahnsteig (Wiki). Echte Grenze, E-036.
 
 In der Schlussprüfung nachgebessert (jetzt „ja“): A1 (`AUFWAND.md` Level 1 war dünner als Level 0), Level 1 f (31 Modelle der Wesen ungeprüft, B-033). Weitere Funde ohne Einfluss auf eine Schranke: B-030 (behoben), B-031, B-032, B-035 (offen), B-034 (Vermutung).

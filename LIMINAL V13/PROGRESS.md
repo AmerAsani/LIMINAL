@@ -227,3 +227,11 @@ Agenten: alle ausser „Props Level 1 Blender-Modelle“ (vom Nutzer gestoppt, A
 - **README-Bilder V13:** 16 Bilder in `docs/readme_v13/` mit `AUSWAHL.md` (E-052).
 - **Dokumente:** `REPORT_V13_3.md`, `SELBSTKONTROLLE.md` (92 ja, 4 nein).
 - **Weiter (Hauptstrang):** Zusammenführen nach `liminal-v13`, Upload V13 nach `GITHUB_UPLOAD.md` (Branch, Tag `v13.3`, Bau-Test aus frischem Klon, Release, README mit den V13-Bildern).
+
+### V13.3 Zwischenstand 16 (08.11.2026) – V13 veröffentlicht
+- Schluss-Branch nach `liminal-v13` vorgespult (`3ffe707`), dort gameplay 1020/0 nach frischem Bau.
+- Hochgeladen: `liminal-v13` (drei Schritte), Tag `v13.3`, Wurzelordner mit README/LICENSES/ATTRIBUTION; Release v13.3 in 30 Teilen
+  (sha256 `a1bd446d…8fa5`), als Fremder geladen und geprüft; README auf `main` mit 16 V13-Bildern und Koop-Anleitung.
+- Bau-Test aus frischem Klon: `tools\build.ps1` rc 0 in 122 s (portable Werkzeugkette selbst geladen: llvm-mingw, CMake, Ninja), `LiminalGame.exe`, `liminal_net.dll` und `liminal_lobby.exe` gebaut (Quellen aus `third_party`, Lobby aus `tools/lobby`); gameplay_test im Klon 1020/0; Start 150 s ohne ERROR (einzige Warnung: Audiogerät des Rechners stumm geschaltet).
+- Selbstkontrolle: A21 jetzt „ja“ (93 ja, 3 nein). Offen bleibt die Lizenz des Spiels (Wahl des Nutzers).
+- Weiter: V14 (nur Wesen) als Kopie von V13, Branch `liminal-v14`.

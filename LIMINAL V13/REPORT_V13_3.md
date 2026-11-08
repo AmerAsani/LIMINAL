@@ -187,5 +187,6 @@ Näherung; rechte Hand (Gesten) weiter prozedural.
 
 ## 13. Upload
 
-Folgt im Hauptstrang: `liminal-v13` und Tag `v13.3`, Release, README mit den Bildern aus `docs/readme_v13/` – Schritte
-und Prüfungen in `GITHUB_UPLOAD.md` (Abschnitt „Offen“). In diesem Schritt wurde nichts gepusht.
+Erledigt am 08.11.2026 im Hauptstrang: Branch `liminal-v13`, Tag `v13.3`, Release v13.3 (30 Teile, Prüfsumme als
+Fremder bestätigt), README auf `main` mit den 16 Bildern und der Koop-Anleitung, Bau-Test aus frischem Klon – Einzelheiten
+in `GITHUB_UPLOAD.md`, Abschnitt „V13-Upload“.
