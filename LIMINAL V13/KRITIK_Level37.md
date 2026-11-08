@@ -112,3 +112,26 @@ Schlecht:
 
 Änderungen für Runde 6: Netz der Lampen unter Wasser nah am Wasser scharf, zur Decke weicher (Kontrast 1,0 → 0,55);
 Hof um die Lampe unter Wasser breiter (0,9 + 0,7 × Tiefe), etwas heller (0,16) und mit dem Netz des Grundes.
+
+## Runde 6 (Abschluss)
+
+Laufweg `wegbilder_r6_1..2.jpg` (203 m, 21 Räume, 51 Bilder, Karte `wegkarte_r6.png`), Bögen `wesen_r6_1..3.jpg`,
+Vergleich `wasser_vorher_nachher.jpg` (Runde 2 links, Runde 6 rechts: `becken_1`, `halle_2`, `becken_3`, `tunnel_1`,
+`becken_4_lampe`, `grube_5`).
+
+Gut:
+- Säulenhalle: um jede Lampe unter Wasser ein heller, gemusterter Grund, Säulen und Decke mit wanderndem Netz
+  (`halle_2`, `halle_3`) – die Halle liest sich als Becken mit Unterwasserlicht, wie im LOOK verlangt.
+- Netz an den Wänden unten scharf, oben weich (Weg 28–32 m, 52–60 m).
+- Gegenprobe der anderen Ebenen: Level 0 (Wasserräume des dunklen Meeres, Lampe an, und Startbereich) mit alten und
+  neuen Shadern gerendert – Unterschied im Rahmen des Rauschens zweier gleicher Läufe (mittlere Abweichung 0,10/0,09
+  gegen 0,07/0,11 von 255, Pixel über 8: 40/49 gegen 32/48).
+
+Keine neuen Befunde, die eine Änderung verlangen. Bleibt (begründet):
+- Das Netz ist eine Näherung (wandernde Zellränder), nicht aus der Wellenfläche berechnet; Wellen und Netz laufen nicht
+  im selben Takt (im Spiel nicht zu sehen, beides bewegt sich langsam).
+- Die Engine kennt keine Durchsicht: im flachen Wasser ist der Wandfuß unter der Wasserlinie nicht zu sehen; die Fläche
+  zeigt den Boden mit Tiefenversatz, dazu die Wasserlinie.
+- Spiegellicht verstärkt (Faktor 6 statt Fresnel allein, Kunstgriff, im Shader begründet).
+- Tropfenringe zeigen sich nur in Glanz und Spiegelung (wie in echt) und sind nicht an den Klang gekoppelt.
+- Tiefe Grube von oben fleckig dunkel (weicher, gewellter Grund in 4,5 m Tiefe).

@@ -63,3 +63,20 @@ Die Runden liefen gemeinsam mit Level 903 (gleicher Builder); je Runde Kontaktbo
 ## Aufwand
 In den rund 8 Stunden von Level 903 enthalten (gemeinsamer Builder); eigener Anteil etwa 0,5 Stunden (Varianten-
 Parameter, Bilder an Ort und Stelle, Dokument). Runden: vorher, r1–r5, final.
+
+## Nachträge der Abnahme (08.11.2026): Wasser nach Teil 1
+
+Die Wasserflächen (`water_surface@1` flach, `@2` tief; Code-Modell, je Raum und Durchgang eine Fläche) sind hier die
+größte „Objektklasse“. Geprüft nach den Mindestanforderungen für Wasser (Auftrag Teil 1), Runden 2–6 in
+`KRITIK_Level37.md`, Vergleich `docs/screens/level37/wasser_vorher_nachher.jpg`:
+
+| Anforderung | Stand |
+|---|---|
+| Rand ohne harte Polygonkante | Becken reichen von Wand zu Wand; an der Wand eine schmale Wasserlinie (2 cm dunkler, darüber 9 cm leicht) |
+| dunklere nasse Umgebung | glasierte Fliesen werden nass nicht dunkler; Wasserlinie an der Wand (s. o.) |
+| Reflexion mit Fresnel | Bildraum-Spiegelung und Decke als Ersatz (seit V13.3), dazu neu: das Wasser spiegelt das Licht der Lampen als wanderndes Netz an Wände und Decke |
+| leichte Tiefenwirkung | neu: Boden um die Tiefe versetzt (Brechung 1,33, Parallaxe), in der Tiefe weicher; Lichtnetz mit der Tiefe schwächer; Lampen unter Wasser als Schein |
+| Ripples bei Tropfen | neu: Tropfenringe alle 7–13 s in 60 % der 4-m-Zellen, sichtbar im Glanz |
+| keine flache, harte Glasfläche | Wellen, Brechung, Lichtnetz auf dem Grund |
+
+Bilder: `docs/screens/level37/wesen_r2_*` (vorher) … `wesen_r6_*`; Einzelbilder `build/qa/creatures/level37/r2..r6/`.

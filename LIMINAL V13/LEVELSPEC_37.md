@@ -54,6 +54,17 @@
   - Licht von unten aus dem Wasser;
   - in den Gruben meist kein Licht (40 % mit Licht von unten).
 - **Wasser:** Die Engine kennt keine durchsichtigen Flächen. Flaches Wasser ist deshalb ein helles Türkis (so wirkt klares Wasser über weißen Fliesen), tiefes ein dunkles Blaugrün.
+- **Wasser (V13.3, Abnahme):** Wiki: das Wasser kräuselt sich ständig leicht; Licht aus seltsamen Winkeln.
+  - Lichtnetz (Kaustik): auf dem Grund unter dem Wasser, unter Wasser in den Gruben (mit der Tiefe schwächer) und an
+    Decke, Säulen und Wänden über Lampen unter Wasser (nah am Wasser scharf, nach oben weicher).
+  - Gespiegeltes Licht: die Wasserfläche wirft das Licht der Lampen über dem Wasser – auch der Taschenlampe – als
+    wanderndes Netz an Wände und Decke (Fresnel, Schatten).
+  - Lampen unter Wasser liegen als Schein in der Fläche, mit hellem, gemustertem Grund ringsum (Totalreflexion an der
+    Unterseite).
+  - Tiefe: der Boden erscheint um die Wassertiefe versetzt (Brechung) und in der Tiefe weicher; schmale Wasserlinie an
+    der Wand; Tropfen schlagen alle 7–13 s ein (Ringe im Glanz).
+  - Umsetzung: `shaders/lighting.hlsl`, `shaders/gbuffer.hlsli`; Wasserspiegel klarer Becken im Umgebungs-Ring, Tiefe
+    im Material der Wasserfläche. Nur für Becken (`water_look` 1, 2); das dunkle Meer (Level 0) bleibt unverändert.
 - **Verstand:**
   - Im Wasser erholt er sich (−0,2 bis −0,35 je Sekunde, Wiki: entspannend).
   - In Gruben und dunklen Bereichen sinkt er (+0,15 bis +0,2, Wiki: Furcht).

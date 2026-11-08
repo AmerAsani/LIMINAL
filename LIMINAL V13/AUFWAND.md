@@ -512,6 +512,67 @@ Gefundene und behobene Fehler:
 - Im Wagen steht ein offenes Türblatt mit dunkler Scheibe vor der Innenwand (seit der Ausstattung).
 - Laufweg und Raumzahl nach E-036 (1 Raum).
 
+## Level 37 – abgenommen (08.11.2026)
+
+| Punkt | Stand |
+|---|---|
+| a) Strukturtyp, Raummetrik | Eintrag in `STRUKTURTYP.md` (Labyrinth: endloses Netz gleicher, gefluteter Fliesenräume ohne Wahrzeichen); alle sechs Raumtypen belegt (Tunnel, Gang, Raum, Säulenhalle, Grube, dunkler Raum/Gang). Raummetrik grün: 338 Räume, Decke min/Median 3,01/4,14 m, Gänge 3,0/3,0 m, Fläche Median 18 m², Sichtachsen Median 16,2 m, P90 25,6 m, 10 große Räume, 0 Stützen unter 1 m, 0 von 0 verstellt. Ähnlichkeit S 0,948 (99 Fenster, min 0,77), Ausreißer 0,0 %. Karte unverändert |
+| b) Ausstattung | `PROPS_Level37.md`: die Seite kennt keine Gegenstände („nur Fliesen, Wasser, Licht“); einzige Modellklasse ist der Metro-Wagen `metro_car_37` (neu in Blender mit 903, Runden vorher, r1–r5, final), dazu die Sicherheitsleuchte ohne Piktogramm `safety_light@1` (E-050). In der Abnahme neu: die Wasserflächen (`water_surface@1/@2`, Code-Modell) nach den Mindestanforderungen für Wasser aus Teil 1 geprüft und überarbeitet (Tabelle „Nachträge der Abnahme“ in `PROPS_Level37.md`) |
+| c) Wesen | Die Seite sagt ausdrücklich: keine Wesen („Devoid of Entities“); im Spiel keine (`ENTITY_ABGLEICH.md`, Abschnitt Level 37: übereinstimmend). Die Metro (Entity 756) ist der Wagen, der hier hält und zurück nach Level 903 fährt. Keine neue Rolle, kein neues `anim::Entity` |
+| d) Kritikrunden | 6 Ebenen-Runden (`KRITIK_Level37.md`): 1 Struktur (V13.2), 2–6 Abnahme mit Laufweg und den fünf Läufen der neuen Level-37-Tabelle in `tools/qa/creatureshots.py` (Tunnel mit Wagen: Wagen in der Wand, Stufen, innen, Wandleuchten tief; Räume mit Licht tief von der Wand, aus der Ecke, von unten und dunkel; Säulenhalle; Gruben hell, dunkel, unter Wasser, an der Oberfläche; Wasser nah: Wasserlinie, Spiegelung, Fresnel, Tropfen) – je Lauf Ebenenlicht und Lampe. Bögen `docs/screens/level37/wesen_r2_*` … `wesen_r6_*` (der Name kommt vom Werkzeug; gezeigt werden Bereiche und Wasser) |
+| e) Laufweg | `walkway.py level37 --rooms 15 --seed 3`: 203 m durch 21 Räume, 51 Bilder alle 4 m (`docs/screens/level37/wegbilder_r2_*`, `_r5_*`, `_r6_*`, Karten `wegkarte_r2.png`, `_r5.png`, `_r6.png`; vorher `_r1_*` mit denselben Zahlen), über Wagen, Tunnel, Gruben (Schwimmen), Räume mit allen Lichtarten, dunkle Räume und Gänge |
+| f) Prüfungen | Modellprüfung aller Modelle der Ebene (`metro_car_37` 39 895 Dreiecke, `safety_light`, `safety_light@1`): 3 geprüft, 0 Fehler. Halt der Ausstattung (`gameplay_test`): level37 2 Objekte mit Halt-Regel, 0 ohne Halt. Schilder (`signs.py --check level37`): Notausgangsschilder 0 (Grenze 0), Notausgangstüren 0, falsch platziert 0, Sicherheitsleuchten mit Piktogramm 0. Raummetrik und Ähnlichkeit grün. Tests grün: gameplay 1020/0, audio 121/0, coop --quick 209/0, net 72/0, worldgen 29658/0, supply OK. Smoke-Test 08.11. (`docs/metrics/smoke_level37.json`, 24 Stationen, mit dem neuen Wasser): GPU 2,74 ms (max 3,17), Spiel 0,03 ms, Grafik-CPU 8,23 ms, bis 0,09 Mio. Dreiecke, VRAM 1188 MB, RAM 1078 MB (Spitze 1402 MB), 0 Fehler im Protokoll. Gegenprobe anderer Ebenen: Level 0 (Wasserräume des dunklen Meeres mit Lampe, Startbereich) mit alten und neuen Shadern gerendert, Unterschied im Rauschen zweier gleicher Läufe |
+| g) Aufwand | Struktur und Kritikrunde 1 in V13.2 (Hauptstrang, mit 5.3, 188, 903, 36); Ausstattung mit Level 903 (eigener Anteil etwa 0,5 h). Abnahme am 08.11.: Runde 2 im ersten Versuch (15:34–15:40, Bilder des Bestands, Werkzeug-Tabelle), Runden 3–6 und Abschluss im zweiten Versuch (etwa 16:15–17:20; Commits Runden 2–4 16:46, Runde 5 16:49). Etwa die Hälfte Wasser in den Shadern (Lichtnetz, Spiegellicht, Schein, Tiefe, Tropfen; Proben mit Verstärkung 16, Takt 1 s, Rot-Probe der Tiefe), ein Viertel Bilder und Urteile, der Rest Prüfungen, Messungen, Gegenprobe Level 0, Tests und Dokumente |
+
+**Neu gebaute Assets (Level 37):**
+- **Modelle:** keine neuen in der Abnahme (Wiki: keine Gegenstände); `metro_car_37` stammt aus der Ausstattung (mit Level
+  903, Silberlack aus dessen Abnahme).
+- **Wasser der Becken** (neu, `shaders/lighting.hlsl`, `shaders/gbuffer.hlsli`, `src/render/world_renderer.cpp`,
+  `src/world/generator.cpp`, `src/world/room.hpp`):
+  - Lichtnetz (Kaustik) auf dem Grund, unter Wasser und über Lampen unter Wasser (Decke, Säulen, Wände);
+  - gespiegeltes Lichtnetz der Lampen über dem Wasser und der Taschenlampe an Wänden und Decke (Spiegellampe, Fresnel,
+    Spiegelpunkt auf demselben Becken, Schatten auf beiden Wegen);
+  - Lampen unter Wasser als Schein in der Fläche (Parallaxe des gebrochenen Blicks, 1 − Fresnel, Weg im Wasser) mit
+    hellem, gemustertem Grund ringsum;
+  - Tiefe: Boden um die Wassertiefe versetzt (Brechung 1,33) und in der Tiefe weicher; Wasserlinie an der Wand;
+    Tropfenringe;
+  - Kanäle: Wasserspiegel klarer Becken im Alpha des Umgebungs-Rings (`Room::waterLook`), Tiefe als Metall-Zuschlag des
+    Wassermaterials – nur für Becken (`water_look` 1, 2), alle anderen Ebenen unberührt.
+- **Werkzeug:** Level-37-Tabelle in `tools/qa/creatureshots.py` (fünf Läufe, Wasser mit drei Bildern im Abstand von 1 s
+  für Tropfen).
+
+**Bilder:**
+- Laufweg `docs/screens/level37/wegbilder_r1_*`, `_r2_*`, `_r5_*`, `_r6_*`, Karten `wegkarte_r1.png`, `_r2.png`, `_r5.png`,
+  `_r6.png`.
+- Bereiche und Wasser `docs/screens/level37/wesen_r2_*` … `wesen_r6_*` (Einzelbilder `build/qa/creatures/level37/r2..r6/`);
+  beste Ansichten: `wesen_r6_2` halle 2–3 (Grund und Säulen um die Lampen unter Wasser), `wesen_r6_1` becken 3 (Netz an
+  Wand und Decke), tunnel 1 (gespiegeltes Netz an der Nordwand), becken 4 mit Lampe (Taschenlampe vom Wasser an die
+  Rückwand gespiegelt), `wesen_r6_3` wasser 3 (Gang mit Wandlicht, Netz und Tropfenglanz).
+- Vergleich `docs/screens/level37/wasser_vorher_nachher.jpg` (Runde 2 links, Runde 6 rechts).
+- Ausstattung `docs/screens/level37/props_uebersicht_*.jpg`, `props_insitu_*.jpg`, `docs/screens/props/level37/`; Bereiche
+  `docs/screens/level37/01_*` … `11_*`.
+
+Gefundene und behobene Fehler:
+- **Kein Lichtnetz**: Böden unter Wasser gleichmäßig hell, das Becken wirkte wie türkis gestrichener Boden → Lichtnetz.
+- **Licht von unten unsichtbar**: Lampen unter der Fläche, Wasser um sie dunkel → Schein mit gemustertem Grund, Netz an
+  Säulen und Decke.
+- **Keine Tiefenwirkung**: Bodentextur auf der Fläche, 4,5 m tiefe Grube mit Fliesenraster wie flaches Wasser → Boden um
+  die Tiefe versetzt und weicher.
+- **Keine Tropfenringe** trotz Tropfgeräusch → Ringe im Glanz.
+- **Harte Wasserlinie** → schmale Linie an der Wand.
+- In den Runden: Netz an Wänden körnig (Wandkoordinate aus der Normalen mit Fugenrelief) → aus der Achse der Fläche;
+  Wasserfläche von unten (Grube, an der Oberfläche) bekam Spiegellicht und wurde weiß → ausgenommen; Schein flach über
+  das Wasser zu hell und immer über der Lampe → gebrochener Blick, 1 − Fresnel; Spiegellicht mit 1,6 unsichtbar, mit 16
+  überstrahlt → 6; Netz bis unter die Decke gleich scharf → nach oben weicher.
+
+**Restpunkte** (begründet, Einzelheiten in `KRITIK_Level37.md` Runde 6):
+- Lichtnetz als Näherung (wandernde Zellränder), nicht aus der Wellenfläche berechnet.
+- Keine Durchsicht in der Engine: der Wandfuß unter der Wasserlinie ist im flachen Wasser nicht zu sehen.
+- Spiegellicht verstärkt (Faktor 6, Kunstgriff).
+- Tropfenringe nicht an den Klang gekoppelt; tiefe Grube von oben fleckig dunkel.
+- Ausgänge zu 130, 43, 233 und Löcher unter Wasser nicht gebaut (`LEVELSPEC_37.md`, Abschnitt 3); der Wagen ist der
+  einzige Weg hinaus.
+
 ## Level 903, 37, 36
 
 Strukturprüfungen grün (Level 5 mit begründeten Ausnahmen, Level 188 Schild entfernt, Level 36 vier Wiki-Bereiche ergänzt).
