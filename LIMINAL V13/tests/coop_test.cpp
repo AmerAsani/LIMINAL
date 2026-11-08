@@ -269,12 +269,14 @@ enum class Way {
 };
 static const char* wayName(Way w) { return w == Way::Lobby ? "Lobby, direkt" : w == Way::LobbyNetem ? "Lobby, Netzstoerer" : w == Way::Relay ? "nur Relay" : "direkt ohne Lobby"; }
 
-static u16 freeUdpPort(u16 from) {
+// V13.3 (B-030): auf der Adresse pruefen, auf der der Dienst spaeter lauscht - der TURN-Server liegt auf 127.0.0.1;
+// die Pruefung auf 127.0.0.3 fand den Port frei, obwohl ein zweiter coop_test (Langlauf) ihn dort schon hielt
+static u16 freeUdpPort(u16 from, const char* addr = "127.0.0.3") {
     for (u16 p = from; p < from + 400; ++p) {
         SOCKET u = socket(AF_INET, SOCK_DGRAM, 0), t = socket(AF_INET, SOCK_STREAM, 0);
         sockaddr_in a{};
         a.sin_family = AF_INET;
-        inet_pton(AF_INET, "127.0.0.3", &a.sin_addr);
+        inet_pton(AF_INET, addr, &a.sin_addr);
         a.sin_port = htons(p);
         const bool ok = bind(u, (sockaddr*)&a, sizeof(a)) == 0 && bind(t, (sockaddr*)&a, sizeof(a)) == 0;
         closesocket(u), closesocket(t);
@@ -370,7 +372,7 @@ struct Game {
             lc.publicHost = "127.0.0.1";
             lc.joinsPerMinute = 1000, lc.failsPerTenMinutes = 1000;  // Tests verbinden oft hintereinander
             if (w == Way::Relay) {  // TURN hinter dem Netzstoerer: die Lobby nennt den Port des Proxys
-                lc.turnPort = freeUdpPort(41000);
+                lc.turnPort = freeUdpPort(41000, "127.0.0.1");
                 turnProxy = std::make_unique<UdpProxy>(lc.turnPort, "127.0.0.1");
                 if (useEm) turnProxy->set(em);
                 lc.publicTurnPort = turnProxy->port();

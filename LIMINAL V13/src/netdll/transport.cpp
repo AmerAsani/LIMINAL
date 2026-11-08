@@ -861,6 +861,12 @@ void pumpInbox(LnContext* c) {
     }
 }
 
+// V13.3 (Schluss, B-036): mit LIMINAL_NET_LOG=1 den genauen Grund einer Trennung nach stderr (Stille, Puffer, Zustand)
+void logDrop(const char* who, int slot, const char* why, double silent, size_t buffered) {
+    if (std::getenv("LIMINAL_NET_LOG"))
+        std::fprintf(stderr, "[ln] Trennung %s Platz %d: %s, still seit %.1f s, Puffer %zu Byte\n", who, slot, why, silent, buffered);
+}
+
 void pumpHost(LnContext* c, double now) {
     for (size_t i = 0; i < c->peers.size(); ++i) {
         Peer& p = c->peers[i];
@@ -875,6 +881,8 @@ void pumpHost(LnContext* c, double now) {
         } catch (...) {
         }
         if (st == rtc::PeerConnection::State::Failed || st == rtc::PeerConnection::State::Closed) {
+            logDrop("Host", (int)i, st == rtc::PeerConnection::State::Failed ? "Verbindung gescheitert" : "Verbindung geschlossen",
+                    now - p.lastRx, 0);
             hostDrop(c, (int)i, p.phase == Peer::Open ? LN_R_TIMEOUT : LN_R_ICE, true, false);
             continue;
         }
@@ -898,11 +906,13 @@ void pumpHost(LnContext* c, double now) {
         }
         if (p.phase == Peer::Open) {
             if (now - p.lastRx > c->lim.silenceMs / 1000.0) {
+                logDrop("Host", (int)i, "Stille", now - p.lastRx, 0);
                 hostDrop(c, (int)i, LN_R_TIMEOUT, true, false);
                 continue;
             }
             try {
                 if (p.r->bufferedAmount() > kMaxBufferedReliable) {  // liest nicht mehr: trennen
+                    logDrop("Host", (int)i, "Puffer voll", now - p.lastRx, p.r->bufferedAmount());
                     hostDrop(c, (int)i, LN_R_TIMEOUT, true, false);
                     continue;
                 }
@@ -927,8 +937,11 @@ void pumpGuest(LnContext* c, double now) {
             if (!c->finished) readChannel(c, 0, LN_UNRELIABLE, now);
             if (c->finished) return;
         }
-        if (st == rtc::PeerConnection::State::Failed || st == rtc::PeerConnection::State::Closed)
+        if (st == rtc::PeerConnection::State::Failed || st == rtc::PeerConnection::State::Closed) {
+            logDrop("Gast", 0, st == rtc::PeerConnection::State::Failed ? "Verbindung gescheitert" : "Verbindung geschlossen",
+                    now - p.lastRx, 0);
             return guestFail(c, c->connected || p.helloSent ? LN_R_TIMEOUT : LN_R_ICE);
+        }
         if (!p.helloSent && channelsOpen(p)) {
             if (!fingerprintVerified(p) || (c->code.hasPin() && !equalConst(pinFromFingerprint(p.remoteFp), c->code.pin))) return guestFail(c, LN_R_CERT);
             u8 h[kHelloFixed + LN_NAME_MAX];
@@ -951,7 +964,10 @@ void pumpGuest(LnContext* c, double now) {
             return guestFail(c, c->progress >= LN_P_HELLO ? LN_R_TIMEOUT : c->progress >= LN_P_SIGNALING ? LN_R_ICE : LN_R_LOBBY);
         return;
     }
-    if (now - p.lastRx > c->lim.silenceMs / 1000.0) return guestFail(c, LN_R_TIMEOUT);
+    if (now - p.lastRx > c->lim.silenceMs / 1000.0) {
+        logDrop("Gast", 0, "Stille", now - p.lastRx, 0);
+        return guestFail(c, LN_R_TIMEOUT);
+    }
     if (now >= p.nextPing) p.nextPing = now + kPingInterval, sendPing(p, now);
 }
 
