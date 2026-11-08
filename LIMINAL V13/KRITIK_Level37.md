@@ -90,3 +90,25 @@ Schlecht:
 Änderungen für Runde 5: Schein dort, wo der gebrochene Blickstrahl die Tiefe der Lampe erreicht, mal (1 − Fresnel) und
 Weg im Wasser; Kern 0,6. Tropfen: Probe mit 1 s Takt und Rot-Probe der Tiefe (Tiefe kommt im Shader an; Ringe zeigen
 sich wie in echt in Glanz und Spiegelung als Bogen aus Lichtpunkten), Wellenhöhe 0,45, Takt 7–13 s in 60 % der 4-m-Zellen.
+
+## Runde 5
+
+Laufweg `wegbilder_r5_1..2.jpg` (203 m, 21 Räume, 51 Bilder, Karte `wegkarte_r5.png`), Bögen `wesen_r5_1..3.jpg`.
+
+Gut:
+- Räume mit Licht von unten (Weg 28–32 m, 52–60 m, 172–176 m) tragen das wandernde Netz an Wänden und Decke, die Lampe
+  liegt als Schein im Wasser; Räume mit Deckenlicht (36–44 m, 168 m, 180 m) haben das Netz auf dem Grund, die Wände bleiben
+  ruhig (Deckenlicht fällt steil ein, das Wasser spiegelt dann kaum – wie in echt).
+- Dunkle Räume und Gänge (80–92 m, 120–140 m) bleiben dunkel, ohne Netz.
+- Grube an der Oberfläche (`grube_5`) grau mit Spiegelung der Wand und Ringen, nicht mehr hell.
+- Gespiegeltes Lampenlicht: die Taschenlampe wirft ein Netz an die Rückwand (`becken_4_lampe`, `grube_2_lampe`).
+
+Schlecht:
+- **Netz an Wänden bis unter die Decke gleich scharf** (Weg 172–176 m, `halle_2`): ganze Wände wie mit einem großen
+  Netz bespannt. Die Lampe unter Wasser ist eine Fläche, kein Punkt; das Netz muss nach oben weicher werden.
+- **Hallenboden um die Lampen leer** (`wasser_4..6`): nur der helle Kern; in echt wirft die Unterseite der Wasserfläche
+  das Licht der Lampe auf den Grund zurück (Totalreflexion), der Boden um die Lampe ist hell und gemustert.
+- Tiefe Grube von oben fleckig dunkel (`grube_2`, wie in Runde 2): der Grund 4,5 m tief, weich und gewellt – bleibt so.
+
+Änderungen für Runde 6: Netz der Lampen unter Wasser nah am Wasser scharf, zur Decke weicher (Kontrast 1,0 → 0,55);
+Hof um die Lampe unter Wasser breiter (0,9 + 0,7 × Tiefe), etwas heller (0,16) und mit dem Netz des Grundes.

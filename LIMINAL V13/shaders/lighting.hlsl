@@ -494,7 +494,8 @@ void CSMain(uint3 gid : SV_GroupID, uint3 dtid : SV_DispatchThreadID, uint gi : 
         else
         {
             const float2 q = abs(N.z) > 0.5 ? P.xy : float2(wallUv.x, wallUv.y * 0.8);
-            cAbove = 0.4 + 2.4 * causticNet(q * 1.3, tW * 0.8);
+            // nah am Wasser scharf, zur Decke weicher (die Lampe ist kein Punkt)
+            cAbove = lerp(1.0, 0.4 + 2.4 * causticNet(q * 1.3, tW * 0.8), 0.55 + 0.45 * exp(-hW * 0.35));
             const float2 qm = abs(N.z) > 0.5 ? P.xy * 1.3 : float2(wallUv.x * 1.6, hW * 2.6);
             cMirror = lerp(1.0, 0.3 + 2.8 * causticNet(qm, tW * 0.9), abs(N.z) > 0.5 ? 0.75 : exp(-hW * 0.6));
             if (abs(N.z) < 0.5)
@@ -541,7 +542,8 @@ void CSMain(uint3 gid : SV_GroupID, uint3 dtid : SV_DispatchThreadID, uint gi : 
             const float2 dh = P.xy + (dot(vh, vh) > 1e-6 ? normalize(vh) : float2(0.0, 0.0)) * (dep * sinT / cosT) - L.posRange.xy;
             const float dh2 = dot(dh, dh);
             const float Tw = 1.0 - (0.02 + 0.98 * pow(1.0 - NoV, 5.0));
-            glow += L.colorRadius.rgb * ((exp(-dh2 / (0.04 + 0.05 * dep)) * 0.6 + exp(-dh2 / (0.5 + 0.6 * dep)) * 0.12) *
+            // Hof: Licht, das die Unterseite der Flaeche auf den Grund zurueckwirft (Totalreflexion) - mit Netz
+            glow += L.colorRadius.rgb * ((exp(-dh2 / (0.04 + 0.05 * dep)) * 0.6 + exp(-dh2 / (0.9 + 0.7 * dep)) * 0.16 * cSurf) *
                                          exp(-dep / cosT * 0.25) * Tw);
             continue;
         }
